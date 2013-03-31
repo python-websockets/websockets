@@ -19,9 +19,10 @@ def connect(uri, protocols=(), extensions=()):
     """
     Connect to a WebSocket URI. Return a `WebSocketClientProtocol`.
 
-    This is described as _Establish a WebSocket Connection_ in RFC 6455.
+    This is described as Establish a WebSocket Connection in RFC 6455.
 
     The following requirements aren't implemented:
+
     - There MUST be no more than one connection in a CONNECTING state.
     - Clients MUST use the Server Name Indication extension. (Tulip doesn't
       support passing a server_hostname argument to the wrap_socket() call.)

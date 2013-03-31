@@ -1,2 +1,5 @@
 *.pyc
+README.html
+.coverage
+htmlcov
 .DS_Store

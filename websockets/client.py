@@ -1,9 +1,7 @@
 """
 Sample WebSocket client implementation.
 
-It is simplistic, and in particular, it doesn't use an HTTP parsing library.
-This is only designed for testing the server side, and to demonstrate how to
-use build_request and check_response.
+It demonstrates how to tie together the handshake and framing APIs.
 """
 
 __all__ = ['connect', 'WebSocketClientProtocol']
@@ -12,13 +10,14 @@ import tulip
 
 from .framing import *
 from .handshake import *
+from .http import read_response
 from .uri import *
 
 
 @tulip.coroutine
 def connect(uri, protocols=(), extensions=()):
     """
-    Connect to a WebSocket URI.
+    Connect to a WebSocket URI. Return a `WebSocketClientProtocol`.
 
     This is described as _Establish a WebSocket Connection_ in RFC 6455.
 
@@ -31,7 +30,6 @@ def connect(uri, protocols=(), extensions=()):
     assert not extensions, "extensions aren't supported"
 
     uri = parse_uri(uri)
-
     transport, protocol = yield from tulip.get_event_loop().create_connection(
             WebSocketClientProtocol, uri.host, uri.port, ssl=uri.secure)
 
@@ -55,8 +53,13 @@ class WebSocketClientProtocol(WebSocketFramingProtocol):
 
     @tulip.coroutine
     def handshake(self, uri):
-        CRLF = '\r\n'
-        # Send handshake request.
+        """
+        Perform the WebSocket opening handshake.
+
+        Raise `InvalidHandshake` if the handshake fails.
+        """
+        # Send handshake request. Since the uri and the headers only contain
+        # ASCII characters, we can keep this simple.
         request = ['GET %s HTTP/1.1' % uri.resource_name]
         set_header = lambda k, v: request.append('{}: {}'.format(k, v))
         if uri.port == (443 if uri.secure else 80):
@@ -64,24 +67,16 @@ class WebSocketClientProtocol(WebSocketFramingProtocol):
         else:
             set_header('Host', '{}:{}'.format(uri.host, uri.port))
         key = build_request(set_header)
-        request.append(CRLF)
-        request = CRLF.join(request).encode()
+        request.append('\r\n')
+        request = '\r\n'.join(request).encode()
         self.transport.write(request)
 
-        # Read handshake response. Very, very simplistic.
-        status_line = (yield from self.stream.readline()).decode()
-        if not status_line.endswith(CRLF):
-            raise InvalidHandshake("Bad line")
-        if not status_line.startswith('HTTP/1.1 101 '):
-            raise InvalidHandshake("Bad status")
-        headers = {}
-        while True:
-            header_line = (yield from self.stream.readline()).decode()
-            if header_line == CRLF:
-                break
-            if not header_line.endswith(CRLF):
-                raise InvalidHandshake("Bad line")
-            name, value = header_line.split(':', 1)
-            headers[name.lower()] = value.strip()
-        get_header = lambda k: headers[k.lower()]
+        # Read handshake response.
+        try:
+            status_code, headers = yield from read_response(self.stream)
+        except Exception as exc:
+            raise InvalidHandshake("Malformed HTTP message") from exc
+        if status_code != 101:
+            raise InvalidHandshake("Unexpected status code")
+        get_header = lambda k: headers.get(k, '')
         check_response(get_header, key)

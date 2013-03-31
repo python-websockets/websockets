@@ -6,12 +6,12 @@ This is only designed for testing the server side, and to demonstrate how to
 use build_request and check_response.
 """
 
-__all__ = ['connect']
+__all__ = ['connect', 'WebSocketClientProtocol']
 
 import tulip
 
+from .framing import *
 from .handshake import *
-from .protocols import *
 from .uri import *
 
 

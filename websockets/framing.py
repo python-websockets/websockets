@@ -2,7 +2,7 @@
 Phase two: data framing (parts 4 to 8 of RFC 6455).
 """
 
-__all__ = ['WebSocketFraming']
+__all__ = ['WebSocketFraming', 'WebSocketFramingProtocol']
 
 import collections
 import io
@@ -203,3 +203,33 @@ class WebSocketFraming:
         if self.is_client:
             data = bytes(b ^ mask[i % 4] for i, b in enumerate(data))
         self.writer(data)
+
+
+class WebSocketFramingProtocol(WebSocketFraming, tulip.Protocol):
+    """
+    WebSocket frames implementation as a Tulip protocol.
+    """
+
+    def __init__(self, *args, **kwargs):
+        # The reader and writer will be set by connection_made.
+        super().__init__(None, None, *args, **kwargs)
+
+    def connection_made(self, transport):
+        self.transport = transport
+        self.stream = tulip.StreamReader()
+        self.reader = self.stream.readexactly
+        self.writer = self.transport.write
+
+    def data_received(self, data):
+        self.stream.feed_data(data)
+
+    def eof_received(self):
+        self.stream.feed_eof()
+
+    def connection_lost(self, exc):
+        pass
+
+    @tulip.coroutine
+    def close(self, data=b''):
+        yield from super().close(data)
+        self.transport.close()

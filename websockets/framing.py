@@ -112,8 +112,17 @@ class WebSocketFraming:
             self.write_frame(OP_CLOSE, data)
             self.local_closed = True
             # Discard unprocessed messages until we get the other end's close.
-            while (yield from self.recv()) is not None:
-                pass
+            yield from self.wait_close()
+
+    @tulip.coroutine
+    def wait_close(self):
+        """
+        Wait for the other side to perform the closing handshake.
+
+        This coroutine doesn't do anything once the connection is closed.
+        """
+        while (yield from self.recv()) is not None:
+            pass
 
     def ping(self, data=b''):
         """

@@ -3,4 +3,5 @@ docs/_build
 README.html
 .coverage
 htmlcov
+compliance/reports
 .DS_Store

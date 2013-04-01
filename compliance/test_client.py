@@ -1,0 +1,57 @@
+import json
+import logging
+import urllib.parse
+
+import tulip
+import websockets
+
+
+logging.basicConfig(level=logging.WARNING)
+#logging.getLogger('websockets').setLevel(logging.DEBUG)
+
+SERVER = 'ws://127.0.0.1:8642'
+AGENT = 'websockets'
+
+
+@tulip.coroutine
+def get_case_count(server):
+    ws = yield from websockets.connect(server + '/getCaseCount')
+    msg = yield from ws.recv()
+    yield from ws.wait_close()
+    return json.loads(msg)
+
+
+@tulip.coroutine
+def run_case(server, case, agent):
+    ws = yield from websockets.connect(server +
+            '/runCase?case={}&agent={}'.format(case, agent))
+    try:
+        while True:
+            msg = yield from ws.recv()
+            if msg is None:
+                break
+            ws.send(msg)
+        yield from ws.wait_close()
+    except Exception:
+        logging.exception("Client exception in test case #{}".format(case))
+
+
+@tulip.coroutine
+def update_reports(server, agent):
+    ws = yield from websockets.connect(server +
+            '/updateReports?agent={}'.format(agent))
+    yield from ws.wait_close()
+
+
+@tulip.task
+def run_tests(server, agent):
+    cases = yield from get_case_count(server)
+    for case in range(1, cases + 1):
+        print("Running test case {} out of {}".format(case, cases), end="\r")
+        yield from run_case(server, case, agent)
+    print("Ran {} test cases               ".format(cases))
+    yield from update_reports(server, agent)
+
+
+main = run_tests(SERVER, urllib.parse.quote(AGENT))
+tulip.get_event_loop().run_until_complete(main)

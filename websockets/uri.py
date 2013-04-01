@@ -1,5 +1,8 @@
 """
-WebSocket URIs (part 3 of RFC 6455).
+The :mod:`websockets.uri` module implements parsing of WebSocket URIs
+according to `section 3 of RFC 6455`_.
+
+.. _section 3 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-3
 """
 
 __all__ = ['InvalidURI', 'parse_uri']
@@ -18,10 +21,12 @@ WebSocketURI = collections.namedtuple('WebSocketURI',
 
 def parse_uri(uri):
     """
-    Parse and validate a WebSocket URI.
+    This function parses and validates a WebSocket URI.
 
-    If the URI is valid, this function returns a namedtuple (secure, host,
-    port, resource_name). Otherwise it raises an `InvalidURI` exception.
+    If the URI is valid, it returns a namedtuple `(secure, host, port,
+    resource_name)`
+
+    Otherwise, it raises an :exc:`InvalidURI` exception.
     """
     uri = urllib.parse.urlparse(uri)
     try:

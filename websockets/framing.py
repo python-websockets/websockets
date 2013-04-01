@@ -1,8 +1,13 @@
 """
-Phase two: data framing (parts 4 to 8 of RFC 6455).
+The :mod:`websockets.framing` module implements data framing as specified in
+`sections 5 to 8 of RFC 6455`_.
+
+.. _sections 5 to 8 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
+
+
 """
 
-__all__ = ['WebSocketFraming', 'WebSocketFramingProtocol']
+__all__ = ['WebSocketProtocol']
 
 import collections
 import io
@@ -26,11 +31,14 @@ Frame = collections.namedtuple('Frame', ('fin', 'opcode', 'data'))
 
 class WebSocketFraming:
     """
-    WebSocket frames implementation.
+    This class is a generic WebSocket frames implementation.
 
-    This class assumes that the opening handshake and the upgrade from HTTP
-    have been completed. It deals with with sending and receiving data, and
-    with the close handshake.
+    It assumes that the opening handshake and the upgrade from HTTP have been
+    completed. It deals with with sending and receiving data, and with the
+    closing handshake.
+
+    It implements the server side behavior by default. To obtain the client
+    side behavior, instantiate it with `is_client=True`.
     """
 
     def __init__(self, reader, writer, is_client=False):
@@ -39,9 +47,6 @@ class WebSocketFraming:
 
         `reader` is a coroutine that takes an integer argument, and reads
         exactly this number of bytes. `writer` is a non-blocking function.
-
-        This class implements the server side behavior by default. To obtain
-        the client side behavior, instantiate it with `is_client=True`.
         """
         self.reader = reader
         self.writer = writer
@@ -53,11 +58,12 @@ class WebSocketFraming:
     @tulip.coroutine
     def recv(self):
         """
-        Receive the next message.
+        This coroutine receives the next message.
 
-        A text frame is returned as a `str`, a binary frame as `bytes`.
+        It returns a :class:`str` for a text frame and :class:`bytes` for a
+        binary frame.
 
-        This coroutine returns `None` once the connection is closed.
+        It raises :exc:`IOError` once the connection is closed.
         """
         # RFC 6455 - 5.4. Fragmentation
         frame = yield from self.read_data_frame()
@@ -80,9 +86,13 @@ class WebSocketFraming:
 
     def send(self, data):
         """
-        Write a message.
+        This function sends a message.
 
-        A str is sent as a text frame, bytes as a binary frame.
+        It sends a :class:`str` as a text frame and :class:`bytes` as a binary
+        frame.
+
+        It raises a :exc:`TypeError` for other inputs and :exc:`IOError` once
+        the connection is closed.
         """
         if isinstance(data, str):
             opcode = 1
@@ -96,12 +106,14 @@ class WebSocketFraming:
     @tulip.coroutine
     def close(self, data=b''):
         """
-        Perform the closing handshake.
+        This coroutine performs the closing handshake.
 
-        This coroutine waits for the other end to complete the handshake. It
-        doesn't do anything once the connection is closed.
+        It waits for the other end to complete the handshake. It doesn't do
+        anything once the connection is closed.
 
         The underlying connection must be closed once this coroutine returns.
+
+        This is the expected way to terminate a connection on the server side.
 
         Status codes aren't implemented, but they can be passed in `data`.
         """
@@ -117,22 +129,28 @@ class WebSocketFraming:
     @tulip.coroutine
     def wait_close(self):
         """
-        Wait for the other side to perform the closing handshake.
+        This coroutine waits for the closing handshake.
 
-        This coroutine doesn't do anything once the connection is closed.
+        It doesn't do anything once the connection is closed.
+
+        This is the expected way to terminate a connection on the client side.
         """
         while (yield from self.recv()) is not None:
             pass
 
     def ping(self, data=b''):
         """
-        Send a Ping.
+        Send a ping.
+
+        A ping may serve as a keepalive.
         """
         self.write_frame(OP_PING, data)
 
     def pong(self, data=b''):
         """
-        Send a Pong.
+        Send a pong.
+
+        An unsolicited pong may serve as a unidirectional heartbeat.
         """
         self.write_frame(OP_PONG, data)
 
@@ -214,14 +232,20 @@ class WebSocketFraming:
         self.writer(data)
 
 
-class WebSocketFramingProtocol(WebSocketFraming, tulip.Protocol):
+class WebSocketProtocol(WebSocketFraming, tulip.Protocol):
     """
-    WebSocket frames implementation as a Tulip protocol.
+    This class implements WebSocket framing as a Tulip protocol.
+
+    It assumes that the opening handshake and the upgrade from HTTP have been
+    completed. It deals with with sending and receiving data, and with the
+    closing handshake.
+
+    It implements the server side behavior by default. To obtain the client
+    side behavior, instantiate it with `is_client=True`.
     """
 
-    def __init__(self, *args, **kwargs):
-        # The reader and writer will be set by connection_made.
-        super().__init__(None, None, *args, **kwargs)
+    def __init__(self, is_client=False):
+        super().__init__(None, None, is_client)
 
     def connection_made(self, transport):
         self.transport = transport
@@ -240,5 +264,15 @@ class WebSocketFramingProtocol(WebSocketFraming, tulip.Protocol):
 
     @tulip.coroutine
     def close(self, data=b''):
+        """
+        This coroutine performs the closing handshake.
+
+        It waits for the other end to complete the handshake. It doesn't do
+        anything once the connection is closed.
+
+        This is the expected way to terminate a connection on the server side.
+
+        Status codes aren't implemented, but they can be passed in `data`.
+        """
         yield from super().close(data)
         self.transport.close()

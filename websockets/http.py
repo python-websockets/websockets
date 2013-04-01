@@ -1,6 +1,13 @@
 """
-HTTP parsing utilities, adequate for the WebSocket handshake.
+The :mod:`websockets.http` module provides HTTP parsing functions. They're
+merely adequate for the WebSocket handshake messages. They're used by the
+sample client and servers.
+
+These functions cannot be imported from :mod:`websockets`; they must be
+imported from :mod:`websockets.http`.
 """
+
+__all__ = ['read_request', 'read_response']
 
 import email.parser
 import io
@@ -15,12 +22,14 @@ MAX_LINE = 4096
 @tulip.coroutine
 def read_request(stream):
     """
-    Read an HTTP/1.1 request that doesn't have a body from `stream`.
+    Read an HTTP/1.1 request from `stream`.
 
-    Return `(uri, headers)` where `uri` is a `str` and `headers` an
-    `email.message.Message`.
+    Return `(uri, headers)` where `uri` is a :class:`str` and `headers`
+    is a :class:`~email.message.Message`; `uri` isn't URL-decoded.
 
-    `uri` is transmitted as-is; it isn't URL-decoded.
+    Raise an exception if the request isn't well formatted.
+
+    The request is assumed not to contain a body.
     """
     request_line, headers = yield from read_message(stream)
     method, uri, version = request_line[:-2].decode().split(None, 2)
@@ -34,10 +43,14 @@ def read_request(stream):
 @tulip.coroutine
 def read_response(stream):
     """
-    Read an HTTP/1.1 response that doesn't have a body from `stream`.
+    Read an HTTP/1.1 response from `stream`.
 
-    Return `(status, headers)` where `status` is an `int` and `headers` an
-    `email.message.Message`.
+    Return `(status, headers)` where `status` is a :class:`int` and
+    `headers` is a :class:`~email.message.Message`.
+
+    Raise an exception if the request isn't well formatted.
+
+    The response is assumed not to contain a body.
     """
     status_line, headers = yield from read_message(stream)
     version, status, reason = status_line[:-2].decode().split(None, 2)
@@ -49,10 +62,12 @@ def read_response(stream):
 @tulip.coroutine
 def read_message(stream):
     """
-    Read an HTTP message that doesn't have a body from `stream`.
+    Read an HTTP message from `stream`.
 
-    Return `(start line, headers)` where `start_line` is `bytes` and `headers`
-    an `email.message.Message`.
+    Return `(start_line, headers)` where `start_line` is :class:`bytes`
+    and `headers` is a :class:`~email.message.Message`.
+
+    The message is assumed not to contain a body.
     """
     start_line = yield from read_line(stream)
     header_lines = io.BytesIO()

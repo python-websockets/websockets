@@ -1,12 +1,9 @@
 """
-Sample WebSocket server implementation.
-
-It demonstrates how to tie together the handshake and framing APIs.
+The :mod:`websockets.server` module contains a sample WebSocket server
+implementation.
 """
 
-__all__ = ['serve', 'WebSocketServerProtocol']
-
-import re
+__all__ = ['serve']
 
 import tulip
 
@@ -15,28 +12,41 @@ from .handshake import *
 from .http import read_request
 
 
-@tulip.task
-def serve(ws_handler, host=None, port=None, protocols=(), extensions=()):
+def serve(ws_handler, host=None, port=None, *, protocols=(), extensions=(), **kwargs):
     """
-    Serve a WebSocket handler.
+    This task starts a WebSocket server.
 
-    `ws_handler` must be a coroutine, and it's called with the WebSocket
-    protocol and the request URI in arguments.
+    `ws_handler` is the WebSocket handler. It must be a coroutine accepting
+    two arguments: a :class:`~websockets.framing.WebSocketProtocol` and the
+    request URI. The `host` and `port` arguments and other keyword arguments
+    are passed to the event loop's ``start_serving`` method.
+
+    Whenever a client connects, the server accepts the connection, creates a
+    :class:`~websockets.framing.WebSocketProtocol`, performs the opening
+    handshake, and delegates to the WebSocket handler. Once the handler
+    completes, the server performs the closing handshake and closes the
+    connection.
     """
     assert not protocols, "protocols aren't supported"
     assert not extensions, "extensions aren't supported"
 
     yield from tulip.get_event_loop().start_serving(
-            lambda: WebSocketServerProtocol(ws_handler), host, port)
+            lambda: WebSocketServerProtocol(ws_handler), host, port, **kwargs)
 
 
-class WebSocketServerProtocol(WebSocketFramingProtocol):
+# Workaround for http://code.google.com/p/tulip/issues/detail?id=30
+__serve_doc__ = serve.__doc__
+serve = tulip.task(serve)
+serve.__doc__ = __serve_doc__
+
+
+class WebSocketServerProtocol(WebSocketProtocol):
     """
-    Sample WebSocket server implementation as a Tulip protocol.
+    Complete WebSocket server implementation as a Tulip protocol.
 
-    For the sake of simplicity, this protocol doesn't inherit a proper HTTP
-    implementation. It doesn't send appropriate HTTP responses when something
-    goes wrong.
+    TODO: for the sake of simplicity, this protocol doesn't inherit a proper
+    HTTP implementation, and it doesn't send appropriate HTTP responses when
+    something goes wrong.
     """
 
     def __init__(self, ws_handler, *args, **kwargs):
@@ -56,9 +66,9 @@ class WebSocketServerProtocol(WebSocketFramingProtocol):
     @tulip.coroutine
     def handshake(self):
         """
-        Perform the WebSocket opening handshake.
+        Perform the server side of the opening handshake.
 
-        Raise `InvalidHandshake` if the handshake fails.
+        Return the URI of the request.
         """
         # Read handshake request.
         try:

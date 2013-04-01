@@ -1,10 +1,9 @@
 """
-Sample WebSocket client implementation.
-
-It demonstrates how to tie together the handshake and framing APIs.
+The :mod:`websockets.client` module contains a sample WebSocket client
+implementation.
 """
 
-__all__ = ['connect', 'WebSocketClientProtocol']
+__all__ = ['connect']
 
 import tulip
 
@@ -17,15 +16,24 @@ from .uri import *
 @tulip.coroutine
 def connect(uri, protocols=(), extensions=()):
     """
-    Connect to a WebSocket URI. Return a `WebSocketClientProtocol`.
+    This coroutine connects to a WebSocket server and perfoms the handshake.
 
-    This is described as Establish a WebSocket Connection in RFC 6455.
+    It returns a :class:`~websockets.framing.WebSocketProtocol` which can then
+    be used to send and receive messages.
 
-    The following requirements aren't implemented:
+    It raises :exc:`~websockets.uri.InvalidURI` if `uri` is invalid and
+    :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
 
-    - There MUST be no more than one connection in a CONNECTING state.
-    - Clients MUST use the Server Name Indication extension. (Tulip doesn't
-      support passing a server_hostname argument to the wrap_socket() call.)
+    Clients shouldn't close the WebSocket connection. Instead, they should
+    wait with :meth:`~websockets.framing.WebSocketProtocol.wait_close` until
+    the server performs the closing handshake.
+
+    :func:`connect` implements the sequence called "Establish a WebSocket
+    Connection" in RFC 6455, except for the following requirements:
+
+    - "There MUST be no more than one connection in a CONNECTING state."
+    - "Clients MUST use the Server Name Indication extension." (Tulip doesn't
+      support passing a ``server_hostname`` argument to ``wrap_socket()``.)
     """
     assert not protocols, "protocols aren't supported"
     assert not extensions, "extensions aren't supported"
@@ -43,9 +51,9 @@ def connect(uri, protocols=(), extensions=()):
     return protocol
 
 
-class WebSocketClientProtocol(WebSocketFramingProtocol):
+class WebSocketClientProtocol(WebSocketProtocol):
     """
-    Sample WebSocket client implementation as a Tulip protocol.
+    Complete WebSocket client implementation as a Tulip protocol.
     """
 
     def __init__(self, *args, **kwargs):
@@ -55,9 +63,7 @@ class WebSocketClientProtocol(WebSocketFramingProtocol):
     @tulip.coroutine
     def handshake(self, uri):
         """
-        Perform the WebSocket opening handshake.
-
-        Raise `InvalidHandshake` if the handshake fails.
+        Perform the client side of the opening handshake.
         """
         # Send handshake request. Since the uri and the headers only contain
         # ASCII characters, we can keep this simple.

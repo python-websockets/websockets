@@ -11,4 +11,4 @@ IO support`_, and requires Python ≥ 3.3.
 .. _Tulip: http://code.google.com/p/tulip/
 .. _asynchronous IO support: http://www.python.org/dev/peps/pep-3156/
 
-The documentation is available at https://websockets.readthedocs.org/.
+The documentation is available at http://aaugustin.github.com/websockets/.

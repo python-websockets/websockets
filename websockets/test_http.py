@@ -4,6 +4,7 @@ import tulip
 import tulip.test_utils
 
 from .http import *
+from .http import read_message      # private API
 
 
 class HTTPTests(tulip.test_utils.LogTrackingTestCase, unittest.TestCase):

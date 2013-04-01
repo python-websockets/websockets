@@ -9,7 +9,7 @@ import tulip
 
 from .framing import *
 from .handshake import *
-from .http import read_response
+from .http import *
 from .uri import *
 
 
@@ -73,6 +73,7 @@ class WebSocketClientProtocol(WebSocketProtocol):
             set_header('Host', uri.host)
         else:
             set_header('Host', '{}:{}'.format(uri.host, uri.port))
+        set_header('User-Agent', USER_AGENT)
         key = build_request(set_header)
         request.append('\r\n')
         request = '\r\n'.join(request).encode()

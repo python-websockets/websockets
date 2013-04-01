@@ -9,7 +9,7 @@ import tulip
 
 from .framing import *
 from .handshake import *
-from .http import read_request
+from .http import *
 
 
 def serve(ws_handler, host=None, port=None, *, protocols=(), extensions=(), **kwargs):
@@ -82,6 +82,7 @@ class WebSocketServerProtocol(WebSocketProtocol):
         # characters, we can keep this simple.
         response = ['HTTP/1.1 101 Switching Protocols']
         set_header = lambda k, v: response.append('{}: {}'.format(k, v))
+        set_header('Server', USER_AGENT)
         build_response(set_header, key)
         response.append('\r\n')
         response = '\r\n'.join(response).encode()

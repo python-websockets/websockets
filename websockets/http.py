@@ -7,16 +7,23 @@ These functions cannot be imported from :mod:`websockets`; they must be
 imported from :mod:`websockets.http`.
 """
 
-__all__ = ['read_request', 'read_response']
+__all__ = ['read_request', 'read_response', 'USER_AGENT']
 
 import email.parser
 import io
+import sys
 
 import tulip
 
 
 MAX_HEADERS = 256
 MAX_LINE = 4096
+
+USER_AGENT = ' '.join((
+    'Python/{0}.{1}'.format(*sys.version_info),
+    'tulip/0.0',
+    'websockets/0.1',
+))
 
 
 @tulip.coroutine

@@ -7,7 +7,7 @@ os.putenv('COPYFILE_DISABLE', 'true')
 description = "An implementation of the WebSocket Protocol (RFC 6455)"
 
 with open(os.path.join(os.path.dirname(__file__), 'README')) as f:
-    long_description = '\n\n'.join(f.read().split('\n\n')[2:4])
+    long_description = '\n\n'.join(f.read().split('\n\n')[1:])
 
 distutils.core.setup(
     name='websockets',

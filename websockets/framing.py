@@ -161,6 +161,10 @@ class WebSocketFraming:
             frame = yield from self.read_frame()
             # RFC 6455 - 5.5. Control Frames
             if frame.opcode & 0b1000:
+                if len(frame.data) > 125:
+                    raise ValueError("Control frame is too long")
+                if not frame.fin:
+                    raise ValueError("Control frame is fragmented")
                 if frame.opcode == OP_CLOSE:
                     self.remote_closed = True
                     self.close()

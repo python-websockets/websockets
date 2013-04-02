@@ -218,7 +218,7 @@ class WebSocketFraming:
         length = len(data)
         if length < 0x7e:
             header.write(struct.pack('!B', mask_bit | length))
-        elif length < 0x7fff:
+        elif length < 0x10000:
             header.write(struct.pack('!BH', mask_bit | 126, length))
         else:
             header.write(struct.pack('!BQ', mask_bit | 127, length))

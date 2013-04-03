@@ -7,16 +7,20 @@ The :mod:`websockets.framing` module implements data framing as specified in
 
 """
 
-__all__ = ['WebSocketProtocol']
+__all__ = ['WebSocketProtocol', 'InvalidOperation']
 
+import codecs
 import collections
 import io
+import logging
 import random
 import struct
 import warnings
 
 import tulip
 
+
+logger = logging.getLogger(__name__)
 
 OP_CONTINUATION = 0
 OP_TEXT = 1
@@ -26,34 +30,39 @@ OP_PING = 9
 OP_PONG = 10
 
 
+class InvalidOperation(Exception):
+    """Exception raised when attempting an illegal operation."""
+
+
+class WebSocketProtocolError(Exception):
+    # Internal exception raised when the other end breaks the protocol.
+    # It's private because it shouldn't leak outside of WebSocketProtocol.
+    pass
+
+
 Frame = collections.namedtuple('Frame', ('fin', 'opcode', 'data'))
 
 
-class WebSocketFraming:
+class WebSocketProtocol(tulip.Protocol):
     """
-    This class is a generic WebSocket frames implementation.
+    This class implements WebSocket framing as a Tulip Protocol.
 
-    It assumes that the opening handshake and the upgrade from HTTP have been
-    completed. It deals with with sending and receiving data, and with the
-    closing handshake.
+    It assumes that the WebSocket connection is established. It deals with
+    with sending and receiving data, and with the closing handshake.
 
     It implements the server side behavior by default. To obtain the client
     side behavior, instantiate it with `is_client=True`.
+
+    The `timeout` parameter is used when closing the connection.
     """
+    state = 'OPEN'
 
-    def __init__(self, reader, writer, is_client=False):
-        """
-        Create a WebSocket frames handler.
-
-        `reader` is a coroutine that takes an integer argument, and reads
-        exactly this number of bytes. `writer` is a non-blocking function.
-        """
-        self.reader = reader
-        self.writer = writer
+    def __init__(self, is_client=False, timeout=10):
         self.is_client = is_client          # This is redundant but avoids
         self.is_server = not is_client      # confusing negations.
-        self.local_closed = False
-        self.remote_closed = False
+        self.timeout = timeout
+
+    # Public API
 
     @tulip.coroutine
     def recv(self):
@@ -63,26 +72,12 @@ class WebSocketFraming:
         It returns a :class:`str` for a text frame and :class:`bytes` for a
         binary frame.
 
-        It raises :exc:`IOError` once the connection is closed.
+        It raises :exc:`InvalidOperation` when the connection is closed.
         """
-        # RFC 6455 - 5.4. Fragmentation
-        frame = yield from self.read_data_frame()
-        if frame is None:
-            return
-        if frame.opcode == OP_TEXT:
-            text = True
-        elif frame.opcode == OP_BINARY:
-            text = False
-        else:
-            raise ValueError("Unexpected opcode")
-        data = [frame.data]
-        while not frame.fin:
-            frame = yield from self.read_data_frame()
-            if frame.opcode != OP_CONTINUATION:
-                raise ValueError("Unexpected opcode")
-            data.append(frame.data)
-        data = b''.join(data)
-        return data.decode('utf-8') if text else data
+        try:
+            return (yield from self.read_message())
+        except (UnicodeDecodeError, WebSocketProtocolError):
+            self.fail_connection()
 
     def send(self, data):
         """
@@ -91,8 +86,8 @@ class WebSocketFraming:
         It sends a :class:`str` as a text frame and :class:`bytes` as a binary
         frame.
 
-        It raises a :exc:`TypeError` for other inputs and :exc:`IOError` once
-        the connection is closed.
+        It raises a :exc:`TypeError` for other inputs and
+        :exc:`InvalidOperation` when the connection is closed.
         """
         if isinstance(data, str):
             opcode = 1
@@ -111,20 +106,21 @@ class WebSocketFraming:
         It waits for the other end to complete the handshake. It doesn't do
         anything once the connection is closed.
 
-        The underlying connection must be closed once this coroutine returns.
-
         This is the expected way to terminate a connection on the server side.
 
         Status codes aren't implemented, but they can be passed in `data`.
         """
-        if self.is_client:
-            warnings.warn("Clients SHOULD NOT close the WebSocket connection "
-                          "arbitrarily (RFC 6455, 7.3).")
-        if not self.local_closed:
+        if self.state == 'OPEN':
+            # 7.1.2. Start the WebSocket Closing Handshake
             self.write_frame(OP_CLOSE, data)
-            self.local_closed = True
-            # Discard unprocessed messages until we get the other end's close.
-            yield from self.wait_close()
+            # 7.1.3. The WebSocket Closing Handshake is Started
+            self.state = 'CLOSING'
+            # Discard frames until we get the other end's close.
+            try:
+                yield from self.read_close_frame()
+            except WebSocketProtocolError:
+                self.fail_connection()
+        yield from self.close_connection()
 
     @tulip.coroutine
     def wait_close(self):
@@ -135,12 +131,16 @@ class WebSocketFraming:
 
         This is the expected way to terminate a connection on the client side.
         """
-        while (yield from self.recv()) is not None:
-            pass
+        try:
+            while self.state == 'OPEN':
+                if (yield from self.read_data_frame()) is None:
+                    break
+        except WebSocketProtocolError:
+            self.fail_connection()
 
     def ping(self, data=b''):
         """
-        Send a ping.
+        This function sends a ping.
 
         A ping may serve as a keepalive.
         """
@@ -148,77 +148,145 @@ class WebSocketFraming:
 
     def pong(self, data=b''):
         """
-        Send a pong.
+        This function sends a pong.
 
         An unsolicited pong may serve as a unidirectional heartbeat.
         """
         self.write_frame(OP_PONG, data)
 
+    # Private methods
+
+    @tulip.coroutine
+    def read_message(self):
+        # This coroutine reassembles fragmented messages
+        frame = yield from self.read_data_frame()
+        if frame is None:
+            return
+        if frame.opcode == OP_TEXT:
+            text = True
+        elif frame.opcode == OP_BINARY:
+            text = False
+        else:   # frame.opcode == OP_CONTINUATION
+            raise WebSocketProtocolError("Unexpected opcode")
+
+        # Shortcut for the common case - no fragmentation
+        if frame.fin:
+            return frame.data.decode('utf-8') if text else frame.data
+
+        # 5.4. Fragmentation
+        chunks = []
+        if text:
+            decoder = codecs.getincrementaldecoder('utf-8')(errors='strict')
+            append = lambda f: chunks.append(decoder.decode(f.data, f.fin))
+        else:
+            append = lambda f: chunks.append(f.data)
+        append(frame)
+
+        while not frame.fin:
+            frame = yield from self.read_data_frame()
+            if frame is None:
+                return
+            if frame.opcode != OP_CONTINUATION:
+                raise WebSocketProtocolError("Unexpected opcode")
+            append(frame)
+
+        return ('' if text else b'').join(chunks)
+
     @tulip.coroutine
     def read_data_frame(self):
-        # RFC 6455 - 6.2. Receiving Data
-        while not self.remote_closed:
+        # This coroutine deals with control frames automatically. It returns
+        # the next data frame when the connection is open and None otherwise.
+
+        # 6.2. Receiving Data
+        while self.state == 'OPEN':
             frame = yield from self.read_frame()
-            # RFC 6455 - 5.5. Control Frames
+            # 5.5. Control Frames
             if frame.opcode & 0b1000:
                 if len(frame.data) > 125:
-                    raise ValueError("Control frame is too long")
+                    raise WebSocketProtocolError("Control frame too long")
                 if not frame.fin:
-                    raise ValueError("Control frame is fragmented")
+                    raise WebSocketProtocolError("Fragmented control frame")
+                # 5.5.1. Close
                 if frame.opcode == OP_CLOSE:
-                    self.remote_closed = True
-                    self.close()
+                    # If the other side initiates the closing handshake, and
+                    # this side didn't initiate it during the `yield`, respond
+                    # and close the connection.
+                    if self.state == 'OPEN':
+                        # 7.1.3. The WebSocket Closing Handshake is Started
+                        self.state = 'CLOSING'
+                        self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
+                        yield from self.close_connection()
+                        return None
                 elif frame.opcode == OP_PING:
                     self.pong(frame.data)
                 elif frame.opcode == OP_PONG:
                     pass                    # unsolicited Pong
                 else:
-                    raise ValueError("Unexpected opcode")
-            # RFC 6455 - 5.6. Data Frames
-            else:
+                    raise WebSocketProtocolError("Unexpected opcode")
+            # 5.6. Data Frames
+            elif frame.opcode in (OP_CONTINUATION, OP_TEXT, OP_BINARY):
                 return frame
+            else:
+                raise WebSocketProtocolError("Unexpected opcode")
 
     @tulip.coroutine
-    def read_frame(self):
-        if self.remote_closed:
-            raise IOError("Cannot read from a closed WebSocket")
+    def read_frame(self, expected_state='OPEN'):
+        # This coroutine reads a single frame.
+
+        if self.state != expected_state:
+            raise InvalidOperation("Cannot read from a WebSocket "
+                                   "in the {} state".format(self.state))
 
         # Read the header
-        data = yield from self.reader(2)
+        data = yield from self.read_bytes(2)
         head1, head2 = struct.unpack('!BB', data)
         fin = bool(head1 & 0b10000000)
-        assert not head1 & 0b01110000, "reserved bits must be 0"
+        if head1 & 0b01110000:
+            raise WebSocketProtocolError("Reserved bits must be 0")
         opcode = head1 & 0b00001111
-        assert bool(head2 & 0b10000000) == self.is_server, "invalid masking"
+        if bool(head2 & 0b10000000) != self.is_server:
+            raise WebSocketProtocolError("Incorrect masking")
         length = head2 & 0b01111111
         if length == 126:
-            data = yield from self.reader(2)
+            data = yield from self.read_bytes(2)
             length, = struct.unpack('!H', data)
         elif length == 127:
-            data = yield from self.reader(8)
+            data = yield from self.read_bytes(8)
             length, = struct.unpack('!Q', data)
         if self.is_server:
-            mask = yield from self.reader(4)
+            mask = yield from self.read_bytes(4)
 
         # Read the data
-        data = yield from self.reader(length)
+        data = yield from self.read_bytes(length)
         if self.is_server:
             data = bytes(b ^ mask[i % 4] for i, b in enumerate(data))
 
-        return Frame(fin, opcode, data)
+        frame = Frame(fin, opcode, data)
+        logger.debug("< %s", frame)
+        return frame
 
-    def write_frame(self, opcode, data=b''):
-        if self.local_closed:
-            raise IOError("Cannot write to a closed WebSocket")
+    @tulip.coroutine
+    def read_bytes(self, n):
+        data = yield from self.stream.readexactly(n)
+        if len(data) != n:
+            raise WebSocketProtocolError("Unexpected EOF")
+        return data
+
+    def write_frame(self, opcode, data=b'', expected_state='OPEN'):
+        if self.state != expected_state:
+            raise InvalidOperation("Cannot write to a WebSocket "
+                                   "in the {} state".format(self.state))
+
+        logger.debug("> %s", Frame(False, opcode, data))
 
         # Write the header
         header = io.BytesIO()
         header.write(struct.pack('!B', 0b10000000 | opcode))
-        if self.is_server:
-            mask_bit = 0b00000000
-        else:
+        if self.is_client:
             mask_bit = 0b10000000
             mask = struct.pack('!I', random.getrandbits(32))
+        else:
+            mask_bit = 0b00000000
         length = len(data)
         if length < 0x7e:
             header.write(struct.pack('!B', mask_bit | length))
@@ -228,55 +296,74 @@ class WebSocketFraming:
             header.write(struct.pack('!BQ', mask_bit | 127, length))
         if self.is_client:
             header.write(mask)
-        self.writer(header.getvalue())
+        self.transport.write(header.getvalue())
 
         # Write the data
         if self.is_client:
             data = bytes(b ^ mask[i % 4] for i, b in enumerate(data))
-        self.writer(data)
+        self.transport.write(data)
 
+    @tulip.coroutine
+    def read_close_frame(self):
+        # This coroutine discards frames until it receives a Close frame.
+        self.alarm = tulip.Future(timeout=self.timeout)
+        try:
+            while self.state == 'CLOSING':
+                frame = tulip.Task(self.read_frame('CLOSING'))
+                yield from tulip.wait([frame, self.alarm],
+                                      return_when=tulip.FIRST_COMPLETED)
+                if frame.done() and frame.result().opcode == OP_CLOSE:
+                    return True
+                if self.alarm.done():
+                    return False
+        finally:
+            self.alarm = None
 
-class WebSocketProtocol(WebSocketFraming, tulip.Protocol):
-    """
-    This class implements WebSocket framing as a Tulip protocol.
+    @tulip.coroutine
+    def close_connection(self):
+        if self.state == 'CLOSED':
+            return
 
-    It assumes that the opening handshake and the upgrade from HTTP have been
-    completed. It deals with with sending and receiving data, and with the
-    closing handshake.
+        if self.state != 'CLOSING':
+            raise InvalidOperation("Cannot close a WebSocket connection "
+                                   "in the {} state".format(self.state))
 
-    It implements the server side behavior by default. To obtain the client
-    side behavior, instantiate it with `is_client=True`.
-    """
+        # 7.1.1. Close the WebSocket Connection
+        if self.is_server:
+            self.transport.close()
+        else:
+            self.alarm = tulip.Future(timeout=self.timeout)
+            try:
+                yield from tulip.wait([self.alarm])
+            finally:
+                self.alarm = None
+            if self.state != 'CLOSED':
+                self.transport.close()
 
-    def __init__(self, is_client=False):
-        super().__init__(None, None, is_client)
+    def fail_connection(self):
+        # 7.1.7. Fail the WebSocket Connection
+        if self.state == 'OPEN':
+            self.write_frame(OP_CLOSE)
+            self.state = 'CLOSING'
+        self.transport.close()
+
+    # Tulip Protocol methods
 
     def connection_made(self, transport):
         self.transport = transport
         self.stream = tulip.StreamReader()
-        self.reader = self.stream.readexactly
-        self.writer = self.transport.write
+        self.alarm = None
 
     def data_received(self, data):
         self.stream.feed_data(data)
 
     def eof_received(self):
         self.stream.feed_eof()
+        self.transport.close()
 
     def connection_lost(self, exc):
-        pass
+        # 7.1.4. The WebSocket Connection is Closed
+        self.state = 'CLOSED'
+        if self.alarm is not None:
+            self.alarm.set_result(None)
 
-    @tulip.coroutine
-    def close(self, data=b''):
-        """
-        This coroutine performs the closing handshake.
-
-        It waits for the other end to complete the handshake. It doesn't do
-        anything once the connection is closed.
-
-        This is the expected way to terminate a connection on the server side.
-
-        Status codes aren't implemented, but they can be passed in `data`.
-        """
-        yield from super().close(data)
-        self.transport.close()

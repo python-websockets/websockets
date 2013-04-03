@@ -49,6 +49,8 @@ class WebSocketServerProtocol(WebSocketProtocol):
     something goes wrong.
     """
 
+    state = 'CONNECTING'
+
     def __init__(self, ws_handler, *args, **kwargs):
         self.ws_handler = ws_handler
         super().__init__(*args, **kwargs)
@@ -87,5 +89,7 @@ class WebSocketServerProtocol(WebSocketProtocol):
         response.append('\r\n')
         response = '\r\n'.join(response).encode()
         self.transport.write(response)
+
+        self.state = 'OPEN'
 
         return uri

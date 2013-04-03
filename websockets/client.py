@@ -56,6 +56,8 @@ class WebSocketClientProtocol(WebSocketProtocol):
     Complete WebSocket client implementation as a Tulip protocol.
     """
 
+    state = 'CONNECTING'
+
     def __init__(self, *args, **kwargs):
         kwargs['is_client'] = True
         super().__init__(*args, **kwargs)
@@ -88,3 +90,5 @@ class WebSocketClientProtocol(WebSocketProtocol):
             raise InvalidHandshake("Unexpected status code")
         get_header = lambda k: headers.get(k, '')
         check_response(get_header, key)
+
+        self.state = 'OPEN'

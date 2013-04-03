@@ -64,7 +64,6 @@ Data transfer
 
 .. automodule:: websockets.framing
    :members:
-   :inherited-members:
 
 URI parser
 ..........

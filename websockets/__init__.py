@@ -13,3 +13,5 @@ __all__ = (
     + server.__all__
     + uri.__all__
 )
+
+from .version import version as __version__

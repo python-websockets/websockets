@@ -6,12 +6,17 @@ os.putenv('COPYFILE_DISABLE', 'true')
 
 description = "An implementation of the WebSocket Protocol (RFC 6455)"
 
-with open(os.path.join(os.path.dirname(__file__), 'README')) as f:
+root = os.path.dirname(__file__)
+
+with open(os.path.join(root, 'README')) as f:
     long_description = '\n\n'.join(f.read().split('\n\n')[1:])
+
+with open(os.path.join(root, 'websockets', 'version.py')) as f:
+    eval(f.read())
 
 distutils.core.setup(
     name='websockets',
-    version='0.1',
+    version=version,
     author='Aymeric Augustin',
     author_email='aymeric.augustin@m4x.org',
     url='https://github.com/aaugustin/websockets',

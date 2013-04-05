@@ -15,6 +15,8 @@ import sys
 
 import tulip
 
+from .version import version
+
 
 MAX_HEADERS = 256
 MAX_LINE = 4096
@@ -22,7 +24,7 @@ MAX_LINE = 4096
 USER_AGENT = ' '.join((
     'Python/{0}.{1}'.format(*sys.version_info),
     'tulip/0.0',
-    'websockets/0.1',
+    'websockets/{}'.format(version),
 ))
 
 

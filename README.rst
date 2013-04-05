@@ -7,8 +7,11 @@ with a focus on simplicity and correctness.
 It relies on the `Tulip`_ library, which prefigurates Python's `asynchronous
 IO support`_, and requires Python ≥ 3.3.
 
+It passes the `Autobahn Testsuite`_.
+
 .. _RFC 6455: http://tools.ietf.org/html/rfc6455
 .. _Tulip: http://code.google.com/p/tulip/
 .. _asynchronous IO support: http://www.python.org/dev/peps/pep-3156/
+.. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/master/compliance/README.rst
 
 The documentation is available at http://aaugustin.github.com/websockets/.

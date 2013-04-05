@@ -9,9 +9,12 @@ with a focus on simplicity and correctness.
 It relies on the `Tulip`_ library, which prefigurates Python's `asynchronous
 IO support`_, and requires Python ≥ 3.3.
 
+You can download the code and report issues `on GitHub`_.
+
 .. _RFC 6455: http://tools.ietf.org/html/rfc6455
 .. _Tulip: http://code.google.com/p/tulip/
 .. _asynchronous IO support: http://www.python.org/dev/peps/pep-3156/
+.. _on GitHub: https://github.com/aaugustin/websockets
 
 Example
 -------

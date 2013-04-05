@@ -108,8 +108,6 @@ The following parts of RFC 6455 aren't implemented:
 
 - `Subprotocols`_
 - `Extensions`_
-- `Status codes`_
 
 .. _Subprotocols: http://tools.ietf.org/html/rfc6455#section-1.9
 .. _Extensions: http://tools.ietf.org/html/rfc6455#section-9
-.. _Status codes: http://tools.ietf.org/html/rfc6455#section-7.4

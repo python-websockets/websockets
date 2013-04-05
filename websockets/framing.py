@@ -29,6 +29,22 @@ OP_CLOSE = 8
 OP_PING = 9
 OP_PONG = 10
 
+CLOSE_CODES = {
+    1000: "OK",
+    1001: "going away",
+    1002: "protocol error",
+    1003: "unsupported type",
+    # 1004: - (reserved)
+    # 1005: no status code (internal)
+    # 1006: connection closed (internal)
+    1007: "invalid data",
+    1008: "policy violation",
+    1009: "message too big",
+    1010: "extension required",
+    1011: "unexpected error",
+    # 1015: TLS failure (internal)
+}
+
 
 class InvalidOperation(Exception):
     """Exception raised when attempting an illegal operation."""
@@ -48,7 +64,9 @@ class WebSocketProtocol(tulip.Protocol):
     This class implements WebSocket framing as a Tulip Protocol.
 
     It assumes that the WebSocket connection is established. It deals with
-    with sending and receiving data, and with the closing handshake.
+    with sending and receiving data, and with the closing handshake. Once the
+    connection is closed, the status code is available in the
+    :attr:`close_code` attribute, and the reason in :attr:`close_reason`.
 
     It implements the server side behavior by default. To obtain the client
     side behavior, instantiate it with `is_client=True`.
@@ -61,6 +79,8 @@ class WebSocketProtocol(tulip.Protocol):
         self.is_client = is_client          # This is redundant but avoids
         self.is_server = not is_client      # confusing negations.
         self.timeout = timeout
+        self.close_code = None
+        self.close_reason = ''
 
     # Public API
 
@@ -76,8 +96,15 @@ class WebSocketProtocol(tulip.Protocol):
         """
         try:
             return (yield from self.read_message())
-        except (UnicodeDecodeError, WebSocketProtocolError):
-            self.fail_connection()
+        except WebSocketProtocolError:
+            self.fail_connection(1002)
+        except UnicodeDecodeError:
+            self.fail_connection(1007)
+        except Exception:
+            try:
+                self.fail_connection(1011)
+            finally:
+                raise
 
     def send(self, data):
         """
@@ -99,7 +126,7 @@ class WebSocketProtocol(tulip.Protocol):
         self.write_frame(opcode, data)
 
     @tulip.coroutine
-    def close(self, data=b''):
+    def close(self, code=1000, reason=''):
         """
         This coroutine performs the closing handshake.
 
@@ -108,18 +135,18 @@ class WebSocketProtocol(tulip.Protocol):
 
         This is the expected way to terminate a connection on the server side.
 
-        Status codes aren't implemented, but they can be passed in `data`.
+        The `code` must be an :class:`int` and the `reason` a :class:`str`.
         """
         if self.state == 'OPEN':
             # 7.1.2. Start the WebSocket Closing Handshake
-            self.write_frame(OP_CLOSE, data)
+            self.write_close_frame(code, reason)
             # 7.1.3. The WebSocket Closing Handshake is Started
             self.state = 'CLOSING'
             # Discard frames until we get the other end's close.
             try:
                 yield from self.read_close_frame()
             except WebSocketProtocolError:
-                self.fail_connection()
+                self.fail_connection(1002)
         yield from self.close_connection()
 
     @tulip.coroutine
@@ -208,6 +235,16 @@ class WebSocketProtocol(tulip.Protocol):
                     raise WebSocketProtocolError("Fragmented control frame")
                 # 5.5.1. Close
                 if frame.opcode == OP_CLOSE:
+                    if frame.data:
+                        if len(frame.data) < 2:
+                            raise WebSocketProtocolError("Close frame too short")
+                        code, = struct.unpack('!H', frame.data[:2])
+                        if not (code in CLOSE_CODES or 3000 <= code < 5000):
+                            raise WebSocketProtocolError("Invalid status code")
+                        self.close_code = code
+                        self.close_reason = frame.data[2:].decode('utf-8')
+                    else:
+                        self.close_code = 1005
                     # If the other side initiates the closing handshake, and
                     # this side didn't initiate it during the `yield`, respond
                     # and close the connection.
@@ -271,6 +308,12 @@ class WebSocketProtocol(tulip.Protocol):
         if len(data) != n:
             raise WebSocketProtocolError("Unexpected EOF")
         return data
+
+    def write_close_frame(self, code=1000, reason=''):
+        self.close_code = code
+        self.close_reason = reason
+        data = struct.pack('!H', code) + reason.encode('utf-8')
+        self.write_frame(OP_CLOSE, data)
 
     def write_frame(self, opcode, data=b'', expected_state='OPEN'):
         if self.state != expected_state:
@@ -340,10 +383,10 @@ class WebSocketProtocol(tulip.Protocol):
             if self.state != 'CLOSED':
                 self.transport.close()
 
-    def fail_connection(self):
+    def fail_connection(self, code=1011, reason=''):
         # 7.1.7. Fail the WebSocket Connection
         if self.state == 'OPEN':
-            self.write_frame(OP_CLOSE)
+            self.write_close_frame(code, reason)
             self.state = 'CLOSING'
         self.transport.close()
 
@@ -366,4 +409,5 @@ class WebSocketProtocol(tulip.Protocol):
         self.state = 'CLOSED'
         if self.alarm is not None:
             self.alarm.set_result(None)
-
+        if self.close_code is None:
+            self.close_code = 1006

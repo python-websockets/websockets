@@ -12,7 +12,7 @@ with open(os.path.join(root, 'README')) as f:
     long_description = '\n\n'.join(f.read().split('\n\n')[1:])
 
 with open(os.path.join(root, 'websockets', 'version.py')) as f:
-    eval(f.read())
+    exec(f.read())
 
 distutils.core.setup(
     name='websockets',

@@ -82,6 +82,19 @@ class WebSocketProtocol(tulip.Protocol):
         self.close_code = None
         self.close_reason = ''
 
+    @property
+    def open(self):
+        """
+        This property is ``True`` when the connection is usable.
+
+        It can be used to write loops on the server side and handle
+        disconnections gracefully::
+
+            while ws.open:
+                # ...
+        """
+        return self.state == 'OPEN'
+
     # Public API
 
     @tulip.coroutine

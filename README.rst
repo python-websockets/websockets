@@ -14,4 +14,4 @@ It passes the `Autobahn Testsuite`_.
 .. _asynchronous IO: http://www.python.org/dev/peps/pep-3156/
 .. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/master/compliance/README.rst
 
-The documentation is available at http://aaugustin.github.com/websockets/.
+The documentation is available at http://aaugustin.github.io/websockets/.

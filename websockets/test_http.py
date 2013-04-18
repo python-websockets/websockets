@@ -1,13 +1,12 @@
 import unittest
 
 import tulip
-import tulip.test_utils
 
 from .http import *
 from .http import read_message      # private API
 
 
-class HTTPTests(tulip.test_utils.LogTrackingTestCase, unittest.TestCase):
+class HTTPTests(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
@@ -51,13 +50,11 @@ class HTTPTests(tulip.test_utils.LogTrackingTestCase, unittest.TestCase):
         self.assertEqual(hdrs['Upgrade'], 'websocket')
 
     def test_method(self):
-        self.suppress_log_errors()
         self.stream.feed_data(b'OPTIONS * HTTP/1.1\r\n\r\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_request(self.stream))
 
     def test_version(self):
-        self.suppress_log_errors()
         self.stream.feed_data(b'GET /chat HTTP/1.0\r\n\r\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_request(self.stream))
@@ -66,19 +63,16 @@ class HTTPTests(tulip.test_utils.LogTrackingTestCase, unittest.TestCase):
             self.loop.run_until_complete(read_response(self.stream))
 
     def test_headers_limit(self):
-        self.suppress_log_errors()
         self.stream.feed_data(b'foo: bar\r\n' * 500 + b'\r\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_message(self.stream))
 
     def test_line_limit(self):
-        self.suppress_log_errors()
         self.stream.feed_data(b'a' * 5000 + b'\r\n\r\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_message(self.stream))
 
     def test_line_ending(self):
-        self.suppress_log_errors()
         self.stream.feed_data(b'GET / HTTP/1.1\n\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_message(self.stream))

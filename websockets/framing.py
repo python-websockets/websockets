@@ -64,7 +64,7 @@ class WebSocketProtocol(tulip.Protocol):
     This class implements WebSocket framing as a Tulip Protocol.
 
     It assumes that the WebSocket connection is established. It deals with
-    with sending and receiving data, and with the closing handshake. Once the
+    sending and receiving data, and with the closing handshake. Once the
     connection is closed, the status code is available in the
     :attr:`close_code` attribute, and the reason in :attr:`close_reason`.
 
@@ -163,7 +163,7 @@ class WebSocketProtocol(tulip.Protocol):
                 self.fail_connection(1002)
         yield from self.close_connection()
 
-    @tulip.coroutine
+    @tulip.task
     def wait_close(self):
         """
         This coroutine waits for the closing handshake.
@@ -171,6 +171,9 @@ class WebSocketProtocol(tulip.Protocol):
         It doesn't do anything once the connection is closed.
 
         This is the expected way to terminate a connection on the client side.
+
+        Since it's implemented as a task, you can simply call it as a function
+        if you don't need to wait.
         """
         try:
             while self.state == 'OPEN':

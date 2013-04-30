@@ -16,7 +16,9 @@ from .uri import *
 @tulip.coroutine
 def connect(uri, protocols=(), extensions=()):
     """
-    This coroutine connects to a WebSocket server and perfoms the handshake.
+    This coroutine connects to a WebSocket server.
+
+    It's a thin wrapper around the event loop's ``create_connection`` method.
 
     It returns a :class:`~websockets.framing.WebSocketProtocol` which can then
     be used to send and receive messages.

@@ -12,14 +12,18 @@ from .handshake import *
 from .http import *
 
 
-def serve(ws_handler, host=None, port=None, *, protocols=(), extensions=(), **kwargs):
+@tulip.task
+def serve(ws_handler, host=None, port=None, *, protocols=(), extensions=(), **kwds):
     """
     This task starts a WebSocket server.
+
+    It's a thin wrapper around the event loop's ``start_serving`` method.
 
     `ws_handler` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`~websockets.framing.WebSocketProtocol` and the
     request URI. The `host` and `port` arguments and other keyword arguments
-    are passed to the event loop's ``start_serving`` method.
+    are passed to ``start_serving``. The return value is a list of objects that
+    can be passed to ``stop_serving``.
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`~websockets.framing.WebSocketProtocol`, performs the opening
@@ -30,9 +34,9 @@ def serve(ws_handler, host=None, port=None, *, protocols=(), extensions=(), **kw
     assert not protocols, "protocols aren't supported"
     assert not extensions, "extensions aren't supported"
 
-    yield from tulip.get_event_loop().start_serving(
-            lambda: WebSocketServerProtocol(ws_handler), host, port, **kwargs)
-
+    sockets = yield from tulip.get_event_loop().start_serving(
+            lambda: WebSocketServerProtocol(ws_handler), host, port, **kwds)
+    return sockets
 
 # Workaround for http://code.google.com/p/tulip/issues/detail?id=30
 __serve_doc__ = serve.__doc__

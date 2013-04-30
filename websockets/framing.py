@@ -139,7 +139,7 @@ class WebSocketProtocol(tulip.Protocol):
             raise TypeError("data must be bytes or str")
         self.write_frame(opcode, data)
 
-    @tulip.coroutine
+    @tulip.task
     def close(self, code=1000, reason=''):
         """
         This coroutine performs the closing handshake.

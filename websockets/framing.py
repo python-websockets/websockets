@@ -81,6 +81,7 @@ class WebSocketProtocol(tulip.Protocol):
         self.timeout = timeout
         self.close_code = None
         self.close_reason = ''
+        self.pings = collections.OrderedDict()
 
     @property
     def open(self):
@@ -178,20 +179,36 @@ class WebSocketProtocol(tulip.Protocol):
         except WebSocketProtocolError:
             self.fail_connection()
 
-    def ping(self, data=b''):
+    @tulip.task
+    def ping(self, data=None):
         """
-        This function sends a ping.
+        This coroutine sends a ping and waits for the corresponding pong.
 
         A ping may serve as a keepalive.
-        """
-        self.write_frame(OP_PING, data)
 
-    def pong(self, data=b''):
+        Since it's implemented as a task, you can simply call it as a function
+        if you don't need to wait.
+        """
+        # Protect against non-unique explicit payloads
+        if data in self.pings:
+            raise ValueError("Already waiting for a pong with the same data")
+        # Generate a unique random payload
+        while data is None or data in self.pings:
+            data = struct.pack('!I', random.getrandbits(32))
+
+        self.pings[data] = tulip.Future()
+        self.write_frame(OP_PING, data)
+        yield from self.pings[data]
+
+    def pong(self, data=None):
         """
         This function sends a pong.
 
         An unsolicited pong may serve as a unidirectional heartbeat.
         """
+        if data is None:
+            data = b''
+
         self.write_frame(OP_PONG, data)
 
     # Private methods
@@ -270,7 +287,12 @@ class WebSocketProtocol(tulip.Protocol):
                 elif frame.opcode == OP_PING:
                     self.pong(frame.data)
                 elif frame.opcode == OP_PONG:
-                    pass                    # unsolicited Pong
+                    # Do not acknowledge pings on unsolicited pongs
+                    if frame.data in self.pings:
+                        ping_id = None
+                        while ping_id != frame.data:
+                            ping_id, waiter = self.pings.popitem(0)
+                            waiter.set_result(None)
                 else:
                     raise WebSocketProtocolError("Unexpected opcode")
             # 5.6. Data Frames
@@ -370,7 +392,7 @@ class WebSocketProtocol(tulip.Protocol):
                                       return_when=tulip.FIRST_COMPLETED)
                 if frame.done() and frame.result().opcode == OP_CLOSE:
                     return True
-                if self.alarm.done():
+                if self.alarm.cancelled():
                     return False
         finally:
             self.alarm = None

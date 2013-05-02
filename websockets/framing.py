@@ -415,7 +415,7 @@ class WebSocketProtocol(tulip.Protocol):
         else:
             self.alarm = tulip.Future(timeout=self.timeout)
             try:
-                yield from tulip.wait([self.alarm])
+                yield from self.alarm
             finally:
                 self.alarm = None
             if self.state != 'CLOSED':

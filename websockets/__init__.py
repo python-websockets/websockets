@@ -1,15 +1,15 @@
 # This relies on each of the submodules having an __all__ variable.
 
 from .client import *
-from .framing import *
-from .handshake import *
+from .exceptions import *
+from .protocol import *
 from .server import *
 from .uri import *
 
 __all__ = (
     client.__all__
-    + framing.__all__
-    + handshake.__all__
+    + exceptions.__all__
+    + protocol.__all__
     + server.__all__
     + uri.__all__
 )

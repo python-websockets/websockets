@@ -33,7 +33,6 @@ To open a connection, a client must:
 """
 
 __all__ = [
-    'InvalidHandshake',
     'build_request', 'check_request',
     'build_response', 'check_response',
 ]
@@ -42,12 +41,10 @@ import base64
 import hashlib
 import random
 
+from .exceptions import InvalidHandshake
+
 
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-
-
-class InvalidHandshake(Exception):
-    """Exception raised when a handshake request or response is invalid."""
 
 
 def build_request(set_header):

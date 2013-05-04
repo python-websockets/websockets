@@ -1,5 +1,6 @@
 import unittest
 
+from .exceptions import InvalidHandshake
 from .handshake import *
 from .handshake import accept       # private API
 

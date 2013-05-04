@@ -1,16 +1,16 @@
 """
-The :mod:`websockets.client` module contains a sample WebSocket client
-implementation.
+The :mod:`websockets.client` module defines a simple WebSocket client API.
 """
 
-__all__ = ['connect']
+__all__ = ['connect', 'WebSocketClientProtocol']
 
 import tulip
 
-from .framing import *
-from .handshake import *
-from .http import *
-from .uri import *
+from .exceptions import InvalidHandshake
+from .handshake import build_request, check_response
+from .http import read_response, USER_AGENT
+from .protocol import WebSocketCommonProtocol
+from .uri import parse_uri
 
 
 @tulip.coroutine
@@ -20,14 +20,14 @@ def connect(uri, protocols=(), extensions=()):
 
     It's a thin wrapper around the event loop's ``create_connection`` method.
 
-    It returns a :class:`~websockets.framing.WebSocketProtocol` which can then
-    be used to send and receive messages.
+    It returns a :class:`~websockets.framing.WebSocketClientProtocol` which can
+    then be used to send and receive messages.
 
     It raises :exc:`~websockets.uri.InvalidURI` if `uri` is invalid and
     :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
 
-    Clients shouldn't close the WebSocket connection. Instead, they should
-    wait with :meth:`~websockets.framing.WebSocketProtocol.wait_close` until
+    Clients shouldn't close the WebSocket connection. Instead, they should wait
+    with :meth:`~websockets.framing.WebSocketCommonProtocol.wait_close` until
     the server performs the closing handshake.
 
     :func:`connect` implements the sequence called "Establish a WebSocket
@@ -53,16 +53,13 @@ def connect(uri, protocols=(), extensions=()):
     return protocol
 
 
-class WebSocketClientProtocol(WebSocketProtocol):
+class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
     Complete WebSocket client implementation as a Tulip protocol.
     """
 
+    is_client = True
     state = 'CONNECTING'
-
-    def __init__(self, *args, **kwargs):
-        kwargs['is_client'] = True
-        super().__init__(*args, **kwargs)
 
     @tulip.coroutine
     def handshake(self, uri):
@@ -73,7 +70,7 @@ class WebSocketClientProtocol(WebSocketProtocol):
         # ASCII characters, we can keep this simple.
         request = ['GET %s HTTP/1.1' % uri.resource_name]
         set_header = lambda k, v: request.append('{}: {}'.format(k, v))
-        if uri.port == (443 if uri.secure else 80):
+        if uri.port == (443 if uri.secure else 80):         # pragma: no cover
             set_header('Host', uri.host)
         else:
             set_header('Host', '{}:{}'.format(uri.host, uri.port))

@@ -1,5 +1,6 @@
 import unittest
 
+from .exceptions import InvalidURI
 from .uri import *
 
 

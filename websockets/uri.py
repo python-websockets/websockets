@@ -5,14 +5,12 @@ according to `section 3 of RFC 6455`_.
 .. _section 3 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-3
 """
 
-__all__ = ['InvalidURI', 'parse_uri']
+__all__ = ['parse_uri']
 
 import collections
 import urllib.parse
 
-
-class InvalidURI(Exception):
-    """Exception raised when an URI is invalid."""
+from .exceptions import InvalidURI
 
 
 WebSocketURI = collections.namedtuple('WebSocketURI',

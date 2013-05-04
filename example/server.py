@@ -4,7 +4,10 @@ import websockets
 @tulip.coroutine
 def hello(websocket, uri):
     name = yield from websocket.recv()
-    websocket.send("Hello {}!".format(name))
+    print("< {}".format(name))
+    greeting = "Hello {}!".format(name)
+    print("> {}".format(greeting))
+    websocket.send(greeting)
 
 websockets.serve(hello, 'localhost', 8765)
 

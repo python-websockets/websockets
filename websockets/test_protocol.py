@@ -132,6 +132,13 @@ class CommonTests:
         self.feed_eof()
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
 
+    def test_recv_when_recv_already_waiting(self):
+        tulip.Task(self.protocol.recv())
+        self.loop.run_until_complete(tulip.sleep(MS))       # make task start
+        self.loop.call_later(MS, self.fast_connection_failure)
+        with self.assertRaises(InvalidState):
+            self.loop.run_until_complete(self.protocol.recv())
+
     def test_send_text(self):
         self.protocol.send('café')
         self.assertFrameSent(True, OP_TEXT, 'café'.encode('utf-8'))

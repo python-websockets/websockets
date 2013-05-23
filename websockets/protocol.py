@@ -75,9 +75,12 @@ class WebSocketCommonProtocol(tulip.Protocol):
         binary frame.
 
         When it reaches the end of the message stream, or when a protocol error
-        occurs, it returns ``None``.
+        occurs, it returns ``None``. At that point the connection is closed.
 
-        It raises :exc:`InvalidState` when the connection is already closed.
+        It's an error to call :meth:`recv` once the connection is closed or
+        while another coroutine is already yielding from :meth:`recv` on the
+        same connection. In both cases, :meth:`recv` will raise
+        :exc:`InvalidState`.
         """
         try:
             return (yield from self.read_message())
@@ -99,7 +102,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         frame.
 
         It raises a :exc:`TypeError` for other inputs and
-        :exc:`InvalidState` when the connection is closed.
+        :exc:`InvalidState` once the connection is closed.
         """
         if isinstance(data, str):
             opcode = 1
@@ -115,12 +118,10 @@ class WebSocketCommonProtocol(tulip.Protocol):
         """
         This task performs the closing handshake.
 
-        It waits for the other end to complete the handshake. It doesn't do
-        anything once the connection is closed.
-
         This is the expected way to terminate a connection on the server side.
 
-        It isn't allowed to call :meth:`close` while :meth:`recv` is running.
+        It waits for the other end to complete the handshake. It doesn't do
+        anything once the connection is closed.
 
         The `code` must be an :class:`int` and the `reason` a :class:`str`.
         """
@@ -159,12 +160,14 @@ class WebSocketCommonProtocol(tulip.Protocol):
         """
         This task waits for the closing handshake.
 
-        It doesn't do anything once the connection is closed.
-
         This is the expected way to terminate a connection on the client side.
 
-        It isn't allowed to call :meth:`wait_close` while :meth:`recv` is
-        running.
+        It discards frames until the other end starts the handshake. It doesn't
+        do anything once the connection is closed.
+
+        It's an error to call :meth:`wait_close` while another coroutine is
+        yielding from :meth:`recv` on the same connection. In that case,
+        :meth:`recv` will raise :exc:`InvalidState`.
         """
         try:
             while self.state == 'OPEN':

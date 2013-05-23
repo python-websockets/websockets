@@ -86,7 +86,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         except Exception as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
         if status_code != 101:
-            raise InvalidHandshake("Unexpected status code")
+            raise InvalidHandshake("Bad status code: {}".format(status_code))
         get_header = lambda k: headers.get(k, '')
         check_response(get_header, key)
 

@@ -72,7 +72,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     def handler(self):
         try:
             if self.ws_handler is None:                     # pragma: no cover
-                raise NotImplemented
+                raise NotImplementedError
             uri = yield from self.handshake()
             yield from self.ws_handler(self, uri)
             yield from self.close()

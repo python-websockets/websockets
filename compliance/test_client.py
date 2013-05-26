@@ -13,34 +13,41 @@ SERVER = 'ws://127.0.0.1:8642'
 AGENT = 'websockets'
 
 
+class EchoClientProtocol(websockets.WebSocketClientProtocol):
+
+    """WebSocket client protocol that echoes messages synchronously."""
+
+    def handle_message(self, msg):
+        self.send(msg)
+
+    def handle_eof(self):
+        pass
+
+    def handle_exception(self, exc):
+        raise exc
+
+
 @tulip.coroutine
 def get_case_count(server):
-    ws = yield from websockets.connect(server + '/getCaseCount')
+    uri = server + '/getCaseCount'
+    ws = yield from websockets.connect(uri)
     msg = yield from ws.recv()
-    yield from ws.wait_close()
+    yield from ws.close_waiter
     return json.loads(msg)
 
 
 @tulip.coroutine
 def run_case(server, case, agent):
-    ws = yield from websockets.connect(server +
-            '/runCase?case={}&agent={}'.format(case, agent))
-    try:
-        while True:
-            msg = yield from ws.recv()
-            if msg is None:
-                break
-            ws.send(msg)
-        yield from ws.wait_close()
-    except Exception:
-        logging.exception("Client exception in test case #{}".format(case))
+    uri = server + '/runCase?case={}&agent={}'.format(case, agent)
+    ws = yield from websockets.connect(uri, klass=EchoClientProtocol)
+    yield from ws.close_waiter
 
 
 @tulip.coroutine
 def update_reports(server, agent):
-    ws = yield from websockets.connect(server +
-            '/updateReports?agent={}'.format(agent))
-    yield from ws.wait_close()
+    uri = server + '/updateReports?agent={}'.format(agent)
+    ws = yield from websockets.connect(uri)
+    yield from ws.close_waiter
 
 
 @tulip.task

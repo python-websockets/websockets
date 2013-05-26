@@ -28,12 +28,19 @@ class WebSocketCommonProtocol(tulip.Protocol):
     """
     This class implements common parts of the WebSocket protocol.
 
-    It assumes that the WebSocket connection is established. It deals with
-    sending and receiving data, and with the closing handshake. Once the
-    connection is closed, the status code is available in the
-    :attr:`close_code` attribute, and the reason in :attr:`close_reason`.
+    It assumes that the WebSocket connection is established. It runs a task
+    that stores incoming data frames in a queue and deals with control frames
+    automatically. It sends outgoing data frames and performs with the closing
+    handshake.
 
-    The `timeout` parameter is only used when closing the connection.
+    The `timeout` parameter defines the maximum wait time in seconds for
+    completing the closing handshake and for terminating the TCP connection.
+    :meth:`close()` will complete in at most twice this time.
+
+    Once the connection is closed, the status code is available in the
+    :attr:`close_code` attribute and the reason in :attr:`close_reason`. If
+    you need to wait until the connection is closed, you can yield from
+    :attr:`close_waiter`.
 
     There are only two differences between the client-side and the server-side
     behavior: masking the payload and closing the underlying TCP connection.
@@ -46,10 +53,30 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
     def __init__(self, timeout=10):
         self.timeout = timeout
+
         self.close_code = None
         self.close_reason = ''
+        self.close_waiter = tulip.Future()
+
+        self.opening_handshake = tulip.Future()
+        self.closing_handshake = tulip.Future()
+
+        # I'm not satisfied with the current API of tulip.parsers because it
+        # goes overboard with generators, eg. `out, buf = yield`. I doubt
+        # it'll end up in the standard library as is. For the time being I'll
+        # just use a DataBuffer to store received messages.
+        self.messages = tulip.DataBuffer()
+        # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
-        self.reading = False
+
+        self.run()
+
+        # In a subclass implementing the opening handshake, the state will be
+        # CONNECTING at this point.
+        if self.state == 'OPEN':
+            self.opening_handshake.set_result(True)
+
+    # Public API
 
     @property
     def open(self):
@@ -64,8 +91,6 @@ class WebSocketCommonProtocol(tulip.Protocol):
         """
         return self.state == 'OPEN'
 
-    # Public API
-
     @tulip.coroutine
     def recv(self):
         """
@@ -74,25 +99,19 @@ class WebSocketCommonProtocol(tulip.Protocol):
         It returns a :class:`str` for a text frame and :class:`bytes` for a
         binary frame.
 
-        When it reaches the end of the message stream, or when a protocol error
-        occurs, it returns ``None``. At that point the connection is closed.
+        When the end of the message stream is reached, or when a protocol
+        error occurs, :meth:`recv` returns ``None``, indicating that the
+        connection is closed.
 
-        It's an error to call :meth:`recv` once the connection is closed or
-        while another coroutine is already yielding from :meth:`recv` on the
-        same connection. In both cases, :meth:`recv` will raise
-        :exc:`InvalidState`.
+        It's forbidden to call :meth:`recv` from two coroutines in parallel.
+        If this happens, the second call wil raise a :exc:`RuntimeError`.
         """
-        try:
-            return (yield from self.read_message())
-        except WebSocketProtocolError:
-            yield from self.fail_connection(1002)
-        except UnicodeDecodeError:
-            yield from self.fail_connection(1007)
-        except Exception:
-            try:
-                yield from self.fail_connection(1011)
-            finally:
-                raise
+        # Using an internal API isn't great, but it beats catching
+        # AssertionError and re-raising RuntimeError.
+        if self.messages._waiter is not None:
+            raise RuntimeError(
+                    "Another coroutine is already yielding from recv()")
+        return (yield from self.messages.read())
 
     def send(self, data):
         """
@@ -131,49 +150,12 @@ class WebSocketCommonProtocol(tulip.Protocol):
             self.write_frame(OP_CLOSE, serialize_close(code, reason))
             # 7.1.3. The WebSocket Closing Handshake is Started
             self.state = 'CLOSING'
-            # Discard frames until we get the other end's Close frame.
-            alarm = tulip.Future(timeout=self.timeout)
-            while True:
-                frame = tulip.Task(self.read_frame('CLOSING'))
-                yield from tulip.wait([frame, alarm],
-                        return_when=tulip.FIRST_COMPLETED)
-                # Frame received.
-                if frame.done():
-                    try:
-                        if frame.result().opcode == OP_CLOSE:
-                            self.close_code, self.close_reason = \
-                                    parse_close(frame.result().data)
-                            break
-                    except WebSocketProtocolError as exc:
-                        yield from self.fail_connection(1002)
-                                    # This appears to be a bug in coverage.py.
-                        break       # pragma: no branch
 
-                # Timeout.
-                if alarm.cancelled():
-                    frame.cancel()
-                    break
-        yield from self.close_connection()
+        yield from tulip.wait([self.closing_handshake], timeout=self.timeout)
+        yield from tulip.wait([self.close_waiter], timeout=self.timeout)
 
-    @tulip.task
-    def wait_close(self):
-        """
-        This task waits for the closing handshake.
-
-        This is the expected way to terminate a connection on the client side.
-
-        It discards frames until the other end starts the handshake. It doesn't
-        do anything once the connection is closed.
-
-        It's an error to call :meth:`wait_close` while another coroutine is
-        yielding from :meth:`recv` on the same connection. In that case,
-        :meth:`recv` will raise :exc:`InvalidState`.
-        """
-        try:
-            while self.state == 'OPEN':
-                yield from self.read_data_frame()
-        except WebSocketProtocolError:
-            yield from self.fail_connection(1002)
+        if self.state != 'CLOSED':
+            self.transport.close()
 
     @tulip.task
     def ping(self, data=None):
@@ -204,11 +186,40 @@ class WebSocketCommonProtocol(tulip.Protocol):
         """
         self.write_frame(OP_PONG, data)
 
-    # Private methods
+    # Semi-public API - for advanced use, but it should be stable.
+
+    def handle_message(self, msg):
+        self.messages.feed_data(msg)
+
+    def handle_eof(self):
+        self.messages.feed_eof()
+
+    def handle_exception(self, exc):
+        self.messages.set_exception(exc)
+
+    # Private methods - no guarantees.
+
+    @tulip.task
+    def run(self):
+        yield from self.opening_handshake
+        while not self.closing_handshake.done():
+            try:
+                msg = yield from self.read_message()
+                if msg is None:
+                    break
+                self.handle_message(msg)
+            except WebSocketProtocolError:
+                yield from self.fail_connection(1002)
+            except UnicodeDecodeError:
+                yield from self.fail_connection(1007)
+            except Exception as exc:
+                yield from self.fail_connection(1011)   # bug in coverage.py?
+                self.handle_exception(exc)              # pragma: no branch
+        self.handle_eof()
 
     @tulip.coroutine
     def read_message(self):
-        # This coroutine reassembles fragmented messages
+        # Reassemble fragmented messages.
         frame = yield from self.read_data_frame()
         if frame is None:
             return
@@ -244,18 +255,18 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
     @tulip.coroutine
     def read_data_frame(self):
-        # This coroutine deals with control frames automatically. It returns
-        # the next data frame when the connection is open and None otherwise.
-
+        # Deal with control frames automatically and return next data frame.
         # 6.2. Receiving Data
-        while self.state == 'OPEN':
+        while True:
             frame = yield from self.read_frame()
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:
                 self.close_code, self.close_reason = parse_close(frame.data)
-                # 7.1.3. The WebSocket Closing Handshake is Started
-                self.state = 'CLOSING'
-                self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
+                if self.state != 'CLOSING':
+                    # 7.1.3. The WebSocket Closing Handshake is Started
+                    self.state = 'CLOSING'
+                    self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
+                self.closing_handshake.set_result(True)
                 yield from self.close_connection()
                 return
             elif frame.opcode == OP_PING:
@@ -274,21 +285,11 @@ class WebSocketCommonProtocol(tulip.Protocol):
                 return frame
 
     @tulip.coroutine
-    def read_frame(self, expected_state='OPEN'):
-        if self.reading:
-            raise InvalidState("Another coroutine is already reading "
-                               "from this WebSocket.")
-        # Defensive assertion for protocol compliance.
-        if self.state != expected_state:                    # pragma: no cover
-            raise InvalidState("Cannot read from a WebSocket "
-                               "in the {} state".format(self.state))
+    def read_frame(self):
         is_masked = not self.is_client
-        self.reading = True
-        try:
-            frame = yield from read_frame(self.stream.readexactly, is_masked)
-        finally:
-            self.reading = False
-        logger.debug("< %s", frame)
+        frame = yield from read_frame(self.stream.readexactly, is_masked)
+        side = 'client' if self.is_client else 'server'
+        logger.debug("%s << %s", side, frame)
         return frame
 
     def write_frame(self, opcode, data=b'', expected_state='OPEN'):
@@ -297,7 +298,8 @@ class WebSocketCommonProtocol(tulip.Protocol):
             raise InvalidState("Cannot write to a WebSocket "
                                "in the {} state".format(self.state))
         frame = Frame(True, opcode, data)
-        logger.debug("> %s", frame)
+        side = 'client' if self.is_client else 'server'
+        logger.debug("%s >> %s", side, frame)
         is_masked = self.is_client
         write_frame(frame, self.transport.write, is_masked)
 
@@ -337,6 +339,8 @@ class WebSocketCommonProtocol(tulip.Protocol):
         if self.state == 'OPEN':
             self.write_frame(OP_CLOSE, serialize_close(code, reason))
             self.state = 'CLOSING'
+        if not self.closing_handshake.done():
+            self.closing_handshake.set_result(False)
         yield from self.close_connection()
 
     # Tulip Protocol methods
@@ -355,6 +359,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed
+        self.close_waiter.set_result(None)
         self.state = 'CLOSED'
         if self.conn_lost_alarm and not self.conn_lost_alarm.done():
             self.conn_lost_alarm.set_result(None)

@@ -136,7 +136,7 @@ class CommonTests:
         tulip.Task(self.protocol.recv())
         self.loop.run_until_complete(tulip.sleep(MS))       # make task start
         self.loop.call_later(MS, self.fast_connection_failure)
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(RuntimeError):
             self.loop.run_until_complete(self.protocol.recv())
 
     def test_send_text(self):
@@ -275,7 +275,7 @@ class ServerTests(CommonTests, unittest.TestCase):
     def test_simultaneous_close(self):  # non standard close from both sides
         client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
         server_close = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
-        self.feed(client_close)
+        self.loop.call_later(MS, self.feed, client_close)
         self.loop.run_until_complete(self.protocol.close(reason='server'))
         self.assertConnectionClosed(1000, 'client')
         self.assertFrameSent(*server_close)
@@ -286,6 +286,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.loop.call_later(2 * MS, self.echo)
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
+        # Only one frame is emitted, and it's consumed by self.echo().
         self.assertNoFrameSent()
 
     def test_close_timeout(self):
@@ -307,15 +308,10 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1002, '')
 
     def test_close_during_recv(self):
-        close_task = None
-        def call_close():
-            nonlocal close_task
-            close_task = self.protocol.close(reason='because.')
-        self.loop.call_later(MS, call_close)
-        self.loop.call_later(2 * MS, self.echo)
-        self.loop.run_until_complete(self.protocol.recv())
-        with self.assertRaises(InvalidState):
-            self.loop.run_until_complete(close_task)
+        recv_task = tulip.Task(self.protocol.recv())
+        self.loop.call_later(MS, self.echo)
+        self.loop.run_until_complete(self.protocol.close(reason='because.'))
+        self.assertIsNone(self.loop.run_until_complete(recv_task))
 
 
 class ClientTests(CommonTests, unittest.TestCase):
@@ -353,49 +349,18 @@ class ClientTests(CommonTests, unittest.TestCase):
     def test_simultaneous_close(self):  # non standard close from both sides
         server_close = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
         client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
-        self.feed(server_close)
-        self.loop.call_later(MS, self.feed_eof)
+        self.loop.call_later(MS, self.feed, server_close)
+        self.loop.call_later(2 * MS, self.feed_eof)
         self.loop.run_until_complete(self.protocol.close(reason='client'))
         self.assertConnectionClosed(1000, 'server')
         self.assertFrameSent(*client_close)
         self.assertNoFrameSent()
 
-    def test_wait_close_drops_frames(self):
-        self.loop.call_later(MS, self.feed, Frame(True, OP_TEXT, b''))
-        self.loop.call_later(2 * MS, self.feed, Frame(True, OP_CLOSE, b''))
-        self.loop.call_later(3 * MS, self.feed_eof)
-        self.loop.run_until_complete(self.protocol.wait_close())
-        self.assertConnectionClosed(1005, '')
-        self.assertFrameSent(True, OP_CLOSE, b'')
-
-    def test_wait_close_timeout(self):
+    def test_connection_close_timeout(self):
         self.timer = tulip.Future(timeout=50 * MS)
         self.protocol.timeout = 5 * MS
-        self.loop.call_later(MS, self.feed, Frame(True, OP_CLOSE, b''))
-        self.loop.run_until_complete(self.protocol.wait_close())
-        self.assertConnectionClosed(1005, '')
+        self.loop.call_later(MS, self.echo)
+        self.loop.run_until_complete(self.protocol.close(reason='because.'))
+        self.assertConnectionClosed(1000, 'because.')
         self.assertFalse(self.timer.cancelled())
         self.timer.cancel()
-
-    def test_wait_close_protocol_error(self):
-        self.loop.call_later(MS, self.feed, Frame(True, OP_CLOSE, b'\x00'))
-        self.loop.call_later(2 * MS, self.feed_eof)
-        self.loop.run_until_complete(self.protocol.wait_close())
-        self.assertConnectionClosed(1002, '')
-
-    def test_wait_close_connection_lost(self):
-        self.loop.call_later(MS, self.feed_eof)
-        self.loop.run_until_complete(self.protocol.wait_close())
-        self.assertConnectionClosed(1006, '')
-
-    def test_wait_close_during_recv(self):
-        wait_close_task = None
-        def call_wait_close():
-            nonlocal wait_close_task
-            wait_close_task = self.protocol.wait_close()
-        self.loop.call_later(MS, call_wait_close)
-        self.loop.call_later(2 * MS, self.feed, Frame(True, OP_CLOSE, b''))
-        self.loop.call_later(3 * MS, self.feed_eof)
-        self.loop.run_until_complete(self.protocol.recv())
-        with self.assertRaises(InvalidState):
-            self.loop.run_until_complete(wait_close_task)

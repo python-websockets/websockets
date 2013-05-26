@@ -36,7 +36,7 @@ class ClientServerTests(unittest.TestCase):
         self.client = self.loop.run_until_complete(client_coroutine)
 
     def stop_client(self):
-        self.loop.run_until_complete(self.client.wait_close())
+        self.loop.run_until_complete(self.client.close_waiter)
 
     def stop_server(self):
         for socket in self.sockets:

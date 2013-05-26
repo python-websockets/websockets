@@ -13,46 +13,6 @@ from .protocol import WebSocketCommonProtocol
 from .uri import parse_uri
 
 
-@tulip.coroutine
-def connect(uri, protocols=(), extensions=()):
-    """
-    This coroutine connects to a WebSocket server.
-
-    It's a thin wrapper around the event loop's ``create_connection`` method.
-
-    It returns a :class:`~websockets.framing.WebSocketClientProtocol` which can
-    then be used to send and receive messages.
-
-    It raises :exc:`~websockets.uri.InvalidURI` if `uri` is invalid and
-    :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
-
-    Clients shouldn't close the WebSocket connection. Instead, they should wait
-    with :meth:`~websockets.framing.WebSocketCommonProtocol.wait_close` until
-    the server performs the closing handshake.
-
-    :func:`connect` implements the sequence called "Establish a WebSocket
-    Connection" in RFC 6455, except for the following requirements:
-
-    - "There MUST be no more than one connection in a CONNECTING state."
-    - "Clients MUST use the Server Name Indication extension." (Tulip doesn't
-      support passing a ``server_hostname`` argument to ``wrap_socket()``.)
-    """
-    assert not protocols, "protocols aren't supported"
-    assert not extensions, "extensions aren't supported"
-
-    uri = parse_uri(uri)
-    transport, protocol = yield from tulip.get_event_loop().create_connection(
-            WebSocketClientProtocol, uri.host, uri.port, ssl=uri.secure)
-
-    try:
-        yield from protocol.handshake(uri)
-    except Exception:
-        transport.close()
-        raise
-
-    return protocol
-
-
 class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
     Complete WebSocket client implementation as a Tulip protocol.
@@ -91,3 +51,43 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         check_response(get_header, key)
 
         self.state = 'OPEN'
+        self.opening_handshake.set_result(True)
+
+
+@tulip.coroutine
+def connect(uri, protocols=(), extensions=(), klass=WebSocketClientProtocol):
+    """
+    This coroutine connects to a WebSocket server.
+
+    It's a thin wrapper around the event loop's ``create_connection`` method.
+
+    It returns a :class:`~websockets.framing.WebSocketClientProtocol` which can
+    then be used to send and receive messages.
+
+    It raises :exc:`~websockets.uri.InvalidURI` if `uri` is invalid and
+    :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
+
+    Clients shouldn't close the WebSocket connection. Instead, they should
+    wait until the server performs the closing handshake.
+
+    :func:`connect` implements the sequence called "Establish a WebSocket
+    Connection" in RFC 6455, except for the following requirements:
+
+    - "There MUST be no more than one connection in a CONNECTING state."
+    - "Clients MUST use the Server Name Indication extension." (Tulip doesn't
+      support passing a ``server_hostname`` argument to ``wrap_socket()``.)
+    """
+    assert not protocols, "protocols aren't supported"
+    assert not extensions, "extensions aren't supported"
+
+    uri = parse_uri(uri)
+    transport, protocol = yield from tulip.get_event_loop().create_connection(
+            klass, uri.host, uri.port, ssl=uri.secure)
+
+    try:
+        yield from protocol.handshake(uri)
+    except Exception:
+        transport.close()
+        raise
+
+    return protocol

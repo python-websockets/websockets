@@ -17,38 +17,6 @@ from .protocol import WebSocketCommonProtocol
 logger = logging.getLogger()
 
 
-@tulip.task
-def serve(ws_handler, host=None, port=None, *, protocols=(), extensions=(), **kwds):
-    """
-    This task starts a WebSocket server.
-
-    It's a thin wrapper around the event loop's ``start_serving`` method.
-
-    `ws_handler` is the WebSocket handler. It must be a coroutine accepting
-    two arguments: a :class:`~websockets.framing.WebSocketServerProtocol` and
-    the request URI. The `host` and `port` arguments and other keyword
-    arguments are passed to ``start_serving``. The return value is a list of
-    objects that can be passed to ``stop_serving``.
-
-    Whenever a client connects, the server accepts the connection, creates a
-    :class:`~websockets.framing.WebSocketServerProtocol`, performs the opening
-    handshake, and delegates to the WebSocket handler. Once the handler
-    completes, the server performs the closing handshake and closes the
-    connection.
-    """
-    assert not protocols, "protocols aren't supported"
-    assert not extensions, "extensions aren't supported"
-
-    return (yield from tulip.get_event_loop().start_serving(
-            lambda: WebSocketServerProtocol(ws_handler), host, port, **kwds))
-
-
-# Workaround for http://code.google.com/p/tulip/issues/detail?id=30
-__serve_doc__ = serve.__doc__
-serve = tulip.task(serve)
-serve.__doc__ = __serve_doc__
-
-
 class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
     Complete WebSocket server implementation as a Tulip protocol.
@@ -107,5 +75,39 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.transport.write(response)
 
         self.state = 'OPEN'
+        self.opening_handshake.set_result(True)
 
         return uri
+
+
+@tulip.task
+def serve(ws_handler, host=None, port=None, *,
+          protocols=(), extensions=(), klass=WebSocketServerProtocol, **kwds):
+    """
+    This task starts a WebSocket server.
+
+    It's a thin wrapper around the event loop's ``start_serving`` method.
+
+    `ws_handler` is the WebSocket handler. It must be a coroutine accepting
+    two arguments: a :class:`~websockets.framing.WebSocketServerProtocol` and
+    the request URI. The `host` and `port` arguments and other keyword
+    arguments are passed to ``start_serving``. The return value is a list of
+    objects that can be passed to ``stop_serving``.
+
+    Whenever a client connects, the server accepts the connection, creates a
+    :class:`~websockets.framing.WebSocketServerProtocol`, performs the opening
+    handshake, and delegates to the WebSocket handler. Once the handler
+    completes, the server performs the closing handshake and closes the
+    connection.
+    """
+    assert not protocols, "protocols aren't supported"
+    assert not extensions, "extensions aren't supported"
+
+    return (yield from tulip.get_event_loop().start_serving(
+            lambda: klass(ws_handler), host, port, **kwds))
+
+
+# Workaround for http://code.google.com/p/tulip/issues/detail?id=30
+__serve_doc__ = serve.__doc__
+serve = tulip.task(serve)
+serve.__doc__ = __serve_doc__

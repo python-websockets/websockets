@@ -9,6 +9,5 @@ def hello():
     print("> {}".format(name))
     greeting = yield from websocket.recv()
     print("< {}".format(greeting))
-    yield from websocket.wait_close()
 
 tulip.get_event_loop().run_until_complete(hello())

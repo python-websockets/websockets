@@ -12,19 +12,17 @@ class EchoServerProtocol(websockets.WebSocketServerProtocol):
 
     """WebSocket server protocol that echoes messages synchronously."""
 
-    def handle_message(self, msg):
-        self.send(msg)
-
-    def handle_eof(self):
-        pass
-
-    def handle_exception(self, exc):
-        raise exc
+    @tulip.coroutine
+    def read_message(self):
+        msg = yield from super(EchoServerProtocol, self).read_message()
+        if msg is not None:
+            self.send(msg)
+        return msg
 
 
 @tulip.coroutine
 def noop(ws, uri):
-    yield from ws.close_waiter
+    yield from ws.worker
 
 
 websockets.serve(noop, '127.0.0.1', 8642, klass=EchoServerProtocol)

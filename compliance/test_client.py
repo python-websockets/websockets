@@ -17,14 +17,12 @@ class EchoClientProtocol(websockets.WebSocketClientProtocol):
 
     """WebSocket client protocol that echoes messages synchronously."""
 
-    def handle_message(self, msg):
-        self.send(msg)
-
-    def handle_eof(self):
-        pass
-
-    def handle_exception(self, exc):
-        raise exc
+    @tulip.coroutine
+    def read_message(self):
+        msg = yield from super(EchoClientProtocol, self).read_message()
+        if msg is not None:
+            self.send(msg)
+        return msg
 
 
 @tulip.coroutine
@@ -32,7 +30,7 @@ def get_case_count(server):
     uri = server + '/getCaseCount'
     ws = yield from websockets.connect(uri)
     msg = yield from ws.recv()
-    yield from ws.close_waiter
+    yield from ws.worker
     return json.loads(msg)
 
 
@@ -40,14 +38,14 @@ def get_case_count(server):
 def run_case(server, case, agent):
     uri = server + '/runCase?case={}&agent={}'.format(case, agent)
     ws = yield from websockets.connect(uri, klass=EchoClientProtocol)
-    yield from ws.close_waiter
+    yield from ws.worker
 
 
 @tulip.coroutine
 def update_reports(server, agent):
     uri = server + '/updateReports?agent={}'.format(agent)
     ws = yield from websockets.connect(uri)
-    yield from ws.close_waiter
+    yield from ws.worker
 
 
 @tulip.task

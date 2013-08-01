@@ -192,6 +192,11 @@ class WebSocketCommonProtocol(tulip.Protocol):
         self.messages.feed_data(msg)
 
     def handle_eof(self):
+        # Using an internal API to work around what is most likely a bug:
+        # https://groups.google.com/d/msg/python-tulip/hjA6-vcb8nY/MkKDGq8mZi4J
+        if self.messages._waiter is not None:
+            if self.messages._waiter.cancelled():
+                self.messages._waiter = None
         self.messages.feed_eof()
 
     def handle_exception(self, exc):

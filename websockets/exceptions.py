@@ -1,7 +1,3 @@
-"""
-The :mod:`websockets.exceptions` module defines exceptions used by the library.
-"""
-
 __all__ = ['InvalidHandshake', 'InvalidState', 'InvalidURI']
 
 

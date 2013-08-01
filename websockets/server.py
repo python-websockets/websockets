@@ -21,8 +21,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
     Complete WebSocket server implementation as a Tulip protocol.
 
-    TODO: for the sake of simplicity, this protocol doesn't inherit a proper
-    HTTP implementation, and it doesn't send appropriate HTTP responses when
+    This class inherits :class:`~websockets.protocol.WebSocketCommonProtocol`.
+
+    For the sake of simplicity, this protocol doesn't inherit a proper HTTP
+    implementation, and it doesn't send appropriate HTTP responses when
     something goes wrong.
     """
 
@@ -80,7 +82,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return uri
 
 
-@tulip.task
+#@tulip.task
 def serve(ws_handler, host=None, port=None, *,
           protocols=(), extensions=(), klass=WebSocketServerProtocol, **kwds):
     """
@@ -89,13 +91,13 @@ def serve(ws_handler, host=None, port=None, *,
     It's a thin wrapper around the event loop's ``start_serving`` method.
 
     `ws_handler` is the WebSocket handler. It must be a coroutine accepting
-    two arguments: a :class:`~websockets.framing.WebSocketServerProtocol` and
+    two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and
     the request URI. The `host` and `port` arguments and other keyword
     arguments are passed to ``start_serving``. The return value is a list of
     objects that can be passed to ``stop_serving``.
 
     Whenever a client connects, the server accepts the connection, creates a
-    :class:`~websockets.framing.WebSocketServerProtocol`, performs the opening
+    :class:`~websockets.server.WebSocketServerProtocol`, performs the opening
     handshake, and delegates to the WebSocket handler. Once the handler
     completes, the server performs the closing handshake and closes the
     connection.

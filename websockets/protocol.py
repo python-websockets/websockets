@@ -1,6 +1,6 @@
 """
-The :mod:`websockets.protocols` module implements the rules of the WebSocket
-protocol as specified in `sections 4 to 8 of RFC 6455`_.
+The :mod:`websockets.protocols` module handles WebSocket control and data
+frames as specified in `sections 4 to 8 of RFC 6455`_.
 
 .. _sections 4 to 8 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
 """
@@ -41,7 +41,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
     Once the connection is closed, the status code is available in the
     :attr:`close_code` attribute and the reason in :attr:`close_reason`. If
     you need to wait until the connection is closed, you can yield from
-    :attr:`worker`.
+    the :attr:`worker` attribute.
 
     There are only two differences between the client-side and the server-side
     behavior: masking the payload and closing the underlying TCP connection.
@@ -84,10 +84,41 @@ class WebSocketCommonProtocol(tulip.Protocol):
         It can be used to write loops on the server side and handle
         disconnections gracefully::
 
-            while ws.open:
+            while websocket.open:
                 # ...
         """
         return self.state == 'OPEN'
+
+    #@tulip.task
+    def close(self, code=1000, reason=''):
+        """
+        This task performs the closing handshake.
+
+        This is the expected way to terminate a connection on the server side.
+
+        It waits for the other end to complete the handshake. It doesn't do
+        anything once the connection is closed.
+
+        The `code` must be an :class:`int` and the `reason` a :class:`str`.
+        """
+        if self.state == 'OPEN':
+            # 7.1.2. Start the WebSocket Closing Handshake
+            self.close_code, self.close_reason = code, reason
+            self.write_frame(OP_CLOSE, serialize_close(code, reason))
+            # 7.1.3. The WebSocket Closing Handshake is Started
+            self.state = 'CLOSING'
+
+        yield from tulip.wait([self.closing_handshake], timeout=self.timeout)
+        yield from tulip.wait([self.worker], timeout=self.timeout)
+
+        # Last ditch cleanup.
+        if self.state != 'CLOSED':
+            self.transport.close()
+
+    # Workaround for http://code.google.com/p/tulip/issues/detail?id=30
+    __close_doc__ = close.__doc__
+    close = tulip.task(close)
+    close.__doc__ = __close_doc__
 
     @tulip.coroutine
     def recv(self):
@@ -134,33 +165,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
             raise TypeError("data must be bytes or str")
         self.write_frame(opcode, data)
 
-    @tulip.task
-    def close(self, code=1000, reason=''):
-        """
-        This task performs the closing handshake.
-
-        This is the expected way to terminate a connection on the server side.
-
-        It waits for the other end to complete the handshake. It doesn't do
-        anything once the connection is closed.
-
-        The `code` must be an :class:`int` and the `reason` a :class:`str`.
-        """
-        if self.state == 'OPEN':
-            # 7.1.2. Start the WebSocket Closing Handshake
-            self.close_code, self.close_reason = code, reason
-            self.write_frame(OP_CLOSE, serialize_close(code, reason))
-            # 7.1.3. The WebSocket Closing Handshake is Started
-            self.state = 'CLOSING'
-
-        yield from tulip.wait([self.closing_handshake], timeout=self.timeout)
-        yield from tulip.wait([self.worker], timeout=self.timeout)
-
-        # Last ditch cleanup.
-        if self.state != 'CLOSED':
-            self.transport.close()
-
-    @tulip.task
+    #@tulip.task
     def ping(self, data=None):
         """
         This coroutine sends a ping and waits for the corresponding pong.
@@ -180,6 +185,11 @@ class WebSocketCommonProtocol(tulip.Protocol):
         self.pings[data] = tulip.Future()
         self.write_frame(OP_PING, data)
         yield from self.pings[data]
+
+    # Workaround for http://code.google.com/p/tulip/issues/detail?id=30
+    __ping_doc__ = ping.__doc__
+    ping = tulip.task(ping)
+    ping.__doc__ = __ping_doc__
 
     def pong(self, data=b''):
         """

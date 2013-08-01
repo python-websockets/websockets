@@ -26,6 +26,14 @@ greeting.
 
 .. literalinclude:: ../example/server.py
 
+.. note::
+
+    The handler function, ``hello``, is executed once for each WebSocket
+    connection. The connection is automatically closed when the handler
+    returns. If you want to process several messages in the same connection,
+    you must write a loop, most likely with :attr:`websocket.open
+    <websockets.protocol.WebSocketCommonProtocol.open>`.
+
 .. _client-example:
 
 Here's a corresponding client example.
@@ -35,7 +43,9 @@ Here's a corresponding client example.
 Design
 ------
 
-The WebSocket protocol contains two phases:
+``websockets`` provides complete client and server implementations, as shown in
+the examples above. These functions are built on top of low-level APIs
+reflecting the two phases of the WebSocket protocol:
 
 1. An opening handshake, in the form of an HTTP Upgrade request;
 2. Data transfer, as framed messages, ending with a closing handshake.
@@ -47,14 +57,57 @@ response headers.
 The second phase is the core of the WebSocket protocol. ``websockets``
 provides a standalone implementation on top of Tulip with a very simple API.
 
-``websockets`` also contains sample client and server implementations showing
-how these pieces fit together.
+For convenience, public APIs can be imported directly from the
+:mod:`websockets` package, unless noted otherwise. Anything that isn't listed
+in this document is a private API.
 
-The public APIs are described below. For convenience, they can be imported
-directly from the :mod:`websockets` package, unless noted otherwise.
+High-level API
+--------------
 
-Main APIs
----------
+Server
+......
+
+.. automodule:: websockets.server
+
+   .. autofunction:: serve(ws_handler, host=None, port=None, **kwargs)
+
+   .. autoclass:: WebSocketServerProtocol(self, ws_handler, timeout=10)
+        :members: handshake
+
+Client
+......
+
+.. automodule:: websockets.client
+
+   .. autofunction:: connect(uri)
+
+   .. autoclass:: WebSocketClientProtocol(self, timeout=10)
+        :members: handshake
+
+Shared
+......
+
+.. automodule:: websockets.protocol
+
+   .. autoclass:: WebSocketCommonProtocol(self, timeout=10)
+
+        .. autoattribute:: open
+        .. automethod:: close(code=1000, reason='')
+
+        .. automethod:: recv()
+        .. automethod:: send(data)
+
+        .. automethod:: ping(data=None)
+        .. automethod:: pong()
+
+Low-level API
+-------------
+
+Exceptions
+..........
+
+.. automodule:: websockets.exceptions
+   :members:
 
 Opening handshake
 .................
@@ -74,35 +127,12 @@ URI parser
 .. automodule:: websockets.uri
    :members:
 
-Implementations
----------------
-
-These sample implementations demonstrate how to tie together the opening
-handshake and data transfer APIs.
-
-Server
-......
-
-.. automodule:: websockets.server
-
-   .. autofunction:: serve(ws_handler, host=None, port=None, **kwargs)
-
-See also the :ref:`example <server-example>` above.
-
-Client
-......
-
-.. automodule:: websockets.client
-
-   .. autofunction:: connect(uri)
-
-See also the :ref:`example <client-example>` above.
-
 Utilities
 .........
 
 .. automodule:: websockets.http
    :members:
+
 
 Limitations
 -----------
@@ -114,3 +144,8 @@ The following parts of RFC 6455 aren't implemented:
 
 .. _Subprotocols: http://tools.ietf.org/html/rfc6455#section-1.9
 .. _Extensions: http://tools.ietf.org/html/rfc6455#section-9
+
+License
+-------
+
+.. literalinclude:: ../LICENSE

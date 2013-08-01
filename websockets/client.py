@@ -16,6 +16,8 @@ from .uri import parse_uri
 class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
     Complete WebSocket client implementation as a Tulip protocol.
+
+    This class inherits :class:`~websockets.protocol.WebSocketCommonProtocol`.
     """
 
     is_client = True
@@ -61,7 +63,7 @@ def connect(uri, protocols=(), extensions=(), klass=WebSocketClientProtocol):
 
     It's a thin wrapper around the event loop's ``create_connection`` method.
 
-    It returns a :class:`~websockets.framing.WebSocketClientProtocol` which can
+    It returns a :class:`~websockets.client.WebSocketClientProtocol` which can
     then be used to send and receive messages.
 
     It raises :exc:`~websockets.uri.InvalidURI` if `uri` is invalid and

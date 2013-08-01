@@ -206,8 +206,6 @@ class WebSocketCommonProtocol(tulip.Protocol):
                 yield from self.fail_connection(1007)
             except Exception as exc:
                 yield from self.fail_connection(1011)
-                logger.exception("Unhandled exception in %s.run()"
-                        % self.__class__.__name__)
                 raise
 
     @tulip.coroutine

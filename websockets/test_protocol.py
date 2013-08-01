@@ -1,5 +1,3 @@
-import io
-import logging
 import unittest
 import unittest.mock
 
@@ -7,7 +5,7 @@ import tulip
 
 from .exceptions import InvalidState
 from .framing import *
-from .protocol import WebSocketCommonProtocol, logger
+from .protocol import WebSocketCommonProtocol
 
 
 MS = 0.001          # Unit for timeouts. May be increased on slow machines.
@@ -121,18 +119,13 @@ class CommonTests:
         def read_message():
             raise Exception("BOOM")
         self.protocol.read_message = read_message
-        log = io.StringIO()
-        log_handler = logging.StreamHandler(log)
-        logger.addHandler(log_handler)
         self.loop.call_later(MS, self.fast_connection_failure)
         try:
             self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
             with self.assertRaises(Exception):
                 self.loop.run_until_complete(self.protocol.worker)
-            self.assertIn("Exception: BOOM", log.getvalue())
         finally:
             del self.protocol.read_message
-            logger.removeHandler(log_handler)
         self.assertConnectionClosed(1011, '')
 
     def test_recv_on_closed_connection(self):

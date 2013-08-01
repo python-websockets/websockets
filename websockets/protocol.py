@@ -10,15 +10,16 @@ __all__ = ['WebSocketCommonProtocol']
 import codecs
 import collections
 import logging
+import queue
 import random
 import struct
 
 import tulip
+from tulip.queues import Queue
 
-from .exceptions import InvalidHandshake, InvalidState, WebSocketProtocolError
+from .exceptions import InvalidState, WebSocketProtocolError
 from .framing import *
 from .handshake import *
-from .http import read_request, read_response, USER_AGENT
 
 
 logger = logging.getLogger(__name__)
@@ -40,7 +41,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
     Once the connection is closed, the status code is available in the
     :attr:`close_code` attribute and the reason in :attr:`close_reason`. If
     you need to wait until the connection is closed, you can yield from
-    :attr:`close_waiter`.
+    :attr:`worker`.
 
     There are only two differences between the client-side and the server-side
     behavior: masking the payload and closing the underlying TCP connection.
@@ -56,20 +57,17 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
         self.close_code = None
         self.close_reason = ''
-        self.close_waiter = tulip.Future()
 
         self.opening_handshake = tulip.Future()
         self.closing_handshake = tulip.Future()
 
-        # I'm not satisfied with the current API of tulip.parsers because it
-        # goes overboard with generators, eg. `out, buf = yield`. I doubt
-        # it'll end up in the standard library as is. For the time being I'll
-        # just use a DataBuffer to store received messages.
-        self.messages = tulip.DataBuffer()
+        # Queue of received messages.
+        self.messages = Queue()
+
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
 
-        self.run()
+        self.worker = self.run()
 
         # In a subclass implementing the opening handshake, the state will be
         # CONNECTING at this point.
@@ -102,16 +100,20 @@ class WebSocketCommonProtocol(tulip.Protocol):
         When the end of the message stream is reached, or when a protocol
         error occurs, :meth:`recv` returns ``None``, indicating that the
         connection is closed.
-
-        It's forbidden to call :meth:`recv` from two coroutines in parallel.
-        If this happens, the second call wil raise a :exc:`RuntimeError`.
         """
-        # Using an internal API isn't great, but it beats catching
-        # AssertionError and re-raising RuntimeError.
-        if self.messages._waiter is not None:
-            raise RuntimeError(
-                    "Another coroutine is already yielding from recv()")
-        return (yield from self.messages.read())
+        # Return any available message
+        try:
+            return self.messages.get_nowait()
+        except queue.Empty:
+            pass
+
+        # Wait for a message until the connection is closed
+        next_message = tulip.Task(self.messages.get())
+        done, pending = yield from tulip.wait(
+                [next_message, self.worker],
+                return_when=tulip.FIRST_COMPLETED)
+        if next_message in done:
+            return next_message.result()
 
     def send(self, data):
         """
@@ -152,8 +154,9 @@ class WebSocketCommonProtocol(tulip.Protocol):
             self.state = 'CLOSING'
 
         yield from tulip.wait([self.closing_handshake], timeout=self.timeout)
-        yield from tulip.wait([self.close_waiter], timeout=self.timeout)
+        yield from tulip.wait([self.worker], timeout=self.timeout)
 
+        # Last ditch cleanup.
         if self.state != 'CLOSED':
             self.transport.close()
 
@@ -186,22 +189,6 @@ class WebSocketCommonProtocol(tulip.Protocol):
         """
         self.write_frame(OP_PONG, data)
 
-    # Semi-public API - for advanced use, but it should be stable.
-
-    def handle_message(self, msg):
-        self.messages.feed_data(msg)
-
-    def handle_eof(self):
-        # Using an internal API to work around what is most likely a bug:
-        # https://groups.google.com/d/msg/python-tulip/hjA6-vcb8nY/MkKDGq8mZi4J
-        if self.messages._waiter is not None:
-            if self.messages._waiter.cancelled():
-                self.messages._waiter = None
-        self.messages.feed_eof()
-
-    def handle_exception(self, exc):
-        self.messages.set_exception(exc)
-
     # Private methods - no guarantees.
 
     @tulip.task
@@ -212,15 +199,16 @@ class WebSocketCommonProtocol(tulip.Protocol):
                 msg = yield from self.read_message()
                 if msg is None:
                     break
-                self.handle_message(msg)
+                self.messages.put_nowait(msg)
             except WebSocketProtocolError:
                 yield from self.fail_connection(1002)
             except UnicodeDecodeError:
                 yield from self.fail_connection(1007)
             except Exception as exc:
-                yield from self.fail_connection(1011)   # bug in coverage.py?
-                self.handle_exception(exc)              # pragma: no branch
-        self.handle_eof()
+                yield from self.fail_connection(1011)
+                logger.exception("Unhandled exception in %s.run()"
+                        % self.__class__.__name__)
+                raise
 
     @tulip.coroutine
     def read_message(self):
@@ -364,7 +352,6 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed
-        self.close_waiter.set_result(None)
         self.state = 'CLOSED'
         if self.conn_lost_alarm and not self.conn_lost_alarm.done():
             self.conn_lost_alarm.set_result(None)

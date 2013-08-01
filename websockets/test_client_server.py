@@ -1,6 +1,5 @@
 import logging
 import unittest
-import unittest.mock
 
 import tulip
 
@@ -36,7 +35,7 @@ class ClientServerTests(unittest.TestCase):
         self.client = self.loop.run_until_complete(client_coroutine)
 
     def stop_client(self):
-        self.loop.run_until_complete(self.client.close_waiter)
+        self.loop.run_until_complete(self.client.worker)
 
     def stop_server(self):
         for socket in self.sockets:

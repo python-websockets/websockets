@@ -67,7 +67,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
 
-        self.worker = self.run()
+        self.worker = tulip.async(self.run())
 
         # In a subclass implementing the opening handshake, the state will be
         # CONNECTING at this point.
@@ -89,15 +89,18 @@ class WebSocketCommonProtocol(tulip.Protocol):
         """
         return self.state == 'OPEN'
 
-    #@tulip.task
+    @tulip.coroutine
     def close(self, code=1000, reason=''):
         """
-        This task performs the closing handshake.
+        This coroutine performs the closing handshake.
 
         This is the expected way to terminate a connection on the server side.
 
         It waits for the other end to complete the handshake. It doesn't do
         anything once the connection is closed.
+
+        It's usually safe to wrap this coroutine in ``tulip.async()`` since
+        errors during connection termination aren't particularly unseful.
 
         The `code` must be an :class:`int` and the `reason` a :class:`str`.
         """
@@ -108,17 +111,19 @@ class WebSocketCommonProtocol(tulip.Protocol):
             # 7.1.3. The WebSocket Closing Handshake is Started
             self.state = 'CLOSING'
 
-        yield from tulip.wait([self.closing_handshake], timeout=self.timeout)
-        yield from tulip.wait([self.worker], timeout=self.timeout)
+        try:
+            yield from tulip.wait_for(self.closing_handshake, timeout=self.timeout)
+        except tulip.TimeoutError:
+            pass
+
+        try:
+            yield from tulip.wait_for(self.worker, timeout=self.timeout)
+        except tulip.TimeoutError:
+            pass
 
         # Last ditch cleanup.
         if self.state != 'CLOSED':
             self.transport.close()
-
-    # Workaround for http://code.google.com/p/tulip/issues/detail?id=30
-    __close_doc__ = close.__doc__
-    close = tulip.task(close)
-    close.__doc__ = __close_doc__
 
     @tulip.coroutine
     def recv(self):
@@ -165,15 +170,14 @@ class WebSocketCommonProtocol(tulip.Protocol):
             raise TypeError("data must be bytes or str")
         self.write_frame(opcode, data)
 
-    #@tulip.task
     def ping(self, data=None):
         """
-        This coroutine sends a ping and waits for the corresponding pong.
+        This function sends a ping.
+
+        It returns a Future which will be completed when the corresponding
+        pong is received and which you may ignore if you don't want to wait.
 
         A ping may serve as a keepalive.
-
-        Since it's implemented as a task, you can simply call it as a function
-        if you don't need to wait.
         """
         # Protect against duplicates if a payload is explicitly set.
         if data in self.pings:
@@ -184,12 +188,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
         self.pings[data] = tulip.Future()
         self.write_frame(OP_PING, data)
-        yield from self.pings[data]
-
-    # Workaround for http://code.google.com/p/tulip/issues/detail?id=30
-    __ping_doc__ = ping.__doc__
-    ping = tulip.task(ping)
-    ping.__doc__ = __ping_doc__
+        return self.pings[data]
 
     def pong(self, data=b''):
         """
@@ -201,7 +200,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
     # Private methods - no guarantees.
 
-    @tulip.task
+    @tulip.coroutine
     def run(self):
         yield from self.opening_handshake
         while not self.closing_handshake.done():
@@ -317,10 +316,10 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
         if self.is_client:
             assert self.conn_lost_alarm is None
-            self.conn_lost_alarm = tulip.Future(timeout=self.timeout)
+            self.conn_lost_alarm = tulip.Future()
             try:
-                yield from self.conn_lost_alarm
-            except tulip.CancelledError:
+                tulip.wait_for(self.conn_lost_alarm, timeout=self.timeout)
+            except tulip.TimeoutError:
                 pass
             finally:
                 self.conn_lost_alarm = None

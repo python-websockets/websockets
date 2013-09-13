@@ -27,12 +27,12 @@ class ClientServerTests(unittest.TestCase):
         self.loop.close()
 
     def start_server(self):
-        server_task = serve(echo, 'localhost', 8642)
-        self.sockets = self.loop.run_until_complete(server_task)
+        server = serve(echo, 'localhost', 8642)
+        self.sockets = self.loop.run_until_complete(server)
 
     def start_client(self):
-        client_coroutine = connect('ws://localhost:8642/')
-        self.client = self.loop.run_until_complete(client_coroutine)
+        client = connect('ws://localhost:8642/')
+        self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
         self.loop.run_until_complete(self.client.worker)

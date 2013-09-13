@@ -36,9 +36,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def connection_made(self, transport):
         super().connection_made(transport)
-        self.handler()
+        tulip.async(self.handler())
 
-    @tulip.task
+    @tulip.coroutine
     def handler(self):
         try:
             if self.ws_handler is None:                     # pragma: no cover
@@ -82,11 +82,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return uri
 
 
-#@tulip.task
+@tulip.coroutine
 def serve(ws_handler, host=None, port=None, *,
           protocols=(), extensions=(), klass=WebSocketServerProtocol, **kwds):
     """
-    This task starts a WebSocket server.
+    This coroutine handles a WebSocket server.
 
     It's a thin wrapper around the event loop's ``start_serving`` method.
 
@@ -107,9 +107,3 @@ def serve(ws_handler, host=None, port=None, *,
 
     return (yield from tulip.get_event_loop().start_serving(
             lambda: klass(ws_handler), host, port, **kwds))
-
-
-# Workaround for http://code.google.com/p/tulip/issues/detail?id=30
-__serve_doc__ = serve.__doc__
-serve = tulip.task(serve)
-serve.__doc__ = __serve_doc__

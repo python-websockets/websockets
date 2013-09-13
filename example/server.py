@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 import tulip
 import websockets
 
@@ -9,6 +11,7 @@ def hello(websocket, uri):
     print("> {}".format(greeting))
     websocket.send(greeting)
 
-websockets.serve(hello, 'localhost', 8765)
+start_server = websockets.serve(hello, 'localhost', 8765)
 
+tulip.get_event_loop().run_until_complete(start_server)
 tulip.get_event_loop().run_forever()

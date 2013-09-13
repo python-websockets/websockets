@@ -25,9 +25,10 @@ def noop(ws, uri):
     yield from ws.worker
 
 
-websockets.serve(noop, '127.0.0.1', 8642, klass=EchoServerProtocol)
+start_server = websockets.serve(noop, '127.0.0.1', 8642, klass=EchoServerProtocol)
 
 try:
+    tulip.get_event_loop().run_until_complete(start_server)
     tulip.get_event_loop().run_forever()
 except KeyboardInterrupt:
     pass

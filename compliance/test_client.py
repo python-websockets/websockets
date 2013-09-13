@@ -48,7 +48,7 @@ def update_reports(server, agent):
     yield from ws.worker
 
 
-@tulip.task
+@tulip.coroutine
 def run_tests(server, agent):
     cases = yield from get_case_count(server)
     for case in range(1, cases + 1):

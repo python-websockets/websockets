@@ -29,9 +29,9 @@ class WebSocketCommonProtocol(tulip.Protocol):
     """
     This class implements common parts of the WebSocket protocol.
 
-    It assumes that the WebSocket connection is established. It runs a task
+    It assumes that the WebSocket connection is established. It runs a Task
     that stores incoming data frames in a queue and deals with control frames
-    automatically. It sends outgoing data frames and performs with the closing
+    automatically. It sends outgoing data frames and performs the closing
     handshake.
 
     The `timeout` parameter defines the maximum wait time in seconds for
@@ -81,11 +81,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         """
         This property is ``True`` when the connection is usable.
 
-        It can be used to write loops on the server side and handle
-        disconnections gracefully::
-
-            while websocket.open:
-                # ...
+        It may be used to handle disconnections gracefully.
         """
         return self.state == 'OPEN'
 
@@ -100,7 +96,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         anything once the connection is closed.
 
         It's usually safe to wrap this coroutine in ``tulip.async()`` since
-        errors during connection termination aren't particularly unseful.
+        errors during connection termination aren't particularly useful.
 
         The `code` must be an :class:`int` and the `reason` a :class:`str`.
         """

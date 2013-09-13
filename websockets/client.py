@@ -70,7 +70,8 @@ def connect(uri, protocols=(), extensions=(), klass=WebSocketClientProtocol):
     :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
 
     Clients shouldn't close the WebSocket connection. Instead, they should
-    wait until the server performs the closing handshake.
+    wait until the server performs the closing handshake by yielding from the
+    protocol's :attr:`worker` attribute.
 
     :func:`connect` implements the sequence called "Establish a WebSocket
     Connection" in RFC 6455, except for the following requirements:

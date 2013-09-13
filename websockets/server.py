@@ -86,7 +86,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 def serve(ws_handler, host=None, port=None, *,
           protocols=(), extensions=(), klass=WebSocketServerProtocol, **kwds):
     """
-    This coroutine handles a WebSocket server.
+    This coroutine creates a WebSocket server.
 
     It's a thin wrapper around the event loop's ``start_serving`` method.
 

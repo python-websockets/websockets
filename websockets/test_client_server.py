@@ -28,7 +28,7 @@ class ClientServerTests(unittest.TestCase):
 
     def start_server(self):
         server = serve(echo, 'localhost', 8642)
-        self.sockets = self.loop.run_until_complete(server)
+        self.server = self.loop.run_until_complete(server)
 
     def start_client(self):
         client = connect('ws://localhost:8642/')
@@ -38,8 +38,8 @@ class ClientServerTests(unittest.TestCase):
         self.loop.run_until_complete(self.client.worker)
 
     def stop_server(self):
-        for socket in self.sockets:
-            self.loop.stop_serving(socket)
+        self.server.close()
+        self.loop.run_until_complete(self.server.wait_closed())
 
     def test_basic(self):
         self.start_client()

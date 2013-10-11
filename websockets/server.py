@@ -88,13 +88,13 @@ def serve(ws_handler, host=None, port=None, *,
     """
     This coroutine creates a WebSocket server.
 
-    It's a thin wrapper around the event loop's ``start_serving`` method.
+    It's a thin wrapper around the event loop's ``create_server`` method. It
+    returns a ``Server`` object with a ``close`` method to stop the server.
 
     `ws_handler` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and
     the request URI. The `host` and `port` arguments and other keyword
-    arguments are passed to ``start_serving``. The return value is a list of
-    objects that can be passed to ``stop_serving``.
+    arguments are passed to ``create_server``.
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`~websockets.server.WebSocketServerProtocol`, performs the opening
@@ -105,5 +105,5 @@ def serve(ws_handler, host=None, port=None, *,
     assert not protocols, "protocols aren't supported"
     assert not extensions, "extensions aren't supported"
 
-    return (yield from tulip.get_event_loop().start_serving(
+    return (yield from tulip.get_event_loop().create_server(
             lambda: klass(ws_handler), host, port, **kwds))

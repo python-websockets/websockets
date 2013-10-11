@@ -310,8 +310,8 @@ class ServerTests(CommonTests, unittest.TestCase):
         # Cancel a task receiving from the websocket connection.
         task = tulip.Task(self.protocol.recv())
         self.loop.call_later(MS, task.cancel)
-        self.loop.run_until_complete(task)
-        self.assertIsNone(task.result())
+        with self.assertRaises(tulip.CancelledError):
+            self.loop.run_until_complete(task)
         # Closing the connection shouldn't crash.
         # I can't find a way to test this on the client side.
         self.loop.call_later(MS, tulip.async, self.echo())

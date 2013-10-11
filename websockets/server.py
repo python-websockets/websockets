@@ -84,7 +84,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
 @tulip.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          protocols=(), extensions=(), klass=WebSocketServerProtocol, **kwds):
+          protocols=(), extensions=(),
+          klass=WebSocketServerProtocol, **kwds):
     """
     This coroutine creates a WebSocket server.
 

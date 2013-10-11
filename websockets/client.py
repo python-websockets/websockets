@@ -57,11 +57,14 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 
 @tulip.coroutine
-def connect(uri, protocols=(), extensions=(), klass=WebSocketClientProtocol):
+def connect(uri, *,
+            protocols=(), extensions=(),
+            klass=WebSocketClientProtocol, **kwds):
     """
     This coroutine connects to a WebSocket server.
 
     It's a thin wrapper around the event loop's ``create_connection`` method.
+    Extra keyword arguments are passed to ``create_server``.
 
     It returns a :class:`~websockets.client.WebSocketClientProtocol` which can
     then be used to send and receive messages.
@@ -84,8 +87,9 @@ def connect(uri, protocols=(), extensions=(), klass=WebSocketClientProtocol):
     assert not extensions, "extensions aren't supported"
 
     uri = parse_uri(uri)
+    kwds.setdefault('ssl', uri.secure)
     transport, protocol = yield from tulip.get_event_loop().create_connection(
-            klass, uri.host, uri.port, ssl=uri.secure)
+            klass, uri.host, uri.port, **kwds)
 
     try:
         yield from protocol.handshake(uri)

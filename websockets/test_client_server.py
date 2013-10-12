@@ -1,4 +1,8 @@
 import logging
+try:
+    import ssl
+except ImportError:
+    ssl = None
 import unittest
 
 import tulip
@@ -111,3 +115,59 @@ class ClientServerTests(unittest.TestCase):
                 self.start_client()
         finally:
             client.read_response = old_read_response
+
+
+@unittest.skipIf(ssl is None, "SSL support isn't available")
+class SSLClientServerTests(unittest.TestCase):
+
+    def setUp(self):
+        self.loop = tulip.new_event_loop()
+        tulip.set_event_loop(self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+
+    def run_client_server_ssl(self, client_context, server_context):
+        server = serve(echo, 'localhost', 8642, ssl=server_context)
+        self.server = self.loop.run_until_complete(server)
+        try:
+            client = connect('wss://localhost:8642/', ssl=client_context)
+            self.client = self.loop.run_until_complete(client)
+            self.client.send("Hello!")
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
+            self.loop.run_until_complete(self.client.worker)
+        finally:
+            self.server.close()
+            self.loop.run_until_complete(self.server.wait_closed())
+
+    def test_valid_certificate(self):
+        client_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        client_context.load_verify_locations('ssl/ca.pem')
+        client_context.verify_mode = ssl.CERT_REQUIRED
+        server_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        server_context.load_cert_chain(
+                certfile='ssl/localhost.pem',
+                keyfile='ssl/localhost.key')
+        self.run_client_server_ssl(client_context, server_context)
+
+    def test_invalid_certificate(self):
+        client_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        client_context.load_verify_locations('ssl/ca.pem')
+        client_context.verify_mode = ssl.CERT_REQUIRED
+        server_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        server_context.load_cert_chain(
+                certfile='ssl/otherhost.pem',
+                keyfile='ssl/otherhost.key')
+        with self.assertRaises(ssl.CertificateError):
+            self.run_client_server_ssl(client_context, server_context)
+
+    def test_invalid_certificate_not_verified(self):
+        client_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        client_context.load_verify_locations('ssl/ca.pem')
+        client_context.verify_mode = ssl.CERT_NONE
+        server_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        server_context.load_cert_chain(
+                certfile='ssl/otherhost.pem',
+                keyfile='ssl/otherhost.key')
+        self.run_client_server_ssl(client_context, server_context)

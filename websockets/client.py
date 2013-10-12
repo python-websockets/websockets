@@ -77,11 +77,8 @@ def connect(uri, *,
     protocol's :attr:`worker` attribute.
 
     :func:`connect` implements the sequence called "Establish a WebSocket
-    Connection" in RFC 6455, except for the following requirements:
-
-    - "There MUST be no more than one connection in a CONNECTING state."
-    - "Clients MUST use the Server Name Indication extension." (Tulip doesn't
-      support passing a ``server_hostname`` argument to ``wrap_socket()``.)
+    Connection" in RFC 6455, except for the requirement that "there MUST be no
+    more than one connection in a CONNECTING state."
     """
     assert not protocols, "protocols aren't supported"
     assert not extensions, "extensions aren't supported"

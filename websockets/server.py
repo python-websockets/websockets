@@ -94,7 +94,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
 @tulip.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          protocols=(), extensions=(),
           klass=WebSocketServerProtocol, **kwds):
     """
     This coroutine creates a WebSocket server.
@@ -113,8 +112,5 @@ def serve(ws_handler, host=None, port=None, *,
     completes, the server performs the closing handshake and closes the
     connection.
     """
-    assert not protocols, "protocols aren't supported"
-    assert not extensions, "extensions aren't supported"
-
     return (yield from tulip.get_event_loop().create_server(
             lambda: klass(ws_handler), host, port, **kwds))

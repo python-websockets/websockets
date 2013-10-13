@@ -58,7 +58,6 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 @tulip.coroutine
 def connect(uri, *,
-            protocols=(), extensions=(),
             klass=WebSocketClientProtocol, **kwds):
     """
     This coroutine connects to a WebSocket server.
@@ -80,9 +79,6 @@ def connect(uri, *,
     Connection" in RFC 6455, except for the requirement that "there MUST be no
     more than one connection in a CONNECTING state."
     """
-    assert not protocols, "protocols aren't supported"
-    assert not extensions, "extensions aren't supported"
-
     uri = parse_uri(uri)
     kwds.setdefault('ssl', uri.secure)
     transport, protocol = yield from tulip.get_event_loop().create_connection(

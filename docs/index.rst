@@ -137,13 +137,12 @@ Utilities
 Limitations
 -----------
 
-The following parts of RFC 6455 aren't implemented:
-
-- `Subprotocols`_
-- `Extensions`_
+Subprotocols_ and Extensions_ aren't implemented. Few subprotocols and no
+extensions are registered_ at the time of writing.
 
 .. _Subprotocols: http://tools.ietf.org/html/rfc6455#section-1.9
 .. _Extensions: http://tools.ietf.org/html/rfc6455#section-9
+.. _registered: http://www.iana.org/assignments/websocket/websocket.xml
 
 License
 -------

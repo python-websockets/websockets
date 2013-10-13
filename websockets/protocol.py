@@ -58,8 +58,10 @@ class WebSocketCommonProtocol(tulip.Protocol):
         self.close_code = None
         self.close_reason = ''
 
+        # Futures tracking steps in the connection's lifecycle.
         self.opening_handshake = tulip.Future()
         self.closing_handshake = tulip.Future()
+        self.connection_closed = tulip.Future()
 
         # Queue of received messages.
         self.messages = Queue()
@@ -67,6 +69,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
 
+        # Task managing the connection.
         self.worker = tulip.async(self.run())
 
         # In a subclass implementing the opening handshake, the state will be
@@ -107,19 +110,15 @@ class WebSocketCommonProtocol(tulip.Protocol):
             # 7.1.3. The WebSocket Closing Handshake is Started
             self.state = 'CLOSING'
 
-        try:
-            yield from tulip.wait_for(self.closing_handshake, timeout=self.timeout)
-        except tulip.TimeoutError:
-            pass
-
+        # If the connection doesn't terminate within the timeout, break out of
+        # the worker loop.
         try:
             yield from tulip.wait_for(self.worker, timeout=self.timeout)
         except tulip.TimeoutError:
-            pass
+            self.worker.cancel()
 
-        # Last ditch cleanup.
-        if self.state != 'CLOSED':
-            self.transport.close()
+        # The worker should terminate quickly once it has been cancelled.
+        yield from self.worker
 
     @tulip.coroutine
     def recv(self):
@@ -198,6 +197,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
     @tulip.coroutine
     def run(self):
+        # This coroutine guarantees that the connection is closed at exit.
         yield from self.opening_handshake
         while not self.closing_handshake.done():
             try:
@@ -205,6 +205,8 @@ class WebSocketCommonProtocol(tulip.Protocol):
                 if msg is None:
                     break
                 self.messages.put_nowait(msg)
+            except tulip.CancelledError:
+                break
             except WebSocketProtocolError:
                 yield from self.fail_connection(1002)
             except UnicodeDecodeError:
@@ -212,6 +214,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
             except Exception as exc:
                 yield from self.fail_connection(1011)
                 raise
+        yield from self.close_connection()
 
     @tulip.coroutine
     def read_message(self):
@@ -263,7 +266,6 @@ class WebSocketCommonProtocol(tulip.Protocol):
                     self.state = 'CLOSING'
                     self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
                 self.closing_handshake.set_result(True)
-                yield from self.close_connection()
                 return
             elif frame.opcode == OP_PING:
                 # Answer pings.
@@ -311,17 +313,13 @@ class WebSocketCommonProtocol(tulip.Protocol):
                                "in the {} state".format(self.state))
 
         if self.is_client:
-            assert self.conn_lost_alarm is None
-            self.conn_lost_alarm = tulip.Future()
             try:
-                tulip.wait_for(self.conn_lost_alarm, timeout=self.timeout)
-            except tulip.TimeoutError:
+                yield from tulip.wait_for(self.connection_closed,
+                        timeout=self.timeout)
+            except (tulip.CancelledError, tulip.TimeoutError):
                 pass
-            finally:
-                self.conn_lost_alarm = None
-            if self.state != 'CLOSED':
-                self.transport.close()
-        else:
+
+        if self.state != 'CLOSED':
             self.transport.close()
 
     @tulip.coroutine
@@ -344,7 +342,6 @@ class WebSocketCommonProtocol(tulip.Protocol):
     def connection_made(self, transport):
         self.transport = transport
         self.stream = tulip.StreamReader()
-        self.conn_lost_alarm = None
 
     def data_received(self, data):
         self.stream.feed_data(data)
@@ -356,7 +353,6 @@ class WebSocketCommonProtocol(tulip.Protocol):
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed
         self.state = 'CLOSED'
-        if self.conn_lost_alarm and not self.conn_lost_alarm.done():
-            self.conn_lost_alarm.set_result(None)
+        self.connection_closed.set_result(None)
         if self.close_code is None:
             self.close_code = 1006

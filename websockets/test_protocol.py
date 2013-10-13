@@ -120,12 +120,9 @@ class CommonTests:
             raise Exception("BOOM")
         self.protocol.read_message = read_message
         self.loop.call_later(MS, tulip.async, self.fast_connection_failure())
-        try:
-            self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
-            with self.assertRaises(Exception):
-                self.loop.run_until_complete(self.protocol.worker)
-        finally:
-            del self.protocol.read_message
+        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        with self.assertRaises(Exception):
+            self.loop.run_until_complete(self.protocol.worker)
         self.assertConnectionClosed(1011, '')
 
     def test_recv_on_closed_connection(self):
@@ -282,13 +279,16 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertNoFrameSent()
 
     def test_close_timeout(self):
-        self.timer = tulip.Future()
-        self.loop.call_later(50 * MS, self.timer.cancel)
+        self.after = tulip.Future()
+        self.loop.call_later(2 * MS, self.after.cancel)
+        self.before = tulip.Future()
+        self.loop.call_later(10 * MS, self.before.cancel)
         self.protocol.timeout = 5 * MS
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
-        self.assertFalse(self.timer.cancelled())
-        self.timer.cancel()
+        self.assertTrue(self.after.cancelled())
+        self.assertFalse(self.before.cancelled())
+        self.before.cancel()
 
     def test_close_protocol_error(self):
         self.loop.call_later(MS, self.feed, Frame(True, OP_CLOSE, b'\x00'))
@@ -301,17 +301,16 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1002, '')
 
     def test_close_during_recv(self):
-        recv_task = tulip.Task(self.protocol.recv())
+        recv = tulip.async(self.protocol.recv())
         self.loop.call_later(MS, tulip.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
-        self.assertIsNone(self.loop.run_until_complete(recv_task))
+        self.assertIsNone(self.loop.run_until_complete(recv))
 
     def test_close_after_cancelled_recv(self):
-        # Cancel a task receiving from the websocket connection.
-        task = tulip.Task(self.protocol.recv())
-        self.loop.call_later(MS, task.cancel)
+        recv = tulip.async(self.protocol.recv())
+        self.loop.call_later(MS, recv.cancel)
         with self.assertRaises(tulip.CancelledError):
-            self.loop.run_until_complete(task)
+            self.loop.run_until_complete(recv)
         # Closing the connection shouldn't crash.
         # I can't find a way to test this on the client side.
         self.loop.call_later(MS, tulip.async, self.echo())
@@ -361,11 +360,15 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.assertNoFrameSent()
 
     def test_connection_close_timeout(self):
-        self.timer = tulip.Future()
-        self.loop.call_later(50 * MS, self.timer.cancel)
+        # If the server doesn't drop the connection quickly, the client will.
+        self.after = tulip.Future()
+        self.loop.call_later(2 * MS, self.after.cancel)
+        self.before = tulip.Future()
+        self.loop.call_later(10 * MS, self.before.cancel)
         self.protocol.timeout = 5 * MS
         self.loop.call_later(MS, tulip.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
-        self.assertFalse(self.timer.cancelled())
-        self.timer.cancel()
+        self.assertTrue(self.after.cancelled())
+        self.assertFalse(self.before.cancelled())
+        self.before.cancel()

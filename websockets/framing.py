@@ -44,7 +44,6 @@ CLOSE_CODES = {
 
 
 Frame = collections.namedtuple('Frame', ('fin', 'opcode', 'data'))
-"""WebSocket frame."""
 
 
 @tulip.coroutine

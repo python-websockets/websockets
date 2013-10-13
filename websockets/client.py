@@ -93,9 +93,13 @@ def connect(uri, *,
         # If a certificate is available, validate the host name. SSL contexts
         # should require a certificate by setting verify_mode = CERT_REQUIRED.
         if certificate:
-            # Import ssl as late as possible to avoid depending on OpenSSL.
-            import ssl
-            ssl.match_hostname(certificate, uri.host)
+            try:
+                # Import ssl here to avoid depending on OpenSSL.
+                import ssl
+                ssl.match_hostname(certificate, uri.host)
+            except Exception:
+                transport.close()
+                raise
 
     try:
         yield from protocol.handshake(uri)

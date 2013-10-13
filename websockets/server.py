@@ -14,7 +14,7 @@ from .http import read_request, USER_AGENT
 from .protocol import WebSocketCommonProtocol
 
 
-logger = logging.getLogger()
+logger = logging.getLogger(__name__)
 
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
@@ -41,13 +41,23 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     @tulip.coroutine
     def handler(self):
         try:
-            if self.ws_handler is None:                     # pragma: no cover
-                raise NotImplementedError("No handler defined")
             uri = yield from self.handshake()
+        except Exception as exc:
+            logger.info("Exception in opening handshake: {}".format(exc))
+            self.transport.close()
+            return
+
+        try:
             yield from self.ws_handler(self, uri)
-            yield from self.close()
         except Exception:
-            logger.warning("Exception in connection handler", exc_info=True)
+            logger.info("Exception in connection handler", exc_info=True)
+            yield from self.fail_connection(1011)
+            return
+
+        try:
+            yield from self.close()
+        except Exception as exc:
+            logger.info("Exception in closing handshake: {}".format(exc))
             self.transport.close()
             return
 

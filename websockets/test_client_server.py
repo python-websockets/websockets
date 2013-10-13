@@ -4,6 +4,7 @@ try:
 except ImportError:
     ssl = None
 import unittest
+from unittest.mock import patch
 
 import tulip
 
@@ -115,6 +116,32 @@ class ClientServerTests(unittest.TestCase):
                 self.start_client()
         finally:
             client.read_response = old_read_response
+
+    @patch('websockets.server.WebSocketServerProtocol.send')
+    def test_server_handler_crashes(self, send):
+        send.side_effect = ValueError("send failed")
+
+        self.start_client()
+        self.client.send("Hello!")
+        reply = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(reply, None)
+        self.stop_client()
+
+        # Connection ends with an unexpected error.
+        self.assertEqual(self.client.close_code, 1011)
+
+    @patch('websockets.server.WebSocketServerProtocol.close')
+    def test_server_close_crashes(self, close):
+        close.side_effect = ValueError("close failed")
+
+        self.start_client()
+        self.client.send("Hello!")
+        reply = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(reply, "Hello!")
+        self.stop_client()
+
+        # Connection ends with a protocol error.
+        self.assertEqual(self.client.close_code, 1002)
 
 
 @unittest.skipIf(ssl is None, "SSL support isn't available")

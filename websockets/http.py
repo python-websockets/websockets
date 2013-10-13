@@ -22,8 +22,7 @@ MAX_HEADERS = 256
 MAX_LINE = 4096
 
 USER_AGENT = ' '.join((
-    'Python/{0}.{1}'.format(*sys.version_info),
-    'tulip/0.0',
+    'Python/{}'.format(sys.version[:3]),
     'websockets/{}'.format(version),
 ))
 

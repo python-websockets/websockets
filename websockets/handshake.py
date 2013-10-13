@@ -86,7 +86,7 @@ def check_request(get_header):
         assert get_header('Sec-WebSocket-Version') == '13'
         return key
     except (AssertionError, KeyError) as exc:
-        raise InvalidHandshake() from exc
+        raise InvalidHandshake("Invalid request") from exc
 
 
 def build_response(set_header, key):
@@ -120,7 +120,7 @@ def check_response(get_header, key):
                 for token in get_header('Connection').lower().split(','))
         assert get_header('Sec-WebSocket-Accept') == accept(key)
     except (AssertionError, KeyError) as exc:
-        raise InvalidHandshake() from exc
+        raise InvalidHandshake("Invalid response") from exc
 
 
 def accept(key):

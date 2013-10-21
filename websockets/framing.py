@@ -13,7 +13,7 @@ import io
 import random
 import struct
 
-import tulip
+import asyncio
 
 from .exceptions import WebSocketProtocolError
 
@@ -46,7 +46,7 @@ CLOSE_CODES = {
 Frame = collections.namedtuple('Frame', ('fin', 'opcode', 'data'))
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def read_frame(reader, mask):
     """
     Read a WebSocket frame and return a :class:`Frame` object.
@@ -89,7 +89,7 @@ def read_frame(reader, mask):
     return frame
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def read_bytes(reader, n):
     # Undocumented utility function.
     data = yield from reader(n)

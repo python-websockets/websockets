@@ -14,8 +14,8 @@ import queue
 import random
 import struct
 
-import tulip
-from tulip.queues import Queue
+import asyncio
+from asyncio.queues import Queue
 
 from .exceptions import InvalidState, WebSocketProtocolError
 from .framing import *
@@ -25,7 +25,7 @@ from .handshake import *
 logger = logging.getLogger(__name__)
 
 
-class WebSocketCommonProtocol(tulip.Protocol):
+class WebSocketCommonProtocol(asyncio.Protocol):
     """
     This class implements common parts of the WebSocket protocol.
 
@@ -59,9 +59,9 @@ class WebSocketCommonProtocol(tulip.Protocol):
         self.close_reason = ''
 
         # Futures tracking steps in the connection's lifecycle.
-        self.opening_handshake = tulip.Future()
-        self.closing_handshake = tulip.Future()
-        self.connection_closed = tulip.Future()
+        self.opening_handshake = asyncio.Future()
+        self.closing_handshake = asyncio.Future()
+        self.connection_closed = asyncio.Future()
 
         # Queue of received messages.
         self.messages = Queue()
@@ -70,7 +70,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         self.pings = collections.OrderedDict()
 
         # Task managing the connection.
-        self.worker = tulip.async(self.run())
+        self.worker = asyncio.async(self.run())
 
         # In a subclass implementing the opening handshake, the state will be
         # CONNECTING at this point.
@@ -88,7 +88,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         """
         return self.state == 'OPEN'
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def close(self, code=1000, reason=''):
         """
         This coroutine performs the closing handshake.
@@ -98,7 +98,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         It waits for the other end to complete the handshake. It doesn't do
         anything once the connection is closed.
 
-        It's usually safe to wrap this coroutine in ``tulip.async()`` since
+        It's usually safe to wrap this coroutine in ``asyncio.async()`` since
         errors during connection termination aren't particularly useful.
 
         The `code` must be an :class:`int` and the `reason` a :class:`str`.
@@ -113,14 +113,14 @@ class WebSocketCommonProtocol(tulip.Protocol):
         # If the connection doesn't terminate within the timeout, break out of
         # the worker loop.
         try:
-            yield from tulip.wait_for(self.worker, timeout=self.timeout)
-        except tulip.TimeoutError:
+            yield from asyncio.wait_for(self.worker, timeout=self.timeout)
+        except asyncio.TimeoutError:
             self.worker.cancel()
 
         # The worker should terminate quickly once it has been cancelled.
         yield from self.worker
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def recv(self):
         """
         This coroutine receives the next message.
@@ -139,10 +139,10 @@ class WebSocketCommonProtocol(tulip.Protocol):
             pass
 
         # Wait for a message until the connection is closed
-        next_message = tulip.Task(self.messages.get())
-        done, pending = yield from tulip.wait(
+        next_message = asyncio.Task(self.messages.get())
+        done, pending = yield from asyncio.wait(
                 [next_message, self.worker],
-                return_when=tulip.FIRST_COMPLETED)
+                return_when=asyncio.FIRST_COMPLETED)
         if next_message in done:
             return next_message.result()
 
@@ -181,7 +181,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         while data is None or data in self.pings:
             data = struct.pack('!I', random.getrandbits(32))
 
-        self.pings[data] = tulip.Future()
+        self.pings[data] = asyncio.Future()
         self.write_frame(OP_PING, data)
         return self.pings[data]
 
@@ -195,7 +195,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
     # Private methods - no guarantees.
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def run(self):
         # This coroutine guarantees that the connection is closed at exit.
         yield from self.opening_handshake
@@ -205,7 +205,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
                 if msg is None:
                     break
                 self.messages.put_nowait(msg)
-            except tulip.CancelledError:
+            except asyncio.CancelledError:
                 break
             except WebSocketProtocolError:
                 yield from self.fail_connection(1002)
@@ -216,7 +216,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
                 raise
         yield from self.close_connection()
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def read_message(self):
         # Reassemble fragmented messages.
         frame = yield from self.read_data_frame()
@@ -252,7 +252,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
         return ('' if text else b'').join(chunks)
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def read_data_frame(self):
         # Deal with control frames automatically and return next data frame.
         # 6.2. Receiving Data
@@ -282,7 +282,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
             else:
                 return frame
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def read_frame(self):
         is_masked = not self.is_client
         frame = yield from read_frame(self.stream.readexactly, is_masked)
@@ -301,7 +301,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
         is_masked = self.is_client
         write_frame(frame, self.transport.write, is_masked)
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def close_connection(self):
         # 7.1.1. Close the WebSocket Connection
         if self.state == 'CLOSED':
@@ -314,15 +314,15 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
         if self.is_client:
             try:
-                yield from tulip.wait_for(self.connection_closed,
+                yield from asyncio.wait_for(self.connection_closed,
                         timeout=self.timeout)
-            except (tulip.CancelledError, tulip.TimeoutError):
+            except (asyncio.CancelledError, asyncio.TimeoutError):
                 pass
 
         if self.state != 'CLOSED':
             self.transport.close()
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):
         # Losing the connection usually results in a protocol error.
         # Preserve the original error code in this case.
@@ -341,7 +341,7 @@ class WebSocketCommonProtocol(tulip.Protocol):
 
     def connection_made(self, transport):
         self.transport = transport
-        self.stream = tulip.StreamReader()
+        self.stream = asyncio.StreamReader()
 
     def data_received(self, data):
         self.stream.feed_data(data)

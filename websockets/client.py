@@ -4,7 +4,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 __all__ = ['connect', 'WebSocketClientProtocol']
 
-import tulip
+import asyncio
 
 from .exceptions import InvalidHandshake
 from .handshake import build_request, check_response
@@ -23,7 +23,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     is_client = True
     state = 'CONNECTING'
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def handshake(self, uri):
         """
         Perform the client side of the opening handshake.
@@ -56,7 +56,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.opening_handshake.set_result(True)
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def connect(uri, *,
             klass=WebSocketClientProtocol, **kwds):
     """
@@ -81,7 +81,7 @@ def connect(uri, *,
     """
     uri = parse_uri(uri)
     kwds.setdefault('ssl', uri.secure)
-    transport, protocol = yield from tulip.get_event_loop().create_connection(
+    transport, protocol = yield from asyncio.get_event_loop().create_connection(
             klass, uri.host, uri.port, **kwds)
 
     if kwds['ssl']:

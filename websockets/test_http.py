@@ -1,6 +1,6 @@
 import unittest
 
-import tulip
+import asyncio
 
 from .http import *
 from .http import read_message      # private API
@@ -10,9 +10,9 @@ class HTTPTests(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
-        self.loop = tulip.new_event_loop()
-        tulip.set_event_loop(self.loop)
-        self.stream = tulip.StreamReader()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.stream = asyncio.StreamReader()
 
     def tearDown(self):
         self.loop.close()

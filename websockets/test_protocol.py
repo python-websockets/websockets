@@ -1,7 +1,7 @@
 import unittest
 import unittest.mock
 
-import tulip
+import asyncio
 
 from .exceptions import InvalidState
 from .framing import *
@@ -15,8 +15,8 @@ class CommonTests:
 
     def setUp(self):
         super().setUp()
-        self.loop = tulip.new_event_loop()
-        tulip.set_event_loop(self.loop)
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
         self.protocol = WebSocketCommonProtocol()
         self.transport = unittest.mock.Mock()
         self.transport.close = unittest.mock.Mock(
@@ -40,10 +40,10 @@ class CommonTests:
         # delay self.feed_eof() with self.loop.call_later().
         self.protocol.eof_received()
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def sent(self):
         """Read the next frame sent to the transport."""
-        stream = tulip.StreamReader()
+        stream = asyncio.StreamReader()
         for (data,), kw in self.transport.write.call_args_list:
             stream.feed_data(data)
         self.transport.write.call_args_list = []
@@ -51,12 +51,12 @@ class CommonTests:
         if stream.byte_count:
             return read_frame(stream.readexactly, self.protocol.is_client)
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def echo(self):
         """Echo to the protocol the next frame sent to the transport."""
         self.feed((yield from self.sent()))
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def fast_connection_failure(self):
         """Ensure the connection failure terminates quickly."""
         sent = yield from self.sent()
@@ -104,22 +104,22 @@ class CommonTests:
 
     def test_recv_protocol_error(self):
         self.feed(Frame(True, OP_CONT, 'café'.encode('utf-8')))
-        self.loop.call_later(MS, tulip.async, self.fast_connection_failure())
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
     def test_recv_unicode_error(self):
         self.feed(Frame(True, OP_TEXT, 'café'.encode('latin-1')))
-        self.loop.call_later(MS, tulip.async, self.fast_connection_failure())
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1007, '')
 
     def test_recv_other_error(self):
-        @tulip.coroutine
+        @asyncio.coroutine
         def read_message():
             raise Exception("BOOM")
         self.protocol.read_message = read_message
-        self.loop.call_later(MS, tulip.async, self.fast_connection_failure())
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         with self.assertRaises(Exception):
             self.loop.run_until_complete(self.protocol.worker)
@@ -217,14 +217,14 @@ class CommonTests:
         self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         # Missing the second part of the fragmented frame.
         self.feed(Frame(True, OP_BINARY, b'tea'))
-        self.loop.call_later(MS, tulip.async, self.fast_connection_failure())
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
     def test_close_handshake_in_fragmented_text(self):
         self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         self.feed(Frame(True, OP_CLOSE, b''))
-        self.loop.call_later(MS, tulip.async, self.fast_connection_failure())
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
@@ -238,7 +238,7 @@ class CommonTests:
 class ServerTests(CommonTests, unittest.TestCase):
 
     def test_close(self):               # standard server-initiated close
-        self.loop.call_later(MS, tulip.async, self.echo())
+        self.loop.call_later(MS, asyncio.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
         # Only one frame is emitted, and it's consumed by self.echo().
@@ -272,16 +272,16 @@ class ServerTests(CommonTests, unittest.TestCase):
 
     def test_close_drops_frames(self):
         self.loop.call_later(MS, self.feed, Frame(True, OP_TEXT, b''))
-        self.loop.call_later(2 * MS, tulip.async, self.echo())
+        self.loop.call_later(2 * MS, asyncio.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
         # Only one frame is emitted, and it's consumed by self.echo().
         self.assertNoFrameSent()
 
     def test_close_timeout(self):
-        self.after = tulip.Future()
+        self.after = asyncio.Future()
         self.loop.call_later(2 * MS, self.after.cancel)
-        self.before = tulip.Future()
+        self.before = asyncio.Future()
         self.loop.call_later(10 * MS, self.before.cancel)
         self.protocol.timeout = 5 * MS
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
@@ -301,19 +301,19 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1002, '')
 
     def test_close_during_recv(self):
-        recv = tulip.async(self.protocol.recv())
-        self.loop.call_later(MS, tulip.async, self.echo())
+        recv = asyncio.async(self.protocol.recv())
+        self.loop.call_later(MS, asyncio.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertIsNone(self.loop.run_until_complete(recv))
 
     def test_close_after_cancelled_recv(self):
-        recv = tulip.async(self.protocol.recv())
+        recv = asyncio.async(self.protocol.recv())
         self.loop.call_later(MS, recv.cancel)
-        with self.assertRaises(tulip.CancelledError):
+        with self.assertRaises(asyncio.CancelledError):
             self.loop.run_until_complete(recv)
         # Closing the connection shouldn't crash.
         # I can't find a way to test this on the client side.
-        self.loop.call_later(MS, tulip.async, self.echo())
+        self.loop.call_later(MS, asyncio.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
 
 
@@ -338,7 +338,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.assertNoFrameSent()
 
     def test_client_close(self):        # non standard client-initiated close
-        self.loop.call_later(MS, tulip.async, self.echo())
+        self.loop.call_later(MS, asyncio.async, self.echo())
         self.loop.call_later(2 * MS, self.feed_eof)
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
@@ -361,12 +361,12 @@ class ClientTests(CommonTests, unittest.TestCase):
 
     def test_connection_close_timeout(self):
         # If the server doesn't drop the connection quickly, the client will.
-        self.after = tulip.Future()
+        self.after = asyncio.Future()
         self.loop.call_later(2 * MS, self.after.cancel)
-        self.before = tulip.Future()
+        self.before = asyncio.Future()
         self.loop.call_later(10 * MS, self.before.cancel)
         self.protocol.timeout = 5 * MS
-        self.loop.call_later(MS, tulip.async, self.echo())
+        self.loop.call_later(MS, asyncio.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
         self.assertTrue(self.after.cancelled())

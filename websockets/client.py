@@ -84,19 +84,6 @@ def connect(uri, *,
     transport, protocol = yield from asyncio.get_event_loop().create_connection(
             klass, uri.host, uri.port, **kwds)
 
-    if kwds['ssl']:
-        certificate = transport.get_extra_info('socket').getpeercert()
-        # If a certificate is available, validate the host name. SSL contexts
-        # should require a certificate by setting verify_mode = CERT_REQUIRED.
-        if certificate:
-            try:
-                # Import ssl here to avoid depending on OpenSSL.
-                import ssl
-                ssl.match_hostname(certificate, uri.host)
-            except Exception:
-                transport.close()
-                raise
-
     try:
         yield from protocol.handshake(uri)
     except Exception:

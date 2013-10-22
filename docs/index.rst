@@ -9,8 +9,8 @@ with a focus on simplicity and correctness.
 It's built on top on Python's asynchronous I/O features described in `PEP
 3156`_.
 
-It requires Python ≥ 3.4 or Python 3.3 with a copy of the ``asyncio`` module
-available in the `Tulip`_ repository.
+It requires Python ≥ 3.4 or Python 3.3 with the ``asyncio`` module, which is
+available in the `Tulip`_ repository or simply with ``pip install asyncio``.
 
 You can download the code and report issues `on GitHub`_.
 

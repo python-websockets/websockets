@@ -6,8 +6,8 @@ WebSockets
 ``websockets`` is an implementation of `RFC 6455`_, the WebSocket protocol,
 with a focus on simplicity and correctness.
 
-It relies on the `Tulip`_ library, which will become the standard for
-`asynchronous I/O`_ in future versions of Python, and requires Python ≥ 3.3.
+It relies on the ``asyncio`` package formerly `Tulip`_, which is standard 
+`asynchronous I/O`_ since Python 3.4.
 
 You can download the code and report issues `on GitHub`_.
 
@@ -55,7 +55,8 @@ The first phase is designed to integrate with existing HTTP software.
 response headers.
 
 The second phase is the core of the WebSocket protocol. ``websockets``
-provides a standalone implementation on top of Tulip with a very simple API.
+provides a standalone implementation on top of ``asyncio`` package with
+a very simple API.
 
 For convenience, public APIs can be imported directly from the
 :mod:`websockets` package, unless noted otherwise. Anything that isn't listed

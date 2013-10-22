@@ -2,7 +2,7 @@ import json
 import logging
 import urllib.parse
 
-import tulip
+import asyncio
 import websockets
 
 
@@ -17,7 +17,7 @@ class EchoClientProtocol(websockets.WebSocketClientProtocol):
 
     """WebSocket client protocol that echoes messages synchronously."""
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def read_message(self):
         msg = yield from super(EchoClientProtocol, self).read_message()
         if msg is not None:
@@ -25,7 +25,7 @@ class EchoClientProtocol(websockets.WebSocketClientProtocol):
         return msg
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def get_case_count(server):
     uri = server + '/getCaseCount'
     ws = yield from websockets.connect(uri)
@@ -34,21 +34,21 @@ def get_case_count(server):
     return json.loads(msg)
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def run_case(server, case, agent):
     uri = server + '/runCase?case={}&agent={}'.format(case, agent)
     ws = yield from websockets.connect(uri, klass=EchoClientProtocol)
     yield from ws.worker
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def update_reports(server, agent):
     uri = server + '/updateReports?agent={}'.format(agent)
     ws = yield from websockets.connect(uri)
     yield from ws.worker
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def run_tests(server, agent):
     cases = yield from get_case_count(server)
     for case in range(1, cases + 1):
@@ -59,4 +59,4 @@ def run_tests(server, agent):
 
 
 main = run_tests(SERVER, urllib.parse.quote(AGENT))
-tulip.get_event_loop().run_until_complete(main)
+asyncio.get_event_loop().run_until_complete(main)

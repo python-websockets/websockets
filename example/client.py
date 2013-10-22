@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-import tulip
+import asyncio
 import websockets
 
-@tulip.coroutine
+@asyncio.coroutine
 def hello():
     websocket = yield from websockets.connect('ws://localhost:8765/')
     name = input("What's your name? ")
@@ -12,4 +12,4 @@ def hello():
     greeting = yield from websocket.recv()
     print("< {}".format(greeting))
 
-tulip.get_event_loop().run_until_complete(hello())
+asyncio.get_event_loop().run_until_complete(hello())

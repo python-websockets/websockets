@@ -1,1 +1,1 @@
--e hg+https://code.google.com/p/tulip/#egg=tulip
+

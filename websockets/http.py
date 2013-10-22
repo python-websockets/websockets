@@ -13,7 +13,7 @@ import email.parser
 import io
 import sys
 
-import tulip
+import asyncio
 
 from .version import version as websockets_version
 
@@ -27,7 +27,7 @@ USER_AGENT = ' '.join((
 ))
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def read_request(stream):
     """
     Read an HTTP/1.1 request from `stream`.
@@ -48,7 +48,7 @@ def read_request(stream):
     return uri, headers
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def read_response(stream):
     """
     Read an HTTP/1.1 response from `stream`.
@@ -67,7 +67,7 @@ def read_response(stream):
     return int(status), headers
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def read_message(stream):
     """
     Read an HTTP message from `stream`.
@@ -91,7 +91,7 @@ def read_message(stream):
     return start_line, headers
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def read_line(stream):
     """
     Read a single line from `stream`.

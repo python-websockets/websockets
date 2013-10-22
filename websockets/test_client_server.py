@@ -6,7 +6,7 @@ except ImportError:
 import unittest
 from unittest.mock import patch
 
-import tulip
+import asyncio
 
 from .client import *
 from .exceptions import InvalidHandshake
@@ -14,7 +14,7 @@ from .http import read_response
 from .server import *
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def echo(ws, uri):
     ws.send((yield from ws.recv()))
 
@@ -22,8 +22,8 @@ def echo(ws, uri):
 class ClientServerTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = tulip.new_event_loop()
-        tulip.set_event_loop(self.loop)
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
         self.start_server()
 
     def tearDown(self):
@@ -86,7 +86,7 @@ class ClientServerTests(unittest.TestCase):
 
     @patch('websockets.client.read_response')
     def test_server_does_not_switch_protocols(self, _read_response):
-        @tulip.coroutine
+        @asyncio.coroutine
         def wrong_read_response(stream):
             code, headers = yield from read_response(stream)
             return 400, headers
@@ -126,8 +126,8 @@ class ClientServerTests(unittest.TestCase):
 class SSLClientServerTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = tulip.new_event_loop()
-        tulip.set_event_loop(self.loop)
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
     def tearDown(self):
         self.loop.close()

@@ -1,7 +1,7 @@
 import io
 import unittest
 
-import tulip
+import asyncio
 
 from .exceptions import WebSocketProtocolError
 from .framing import *
@@ -10,9 +10,9 @@ from .framing import *
 class FramingTests(unittest.TestCase):
 
     def setUp(self):
-        self.loop = tulip.new_event_loop()
-        tulip.set_event_loop(self.loop)
-        self.stream = tulip.StreamReader()
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+        self.stream = asyncio.StreamReader()
 
     def tearDown(self):
         self.loop.close()

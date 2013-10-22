@@ -6,7 +6,7 @@ __all__ = ['serve', 'WebSocketServerProtocol']
 
 import logging
 
-import tulip
+import asyncio
 
 from .exceptions import InvalidHandshake
 from .handshake import check_request, build_response
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket server implementation as a Tulip protocol.
+    Complete WebSocket server implementation as a Asyncio protocol.
 
     This class inherits :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
@@ -36,9 +36,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def connection_made(self, transport):
         super().connection_made(transport)
-        tulip.async(self.handler())
+        asyncio.async(self.handler())
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def handler(self):
         try:
             uri = yield from self.handshake()
@@ -61,7 +61,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             self.transport.close()
             return
 
-    @tulip.coroutine
+    @asyncio.coroutine
     def handshake(self):
         """
         Perform the server side of the opening handshake.
@@ -92,7 +92,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return uri
 
 
-@tulip.coroutine
+@asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
           klass=WebSocketServerProtocol, **kwds):
     """
@@ -112,5 +112,5 @@ def serve(ws_handler, host=None, port=None, *,
     completes, the server performs the closing handshake and closes the
     connection.
     """
-    return (yield from tulip.get_event_loop().create_server(
+    return (yield from asyncio.get_event_loop().create_server(
             lambda: klass(ws_handler), host, port, **kwds))

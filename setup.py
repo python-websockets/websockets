@@ -8,7 +8,7 @@ description = "An implementation of the WebSocket Protocol (RFC 6455)"
 
 root = os.path.dirname(__file__)
 
-with open(os.path.join(root, 'README')) as f:
+with open(os.path.join(root, 'README.rst')) as f:
     long_description = '\n\n'.join(f.read().split('\n\n')[1:])
 
 with open(os.path.join(root, 'websockets', 'version.py')) as f:

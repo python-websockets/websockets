@@ -29,25 +29,28 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     """
     This class implements common parts of the WebSocket protocol.
 
-    It assumes that the WebSocket connection is established. It runs a Task
-    that stores incoming data frames in a queue and deals with control frames
-    automatically. It sends outgoing data frames and performs the closing
-    handshake.
+    It assumes that the WebSocket connection is established. The handshake is
+    managed in subclasses such as
+    :class:`~websockets.server.WebSocketServerProtocol` and
+    :class:`~websockets.client.WebSocketClientProtocol`.
+
+    It runs a task that stores incoming data frames in a queue and deals with
+    control frames automatically. It sends outgoing data frames and performs
+    the closing handshake.
 
     The `timeout` parameter defines the maximum wait time in seconds for
-    completing the closing handshake and for terminating the TCP connection.
-    :meth:`close()` will complete in at most twice this time.
+    completing the closing handshake and, only on the client side, for
+    terminating the TCP connection. :meth:`close()` will complete in at most
+    this time on the server side and twice this time on the client side.
 
     Once the connection is closed, the status code is available in the
-    :attr:`close_code` attribute and the reason in :attr:`close_reason`. If
-    you need to wait until the connection is closed, you can yield from
-    the :attr:`worker` attribute.
-
-    There are only two differences between the client-side and the server-side
-    behavior: masking the payload and closing the underlying TCP connection.
-    This class implements the server-side behavior by default. To get the
-    client-side behavior, set the class attribute ``is_client`` to ``True``.
+    :attr:`close_code` attribute and the reason in :attr:`close_reason`.
     """
+
+    # There are only two differences between the client-side and the server-
+    # side behavior: masking the payload and closing the underlying TCP
+    # connection. This class implements the server-side behavior by default.
+    # To get the client-side behavior, set is_client = True.
 
     is_client = False
     state = 'OPEN'

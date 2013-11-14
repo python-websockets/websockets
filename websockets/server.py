@@ -21,7 +21,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
     Complete WebSocket server implementation as a Tulip protocol.
 
-    This class inherits :class:`~websockets.protocol.WebSocketCommonProtocol`.
+    This class inherits most of its methods from
+    :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
     For the sake of simplicity, this protocol doesn't inherit a proper HTTP
     implementation, and it doesn't send appropriate HTTP responses when
@@ -30,9 +31,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     state = 'CONNECTING'
 
-    def __init__(self, ws_handler=None, *args, **kwargs):
+    def __init__(self, ws_handler=None, **kwargs):
         self.ws_handler = ws_handler
-        super().__init__(*args, **kwargs)
+        super().__init__(**kwargs)
 
     def connection_made(self, transport):
         super().connection_made(transport)
@@ -98,8 +99,11 @@ def serve(ws_handler, host=None, port=None, *,
     """
     This coroutine creates a WebSocket server.
 
-    It's a thin wrapper around the event loop's ``create_server`` method. It
-    returns a ``Server`` object with a ``close`` method to stop the server.
+    It's a thin wrapper around the event loop's ``create_server`` method.
+    ``host``, ``port`` as well as extra keyword arguments are passed to
+    ``create_server``.
+
+    It returns a ``Server`` object with a ``close`` method to stop the server.
 
     `ws_handler` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and

@@ -3,21 +3,29 @@
 WebSockets
 ==========
 
-``websockets`` is an implementation of `RFC 6455`_, the WebSocket protocol,
-with a focus on simplicity and correctness.
+``websockets`` is a library for developing WebSocket servers_ and clients_ in
+Python. It implements `RFC 6455`_ with a focus on correctness and simplicity.
+It passes the `Autobahn Testsuite`_.
 
-It's built on top on Python's asynchronous I/O features described in `PEP
-3156`_.
+Built on top on Python's asynchronous I/O support introduced in `PEP 3156`_,
+it provides an API based on coroutines, making it easy to write highly
+concurrent applications.
 
-It requires Python ≥ 3.4 or Python 3.3 with the ``asyncio`` module, which is
-available in the `Tulip`_ repository or simply with ``pip install asyncio``.
+Installation is as simple as ``pip install websockets``. It requires Python ≥
+3.4 or Python 3.3 with the ``asyncio`` module, which is available with ``pip
+install asyncio`` or in the `Tulip`_ repository.
 
-You can download the code and report issues `on GitHub`_.
+Bug reports, patches and suggestions welcome! Just open an issue_ or send a
+`pull request`_.
 
+.. _servers: https://github.com/aaugustin/websockets/blob/master/example/server.py
+.. _clients: https://github.com/aaugustin/websockets/blob/master/example/client.py
 .. _RFC 6455: http://tools.ietf.org/html/rfc6455
+.. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/master/compliance/README.rst
 .. _PEP 3156: http://www.python.org/dev/peps/pep-3156/
 .. _Tulip: http://code.google.com/p/tulip/
-.. _on GitHub: https://github.com/aaugustin/websockets
+.. _issue: https://github.com/aaugustin/websockets/issues/new
+.. _pull request: https://github.com/aaugustin/websockets/compare/
 
 Example
 -------
@@ -25,7 +33,7 @@ Example
 .. _server-example:
 
 Here's a WebSocket server example. It reads a name from the client and sends a
-greeting.
+message.
 
 .. literalinclude:: ../example/server.py
 
@@ -73,7 +81,7 @@ Server
 
 .. automodule:: websockets.server
 
-   .. autofunction:: serve(ws_handler, host=None, port=None, **kwargs)
+   .. autofunction:: serve(ws_handler, host=None, port=None, *, klass=WebSocketServerProtocol, **kwds)
 
    .. autoclass:: WebSocketServerProtocol(self, ws_handler, timeout=10)
         :members: handshake
@@ -83,7 +91,7 @@ Client
 
 .. automodule:: websockets.client
 
-   .. autofunction:: connect(uri)
+   .. autofunction:: connect(uri, *, klass=WebSocketClientProtocol, **kwds)
 
    .. autoclass:: WebSocketClientProtocol(self, timeout=10)
         :members: handshake

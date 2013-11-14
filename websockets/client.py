@@ -17,7 +17,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
     Complete WebSocket client implementation as a Tulip protocol.
 
-    This class inherits :class:`~websockets.protocol.WebSocketCommonProtocol`.
+    This class inherits most of its methods from
+    :class:`~websockets.protocol.WebSocketCommonProtocol`.
     """
 
     is_client = True

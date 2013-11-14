@@ -1,5 +1,5 @@
 """
-The :mod:`websockets.protocols` module handles WebSocket control and data
+The :mod:`websockets.protocol` module handles WebSocket control and data
 frames as specified in `sections 4 to 8 of RFC 6455`_.
 
 .. _sections 4 to 8 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4

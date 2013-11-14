@@ -1,7 +1,12 @@
 *.pyc
-docs/_build
-README.html
 .coverage
-htmlcov
-compliance/reports
 .DS_Store
+build/
+compliance/reports/
+dist/
+docs/_build/
+htmlcov/
+MANIFEST
+README
+README.html
+websockets.egg-info/

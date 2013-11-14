@@ -1,20 +1,31 @@
-import distutils.core
 import os
+import sys
+import setuptools
 
 # Avoid polluting the .tar.gz with ._* files under Mac OS X
 os.putenv('COPYFILE_DISABLE', 'true')
 
-description = "An implementation of the WebSocket Protocol (RFC 6455)"
-
 root = os.path.dirname(__file__)
 
-with open(os.path.join(root, 'README.rst')) as f:
+# Prevent distutils from complaining that a standard file wasn't found
+README = os.path.join(root, 'README')
+if not os.path.exists(README):
+    os.symlink(README + '.rst', README)
+
+description = "An implementation of the WebSocket Protocol (RFC 6455)"
+
+with open(os.path.join(root, 'README')) as f:
     long_description = '\n\n'.join(f.read().split('\n\n')[1:])
 
 with open(os.path.join(root, 'websockets', 'version.py')) as f:
     exec(f.read())
 
-distutils.core.setup(
+py_version = sys.version_info[:2]
+
+if py_version < (3, 3):
+    raise Exception("websockets requires Python >= 3.3.")
+
+setuptools.setup(
     name='websockets',
     version=version,
     author='Aymeric Augustin',
@@ -26,8 +37,9 @@ distutils.core.setup(
     packages=[
         'websockets',
     ],
+    install_requires=['asyncio'] if py_version == (3, 3) else [],
     classifiers=[
-        "Development Status :: 3 - Alpha",
+        "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
         "Intended Audience :: Developers",
         "License :: OSI Approved :: BSD License",

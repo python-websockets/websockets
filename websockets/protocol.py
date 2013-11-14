@@ -211,7 +211,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 yield from self.fail_connection(1002)
             except UnicodeDecodeError:
                 yield from self.fail_connection(1007)
-            except Exception as exc:
+            except Exception:
                 yield from self.fail_connection(1011)
                 raise
         yield from self.close_connection()

@@ -14,10 +14,10 @@ if not os.path.exists(README):
 
 description = "An implementation of the WebSocket Protocol (RFC 6455)"
 
-with open(os.path.join(root, 'README')) as f:
+with open(os.path.join(root, 'README'), encoding='utf-8') as f:
     long_description = '\n\n'.join(f.read().split('\n\n')[1:])
 
-with open(os.path.join(root, 'websockets', 'version.py')) as f:
+with open(os.path.join(root, 'websockets', 'version.py'), encoding='utf-8') as f:
     exec(f.read())
 
 py_version = sys.version_info[:2]

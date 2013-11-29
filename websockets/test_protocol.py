@@ -185,6 +185,15 @@ class CommonTests:
         self.assertTrue(pings[1][0].done())
         self.assertFalse(pings[2][0].done())
 
+    def test_cancel_ping(self):
+        ping = self.protocol.ping()
+        ping_frame = self.loop.run_until_complete(self.sent())
+        ping.cancel()
+        pong_frame = Frame(True, OP_PONG, ping_frame.data)
+        self.feed(pong_frame)
+        self.process_control_frames()
+        self.assertTrue(ping.cancelled())
+
     def test_duplicate_ping(self):
         self.protocol.ping(b'foobar')
         self.assertFrameSent(True, OP_PING, b'foobar')

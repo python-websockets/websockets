@@ -280,7 +280,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     ping_id = None
                     while ping_id != frame.data:
                         ping_id, waiter = self.pings.popitem(0)
-                        waiter.set_result(None)
+                        if not waiter.cancelled():
+                            waiter.set_result(None)
             # 5.6. Data Frames
             else:
                 return frame

@@ -92,10 +92,10 @@ def read_frame(reader, mask):
 @asyncio.coroutine
 def read_bytes(reader, n):
     # Undocumented utility function.
-    data = yield from reader(n)
-    if len(data) != n:
+    try:
+        return (yield from reader(n))
+    except asyncio.IncompleteReadError:
         raise WebSocketProtocolError("Unexpected EOF")
-    return data
 
 
 def write_frame(frame, writer, mask):

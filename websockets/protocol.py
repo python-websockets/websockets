@@ -10,12 +10,11 @@ __all__ = ['WebSocketCommonProtocol']
 import codecs
 import collections
 import logging
-import queue
 import random
 import struct
 
 import asyncio
-from asyncio.queues import Queue
+from asyncio.queues import Queue, QueueEmpty
 
 from .exceptions import InvalidState, WebSocketProtocolError
 from .framing import *
@@ -138,7 +137,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Return any available message
         try:
             return self.messages.get_nowait()
-        except queue.Empty:
+        except QueueEmpty:
             pass
 
         # Wait for a message until the connection is closed

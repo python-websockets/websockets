@@ -12,12 +12,12 @@ class FramingTests(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        self.stream = asyncio.StreamReader()
 
     def tearDown(self):
         self.loop.close()
 
     def decode(self, message, mask=False):
+        self.stream = asyncio.StreamReader()
         self.stream.feed_data(message)
         self.stream.feed_eof()
         reader = self.stream.readexactly

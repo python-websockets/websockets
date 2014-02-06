@@ -48,7 +48,7 @@ class CommonTests:
             stream.feed_data(data)
         self.transport.write.call_args_list = []
         stream.feed_eof()
-        if stream._byte_count:
+        if not stream.at_eof():
             return read_frame(stream.readexactly, self.protocol.is_client)
 
     @asyncio.coroutine

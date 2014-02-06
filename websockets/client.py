@@ -15,7 +15,7 @@ from .uri import parse_uri
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket client implementation as a Tulip protocol.
+    Complete WebSocket client implementation as an asyncio protocol.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -41,11 +41,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         key = build_request(set_header)
         request.append('\r\n')
         request = '\r\n'.join(request).encode()
-        self.transport.write(request)
+        self.writer.write(request)
 
         # Read handshake response.
         try:
-            status_code, headers = yield from read_response(self.stream)
+            status_code, headers = yield from read_response(self.reader)
         except Exception as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
         if status_code != 101:

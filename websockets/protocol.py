@@ -24,7 +24,7 @@ from .handshake import *
 logger = logging.getLogger(__name__)
 
 
-class WebSocketCommonProtocol(asyncio.Protocol):
+class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     """
     This class implements common parts of the WebSocket protocol.
 
@@ -54,8 +54,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     is_client = False
     state = 'OPEN'
 
-    def __init__(self, timeout=10):
+    def __init__(self, timeout=10, loop=None):
         self.timeout = timeout
+        super().__init__(asyncio.StreamReader(), self.client_connected, loop)
 
         self.close_code = None
         self.close_reason = ''
@@ -288,7 +289,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @asyncio.coroutine
     def read_frame(self):
         is_masked = not self.is_client
-        frame = yield from read_frame(self.stream.readexactly, is_masked)
+        frame = yield from read_frame(self.reader.readexactly, is_masked)
         side = 'client' if self.is_client else 'server'
         logger.debug("%s << %s", side, frame)
         return frame
@@ -302,7 +303,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         side = 'client' if self.is_client else 'server'
         logger.debug("%s >> %s", side, frame)
         is_masked = self.is_client
-        write_frame(frame, self.transport.write, is_masked)
+        write_frame(frame, self.writer.write, is_masked)
 
     @asyncio.coroutine
     def close_connection(self):
@@ -322,8 +323,18 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             except (asyncio.CancelledError, asyncio.TimeoutError):
                 pass
 
-        if self.state != 'CLOSED':
-            self.transport.close()
+            if self.state == 'CLOSED':
+                return
+
+        assert self.writer.can_write_eof(), "WebSocket runs over TCP/IP!"
+        self.writer.write_eof()
+        self.writer.close()
+
+        try:
+            yield from asyncio.wait_for(self.connection_closed,
+                    timeout=self.timeout)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
 
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):
@@ -340,22 +351,17 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             self.closing_handshake.set_result(False)
         yield from self.close_connection()
 
-    # Tulip Protocol methods
+    # asyncio StreamReaderProtocol methods
 
-    def connection_made(self, transport):
-        self.transport = transport
-        self.stream = asyncio.StreamReader()
-
-    def data_received(self, data):
-        self.stream.feed_data(data)
-
-    def eof_received(self):
-        self.stream.feed_eof()
-        self.transport.close()
+    def client_connected(self, reader, writer):
+        self.reader = reader
+        self.writer = writer
 
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed
         self.state = 'CLOSED'
-        self.connection_closed.set_result(None)
+        if not self.connection_closed.done():
+            self.connection_closed.set_result(None)
         if self.close_code is None:
             self.close_code = 1006
+        super().connection_lost(exc)

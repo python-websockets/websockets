@@ -30,6 +30,4 @@ Conformance notes
 -----------------
 
 Test cases 6.4.2, 6.4.3, and 6.4.4 are actually more strict than the RFC.
-Given its implementation, ``websockets`` should get a "Non-Strict", but due to
-a bug in the test suite runner, it gets a "Fail". For more information see
-issues 1, 3, 9, and 14 on https://github.com/tavendo/AutobahnTestSuite/issues.
+Given its implementation, ``websockets`` gets a "Non-Strict".

@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket server implementation as a Tulip protocol.
+    Complete WebSocket server implementation as an asyncio protocol.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -45,7 +45,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             uri = yield from self.handshake()
         except Exception as exc:
             logger.info("Exception in opening handshake: {}".format(exc))
-            self.transport.close()
+            self.writer.close()
             return
 
         try:
@@ -59,7 +59,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             yield from self.close()
         except Exception as exc:
             logger.info("Exception in closing handshake: {}".format(exc))
-            self.transport.close()
+            self.writer.close()
             return
 
     @asyncio.coroutine
@@ -71,7 +71,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         # Read handshake request.
         try:
-            uri, headers = yield from read_request(self.stream)
+            uri, headers = yield from read_request(self.reader)
         except Exception as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
         get_header = lambda k: headers.get(k, '')
@@ -85,7 +85,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         build_response(set_header, key)
         response.append('\r\n')
         response = '\r\n'.join(response).encode()
-        self.transport.write(response)
+        self.writer.write(response)
 
         self.state = 'OPEN'
         self.opening_handshake.set_result(True)

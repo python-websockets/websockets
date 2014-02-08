@@ -24,7 +24,7 @@ from .handshake import *
 logger = logging.getLogger(__name__)
 
 
-class WebSocketCommonProtocol(asyncio.Protocol):
+class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     """
     This class implements common parts of the WebSocket protocol.
 
@@ -54,8 +54,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     is_client = False
     state = 'OPEN'
 
-    def __init__(self, timeout=10):
+    def __init__(self, timeout=10, loop=None):
         self.timeout = timeout
+        super().__init__(asyncio.StreamReader(), self.client_connected, loop)
 
         self.close_code = None
         self.close_reason = ''
@@ -108,7 +109,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         if self.state == 'OPEN':
             # 7.1.2. Start the WebSocket Closing Handshake
             self.close_code, self.close_reason = code, reason
-            self.write_frame(OP_CLOSE, serialize_close(code, reason))
+            yield from self.write_frame(OP_CLOSE, serialize_close(code, reason))
             # 7.1.3. The WebSocket Closing Handshake is Started
             self.state = 'CLOSING'
 
@@ -148,9 +149,10 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         if next_message in done:
             return next_message.result()
 
+    @asyncio.coroutine
     def send(self, data):
         """
-        This function sends a message.
+        This coroutine sends a message.
 
         It sends a :class:`str` as a text frame and :class:`bytes` as a binary
         frame.
@@ -165,11 +167,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             opcode = 2
         else:
             raise TypeError("data must be bytes or str")
-        self.write_frame(opcode, data)
+        yield from self.write_frame(opcode, data)
 
+    @asyncio.coroutine
     def ping(self, data=None):
         """
-        This function sends a ping.
+        This coroutine sends a ping.
 
         It returns a Future which will be completed when the corresponding
         pong is received and which you may ignore if you don't want to wait.
@@ -184,16 +187,17 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             data = struct.pack('!I', random.getrandbits(32))
 
         self.pings[data] = asyncio.Future()
-        self.write_frame(OP_PING, data)
+        yield from self.write_frame(OP_PING, data)
         return self.pings[data]
 
+    @asyncio.coroutine
     def pong(self, data=b''):
         """
-        This function sends a pong.
+        This coroutine sends a pong.
 
         An unsolicited pong may serve as a unidirectional heartbeat.
         """
-        self.write_frame(OP_PONG, data)
+        yield from self.write_frame(OP_PONG, data)
 
     # Private methods - no guarantees.
 
@@ -266,12 +270,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 if self.state != 'CLOSING':
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     self.state = 'CLOSING'
-                    self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
+                    yield from self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
                 self.closing_handshake.set_result(True)
                 return
             elif frame.opcode == OP_PING:
                 # Answer pings.
-                self.pong(frame.data)
+                yield from self.pong(frame.data)
             elif frame.opcode == OP_PONG:
                 # Do not acknowledge pings on unsolicited pongs.
                 if frame.data in self.pings:
@@ -288,11 +292,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @asyncio.coroutine
     def read_frame(self):
         is_masked = not self.is_client
-        frame = yield from read_frame(self.stream.readexactly, is_masked)
+        frame = yield from read_frame(self.reader.readexactly, is_masked)
         side = 'client' if self.is_client else 'server'
         logger.debug("%s << %s", side, frame)
         return frame
 
+    @asyncio.coroutine
     def write_frame(self, opcode, data=b'', expected_state='OPEN'):
         # This may happen if a user attempts to write on a closed connection.
         if self.state != expected_state:
@@ -302,7 +307,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         side = 'client' if self.is_client else 'server'
         logger.debug("%s >> %s", side, frame)
         is_masked = self.is_client
-        write_frame(frame, self.transport.write, is_masked)
+        write_frame(frame, self.writer.write, is_masked)
+        # Handle flow control automatically.
+        try:
+            yield from self.writer.drain()
+        except ConnectionResetError:
+            pass
 
     @asyncio.coroutine
     def close_connection(self):
@@ -322,8 +332,18 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             except (asyncio.CancelledError, asyncio.TimeoutError):
                 pass
 
-        if self.state != 'CLOSED':
-            self.transport.close()
+            if self.state == 'CLOSED':
+                return
+
+        assert self.writer.can_write_eof(), "WebSocket runs over TCP/IP!"
+        self.writer.write_eof()
+        self.writer.close()
+
+        try:
+            yield from asyncio.wait_for(self.connection_closed,
+                    timeout=self.timeout)
+        except (asyncio.CancelledError, asyncio.TimeoutError):
+            pass
 
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):
@@ -334,28 +354,23 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # 7.1.7. Fail the WebSocket Connection
         logger.info("Failing the WebSocket connection: %d %s", code, reason)
         if self.state == 'OPEN':
-            self.write_frame(OP_CLOSE, serialize_close(code, reason))
+            yield from self.write_frame(OP_CLOSE, serialize_close(code, reason))
             self.state = 'CLOSING'
         if not self.closing_handshake.done():
             self.closing_handshake.set_result(False)
         yield from self.close_connection()
 
-    # Tulip Protocol methods
+    # asyncio StreamReaderProtocol methods
 
-    def connection_made(self, transport):
-        self.transport = transport
-        self.stream = asyncio.StreamReader()
-
-    def data_received(self, data):
-        self.stream.feed_data(data)
-
-    def eof_received(self):
-        self.stream.feed_eof()
-        self.transport.close()
+    def client_connected(self, reader, writer):
+        self.reader = reader
+        self.writer = writer
 
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed
         self.state = 'CLOSED'
-        self.connection_closed.set_result(None)
+        if not self.connection_closed.done():
+            self.connection_closed.set_result(None)
         if self.close_code is None:
             self.close_code = 1006
+        super().connection_lost(exc)

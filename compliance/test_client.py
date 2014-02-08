@@ -21,7 +21,7 @@ class EchoClientProtocol(websockets.WebSocketClientProtocol):
     def read_message(self):
         msg = yield from super(EchoClientProtocol, self).read_message()
         if msg is not None:
-            self.send(msg)
+            yield from self.send(msg)
         return msg
 
 

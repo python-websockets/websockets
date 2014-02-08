@@ -109,7 +109,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if self.state == 'OPEN':
             # 7.1.2. Start the WebSocket Closing Handshake
             self.close_code, self.close_reason = code, reason
-            self.write_frame(OP_CLOSE, serialize_close(code, reason))
+            yield from self.write_frame(OP_CLOSE, serialize_close(code, reason))
             # 7.1.3. The WebSocket Closing Handshake is Started
             self.state = 'CLOSING'
 
@@ -149,9 +149,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if next_message in done:
             return next_message.result()
 
+    @asyncio.coroutine
     def send(self, data):
         """
-        This function sends a message.
+        This coroutine sends a message.
 
         It sends a :class:`str` as a text frame and :class:`bytes` as a binary
         frame.
@@ -166,11 +167,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             opcode = 2
         else:
             raise TypeError("data must be bytes or str")
-        self.write_frame(opcode, data)
+        yield from self.write_frame(opcode, data)
 
+    @asyncio.coroutine
     def ping(self, data=None):
         """
-        This function sends a ping.
+        This coroutine sends a ping.
 
         It returns a Future which will be completed when the corresponding
         pong is received and which you may ignore if you don't want to wait.
@@ -185,16 +187,17 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             data = struct.pack('!I', random.getrandbits(32))
 
         self.pings[data] = asyncio.Future()
-        self.write_frame(OP_PING, data)
+        yield from self.write_frame(OP_PING, data)
         return self.pings[data]
 
+    @asyncio.coroutine
     def pong(self, data=b''):
         """
-        This function sends a pong.
+        This coroutine sends a pong.
 
         An unsolicited pong may serve as a unidirectional heartbeat.
         """
-        self.write_frame(OP_PONG, data)
+        yield from self.write_frame(OP_PONG, data)
 
     # Private methods - no guarantees.
 
@@ -267,12 +270,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 if self.state != 'CLOSING':
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     self.state = 'CLOSING'
-                    self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
+                    yield from self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
                 self.closing_handshake.set_result(True)
                 return
             elif frame.opcode == OP_PING:
                 # Answer pings.
-                self.pong(frame.data)
+                yield from self.pong(frame.data)
             elif frame.opcode == OP_PONG:
                 # Do not acknowledge pings on unsolicited pongs.
                 if frame.data in self.pings:
@@ -294,6 +297,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         logger.debug("%s << %s", side, frame)
         return frame
 
+    @asyncio.coroutine
     def write_frame(self, opcode, data=b'', expected_state='OPEN'):
         # This may happen if a user attempts to write on a closed connection.
         if self.state != expected_state:
@@ -304,6 +308,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         logger.debug("%s >> %s", side, frame)
         is_masked = self.is_client
         write_frame(frame, self.writer.write, is_masked)
+        # Handle flow control automatically.
+        try:
+            yield from self.writer.drain()
+        except ConnectionResetError:
+            pass
 
     @asyncio.coroutine
     def close_connection(self):
@@ -345,7 +354,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # 7.1.7. Fail the WebSocket Connection
         logger.info("Failing the WebSocket connection: %d %s", code, reason)
         if self.state == 'OPEN':
-            self.write_frame(OP_CLOSE, serialize_close(code, reason))
+            yield from self.write_frame(OP_CLOSE, serialize_close(code, reason))
             self.state = 'CLOSING'
         if not self.closing_handshake.done():
             self.closing_handshake.set_result(False)

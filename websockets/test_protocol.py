@@ -19,6 +19,7 @@ class CommonTests:
         asyncio.set_event_loop(self.loop)
         self.protocol = WebSocketCommonProtocol()
         self.transport = unittest.mock.Mock()
+        self.transport._conn_lost = 0               # checked by drain()
         self.transport.close = unittest.mock.Mock(
                 side_effect=lambda: self.protocol.connection_lost(None))
         self.protocol.connection_made(self.transport)
@@ -120,23 +121,23 @@ class CommonTests:
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
 
     def test_send_text(self):
-        self.protocol.send('café')
+        self.loop.run_until_complete(self.protocol.send('café'))
         self.assertFrameSent(True, OP_TEXT, 'café'.encode('utf-8'))
 
     def test_send_binary(self):
-        self.protocol.send(b'tea')
+        self.loop.run_until_complete(self.protocol.send(b'tea'))
         self.assertFrameSent(True, OP_BINARY, b'tea')
 
     def test_send_type_error(self):
         with self.assertRaises(TypeError):
-            self.protocol.send(42)
+            self.loop.run_until_complete(self.protocol.send(42))
         self.assertNoFrameSent()
 
     def test_send_on_closed_connection(self):
         self.protocol.eof_received()
         self.protocol.connection_lost(None)
         with self.assertRaises(InvalidState):
-            self.protocol.send('foobar')
+            self.loop.run_until_complete(self.protocol.send('foobar'))
         self.assertNoFrameSent()
 
     def test_answer_ping(self):
@@ -150,7 +151,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_acknowledge_ping(self):
-        ping = self.protocol.ping()
+        ping = self.loop.run_until_complete(self.protocol.ping())
         self.assertFalse(ping.done())
         ping_frame = self.loop.run_until_complete(self.sent())
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
@@ -160,7 +161,7 @@ class CommonTests:
 
     def test_acknowledge_previous_pings(self):
         pings = [(
-            self.protocol.ping(),
+            self.loop.run_until_complete(self.protocol.ping()),
             self.loop.run_until_complete(self.sent()),
         ) for i in range(3)]
         # Unsolicited pong doesn't acknowledge pings
@@ -177,7 +178,7 @@ class CommonTests:
         self.assertFalse(pings[2][0].done())
 
     def test_cancel_ping(self):
-        ping = self.protocol.ping()
+        ping = self.loop.run_until_complete(self.protocol.ping())
         ping_frame = self.loop.run_until_complete(self.sent())
         ping.cancel()
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
@@ -186,10 +187,10 @@ class CommonTests:
         self.assertTrue(ping.cancelled())
 
     def test_duplicate_ping(self):
-        self.protocol.ping(b'foobar')
+        self.loop.run_until_complete(self.protocol.ping(b'foobar'))
         self.assertFrameSent(True, OP_PING, b'foobar')
         with self.assertRaises(ValueError):
-            self.protocol.ping(b'foobar')
+            self.loop.run_until_complete(self.protocol.ping(b'foobar'))
         self.assertNoFrameSent()
 
     def test_fragmented_text(self):

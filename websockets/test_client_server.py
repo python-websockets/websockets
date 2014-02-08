@@ -11,7 +11,7 @@ from .server import *
 
 @asyncio.coroutine
 def echo(ws, uri):
-    ws.send((yield from ws.recv()))
+    yield from ws.send((yield from ws.recv()))
 
 
 class ClientServerTests(unittest.TestCase):
@@ -42,7 +42,7 @@ class ClientServerTests(unittest.TestCase):
 
     def test_basic(self):
         self.start_client()
-        self.client.send("Hello!")
+        self.loop.run_until_complete(self.client.send("Hello!"))
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, "Hello!")
         self.stop_client()
@@ -95,7 +95,7 @@ class ClientServerTests(unittest.TestCase):
         send.side_effect = ValueError("send failed")
 
         self.start_client()
-        self.client.send("Hello!")
+        self.loop.run_until_complete(self.client.send("Hello!"))
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, None)
         self.stop_client()
@@ -108,7 +108,7 @@ class ClientServerTests(unittest.TestCase):
         close.side_effect = ValueError("close failed")
 
         self.start_client()
-        self.client.send("Hello!")
+        self.loop.run_until_complete(self.client.send("Hello!"))
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, "Hello!")
         self.stop_client()

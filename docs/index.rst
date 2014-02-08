@@ -145,6 +145,23 @@ Utilities
 .. automodule:: websockets.http
    :members:
 
+Changelog
+---------
+
+2.0
+...
+
+* Backwards-incompatible API change:
+  :meth:`~websockets.protocol.WebSocketCommonProtocol.send`,
+  :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
+  :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` are coroutines.
+  They used to be regular functions.
+* Add flow control.
+
+1.0
+...
+
+* Initial public release.
 
 Limitations
 -----------

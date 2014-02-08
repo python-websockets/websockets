@@ -9,7 +9,7 @@ def hello(websocket, uri):
     print("< {}".format(name))
     greeting = "Hello {}!".format(name)
     print("> {}".format(greeting))
-    websocket.send(greeting)
+    yield from websocket.send(greeting)
 
 start_server = websockets.serve(hello, 'localhost', 8765)
 

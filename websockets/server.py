@@ -30,6 +30,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
 
     state = 'CONNECTING'
+    headers = {}
 
     def __init__(self, ws_handler=None, **kwargs):
         self.ws_handler = ws_handler
@@ -71,10 +72,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         # Read handshake request.
         try:
-            uri, headers = yield from read_request(self.reader)
+            uri, self.headers = yield from read_request(self.reader)
         except Exception as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
-        get_header = lambda k: headers.get(k, '')
+        get_header = lambda k: self.headers.get(k, '')
         key = check_request(get_header)
 
         # Send handshake response. Since the headers only contain ASCII

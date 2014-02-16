@@ -61,6 +61,10 @@ class ClientServerTests(unittest.TestCase):
         with self.assertRaises(InvalidHandshake):
             self.start_client()
 
+        # Now the server believes the connection is open. Run the event loop
+        # once to make it notice the connection was closed. Interesting hack.
+        yield from tulip.sleep(0)
+
     @patch('websockets.client.build_request')
     def test_client_sends_invalid_handshake_request(self, _build_request):
         def wrong_build_request(set_header):

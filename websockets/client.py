@@ -88,7 +88,8 @@ def connect(uri, *,
     try:
         yield from protocol.handshake(uri)
     except Exception:
-        transport.close()
+        protocol.writer.write_eof()
+        protocol.writer.close()
         raise
 
     return protocol

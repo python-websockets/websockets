@@ -45,6 +45,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             uri = yield from self.handshake()
         except Exception as exc:
             logger.info("Exception in opening handshake: {}".format(exc))
+            self.writer.write_eof()
             self.writer.close()
             return
 
@@ -59,6 +60,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             yield from self.close()
         except Exception as exc:
             logger.info("Exception in closing handshake: {}".format(exc))
+            self.writer.write_eof()
             self.writer.close()
             return
 

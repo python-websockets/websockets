@@ -46,6 +46,20 @@ class ClientServerTests(unittest.TestCase):
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, "Hello!")
         self.stop_client()
+        
+    def test_set_headers(self):
+        def echo_host(ws, uri):
+            self.assert_(hassattr(ws, "headers"))
+            self.assertIn("Host", ws.headers)
+            yield from ws.send(ws.headers["Host"])
+        server = serve(echo_host, 'locahost', 8642)
+        server = self.loop_until_complete(server)
+        start_client()
+        host = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(host, "localhost")
+        self.stop_client()
+        server.close()
+        self.loop.run_until_complete(self.server.wait_closed())
 
     @patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):

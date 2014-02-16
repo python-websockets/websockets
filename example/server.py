@@ -5,8 +5,9 @@ import websockets
 
 @asyncio.coroutine
 def hello(websocket, uri):
+    origin = websocket.headers.get("Origin", "Unknown origin")
     name = yield from websocket.recv()
-    print("< {}".format(name))
+    print("{} < {}".format(origin, name))
     greeting = "Hello {}!".format(name)
     print("> {}".format(greeting))
     yield from websocket.send(greeting)

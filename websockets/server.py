@@ -31,8 +31,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     state = 'CONNECTING'
 
-    def __init__(self, ws_handler=None, **kwargs):
+    def __init__(self, ws_handler=None, *, origins=None, **kwargs):
         self.ws_handler = ws_handler
+        self.origins = origins
         super().__init__(**kwargs)
 
     def connection_made(self, transport):
@@ -42,7 +43,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     @asyncio.coroutine
     def handler(self):
         try:
-            uri = yield from self.handshake()
+            uri = yield from self.handshake(origins=self.origins)
         except Exception as exc:
             logger.info("Exception in opening handshake: {}".format(exc))
             self.writer.write_eof()
@@ -65,9 +66,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             return
 
     @asyncio.coroutine
-    def handshake(self):
+    def handshake(self, origins=None):
         """
         Perform the server side of the opening handshake.
+
+        If provided, ``origins`` is a list of acceptable HTTP Origin values.
+        Include ``''`` in the list if the lack of an origin is acceptable.
 
         Return the URI of the request.
         """
@@ -78,6 +82,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             raise InvalidHandshake("Malformed HTTP message") from exc
         get_header = lambda k: headers.get(k, '')
         key = check_request(get_header)
+
+        # Check origin in request.
+        if origins is not None:
+            origin = get_header('Origin')
+            if not set(origin.split() or ('',))<= set(origins):
+                raise InvalidHandshake("Bad origin: {}".format(origin))
 
         # Send handshake response. Since the headers only contain ASCII
         # characters, we can keep this simple.
@@ -97,7 +107,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          klass=WebSocketServerProtocol, **kwds):
+          klass=WebSocketServerProtocol, origins=None, **kwds):
     """
     This coroutine creates a WebSocket server.
 
@@ -105,12 +115,11 @@ def serve(ws_handler, host=None, port=None, *,
     `host`, `port` as well as extra keyword arguments are passed to
     `create_server`.
 
-    It returns a `Server` object with a `close` method to stop the server.
-
     `ws_handler` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and
-    the request URI. The `host` and `port` arguments and other keyword
-    arguments are passed to `create_server`.
+    the request URI. `origin` is a list of acceptable Origin HTTP headers.
+
+    It returns a `Server` object with a `close` method to stop the server.
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`~websockets.server.WebSocketServerProtocol`, performs the opening
@@ -119,4 +128,4 @@ def serve(ws_handler, host=None, port=None, *,
     connection.
     """
     return (yield from asyncio.get_event_loop().create_server(
-            lambda: klass(ws_handler), host, port, **kwds))
+            lambda: klass(ws_handler, origins=origins), host, port, **kwds))

@@ -25,9 +25,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     state = 'CONNECTING'
 
     @asyncio.coroutine
-    def handshake(self, uri):
+    def handshake(self, uri, origin=None):
         """
         Perform the client side of the opening handshake.
+
+        If provided, ``origin`` sets the HTTP Origin header.
         """
         # Send handshake request. Since the uri and the headers only contain
         # ASCII characters, we can keep this simple.
@@ -37,6 +39,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Host', uri.host)
         else:
             set_header('Host', '{}:{}'.format(uri.host, uri.port))
+        if origin is not None:
+            set_header('Origin', origin)
         set_header('User-Agent', USER_AGENT)
         key = build_request(set_header)
         request.append('\r\n')
@@ -59,9 +63,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 @asyncio.coroutine
 def connect(uri, *,
-            klass=WebSocketClientProtocol, **kwds):
+            klass=WebSocketClientProtocol, origin=None, **kwds):
     """
     This coroutine connects to a WebSocket server.
+
+    It accepts an ``origin`` keyword argument to set the Origin HTTP header.
 
     It's a thin wrapper around the event loop's `create_connection` method.
     Extra keyword arguments are passed to `create_server`.
@@ -86,7 +92,7 @@ def connect(uri, *,
             klass, uri.host, uri.port, **kwds)
 
     try:
-        yield from protocol.handshake(uri)
+        yield from protocol.handshake(uri, origin=origin)
     except Exception:
         protocol.writer.write_eof()
         protocol.writer.close()

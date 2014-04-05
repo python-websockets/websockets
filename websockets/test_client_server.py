@@ -119,3 +119,50 @@ class ClientServerTests(unittest.TestCase):
 
         # Connection ends with a protocol error.
         self.assertEqual(self.client.close_code, 1002)
+
+
+class ClientServerOriginTests(unittest.TestCase):
+
+    def test_checking_origin_succeeds(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        server = loop.run_until_complete(
+            serve(echo, 'localhost', 8642, origins=['http://localhost']))
+        client = loop.run_until_complete(
+            connect('ws://localhost:8642/', origin='http://localhost'))
+
+        loop.run_until_complete(client.send("Hello!"))
+        self.assertEqual(loop.run_until_complete(client.recv()), "Hello!")
+
+        server.close()
+        loop.run_until_complete(server.wait_closed())
+        loop.run_until_complete(client.worker)
+
+    def test_checking_origin_fails(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        server = loop.run_until_complete(
+            serve(echo, 'localhost', 8642, origins=['http://localhost']))
+        with self.assertRaises(InvalidHandshake):
+            loop.run_until_complete(
+                connect('ws://localhost:8642/', origin='http://otherhost'))
+
+        server.close()
+        loop.run_until_complete(server.wait_closed())
+
+    def test_checking_lack_of_origin_succeeds(self):
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+
+        server = loop.run_until_complete(
+            serve(echo, 'localhost', 8642, origins=['']))
+        client = loop.run_until_complete(connect('ws://localhost:8642/'))
+
+        loop.run_until_complete(client.send("Hello!"))
+        self.assertEqual(loop.run_until_complete(client.recv()), "Hello!")
+
+        server.close()
+        loop.run_until_complete(server.wait_closed())
+        loop.run_until_complete(client.worker)

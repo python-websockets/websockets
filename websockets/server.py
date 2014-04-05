@@ -101,16 +101,16 @@ def serve(ws_handler, host=None, port=None, *,
     """
     This coroutine creates a WebSocket server.
 
-    It's a thin wrapper around the event loop's ``create_server`` method.
-    ``host``, ``port`` as well as extra keyword arguments are passed to
-    ``create_server``.
+    It's a thin wrapper around the event loop's `create_server` method.
+    `host`, `port` as well as extra keyword arguments are passed to
+    `create_server`.
 
-    It returns a ``Server`` object with a ``close`` method to stop the server.
+    It returns a `Server` object with a `close` method to stop the server.
 
     `ws_handler` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and
     the request URI. The `host` and `port` arguments and other keyword
-    arguments are passed to ``create_server``.
+    arguments are passed to `create_server`.
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`~websockets.server.WebSocketServerProtocol`, performs the opening

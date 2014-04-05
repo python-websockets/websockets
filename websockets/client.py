@@ -63,8 +63,8 @@ def connect(uri, *,
     """
     This coroutine connects to a WebSocket server.
 
-    It's a thin wrapper around the event loop's ``create_connection`` method.
-    Extra keyword arguments are passed to ``create_server``.
+    It's a thin wrapper around the event loop's `create_connection` method.
+    Extra keyword arguments are passed to `create_server`.
 
     It returns a :class:`~websockets.client.WebSocketClientProtocol` which can
     then be used to send and receive messages.

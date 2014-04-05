@@ -101,7 +101,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         It waits for the other end to complete the handshake. It doesn't do
         anything once the connection is closed.
 
-        It's usually safe to wrap this coroutine in ``asyncio.async()`` since
+        It's usually safe to wrap this coroutine in `asyncio.async()` since
         errors during connection termination aren't particularly useful.
 
         The `code` must be an :class:`int` and the `reason` a :class:`str`.

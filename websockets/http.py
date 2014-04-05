@@ -32,8 +32,8 @@ def read_request(stream):
     """
     Read an HTTP/1.1 request from `stream`.
 
-    Return `(uri, headers)` where `uri` is a :class:`str` and `headers`
-    is a :class:`~email.message.Message`; `uri` isn't URL-decoded.
+    Return `(uri, headers)` where `uri` is a :class:`str` and `headers` is a
+    :class:`~email.message.Message`; `uri` isn't URL-decoded.
 
     Raise an exception if the request isn't well formatted.
 
@@ -53,8 +53,8 @@ def read_response(stream):
     """
     Read an HTTP/1.1 response from `stream`.
 
-    Return `(status, headers)` where `status` is a :class:`int` and
-    `headers` is a :class:`~email.message.Message`.
+    Return `(status, headers)` where `status` is a :class:`int` and `headers`
+    is a :class:`~email.message.Message`.
 
     Raise an exception if the request isn't well formatted.
 
@@ -72,8 +72,8 @@ def read_message(stream):
     """
     Read an HTTP message from `stream`.
 
-    Return `(start_line, headers)` where `start_line` is :class:`bytes`
-    and `headers` is a :class:`~email.message.Message`.
+    Return `(start_line, headers)` where `start_line` is :class:`bytes` and
+    `headers` is a :class:`~email.message.Message`.
 
     The message is assumed not to contain a body.
     """

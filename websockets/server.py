@@ -25,8 +25,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
     For the sake of simplicity, this protocol doesn't inherit a proper HTTP
-    implementation, and it doesn't send appropriate HTTP responses when
-    something goes wrong.
+    implementation. Its support for HTTP responses is very limited.
     """
 
     state = 'CONNECTING'
@@ -46,6 +45,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             uri = yield from self.handshake(origins=self.origins)
         except Exception as exc:
             logger.info("Exception in opening handshake: {}".format(exc))
+            if isinstance(exc, InvalidHandshake):
+                response = 'HTTP/1.1 400 Bad Request\r\n\r\n' + str(exc)
+            else:
+                response = ('HTTP/1.1 500 Internal Server Error\r\n\r\n'
+                            'See server log for more information.')
+            self.writer.write(response.encode())
             self.writer.write_eof()
             self.writer.close()
             return
@@ -80,6 +85,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             uri, headers = yield from read_request(self.reader)
         except Exception as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
+
         get_header = lambda k: headers.get(k, '')
         key = check_request(get_header)
 

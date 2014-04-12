@@ -32,20 +32,20 @@ def read_request(stream):
     """
     Read an HTTP/1.1 request from `stream`.
 
-    Return `(uri, headers)` where `uri` is a :class:`str` and `headers` is a
-    :class:`~email.message.Message`; `uri` isn't URL-decoded.
+    Return `(path, headers)` where `path` is a :class:`str` and `headers` is a
+    :class:`~email.message.Message`; `path` isn't URL-decoded.
 
     Raise an exception if the request isn't well formatted.
 
     The request is assumed not to contain a body.
     """
     request_line, headers = yield from read_message(stream)
-    method, uri, version = request_line[:-2].decode().split(None, 2)
+    method, path, version = request_line[:-2].decode().split(None, 2)
     if method != 'GET':
         raise ValueError("Unsupported method")
     if version != 'HTTP/1.1':
         raise ValueError("Unsupported HTTP version")
-    return uri, headers
+    return path, headers
 
 
 @asyncio.coroutine

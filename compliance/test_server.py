@@ -21,7 +21,7 @@ class EchoServerProtocol(websockets.WebSocketServerProtocol):
 
 
 @asyncio.coroutine
-def noop(ws, uri):
+def noop(ws, path):
     yield from ws.worker
 
 

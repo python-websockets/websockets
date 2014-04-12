@@ -10,7 +10,7 @@ from .server import *
 
 
 @asyncio.coroutine
-def echo(ws, uri):
+def echo(ws, path):
     yield from ws.send((yield from ws.recv()))
 
 

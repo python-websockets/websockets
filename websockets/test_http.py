@@ -31,8 +31,8 @@ class HTTPTests(unittest.TestCase):
             b'Sec-WebSocket-Version: 13\r\n'
             b'\r\n'
         )
-        uri, hdrs = self.loop.run_until_complete(read_request(self.stream))
-        self.assertEqual(uri, '/chat')
+        path, hdrs = self.loop.run_until_complete(read_request(self.stream))
+        self.assertEqual(path, '/chat')
         self.assertEqual(hdrs['Upgrade'], 'websocket')
 
     def test_read_response(self):

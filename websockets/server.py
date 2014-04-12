@@ -42,7 +42,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     @asyncio.coroutine
     def handler(self):
         try:
-            uri = yield from self.handshake(origins=self.origins)
+            path = yield from self.handshake(origins=self.origins)
         except Exception as exc:
             logger.info("Exception in opening handshake: {}".format(exc))
             if isinstance(exc, InvalidHandshake):
@@ -56,7 +56,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             return
 
         try:
-            yield from self.ws_handler(self, uri)
+            yield from self.ws_handler(self, path)
         except Exception:
             logger.info("Exception in connection handler", exc_info=True)
             yield from self.fail_connection(1011)
@@ -82,7 +82,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         # Read handshake request.
         try:
-            uri, headers = yield from read_request(self.reader)
+            path, headers = yield from read_request(self.reader)
         except Exception as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
 
@@ -108,7 +108,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.state = 'OPEN'
         self.opening_handshake.set_result(True)
 
-        return uri
+        return path
 
 
 @asyncio.coroutine

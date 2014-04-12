@@ -25,20 +25,20 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     state = 'CONNECTING'
 
     @asyncio.coroutine
-    def handshake(self, uri, origin=None):
+    def handshake(self, wsuri, origin=None):
         """
         Perform the client side of the opening handshake.
 
         If provided, ``origin`` sets the HTTP Origin header.
         """
-        # Send handshake request. Since the uri and the headers only contain
+        # Send handshake request. Since the URI and the headers only contain
         # ASCII characters, we can keep this simple.
-        request = ['GET %s HTTP/1.1' % uri.resource_name]
+        request = ['GET %s HTTP/1.1' % wsuri.resource_name]
         set_header = lambda k, v: request.append('{}: {}'.format(k, v))
-        if uri.port == (443 if uri.secure else 80):         # pragma: no cover
-            set_header('Host', uri.host)
+        if wsuri.port == (443 if wsuri.secure else 80):         # pragma: no cover
+            set_header('Host', wsuri.host)
         else:
-            set_header('Host', '{}:{}'.format(uri.host, uri.port))
+            set_header('Host', '{}:{}'.format(wsuri.host, wsuri.port))
         if origin is not None:
             set_header('Origin', origin)
         set_header('User-Agent', USER_AGENT)
@@ -86,13 +86,13 @@ def connect(uri, *,
     Connection" in RFC 6455, except for the requirement that "there MUST be no
     more than one connection in a CONNECTING state."
     """
-    uri = parse_uri(uri)
-    kwds.setdefault('ssl', uri.secure)
+    wsuri = parse_uri(uri)
+    kwds.setdefault('ssl', wsuri.secure)
     transport, protocol = yield from asyncio.get_event_loop().create_connection(
-            klass, uri.host, uri.port, **kwds)
+            klass, wsuri.host, wsuri.port, **kwds)
 
     try:
-        yield from protocol.handshake(uri, origin=origin)
+        yield from protocol.handshake(wsuri, origin=origin)
     except Exception:
         protocol.writer.write_eof()
         protocol.writer.close()

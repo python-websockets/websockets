@@ -19,7 +19,7 @@ class EchoClientProtocol(websockets.WebSocketClientProtocol):
 
     @asyncio.coroutine
     def read_message(self):
-        msg = yield from super(EchoClientProtocol, self).read_message()
+        msg = yield from super().read_message()
         if msg is not None:
             yield from self.send(msg)
         return msg

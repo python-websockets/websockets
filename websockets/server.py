@@ -51,7 +51,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 response = ('HTTP/1.1 500 Internal Server Error\r\n\r\n'
                             'See server log for more information.')
             self.writer.write(response.encode())
-            self.writer.write_eof()
             self.writer.close()
             return
 
@@ -66,7 +65,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             yield from self.close()
         except Exception as exc:
             logger.info("Exception in closing handshake: {}".format(exc))
-            self.writer.write_eof()
             self.writer.close()
             return
 

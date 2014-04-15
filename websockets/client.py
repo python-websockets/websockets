@@ -94,7 +94,6 @@ def connect(uri, *,
     try:
         yield from protocol.handshake(wsuri, origin=origin)
     except Exception:
-        protocol.writer.write_eof()
         protocol.writer.close()
         raise
 

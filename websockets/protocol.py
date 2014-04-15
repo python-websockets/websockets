@@ -335,8 +335,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             if self.state == 'CLOSED':
                 return
 
-        assert self.writer.can_write_eof(), "WebSocket runs over TCP/IP!"
-        self.writer.write_eof()
+        if self.writer.can_write_eof():
+            self.writer.write_eof()
         self.writer.close()
 
         try:

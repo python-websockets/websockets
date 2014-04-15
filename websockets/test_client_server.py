@@ -99,6 +99,10 @@ class ClientServerTests(unittest.TestCase):
         with self.assertRaises(InvalidHandshake):
             self.start_client()
 
+        # Now the server believes the connection is open. Run the event loop
+        # once to make it notice the connection was closed. Interesting hack.
+        self.loop.run_until_complete(asyncio.sleep(0))
+
     @patch('websockets.server.WebSocketServerProtocol.send')
     def test_server_handler_crashes(self, send):
         send.side_effect = ValueError("send failed")
@@ -162,6 +166,7 @@ class ClientServerOriginTests(unittest.TestCase):
         server.close()
         loop.run_until_complete(server.wait_closed())
         loop.run_until_complete(client.worker)
+        loop.close()
 
     def test_checking_origin_fails(self):
         loop = asyncio.new_event_loop()
@@ -175,6 +180,7 @@ class ClientServerOriginTests(unittest.TestCase):
 
         server.close()
         loop.run_until_complete(server.wait_closed())
+        loop.close()
 
     def test_checking_lack_of_origin_succeeds(self):
         loop = asyncio.new_event_loop()
@@ -190,3 +196,4 @@ class ClientServerOriginTests(unittest.TestCase):
         server.close()
         loop.run_until_complete(server.wait_closed())
         loop.run_until_complete(client.worker)
+        loop.close()

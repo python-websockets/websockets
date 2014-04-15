@@ -1,3 +1,5 @@
+import os
+import ssl
 import unittest
 from unittest.mock import patch
 
@@ -7,6 +9,9 @@ from .client import *
 from .exceptions import InvalidHandshake
 from .http import read_response
 from .server import *
+
+
+testcert = os.path.join(os.path.dirname(__file__), 'testcert.pem')
 
 
 @asyncio.coroutine
@@ -119,6 +124,25 @@ class ClientServerTests(unittest.TestCase):
 
         # Connection ends with a protocol error.
         self.assertEqual(self.client.close_code, 1002)
+
+
+@unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")
+class SSLClientServerTests(ClientServerTests):
+
+    def start_server(self):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        ssl_context.load_cert_chain(testcert)
+
+        server = serve(echo, 'localhost', 8642, ssl=ssl_context)
+        self.server = self.loop.run_until_complete(server)
+
+    def start_client(self):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        ssl_context.load_verify_locations(testcert)
+        ssl_context.verify_mode = ssl.CERT_REQUIRED
+
+        client = connect('ws://localhost:8642/', ssl=ssl_context)
+        self.client = self.loop.run_until_complete(client)
 
 
 class ClientServerOriginTests(unittest.TestCase):

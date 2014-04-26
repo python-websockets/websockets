@@ -7,7 +7,7 @@ import asyncio
 
 from .client import *
 from .exceptions import InvalidHandshake
-from .http import read_response
+from .http import read_response, USER_AGENT
 from .server import *
 
 
@@ -18,11 +18,16 @@ testcert = os.path.join(os.path.dirname(__file__), 'testcert.pem')
 def handler(ws, path):
     if path == '/attributes':
         yield from ws.send(repr((ws.host, ws.port, ws.secure)))
+    elif path == '/headers':
+        yield from ws.send(repr(ws.request_headers))
+        yield from ws.send(repr(ws.response_headers))
     else:
         yield from ws.send((yield from ws.recv()))
 
 
 class ClientServerTests(unittest.TestCase):
+
+    secure = False
 
     def setUp(self):
         self.loop = asyncio.new_event_loop()
@@ -37,8 +42,8 @@ class ClientServerTests(unittest.TestCase):
         server = serve(handler, 'localhost', 8642)
         self.server = self.loop.run_until_complete(server)
 
-    def start_client(self):
-        client = connect('ws://localhost:8642/')
+    def start_client(self, path=''):
+        client = connect('ws://localhost:8642/' + path)
         self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
@@ -56,16 +61,25 @@ class ClientServerTests(unittest.TestCase):
         self.stop_client()
 
     def test_protocol_attributes(self):
-        client = connect('ws://localhost:8642/attributes')
-        client = self.loop.run_until_complete(client)
-        try:
-            expected_attrs = repr(('localhost', 8642, False))
-            client_attrs = repr((client.host, client.port, client.secure))
-            self.assertEqual(client_attrs, expected_attrs)
-            server_attrs = self.loop.run_until_complete(client.recv())
-            self.assertEqual(server_attrs, expected_attrs)
-        finally:
-            self.loop.run_until_complete(client.worker)
+        self.start_client('attributes')
+        expected_attrs = ('localhost', 8642, self.secure)
+        client_attrs = (self.client.host, self.client.port, self.client.secure)
+        self.assertEqual(client_attrs, expected_attrs)
+        server_attrs = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_attrs, repr(expected_attrs))
+        self.stop_client()
+
+    def test_protocol_headers(self):
+        self.start_client('headers')
+        client_req = self.client.request_headers
+        client_resp = self.client.response_headers
+        self.assertEqual(dict(client_req)['User-Agent'], USER_AGENT)
+        self.assertEqual(dict(client_resp)['Server'], USER_AGENT)
+        server_req = self.loop.run_until_complete(self.client.recv())
+        server_resp = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_req, repr(client_req))
+        self.assertEqual(server_resp, repr(client_resp))
+        self.stop_client()
 
     @patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):
@@ -148,6 +162,8 @@ class ClientServerTests(unittest.TestCase):
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")
 class SSLClientServerTests(ClientServerTests):
 
+    secure = True
+
     @property
     def server_context(self):
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
@@ -165,22 +181,9 @@ class SSLClientServerTests(ClientServerTests):
         server = serve(handler, 'localhost', 8642, ssl=self.server_context)
         self.server = self.loop.run_until_complete(server)
 
-    def start_client(self):
-        client = connect('wss://localhost:8642/', ssl=self.client_context)
+    def start_client(self, path=''):
+        client = connect('wss://localhost:8642/' + path, ssl=self.client_context)
         self.client = self.loop.run_until_complete(client)
-
-    def test_protocol_attributes(self):
-        client = connect('wss://localhost:8642/attributes',
-                         ssl=self.client_context)
-        client = self.loop.run_until_complete(client)
-        try:
-            expected_attrs = repr(('localhost', 8642, True))
-            client_attrs = repr((client.host, client.port, client.secure))
-            self.assertEqual(client_attrs, expected_attrs)
-            server_attrs = self.loop.run_until_complete(client.recv())
-            self.assertEqual(server_attrs, expected_attrs)
-        finally:
-            self.loop.run_until_complete(client.worker)
 
     def test_ws_uri_is_rejected(self):
         client = connect('ws://localhost:8642/', ssl=self.client_context)

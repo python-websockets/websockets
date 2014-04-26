@@ -31,10 +31,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         If provided, ``origin`` sets the HTTP Origin header.
         """
-        # Send handshake request. Since the URI and the headers only contain
-        # ASCII characters, we can keep this simple.
-        request = ['GET %s HTTP/1.1' % wsuri.resource_name]
-        set_header = lambda k, v: request.append('{}: {}'.format(k, v))
+        headers = []
+        set_header = lambda k, v: headers.append((k, v))
         if wsuri.port == (443 if wsuri.secure else 80):         # pragma: no cover
             set_header('Host', wsuri.host)
         else:
@@ -43,6 +41,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Origin', origin)
         set_header('User-Agent', USER_AGENT)
         key = build_request(set_header)
+        self.request_headers = headers
+
+        # Send handshake request. Since the URI and the headers only contain
+        # ASCII characters, we can keep this simple.
+        request = ['GET %s HTTP/1.1' % wsuri.resource_name]
+        request.extend('{}: {}'.format(k, v) for k, v in headers)
         request.append('\r\n')
         request = '\r\n'.join(request).encode()
         self.writer.write(request)
@@ -54,6 +58,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             raise InvalidHandshake("Malformed HTTP message") from exc
         if status_code != 101:
             raise InvalidHandshake("Bad status code: {}".format(status_code))
+        self.response_headers = list(headers.raw_items())
         get_header = lambda k: headers.get(k, '')
         check_response(get_header, key)
 

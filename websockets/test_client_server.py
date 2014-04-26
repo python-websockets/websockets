@@ -182,6 +182,10 @@ class SSLClientServerTests(ClientServerTests):
         finally:
             self.loop.run_until_complete(client.worker)
 
+    def test_ws_uri_is_rejected(self):
+        client = connect('ws://localhost:8642/', ssl=self.client_context)
+        with self.assertRaises(ValueError):
+            self.loop.run_until_complete(client)
 
 class ClientServerOriginTests(unittest.TestCase):
 

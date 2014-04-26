@@ -87,7 +87,11 @@ def connect(uri, *,
     more than one connection in a CONNECTING state."
     """
     wsuri = parse_uri(uri)
-    kwds.setdefault('ssl', True)
+    if wsuri.secure:
+        kwds.setdefault('ssl', True)
+    elif 'ssl' in kwds:
+        raise ValueError("connect() received a SSL context for a ws:// URI. "
+                         "Use a wss:// URI to enable TLS.")
     factory = lambda: klass(host=wsuri.host, port=wsuri.port, secure=wsuri.secure)
     transport, protocol = yield from asyncio.get_event_loop().create_connection(
             factory, wsuri.host, wsuri.port, **kwds)

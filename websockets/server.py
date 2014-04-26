@@ -41,32 +41,43 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     @asyncio.coroutine
     def handler(self):
+        # Since this method doesn't have a caller able to handle exceptions,
+        # it attemps to log relevant ones and close the connection properly.
         try:
-            path = yield from self.handshake(origins=self.origins)
-        except Exception as exc:
-            logger.info("Exception in opening handshake: {}".format(exc))
-            if isinstance(exc, InvalidHandshake):
-                response = 'HTTP/1.1 400 Bad Request\r\n\r\n' + str(exc)
-            else:
-                response = ('HTTP/1.1 500 Internal Server Error\r\n\r\n'
-                            'See server log for more information.')
-            self.writer.write(response.encode())
-            self.writer.close()
-            return
 
-        try:
-            yield from self.ws_handler(self, path)
+            try:
+                path = yield from self.handshake(origins=self.origins)
+            except Exception as exc:
+                logger.info("Exception in opening handshake: {}".format(exc))
+                if isinstance(exc, InvalidHandshake):
+                    response = 'HTTP/1.1 400 Bad Request\r\n\r\n' + str(exc)
+                else:
+                    response = ('HTTP/1.1 500 Internal Server Error\r\n\r\n'
+                                'See server log for more information.')
+                self.writer.write(response.encode())
+                raise
+
+            try:
+                yield from self.ws_handler(self, path)
+            except Exception:
+                logger.info("Exception in connection handler", exc_info=True)
+                yield from self.fail_connection(1011)
+                raise
+
+            try:
+                yield from self.close()
+            except Exception as exc:
+                logger.info("Exception in closing handshake: {}".format(exc))
+                raise
+
         except Exception:
-            logger.info("Exception in connection handler", exc_info=True)
-            yield from self.fail_connection(1011)
-            return
+            # Last-ditch attempt to avoid leaking connections on errors.
+            try:
+                self.writer.close()
+            except Exception:                               # pragma: no cover
+                pass
 
-        try:
-            yield from self.close()
-        except Exception as exc:
-            logger.info("Exception in closing handshake: {}".format(exc))
-            self.writer.close()
-            return
+
 
     @asyncio.coroutine
     def handshake(self, origins=None):

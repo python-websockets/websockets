@@ -151,6 +151,7 @@ Changelog
 2.1
 ...
 
+* Added `host`, `port` and `secure` attributes on protocols.
 * Added support for providing and checking Origin_.
 
 .. _Origin: https://tools.ietf.org/html/rfc6455#section-10.2

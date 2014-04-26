@@ -87,9 +87,10 @@ def connect(uri, *,
     more than one connection in a CONNECTING state."
     """
     wsuri = parse_uri(uri)
-    kwds.setdefault('ssl', wsuri.secure)
+    kwds.setdefault('ssl', True)
+    factory = lambda: klass(host=wsuri.host, port=wsuri.port, secure=wsuri.secure)
     transport, protocol = yield from asyncio.get_event_loop().create_connection(
-            klass, wsuri.host, wsuri.port, **kwds)
+            factory, wsuri.host, wsuri.port, **kwds)
 
     try:
         yield from protocol.handshake(wsuri, origin=origin)

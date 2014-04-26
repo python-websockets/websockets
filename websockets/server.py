@@ -142,5 +142,8 @@ def serve(ws_handler, host=None, port=None, *,
     completes, the server performs the closing handshake and closes the
     connection.
     """
+    secure = kwds.get('ssl') is not None
+    factory = lambda: klass(ws_handler,
+                            host=host, port=port, secure=secure, origins=origins)
     return (yield from asyncio.get_event_loop().create_server(
-            lambda: klass(ws_handler, origins=origins), host, port, **kwds))
+            factory, host, port, **kwds))

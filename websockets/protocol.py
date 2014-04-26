@@ -37,6 +37,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     control frames automatically. It sends outgoing data frames and performs
     the closing handshake.
 
+    The `host`, `port` and `secure` parameters are simply stored as attributes
+    for handlers that need them.
+
     The `timeout` parameter defines the maximum wait time in seconds for
     completing the closing handshake and, only on the client side, for
     terminating the TCP connection. :meth:`close()` will complete in at most
@@ -54,8 +57,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     is_client = False
     state = 'OPEN'
 
-    def __init__(self, timeout=10, loop=None):
+    def __init__(self, *,
+                 host=None, port=None, secure=None, timeout=10, loop=None):
+        self.host = host
+        self.port = port
+        self.secure = secure
+
         self.timeout = timeout
+
         super().__init__(asyncio.StreamReader(), self.client_connected, loop)
 
         self.close_code = None

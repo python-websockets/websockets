@@ -15,8 +15,11 @@ testcert = os.path.join(os.path.dirname(__file__), 'testcert.pem')
 
 
 @asyncio.coroutine
-def echo(ws, path):
-    yield from ws.send((yield from ws.recv()))
+def handler(ws, path):
+    if path == '/attributes':
+        yield from ws.send(repr((ws.host, ws.port, ws.secure)))
+    else:
+        yield from ws.send((yield from ws.recv()))
 
 
 class ClientServerTests(unittest.TestCase):
@@ -31,7 +34,7 @@ class ClientServerTests(unittest.TestCase):
         self.loop.close()
 
     def start_server(self):
-        server = serve(echo, 'localhost', 8642)
+        server = serve(handler, 'localhost', 8642)
         self.server = self.loop.run_until_complete(server)
 
     def start_client(self):
@@ -51,6 +54,18 @@ class ClientServerTests(unittest.TestCase):
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, "Hello!")
         self.stop_client()
+
+    def test_protocol_attributes(self):
+        client = connect('ws://localhost:8642/attributes')
+        client = self.loop.run_until_complete(client)
+        try:
+            expected_attrs = repr(('localhost', 8642, False))
+            client_attrs = repr((client.host, client.port, client.secure))
+            self.assertEqual(client_attrs, expected_attrs)
+            server_attrs = self.loop.run_until_complete(client.recv())
+            self.assertEqual(server_attrs, expected_attrs)
+        finally:
+            self.loop.run_until_complete(client.worker)
 
     @patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):
@@ -133,20 +148,39 @@ class ClientServerTests(unittest.TestCase):
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")
 class SSLClientServerTests(ClientServerTests):
 
-    def start_server(self):
+    @property
+    def server_context(self):
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         ssl_context.load_cert_chain(testcert)
+        return ssl_context
 
-        server = serve(echo, 'localhost', 8642, ssl=ssl_context)
-        self.server = self.loop.run_until_complete(server)
-
-    def start_client(self):
+    @property
+    def client_context(self):
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         ssl_context.load_verify_locations(testcert)
         ssl_context.verify_mode = ssl.CERT_REQUIRED
+        return ssl_context
 
-        client = connect('ws://localhost:8642/', ssl=ssl_context)
+    def start_server(self):
+        server = serve(handler, 'localhost', 8642, ssl=self.server_context)
+        self.server = self.loop.run_until_complete(server)
+
+    def start_client(self):
+        client = connect('wss://localhost:8642/', ssl=self.client_context)
         self.client = self.loop.run_until_complete(client)
+
+    def test_protocol_attributes(self):
+        client = connect('wss://localhost:8642/attributes',
+                         ssl=self.client_context)
+        client = self.loop.run_until_complete(client)
+        try:
+            expected_attrs = repr(('localhost', 8642, True))
+            client_attrs = repr((client.host, client.port, client.secure))
+            self.assertEqual(client_attrs, expected_attrs)
+            server_attrs = self.loop.run_until_complete(client.recv())
+            self.assertEqual(server_attrs, expected_attrs)
+        finally:
+            self.loop.run_until_complete(client.worker)
 
 
 class ClientServerOriginTests(unittest.TestCase):
@@ -156,7 +190,7 @@ class ClientServerOriginTests(unittest.TestCase):
         asyncio.set_event_loop(loop)
 
         server = loop.run_until_complete(
-            serve(echo, 'localhost', 8642, origins=['http://localhost']))
+            serve(handler, 'localhost', 8642, origins=['http://localhost']))
         client = loop.run_until_complete(
             connect('ws://localhost:8642/', origin='http://localhost'))
 
@@ -173,7 +207,7 @@ class ClientServerOriginTests(unittest.TestCase):
         asyncio.set_event_loop(loop)
 
         server = loop.run_until_complete(
-            serve(echo, 'localhost', 8642, origins=['http://localhost']))
+            serve(handler, 'localhost', 8642, origins=['http://localhost']))
         with self.assertRaises(InvalidHandshake):
             loop.run_until_complete(
                 connect('ws://localhost:8642/', origin='http://otherhost'))
@@ -187,7 +221,7 @@ class ClientServerOriginTests(unittest.TestCase):
         asyncio.set_event_loop(loop)
 
         server = loop.run_until_complete(
-            serve(echo, 'localhost', 8642, origins=['']))
+            serve(handler, 'localhost', 8642, origins=['']))
         client = loop.run_until_complete(connect('ws://localhost:8642/'))
 
         loop.run_until_complete(client.send("Hello!"))

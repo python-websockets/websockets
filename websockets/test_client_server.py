@@ -18,9 +18,9 @@ testcert = os.path.join(os.path.dirname(__file__), 'testcert.pem')
 def handler(ws, path):
     if path == '/attributes':
         yield from ws.send(repr((ws.host, ws.port, ws.secure)))
-    elif path == '/headers':
-        yield from ws.send(repr(ws.request_headers))
-        yield from ws.send(repr(ws.response_headers))
+    elif path == '/raw_headers':
+        yield from ws.send(repr(ws.raw_request_headers))
+        yield from ws.send(repr(ws.raw_response_headers))
     else:
         yield from ws.send((yield from ws.recv()))
 
@@ -69,10 +69,10 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(server_attrs, repr(expected_attrs))
         self.stop_client()
 
-    def test_protocol_headers(self):
-        self.start_client('headers')
-        client_req = self.client.request_headers
-        client_resp = self.client.response_headers
+    def test_protocol_raw_headers(self):
+        self.start_client('raw_headers')
+        client_req = self.client.raw_request_headers
+        client_resp = self.client.raw_response_headers
         self.assertEqual(dict(client_req)['User-Agent'], USER_AGENT)
         self.assertEqual(dict(client_resp)['Server'], USER_AGENT)
         server_req = self.loop.run_until_complete(self.client.recv())

@@ -41,7 +41,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Origin', origin)
         set_header('User-Agent', USER_AGENT)
         key = build_request(set_header)
-        self.request_headers = headers
+        self.raw_request_headers = headers
 
         # Send handshake request. Since the URI and the headers only contain
         # ASCII characters, we can keep this simple.
@@ -58,7 +58,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             raise InvalidHandshake("Malformed HTTP message") from exc
         if status_code != 101:
             raise InvalidHandshake("Bad status code: {}".format(status_code))
-        self.response_headers = list(headers.raw_items())
+        self.raw_response_headers = list(headers.raw_items())
         get_header = lambda k: headers.get(k, '')
         check_response(get_header, key)
 

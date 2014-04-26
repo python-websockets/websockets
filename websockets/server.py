@@ -95,7 +95,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         except Exception as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
 
-        self.request_headers = list(headers.raw_items())
+        self.raw_request_headers = list(headers.raw_items())
         get_header = lambda k: headers.get(k, '')
         key = check_request(get_header)
 
@@ -109,7 +109,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         set_header = lambda k, v: headers.append((k, v))
         set_header('Server', USER_AGENT)
         build_response(set_header, key)
-        self.response_headers = headers
+        self.raw_response_headers = headers
 
         # Send handshake response. Since the status line and headers only
         # contain ASCII characters, we can keep this simple.

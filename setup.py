@@ -1,33 +1,27 @@
 import os
 import sys
-import setuptools
+from setuptools import setup
 
 # Avoid polluting the .tar.gz with ._* files under Mac OS X
 os.putenv('COPYFILE_DISABLE', 'true')
 
 root = os.path.dirname(__file__)
 
-# Prevent distutils from complaining that a standard file wasn't found
-README = os.path.join(root, 'README')
-if not os.path.exists(README):
-    os.symlink(README + '.rst', README)
-
 description = "An implementation of the WebSocket Protocol (RFC 6455)"
 
-with open(os.path.join(root, 'README'), encoding='utf-8') as f:
+with open(os.path.join(root, 'README.rst'), encoding='utf-8') as f:
     long_description = '\n\n'.join(f.read().split('\n\n')[1:])
 
-with open(os.path.join(root, 'websockets', 'version.py'), encoding='utf-8') as f:
+with open(os.path.join(root, 'websockets', 'version.py'),
+          encoding='utf-8') as f:
     exec(f.read())
 
-py_version = sys.version_info[:2]
-
-if py_version < (3, 3):
+if sys.version_info < (3, 3):
     raise Exception("websockets requires Python >= 3.3.")
 
-setuptools.setup(
+setup(
     name='websockets',
-    version=version,
+    version=version,  # noqa
     author='Aymeric Augustin',
     author_email='aymeric.augustin@m4x.org',
     url='https://github.com/aaugustin/websockets',
@@ -37,7 +31,7 @@ setuptools.setup(
     packages=[
         'websockets',
     ],
-    install_requires=['asyncio'] if py_version == (3, 3) else [],
+    extras_require={':python_version=="3.3"': ['asyncio']},
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",

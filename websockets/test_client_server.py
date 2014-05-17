@@ -155,8 +155,8 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(reply, "Hello!")
         self.stop_client()
 
-        # Connection ends with a protocol error.
-        self.assertEqual(self.client.close_code, 1002)
+        # Connection ends with an abnormal closure.
+        self.assertEqual(self.client.close_code, 1006)
 
 
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")

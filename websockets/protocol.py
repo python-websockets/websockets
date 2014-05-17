@@ -317,11 +317,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         logger.debug("%s >> %s", side, frame)
         is_masked = self.is_client
         write_frame(frame, self.writer.write, is_masked)
-        # Handle flow control automatically.
         try:
+            # Handle flow control automatically.
             yield from self.writer.drain()
         except ConnectionResetError:
-            pass
+            # Terminate the connection if the socket died.
+            self.state = 'CLOSING'
+            yield from self.fail_connection(1006)
 
     @asyncio.coroutine
     def close_connection(self):
@@ -344,8 +346,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             if self.state == 'CLOSED':
                 return
 
-        if self.writer.can_write_eof():
-            self.writer.write_eof()
+        # Attempt to terminate the TCP connection properly.
+        # If the socket is already closed, this will crash.
+        try:
+            if self.writer.can_write_eof():
+                self.writer.write_eof()
+        except Exception:
+            pass
+
         self.writer.close()
 
         try:

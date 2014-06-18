@@ -3,7 +3,7 @@ import unittest.mock
 
 import asyncio
 
-from .exceptions import InvalidState
+from .exceptions import InvalidState, PayloadTooLargeError
 from .framing import *
 from .protocol import WebSocketCommonProtocol
 
@@ -236,6 +236,11 @@ class CommonTests:
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
+    def test_payload_too_large(self):
+        self.protocol.max_msglen = 32*1024
+        self.feed(Frame(False, OP_TEXT, 'ab'.encode('utf-8')*32*1024))
+        self.loop.run_until_complete(self.protocol.recv())
+        self.assertConnectionClosed(1009, '')
 
 class ServerTests(CommonTests, unittest.TestCase):
 

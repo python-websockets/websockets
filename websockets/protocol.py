@@ -230,7 +230,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 yield from self.fail_connection(1007)
             except PayloadTooLargeError:
                 yield from self.fail_connection(1009)
-                raise
             except Exception:
                 yield from self.fail_connection(1011)
                 raise

@@ -16,7 +16,7 @@ import struct
 import asyncio
 from asyncio.queues import Queue, QueueEmpty
 
-from .exceptions import InvalidState, WebSocketProtocolError
+from .exceptions import InvalidState, WebSocketProtocolError, PayloadTooLargeError
 from .framing import *
 from .handshake import *
 
@@ -69,6 +69,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.close_code = None
         self.close_reason = ''
+
+        self.max_msglen = 0
 
         # Futures tracking steps in the connection's lifecycle.
         self.opening_handshake = asyncio.Future()
@@ -226,6 +228,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 yield from self.fail_connection(1002)
             except UnicodeDecodeError:
                 yield from self.fail_connection(1007)
+            except PayloadTooLargeError:
+                yield from self.fail_connection(1009)
+                raise
             except Exception:
                 yield from self.fail_connection(1011)
                 raise
@@ -234,7 +239,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @asyncio.coroutine
     def read_message(self):
         # Reassemble fragmented messages.
-        frame = yield from self.read_data_frame()
+        frame = yield from self.read_data_frame(self.max_msglen)
         if frame is None:
             return
         if frame.opcode == OP_TEXT:
@@ -256,23 +261,29 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         else:
             append = lambda f: chunks.append(f.data)
         append(frame)
+        msglen = len(frame.data)
 
         while not frame.fin:
-            frame = yield from self.read_data_frame()
+            frame_maxsize = self.max_msglen - msglen if self.max_msglen > 0 else 0
+            frame = yield from self.read_data_frame(frame_maxsize)
             if frame is None:
                 raise WebSocketProtocolError("Incomplete fragmented message")
             if frame.opcode != OP_CONT:
                 raise WebSocketProtocolError("Unexpected opcode")
             append(frame)
+            msglen += len(frame.data)
+
+            if self.max_msglen > 0 and msglen > self.max_msglen:
+                raise PayloadTooLargeError()
 
         return ('' if text else b'').join(chunks)
 
     @asyncio.coroutine
-    def read_data_frame(self):
+    def read_data_frame(self, maxsize=0):
         # Deal with control frames automatically and return next data frame.
         # 6.2. Receiving Data
         while True:
-            frame = yield from self.read_frame()
+            frame = yield from self.read_frame(maxsize)
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:
                 self.close_code, self.close_reason = parse_close(frame.data)
@@ -299,9 +310,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 return frame
 
     @asyncio.coroutine
-    def read_frame(self):
+    def read_frame(self, maxsize=0):
         is_masked = not self.is_client
-        frame = yield from read_frame(self.reader.readexactly, is_masked)
+        frame = yield from read_frame(self.reader.readexactly, is_masked, maxsize=maxsize)
         side = 'client' if self.is_client else 'server'
         logger.debug("%s << %s", side, frame)
         return frame

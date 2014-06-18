@@ -15,7 +15,7 @@ import struct
 
 import asyncio
 
-from .exceptions import WebSocketProtocolError
+from .exceptions import WebSocketProtocolError, PayloadTooBig
 
 
 __all__ = [
@@ -47,7 +47,7 @@ Frame = collections.namedtuple('Frame', ('fin', 'opcode', 'data'))
 
 
 @asyncio.coroutine
-def read_frame(reader, mask):
+def read_frame(reader, mask, *, max_size=None):
     """
     Read a WebSocket frame and return a :class:`Frame` object.
 
@@ -56,6 +56,9 @@ def read_frame(reader, mask):
 
     `mask` is a :class:`bool` telling whether the frame should be masked, ie.
     whether the read happens on the server side.
+
+    If `max_size` is set and the payload exceeds this size in bytes,
+    :exc:`PayloadTooBig` is raised.
 
     This function validates the frame before returning it and raises
     :exc:`WebSocketProtocolError` if it contains incorrect values.
@@ -76,6 +79,9 @@ def read_frame(reader, mask):
     elif length == 127:
         data = yield from read_bytes(reader, 8)
         length, = struct.unpack('!Q', data)
+    if max_size is not None and length > max_size:
+        raise PayloadTooBig("Payload exceeds limit "
+                            "({} > {} bytes)".format(length, max_size))
     if mask:
         mask_bits = yield from read_bytes(reader, 4)
 

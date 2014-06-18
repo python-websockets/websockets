@@ -13,6 +13,10 @@ class InvalidURI(Exception):
     """Exception raised when an URI is invalid."""
 
 
+class PayloadTooBig(Exception):
+    """Exception raised when the payload in a frame exceeds the maximum size."""
+
+
 class WebSocketProtocolError(Exception):
     # Internal exception raised when the other end breaks the protocol.
     # It's private because it shouldn't leak outside of WebSocketCommonProtocol.

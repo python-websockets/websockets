@@ -3,7 +3,7 @@ import unittest.mock
 
 import asyncio
 
-from .exceptions import InvalidState
+from .exceptions import InvalidState, PayloadTooBig
 from .framing import *
 from .protocol import WebSocketCommonProtocol
 
@@ -103,6 +103,32 @@ class CommonTests:
         self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1007, '')
+
+    def test_recv_text_payload_too_big(self):
+        self.protocol.max_size = 1024
+        self.feed(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
+        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.assertConnectionClosed(1009, '')
+
+    def test_recv_binary_payload_too_big(self):
+        self.protocol.max_size = 1024
+        self.feed(Frame(True, OP_BINARY, b'tea' * 342))
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
+        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.assertConnectionClosed(1009, '')
+
+    def test_recv_text_no_max_size(self):
+        self.protocol.max_size = None       # for test coverage
+        self.feed(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
+        data = self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(data, 'café' * 205)
+
+    def test_recv_binary_no_max_size(self):
+        self.protocol.max_size = None       # for test coverage
+        self.feed(Frame(True, OP_BINARY, b'tea' * 342))
+        data = self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(data, b'tea' * 342)
 
     def test_recv_other_error(self):
         @asyncio.coroutine
@@ -205,6 +231,36 @@ class CommonTests:
         self.feed(Frame(True, OP_CONT, b'a'))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea')
+
+    def test_fragmented_text_payload_too_big(self):
+        self.protocol.max_size = 1024
+        self.feed(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
+        self.feed(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
+        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.assertConnectionClosed(1009, '')
+
+    def test_fragmented_binary_payload_too_big(self):
+        self.protocol.max_size = 1024
+        self.feed(Frame(False, OP_BINARY, b'tea' * 171))
+        self.feed(Frame(True, OP_CONT, b'tea' * 171))
+        self.loop.call_later(MS, asyncio.async, self.fast_connection_failure())
+        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.assertConnectionClosed(1009, '')
+
+    def test_fragmented_text_no_max_size(self):
+        self.protocol.max_size = None       # for test coverage
+        self.feed(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
+        self.feed(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
+        data = self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(data, 'café' * 205)
+
+    def test_fragmented_binary_no_max_size(self):
+        self.protocol.max_size = None       # for test coverage
+        self.feed(Frame(False, OP_BINARY, b'tea' * 171))
+        self.feed(Frame(True, OP_CONT, b'tea' * 171))
+        data = self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(data, b'tea' * 342)
 
     def test_control_frame_within_fragmented_text(self):
         self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))

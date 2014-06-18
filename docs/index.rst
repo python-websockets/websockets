@@ -83,7 +83,7 @@ Server
 
    .. autofunction:: serve(ws_handler, host=None, port=None, *, klass=WebSocketServerProtocol, origins=None, **kwds)
 
-   .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, host=None, port=None, secure=None, timeout=10, loop=None)
+   .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
         :members: handshake
 
 Client
@@ -93,7 +93,7 @@ Client
 
    .. autofunction:: connect(uri, *, klass=WebSocketClientProtocol, origin=None, **kwds)
 
-   .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, loop=None)
+   .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
         :members: handshake
 
 Shared
@@ -101,7 +101,7 @@ Shared
 
 .. automodule:: websockets.protocol
 
-   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, loop=None)
+   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
 
         .. autoattribute:: open
         .. automethod:: close(code=1000, reason='')
@@ -147,6 +147,11 @@ Utilities
 
 Changelog
 ---------
+
+2.2
+...
+
+* Added support for limiting message size.
 
 2.1
 ...

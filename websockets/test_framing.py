@@ -3,7 +3,7 @@ import unittest
 
 import asyncio
 
-from .exceptions import WebSocketProtocolError
+from .exceptions import WebSocketProtocolError, PayloadTooBig
 from .framing import *
 
 
@@ -16,12 +16,12 @@ class FramingTests(unittest.TestCase):
     def tearDown(self):
         self.loop.close()
 
-    def decode(self, message, mask=False):
+    def decode(self, message, mask=False, max_size=None):
         self.stream = asyncio.StreamReader()
         self.stream.feed_data(message)
         self.stream.feed_eof()
         reader = self.stream.readexactly
-        return self.loop.run_until_complete(read_frame(reader, mask))
+        return self.loop.run_until_complete(read_frame(reader, mask, max_size=max_size))
 
     def encode(self, frame, mask=False):
         encoded = io.BytesIO()
@@ -88,6 +88,10 @@ class FramingTests(unittest.TestCase):
         self.round_trip(
                 b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 65536 * b'a',
                 Frame(True, OP_BINARY, 65536 * b'a'))
+
+    def test_payload_too_big(self):
+        with self.assertRaises(PayloadTooBig):
+            self.decode(b'\x82\x7e\x04\x01' + 1025 * b'a', max_size=1024)
 
     def test_bad_reserved_bits(self):
         with self.assertRaises(WebSocketProtocolError):

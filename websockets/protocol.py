@@ -263,7 +263,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         msglen = len(frame.data)
 
         while not frame.fin:
-            frame_maxsize = self.max_msglen - msglen if self.max_msglen else 0
+            frame_maxsize = self.max_msglen - msglen if self.max_msglen else None
             frame = yield from self.read_data_frame(frame_maxsize)
             if frame is None:
                 raise WebSocketProtocolError("Incomplete fragmented message")

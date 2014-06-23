@@ -70,7 +70,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.close_code = None
         self.close_reason = ''
 
-        self.max_msglen = 0
+        self.max_msglen = None
 
         # Futures tracking steps in the connection's lifecycle.
         self.opening_handshake = asyncio.Future()
@@ -263,7 +263,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         msglen = len(frame.data)
 
         while not frame.fin:
-            frame_maxsize = self.max_msglen - msglen if self.max_msglen > 0 else 0
+            frame_maxsize = self.max_msglen - msglen if self.max_msglen else 0
             frame = yield from self.read_data_frame(frame_maxsize)
             if frame is None:
                 raise WebSocketProtocolError("Incomplete fragmented message")
@@ -272,7 +272,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             append(frame)
             msglen += len(frame.data)
 
-            if self.max_msglen > 0 and msglen > self.max_msglen:
+            if self.max_msglen and msglen > self.max_msglen:
                 raise PayloadTooLarge('Message size(%s) larger than limit(%s)' % (msglen, self.max_msglen))
 
         return ('' if text else b'').join(chunks)

@@ -47,7 +47,7 @@ Frame = collections.namedtuple('Frame', ('fin', 'opcode', 'data'))
 
 
 @asyncio.coroutine
-def read_frame(reader, mask, maxsize=0):
+def read_frame(reader, mask, maxsize=None):
     """
     Read a WebSocket frame and return a :class:`Frame` object.
 
@@ -82,7 +82,7 @@ def read_frame(reader, mask, maxsize=0):
     if mask:
         mask_bits = yield from read_bytes(reader, 4)
 
-    if maxsize > 0 and length > maxsize:
+    if maxsize and length > maxsize:
         raise PayloadTooLarge('Frame size(%s) larger than limit(%s)' % (length, maxsize))
 
     # Read the data

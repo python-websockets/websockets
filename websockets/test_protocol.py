@@ -237,13 +237,13 @@ class CommonTests:
         self.assertConnectionClosed(1002, '')
 
     def test_payload_too_large(self):
-        self.protocol.max_msglen = 1024
+        self.protocol.payload_limit = 1024
         self.feed(Frame(False, OP_TEXT, 'ab'.encode('utf-8')*1024))
         self.loop.run_until_complete(self.protocol.recv())
         self.assertConnectionClosed(1009, '')
 
     def test_payload_fragmentation(self):
-        self.protocol.max_msglen = 1024
+        self.protocol.payload_limit = 1024
         self.feed(Frame(False, OP_TEXT, 'a'.encode('utf-8')*256))
         for i in range(3):
             self.feed(Frame(False, OP_CONT, 'c'.encode('utf-8')*256))

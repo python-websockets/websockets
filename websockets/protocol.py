@@ -278,7 +278,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         return ('' if text else b'').join(chunks)
 
     @asyncio.coroutine
-    def read_data_frame(self, maxsize=0):
+    def read_data_frame(self, maxsize=None):
         # Deal with control frames automatically and return next data frame.
         # 6.2. Receiving Data
         while True:
@@ -309,7 +309,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 return frame
 
     @asyncio.coroutine
-    def read_frame(self, maxsize=0):
+    def read_frame(self, maxsize=None):
         is_masked = not self.is_client
         frame = yield from read_frame(self.reader.readexactly, is_masked, maxsize=maxsize)
         side = 'client' if self.is_client else 'server'

@@ -45,6 +45,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     terminating the TCP connection. :meth:`close()` will complete in at most
     this time on the server side and twice this time on the client side.
 
+    The `payload_limit` parameter enforces a maximum size for all incoming 
+    messages and will close the socket with error 1009 if the limit is
+    exceeded.
+
     Once the connection is closed, the status code is available in the
     :attr:`close_code` attribute and the reason in :attr:`close_reason`.
     """
@@ -58,7 +62,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     state = 'OPEN'
 
     def __init__(self, *,
-                 host=None, port=None, secure=None, timeout=10, loop=None):
+                 host=None, port=None, secure=None, timeout=10, payload_limit=None, loop=None):
         self.host = host
         self.port = port
         self.secure = secure
@@ -70,7 +74,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.close_code = None
         self.close_reason = ''
 
-        self.payload_limit = None
+        self.payload_limit = payload_limit
 
         # Futures tracking steps in the connection's lifecycle.
         self.opening_handshake = asyncio.Future()

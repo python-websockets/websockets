@@ -141,5 +141,5 @@ class FramingTests(unittest.TestCase):
 
     def test_payload_too_large(self):
         with self.assertRaises(PayloadTooLarge):
-            self.decode(b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 65536 * b'a'b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 65536 * b'a', maxsize=32*1024)
+            self.decode(b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 1250 * b'a', maxsize=1024)
 

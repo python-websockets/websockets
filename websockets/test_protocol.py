@@ -3,7 +3,7 @@ import unittest.mock
 
 import asyncio
 
-from .exceptions import InvalidState, PayloadTooLargeError
+from .exceptions import InvalidState, PayloadTooLarge
 from .framing import *
 from .protocol import WebSocketCommonProtocol
 

@@ -12,12 +12,12 @@ class InvalidState(Exception):
 class InvalidURI(Exception):
     """Exception raised when an URI is invalid."""
 
+class PayloadTooLarge(Exception):
+    """Exception raised when a message exceeds maximum size"""
+    pass
 
 class WebSocketProtocolError(Exception):
     # Internal exception raised when the other end breaks the protocol.
     # It's private because it shouldn't leak outside of WebSocketCommonProtocol.
     pass
 
-class PayloadTooLargeError(Exception):
-    """Exception raised when a message exceeds maximum size"""
-    pass

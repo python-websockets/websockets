@@ -16,7 +16,7 @@ import struct
 import asyncio
 from asyncio.queues import Queue, QueueEmpty
 
-from .exceptions import InvalidState, WebSocketProtocolError, PayloadTooLargeError
+from .exceptions import InvalidState, WebSocketProtocolError, PayloadTooLarge
 from .framing import *
 from .handshake import *
 
@@ -228,7 +228,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 yield from self.fail_connection(1002)
             except UnicodeDecodeError:
                 yield from self.fail_connection(1007)
-            except PayloadTooLargeError:
+            except PayloadTooLarge:
                 yield from self.fail_connection(1009)
             except Exception:
                 yield from self.fail_connection(1011)
@@ -273,7 +273,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             msglen += len(frame.data)
 
             if self.max_msglen > 0 and msglen > self.max_msglen:
-                raise PayloadTooLargeError()
+                raise PayloadTooLarge('Message size(%s) larger than limit(%s)' % (msglen, self.max_msglen))
 
         return ('' if text else b'').join(chunks)
 

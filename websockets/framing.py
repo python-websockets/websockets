@@ -15,7 +15,7 @@ import struct
 
 import asyncio
 
-from .exceptions import WebSocketProtocolError, PayloadTooLargeError
+from .exceptions import WebSocketProtocolError, PayloadTooLarge
 
 
 __all__ = [
@@ -57,7 +57,7 @@ def read_frame(reader, mask, maxsize=0):
     `mask` is a :class:`bool` telling whether the frame should be masked, ie.
     whether the read happens on the server side.
 
-    `maxsize` enforces a maximum size for the frame, `PayloadTooLargeError` is
+    `maxsize` enforces a maximum size for the frame, `PayloadTooLarge` is
     raised if it is exceeded
 
     This function validates the frame before returning it and raises
@@ -83,7 +83,7 @@ def read_frame(reader, mask, maxsize=0):
         mask_bits = yield from read_bytes(reader, 4)
 
     if maxsize > 0 and length > maxsize:
-        raise PayloadTooLargeError()
+        raise PayloadTooLarge('Frame size(%s) larger than limit(%s)' % (length, maxsize))
 
     # Read the data
     data = yield from read_bytes(reader, length)

@@ -3,7 +3,7 @@ import unittest
 
 import asyncio
 
-from .exceptions import WebSocketProtocolError, PayloadTooLargeError
+from .exceptions import WebSocketProtocolError, PayloadTooLarge
 from .framing import *
 
 
@@ -140,6 +140,6 @@ class FramingTests(unittest.TestCase):
             parse_close(b'\x03\xe8\xff\xff')
 
     def test_payload_too_large(self):
-        with self.assertRaises(PayloadTooLargeError):
+        with self.assertRaises(PayloadTooLarge):
             self.decode(b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 65536 * b'a'b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 65536 * b'a', maxsize=32*1024)
 

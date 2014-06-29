@@ -146,6 +146,15 @@ def serve(ws_handler, host=None, port=None, *,
     handshake, and delegates to the WebSocket handler. Once the handler
     completes, the server performs the closing handshake and closes the
     connection.
+
+    Since there's no useful way to propagate exceptions triggered in handlers,
+    they're sent to the `websockets.server` logger instead. Debugging is much
+    easier if you configure logging to print them::
+
+        import logging
+        logger = logging.getLogger('websockets.server')
+        logger.setLevel(logging.DEBUG)
+        logger.addHandler(logging.StreamHandler())
     """
     secure = kwds.get('ssl') is not None
     factory = lambda: klass(ws_handler,

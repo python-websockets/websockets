@@ -30,7 +30,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     state = 'CONNECTING'
 
-    def __init__(self, ws_handler=None, *, origins=None, **kwargs):
+    def __init__(self, ws_handler, *, origins=None, **kwargs):
         self.ws_handler = ws_handler
         self.origins = origins
         super().__init__(**kwargs)
@@ -60,7 +60,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             try:
                 yield from self.ws_handler(self, path)
             except Exception:
-                logger.info("Exception in connection handler", exc_info=True)
+                logger.error("Exception in connection handler", exc_info=True)
                 yield from self.fail_connection(1011)
                 raise
 
@@ -77,15 +77,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             except Exception:                               # pragma: no cover
                 pass
 
-
-
     @asyncio.coroutine
     def handshake(self, origins=None):
         """
         Perform the server side of the opening handshake.
 
         If provided, ``origins`` is a list of acceptable HTTP Origin values.
-        Include ``''`` in the list if the lack of an origin is acceptable.
+        Include ``''`` if the lack of an origin is acceptable.
 
         Return the URI of the request.
         """
@@ -137,7 +135,8 @@ def serve(ws_handler, host=None, port=None, *,
 
     `ws_handler` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and
-    the request URI. `origin` is a list of acceptable Origin HTTP headers.
+    the request URI. If provided, `origin` is a list of acceptable Origin HTTP
+    headers. Include ``''`` if the lack of an origin is acceptable.
 
     It returns a `Server` object with a `close` method to stop the server.
 

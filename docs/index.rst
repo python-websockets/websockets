@@ -81,9 +81,9 @@ Server
 
 .. automodule:: websockets.server
 
-   .. autofunction:: serve(ws_handler, host=None, port=None, *, klass=WebSocketServerProtocol, **kwds)
+   .. autofunction:: serve(ws_handler, host=None, port=None, *, klass=WebSocketServerProtocol, origins=None, **kwds)
 
-   .. autoclass:: WebSocketServerProtocol(self, ws_handler, timeout=10)
+   .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, host=None, port=None, secure=None, timeout=10, loop=None)
         :members: handshake
 
 Client
@@ -91,9 +91,9 @@ Client
 
 .. automodule:: websockets.client
 
-   .. autofunction:: connect(uri, *, klass=WebSocketClientProtocol, **kwds)
+   .. autofunction:: connect(uri, *, klass=WebSocketClientProtocol, origin=None, **kwds)
 
-   .. autoclass:: WebSocketClientProtocol(self, timeout=10)
+   .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, loop=None)
         :members: handshake
 
 Shared
@@ -101,7 +101,7 @@ Shared
 
 .. automodule:: websockets.protocol
 
-   .. autoclass:: WebSocketCommonProtocol(self, timeout=10)
+   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, loop=None)
 
         .. autoattribute:: open
         .. automethod:: close(code=1000, reason='')
@@ -110,7 +110,7 @@ Shared
         .. automethod:: send(data)
 
         .. automethod:: ping(data=None)
-        .. automethod:: pong()
+        .. automethod:: pong(data=b'')
 
 Low-level API
 -------------

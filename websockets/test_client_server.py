@@ -1,3 +1,4 @@
+import logging
 import os
 import ssl
 import unittest
@@ -10,6 +11,9 @@ from .exceptions import InvalidHandshake
 from .http import read_response, USER_AGENT
 from .server import *
 
+
+# Avoid displaying stack traces at the ERROR logging level.
+logging.basicConfig(level=logging.CRITICAL)
 
 testcert = os.path.join(os.path.dirname(__file__), 'testcert.pem')
 

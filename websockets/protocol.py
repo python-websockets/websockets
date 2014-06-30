@@ -16,7 +16,7 @@ import struct
 import asyncio
 from asyncio.queues import Queue, QueueEmpty
 
-from .exceptions import InvalidState, WebSocketProtocolError
+from .exceptions import InvalidState, WebSocketProtocolError, PayloadTooLarge
 from .framing import *
 from .handshake import *
 
@@ -45,6 +45,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     terminating the TCP connection. :meth:`close()` will complete in at most
     this time on the server side and twice this time on the client side.
 
+    The `payload_limit` parameter enforces a maximum size for all incoming 
+    messages and will close the socket with error 1009 if the limit is
+    exceeded.
+
     Once the connection is closed, the status code is available in the
     :attr:`close_code` attribute and the reason in :attr:`close_reason`.
     """
@@ -58,7 +62,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     state = 'OPEN'
 
     def __init__(self, *,
-                 host=None, port=None, secure=None, timeout=10, loop=None):
+                 host=None, port=None, secure=None, timeout=10, payload_limit=None, loop=None):
         self.host = host
         self.port = port
         self.secure = secure
@@ -69,6 +73,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.close_code = None
         self.close_reason = ''
+
+        self.payload_limit = payload_limit
 
         # Futures tracking steps in the connection's lifecycle.
         self.opening_handshake = asyncio.Future()
@@ -226,6 +232,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 yield from self.fail_connection(1002)
             except UnicodeDecodeError:
                 yield from self.fail_connection(1007)
+            except PayloadTooLarge:
+                yield from self.fail_connection(1009)
             except Exception:
                 yield from self.fail_connection(1011)
                 raise
@@ -234,7 +242,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @asyncio.coroutine
     def read_message(self):
         # Reassemble fragmented messages.
-        frame = yield from self.read_data_frame()
+        frame = yield from self.read_data_frame(self.payload_limit)
         if frame is None:
             return
         if frame.opcode == OP_TEXT:
@@ -256,23 +264,29 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         else:
             append = lambda f: chunks.append(f.data)
         append(frame)
+        msglen = len(frame.data)
 
         while not frame.fin:
-            frame = yield from self.read_data_frame()
+            frame_maxsize = self.payload_limit - msglen if self.payload_limit else None
+            frame = yield from self.read_data_frame(frame_maxsize)
             if frame is None:
                 raise WebSocketProtocolError("Incomplete fragmented message")
             if frame.opcode != OP_CONT:
                 raise WebSocketProtocolError("Unexpected opcode")
             append(frame)
+            msglen += len(frame.data)
+
+            if self.payload_limit and msglen > self.payload_limit:
+                raise PayloadTooLarge('Message size(%s) larger than limit(%s)' % (msglen, self.payload_limit))
 
         return ('' if text else b'').join(chunks)
 
     @asyncio.coroutine
-    def read_data_frame(self):
+    def read_data_frame(self, maxsize=None):
         # Deal with control frames automatically and return next data frame.
         # 6.2. Receiving Data
         while True:
-            frame = yield from self.read_frame()
+            frame = yield from self.read_frame(maxsize)
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:
                 self.close_code, self.close_reason = parse_close(frame.data)
@@ -299,9 +313,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 return frame
 
     @asyncio.coroutine
-    def read_frame(self):
+    def read_frame(self, maxsize=None):
         is_masked = not self.is_client
-        frame = yield from read_frame(self.reader.readexactly, is_masked)
+        frame = yield from read_frame(self.reader.readexactly, is_masked, maxsize=maxsize)
         side = 'client' if self.is_client else 'server'
         logger.debug("%s << %s", side, frame)
         return frame

@@ -8,8 +8,8 @@ def hello(websocket, path):
     name = yield from websocket.recv()
     print("< {}".format(name))
     greeting = "Hello {}!".format(name)
-    print("> {}".format(greeting))
     yield from websocket.send(greeting)
+    print("> {}".format(greeting))
 
 start_server = websockets.serve(hello, 'localhost', 8765)
 

@@ -157,12 +157,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             pass
 
         # Wait for a message until the connection is closed
-        next_message = asyncio.Task(self.messages.get())
+        next_message = asyncio.async(self.messages.get())
         done, pending = yield from asyncio.wait(
                 [next_message, self.worker],
                 return_when=asyncio.FIRST_COMPLETED)
         if next_message in done:
             return next_message.result()
+        else:
+            next_message.cancel()
 
     @asyncio.coroutine
     def send(self, data):

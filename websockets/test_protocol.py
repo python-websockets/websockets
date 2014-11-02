@@ -338,9 +338,9 @@ class ServerTests(CommonTests, unittest.TestCase):
 
     def test_close_handshake_timeout(self):
         self.after = asyncio.Future()
-        self.loop.call_later(2 * MS, self.after.cancel)
+        self.loop.call_later(4 * MS, self.after.cancel)
         self.before = asyncio.Future()
-        self.loop.call_later(10 * MS, self.before.cancel)
+        self.loop.call_later(8 * MS, self.before.cancel)
         self.protocol.timeout = 5 * MS
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')

@@ -51,14 +51,10 @@ class ClientServerTests(unittest.TestCase):
         self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
-        # Run the event loop to finish processing and avoid race conditions.
-        self.loop.run_until_complete(asyncio.sleep(0.001))
         self.loop.run_until_complete(self.client.worker)
 
     def stop_server(self):
         self.server.close()
-        # Run the event loop to finish processing and avoid race conditions.
-        self.loop.run_until_complete(asyncio.sleep(0.001))
         self.loop.run_until_complete(self.server.wait_closed())
 
     def test_basic(self):

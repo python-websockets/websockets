@@ -79,6 +79,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Futures tracking steps in the connection's lifecycle.
         self.opening_handshake = asyncio.Future()
         self.closing_handshake = asyncio.Future()
+        self.connection_failed = asyncio.Future()
         self.connection_closed = asyncio.Future()
 
         # Queue of received messages.
@@ -309,7 +310,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     self.state = 'CLOSING'
                     yield from self.write_frame(OP_CLOSE, frame.data, 'CLOSING')
-                self.closing_handshake.set_result(True)
+                if not self.closing_handshake.done():
+                    self.closing_handshake.set_result(True)
                 return
             elif frame.opcode == OP_PING:
                 # Answer pings.
@@ -350,9 +352,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # Handle flow control automatically.
             yield from self.writer.drain()
         except ConnectionResetError:
-            # Terminate the connection if the socket died.
-            self.state = 'CLOSING'
-            yield from self.fail_connection(1006)
+            # Terminate the connection if the socket died,
+            # unless it's already being closed.
+            if expected_state != 'CLOSING':
+                self.state = 'CLOSING'
+                yield from self.fail_connection(1006)
 
     @asyncio.coroutine
     def close_connection(self):
@@ -393,6 +397,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):
+        # Avoid calling fail_connection more than once to minimize
+        # the consequences of race conditions between the two sides.
+        if self.connection_failed.done():
+            # Wait until the other coroutine calls connection_lost.
+            yield from self.connection_closed
+            return
+        else:
+            self.connection_failed.set_result(None)
+
         # Losing the connection usually results in a protocol error.
         # Preserve the original error code in this case.
         if self.close_code != 1006:

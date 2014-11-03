@@ -364,6 +364,23 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertFalse(self.before.cancelled())
         self.before.cancel()
 
+    def test_client_close_race_with_failing_connection(self):
+        original_write_frame = self.protocol.write_frame
+        @asyncio.coroutine
+        def delayed_write_frame(*args):
+            yield from original_write_frame(*args)
+            yield from asyncio.sleep(2 * MS)
+        self.protocol.write_frame = delayed_write_frame
+
+        frame = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
+        # Trigger the race condition between answering the close frame from
+        # the client and sending another close frame from the server.
+        self.loop.call_later(MS, self.feed, frame)
+        self.loop.call_later(2 * MS, asyncio.async, self.protocol.fail_connection(1000, 'server'))
+        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.assertConnectionClosed(1000, 'server')
+        self.assertFrameSent(*frame)
+
     def test_close_protocol_error(self):
         self.loop.call_later(MS, self.feed, Frame(True, OP_CLOSE, b'\x00'))
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
@@ -468,3 +485,22 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.assertTrue(self.after.cancelled())
         self.assertFalse(self.before.cancelled())
         self.before.cancel()
+
+    def test_server_close_race_with_failing_connection(self):
+        original_write_frame = self.protocol.write_frame
+        @asyncio.coroutine
+        def delayed_write_frame(*args):
+            yield from original_write_frame(*args)
+            yield from asyncio.sleep(2 * MS)
+        self.protocol.write_frame = delayed_write_frame
+
+        frame = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
+        # Trigger the race condition between answering the close frame from
+        # the server and sending another close frame from the client.
+        self.loop.call_later(MS, self.feed, frame)
+        self.loop.call_later(2 * MS, asyncio.async, self.protocol.fail_connection(1000, 'client'))
+        self.loop.call_later(3 * MS, self.protocol.eof_received)
+        self.loop.call_later(4 * MS, lambda: self.protocol.connection_lost(None))
+        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.assertConnectionClosed(1000, 'client')
+        self.assertFrameSent(*frame)

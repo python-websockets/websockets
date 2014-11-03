@@ -124,10 +124,6 @@ class FramingTests(unittest.TestCase):
         with self.assertRaises(WebSocketProtocolError):
             self.decode(b'\x08\x00')
 
-    def test_truncated_message(self):
-        with self.assertRaises(WebSocketProtocolError):
-            self.decode(b'\x80\x01')
-
     def test_parse_close(self):
         self.round_trip_close(b'\x03\xe8', 1000, '')
         self.round_trip_close(b'\x03\xe8OK', 1000, 'OK')

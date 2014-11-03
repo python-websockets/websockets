@@ -64,7 +64,7 @@ def read_frame(reader, mask, *, max_size=None):
     :exc:`WebSocketProtocolError` if it contains incorrect values.
     """
     # Read the header
-    data = yield from read_bytes(reader, 2)
+    data = yield from reader(2)
     head1, head2 = struct.unpack('!BB', data)
     fin = bool(head1 & 0b10000000)
     if head1 & 0b01110000:
@@ -74,34 +74,25 @@ def read_frame(reader, mask, *, max_size=None):
         raise WebSocketProtocolError("Incorrect masking")
     length = head2 & 0b01111111
     if length == 126:
-        data = yield from read_bytes(reader, 2)
+        data = yield from reader(2)
         length, = struct.unpack('!H', data)
     elif length == 127:
-        data = yield from read_bytes(reader, 8)
+        data = yield from reader(8)
         length, = struct.unpack('!Q', data)
     if max_size is not None and length > max_size:
         raise PayloadTooBig("Payload exceeds limit "
                             "({} > {} bytes)".format(length, max_size))
     if mask:
-        mask_bits = yield from read_bytes(reader, 4)
+        mask_bits = yield from reader(4)
 
     # Read the data
-    data = yield from read_bytes(reader, length)
+    data = yield from reader(length)
     if mask:
         data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(data))
 
     frame = Frame(fin, opcode, data)
     check_frame(frame)
     return frame
-
-
-@asyncio.coroutine
-def read_bytes(reader, n):
-    # Undocumented utility function.
-    try:
-        return (yield from reader(n))
-    except asyncio.IncompleteReadError:
-        raise WebSocketProtocolError("Unexpected EOF")
 
 
 def write_frame(frame, writer, mask):

@@ -232,6 +232,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 break
             except WebSocketProtocolError:
                 yield from self.fail_connection(1002)
+            except asyncio.IncompleteReadError:
+                yield from self.fail_connection(1006)
             except UnicodeDecodeError:
                 yield from self.fail_connection(1007)
             except PayloadTooBig:

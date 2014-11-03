@@ -290,7 +290,7 @@ class CommonTests:
         self.loop.call_later(MS, self.protocol.eof_received)
         self.loop.call_later(2 * MS, lambda: self.protocol.connection_lost(None))
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
-        self.assertConnectionClosed(1002, '')
+        self.assertConnectionClosed(1006, '')
 
 
 class ServerTests(CommonTests, unittest.TestCase):
@@ -373,7 +373,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.loop.call_later(MS, self.protocol.eof_received)
         self.loop.call_later(2 * MS, lambda: self.protocol.connection_lost(None))
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
-        self.assertConnectionClosed(1002, '')
+        self.assertConnectionClosed(1006, '')
 
     def test_close_during_recv(self):
         recv = asyncio.async(self.protocol.recv())

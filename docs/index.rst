@@ -184,6 +184,11 @@ Utilities
 Changelog
 ---------
 
+2.3
+...
+
+* Improved compliance of close codes.
+
 2.2
 ...
 

@@ -37,7 +37,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def connection_made(self, transport):
         super().connection_made(transport)
-        asyncio.async(self.handler())
+        asyncio.async(self.handler(), loop=self._loop)
 
     @asyncio.coroutine
     def handler(self):
@@ -125,7 +125,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          klass=WebSocketServerProtocol, origins=None, **kwds):
+          loop=None, klass=WebSocketServerProtocol, origins=None, **kwds):
     """
     This coroutine creates a WebSocket server.
 
@@ -155,8 +155,11 @@ def serve(ws_handler, host=None, port=None, *,
         logger.setLevel(logging.DEBUG)
         logger.addHandler(logging.StreamHandler())
     """
+    if loop is None:
+        loop = asyncio.get_event_loop()
+
     secure = kwds.get('ssl') is not None
     factory = lambda: klass(ws_handler,
                             host=host, port=port, secure=secure, origins=origins)
-    return (yield from asyncio.get_event_loop().create_server(
-            factory, host, port, **kwds))
+
+    return (yield from loop.create_server(factory, host, port, **kwds))

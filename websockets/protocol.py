@@ -71,16 +71,17 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.timeout = timeout
         self.max_size = max_size
 
-        super().__init__(asyncio.StreamReader(), self.client_connected, loop)
+        stream_reader = asyncio.StreamReader(loop=loop)
+        super().__init__(stream_reader, self.client_connected, loop)
 
         self.close_code = None
         self.close_reason = ''
 
         # Futures tracking steps in the connection's lifecycle.
-        self.opening_handshake = asyncio.Future()
-        self.closing_handshake = asyncio.Future()
-        self.connection_failed = asyncio.Future()
-        self.connection_closed = asyncio.Future()
+        self.opening_handshake = asyncio.Future(loop=loop)
+        self.closing_handshake = asyncio.Future(loop=loop)
+        self.connection_failed = asyncio.Future(loop=loop)
+        self.connection_closed = asyncio.Future(loop=loop)
 
         # Queue of received messages.
         self.messages = Queue()
@@ -89,7 +90,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.pings = collections.OrderedDict()
 
         # Task managing the connection.
-        self.worker = asyncio.async(self.run())
+        self.worker = asyncio.async(self.run(), loop=loop)
 
         # In a subclass implementing the opening handshake, the state will be
         # CONNECTING at this point.
@@ -132,7 +133,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # If the connection doesn't terminate within the timeout, break out of
         # the worker loop.
         try:
-            yield from asyncio.wait_for(self.worker, timeout=self.timeout)
+            yield from asyncio.wait_for(
+                    self.worker, self.timeout, loop=self._loop)
         except asyncio.TimeoutError:
             self.worker.cancel()
 
@@ -158,10 +160,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             pass
 
         # Wait for a message until the connection is closed
-        next_message = asyncio.async(self.messages.get())
+        next_message = asyncio.async(self.messages.get(), loop=self._loop)
         done, pending = yield from asyncio.wait(
                 [next_message, self.worker],
-                return_when=asyncio.FIRST_COMPLETED)
+                loop=self._loop, return_when=asyncio.FIRST_COMPLETED)
         if next_message in done:
             return next_message.result()
         else:
@@ -204,7 +206,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         while data is None or data in self.pings:
             data = struct.pack('!I', random.getrandbits(32))
 
-        self.pings[data] = asyncio.Future()
+        self.pings[data] = asyncio.Future(loop=self._loop)
         yield from self.write_frame(OP_PING, data)
         return self.pings[data]
 
@@ -371,8 +373,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         if self.is_client:
             try:
-                yield from asyncio.wait_for(self.connection_closed,
-                        timeout=self.timeout)
+                yield from asyncio.wait_for(
+                        self.connection_closed, self.timeout, loop=self._loop)
             except (asyncio.CancelledError, asyncio.TimeoutError):
                 pass
 
@@ -390,8 +392,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.writer.close()
 
         try:
-            yield from asyncio.wait_for(self.connection_closed,
-                    timeout=self.timeout)
+            yield from asyncio.wait_for(
+                    self.connection_closed, self.timeout, loop=self._loop)
         except (asyncio.CancelledError, asyncio.TimeoutError):
             pass
 

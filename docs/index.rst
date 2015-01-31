@@ -117,7 +117,7 @@ Server
 
 .. automodule:: websockets.server
 
-   .. autofunction:: serve(ws_handler, host=None, port=None, *, klass=WebSocketServerProtocol, origins=None, **kwds)
+   .. autofunction:: serve(ws_handler, host=None, port=None, *, loop=None, klass=WebSocketServerProtocol, origins=None, **kwds)
 
    .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
         :members: handshake
@@ -127,7 +127,7 @@ Client
 
 .. automodule:: websockets.client
 
-   .. autofunction:: connect(uri, *, klass=WebSocketClientProtocol, origin=None, **kwds)
+   .. autofunction:: connect(uri, *, loop=None, klass=WebSocketClientProtocol, origin=None, **kwds)
 
    .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
         :members: handshake
@@ -183,6 +183,13 @@ Utilities
 
 Changelog
 ---------
+
+2.4
+...
+
+* Supported non-default event loop.
+* Added `loop` argument to :func:`~websockets.client.connect` and
+  :func:`~websockets.server.serve`.
 
 2.3
 ...

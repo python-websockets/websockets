@@ -68,7 +68,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 @asyncio.coroutine
 def connect(uri, *,
-            klass=WebSocketClientProtocol, origin=None, **kwds):
+            loop=None, klass=WebSocketClientProtocol, origin=None, **kwds):
     """
     This coroutine connects to a WebSocket server.
 
@@ -91,6 +91,9 @@ def connect(uri, *,
     Connection" in RFC 6455, except for the requirement that "there MUST be no
     more than one connection in a CONNECTING state."
     """
+    if loop is None:
+        loop = asyncio.get_event_loop()
+
     wsuri = parse_uri(uri)
     if wsuri.secure:
         kwds.setdefault('ssl', True)
@@ -98,7 +101,8 @@ def connect(uri, *,
         raise ValueError("connect() received a SSL context for a ws:// URI. "
                          "Use a wss:// URI to enable TLS.")
     factory = lambda: klass(host=wsuri.host, port=wsuri.port, secure=wsuri.secure)
-    transport, protocol = yield from asyncio.get_event_loop().create_connection(
+
+    transport, protocol = yield from loop.create_connection(
             factory, wsuri.host, wsuri.port, **kwds)
 
     try:

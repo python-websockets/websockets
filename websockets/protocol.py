@@ -50,6 +50,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     message larger than the maximum size is received, :meth:`recv()` will
     return ``None`` and the connection will be closed with status code 1009.
 
+    Once the handshake is complete, if a subprotocol was negotiated, it's
+    available in the :attr:`subprotocol` attribute.
+
     Once the connection is closed, the status code is available in the
     :attr:`close_code` attribute and the reason in :attr:`close_reason`.
     """
@@ -73,6 +76,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         stream_reader = asyncio.StreamReader(loop=loop)
         super().__init__(stream_reader, self.client_connected, loop)
+
+        self.subprotocol = None
 
         self.close_code = None
         self.close_reason = ''

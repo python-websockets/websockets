@@ -25,11 +25,14 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     state = 'CONNECTING'
 
     @asyncio.coroutine
-    def handshake(self, wsuri, origin=None):
+    def handshake(self, wsuri, origin=None, subprotocols=None):
         """
         Perform the client side of the opening handshake.
 
         If provided, ``origin`` sets the HTTP Origin header.
+
+        If provided, ``subprotocols`` is a list of supported subprotocols, in
+        order of decreasing preference.
         """
         headers = []
         set_header = lambda k, v: headers.append((k, v))
@@ -39,6 +42,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Host', '{}:{}'.format(wsuri.host, wsuri.port))
         if origin is not None:
             set_header('Origin', origin)
+        if subprotocols is not None:
+            set_header('Sec-WebSocket-Protocol', ', '.join(subprotocols))
         set_header('User-Agent', USER_AGENT)
         key = build_request(set_header)
         self.raw_request_headers = headers
@@ -62,17 +67,26 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         get_header = lambda k: headers.get(k, '')
         check_response(get_header, key)
 
+        self.subprotocol = headers.get('Sec-WebSocket-Protocol', None)
+        if (self.subprotocol is not None
+                and self.subprotocol not in subprotocols):
+            raise InvalidHandshake(
+                    "Unknown subprotocol: {}".format(self.subprotocol))
+
         self.state = 'OPEN'
         self.opening_handshake.set_result(True)
 
 
 @asyncio.coroutine
 def connect(uri, *,
-            loop=None, klass=WebSocketClientProtocol, origin=None, **kwds):
+            loop=None, klass=WebSocketClientProtocol, origin=None,
+            subprotocols=None, **kwds):
     """
     This coroutine connects to a WebSocket server.
 
-    It accepts an ``origin`` keyword argument to set the Origin HTTP header.
+    It accepts an ``origin`` keyword argument to set the Origin HTTP header
+    and a ``subprotocols`` keyword argument to provide a list of supported
+    subprotocols.
 
     It's a thin wrapper around the event loop's `create_connection` method.
     Extra keyword arguments are passed to `create_server`.
@@ -106,7 +120,8 @@ def connect(uri, *,
             factory, wsuri.host, wsuri.port, **kwds)
 
     try:
-        yield from protocol.handshake(wsuri, origin=origin)
+        yield from protocol.handshake(
+                wsuri, origin=origin, subprotocols=subprotocols)
     except Exception:
         protocol.writer.close()
         raise

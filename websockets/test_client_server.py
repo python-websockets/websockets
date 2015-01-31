@@ -25,6 +25,8 @@ def handler(ws, path):
     elif path == '/raw_headers':
         yield from ws.send(repr(ws.raw_request_headers))
         yield from ws.send(repr(ws.raw_response_headers))
+    elif path == '/subprotocol':
+        yield from ws.send(repr(ws.subprotocol))
     else:
         yield from ws.send((yield from ws.recv()))
 
@@ -42,12 +44,12 @@ class ClientServerTests(unittest.TestCase):
         self.stop_server()
         self.loop.close()
 
-    def start_server(self):
-        server = serve(handler, 'localhost', 8642)
+    def start_server(self, **kwds):
+        server = serve(handler, 'localhost', 8642, **kwds)
         self.server = self.loop.run_until_complete(server)
 
-    def start_client(self, path=''):
-        client = connect('ws://localhost:8642/' + path)
+    def start_client(self, path='', **kwds):
+        client = connect('ws://localhost:8642/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
@@ -84,6 +86,61 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(server_req, repr(client_req))
         self.assertEqual(server_resp, repr(client_resp))
         self.stop_client()
+
+    def test_no_subprotocol(self):
+        self.start_client('subprotocol')
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_subprotocol, repr(None))
+        self.assertEqual(self.client.subprotocol, None)
+        self.stop_client()
+
+    def test_subprotocol_found(self):
+        self.stop_server()
+        self.start_server(subprotocols=['superchat', 'chat'])
+
+        self.start_client('subprotocol', subprotocols=['otherchat', 'chat'])
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_subprotocol, repr('chat'))
+        self.assertEqual(self.client.subprotocol, 'chat')
+        self.stop_client()
+
+    def test_subprotocol_not_found(self):
+        self.stop_server()
+        self.start_server(subprotocols=['superchat'])
+
+        self.start_client('subprotocol', subprotocols=['otherchat'])
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_subprotocol, repr(None))
+        self.assertEqual(self.client.subprotocol, None)
+        self.stop_client()
+
+    def test_subprotocol_not_offered(self):
+        self.start_client('subprotocol', subprotocols=['otherchat', 'chat'])
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_subprotocol, repr(None))
+        self.assertEqual(self.client.subprotocol, None)
+        self.stop_client()
+
+    def test_subprotocol_not_requested(self):
+        self.stop_server()
+        self.start_server(subprotocols=['superchat', 'chat'])
+
+        self.start_client('subprotocol')
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_subprotocol, repr(None))
+        self.assertEqual(self.client.subprotocol, None)
+        self.stop_client()
+
+    @patch.object(WebSocketServerProtocol, 'select_subprotocol', autospec=True)
+    def test_subprotocol_error(self, _select_subprotocol):
+        _select_subprotocol.return_value = 'superchat'
+
+        self.stop_server()
+        self.start_server(subprotocols=['superchat'])
+
+        with self.assertRaises(InvalidHandshake):
+            self.start_client('subprotocol', subprotocols=['otherchat'])
+            print(_select_subprotocol.call_args_list)
 
     @patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):
@@ -181,12 +238,14 @@ class SSLClientServerTests(ClientServerTests):
         ssl_context.verify_mode = ssl.CERT_REQUIRED
         return ssl_context
 
-    def start_server(self):
-        server = serve(handler, 'localhost', 8642, ssl=self.server_context)
+    def start_server(self, *args, **kwds):
+        kwds['ssl'] = self.server_context
+        server = serve(handler, 'localhost', 8642, **kwds)
         self.server = self.loop.run_until_complete(server)
 
-    def start_client(self, path=''):
-        client = connect('wss://localhost:8642/' + path, ssl=self.client_context)
+    def start_client(self, path='', **kwds):
+        kwds['ssl'] = self.client_context
+        client = connect('wss://localhost:8642/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 
     def test_ws_uri_is_rejected(self):

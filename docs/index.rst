@@ -117,17 +117,17 @@ Server
 
 .. automodule:: websockets.server
 
-   .. autofunction:: serve(ws_handler, host=None, port=None, *, loop=None, klass=WebSocketServerProtocol, origins=None, **kwds)
+   .. autofunction:: serve(ws_handler, host=None, port=None, *, loop=None, klass=WebSocketServerProtocol, origins=None, subprotocols=None, **kwds)
 
    .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
-        :members: handshake
+        :members: handshake, select_subprotocol
 
 Client
 ......
 
 .. automodule:: websockets.client
 
-   .. autofunction:: connect(uri, *, loop=None, klass=WebSocketClientProtocol, origin=None, **kwds)
+   .. autofunction:: connect(uri, *, loop=None, klass=WebSocketClientProtocol, origin=None, subprotocols=None, **kwds)
 
    .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
         :members: handshake
@@ -187,6 +187,7 @@ Changelog
 2.4
 ...
 
+* Added support for subprotocols.
 * Supported non-default event loop.
 * Added `loop` argument to :func:`~websockets.client.connect` and
   :func:`~websockets.server.serve`.
@@ -227,10 +228,9 @@ Changelog
 Limitations
 -----------
 
-Subprotocols_ and Extensions_ aren't implemented. Few subprotocols and no
-extensions are registered_ at the time of writing.
+Extensions_ aren't implemented. No extensions are registered_ at the time of
+writing.
 
-.. _Subprotocols: http://tools.ietf.org/html/rfc6455#section-1.9
 .. _Extensions: http://tools.ietf.org/html/rfc6455#section-9
 .. _registered: http://www.iana.org/assignments/websocket/websocket.xml
 

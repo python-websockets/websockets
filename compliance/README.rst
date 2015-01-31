@@ -29,5 +29,8 @@ supports Python 3; you need two different environments.
 Conformance notes
 -----------------
 
-Test cases 6.4.2, 6.4.3, and 6.4.4 are actually more strict than the RFC.
-Given its implementation, ``websockets`` gets a "Non-Strict".
+Test cases 6.4.3, and 6.4.4 are actually more strict than the RFC. Given its
+implementation, ``websockets`` gets a "Non-Strict".
+
+Test cases 12.* and 13.* don't run because ``websockets`` doesn't implement
+compression at this time.

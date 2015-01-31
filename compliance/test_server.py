@@ -12,6 +12,10 @@ class EchoServerProtocol(websockets.WebSocketServerProtocol):
 
     """WebSocket server protocol that echoes messages synchronously."""
 
+    def __init__(self, *args, **kwargs):
+        kwargs['max_size'] = 2 ** 25
+        super().__init__(*args, **kwargs)
+
     @asyncio.coroutine
     def read_message(self):
         msg = yield from super().read_message()

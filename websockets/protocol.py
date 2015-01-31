@@ -123,8 +123,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         It waits for the other end to complete the handshake. It doesn't do
         anything once the connection is closed.
 
-        It's usually safe to wrap this coroutine in `asyncio.async()` since
-        errors during connection termination aren't particularly useful.
+        It's usually safe to wrap this coroutine in :func:`~asyncio.async`
+        since errors during connection termination aren't particularly useful.
 
         The `code` must be an :class:`int` and the `reason` a :class:`str`.
         """
@@ -183,7 +183,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         frame.
 
         It raises a :exc:`TypeError` for other inputs and
-        :exc:`InvalidState` once the connection is closed.
+        :exc:`~websockets.exceptions.InvalidState` once the connection is closed.
         """
         if isinstance(data, str):
             opcode = 1
@@ -199,8 +199,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         This coroutine sends a ping.
 
-        It returns a Future which will be completed when the corresponding
-        pong is received and which you may ignore if you don't want to wait.
+        It returns a :class:`~asyncio.Future` which will be completed when the
+        corresponding pong is received and which you may ignore if you don't
+        want to wait.
 
         A ping may serve as a keepalive.
         """

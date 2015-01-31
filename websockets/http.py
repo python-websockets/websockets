@@ -1,7 +1,6 @@
 """
 The :mod:`websockets.http` module provides HTTP parsing functions. They're
-merely adequate for the WebSocket handshake messages. They're used by the
-sample client and servers.
+merely adequate for the WebSocket handshake messages.
 
 These functions cannot be imported from :mod:`websockets`; they must be
 imported from :mod:`websockets.http`.

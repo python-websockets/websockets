@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket server implementation as an asyncio protocol.
+    Complete WebSocket server implementation as an :mod:`asyncio` protocol.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -85,8 +85,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         Perform the server side of the opening handshake.
 
-        If provided, ``origins`` is a list of acceptable HTTP Origin values.
-        Include ``''`` if the lack of an origin is acceptable.
+        If provided, `origins` is a list of acceptable HTTP Origin values.
+        Include ``''`` if the lack of an origin is acceptable. If provided,
+        `subprotocols` is a list of supported subprotocols.
 
         Return the URI of the request.
         """
@@ -151,17 +152,18 @@ def serve(ws_handler, host=None, port=None, *,
     """
     This coroutine creates a WebSocket server.
 
-    It's a thin wrapper around the event loop's `create_server` method.
-    `host`, `port` as well as extra keyword arguments are passed to
-    `create_server`.
+    It's a thin wrapper around the event loop's
+    :meth:`~asyncio.BaseEventLoop.create_server` method. `host`, `port` as
+    well as extra keyword arguments are passed to
+    :meth:`~asyncio.BaseEventLoop.create_server`.
 
     `ws_handler` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and
-    the request URI. If provided, `origin` is a list of acceptable Origin HTTP
-    headers. Include ``''`` if the lack of an origin is acceptable. If
+    the request URI. If provided, `origins` is a list of acceptable Origin
+    HTTP headers. Include ``''`` if the lack of an origin is acceptable. If
     provided, `subprotocols` is a list of supported subprotocols.
 
-    It returns a `Server` object with a `close` method to stop the server.
+    `serve` yields a `Server` object with a `close` method to stop the server.
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`~websockets.server.WebSocketServerProtocol`, performs the opening

@@ -15,7 +15,7 @@ from .uri import parse_uri
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket client implementation as an asyncio protocol.
+    Complete WebSocket client implementation as an :mod:`asyncio` protocol.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -88,8 +88,9 @@ def connect(uri, *,
     and a ``subprotocols`` keyword argument to provide a list of supported
     subprotocols.
 
-    It's a thin wrapper around the event loop's `create_connection` method.
-    Extra keyword arguments are passed to `create_server`.
+    It's a thin wrapper around the event loop's
+    :meth:`~asyncio.BaseEventLoop.create_connection` method. Extra keyword
+    arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
 
     It returns a :class:`~websockets.client.WebSocketClientProtocol` which can
     then be used to send and receive messages.
@@ -103,7 +104,8 @@ def connect(uri, *,
 
     :func:`connect` implements the sequence called "Establish a WebSocket
     Connection" in RFC 6455, except for the requirement that "there MUST be no
-    more than one connection in a CONNECTING state."
+    more than one connection in a CONNECTING state" because it cannot be
+    enforced at that level.
     """
     if loop is None:
         loop = asyncio.get_event_loop()

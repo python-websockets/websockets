@@ -119,7 +119,7 @@ Server
 
    .. autofunction:: serve(ws_handler, host=None, port=None, *, loop=None, klass=WebSocketServerProtocol, origins=None, subprotocols=None, **kwds)
 
-   .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
+   .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, subprotocols=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
         :members: handshake, select_subprotocol
 
 Client

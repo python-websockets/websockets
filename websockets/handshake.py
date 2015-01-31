@@ -69,8 +69,8 @@ def check_request(get_header):
     If the handshake is valid, this function returns the `key` which must be
     passed to :func:`build_response`.
 
-    Otherwise, it raises an :exc:`InvalidHandshake` exception and the server
-    must return an error, usually 400 Bad Request.
+    Otherwise, it raises an :exc:`~websockets.exceptions.InvalidHandshake`
+    exception and the server must return an error, usually 400 Bad Request.
 
     This function doesn't verify that the request is an HTTP/1.1 or higher GET
     request and doesn't perform Host and Origin checks. These controls are
@@ -108,7 +108,8 @@ def check_response(get_header, key):
 
     If the handshake is valid, this function returns ``None``.
 
-    Otherwise, it raises an :exc:`InvalidHandshake` exception.
+    Otherwise, it raises an :exc:`~websockets.exceptions.InvalidHandshake`
+    exception.
 
     This function doesn't verify that the response is an HTTP/1.1 or higher
     response with a 101 status code. These controls are the responsibility of

@@ -24,7 +24,8 @@ def parse_uri(uri):
     If the URI is valid, it returns a namedtuple `(secure, host, port,
     resource_name)`
 
-    Otherwise, it raises an :exc:`InvalidURI` exception.
+    Otherwise, it raises an :exc:`~websockets.exceptions.InvalidURI`
+    exception.
     """
     uri = urllib.parse.urlparse(uri)
     try:

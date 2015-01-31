@@ -58,10 +58,11 @@ def read_frame(reader, mask, *, max_size=None):
     whether the read happens on the server side.
 
     If `max_size` is set and the payload exceeds this size in bytes,
-    :exc:`PayloadTooBig` is raised.
+    :exc:`~websockets.exceptions.PayloadTooBig` is raised.
 
     This function validates the frame before returning it and raises
-    :exc:`WebSocketProtocolError` if it contains incorrect values.
+    :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
+    incorrect values.
     """
     # Read the header
     data = yield from reader(2)
@@ -107,7 +108,8 @@ def write_frame(frame, writer, mask):
     whether the write happens on the client side.
 
     This function validates the frame before sending it and raises
-    :exc:`WebSocketProtocolError` if it contains incorrect values.
+    :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
+    incorrect values.
     """
     check_frame(frame)
 
@@ -138,7 +140,8 @@ def write_frame(frame, writer, mask):
 
 def check_frame(frame):
     """
-    Raise :exc:`WebSocketProtocolError` if the frame contains incorrect values.
+    Raise :exc:`~websockets.exceptions.WebSocketProtocolError` if the frame
+    contains incorrect values.
     """
     if frame.opcode in (OP_CONT, OP_TEXT, OP_BINARY):
         return
@@ -158,8 +161,8 @@ def parse_close(data):
     Return `(code, reason)` when `code` is an :class:`int` and `reason` a
     :class:`str`.
 
-    Raise :exc:`WebSocketProtocolError` or :exc:`UnicodeDecodeError` if the
-    data is invalid.
+    Raise :exc:`~websockets.exceptions.WebSocketProtocolError` or
+    :exc:`UnicodeDecodeError` if the data is invalid.
     """
     length = len(data)
     if length == 0:

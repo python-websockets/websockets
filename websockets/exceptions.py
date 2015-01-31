@@ -1,4 +1,7 @@
-__all__ = ['InvalidHandshake', 'InvalidState', 'InvalidURI']
+__all__ = [
+    'InvalidHandshake', 'InvalidState', 'InvalidURI',
+    'PayloadTooBig', 'WebSocketProtocolError',
+]
 
 
 class InvalidHandshake(Exception):
@@ -18,6 +21,4 @@ class PayloadTooBig(Exception):
 
 
 class WebSocketProtocolError(Exception):
-    # Internal exception raised when the other end breaks the protocol.
-    # It's private because it shouldn't leak outside of WebSocketCommonProtocol.
-    pass
+    """Internal exception raised when the remote side breaks the protocol."""

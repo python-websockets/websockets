@@ -166,9 +166,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         # Wait for a message until the connection is closed
         next_message = asyncio.async(self.messages.get(), loop=self._loop)
-        done, pending = yield from asyncio.wait(
+        try:
+            done, pending = yield from asyncio.wait(
                 [next_message, self.worker],
                 loop=self._loop, return_when=asyncio.FIRST_COMPLETED)
+        except asyncio.CancelledError:
+            # Handle the Task.cancel()
+            next_message.cancel()
+            raise
+
         if next_message in done:
             return next_message.result()
         else:

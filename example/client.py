@@ -11,6 +11,6 @@ def hello():
     print("> {}".format(name))
     greeting = yield from websocket.recv()
     print("< {}".format(greeting))
-    yield from websocket.close()
+    yield from websocket.worker
 
 asyncio.get_event_loop().run_until_complete(hello())

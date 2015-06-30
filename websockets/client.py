@@ -25,7 +25,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     state = 'CONNECTING'
 
     @asyncio.coroutine
-    def handshake(self, wsuri, origin=None, subprotocols=None):
+    def handshake(self, wsuri, origin=None, subprotocols=None, headers=None):
         """
         Perform the client side of the opening handshake.
 
@@ -33,8 +33,16 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         If provided, ``subprotocols`` is a list of supported subprotocols, in
         order of decreasing preference.
+
+        If provided, ``headers`` sets additional HTTP headers. It must be a dict
+        or iterable of (header, value) pairs.
         """
-        headers = []
+        if headers is None:
+            headers = []
+        elif isinstance(headers, dict):
+            headers = list(headers.items())
+        else:
+            headers = list(headers)
         set_header = lambda k, v: headers.append((k, v))
         if wsuri.port == (443 if wsuri.secure else 80):         # pragma: no cover
             set_header('Host', wsuri.host)
@@ -80,13 +88,16 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 @asyncio.coroutine
 def connect(uri, *,
             loop=None, klass=WebSocketClientProtocol, origin=None,
-            subprotocols=None, **kwds):
+            subprotocols=None, headers=None, **kwds):
     """
     This coroutine connects to a WebSocket server.
 
-    It accepts an ``origin`` keyword argument to set the Origin HTTP header
+    It accepts an ``origin`` keyword argument to set the Origin HTTP header,
     and a ``subprotocols`` keyword argument to provide a list of supported
     subprotocols.
+
+    It also supports a ``headers`` keyword to supply additional HTTP headers.
+    It can be a dict or an iterable of (key, value) tuples.
 
     It's a thin wrapper around the event loop's
     :meth:`~asyncio.BaseEventLoop.create_connection` method. Extra keyword
@@ -123,7 +134,7 @@ def connect(uri, *,
 
     try:
         yield from protocol.handshake(
-                wsuri, origin=origin, subprotocols=subprotocols)
+                wsuri, origin=origin, subprotocols=subprotocols, headers=headers)
     except Exception:
         protocol.writer.close()
         raise

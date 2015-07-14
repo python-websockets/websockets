@@ -1,6 +1,7 @@
 *.pyc
 .coverage
 .DS_Store
+.tox
 build/
 compliance/reports/
 dist/

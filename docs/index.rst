@@ -193,11 +193,11 @@ Server
 
 .. automodule:: websockets.server
 
-   .. autofunction:: serve(ws_handler, host=None, port=None, *, loop=None, klass=WebSocketServerProtocol, origins=None, subprotocols=None, **kwds)
+   .. autofunction:: serve(ws_handler, host=None, port=None, *, loop=None, klass=WebSocketServerProtocol, origins=None, subprotocols=None, extra_headers=None, **kwds)
 
-   .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, subprotocols=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
+   .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, subprotocols=None, extra_headers=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
 
-        .. automethod:: handshake(origins=None, subprotocols=None)
+        .. automethod:: handshake(origins=None, subprotocols=None, extra_headers=None)
         .. automethod:: select_subprotocol(client_protos, server_protos)
 
 Client
@@ -205,11 +205,11 @@ Client
 
 .. automodule:: websockets.client
 
-   .. autofunction:: connect(uri, *, loop=None, klass=WebSocketClientProtocol, origin=None, subprotocols=None, **kwds)
+   .. autofunction:: connect(uri, *, loop=None, klass=WebSocketClientProtocol, origin=None, subprotocols=None, extra_headers=None, **kwds)
 
    .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
 
-        .. automethod:: handshake(wsuri, origin=None, subprotocols=None)
+        .. automethod:: handshake(wsuri, origin=None, subprotocols=None, extra_headers=None)
 
 Shared
 ......

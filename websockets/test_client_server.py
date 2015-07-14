@@ -87,6 +87,36 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(server_resp, repr(client_resp))
         self.stop_client()
 
+    def test_protocol_custom_request_headers_dict(self):
+        self.start_client('raw_headers', extra_headers={'X-Spam': 'Eggs'})
+        req_headers = self.loop.run_until_complete(self.client.recv())
+        _resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", req_headers)
+
+    def test_protocol_custom_request_headers_list(self):
+        self.start_client('raw_headers', extra_headers=[('X-Spam', 'Eggs')])
+        req_headers = self.loop.run_until_complete(self.client.recv())
+        _resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", req_headers)
+
+    def test_protocol_custom_response_headers_dict(self):
+        self.stop_server()
+        self.start_server(extra_headers={'X-Spam': 'Eggs'})
+
+        self.start_client('raw_headers')
+        _req_headers = self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+
+    def test_protocol_custom_response_headers_list(self):
+        self.stop_server()
+        self.start_server(extra_headers=[('X-Spam', 'Eggs')])
+
+        self.start_client('raw_headers')
+        _req_headers = self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+
     def test_no_subprotocol(self):
         self.start_client('subprotocol')
         server_subprotocol = self.loop.run_until_complete(self.client.recv())

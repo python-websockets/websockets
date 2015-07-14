@@ -4,6 +4,7 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 
 __all__ = ['serve', 'WebSocketServerProtocol']
 
+import collections
 import logging
 
 import asyncio
@@ -31,10 +32,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     state = 'CONNECTING'
 
     def __init__(self, ws_handler, *,
-                 origins=None, subprotocols=None, **kwds):
+                 origins=None, subprotocols=None, extra_headers=None, **kwds):
         self.ws_handler = ws_handler
         self.origins = origins
         self.subprotocols = subprotocols
+        self.extra_headers = extra_headers
         super().__init__(**kwds)
 
     def connection_made(self, transport):
@@ -49,7 +51,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
             try:
                 path = yield from self.handshake(
-                    origins=self.origins, subprotocols=self.subprotocols)
+                    origins=self.origins, subprotocols=self.subprotocols,
+                    extra_headers=self.extra_headers)
             except Exception as exc:
                 logger.info("Exception in opening handshake: {}".format(exc))
                 if isinstance(exc, InvalidHandshake):
@@ -81,13 +84,18 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 pass
 
     @asyncio.coroutine
-    def handshake(self, origins=None, subprotocols=None):
+    def handshake(self, origins=None, subprotocols=None, extra_headers=None):
         """
         Perform the server side of the opening handshake.
 
-        If provided, `origins` is a list of acceptable HTTP Origin values.
-        Include ``''`` if the lack of an origin is acceptable. If provided,
-        `subprotocols` is a list of supported subprotocols.
+        If provided, ``origins`` is a list of acceptable HTTP Origin values.
+        Include ``''`` if the lack of an origin is acceptable.
+
+        If provided, ``subprotocols`` is a list of supported subprotocols in
+        order of decreasing preference.
+
+        If provided, ``extra_headers`` sets additional HTTP response headers.
+        It must be a mapping or an iterable of (name, value) pairs.
 
         Return the URI of the request.
         """
@@ -118,6 +126,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         set_header('Server', USER_AGENT)
         if self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
+        if extra_headers is not None:
+            if isinstance(extra_headers, collections.abc.Mapping):
+                extra_headers = extra_headers.items()
+            for name, value in extra_headers:
+                set_header(name, value)
         build_response(set_header, key)
         self.raw_response_headers = headers
 
@@ -147,8 +160,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          loop=None, klass=WebSocketServerProtocol, origins=None,
-          subprotocols=None, **kwds):
+          loop=None, klass=WebSocketServerProtocol,
+          origins=None, subprotocols=None, extra_headers=None,
+          **kwds):
     """
     This coroutine creates a WebSocket server.
 
@@ -157,11 +171,18 @@ def serve(ws_handler, host=None, port=None, *,
     well as extra keyword arguments are passed to
     :meth:`~asyncio.BaseEventLoop.create_server`.
 
-    `ws_handler` is the WebSocket handler. It must be a coroutine accepting
+    ``ws_handler`` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and
-    the request URI. If provided, `origins` is a list of acceptable Origin
-    HTTP headers. Include ``''`` if the lack of an origin is acceptable. If
-    provided, `subprotocols` is a list of supported subprotocols.
+    the request URI.
+
+    This coroutine accepts several optional arguments:
+
+    * ``origins`` defines acceptable Origin HTTP headers — include
+      ``''`` if the lack of an origin is acceptable
+    * ``subprotocols`` is a list of supported subprotocols in order of
+        decreasing preference
+    * ``extra_headers`` sets additional HTTP response headers – it can be a
+      mapping or an iterable of (name, value) pairs
 
     `serve` yields a `Server` object with a `close` method to stop the server.
 
@@ -186,5 +207,6 @@ def serve(ws_handler, host=None, port=None, *,
     secure = kwds.get('ssl') is not None
     factory = lambda: klass(
             ws_handler, host=host, port=port, secure=secure,
-            origins=origins, subprotocols=subprotocols)
+            origins=origins, subprotocols=subprotocols,
+            extra_headers=extra_headers)
     return (yield from loop.create_server(factory, host, port, **kwds))

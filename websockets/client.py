@@ -5,6 +5,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 __all__ = ['connect', 'WebSocketClientProtocol']
 
 import asyncio
+import collections
 
 from .exceptions import InvalidHandshake
 from .handshake import build_request, check_response
@@ -25,14 +26,18 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     state = 'CONNECTING'
 
     @asyncio.coroutine
-    def handshake(self, wsuri, origin=None, subprotocols=None):
+    def handshake(self, wsuri,
+                  origin=None, subprotocols=None, extra_headers=None):
         """
         Perform the client side of the opening handshake.
 
-        If provided, ``origin`` sets the HTTP Origin header.
+        If provided, ``origin`` sets the Origin HTTP header.
 
-        If provided, ``subprotocols`` is a list of supported subprotocols, in
+        If provided, ``subprotocols`` is a list of supported subprotocols in
         order of decreasing preference.
+
+        If provided, ``extra_headers`` sets additional HTTP request headers.
+        It must be a mapping or an iterable of (name, value) pairs.
         """
         headers = []
         set_header = lambda k, v: headers.append((k, v))
@@ -44,8 +49,14 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Origin', origin)
         if subprotocols is not None:
             set_header('Sec-WebSocket-Protocol', ', '.join(subprotocols))
+        if extra_headers is not None:
+            if isinstance(extra_headers, collections.abc.Mapping):
+                extra_headers = extra_headers.items()
+            for name, value in extra_headers:
+                set_header(name, value)
         set_header('User-Agent', USER_AGENT)
         key = build_request(set_header)
+
         self.raw_request_headers = headers
 
         # Send handshake request. Since the URI and the headers only contain
@@ -79,18 +90,23 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 @asyncio.coroutine
 def connect(uri, *,
-            loop=None, klass=WebSocketClientProtocol, origin=None,
-            subprotocols=None, **kwds):
+            loop=None, klass=WebSocketClientProtocol,
+            origin=None, subprotocols=None, extra_headers=None,
+            **kwds):
     """
     This coroutine connects to a WebSocket server.
-
-    It accepts an ``origin`` keyword argument to set the Origin HTTP header
-    and a ``subprotocols`` keyword argument to provide a list of supported
-    subprotocols.
 
     It's a thin wrapper around the event loop's
     :meth:`~asyncio.BaseEventLoop.create_connection` method. Extra keyword
     arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
+
+    This coroutine accepts several optional arguments:
+
+    * ``origin`` sets the Origin HTTP header
+    * ``subprotocols`` is a list of supported subprotocols in order of
+        decreasing preference
+    * ``extra_headers`` sets additional HTTP request headers – it can be a
+      mapping or an iterable of (name, value) pairs
 
     It returns a :class:`~websockets.client.WebSocketClientProtocol` which can
     then be used to send and receive messages.
@@ -123,7 +139,8 @@ def connect(uri, *,
 
     try:
         yield from protocol.handshake(
-                wsuri, origin=origin, subprotocols=subprotocols)
+                wsuri, origin=origin, subprotocols=subprotocols,
+                extra_headers=extra_headers)
     except Exception:
         protocol.writer.close()
         raise

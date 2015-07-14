@@ -146,6 +146,18 @@ class CommonTests:
         self.protocol.connection_lost(None)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
 
+    def test_recv_cancelled(self):
+        try:
+            data = self.loop.run_until_complete(
+                asyncio.wait_for(self.protocol.recv(), 1, loop=self.loop)
+            )
+        except asyncio.TimeoutError:
+            self.feed(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+            data = self.loop.run_until_complete(
+                asyncio.wait_for(self.protocol.recv(), 1, loop=self.loop)
+            )  # We use wait_for here to make sure the test fail and don't hang
+            self.assertEqual(data, 'café')
+
     def test_send_text(self):
         self.loop.run_until_complete(self.protocol.send('café'))
         self.assertFrameSent(True, OP_TEXT, 'café'.encode('utf-8'))

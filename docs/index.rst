@@ -87,6 +87,53 @@ Here's a corresponding client example.
     Of course, you can combine the two patterns shown above to read and write
     messages on the same connection.
 
+That's really all you have to know! ``websockets`` manages the connection
+under the hood so you don't have to.
+
+Cheat sheet
+-----------
+
+Server
+......
+
+* Write a coroutine that handles a single connection. It receives a websocket
+  protocol instance and the URI path in argument.
+
+  * Call :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` and
+    :meth:`~websockets.protocol.WebSocketCommonProtocol.send` to receive and
+    send messages at any time.
+
+  * You may :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` or
+    :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` if you wish
+    but it isn't needed in general.
+
+* Create a server with :func:`~websockets.server.serve` which is similar to
+  asyncio's :meth:`~asyncio.BaseEventLoop.create_server`.
+
+  * The server takes care of establishing connections, then lets the handler
+    execute the application logic, and finally closes the connection after
+    the handler returns.
+
+  * You may subclass :class:`~websockets.server.WebSocketServerProtocol` if
+    you have an advanced use case.
+
+Client
+......
+
+* Create a server with :func:`~websockets.client.connect` which is similar to
+  asyncio's :meth:`~asyncio.BaseEventLoop.create_connection`.
+
+* Call :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` and
+  :meth:`~websockets.protocol.WebSocketCommonProtocol.send` to receive and
+  send messages at any time.
+
+* You may :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` or
+  :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` if you wish but it
+  isn't needed in general.
+
+* Call :meth:`~websockets.protocol.WebSocketCommonProtocol.close` to terminate
+  the connection.
+
 Design
 ------
 
@@ -95,6 +142,7 @@ the examples above. These functions are built on top of low-level APIs
 reflecting the two phases of the WebSocket protocol:
 
 1. An opening handshake, in the form of an HTTP Upgrade request;
+
 2. Data transfer, as framed messages, ending with a closing handshake.
 
 The first phase is designed to integrate with existing HTTP software.
@@ -120,7 +168,9 @@ Server
    .. autofunction:: serve(ws_handler, host=None, port=None, *, loop=None, klass=WebSocketServerProtocol, origins=None, subprotocols=None, **kwds)
 
    .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, subprotocols=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
-        :members: handshake, select_subprotocol
+
+        .. automethod:: handshake(origins=None, subprotocols=None)
+        .. automethod:: select_subprotocol(client_protos, server_protos)
 
 Client
 ......
@@ -130,7 +180,8 @@ Client
    .. autofunction:: connect(uri, *, loop=None, klass=WebSocketClientProtocol, origin=None, subprotocols=None, **kwds)
 
    .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
-        :members: handshake
+
+        .. automethod:: handshake(wsuri, origin=None, subprotocols=None)
 
 Shared
 ......
@@ -139,7 +190,7 @@ Shared
 
    .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
 
-        .. autoattribute:: open
+        .. autoattribute:: open()
         .. automethod:: close(code=1000, reason='')
 
         .. automethod:: recv()
@@ -188,7 +239,9 @@ Changelog
 ...
 
 * Added support for subprotocols.
+
 * Supported non-default event loop.
+
 * Added `loop` argument to :func:`~websockets.client.connect` and
   :func:`~websockets.server.serve`.
 
@@ -206,6 +259,7 @@ Changelog
 ...
 
 * Added `host`, `port` and `secure` attributes on protocols.
+
 * Added support for providing and checking Origin_.
 
 .. _Origin: https://tools.ietf.org/html/rfc6455#section-10.2
@@ -218,7 +272,8 @@ Changelog
   :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
   :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` are coroutines.
   They used to be regular functions.
-* Add flow control.
+
+* Added flow control.
 
 1.0
 ...

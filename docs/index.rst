@@ -263,6 +263,16 @@ Utilities
 Changelog
 ---------
 
+2.5
+...
+
+* Allowed customizing handshake request and response HTTP headers.
+
+* Improved documentation.
+
+* Cancelling :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` no
+  longer drops the next message.
+
 2.4
 ...
 

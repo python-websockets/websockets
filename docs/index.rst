@@ -85,7 +85,35 @@ Here's a corresponding client example.
     to write and return otherwise.
 
     Of course, you can combine the two patterns shown above to read and write
-    messages on the same connection.
+    messages on the same connection::
+
+        @asyncio.coroutine
+        def handler(websocket, path):
+            while True:
+                listener_task = asyncio.ensure_future(websocket.recv())
+                producer_task = asyncio.ensure_future(producer())
+                done, pending = yield from asyncio.wait(
+                        [listener_task, producer_task],
+                        return_when=asyncio.FIRST_COMPLETED)
+
+                if listener_task in done:
+                    message = listener_task.result()
+                    if message is None:
+                        break
+                    yield from consumer(message)
+                else:
+                    listener_task.cancel()
+
+                if producer_task in done:
+                    message = producer_task.result()
+                    if not websocket.open:
+                        break
+                    yield from websocket.send(message)
+                else:
+                    producer_task.cancel()
+
+    (This code looks convoluted. If you know a more straightforward solution,
+    please let me know about it!)
 
 That's really all you have to know! ``websockets`` manages the connection
 under the hood so you don't have to.

@@ -34,7 +34,7 @@ def get_case_count(server):
     uri = server + '/getCaseCount'
     ws = yield from websockets.connect(uri)
     msg = yield from ws.recv()
-    yield from ws.worker
+    yield from ws.close()
     return json.loads(msg)
 
 
@@ -49,7 +49,7 @@ def run_case(server, case, agent):
 def update_reports(server, agent):
     uri = server + '/updateReports?agent={}'.format(agent)
     ws = yield from websockets.connect(uri)
-    yield from ws.worker
+    yield from ws.close()
 
 
 @asyncio.coroutine

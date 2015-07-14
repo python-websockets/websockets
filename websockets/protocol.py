@@ -118,8 +118,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         This coroutine performs the closing handshake.
 
-        This is the expected way to terminate a connection on the server side.
-
         It waits for the other end to complete the handshake. It doesn't do
         anything once the connection is closed.
 

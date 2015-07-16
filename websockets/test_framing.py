@@ -17,7 +17,7 @@ class FramingTests(unittest.TestCase):
         self.loop.close()
 
     def decode(self, message, mask=False, max_size=None):
-        self.stream = asyncio.StreamReader()
+        self.stream = asyncio.StreamReader(loop=self.loop)
         self.stream.feed_data(message)
         self.stream.feed_eof()
         reader = self.stream.readexactly

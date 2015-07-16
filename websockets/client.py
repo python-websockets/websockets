@@ -132,7 +132,8 @@ def connect(uri, *,
     elif 'ssl' in kwds:
         raise ValueError("connect() received a SSL context for a ws:// URI. "
                          "Use a wss:// URI to enable TLS.")
-    factory = lambda: klass(host=wsuri.host, port=wsuri.port, secure=wsuri.secure)
+    factory = lambda: klass(host=wsuri.host, port=wsuri.port,
+            secure=wsuri.secure, loop=loop)
 
     transport, protocol = yield from loop.create_connection(
             factory, wsuri.host, wsuri.port, **kwds)

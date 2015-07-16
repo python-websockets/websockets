@@ -5,6 +5,7 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 __all__ = ['serve', 'WebSocketServerProtocol']
 
 import collections
+import collections.abc
 import logging
 
 import asyncio

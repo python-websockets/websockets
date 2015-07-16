@@ -89,7 +89,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.connection_closed = asyncio.Future(loop=loop)
 
         # Queue of received messages.
-        self.messages = Queue()
+        self.messages = Queue(loop=loop)
 
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()

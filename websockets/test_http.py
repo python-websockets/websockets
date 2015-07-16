@@ -12,7 +12,7 @@ class HTTPTests(unittest.TestCase):
         super().setUp()
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        self.stream = asyncio.StreamReader()
+        self.stream = asyncio.StreamReader(loop=self.loop)
 
     def tearDown(self):
         self.loop.close()

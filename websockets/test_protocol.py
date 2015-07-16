@@ -25,6 +25,10 @@ class CommonTests:
                 side_effect=lambda: self.protocol.connection_lost(None))
         self.protocol.connection_made(self.transport)
 
+    @property
+    def async(self):
+        return partial(asyncio.async, loop=self.loop)
+
     def tearDown(self):
         self.loop.close()
         super().tearDown()
@@ -33,10 +37,6 @@ class CommonTests:
         """Feed a frame to the protocol."""
         mask = not self.protocol.is_client
         write_frame(frame, self.protocol.data_received, mask)
-
-    @property
-    def async(self):
-        return partial(asyncio.async, loop=self.loop)
 
     @asyncio.coroutine
     def sent(self):

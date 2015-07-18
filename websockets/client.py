@@ -5,7 +5,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 __all__ = ['connect', 'WebSocketClientProtocol']
 
 import asyncio
-import collections
+import collections.abc
 
 from .exceptions import InvalidHandshake
 from .handshake import build_request, check_response

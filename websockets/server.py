@@ -119,7 +119,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             if protocol:
                 client_subprotocols = [p.strip() for p in protocol.split(',')]
                 self.subprotocol = self.select_subprotocol(
-                        client_subprotocols, subprotocols)
+                    client_subprotocols, subprotocols)
 
         headers = []
         set_header = lambda k, v: headers.append((k, v))
@@ -206,7 +206,7 @@ def serve(ws_handler, host=None, port=None, *,
 
     secure = kwds.get('ssl') is not None
     factory = lambda: klass(
-            ws_handler, host=host, port=port, secure=secure,
-            origins=origins, subprotocols=subprotocols,
-            extra_headers=extra_headers, loop=loop)
+        ws_handler, host=host, port=port, secure=secure,
+        origins=origins, subprotocols=subprotocols,
+        extra_headers=extra_headers, loop=loop)
     return (yield from loop.create_server(factory, host, port, **kwds))

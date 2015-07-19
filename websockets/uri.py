@@ -13,8 +13,8 @@ import urllib.parse
 from .exceptions import InvalidURI
 
 
-WebSocketURI = collections.namedtuple('WebSocketURI',
-        ('secure', 'host', 'port', 'resource_name'))
+WebSocketURI = collections.namedtuple(
+    'WebSocketURI', ('secure', 'host', 'port', 'resource_name'))
 
 
 def parse_uri(uri):

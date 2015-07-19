@@ -20,8 +20,8 @@ class FramingTests(unittest.TestCase):
         self.stream = asyncio.StreamReader(loop=self.loop)
         self.stream.feed_data(message)
         self.stream.feed_eof()
-        reader = self.stream.readexactly
-        return self.loop.run_until_complete(read_frame(reader, mask, max_size=max_size))
+        return self.loop.run_until_complete(read_frame(
+            self.stream.readexactly, mask, max_size=max_size))
 
     def encode(self, frame, mask=False):
         encoded = io.BytesIO()
@@ -49,26 +49,26 @@ class FramingTests(unittest.TestCase):
 
     def test_text_masked(self):
         self.round_trip(
-                b'\x81\x84\x5b\xfb\xe1\xa8\x08\x8b\x80\xc5',
-                Frame(True, OP_TEXT, b'Spam'), mask=True)
+            b'\x81\x84\x5b\xfb\xe1\xa8\x08\x8b\x80\xc5',
+            Frame(True, OP_TEXT, b'Spam'), mask=True)
 
     def test_binary(self):
         self.round_trip(b'\x82\x04Eggs', Frame(True, OP_BINARY, b'Eggs'))
 
     def test_binary_masked(self):
         self.round_trip(
-                b'\x82\x84\x53\xcd\xe2\x89\x16\xaa\x85\xfa',
-                Frame(True, OP_BINARY, b'Eggs'), mask=True)
+            b'\x82\x84\x53\xcd\xe2\x89\x16\xaa\x85\xfa',
+            Frame(True, OP_BINARY, b'Eggs'), mask=True)
 
     def test_non_ascii_text(self):
         self.round_trip(
-                b'\x81\x05caf\xc3\xa9',
-                Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+            b'\x81\x05caf\xc3\xa9',
+            Frame(True, OP_TEXT, 'café'.encode('utf-8')))
 
     def test_non_ascii_text_masked(self):
         self.round_trip(
-                b'\x81\x85\x64\xbe\xee\x7e\x07\xdf\x88\xbd\xcd',
-                Frame(True, OP_TEXT, 'café'.encode('utf-8')), mask=True)
+            b'\x81\x85\x64\xbe\xee\x7e\x07\xdf\x88\xbd\xcd',
+            Frame(True, OP_TEXT, 'café'.encode('utf-8')), mask=True)
 
     def test_close(self):
         self.round_trip(b'\x88\x00', Frame(True, OP_CLOSE, b''))
@@ -81,13 +81,13 @@ class FramingTests(unittest.TestCase):
 
     def test_long(self):
         self.round_trip(
-                b'\x82\x7e\x00\x7e' + 126 * b'a',
-                Frame(True, OP_BINARY, 126 * b'a'))
+            b'\x82\x7e\x00\x7e' + 126 * b'a',
+            Frame(True, OP_BINARY, 126 * b'a'))
 
     def test_very_long(self):
         self.round_trip(
-                b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 65536 * b'a',
-                Frame(True, OP_BINARY, 65536 * b'a'))
+            b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 65536 * b'a',
+            Frame(True, OP_BINARY, 65536 * b'a'))
 
     def test_payload_too_big(self):
         with self.assertRaises(PayloadTooBig):

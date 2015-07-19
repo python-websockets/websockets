@@ -79,8 +79,9 @@ def check_request(get_header):
     """
     try:
         assert get_header('Upgrade').lower() == 'websocket'
-        assert any(token.strip() == 'upgrade'
-                for token in get_header('Connection').lower().split(','))
+        assert any(
+            token.strip() == 'upgrade'
+            for token in get_header('Connection').lower().split(','))
         key = get_header('Sec-WebSocket-Key')
         assert len(base64.b64decode(key.encode())) == 16
         assert get_header('Sec-WebSocket-Version') == '13'
@@ -117,8 +118,9 @@ def check_response(get_header, key):
     """
     try:
         assert get_header('Upgrade').lower() == 'websocket'
-        assert any(token.strip() == 'upgrade'
-                for token in get_header('Connection').lower().split(','))
+        assert any(
+            token.strip() == 'upgrade'
+            for token in get_header('Connection').lower().split(','))
         assert get_header('Sec-WebSocket-Accept') == accept(key)
     except (AssertionError, KeyError) as exc:
         raise InvalidHandshake("Invalid response") from exc

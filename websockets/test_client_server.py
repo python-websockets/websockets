@@ -90,13 +90,13 @@ class ClientServerTests(unittest.TestCase):
     def test_protocol_custom_request_headers_dict(self):
         self.start_client('raw_headers', extra_headers={'X-Spam': 'Eggs'})
         req_headers = self.loop.run_until_complete(self.client.recv())
-        _resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
     def test_protocol_custom_request_headers_list(self):
         self.start_client('raw_headers', extra_headers=[('X-Spam', 'Eggs')])
         req_headers = self.loop.run_until_complete(self.client.recv())
-        _resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
     def test_protocol_custom_response_headers_dict(self):
@@ -104,7 +104,7 @@ class ClientServerTests(unittest.TestCase):
         self.start_server(extra_headers={'X-Spam': 'Eggs'})
 
         self.start_client('raw_headers')
-        _req_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
@@ -113,7 +113,7 @@ class ClientServerTests(unittest.TestCase):
         self.start_server(extra_headers=[('X-Spam', 'Eggs')])
 
         self.start_client('raw_headers')
-        _req_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
@@ -282,6 +282,7 @@ class SSLClientServerTests(ClientServerTests):
         client = connect('ws://localhost:8642/', ssl=self.client_context)
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(client)
+
 
 class ClientServerOriginTests(unittest.TestCase):
 

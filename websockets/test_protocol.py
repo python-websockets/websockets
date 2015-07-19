@@ -4,7 +4,7 @@ import unittest.mock
 import asyncio
 from functools import partial
 
-from .exceptions import InvalidState, PayloadTooBig
+from .exceptions import InvalidState
 from .framing import *
 from .protocol import WebSocketCommonProtocol
 
@@ -22,7 +22,7 @@ class CommonTests:
         self.transport = unittest.mock.Mock()
         self.transport._conn_lost = 0               # checked by drain()
         self.transport.close = unittest.mock.Mock(
-                side_effect=lambda: self.protocol.connection_lost(None))
+            side_effect=lambda: self.protocol.connection_lost(None))
         self.protocol.connection_made(self.transport)
 
     @property
@@ -47,7 +47,8 @@ class CommonTests:
         self.transport.write.call_args_list = []
         stream.feed_eof()
         if not stream.at_eof():
-            return (yield from read_frame(stream.readexactly, self.protocol.is_client))
+            return (yield from read_frame(
+                stream.readexactly, self.protocol.is_client))
 
     @asyncio.coroutine
     def echo(self):
@@ -305,7 +306,7 @@ class CommonTests:
     def test_connection_close_in_fragmented_text(self):
         self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         self.loop.call_later(MS, self.protocol.eof_received)
-        self.loop.call_later(2 * MS, lambda: self.protocol.connection_lost(None))
+        self.loop.call_later(2 * MS, self.protocol.connection_lost, None)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1006, '')
 
@@ -383,10 +384,12 @@ class ServerTests(CommonTests, unittest.TestCase):
 
     def test_client_close_race_with_failing_connection(self):
         original_write_frame = self.protocol.write_frame
+
         @asyncio.coroutine
-        def delayed_write_frame(*args):
-            yield from original_write_frame(*args)
+        def delayed_write_frame(*args, **kwargs):
+            yield from original_write_frame(*args, **kwargs)
             yield from asyncio.sleep(2 * MS, loop=self.loop)
+
         self.protocol.write_frame = delayed_write_frame
 
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
@@ -405,7 +408,7 @@ class ServerTests(CommonTests, unittest.TestCase):
 
     def test_close_connection_lost(self):
         self.loop.call_later(MS, self.protocol.eof_received)
-        self.loop.call_later(2 * MS, lambda: self.protocol.connection_lost(None))
+        self.loop.call_later(2 * MS, self.protocol.connection_lost, None)
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1006, '')
 
@@ -436,7 +439,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'because.'))
         self.loop.call_later(MS, self.feed, frame)
         self.loop.call_later(2 * MS, self.protocol.eof_received)
-        self.loop.call_later(3 * MS, lambda: self.protocol.connection_lost(None))
+        self.loop.call_later(3 * MS, self.protocol.connection_lost, None)
         # The client is waiting for some data at this point, and won't get it.
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         # After recv() returns None, the connection is closed.
@@ -450,7 +453,7 @@ class ClientTests(CommonTests, unittest.TestCase):
     def test_client_close(self):        # non standard client-initiated close
         self.loop.call_later(MS, self.async, self.echo())
         self.loop.call_later(2 * MS, self.protocol.eof_received)
-        self.loop.call_later(3 * MS, lambda: self.protocol.connection_lost(None))
+        self.loop.call_later(3 * MS, self.protocol.connection_lost, None)
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
         # Only one frame is emitted, and it's consumed by self.echo().
@@ -465,7 +468,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
         self.loop.call_later(MS, self.feed, server_close)
         self.loop.call_later(2 * MS, self.protocol.eof_received)
-        self.loop.call_later(3 * MS, lambda: self.protocol.connection_lost(None))
+        self.loop.call_later(3 * MS, self.protocol.connection_lost, None)
         self.loop.run_until_complete(self.protocol.close(reason='client'))
         self.assertConnectionClosed(1000, 'server')
         self.assertFrameSent(*client_close)
@@ -505,10 +508,12 @@ class ClientTests(CommonTests, unittest.TestCase):
 
     def test_server_close_race_with_failing_connection(self):
         original_write_frame = self.protocol.write_frame
+
         @asyncio.coroutine
-        def delayed_write_frame(*args):
-            yield from original_write_frame(*args)
+        def delayed_write_frame(*args, **kwargs):
+            yield from original_write_frame(*args, **kwargs)
             yield from asyncio.sleep(2 * MS, loop=self.loop)
+
         self.protocol.write_frame = delayed_write_frame
 
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
@@ -517,7 +522,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.loop.call_later(MS, self.feed, frame)
         self.loop.call_later(2 * MS, self.async, self.protocol.fail_connection(1000, 'client'))
         self.loop.call_later(3 * MS, self.protocol.eof_received)
-        self.loop.call_later(4 * MS, lambda: self.protocol.connection_lost(None))
+        self.loop.call_later(4 * MS, self.protocol.connection_lost, None)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1000, 'client')
         self.assertFrameSent(*frame)

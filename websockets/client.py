@@ -41,7 +41,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         headers = []
         set_header = lambda k, v: headers.append((k, v))
-        if wsuri.port == (443 if wsuri.secure else 80):         # pragma: no cover
+        if wsuri.port == (443 if wsuri.secure else 80):     # pragma: no cover
             set_header('Host', wsuri.host)
         else:
             set_header('Host', '{}:{}'.format(wsuri.host, wsuri.port))
@@ -82,7 +82,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if (self.subprotocol is not None
                 and self.subprotocol not in subprotocols):
             raise InvalidHandshake(
-                    "Unknown subprotocol: {}".format(self.subprotocol))
+                "Unknown subprotocol: {}".format(self.subprotocol))
 
         self.state = 'OPEN'
         self.opening_handshake.set_result(True)
@@ -132,16 +132,16 @@ def connect(uri, *,
     elif 'ssl' in kwds:
         raise ValueError("connect() received a SSL context for a ws:// URI. "
                          "Use a wss:// URI to enable TLS.")
-    factory = lambda: klass(host=wsuri.host, port=wsuri.port,
-            secure=wsuri.secure, loop=loop)
+    factory = lambda: klass(
+        host=wsuri.host, port=wsuri.port, secure=wsuri.secure, loop=loop)
 
     transport, protocol = yield from loop.create_connection(
-            factory, wsuri.host, wsuri.port, **kwds)
+        factory, wsuri.host, wsuri.port, **kwds)
 
     try:
         yield from protocol.handshake(
-                wsuri, origin=origin, subprotocols=subprotocols,
-                extra_headers=extra_headers)
+            wsuri, origin=origin, subprotocols=subprotocols,
+            extra_headers=extra_headers)
     except Exception:
         protocol.writer.close()
         raise

@@ -13,11 +13,11 @@ class InvalidState(Exception):
 
 
 class InvalidURI(Exception):
-    """Exception raised when an URI is invalid."""
+    """Exception raised when an URI isn't a valid websocket URI."""
 
 
 class PayloadTooBig(Exception):
-    """Exception raised when the payload in a frame exceeds the maximum size."""
+    """Exception raised when a frame's payload exceeds the maximum size."""
 
 
 class WebSocketProtocolError(Exception):

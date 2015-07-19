@@ -14,4 +14,4 @@ __all__ = (
     + uri.__all__
 )
 
-from .version import version as __version__
+from .version import version as __version__                             # noqa

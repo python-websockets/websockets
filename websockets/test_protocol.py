@@ -42,7 +42,7 @@ class CommonTests:
         self.transport.write.call_args_list = []
         stream.feed_eof()
         if not stream.at_eof():
-            return read_frame(stream.readexactly, self.protocol.is_client)
+            return (yield from read_frame(stream.readexactly, self.protocol.is_client))
 
     @asyncio.coroutine
     def echo(self):

@@ -208,5 +208,5 @@ def serve(ws_handler, host=None, port=None, *,
     factory = lambda: klass(
             ws_handler, host=host, port=port, secure=secure,
             origins=origins, subprotocols=subprotocols,
-            extra_headers=extra_headers)
+            extra_headers=extra_headers, loop=loop)
     return (yield from loop.create_server(factory, host, port, **kwds))

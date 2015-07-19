@@ -188,7 +188,7 @@ class ClientServerTests(unittest.TestCase):
 
         # Now the server believes the connection is open. Run the event loop
         # once to make it notice the connection was closed. Interesting hack.
-        self.loop.run_until_complete(asyncio.sleep(0))
+        self.loop.run_until_complete(asyncio.sleep(0, loop=self.loop))
 
     @patch('websockets.client.build_request')
     def test_client_sends_invalid_handshake_request(self, _build_request):
@@ -221,7 +221,7 @@ class ClientServerTests(unittest.TestCase):
 
         # Now the server believes the connection is open. Run the event loop
         # once to make it notice the connection was closed. Interesting hack.
-        self.loop.run_until_complete(asyncio.sleep(0))
+        self.loop.run_until_complete(asyncio.sleep(0, loop=self.loop))
 
     @patch('websockets.server.WebSocketServerProtocol.send')
     def test_server_handler_crashes(self, send):

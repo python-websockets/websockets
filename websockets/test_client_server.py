@@ -170,7 +170,6 @@ class ClientServerTests(unittest.TestCase):
 
         with self.assertRaises(InvalidHandshake):
             self.start_client('subprotocol', subprotocols=['otherchat'])
-            print(_select_subprotocol.call_args_list)
 
     @patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):

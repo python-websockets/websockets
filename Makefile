@@ -1,3 +1,6 @@
+export PYTHONASYNCIODEBUG=1
+export PYTHONWARNINGS=default
+
 test:
 	python -m unittest
 

@@ -41,7 +41,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def connection_made(self, transport):
         super().connection_made(transport)
-        asyncio.async(self.handler(), loop=self._loop)
+        asyncio.async(self.handler(), loop=self.loop)
 
     @asyncio.coroutine
     def handler(self):

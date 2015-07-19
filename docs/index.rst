@@ -268,6 +268,8 @@ Changelog
 
 * Allowed customizing handshake request and response HTTP headers.
 
+* Supported running on a non-default event loop.
+
 * Improved documentation.
 
 * Cancelling :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` no

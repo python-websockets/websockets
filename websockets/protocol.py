@@ -73,6 +73,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.timeout = timeout
         self.max_size = max_size
+        # Store a reference to loop to avoid relying on self.loop, a private
+        # attribute of StreamReaderProtocol, inherited from FlowControlMixin.
+        self.loop = loop
 
         stream_reader = asyncio.StreamReader(loop=loop)
         super().__init__(stream_reader, self.client_connected, loop)
@@ -137,7 +140,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # the worker loop.
         try:
             yield from asyncio.wait_for(
-                    self.worker, self.timeout, loop=self._loop)
+                    self.worker, self.timeout, loop=self.loop)
         except asyncio.TimeoutError:
             self.worker.cancel()
 
@@ -163,11 +166,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             pass
 
         # Wait for a message until the connection is closed
-        next_message = asyncio.async(self.messages.get(), loop=self._loop)
+        next_message = asyncio.async(self.messages.get(), loop=self.loop)
         try:
             done, pending = yield from asyncio.wait(
                 [next_message, self.worker],
-                loop=self._loop, return_when=asyncio.FIRST_COMPLETED)
+                loop=self.loop, return_when=asyncio.FIRST_COMPLETED)
         except asyncio.CancelledError:
             # Handle the Task.cancel()
             next_message.cancel()
@@ -216,7 +219,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         while data is None or data in self.pings:
             data = struct.pack('!I', random.getrandbits(32))
 
-        self.pings[data] = asyncio.Future(loop=self._loop)
+        self.pings[data] = asyncio.Future(loop=self.loop)
         yield from self.write_frame(OP_PING, data)
         return self.pings[data]
 
@@ -384,7 +387,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if self.is_client:
             try:
                 yield from asyncio.wait_for(
-                        self.connection_closed, self.timeout, loop=self._loop)
+                        self.connection_closed, self.timeout, loop=self.loop)
             except (asyncio.CancelledError, asyncio.TimeoutError):
                 pass
 
@@ -403,7 +406,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         try:
             yield from asyncio.wait_for(
-                    self.connection_closed, self.timeout, loop=self._loop)
+                    self.connection_closed, self.timeout, loop=self.loop)
         except (asyncio.CancelledError, asyncio.TimeoutError):
             pass
 

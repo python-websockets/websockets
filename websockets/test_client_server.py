@@ -311,49 +311,44 @@ class SSLClientServerTests(ClientServerTests):
 
 class ClientServerOriginTests(unittest.TestCase):
 
-    def test_checking_origin_succeeds(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
 
-        server = loop.run_until_complete(
+    def tearDown(self):
+        self.loop.close()
+
+    def test_checking_origin_succeeds(self):
+        server = self.loop.run_until_complete(
             serve(handler, 'localhost', 8642, origins=['http://localhost']))
-        client = loop.run_until_complete(
+        client = self.loop.run_until_complete(
             connect('ws://localhost:8642/', origin='http://localhost'))
 
-        loop.run_until_complete(client.send("Hello!"))
-        self.assertEqual(loop.run_until_complete(client.recv()), "Hello!")
+        self.loop.run_until_complete(client.send("Hello!"))
+        self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")
 
+        self.loop.run_until_complete(client.close())
         server.close()
-        loop.run_until_complete(server.wait_closed())
-        loop.run_until_complete(client.worker)
-        loop.close()
+        self.loop.run_until_complete(server.wait_closed())
 
     def test_checking_origin_fails(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        server = loop.run_until_complete(
+        server = self.loop.run_until_complete(
             serve(handler, 'localhost', 8642, origins=['http://localhost']))
         with self.assertRaises(InvalidHandshake):
-            loop.run_until_complete(
+            self.loop.run_until_complete(
                 connect('ws://localhost:8642/', origin='http://otherhost'))
 
         server.close()
-        loop.run_until_complete(server.wait_closed())
-        loop.close()
+        self.loop.run_until_complete(server.wait_closed())
 
     def test_checking_lack_of_origin_succeeds(self):
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-
-        server = loop.run_until_complete(
+        server = self.loop.run_until_complete(
             serve(handler, 'localhost', 8642, origins=['']))
-        client = loop.run_until_complete(connect('ws://localhost:8642/'))
+        client = self.loop.run_until_complete(connect('ws://localhost:8642/'))
 
-        loop.run_until_complete(client.send("Hello!"))
-        self.assertEqual(loop.run_until_complete(client.recv()), "Hello!")
+        self.loop.run_until_complete(client.send("Hello!"))
+        self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")
 
+        self.loop.run_until_complete(client.close())
         server.close()
-        loop.run_until_complete(server.wait_closed())
-        loop.run_until_complete(client.worker)
-        loop.close()
+        self.loop.run_until_complete(server.wait_closed())

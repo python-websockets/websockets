@@ -55,6 +55,11 @@ class ClientServerTests(unittest.TestCase):
     def stop_client(self):
         self.loop.run_until_complete(self.client.worker)
 
+    def notice_connection_close(self):
+        # When the client closes the connection, the server still believes
+        # it's open until the event loop has run once. Interesting hack.
+        self.loop.run_until_complete(asyncio.sleep(0, loop=self.loop))
+
     def stop_server(self):
         self.server.close()
         self.loop.run_until_complete(self.server.wait_closed())
@@ -174,10 +179,7 @@ class ClientServerTests(unittest.TestCase):
 
         with self.assertRaises(InvalidHandshake):
             self.start_client('subprotocol', subprotocols=['otherchat'])
-
-        # Now the server believes the connection is open. Run the event loop
-        # once to make it notice the connection was closed. Interesting hack.
-        self.loop.run_until_complete(asyncio.sleep(0, loop=self.loop))
+        self.notice_connection_close()
 
     @patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):
@@ -192,10 +194,7 @@ class ClientServerTests(unittest.TestCase):
 
         with self.assertRaises(InvalidHandshake):
             self.start_client()
-
-        # Now the server believes the connection is open. Run the event loop
-        # once to make it notice the connection was closed. Interesting hack.
-        self.loop.run_until_complete(asyncio.sleep(0, loop=self.loop))
+        self.notice_connection_close()
 
     @patch('websockets.client.build_request')
     def test_client_sends_invalid_handshake_request(self, _build_request):
@@ -225,10 +224,7 @@ class ClientServerTests(unittest.TestCase):
 
         with self.assertRaises(InvalidHandshake):
             self.start_client()
-
-        # Now the server believes the connection is open. Run the event loop
-        # once to make it notice the connection was closed. Interesting hack.
-        self.loop.run_until_complete(asyncio.sleep(0, loop=self.loop))
+        self.notice_connection_close()
 
     @patch('websockets.server.WebSocketServerProtocol.send')
     def test_server_handler_crashes(self, send):

@@ -92,12 +92,14 @@ class ClientServerTests(unittest.TestCase):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
+        self.stop_client()
 
     def test_protocol_custom_request_headers_list(self):
         self.start_client('raw_headers', extra_headers=[('X-Spam', 'Eggs')])
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
+        self.stop_client()
 
     def test_protocol_custom_response_headers_dict(self):
         self.stop_server()
@@ -107,6 +109,7 @@ class ClientServerTests(unittest.TestCase):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+        self.stop_client()
 
     def test_protocol_custom_response_headers_list(self):
         self.stop_server()
@@ -116,6 +119,7 @@ class ClientServerTests(unittest.TestCase):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+        self.stop_client()
 
     def test_no_subprotocol(self):
         self.start_client('subprotocol')
@@ -170,6 +174,10 @@ class ClientServerTests(unittest.TestCase):
 
         with self.assertRaises(InvalidHandshake):
             self.start_client('subprotocol', subprotocols=['otherchat'])
+
+        # Now the server believes the connection is open. Run the event loop
+        # once to make it notice the connection was closed. Interesting hack.
+        self.loop.run_until_complete(asyncio.sleep(0, loop=self.loop))
 
     @patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):

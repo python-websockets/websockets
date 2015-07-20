@@ -8,6 +8,7 @@ VALID_URIS = [
     ('ws://localhost/', (False, 'localhost', 80, '/')),
     ('wss://localhost/', (True, 'localhost', 443, '/')),
     ('ws://localhost/path?query', (False, 'localhost', 80, '/path?query')),
+    ('WS://LOCALHOST/PATH?QUERY', (False, 'localhost', 80, '/PATH?QUERY')),
 ]
 
 INVALID_URIS = [

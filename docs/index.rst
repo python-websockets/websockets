@@ -265,6 +265,8 @@ Changelog
 2.5
 ...
 
+* Provided access to handshake request and response HTTP headers.
+
 * Allowed customizing handshake request and response HTTP headers.
 
 * Supported running on a non-default event loop.

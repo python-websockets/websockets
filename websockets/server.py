@@ -6,6 +6,7 @@ __all__ = ['serve', 'WebSocketServerProtocol']
 
 import asyncio
 import collections.abc
+import email.message
 import logging
 
 from .exceptions import InvalidHandshake, InvalidOrigin
@@ -107,7 +108,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         except Exception as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
 
+        self.request_headers = headers
         self.raw_request_headers = list(headers.raw_items())
+
         get_header = lambda k: headers.get(k, '')
         key = check_request(get_header)
 
@@ -136,6 +139,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             for name, value in extra_headers:
                 set_header(name, value)
         build_response(set_header, key)
+
+        self.response_headers = email.message.Message()
+        for name, value in headers:
+            self.response_headers[name] = value
         self.raw_response_headers = headers
 
         # Send handshake response. Since the status line and headers only

@@ -8,11 +8,10 @@ imported from :mod:`websockets.http`.
 
 __all__ = ['read_request', 'read_response', 'USER_AGENT']
 
+import asyncio
 import email.parser
 import io
 import sys
-
-import asyncio
 
 from .version import version as websockets_version
 

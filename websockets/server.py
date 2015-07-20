@@ -4,14 +4,13 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 
 __all__ = ['serve', 'WebSocketServerProtocol']
 
+import asyncio
 import collections.abc
 import logging
 
-import asyncio
-
 from .exceptions import InvalidHandshake, InvalidOrigin
-from .handshake import check_request, build_response
-from .http import read_request, USER_AGENT
+from .handshake import build_response, check_request
+from .http import USER_AGENT, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 
 

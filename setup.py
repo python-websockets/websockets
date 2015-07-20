@@ -1,6 +1,8 @@
 import os
 import sys
+
 import setuptools
+
 
 # Avoid polluting the .tar.gz with ._* files under Mac OS X
 os.putenv('COPYFILE_DISABLE', 'true')

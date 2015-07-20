@@ -1,9 +1,8 @@
+import asyncio
 import unittest
 
-import asyncio
-
 from .http import *
-from .http import read_message      # private API
+from .http import read_message  # private API
 
 
 class HTTPTests(unittest.TestCase):

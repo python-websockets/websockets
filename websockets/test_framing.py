@@ -1,9 +1,8 @@
+import asyncio
 import io
 import unittest
 
-import asyncio
-
-from .exceptions import WebSocketProtocolError, PayloadTooBig
+from .exceptions import PayloadTooBig, WebSocketProtocolError
 from .framing import *
 
 

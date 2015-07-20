@@ -7,14 +7,13 @@ frames as specified in `sections 4 to 8 of RFC 6455`_.
 
 __all__ = ['WebSocketCommonProtocol']
 
+import asyncio
+import asyncio.queues
 import codecs
 import collections
 import logging
 import random
 import struct
-
-import asyncio
-from asyncio.queues import Queue, QueueEmpty
 
 from .exceptions import InvalidState, PayloadTooBig, WebSocketProtocolError
 from .framing import *
@@ -96,7 +95,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.connection_closed = asyncio.Future(loop=loop)
 
         # Queue of received messages.
-        self.messages = Queue(loop=loop)
+        self.messages = asyncio.queues.Queue(loop=loop)
 
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
@@ -171,7 +170,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Return any available message
         try:
             return self.messages.get_nowait()
-        except QueueEmpty:
+        except asyncio.queues.QueueEmpty:
             pass
 
         # Wait for a message until the connection is closed

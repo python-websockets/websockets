@@ -8,14 +8,13 @@ of frames is implemented in :mod:`websockets.protocol`.
 .. _section 5 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-5
 """
 
+import asyncio
 import collections
 import io
 import random
 import struct
 
-import asyncio
-
-from .exceptions import WebSocketProtocolError, PayloadTooBig
+from .exceptions import PayloadTooBig, WebSocketProtocolError
 
 
 __all__ = [

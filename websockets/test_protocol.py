@@ -1,8 +1,7 @@
+import asyncio
+import functools
 import unittest
 import unittest.mock
-
-import asyncio
-from functools import partial
 
 from .exceptions import InvalidState
 from .framing import *
@@ -25,13 +24,13 @@ class CommonTests:
             side_effect=lambda: self.protocol.connection_lost(None))
         self.protocol.connection_made(self.transport)
 
-    @property
-    def async(self):
-        return partial(asyncio.async, loop=self.loop)
-
     def tearDown(self):
         self.loop.close()
         super().tearDown()
+
+    @property
+    def async(self):
+        return functools.partial(asyncio.async, loop=self.loop)
 
     def feed(self, frame):
         """Feed a frame to the protocol."""

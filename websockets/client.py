@@ -9,7 +9,7 @@ import collections.abc
 
 from .exceptions import InvalidHandshake
 from .handshake import build_request, check_response
-from .http import read_response, USER_AGENT
+from .http import USER_AGENT, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 from .uri import parse_uri
 

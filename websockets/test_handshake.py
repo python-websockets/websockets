@@ -2,7 +2,7 @@ import unittest
 
 from .exceptions import InvalidHandshake
 from .handshake import *
-from .handshake import accept       # private API
+from .handshake import accept  # private API
 
 
 class HandshakeTests(unittest.TestCase):

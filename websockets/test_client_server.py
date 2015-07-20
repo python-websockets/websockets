@@ -1,14 +1,13 @@
+import asyncio
 import logging
 import os
 import ssl
 import unittest
-from unittest.mock import patch
-
-import asyncio
+import unittest.mock
 
 from .client import *
 from .exceptions import InvalidHandshake
-from .http import read_response, USER_AGENT
+from .http import USER_AGENT, read_response
 from .server import *
 
 
@@ -195,7 +194,8 @@ class ClientServerTests(unittest.TestCase):
         self.stop_client()
         self.stop_server()
 
-    @patch.object(WebSocketServerProtocol, 'select_subprotocol', autospec=True)
+    @unittest.mock.patch.object(
+        WebSocketServerProtocol, 'select_subprotocol', autospec=True)
     def test_subprotocol_error(self, _select_subprotocol):
         _select_subprotocol.return_value = 'superchat'
 
@@ -205,7 +205,7 @@ class ClientServerTests(unittest.TestCase):
         self.notice_connection_close()
         self.stop_server()
 
-    @patch('websockets.server.read_request')
+    @unittest.mock.patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):
         _read_request.side_effect = ValueError("read_request failed")
 
@@ -214,7 +214,7 @@ class ClientServerTests(unittest.TestCase):
             self.start_client()
         self.stop_server()
 
-    @patch('websockets.client.read_response')
+    @unittest.mock.patch('websockets.client.read_response')
     def test_client_receives_malformed_response(self, _read_response):
         _read_response.side_effect = ValueError("read_response failed")
 
@@ -224,7 +224,7 @@ class ClientServerTests(unittest.TestCase):
         self.notice_connection_close()
         self.stop_server()
 
-    @patch('websockets.client.build_request')
+    @unittest.mock.patch('websockets.client.build_request')
     def test_client_sends_invalid_handshake_request(self, _build_request):
         def wrong_build_request(set_header):
             return '42'
@@ -235,7 +235,7 @@ class ClientServerTests(unittest.TestCase):
             self.start_client()
         self.stop_server()
 
-    @patch('websockets.server.build_response')
+    @unittest.mock.patch('websockets.server.build_response')
     def test_server_sends_invalid_handshake_response(self, _build_response):
         def wrong_build_response(set_header, key):
             return build_response(set_header, '42')
@@ -246,7 +246,7 @@ class ClientServerTests(unittest.TestCase):
             self.start_client()
         self.stop_server()
 
-    @patch('websockets.client.read_response')
+    @unittest.mock.patch('websockets.client.read_response')
     def test_server_does_not_switch_protocols(self, _read_response):
         @asyncio.coroutine
         def wrong_read_response(stream):
@@ -260,7 +260,7 @@ class ClientServerTests(unittest.TestCase):
         self.notice_connection_close()
         self.stop_server()
 
-    @patch('websockets.server.WebSocketServerProtocol.send')
+    @unittest.mock.patch('websockets.server.WebSocketServerProtocol.send')
     def test_server_handler_crashes(self, send):
         send.side_effect = ValueError("send failed")
 
@@ -275,7 +275,7 @@ class ClientServerTests(unittest.TestCase):
         # Connection ends with an unexpected error.
         self.assertEqual(self.client.close_code, 1011)
 
-    @patch('websockets.server.WebSocketServerProtocol.close')
+    @unittest.mock.patch('websockets.server.WebSocketServerProtocol.close')
     def test_server_close_crashes(self, close):
         close.side_effect = ValueError("close failed")
 

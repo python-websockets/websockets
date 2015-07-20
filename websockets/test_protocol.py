@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import os
 import unittest
 import unittest.mock
 
@@ -8,7 +9,9 @@ from .framing import *
 from .protocol import CLOSED, CLOSING, WebSocketCommonProtocol
 
 
-MS = 0.001          # Unit for timeouts. May be increased on slow machines.
+# Unit for timeouts. May be increased on slow machines by setting the
+# WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variables.
+MS = 0.001 * int(os.environ.get('WEBSOCKETS_TESTS_TIMEOUT_FACTOR', 1))
 
 
 class CommonTests:

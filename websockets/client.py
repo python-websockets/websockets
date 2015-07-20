@@ -117,11 +117,6 @@ def connect(uri, *,
     Clients shouldn't close the WebSocket connection. Instead, they should
     wait until the server performs the closing handshake by yielding from the
     protocol's :attr:`worker` attribute.
-
-    :func:`connect` implements the sequence called "Establish a WebSocket
-    Connection" in RFC 6455, except for the requirement that "there MUST be no
-    more than one connection in a CONNECTING state" because it cannot be
-    enforced at that level.
     """
     if loop is None:
         loop = asyncio.get_event_loop()

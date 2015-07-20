@@ -92,8 +92,8 @@ Here's a corresponding client example.
                 listener_task = asyncio.ensure_future(websocket.recv())
                 producer_task = asyncio.ensure_future(producer())
                 done, pending = yield from asyncio.wait(
-                        [listener_task, producer_task],
-                        return_when=asyncio.FIRST_COMPLETED)
+                    [listener_task, producer_task],
+                    return_when=asyncio.FIRST_COMPLETED)
 
                 if listener_task in done:
                     message = listener_task.result()

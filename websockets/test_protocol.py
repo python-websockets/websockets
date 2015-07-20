@@ -395,7 +395,8 @@ class ServerTests(CommonTests, unittest.TestCase):
         # Trigger the race condition between answering the close frame from
         # the client and sending another close frame from the server.
         self.loop.call_later(MS, self.feed, frame)
-        self.loop.call_later(2 * MS, self.async, self.protocol.fail_connection(1000, 'server'))
+        fail_connection = self.protocol.fail_connection(1000, 'server')
+        self.loop.call_later(2 * MS, self.async, fail_connection)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1000, 'server')
         self.assertFrameSent(*frame)
@@ -519,7 +520,8 @@ class ClientTests(CommonTests, unittest.TestCase):
         # Trigger the race condition between answering the close frame from
         # the server and sending another close frame from the client.
         self.loop.call_later(MS, self.feed, frame)
-        self.loop.call_later(2 * MS, self.async, self.protocol.fail_connection(1000, 'client'))
+        fail_connection = self.protocol.fail_connection(1000, 'client')
+        self.loop.call_later(2 * MS, self.async, fail_connection)
         self.loop.call_later(3 * MS, self.protocol.eof_received)
         self.loop.call_later(4 * MS, self.protocol.connection_lost, None)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))

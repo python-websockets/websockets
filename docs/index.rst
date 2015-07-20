@@ -164,6 +164,29 @@ Client
 * Call :meth:`~websockets.protocol.WebSocketCommonProtocol.close` to terminate
   the connection.
 
+Debugging
+.........
+
+If you don't understand what ``websockets`` is doing, enable logging::
+
+    import logging
+    logger = logging.getLogger('websockets')
+    logger.setLevel(logging.INFO)
+    logger.addHandler(logging.StreamHandler())
+
+The logs contains:
+
+* Exceptions in the connection handler at the ``ERROR`` level
+* Exceptions in the opening or closing handshake at the ``INFO`` level
+* All frames at the ``DEBUG`` level — this can be very verbose
+
+If you're new to ``asyncio``, you will certainly encounter issues that are
+related to asynchronous programming in general rather than to ``websockets``
+in particular. Fortunately Python's official documentation provides advice to
+`develop with asyncio`_. Check it out: it's invaluable!
+
+.. _develop with asyncio: https://docs.python.org/3/library/asyncio-dev.html
+
 Design
 ------
 

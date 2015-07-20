@@ -11,7 +11,7 @@ concurrent applications.
 
 Installation is as simple as ``pip install websockets``. It requires Python ≥
 3.4 or Python 3.3 with the ``asyncio`` module, which is available with ``pip
-install asyncio`` or in the `Tulip`_ repository.
+install asyncio``.
 
 Documentation is available at http://aaugustin.github.io/websockets/.
 
@@ -23,6 +23,5 @@ Bug reports, patches and suggestions welcome! Just open an issue_ or send a
 .. _RFC 6455: http://tools.ietf.org/html/rfc6455
 .. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/master/compliance/README.rst
 .. _PEP 3156: http://www.python.org/dev/peps/pep-3156/
-.. _Tulip: http://code.google.com/p/tulip/
 .. _issue: https://github.com/aaugustin/websockets/issues/new
 .. _pull request: https://github.com/aaugustin/websockets/compare/

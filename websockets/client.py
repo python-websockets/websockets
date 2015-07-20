@@ -124,10 +124,6 @@ def connect(uri, *,
 
     It raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is invalid and
     :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
-
-    Clients shouldn't close the WebSocket connection. Instead, they should
-    wait until the server performs the closing handshake by yielding from the
-    protocol's :attr:`worker` attribute.
     """
     if loop is None:
         loop = asyncio.get_event_loop()

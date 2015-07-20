@@ -14,7 +14,8 @@ VALID_URIS = [
 INVALID_URIS = [
     'http://localhost/',
     'https://localhost/',
-    'http://localhost/path#fragment'
+    'ws://localhost/path#fragment',
+    'ws://user:pass@localhost/',
 ]
 
 

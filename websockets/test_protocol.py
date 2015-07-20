@@ -6,7 +6,7 @@ from functools import partial
 
 from .exceptions import InvalidState
 from .framing import *
-from .protocol import WebSocketCommonProtocol
+from .protocol import CLOSED, CLOSING, WebSocketCommonProtocol
 
 
 MS = 0.001          # Unit for timeouts. May be increased on slow machines.
@@ -75,7 +75,7 @@ class CommonTests:
         self.assertIsNone(sent)
 
     def assertConnectionClosed(self, code, message):
-        self.assertEqual(self.protocol.state, 'CLOSED')
+        self.assertEqual(self.protocol.state, CLOSED)
         self.assertEqual(self.protocol.close_code, code)
         self.assertEqual(self.protocol.close_reason, message)
 
@@ -377,7 +377,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.protocol.timeout = 5 * MS
         self.loop.call_later(MS, self.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
-        self.assertEqual(self.protocol.state, 'CLOSING')
+        self.assertEqual(self.protocol.state, CLOSING)
         self.assertTrue(self.after.cancelled())
         self.assertFalse(self.before.cancelled())
         self.before.cancel()
@@ -501,7 +501,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.loop.call_later(2 * MS, self.protocol.eof_received)
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         # If the server doesn't drop the connection quickly, the client will.
-        self.assertEqual(self.protocol.state, 'CLOSING')
+        self.assertEqual(self.protocol.state, CLOSING)
         self.assertTrue(self.after.cancelled())
         self.assertFalse(self.before.cancelled())
         self.before.cancel()

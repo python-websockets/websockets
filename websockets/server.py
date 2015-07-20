@@ -12,7 +12,7 @@ import asyncio
 from .exceptions import InvalidHandshake, InvalidOrigin
 from .handshake import check_request, build_response
 from .http import read_request, USER_AGENT
-from .protocol import WebSocketCommonProtocol
+from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 
 
 logger = logging.getLogger(__name__)
@@ -29,7 +29,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     implementation. Its support for HTTP responses is very limited.
     """
 
-    state = 'CONNECTING'
+    state = CONNECTING
 
     def __init__(self, ws_handler, *,
                  origins=None, subprotocols=None, extra_headers=None, **kwds):
@@ -147,7 +147,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response = '\r\n'.join(response).encode()
         self.writer.write(response)
 
-        self.state = 'OPEN'
+        self.state = OPEN
         self.opening_handshake.set_result(True)
 
         return path

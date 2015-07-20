@@ -5,7 +5,7 @@ according to `section 3 of RFC 6455`_.
 .. _section 3 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-3
 """
 
-__all__ = ['parse_uri']
+__all__ = ['parse_uri', 'WebSocketURI']
 
 import collections
 import urllib.parse
@@ -15,17 +15,22 @@ from .exceptions import InvalidURI
 
 WebSocketURI = collections.namedtuple(
     'WebSocketURI', ('secure', 'host', 'port', 'resource_name'))
+WebSocketURI.__doc__ = """WebSocket URI.
+
+* ``secure`` is the secure flag
+* ``host`` is the lower-case host
+* ``port`` if the integer port, it's always provided even if it's the default
+* ``resource_name`` is the resource name, that is, the path and optional query
+"""
 
 
 def parse_uri(uri):
     """
     This function parses and validates a WebSocket URI.
 
-    If the URI is valid, it returns a namedtuple `(secure, host, port,
-    resource_name)`
+    If the URI is valid, it returns a :class:`WebSocketURI`.
 
-    Otherwise, it raises an :exc:`~websockets.exceptions.InvalidURI`
-    exception.
+    Otherwise it raises an :exc:`~websockets.exceptions.InvalidURI` exception.
     """
     uri = urllib.parse.urlparse(uri)
     try:

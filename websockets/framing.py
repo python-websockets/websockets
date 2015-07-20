@@ -43,6 +43,16 @@ CLOSE_CODES = {
 
 
 Frame = collections.namedtuple('Frame', ('fin', 'opcode', 'data'))
+Frame.__doc__ = """WebSocket frame.
+
+* ``fin`` is the FIN bit
+* ``opcode`` is the opcode
+* ``data`` is the payload data
+
+Only these three fields are needed by higher level code. The MASK bit, payload
+length and masking-key are handled on the fly by :func:`read_frame` and
+:func:`write_frame`.
+"""
 
 
 @asyncio.coroutine
@@ -50,13 +60,13 @@ def read_frame(reader, mask, *, max_size=None):
     """
     Read a WebSocket frame and return a :class:`Frame` object.
 
-    `reader` is a coroutine taking an integer argument and reading exactly this
-    number of bytes, unless the end of file is reached.
+    ``reader`` is a coroutine taking an integer argument and reading exactly
+    this number of bytes, unless the end of file is reached.
 
-    `mask` is a :class:`bool` telling whether the frame should be masked, ie.
-    whether the read happens on the server side.
+    ``mask`` is a :class:`bool` telling whether the frame should be masked
+    i.e. whether the read happens on the server side.
 
-    If `max_size` is set and the payload exceeds this size in bytes,
+    If ``max_size`` is set and the payload exceeds this size in bytes,
     :exc:`~websockets.exceptions.PayloadTooBig` is raised.
 
     This function validates the frame before returning it and raises
@@ -99,12 +109,12 @@ def write_frame(frame, writer, mask):
     """
     Write a WebSocket frame.
 
-    `frame` is the :class:`Frame` object to write.
+    ``frame`` is the :class:`Frame` object to write.
 
-    `writer` is a function accepting bytes.
+    ``writer`` is a function accepting bytes.
 
-    `mask` is a :class:`bool` telling whether the frame should be masked, ie.
-    whether the write happens on the client side.
+    ``mask`` is a :class:`bool` telling whether the frame should be masked
+    i.e. whether the write happens on the client side.
 
     This function validates the frame before sending it and raises
     :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
@@ -157,8 +167,8 @@ def parse_close(data):
     """
     Parse the data in a close frame.
 
-    Return `(code, reason)` when `code` is an :class:`int` and `reason` a
-    :class:`str`.
+    Return ``(code, reason)`` when ``code`` is an :class:`int` and ``reason``
+    a :class:`str`.
 
     Raise :exc:`~websockets.exceptions.WebSocketProtocolError` or
     :exc:`UnicodeDecodeError` if the data is invalid.

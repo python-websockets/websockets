@@ -17,7 +17,7 @@ from .uri import parse_uri
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket client implementation as an :mod:`asyncio` protocol.
+    Complete WebSocket client implementation as an :class:`asyncio.Protocol`.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -103,11 +103,15 @@ def connect(uri, *,
     """
     This coroutine connects to a WebSocket server.
 
-    It's a thin wrapper around the event loop's
+    It's a wrapper around the event loop's
     :meth:`~asyncio.BaseEventLoop.create_connection` method. Extra keyword
     arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
+    For example, you can set the ``ssl`` keyword argument to a
+    :class:`~ssl.SSLContext` to enforce some TLS settings. When connecting to
+    a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
+    ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
 
-    This coroutine accepts several optional arguments:
+    :func:`connect` accepts several optional arguments:
 
     * ``origin`` sets the Origin HTTP header
     * ``subprotocols`` is a list of supported subprotocols in order of
@@ -115,10 +119,10 @@ def connect(uri, *,
     * ``extra_headers`` sets additional HTTP request headers – it can be a
       mapping or an iterable of (name, value) pairs
 
-    It returns a :class:`~websockets.client.WebSocketClientProtocol` which can
-    then be used to send and receive messages.
+    :func:`connect` yields a :class:`WebSocketClientProtocol` which can then
+    be used to send and receive messages.
 
-    It raises :exc:`~websockets.uri.InvalidURI` if `uri` is invalid and
+    It raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is invalid and
     :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
 
     Clients shouldn't close the WebSocket connection. Instead, they should

@@ -20,13 +20,13 @@ logger = logging.getLogger(__name__)
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket server implementation as an :mod:`asyncio` protocol.
+    Complete WebSocket server implementation as an :class:`asyncio.Protocol`.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
-    For the sake of simplicity, this protocol doesn't inherit a proper HTTP
-    implementation. Its support for HTTP responses is very limited.
+    For the sake of simplicity, it doesn't rely on a full HTTP implementation.
+    Its support for HTTP responses is very limited.
     """
 
     state = CONNECTING
@@ -177,40 +177,41 @@ def serve(ws_handler, host=None, port=None, *,
     """
     This coroutine creates a WebSocket server.
 
-    It's a thin wrapper around the event loop's
-    :meth:`~asyncio.BaseEventLoop.create_server` method. `host`, `port` as
+    It's a wrapper around the event loop's
+    :meth:`~asyncio.BaseEventLoop.create_server` method. ``host``, ``port`` as
     well as extra keyword arguments are passed to
-    :meth:`~asyncio.BaseEventLoop.create_server`.
+    :meth:`~asyncio.BaseEventLoop.create_server`. For example, you can set the
+    ``ssl`` keyword argument to a :class:`~ssl.SSLContext` to enable TLS.
 
     ``ws_handler`` is the WebSocket handler. It must be a coroutine accepting
-    two arguments: a :class:`~websockets.server.WebSocketServerProtocol` and
-    the request URI.
+    two arguments: a :class:`WebSocketServerProtocol` and the request URI.
 
-    This coroutine accepts several optional arguments:
+    :func:`serve` accepts several optional arguments:
 
     * ``origins`` defines acceptable Origin HTTP headers — include
       ``''`` if the lack of an origin is acceptable
     * ``subprotocols`` is a list of supported subprotocols in order of
-        decreasing preference
-    * ``extra_headers`` sets additional HTTP response headers – it can be a
+      decreasing preference
+    * ``extra_headers`` sets additional HTTP response headers — it can be a
       mapping, an iterable of (name, value) pairs, or a callable taking the
       request path and headers in arguments.
 
-    `serve` yields a `Server` object with a `close` method to stop the server.
+    :func:`serve` yields a :class:`~asyncio.Server` which provides a
+    :meth:`~asyncio.Server.close` method and a
+    :meth:`~asyncio.Server.wait_closed` coroutine to stop serving requests.
 
     Whenever a client connects, the server accepts the connection, creates a
-    :class:`~websockets.server.WebSocketServerProtocol`, performs the opening
-    handshake, and delegates to the WebSocket handler. Once the handler
-    completes, the server performs the closing handshake and closes the
-    connection.
+    :class:`WebSocketServerProtocol`, performs the opening handshake, and
+    delegates to the WebSocket handler. Once the handler completes, the server
+    performs the closing handshake and closes the connection.
 
     Since there's no useful way to propagate exceptions triggered in handlers,
-    they're sent to the `websockets.server` logger instead. Debugging is much
-    easier if you configure logging to print them::
+    they're sent to the ``'websockets.server'`` logger instead. Debugging is
+    much easier if you configure logging to print them::
 
         import logging
         logger = logging.getLogger('websockets.server')
-        logger.setLevel(logging.DEBUG)
+        logger.setLevel(logging.ERROR)
         logger.addHandler(logging.StreamHandler())
     """
     if loop is None:

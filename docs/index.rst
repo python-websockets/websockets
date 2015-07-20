@@ -252,14 +252,14 @@ Shared
         .. automethod:: ping(data=None)
         .. automethod:: pong(data=b'')
 
-Low-level API
--------------
-
 Exceptions
 ..........
 
 .. automodule:: websockets.exceptions
    :members:
+
+Low-level API
+-------------
 
 Opening handshake
 .................
@@ -291,13 +291,13 @@ Changelog
 2.5
 ...
 
+* Improved documentation.
+
 * Provided access to handshake request and response HTTP headers.
 
 * Allowed customizing handshake request and response HTTP headers.
 
 * Supported running on a non-default event loop.
-
-* Improved documentation.
 
 * Returned a 403 error code instead of 400 when the request Origin isn't
   allowed.
@@ -312,7 +312,7 @@ Changelog
 
 * Supported non-default event loop.
 
-* Added `loop` argument to :func:`~websockets.client.connect` and
+* Added ``loop`` argument to :func:`~websockets.client.connect` and
   :func:`~websockets.server.serve`.
 
 2.3
@@ -328,7 +328,7 @@ Changelog
 2.1
 ...
 
-* Added `host`, `port` and `secure` attributes on protocols.
+* Added ``host``, ``port`` and ``secure`` attributes on protocols.
 
 * Added support for providing and checking Origin_.
 

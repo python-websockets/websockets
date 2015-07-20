@@ -39,15 +39,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     control frames automatically. It sends outgoing data frames and performs
     the closing handshake.
 
-    The `host`, `port` and `secure` parameters are simply stored as attributes
-    for handlers that need them.
+    The ``host``, ``port`` and ``secure`` parameters are simply stored as
+    attributes for handlers that need them.
 
-    The `timeout` parameter defines the maximum wait time in seconds for
+    The ``timeout`` parameter defines the maximum wait time in seconds for
     completing the closing handshake and, only on the client side, for
     terminating the TCP connection. :meth:`close()` will complete in at most
     this time on the server side and twice this time on the client side.
 
-    The `max_size` parameter enforces the maximum size for incoming messages
+    The ``max_size`` parameter enforces the maximum size for incoming messages
     in bytes. The default value is 1MB. ``None`` disables the limit. If a
     message larger than the maximum size is received, :meth:`recv()` will
     return ``None`` and the connection will be closed with status code 1009.
@@ -55,10 +55,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     Once the handshake is complete, request and response HTTP headers are
     available:
 
-    * as a MIME :class:`~email.message.Message` in the ``request_headers`` and
-      ``response_headers`` attributes
-    * as an iterable of (name, value) pairs in the ``raw_request_headers`` and
-      ``raw_response_headers`` attributes
+    * as a MIME :class:`~email.message.Message` in the :attr:`request_headers`
+      and :attr:`response_headers` attributes
+    * as an iterable of (name, value) pairs in the :attr:`raw_request_headers`
+      and :attr:`raw_response_headers` attributes
 
     If a subprotocol was negotiated, it's available in the :attr:`subprotocol`
     attribute.
@@ -147,7 +147,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         It's usually safe to wrap this coroutine in :func:`~asyncio.async`
         since errors during connection termination aren't particularly useful.
 
-        The `code` must be an :class:`int` and the `reason` a :class:`str`.
+        ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
         """
         if self.state == OPEN:
             # 7.1.2. Start the WebSocket Closing Handshake

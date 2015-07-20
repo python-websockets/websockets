@@ -141,14 +141,17 @@ Server
     execute the application logic, and finally closes the connection after
     the handler returns.
 
-  * You may subclass :class:`~websockets.server.WebSocketServerProtocol` if
-    you have an advanced use case.
+  * You may subclass :class:`~websockets.server.WebSocketServerProtocol` and
+    pass it in the ``klass`` keyword argument for advanced customization.
 
 Client
 ......
 
 * Create a server with :func:`~websockets.client.connect` which is similar to
   asyncio's :meth:`~asyncio.BaseEventLoop.create_connection`.
+
+  * You may subclass :class:`~websockets.server.WebSocketClientProtocol` and
+    pass it in the ``klass`` keyword argument for advanced customization.
 
 * Call :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` and
   :meth:`~websockets.protocol.WebSocketCommonProtocol.send` to receive and

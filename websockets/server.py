@@ -9,7 +9,7 @@ import logging
 
 import asyncio
 
-from .exceptions import InvalidHandshake
+from .exceptions import InvalidHandshake, InvalidOrigin
 from .handshake import check_request, build_response
 from .http import read_request, USER_AGENT
 from .protocol import WebSocketCommonProtocol
@@ -55,7 +55,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     extra_headers=self.extra_headers)
             except Exception as exc:
                 logger.info("Exception in opening handshake: {}".format(exc))
-                if isinstance(exc, InvalidHandshake):
+                if isinstance(exc, InvalidOrigin):
+                    response = 'HTTP/1.1 403 Forbidden\r\n\r\n' + str(exc)
+                elif isinstance(exc, InvalidHandshake):
                     response = 'HTTP/1.1 400 Bad Request\r\n\r\n' + str(exc)
                 else:
                     response = ('HTTP/1.1 500 Internal Server Error\r\n\r\n'
@@ -113,7 +115,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if origins is not None:
             origin = get_header('Origin')
             if not set(origin.split() or ['']) <= set(origins):
-                raise InvalidHandshake("Bad origin: {}".format(origin))
+                raise InvalidOrigin("Origin not allowed: {}".format(origin))
 
         if subprotocols is not None:
             protocol = get_header('Sec-WebSocket-Protocol')

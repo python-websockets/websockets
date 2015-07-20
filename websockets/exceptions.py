@@ -1,11 +1,15 @@
 __all__ = [
-    'InvalidHandshake', 'InvalidState', 'InvalidURI',
+    'InvalidHandshake', 'InvalidOrigin', 'InvalidState', 'InvalidURI',
     'PayloadTooBig', 'WebSocketProtocolError',
 ]
 
 
 class InvalidHandshake(Exception):
     """Exception raised when a handshake request or response is invalid."""
+
+
+class InvalidOrigin(InvalidHandshake):
+    """Exception raised when the origin in a handshake request is forbidden."""
 
 
 class InvalidState(Exception):

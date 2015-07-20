@@ -352,7 +352,7 @@ class ClientServerOriginTests(unittest.TestCase):
     def test_checking_origin_fails(self):
         server = self.loop.run_until_complete(
             serve(handler, 'localhost', 8642, origins=['http://localhost']))
-        with self.assertRaises(InvalidHandshake):
+        with self.assertRaisesRegex(InvalidHandshake, "Bad status code: 403"):
             self.loop.run_until_complete(
                 connect('ws://localhost:8642/', origin='http://otherhost'))
 

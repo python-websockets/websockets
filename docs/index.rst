@@ -271,6 +271,9 @@ Changelog
 
 * Improved documentation.
 
+* Returned a 403 error code instead of 400 when the request Origin isn't
+  allowed.
+
 * Cancelling :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` no
   longer drops the next message.
 

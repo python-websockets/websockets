@@ -95,7 +95,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         order of decreasing preference.
 
         If provided, ``extra_headers`` sets additional HTTP response headers.
-        It must be a mapping or an iterable of (name, value) pairs.
+        It can be a mapping or an iterable of (name, value) pairs. It can also
+        be a callable taking the request path and headers in arguments.
 
         Return the URI of the request.
         """
@@ -127,6 +128,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:
+            if callable(extra_headers):
+                extra_headers = extra_headers(path, self.raw_request_headers)
             if isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
@@ -182,7 +185,8 @@ def serve(ws_handler, host=None, port=None, *,
     * ``subprotocols`` is a list of supported subprotocols in order of
         decreasing preference
     * ``extra_headers`` sets additional HTTP response headers – it can be a
-      mapping or an iterable of (name, value) pairs
+      mapping, an iterable of (name, value) pairs, or a callable taking the
+      request path and headers in arguments.
 
     `serve` yields a `Server` object with a `close` method to stop the server.
 

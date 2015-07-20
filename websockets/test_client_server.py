@@ -114,6 +114,24 @@ class ClientServerTests(unittest.TestCase):
         self.stop_client()
         self.stop_server()
 
+    def test_protocol_custom_response_headers_callable_dict(self):
+        self.start_server(extra_headers=lambda p, r: {'X-Spam': 'Eggs'})
+        self.start_client('raw_headers')
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+        self.stop_client()
+        self.stop_server()
+
+    def test_protocol_custom_response_headers_callable_list(self):
+        self.start_server(extra_headers=lambda p, r: [('X-Spam', 'Eggs')])
+        self.start_client('raw_headers')
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+        self.stop_client()
+        self.stop_server()
+
     def test_protocol_custom_response_headers_dict(self):
         self.start_server(extra_headers={'X-Spam': 'Eggs'})
         self.start_client('raw_headers')

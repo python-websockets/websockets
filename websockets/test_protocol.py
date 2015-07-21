@@ -22,7 +22,6 @@ class CommonTests:
         asyncio.set_event_loop(self.loop)
         self.protocol = WebSocketCommonProtocol()
         self.transport = unittest.mock.Mock()
-        self.transport._conn_lost = 0               # checked by drain()
         self.transport.close = unittest.mock.Mock(
             side_effect=lambda: self.protocol.connection_lost(None))
         self.protocol.connection_made(self.transport)

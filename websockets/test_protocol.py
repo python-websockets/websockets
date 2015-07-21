@@ -6,7 +6,7 @@ import unittest.mock
 
 from .exceptions import InvalidState
 from .framing import *
-from .protocol import CLOSED, CLOSING, WebSocketCommonProtocol
+from .protocol import CLOSED, WebSocketCommonProtocol
 
 
 # Unit for timeouts. May be increased on slow machines by setting the
@@ -62,6 +62,25 @@ class CommonTests:
         mask = not self.protocol.is_client
         write_frame(frame, writer, mask)
 
+    def receive_eof(self):
+        """
+        Make the protocol receive the end of stream.
+
+        WebSocketCommonProtocol.eof_received returns None — it is inherited
+        from StreamReaderProtocol. (Returning True wouldn't work on secure
+        connections anyway.) As a consequence, actual transports close
+        themselves after calling it.
+
+        To emulate this behavior, tests must close the transport just after
+        calling the protocol's eof_received. Closing the transport will have
+        the side-effect calling the protocol's connection_lost.
+
+        This method is often called shortly after simulating invalid data to
+        ensure that the connection fails quickly.
+        """
+        self.protocol.eof_received()
+        self.transport.close()
+
     @asyncio.coroutine
     def sent(self):
         """Read the next frame sent to the transport."""
@@ -78,12 +97,6 @@ class CommonTests:
     def echo(self):
         """Echo to the protocol the next frame sent to the transport."""
         self.receive_frame((yield from self.sent()))
-
-    @asyncio.coroutine
-    def fast_connection_failure(self):
-        """Ensure the connection failure terminates quickly."""
-        self.protocol.eof_received()
-        self.protocol.connection_lost(None)
 
     def process_control_frames(self):
         """Process control frames fed to the protocol."""
@@ -124,27 +137,27 @@ class CommonTests:
 
     def test_recv_protocol_error(self):
         self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8')))
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
     def test_recv_unicode_error(self):
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('latin-1')))
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1007, '')
 
     def test_recv_text_payload_too_big(self):
         self.protocol.max_size = 1024
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1009, '')
 
     def test_recv_binary_payload_too_big(self):
         self.protocol.max_size = 1024
         self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1009, '')
 
@@ -165,15 +178,14 @@ class CommonTests:
         def read_message():
             raise Exception("BOOM")
         self.protocol.read_message = read_message
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         with self.assertRaises(Exception):
             self.loop.run_until_complete(self.protocol.worker)
         self.assertConnectionClosed(1011, '')
 
     def test_recv_on_closed_connection(self):
-        self.protocol.eof_received()
-        self.protocol.connection_lost(None)
+        self.receive_eof()
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
 
     def test_recv_cancelled(self):
@@ -202,8 +214,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_send_on_closed_connection(self):
-        self.protocol.eof_received()
-        self.protocol.connection_lost(None)
+        self.receive_eof()
         with self.assertRaises(InvalidState):
             self.loop.run_until_complete(self.protocol.send('foobar'))
         self.assertNoFrameSent()
@@ -278,7 +289,7 @@ class CommonTests:
         self.protocol.max_size = 1024
         self.receive_frame(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
         self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1009, '')
 
@@ -286,7 +297,7 @@ class CommonTests:
         self.protocol.max_size = 1024
         self.receive_frame(Frame(False, OP_BINARY, b'tea' * 171))
         self.receive_frame(Frame(True, OP_CONT, b'tea' * 171))
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1009, '')
 
@@ -316,21 +327,20 @@ class CommonTests:
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         # Missing the second part of the fragmented frame.
         self.receive_frame(Frame(True, OP_BINARY, b'tea'))
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
     def test_close_handshake_in_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         self.receive_frame(Frame(True, OP_CLOSE, b''))
-        self.loop.call_later(MS, self.async, self.fast_connection_failure())
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
     def test_connection_close_in_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
-        self.loop.call_later(MS, self.protocol.eof_received)
-        self.loop.call_later(2 * MS, self.protocol.connection_lost, None)
+        self.loop.call_later(MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1006, '')
 
@@ -390,22 +400,6 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertFalse(self.before.cancelled())
         self.before.cancel()
 
-    def test_close_timeout_before_connection_lost(self):
-        # Prevent the connection from terminating.
-        self.protocol.connection_lost = unittest.mock.Mock()
-
-        self.after = asyncio.Future(loop=self.loop)
-        self.loop.call_later(4 * MS, self.after.cancel)
-        self.before = asyncio.Future(loop=self.loop)
-        self.loop.call_later(8 * MS, self.before.cancel)
-        self.protocol.timeout = 5 * MS
-        self.loop.call_later(MS, self.async, self.echo())
-        self.loop.run_until_complete(self.protocol.close(reason='because.'))
-        self.assertEqual(self.protocol.state, CLOSING)
-        self.assertTrue(self.after.cancelled())
-        self.assertFalse(self.before.cancelled())
-        self.before.cancel()
-
     def test_client_close_race_with_failing_connection(self):
         original_write_frame = self.protocol.write_frame
 
@@ -433,8 +427,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1002, '')
 
     def test_close_connection_lost(self):
-        self.loop.call_later(MS, self.protocol.eof_received)
-        self.loop.call_later(2 * MS, self.protocol.connection_lost, None)
+        self.loop.call_later(MS, self.receive_eof)
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1006, '')
 
@@ -464,8 +457,7 @@ class ClientTests(CommonTests, unittest.TestCase):
     def test_close(self):               # standard server-initiated close
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'because.'))
         self.loop.call_later(MS, self.receive_frame, frame)
-        self.loop.call_later(2 * MS, self.protocol.eof_received)
-        self.loop.call_later(3 * MS, self.protocol.connection_lost, None)
+        self.loop.call_later(2 * MS, self.receive_eof)
         # The client is waiting for some data at this point, and won't get it.
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         # After recv() returns None, the connection is closed.
@@ -478,8 +470,7 @@ class ClientTests(CommonTests, unittest.TestCase):
 
     def test_client_close(self):        # non standard client-initiated close
         self.loop.call_later(MS, self.async, self.echo())
-        self.loop.call_later(2 * MS, self.protocol.eof_received)
-        self.loop.call_later(3 * MS, self.protocol.connection_lost, None)
+        self.loop.call_later(2 * MS, self.receive_eof)
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
         # Only one frame is emitted, and it's consumed by self.echo().
@@ -493,8 +484,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         server_close = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
         client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
         self.loop.call_later(MS, self.receive_frame, server_close)
-        self.loop.call_later(2 * MS, self.protocol.eof_received)
-        self.loop.call_later(3 * MS, self.protocol.connection_lost, None)
+        self.loop.call_later(2 * MS, self.receive_eof)
         self.loop.run_until_complete(self.protocol.close(reason='client'))
         self.assertConnectionClosed(1000, 'server')
         self.assertFrameSent(*client_close)
@@ -510,24 +500,6 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         # If the server doesn't drop the connection quickly, the client will.
         self.assertConnectionClosed(1000, 'because.')
-        self.assertTrue(self.after.cancelled())
-        self.assertFalse(self.before.cancelled())
-        self.before.cancel()
-
-    def test_close_timeout_before_connection_lost(self):
-        # Prevent the connection from terminating.
-        self.protocol.connection_lost = unittest.mock.Mock()
-
-        self.after = asyncio.Future(loop=self.loop)
-        self.loop.call_later(9 * MS, self.after.cancel)
-        self.before = asyncio.Future(loop=self.loop)
-        self.loop.call_later(13 * MS, self.before.cancel)
-        self.protocol.timeout = 5 * MS
-        self.loop.call_later(MS, self.async, self.echo())
-        self.loop.call_later(2 * MS, self.protocol.eof_received)
-        self.loop.run_until_complete(self.protocol.close(reason='because.'))
-        # If the server doesn't drop the connection quickly, the client will.
-        self.assertEqual(self.protocol.state, CLOSING)
         self.assertTrue(self.after.cancelled())
         self.assertFalse(self.before.cancelled())
         self.before.cancel()
@@ -548,8 +520,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.loop.call_later(MS, self.receive_frame, frame)
         fail_connection = self.protocol.fail_connection(1000, 'client')
         self.loop.call_later(2 * MS, self.async, fail_connection)
-        self.loop.call_later(3 * MS, self.protocol.eof_received)
-        self.loop.call_later(4 * MS, self.protocol.connection_lost, None)
+        self.loop.call_later(3 * MS, self.receive_eof)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1000, 'client')
         self.assertFrameSent(*frame)

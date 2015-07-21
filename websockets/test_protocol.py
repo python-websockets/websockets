@@ -14,6 +14,28 @@ from .protocol import CLOSED, CLOSING, WebSocketCommonProtocol
 MS = 0.001 * int(os.environ.get('WEBSOCKETS_TESTS_TIMEOUT_FACTOR', 1))
 
 
+class TransportMock(unittest.mock.Mock):
+    """
+    Transport mock to control the protocol's inputs and outputs in tests.
+
+    It calls the protocol's connection_made and connection_lost methods like
+    actual transports.
+
+    To simulate incoming data, tests call the protocol's data_received and
+    eof_received methods directly.
+
+    They could also pause_writing and resume_writing to test flow control.
+    """
+    # This should happen in __init__ but overriding Mock.__init__ is hard.
+    def connect(self, loop, protocol):
+        self.loop = loop
+        self.protocol = protocol
+        self.protocol.connection_made(self)
+
+    def close(self):
+        self.protocol.connection_lost(None)
+
+
 class CommonTests:
 
     def setUp(self):
@@ -21,10 +43,8 @@ class CommonTests:
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
         self.protocol = WebSocketCommonProtocol()
-        self.transport = unittest.mock.Mock()
-        self.transport.close = unittest.mock.Mock(
-            side_effect=lambda: self.protocol.connection_lost(None))
-        self.protocol.connection_made(self.transport)
+        self.transport = TransportMock()
+        self.transport.connect(self.loop, self.protocol)
 
     def tearDown(self):
         self.loop.close()

@@ -54,10 +54,13 @@ class CommonTests:
     def async(self):
         return functools.partial(asyncio.async, loop=self.loop)
 
-    def feed(self, frame):
-        """Feed a frame to the protocol."""
+    def receive_frame(self, frame):
+        """
+        Make the protocol receive a frame.
+        """
+        writer = self.protocol.data_received
         mask = not self.protocol.is_client
-        write_frame(frame, self.protocol.data_received, mask)
+        write_frame(frame, writer, mask)
 
     @asyncio.coroutine
     def sent(self):
@@ -74,7 +77,7 @@ class CommonTests:
     @asyncio.coroutine
     def echo(self):
         """Echo to the protocol the next frame sent to the transport."""
-        self.feed((yield from self.sent()))
+        self.receive_frame((yield from self.sent()))
 
     @asyncio.coroutine
     def fast_connection_failure(self):
@@ -84,7 +87,7 @@ class CommonTests:
 
     def process_control_frames(self):
         """Process control frames fed to the protocol."""
-        self.feed(Frame(True, OP_TEXT, b''))
+        self.receive_frame(Frame(True, OP_TEXT, b''))
         self.loop.run_until_complete(self.protocol.recv())
 
     def assertFrameSent(self, fin, opcode, data):
@@ -110,50 +113,50 @@ class CommonTests:
         self.assertConnectionClosed(1006, '')
 
     def test_recv_text(self):
-        self.feed(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café')
 
     def test_recv_binary(self):
-        self.feed(Frame(True, OP_BINARY, b'tea'))
+        self.receive_frame(Frame(True, OP_BINARY, b'tea'))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea')
 
     def test_recv_protocol_error(self):
-        self.feed(Frame(True, OP_CONT, 'café'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8')))
         self.loop.call_later(MS, self.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
     def test_recv_unicode_error(self):
-        self.feed(Frame(True, OP_TEXT, 'café'.encode('latin-1')))
+        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('latin-1')))
         self.loop.call_later(MS, self.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1007, '')
 
     def test_recv_text_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.feed(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
+        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
         self.loop.call_later(MS, self.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1009, '')
 
     def test_recv_binary_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.feed(Frame(True, OP_BINARY, b'tea' * 342))
+        self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
         self.loop.call_later(MS, self.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1009, '')
 
     def test_recv_text_no_max_size(self):
         self.protocol.max_size = None       # for test coverage
-        self.feed(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
+        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café' * 205)
 
     def test_recv_binary_no_max_size(self):
         self.protocol.max_size = None       # for test coverage
-        self.feed(Frame(True, OP_BINARY, b'tea' * 342))
+        self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea' * 342)
 
@@ -179,7 +182,7 @@ class CommonTests:
                 asyncio.wait_for(self.protocol.recv(), 1, loop=self.loop)
             )
         except asyncio.TimeoutError:
-            self.feed(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+            self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
             data = self.loop.run_until_complete(
                 asyncio.wait_for(self.protocol.recv(), 1, loop=self.loop)
             )  # We use wait_for here to make sure the test fail and don't hang
@@ -206,12 +209,12 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_answer_ping(self):
-        self.feed(Frame(True, OP_PING, b'test'))
+        self.receive_frame(Frame(True, OP_PING, b'test'))
         self.process_control_frames()
         self.assertFrameSent(True, OP_PONG, b'test')
 
     def test_ignore_pong(self):
-        self.feed(Frame(True, OP_PONG, b'test'))
+        self.receive_frame(Frame(True, OP_PONG, b'test'))
         self.process_control_frames()
         self.assertNoFrameSent()
 
@@ -220,7 +223,7 @@ class CommonTests:
         self.assertFalse(ping.done())
         ping_frame = self.loop.run_until_complete(self.sent())
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
-        self.feed(pong_frame)
+        self.receive_frame(pong_frame)
         self.process_control_frames()
         self.assertTrue(ping.done())
 
@@ -230,13 +233,13 @@ class CommonTests:
             self.loop.run_until_complete(self.sent()),
         ) for i in range(3)]
         # Unsolicited pong doesn't acknowledge pings
-        self.feed(Frame(True, OP_PONG, b''))
+        self.receive_frame(Frame(True, OP_PONG, b''))
         self.process_control_frames()
         self.assertFalse(pings[0][0].done())
         self.assertFalse(pings[1][0].done())
         self.assertFalse(pings[2][0].done())
         # Pong acknowledges all previous pings
-        self.feed(Frame(True, OP_PONG, pings[1][1].data))
+        self.receive_frame(Frame(True, OP_PONG, pings[1][1].data))
         self.process_control_frames()
         self.assertTrue(pings[0][0].done())
         self.assertTrue(pings[1][0].done())
@@ -247,7 +250,7 @@ class CommonTests:
         ping_frame = self.loop.run_until_complete(self.sent())
         ping.cancel()
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
-        self.feed(pong_frame)
+        self.receive_frame(pong_frame)
         self.process_control_frames()
         self.assertTrue(ping.cancelled())
 
@@ -259,73 +262,73 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_fragmented_text(self):
-        self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
-        self.feed(Frame(True, OP_CONT, 'fé'.encode('utf-8')))
+        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_CONT, 'fé'.encode('utf-8')))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café')
 
     def test_fragmented_binary(self):
-        self.feed(Frame(False, OP_BINARY, b't'))
-        self.feed(Frame(False, OP_CONT, b'e'))
-        self.feed(Frame(True, OP_CONT, b'a'))
+        self.receive_frame(Frame(False, OP_BINARY, b't'))
+        self.receive_frame(Frame(False, OP_CONT, b'e'))
+        self.receive_frame(Frame(True, OP_CONT, b'a'))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea')
 
     def test_fragmented_text_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.feed(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
-        self.feed(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
+        self.receive_frame(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
+        self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
         self.loop.call_later(MS, self.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1009, '')
 
     def test_fragmented_binary_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.feed(Frame(False, OP_BINARY, b'tea' * 171))
-        self.feed(Frame(True, OP_CONT, b'tea' * 171))
+        self.receive_frame(Frame(False, OP_BINARY, b'tea' * 171))
+        self.receive_frame(Frame(True, OP_CONT, b'tea' * 171))
         self.loop.call_later(MS, self.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1009, '')
 
     def test_fragmented_text_no_max_size(self):
         self.protocol.max_size = None       # for test coverage
-        self.feed(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
-        self.feed(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
+        self.receive_frame(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
+        self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café' * 205)
 
     def test_fragmented_binary_no_max_size(self):
         self.protocol.max_size = None       # for test coverage
-        self.feed(Frame(False, OP_BINARY, b'tea' * 171))
-        self.feed(Frame(True, OP_CONT, b'tea' * 171))
+        self.receive_frame(Frame(False, OP_BINARY, b'tea' * 171))
+        self.receive_frame(Frame(True, OP_CONT, b'tea' * 171))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea' * 342)
 
     def test_control_frame_within_fragmented_text(self):
-        self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
-        self.feed(Frame(True, OP_PING, b''))
-        self.feed(Frame(True, OP_CONT, 'fé'.encode('utf-8')))
+        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_PING, b''))
+        self.receive_frame(Frame(True, OP_CONT, 'fé'.encode('utf-8')))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café')
         self.assertFrameSent(True, OP_PONG, b'')
 
     def test_unterminated_fragmented_text(self):
-        self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
+        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         # Missing the second part of the fragmented frame.
-        self.feed(Frame(True, OP_BINARY, b'tea'))
+        self.receive_frame(Frame(True, OP_BINARY, b'tea'))
         self.loop.call_later(MS, self.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
     def test_close_handshake_in_fragmented_text(self):
-        self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
-        self.feed(Frame(True, OP_CLOSE, b''))
+        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_CLOSE, b''))
         self.loop.call_later(MS, self.async, self.fast_connection_failure())
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         self.assertConnectionClosed(1002, '')
 
     def test_connection_close_in_fragmented_text(self):
-        self.feed(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
+        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         self.loop.call_later(MS, self.protocol.eof_received)
         self.loop.call_later(2 * MS, self.protocol.connection_lost, None)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
@@ -347,7 +350,7 @@ class ServerTests(CommonTests, unittest.TestCase):
 
     def test_client_close(self):        # non standard client-initiated close
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'because.'))
-        self.loop.call_later(MS, self.feed, frame)
+        self.loop.call_later(MS, self.receive_frame, frame)
         # The server is waiting for some data at this point, and won't get it.
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
         # After recv() returns None, the connection is closed.
@@ -361,14 +364,14 @@ class ServerTests(CommonTests, unittest.TestCase):
     def test_simultaneous_close(self):  # non standard close from both sides
         client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
         server_close = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
-        self.loop.call_later(MS, self.feed, client_close)
+        self.loop.call_later(MS, self.receive_frame, client_close)
         self.loop.run_until_complete(self.protocol.close(reason='server'))
         self.assertConnectionClosed(1000, 'client')
         self.assertFrameSent(*server_close)
         self.assertNoFrameSent()
 
     def test_close_drops_frames(self):
-        self.loop.call_later(MS, self.feed, Frame(True, OP_TEXT, b''))
+        self.loop.call_later(MS, self.receive_frame, Frame(True, OP_TEXT, b''))
         self.loop.call_later(2 * MS, self.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
@@ -416,7 +419,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
         # Trigger the race condition between answering the close frame from
         # the client and sending another close frame from the server.
-        self.loop.call_later(MS, self.feed, frame)
+        self.loop.call_later(MS, self.receive_frame, frame)
         fail_connection = self.protocol.fail_connection(1000, 'server')
         self.loop.call_later(2 * MS, self.async, fail_connection)
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
@@ -424,7 +427,8 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertFrameSent(*frame)
 
     def test_close_protocol_error(self):
-        self.loop.call_later(MS, self.feed, Frame(True, OP_CLOSE, b'\x00'))
+        invalid_close_frame = Frame(True, OP_CLOSE, b'\x00')
+        self.loop.call_later(MS, self.receive_frame, invalid_close_frame)
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1002, '')
 
@@ -459,7 +463,7 @@ class ClientTests(CommonTests, unittest.TestCase):
 
     def test_close(self):               # standard server-initiated close
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'because.'))
-        self.loop.call_later(MS, self.feed, frame)
+        self.loop.call_later(MS, self.receive_frame, frame)
         self.loop.call_later(2 * MS, self.protocol.eof_received)
         self.loop.call_later(3 * MS, self.protocol.connection_lost, None)
         # The client is waiting for some data at this point, and won't get it.
@@ -488,7 +492,7 @@ class ClientTests(CommonTests, unittest.TestCase):
     def test_simultaneous_close(self):  # non standard close from both sides
         server_close = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
         client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
-        self.loop.call_later(MS, self.feed, server_close)
+        self.loop.call_later(MS, self.receive_frame, server_close)
         self.loop.call_later(2 * MS, self.protocol.eof_received)
         self.loop.call_later(3 * MS, self.protocol.connection_lost, None)
         self.loop.run_until_complete(self.protocol.close(reason='client'))
@@ -541,7 +545,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
         # Trigger the race condition between answering the close frame from
         # the server and sending another close frame from the client.
-        self.loop.call_later(MS, self.feed, frame)
+        self.loop.call_later(MS, self.receive_frame, frame)
         fail_connection = self.protocol.fail_connection(1000, 'client')
         self.loop.call_later(2 * MS, self.async, fail_connection)
         self.loop.call_later(3 * MS, self.protocol.eof_received)

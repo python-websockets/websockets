@@ -73,6 +73,15 @@ class ClientServerTests(unittest.TestCase):
         self.stop_client()
         self.stop_server()
 
+    def test_explicit_event_loop(self):
+        self.start_server(loop=self.loop)
+        self.start_client(loop=self.loop)
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        reply = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(reply, "Hello!")
+        self.stop_client()
+        self.stop_server()
+
     def test_protocol_attributes(self):
         self.start_server()
         self.start_client('attributes')

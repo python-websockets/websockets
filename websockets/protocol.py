@@ -113,8 +113,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
 
-        # Task managing the connection.
-        self.worker = asyncio.async(self.run(), loop=loop)
+        # Task managing the connection, initalized in self.client_connected.
+        self.worker = None
 
         # In a subclass implementing the opening handshake, the state will be
         # CONNECTING at this point.
@@ -464,6 +464,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     def client_connected(self, reader, writer):
         self.reader = reader
         self.writer = writer
+        # Start the task that handles incoming messages.
+        self.worker = asyncio.async(self.run(), loop=self.loop)
 
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed

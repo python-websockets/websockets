@@ -347,7 +347,7 @@ class CommonTests:
 
 class ServerTests(CommonTests, unittest.TestCase):
 
-    def test_close(self):               # standard server-initiated close
+    def test_server_close(self):
         self.loop.call_later(MS, self.async, self.echo())
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
         self.assertConnectionClosed(1000, 'because.')
@@ -358,7 +358,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1000, 'because.')
         self.assertNoFrameSent()
 
-    def test_client_close(self):        # non standard client-initiated close
+    def test_client_close(self):
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'because.'))
         self.loop.call_later(MS, self.receive_frame, frame)
         # The server is waiting for some data at this point, and won't get it.
@@ -371,7 +371,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1000, 'because.')
         self.assertNoFrameSent()
 
-    def test_simultaneous_close(self):  # non standard close from both sides
+    def test_simultaneous_close(self):
         client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
         server_close = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
         self.loop.call_later(MS, self.receive_frame, client_close)
@@ -454,7 +454,19 @@ class ClientTests(CommonTests, unittest.TestCase):
         super().setUp()
         self.protocol.is_client = True
 
-    def test_close(self):               # standard server-initiated close
+    def test_client_close(self):
+        self.loop.call_later(MS, self.async, self.echo())
+        self.loop.call_later(2 * MS, self.receive_eof)
+        self.loop.run_until_complete(self.protocol.close(reason='because.'))
+        self.assertConnectionClosed(1000, 'because.')
+        # Only one frame is emitted, and it's consumed by self.echo().
+        self.assertNoFrameSent()
+        # Closing the connection again is a no-op.
+        self.loop.run_until_complete(self.protocol.close(reason='oh noes!'))
+        self.assertConnectionClosed(1000, 'because.')
+        self.assertNoFrameSent()
+
+    def test_server_close(self):
         frame = Frame(True, OP_CLOSE, serialize_close(1000, 'because.'))
         self.loop.call_later(MS, self.receive_frame, frame)
         self.loop.call_later(2 * MS, self.receive_eof)
@@ -468,19 +480,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1000, 'because.')
         self.assertNoFrameSent()
 
-    def test_client_close(self):        # non standard client-initiated close
-        self.loop.call_later(MS, self.async, self.echo())
-        self.loop.call_later(2 * MS, self.receive_eof)
-        self.loop.run_until_complete(self.protocol.close(reason='because.'))
-        self.assertConnectionClosed(1000, 'because.')
-        # Only one frame is emitted, and it's consumed by self.echo().
-        self.assertNoFrameSent()
-        # Closing the connection again is a no-op.
-        self.loop.run_until_complete(self.protocol.close(reason='oh noes!'))
-        self.assertConnectionClosed(1000, 'because.')
-        self.assertNoFrameSent()
-
-    def test_simultaneous_close(self):  # non standard close from both sides
+    def test_simultaneous_close(self):
         server_close = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
         client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
         self.loop.call_later(MS, self.receive_frame, server_close)

@@ -305,6 +305,8 @@ Changelog
 * Cancelling :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` no
   longer drops the next message.
 
+* Improved tests.
+
 2.4
 ...
 

@@ -419,11 +419,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 return
 
         # Attempt to terminate the TCP connection properly.
-        # If the socket is already closed, this will crash.
+        # If the socket is already closed, this may crash.
         try:
             if self.writer.can_write_eof():
                 self.writer.write_eof()
-        except Exception:
+        except Exception:                                   # pragma: no cover
             pass
 
         self.writer.close()

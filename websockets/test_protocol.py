@@ -86,30 +86,47 @@ class CommonTests:
         self.protocol.eof_received()
         self.transport.close()
 
-    @asyncio.coroutine
-    def sent(self):
-        """Read the next frame sent to the transport."""
+    def process_control_frames(self):
+        """
+        Process control frames received by the protocol.
+
+        To ensure that recv completes quickly, receive an additional dummy
+        frame, which recv() will drop.
+        """
+        self.receive_frame(Frame(True, OP_TEXT, b''))
+        self.loop.run_until_complete(self.protocol.recv())
+
+    def last_sent_frame(self):
+        """
+        Read the last frame sent to the transport.
+
+        This method assumes that at most one frame was sent. It raises an
+        AssertionError otherwise.
+        """
         stream = asyncio.StreamReader(loop=self.loop)
+
         for (data,), kw in self.transport.write.call_args_list:
             stream.feed_data(data)
         self.transport.write.call_args_list = []
         stream.feed_eof()
-        if not stream.at_eof():
-            return (yield from read_frame(
+
+        if stream.at_eof():
+            frame = None
+        else:
+            frame = self.loop.run_until_complete(read_frame(
                 stream.readexactly, self.protocol.is_client))
 
-    def process_control_frames(self):
-        """Process control frames fed to the protocol."""
-        self.receive_frame(Frame(True, OP_TEXT, b''))
-        self.loop.run_until_complete(self.protocol.recv())
+        if not stream.at_eof():
+            data = self.loop.run_until_complete(stream.read())
+            raise AssertionError("Trailing data found: {!r}".format(data))
 
-    def assertFrameSent(self, fin, opcode, data):
-        sent = self.loop.run_until_complete(self.sent())
-        self.assertEqual(sent, Frame(fin, opcode, data))
+        return frame
+
+    def assertOneFrameSent(self, fin, opcode, data):
+        self.assertEqual(self.last_sent_frame(), Frame(fin, opcode, data))
 
     def assertNoFrameSent(self):
-        sent = self.loop.run_until_complete(self.sent())
-        self.assertIsNone(sent)
+        self.assertIsNone(self.last_sent_frame())
 
     def assertConnectionClosed(self, code, message):
         # The following line guarantees that connection_lost was called.
@@ -202,11 +219,11 @@ class CommonTests:
 
     def test_send_text(self):
         self.loop.run_until_complete(self.protocol.send('café'))
-        self.assertFrameSent(True, OP_TEXT, 'café'.encode('utf-8'))
+        self.assertOneFrameSent(True, OP_TEXT, 'café'.encode('utf-8'))
 
     def test_send_binary(self):
         self.loop.run_until_complete(self.protocol.send(b'tea'))
-        self.assertFrameSent(True, OP_BINARY, b'tea')
+        self.assertOneFrameSent(True, OP_BINARY, b'tea')
 
     def test_send_type_error(self):
         with self.assertRaises(TypeError):
@@ -222,7 +239,7 @@ class CommonTests:
     def test_answer_ping(self):
         self.receive_frame(Frame(True, OP_PING, b'test'))
         self.process_control_frames()
-        self.assertFrameSent(True, OP_PONG, b'test')
+        self.assertOneFrameSent(True, OP_PONG, b'test')
 
     def test_ignore_pong(self):
         self.receive_frame(Frame(True, OP_PONG, b'test'))
@@ -232,7 +249,7 @@ class CommonTests:
     def test_acknowledge_ping(self):
         ping = self.loop.run_until_complete(self.protocol.ping())
         self.assertFalse(ping.done())
-        ping_frame = self.loop.run_until_complete(self.sent())
+        ping_frame = self.last_sent_frame()
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
         self.receive_frame(pong_frame)
         self.process_control_frames()
@@ -241,7 +258,7 @@ class CommonTests:
     def test_acknowledge_previous_pings(self):
         pings = [(
             self.loop.run_until_complete(self.protocol.ping()),
-            self.loop.run_until_complete(self.sent()),
+            self.last_sent_frame(),
         ) for i in range(3)]
         # Unsolicited pong doesn't acknowledge pings
         self.receive_frame(Frame(True, OP_PONG, b''))
@@ -258,7 +275,7 @@ class CommonTests:
 
     def test_cancel_ping(self):
         ping = self.loop.run_until_complete(self.protocol.ping())
-        ping_frame = self.loop.run_until_complete(self.sent())
+        ping_frame = self.last_sent_frame()
         ping.cancel()
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
         self.receive_frame(pong_frame)
@@ -267,7 +284,7 @@ class CommonTests:
 
     def test_duplicate_ping(self):
         self.loop.run_until_complete(self.protocol.ping(b'foobar'))
-        self.assertFrameSent(True, OP_PING, b'foobar')
+        self.assertOneFrameSent(True, OP_PING, b'foobar')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(self.protocol.ping(b'foobar'))
         self.assertNoFrameSent()
@@ -321,7 +338,7 @@ class CommonTests:
         self.receive_frame(Frame(True, OP_CONT, 'fé'.encode('utf-8')))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café')
-        self.assertFrameSent(True, OP_PONG, b'')
+        self.assertOneFrameSent(True, OP_PONG, b'')
 
     def test_unterminated_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
@@ -352,8 +369,7 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
 
         self.assertConnectionClosed(1000, 'because.')
-        self.assertFrameSent(*self.close_frame)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
         self.loop.run_until_complete(self.protocol.close(reason='oh noes!'))
@@ -369,8 +385,7 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         self.assertIsNone(next_message)
         # After recv() returns None, the connection is closed.
         self.assertConnectionClosed(1000, 'because.')
-        self.assertFrameSent(*self.close_frame)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
         self.loop.run_until_complete(self.protocol.close(reason='oh noes!'))
@@ -385,8 +400,7 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         # The close code and reason are taken from the remote side because
         # that's presumably more useful that the values from the local side.
         self.assertConnectionClosed(1000, 'client')
-        self.assertFrameSent(*self.server_close)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.server_close)
 
     def test_close_drops_frames(self):
         text_frame = Frame(True, OP_TEXT, b'')
@@ -395,8 +409,7 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
 
         self.assertConnectionClosed(1000, 'because.')
-        self.assertFrameSent(*self.close_frame)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.close_frame)
 
     def test_close_handshake_timeout(self):
         # Timeout is expected in 1 + 10 = 11ms.
@@ -435,8 +448,7 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
 
         self.assertIsNone(next_message)
         self.assertConnectionClosed(1000, 'server')
-        self.assertFrameSent(*self.client_close)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.client_close)
 
     def test_close_protocol_error(self):
         invalid_close_frame = Frame(True, OP_CLOSE, b'\x00')
@@ -473,8 +485,7 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
 
         self.assertConnectionClosed(1000, 'because.')
-        self.assertFrameSent(*self.close_frame)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
         self.loop.run_until_complete(self.protocol.close(reason='oh noes!'))
@@ -491,8 +502,7 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         self.assertIsNone(next_message)
         # After recv() returns None, the connection is closed.
         self.assertConnectionClosed(1000, 'because.')
-        self.assertFrameSent(*self.close_frame)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
         self.loop.run_until_complete(self.protocol.close('oh noes!'))
@@ -508,8 +518,7 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         # The close code and reason are taken from the remote side because
         # that's presumably more useful that the values from the local side.
         self.assertConnectionClosed(1000, 'server')
-        self.assertFrameSent(*self.client_close)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.client_close)
 
     def test_close_drops_frames(self):
         text_frame = Frame(True, OP_TEXT, b'')
@@ -519,8 +528,7 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         self.loop.run_until_complete(self.protocol.close(reason='because.'))
 
         self.assertConnectionClosed(1000, 'because.')
-        self.assertFrameSent(*self.close_frame)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.close_frame)
 
     def test_close_handshake_timeout(self):
         # Timeout is expected in 1 + 2 * 10 = 21ms.
@@ -582,8 +590,7 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
 
         self.assertIsNone(next_message)
         self.assertConnectionClosed(1000, 'client')
-        self.assertFrameSent(*self.server_close)
-        self.assertNoFrameSent()
+        self.assertOneFrameSent(*self.server_close)
 
     def test_close_protocol_error(self):
         invalid_close_frame = Frame(True, OP_CLOSE, b'\x00')

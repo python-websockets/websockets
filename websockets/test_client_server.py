@@ -44,6 +44,13 @@ class ClientServerTests(unittest.TestCase):
     def tearDown(self):
         self.loop.close()
 
+    def run_loop_once(self):
+        # Process callbacks scheduled with call_soon. This pattern works
+        # because stop schedules a callback to stop the event loop and
+        # run_forever runs the loop until it hits this callback.
+        self.loop.stop()
+        self.loop.run_forever()
+
     def start_server(self, **kwds):
         server = serve(handler, 'localhost', 8642, **kwds)
         self.server = self.loop.run_until_complete(server)
@@ -54,11 +61,6 @@ class ClientServerTests(unittest.TestCase):
 
     def stop_client(self):
         self.loop.run_until_complete(self.client.worker)
-
-    def notice_connection_close(self):
-        # When the client closes the connection, the server still believes
-        # it's open until the event loop has run once. Interesting hack.
-        self.loop.run_until_complete(asyncio.sleep(0, loop=self.loop))
 
     def stop_server(self):
         self.server.close()
@@ -228,7 +230,7 @@ class ClientServerTests(unittest.TestCase):
         self.start_server(subprotocols=['superchat'])
         with self.assertRaises(InvalidHandshake):
             self.start_client('subprotocol', subprotocols=['otherchat'])
-        self.notice_connection_close()
+        self.run_loop_once()
         self.stop_server()
 
     @unittest.mock.patch('websockets.server.read_request')
@@ -247,7 +249,7 @@ class ClientServerTests(unittest.TestCase):
         self.start_server()
         with self.assertRaises(InvalidHandshake):
             self.start_client()
-        self.notice_connection_close()
+        self.run_loop_once()
         self.stop_server()
 
     @unittest.mock.patch('websockets.client.build_request')
@@ -283,7 +285,7 @@ class ClientServerTests(unittest.TestCase):
         self.start_server()
         with self.assertRaises(InvalidHandshake):
             self.start_client()
-        self.notice_connection_close()
+        self.run_loop_once()
         self.stop_server()
 
     @unittest.mock.patch('websockets.server.WebSocketServerProtocol.send')

@@ -345,7 +345,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:
                 self.close_code, self.close_reason = parse_close(frame.data)
-                if self.state != CLOSING:
+                if self.state == OPEN:
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     self.state = CLOSING
                     yield from self.write_frame(

@@ -151,11 +151,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         if self.state == OPEN:
             # 7.1.2. Start the WebSocket Closing Handshake
+            # 7.1.3. The WebSocket Closing Handshake is Started
             self.close_code, self.close_reason = code, reason
             frame_data = serialize_close(code, reason)
-            yield from self.write_frame(OP_CLOSE, frame_data)
-            # 7.1.3. The WebSocket Closing Handshake is Started
+            # Change the state before yielding control to avoid sending more
+            # than one close frame.
             self.state = CLOSING
+            yield from self.write_frame(OP_CLOSE, frame_data)
 
         # If the connection doesn't terminate within the timeout, break out of
         # the worker loop.
@@ -449,11 +451,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # 7.1.7. Fail the WebSocket Connection
         logger.info("Failing the WebSocket connection: %d %s", code, reason)
         if self.state == OPEN:
+            self.state = CLOSING
             # Don't send a close frame is the connection is broken already.
             if not (code == 1006 or self.connection_closed.done()):
                 frame_data = serialize_close(code, reason)
                 yield from self.write_frame(OP_CLOSE, frame_data)
-            self.state = CLOSING
         if not self.closing_handshake.done():
             self.closing_handshake.set_result(False)
         yield from self.close_connection()

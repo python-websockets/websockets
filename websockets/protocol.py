@@ -391,11 +391,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # Handle flow control automatically.
             yield from self.writer.drain()
         except ConnectionResetError:
-            # Terminate the connection if the socket died,
-            # unless it's already being closed.
-            if expected_state != CLOSING:
-                self.state = CLOSING
-                yield from self.fail_connection(1006)
+            # Terminate the connection if the socket died.
+            yield from self.fail_connection(1006)
 
     @asyncio.coroutine
     def close_connection(self):

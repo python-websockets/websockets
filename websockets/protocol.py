@@ -400,17 +400,17 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             yield from self.fail_connection(1006)
 
     @asyncio.coroutine
-    def close_connection(self):
+    def close_connection(self, force=False):
         # 7.1.1. Close the WebSocket Connection
         if self.state == CLOSED:
             return
 
         # Defensive assertion for protocol compliance.
-        if self.state != CLOSING:                         # pragma: no cover
+        if self.state != CLOSING and not force:             # pragma: no cover
             raise InvalidState("Cannot close a WebSocket connection "
                                "in the {} state".format(self.state_name))
 
-        if self.is_client:
+        if self.is_client and not force:
             try:
                 yield from asyncio.wait_for(
                     self.connection_closed, self.timeout, loop=self.loop)

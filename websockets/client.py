@@ -145,7 +145,7 @@ def connect(uri, *,
             wsuri, origin=origin, subprotocols=subprotocols,
             extra_headers=extra_headers)
     except Exception:
-        protocol.writer.close()
+        yield from protocol.close_connection(force=True)
         raise
 
     return protocol

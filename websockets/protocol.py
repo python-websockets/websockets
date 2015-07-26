@@ -348,8 +348,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 if self.state == OPEN:
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     self.state = CLOSING
-                    yield from self.write_frame(
-                        OP_CLOSE, frame.data, expected_state=CLOSING)
+                    yield from self.write_frame(OP_CLOSE, frame.data)
                 if not self.closing_handshake.done():
                     self.closing_handshake.set_result(True)
                 return
@@ -379,7 +378,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         return frame
 
     @asyncio.coroutine
-    def write_frame(self, opcode, data=b'', expected_state=OPEN):
+    def write_frame(self, opcode, data=b''):
+        expected_state = CLOSING if opcode == OP_CLOSE else OPEN
         # This may happen if a user attempts to write on a closed connection.
         if self.state != expected_state:
             raise InvalidState("Cannot write to a WebSocket "

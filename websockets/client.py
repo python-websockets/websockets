@@ -91,6 +91,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             raise InvalidHandshake(
                 "Unknown subprotocol: {}".format(self.subprotocol))
 
+        assert self.state == CONNECTING
         self.state = OPEN
         self.opening_handshake.set_result(True)
 

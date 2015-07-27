@@ -153,6 +153,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response = '\r\n'.join(response).encode()
         self.writer.write(response)
 
+        assert self.state == CONNECTING
         self.state = OPEN
         self.opening_handshake.set_result(True)
 

@@ -468,7 +468,8 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         next_message = self.loop.run_until_complete(self.protocol.recv())
 
         self.assertIsNone(next_message)
-        self.assertConnectionClosed(1000, 'server')
+        # The connection was closed before the close frame could be sent.
+        self.assertConnectionClosed(1006, '')
         self.assertOneFrameSent(*self.client_close)
 
     def test_close_protocol_error(self):
@@ -603,7 +604,8 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         next_message = self.loop.run_until_complete(self.protocol.recv())
 
         self.assertIsNone(next_message)
-        self.assertConnectionClosed(1000, 'client')
+        # The connection was closed before the close frame could be sent.
+        self.assertConnectionClosed(1006, '')
         self.assertOneFrameSent(*self.server_close)
 
     def test_close_protocol_error(self):

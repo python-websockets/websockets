@@ -106,7 +106,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Set to True when the closing handshake has completed properly and to
         # False when the connection terminates abnormally.
         self.closing_handshake = asyncio.Future(loop=loop)
-        self.connection_failed = asyncio.Future(loop=loop)
         # Set to None when the connection state becomes CLOSED.
         self.connection_closed = asyncio.Future(loop=loop)
 
@@ -438,15 +437,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):
-        # Avoid calling fail_connection more than once to minimize
-        # the consequences of race conditions between the two sides.
-        if self.connection_failed.done():
-            # Wait until the other coroutine calls connection_lost.
-            yield from self.connection_closed
-            return
-        else:
-            self.connection_failed.set_result(None)
-
         # Losing the connection usually results in a protocol error.
         # Preserve the original error code in this case.
         if self.close_code != 1006:

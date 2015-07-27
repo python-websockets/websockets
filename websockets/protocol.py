@@ -102,6 +102,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.close_reason = ''
 
         # Futures tracking steps in the connection's lifecycle.
+        # Set to True when the opening handshake has completed properly.
         self.opening_handshake = asyncio.Future(loop=loop)
         # Set to True when the closing handshake has completed properly and to
         # False when the connection terminates abnormally.

@@ -7,7 +7,7 @@ test:
 coverage:
 	python -m coverage erase
 	python -m coverage run --branch --source=websockets -m unittest
-	python -m coverage html --omit='websockets/test_*.py'
+	python -m coverage html
 
 clean:
 	find . -name '*.pyc' -delete

@@ -137,7 +137,7 @@ class CommonTests:
             frame = self.loop.run_until_complete(read_frame(
                 stream.readexactly, self.protocol.is_client))
 
-        if not stream.at_eof():
+        if not stream.at_eof():                             # pragma: no cover
             data = self.loop.run_until_complete(stream.read())
             raise AssertionError("Trailing data found: {!r}".format(data))
 

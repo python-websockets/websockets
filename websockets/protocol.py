@@ -104,6 +104,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.subprotocol = None
 
+        # Code and reason must be set when the closing handshake completes.
         self.close_code = None
         self.close_reason = ''
 
@@ -161,7 +162,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if self.state == OPEN:
             # 7.1.2. Start the WebSocket Closing Handshake
             # 7.1.3. The WebSocket Closing Handshake is Started
-            self.close_code, self.close_reason = code, reason
             frame_data = serialize_close(code, reason)
             yield from self.write_frame(OP_CLOSE, frame_data)
 
@@ -350,11 +350,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             frame = yield from self.read_frame(max_size)
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:
-                self.close_code, self.close_reason = parse_close(frame.data)
+                # Make sure the close frame is valid before echoing it.
+                code, reason = parse_close(frame.data)
                 if self.state == OPEN:
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     yield from self.write_frame(OP_CLOSE, frame.data)
                 if not self.closing_handshake.done():
+                    self.close_code, self.close_reason = code, reason
                     self.closing_handshake.set_result(True)
                 return
             elif frame.opcode == OP_PING:
@@ -443,10 +445,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):
-        # Losing the connection usually results in a protocol error.
-        # Preserve the original error code in this case.
-        if self.close_code != 1006:
-            self.close_code, self.close_reason = code, reason
         # 7.1.7. Fail the WebSocket Connection
         logger.info("Failing the WebSocket connection: %d %s", code, reason)
         if self.state == OPEN:
@@ -458,6 +456,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 frame_data = serialize_close(code, reason)
                 yield from self.write_frame(OP_CLOSE, frame_data)
         if not self.closing_handshake.done():
+            self.close_code, self.close_reason = code, reason
             self.closing_handshake.set_result(False)
         yield from self.close_connection()
 
@@ -472,8 +471,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed
         self.state = CLOSED
+        if not self.closing_handshake.done():
+            self.close_code, self.close_reason = 1006, ''
+            self.closing_handshake.set_result(False)
         if not self.connection_closed.done():
             self.connection_closed.set_result(None)
-        if self.close_code is None:
-            self.close_code = 1006
         super().connection_lost(exc)

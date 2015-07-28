@@ -391,7 +391,7 @@ class CommonTests:
         self.receive_frame(Frame(True, OP_CLOSE, b''))
         self.receive_eof()
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
-        self.assertConnectionClosed(1002, '')
+        self.assertConnectionClosed(1005, '')
 
     def test_connection_close_in_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
@@ -458,20 +458,19 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
             # response. The server will stop waiting for the close frame and
             # timeout.
             self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1006, '')
 
     def test_client_close_race_with_failing_connection(self):
         self.make_drain_slow()
 
         # Fail the connection while answering a close frame from the client.
         self.loop.call_soon(self.receive_frame, self.client_close)
-        fail_connection = self.protocol.fail_connection(1000, 'server')
-        self.loop.call_later(MS, self.async, fail_connection)
+        self.loop.call_later(MS, self.async, self.protocol.fail_connection())
         next_message = self.loop.run_until_complete(self.protocol.recv())
 
         self.assertIsNone(next_message)
-        # The connection was closed before the close frame could be sent.
-        self.assertConnectionClosed(1006, '')
+        # The closing handshake was completed by fail_connection.
+        self.assertConnectionClosed(1011, '')
         self.assertOneFrameSent(*self.client_close)
 
     def test_close_protocol_error(self):
@@ -581,7 +580,7 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
             # stop waiting for the close frame and timeout, then stop waiting
             # for the connection close and timeout again.
             self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1006, '')
 
     def test_eof_received_timeout(self):
         # Timeout is expected in 10ms.
@@ -600,14 +599,13 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
 
         # Fail the connection while answering a close frame from the server.
         self.loop.call_soon(self.receive_frame, self.server_close)
-        fail_connection = self.protocol.fail_connection(1000, 'client')
-        self.loop.call_later(MS, self.async, fail_connection)
+        self.loop.call_later(MS, self.async, self.protocol.fail_connection())
         self.loop.call_later(2 * MS, self.receive_eof)
         next_message = self.loop.run_until_complete(self.protocol.recv())
 
         self.assertIsNone(next_message)
-        # The connection was closed before the close frame could be sent.
-        self.assertConnectionClosed(1006, '')
+        # The closing handshake was completed by fail_connection.
+        self.assertConnectionClosed(1011, '')
         self.assertOneFrameSent(*self.server_close)
 
     def test_close_protocol_error(self):

@@ -305,9 +305,13 @@ Changelog
 * Cancelling :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` no
   longer drops the next message.
 
+* Clarified that the closing handshake can be initiated by the client.
+
 * Set the close status code and reason more consistently.
 
-* Improved tests.
+* Strengthened connection termination by simplifying the implementation.
+
+* Improved tests, added tox configuration, and enforced 100% branch coverage.
 
 2.4
 ...

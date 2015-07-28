@@ -48,6 +48,8 @@ class CommonTests:
         self.transport.connect(self.loop, self.protocol)
 
     def tearDown(self):
+        self.loop.run_until_complete(
+            self.protocol.close_connection(force=True))
         self.loop.close()
         super().tearDown()
 

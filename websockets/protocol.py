@@ -90,7 +90,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.timeout = timeout
         self.max_size = max_size
-        # Store a reference to loop to avoid relying on self.loop, a private
+        # Store a reference to loop to avoid relying on self._loop, a private
         # attribute of StreamReaderProtocol, inherited from FlowControlMixin.
         self.loop = loop
 

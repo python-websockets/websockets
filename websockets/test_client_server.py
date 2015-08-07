@@ -75,6 +75,11 @@ class ClientServerTests(unittest.TestCase):
         self.stop_client()
         self.stop_server()
 
+    def test_server_close_while_client_connected(self):
+        self.start_server()
+        self.start_client()
+        self.stop_server()
+
     def test_explicit_event_loop(self):
         self.start_server(loop=self.loop)
         self.start_client(loop=self.loop)

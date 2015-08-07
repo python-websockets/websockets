@@ -31,9 +31,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     state = CONNECTING
 
-    def __init__(self, ws_handler, *,
+    def __init__(self, ws_handler, ws_server, *,
                  origins=None, subprotocols=None, extra_headers=None, **kwds):
         self.ws_handler = ws_handler
+        self.ws_server = ws_server
         self.origins = origins
         self.subprotocols = subprotocols
         self.extra_headers = extra_headers
@@ -169,6 +170,68 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         priority = lambda p: client_protos.index(p) + server_protos.index(p)
         return sorted(common_protos, key=priority)[0]
 
+    def client_connected(self, reader, writer):
+        super().client_connected(reader, writer)
+        self.ws_server.register(self)
+
+    def connection_lost(self, exc):
+        self.ws_server.unregister(self)
+        super().connection_lost(exc)
+
+
+class WebSocketServer(asyncio.AbstractServer):
+    """
+    Wrapper for :class:`~asyncio.Server` that triggers the closing handshake.
+    """
+
+    def __init__(self, loop=None):
+        # Store a reference to loop to avoid relying on self.server._loop.
+        self.loop = loop
+
+        self.websockets = set()
+        self.closing_tasks = set()
+
+    def wrap(self, server):
+        """
+        Attach to a given :class:`~asyncio.Server`.
+
+        Since :meth:`~asyncio.BaseEventLoop.create_server` doesn't support
+        injecting a custom ``Server`` class, a simple solution that doesn't
+        rely on private APIs is to:
+
+        - instantiate a :class:`WebSocketServer`
+        - give the protocol factory a reference to that instance
+        - call :meth:`~asyncio.BaseEventLoop.create_server` with the factory
+        - attach the resulting :class:`~asyncio.Server` with this method
+        """
+        self.server = server
+
+    def register(self, protocol):
+        self.websockets.add(protocol)
+
+    def unregister(self, protocol):
+        self.websockets.remove(protocol)
+
+    def close(self):
+        """
+        Stop serving and trigger a closing handshake on open connections.
+        """
+        self.closing_tasks = {
+            asyncio.async(websocket.fail_connection(1001), loop=self.loop)
+            for websocket in self.websockets
+        }
+        self.server.close()
+
+    @asyncio.coroutine
+    def wait_closed(self):
+        """
+        Wait until all connections are closed.
+        """
+        # asyncio.wait doesn't accept an empty first argument.
+        if self.closing_tasks:
+            yield from asyncio.wait(self.closing_tasks, loop=self.loop)
+        yield from self.server.wait_closed()
+
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
@@ -197,9 +260,12 @@ def serve(ws_handler, host=None, port=None, *,
       mapping, an iterable of (name, value) pairs, or a callable taking the
       request path and headers in arguments.
 
-    :func:`serve` yields a :class:`~asyncio.Server` which provides a
-    :meth:`~asyncio.Server.close` method and a
-    :meth:`~asyncio.Server.wait_closed` coroutine to stop serving requests.
+    :func:`serve` yields a :class:`~asyncio.Server` which provides:
+
+    * a :meth:`~asyncio.Server.close` method that closes open connections with
+      status code 1001 and stops accepting new connections
+    * a :meth:`~asyncio.Server.wait_closed` coroutine that waits until closing
+      handshakes complete and connections are closed.
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`WebSocketServerProtocol`, performs the opening handshake, and
@@ -218,9 +284,16 @@ def serve(ws_handler, host=None, port=None, *,
     if loop is None:
         loop = asyncio.get_event_loop()
 
+    ws_server = WebSocketServer()
+
     secure = kwds.get('ssl') is not None
     factory = lambda: klass(
-        ws_handler, host=host, port=port, secure=secure,
+        ws_handler, ws_server,
+        host=host, port=port, secure=secure,
         origins=origins, subprotocols=subprotocols,
         extra_headers=extra_headers, loop=loop)
-    return (yield from loop.create_server(factory, host, port, **kwds))
+    server = yield from loop.create_server(factory, host, port, **kwds)
+
+    ws_server.wrap(server)
+
+    return ws_server

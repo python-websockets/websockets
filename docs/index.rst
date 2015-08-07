@@ -220,7 +220,7 @@ Server
 
    .. autofunction:: serve(ws_handler, host=None, port=None, *, loop=None, klass=WebSocketServerProtocol, origins=None, subprotocols=None, extra_headers=None, **kwds)
 
-   .. autoclass:: WebSocketServerProtocol(ws_handler, *, origins=None, subprotocols=None, extra_headers=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
+   .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, origins=None, subprotocols=None, extra_headers=None, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
 
         .. automethod:: handshake(origins=None, subprotocols=None, extra_headers=None)
         .. automethod:: select_subprotocol(client_protos, server_protos)
@@ -287,6 +287,11 @@ Utilities
 
 Changelog
 ---------
+
+2.6
+...
+
+* Closed open connections with code 1001 when a server shuts down.
 
 2.5
 ...

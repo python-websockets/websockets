@@ -42,7 +42,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def connection_made(self, transport):
         super().connection_made(transport)
-        asyncio.async(self.handler(), loop=self.loop)
+        self.handler_task = asyncio.async(self.handler(), loop=self.loop)
 
     @asyncio.coroutine
     def handler(self):
@@ -189,7 +189,6 @@ class WebSocketServer(asyncio.AbstractServer):
         self.loop = loop
 
         self.websockets = set()
-        self.closing_tasks = set()
 
     def wrap(self, server):
         """
@@ -216,10 +215,8 @@ class WebSocketServer(asyncio.AbstractServer):
         """
         Stop serving and trigger a closing handshake on open connections.
         """
-        self.closing_tasks = {
+        for websocket in self.websockets:
             asyncio.async(websocket.fail_connection(1001), loop=self.loop)
-            for websocket in self.websockets
-        }
         self.server.close()
 
     @asyncio.coroutine
@@ -228,8 +225,9 @@ class WebSocketServer(asyncio.AbstractServer):
         Wait until all connections are closed.
         """
         # asyncio.wait doesn't accept an empty first argument.
-        if self.closing_tasks:
-            yield from asyncio.wait(self.closing_tasks, loop=self.loop)
+        if self.websockets:
+            yield from asyncio.wait(
+                [ws.handler_task for ws in self.websockets], loop=self.loop)
         yield from self.server.wait_closed()
 
 

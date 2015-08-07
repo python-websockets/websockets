@@ -163,8 +163,6 @@ class CommonTests:
 
     @contextlib.contextmanager
     def assertCompletesWithin(self, min_time, max_time):
-        min_time *= MS
-        max_time *= MS
         t0 = self.loop.time()
         yield
         t1 = self.loop.time()
@@ -456,8 +454,8 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
     def test_close_handshake_timeout(self):
         # Timeout is expected in 10ms.
         self.protocol.timeout = 10 * MS
-        # Check the timing within -1/+5ms for robustness.
-        with self.assertCompletesWithin(9, 15):
+        # Check the timing within -1/+9ms for robustness.
+        with self.assertCompletesWithin(9 * MS, 19 * MS):
             # Unlike previous tests, no close frame will be received in
             # response. The server will stop waiting for the close frame and
             # timeout.
@@ -577,8 +575,8 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
     def test_close_handshake_timeout(self):
         # Timeout is expected in 2 * 10 = 20ms.
         self.protocol.timeout = 10 * MS
-        # Check the timing within -1/+5ms for robustness.
-        with self.assertCompletesWithin(19, 25):
+        # Check the timing within -1/+9ms for robustness.
+        with self.assertCompletesWithin(19 * MS, 29 * MS):
             # Unlike previous tests, no close frame will be received in
             # response and the connection will not be closed. The client will
             # stop waiting for the close frame and timeout, then stop waiting
@@ -589,8 +587,8 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
     def test_eof_received_timeout(self):
         # Timeout is expected in 10ms.
         self.protocol.timeout = 10 * MS
-        # Check the timing within -1/+5ms for robustness.
-        with self.assertCompletesWithin(9, 15):
+        # Check the timing within -1/+9ms for robustness.
+        with self.assertCompletesWithin(9 * MS, 19 * MS):
             # Unlike previous tests, the close frame will be received in
             # response but the connection will not be closed. The client will
             # stop waiting for the connection close and timeout.

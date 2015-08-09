@@ -216,7 +216,7 @@ class WebSocketServer(asyncio.AbstractServer):
         Stop serving and trigger a closing handshake on open connections.
         """
         for websocket in self.websockets:
-            asyncio.async(websocket.fail_connection(1001), loop=self.loop)
+            asyncio.async(websocket.close(1001), loop=self.loop)
         self.server.close()
 
     @asyncio.coroutine

@@ -5,7 +5,7 @@ WebSockets
 Python. It implements `RFC 6455`_ with a focus on correctness and simplicity.
 It passes the `Autobahn Testsuite`_.
 
-Built on top on Python's asynchronous I/O support introduced in `PEP 3156`_,
+Built on top of Python's asynchronous I/O support introduced in `PEP 3156`_,
 it provides an API based on coroutines, making it easy to write highly
 concurrent applications.
 

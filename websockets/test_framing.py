@@ -1,6 +1,6 @@
 import asyncio
-import io
 import unittest
+import unittest.mock
 
 from .exceptions import PayloadTooBig, WebSocketProtocolError
 from .framing import *
@@ -19,13 +19,20 @@ class FramingTests(unittest.TestCase):
         self.stream = asyncio.StreamReader(loop=self.loop)
         self.stream.feed_data(message)
         self.stream.feed_eof()
-        return self.loop.run_until_complete(read_frame(
+        frame = self.loop.run_until_complete(read_frame(
             self.stream.readexactly, mask, max_size=max_size))
+        # Make sure all the data was consumed.
+        self.assertTrue(self.stream.at_eof())
+        return frame
 
     def encode(self, frame, mask=False):
-        encoded = io.BytesIO()
-        write_frame(frame, encoded.write, mask)
-        return encoded.getvalue()
+        writer = unittest.mock.Mock()
+        write_frame(frame, writer, mask)
+        # Ensure the entire frame is sent with a single call to writer().
+        # Multiple calls cause TCP fragmentation and degrade performance.
+        self.assertEqual(writer.call_count, 1)
+        # The frame data is the single positional argument of that call.
+        return writer.call_args[0][0]
 
     def round_trip(self, message, expected, mask=False):
         decoded = self.decode(message, mask)

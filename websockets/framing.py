@@ -121,30 +121,32 @@ def write_frame(frame, writer, mask):
     incorrect values.
     """
     check_frame(frame)
+    output = io.BytesIO()
 
-    # Write the header
-    header = io.BytesIO()
+    # Prepare the header
     head1 = 0b10000000 if frame.fin else 0
     head1 |= frame.opcode
     head2 = 0b10000000 if mask else 0
     length = len(frame.data)
     if length < 0x7e:
-        header.write(struct.pack('!BB', head1, head2 | length))
+        output.write(struct.pack('!BB', head1, head2 | length))
     elif length < 0x10000:
-        header.write(struct.pack('!BBH', head1, head2 | 126, length))
+        output.write(struct.pack('!BBH', head1, head2 | 126, length))
     else:
-        header.write(struct.pack('!BBQ', head1, head2 | 127, length))
+        output.write(struct.pack('!BBQ', head1, head2 | 127, length))
     if mask:
         mask_bits = struct.pack('!I', random.getrandbits(32))
-        header.write(mask_bits)
-    writer(header.getvalue())
+        output.write(mask_bits)
 
-    # Write the data
+    # Prepare the data
     if mask:
         data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(frame.data))
     else:
         data = frame.data
-    writer(data)
+    output.write(data)
+
+    # Send the frame
+    writer(output.getvalue())
 
 
 def check_frame(frame):

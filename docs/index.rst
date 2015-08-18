@@ -293,6 +293,8 @@ Changelog
 
 * Closed open connections with code 1001 when a server shuts down.
 
+* Avoided TCP fragmentation of small frames.
+
 2.5
 ...
 

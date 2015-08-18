@@ -97,6 +97,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         stream_reader = asyncio.StreamReader(loop=loop)
         super().__init__(stream_reader, self.client_connected, loop)
 
+        self.reader = None
+        self.writer = None
+
         self.request_headers = None
         self.raw_request_headers = None
         self.response_headers = None
@@ -136,6 +139,30 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         return ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][self.state]
 
     # Public API
+
+    @property
+    def local_address(self):
+        """
+        Local address of the connection.
+
+        The address is a ``(host, port)`` tuple or ``None`` if the connection
+        hasn't been established yet.
+        """
+        if self.writer is None:
+            return None
+        return self.writer.get_extra_info('sockname')
+
+    @property
+    def remote_address(self):
+        """
+        Remote address of the connection.
+
+        The address is a ``(host, port)`` tuple or ``None`` if the connection
+        hasn't been established yet.
+        """
+        if self.writer is None:
+            return None
+        return self.writer.get_extra_info('peername')
 
     @property
     def open(self):

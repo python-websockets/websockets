@@ -243,7 +243,10 @@ Shared
 
    .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
 
-        .. autoattribute:: open()
+        .. autoattribute:: local_address
+        .. autoattribute:: remote_address
+
+        .. autoattribute:: open
         .. automethod:: close(code=1000, reason='')
 
         .. automethod:: recv()
@@ -290,6 +293,8 @@ Changelog
 
 2.6
 ...
+
+* Added ``local_address`` and ``remote_address`` attributes on protocols.
 
 * Closed open connections with code 1001 when a server shuts down.
 

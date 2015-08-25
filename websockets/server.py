@@ -189,6 +189,7 @@ class WebSocketServer(asyncio.AbstractServer):
         self.loop = loop
 
         self.websockets = set()
+        self.open_websockets = set()
 
     def wrap(self, server):
         """
@@ -207,15 +208,16 @@ class WebSocketServer(asyncio.AbstractServer):
 
     def register(self, protocol):
         self.websockets.add(protocol)
+        self.open_websockets.add(protocol)
 
     def unregister(self, protocol):
-        self.websockets.remove(protocol)
+        self.open_websockets.remove(protocol)
 
     def close(self):
         """
         Stop serving and trigger a closing handshake on open connections.
         """
-        for websocket in self.websockets:
+        for websocket in self.open_websockets:
             asyncio.async(websocket.close(1001), loop=self.loop)
         self.server.close()
 

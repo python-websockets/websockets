@@ -42,6 +42,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def connection_made(self, transport):
         super().connection_made(transport)
+        # Register the connection with the server when creating the handler
+        # task. (Registering at the beginning of the handler coroutine would
+        # create a race condition between the creation of the task, which
+        # schedules its execution, and the moment the handler starts running.)
+        self.ws_server.register(self)
         self.handler_task = asyncio.async(self.handler(), loop=self.loop)
 
     @asyncio.coroutine
@@ -85,6 +90,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 self.writer.close()
             except Exception:                               # pragma: no cover
                 pass
+
+        finally:
+            # Unregister the connection with the server when the handler task
+            # terminates. Registration is tied to the lifecycle of the handler
+            # task because the server waits for tasks attached to registered
+            # connections before terminating.
+            self.ws_server.unregister(self)
 
     @asyncio.coroutine
     def handshake(self, origins=None, subprotocols=None, extra_headers=None):
@@ -169,14 +181,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             return None
         priority = lambda p: client_protos.index(p) + server_protos.index(p)
         return sorted(common_protos, key=priority)[0]
-
-    def client_connected(self, reader, writer):
-        super().client_connected(reader, writer)
-        self.ws_server.register(self)
-
-    def connection_lost(self, exc):
-        self.ws_server.unregister(self)
-        super().connection_lost(exc)
 
 
 class WebSocketServer(asyncio.AbstractServer):

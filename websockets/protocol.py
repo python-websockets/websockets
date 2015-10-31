@@ -497,6 +497,20 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Start the task that handles incoming messages.
         self.worker = asyncio_ensure_future(self.run(), loop=self.loop)
 
+    def eof_received(self):
+        super().eof_received()
+        # Since Python 3.5, StreamReaderProtocol.eof_received() returns True
+        # to leave the transport open (http://bugs.python.org/issue24539).
+        # This is inappropriate for websockets for at least three reasons.
+        # 1. The use case is to read data until EOF with self.reader.read(-1).
+        #    Since websockets is a TLV protocol, this never happens.
+        # 2. It doesn't work on SSL connections. A falsy value must be
+        #    returned to have the same behavior on SSL and plain connections.
+        # 3. The websockets protocol has its own closing handshake. Endpoints
+        #    close the TCP connection after sending a Close frame.
+        # As a consequence we revert to the previous, more useful behavior.
+        return
+
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed
         self.state = CLOSED
@@ -505,4 +519,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.closing_handshake.set_result(False)
         if not self.connection_closed.done():
             self.connection_closed.set_result(None)
+        # Close the transport in case close_connection() wasn't executed.
+        if self.writer is not None:
+            self.writer.close()
         super().connection_lost(exc)

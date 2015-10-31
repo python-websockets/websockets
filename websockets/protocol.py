@@ -15,6 +15,7 @@ import logging
 import random
 import struct
 
+from .compatibility import asyncio_ensure_future
 from .exceptions import InvalidState, PayloadTooBig, WebSocketProtocolError
 from .framing import *
 from .handshake import *
@@ -181,7 +182,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         It waits for the other end to complete the handshake. It doesn't do
         anything once the connection is closed.
 
-        It's usually safe to wrap this coroutine in :func:`~asyncio.async`
+        It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
         since errors during connection termination aren't particularly useful.
 
         ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
@@ -222,7 +223,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             pass
 
         # Wait for a message until the connection is closed
-        next_message = asyncio.async(self.messages.get(), loop=self.loop)
+        next_message = asyncio_ensure_future(
+            self.messages.get(), loop=self.loop)
         try:
             done, pending = yield from asyncio.wait(
                 [next_message, self.worker],
@@ -493,7 +495,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.reader = reader
         self.writer = writer
         # Start the task that handles incoming messages.
-        self.worker = asyncio.async(self.run(), loop=self.loop)
+        self.worker = asyncio_ensure_future(self.run(), loop=self.loop)
 
     def connection_lost(self, exc):
         # 7.1.4. The WebSocket Connection is Closed

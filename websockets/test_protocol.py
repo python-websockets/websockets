@@ -6,6 +6,7 @@ import time
 import unittest
 import unittest.mock
 
+from .compatibility import asyncio_ensure_future
 from .exceptions import InvalidState
 from .framing import *
 from .protocol import CLOSED, WebSocketCommonProtocol
@@ -88,7 +89,7 @@ class CommonTests:
 
     @property
     def async(self):
-        return functools.partial(asyncio.async, loop=self.loop)
+        return functools.partial(asyncio_ensure_future, loop=self.loop)
 
     def receive_frame(self, frame):
         """

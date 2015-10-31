@@ -9,6 +9,7 @@ import collections.abc
 import email.message
 import logging
 
+from .compatibility import asyncio_ensure_future
 from .exceptions import InvalidHandshake, InvalidOrigin
 from .handshake import build_response, check_request
 from .http import USER_AGENT, read_request
@@ -47,7 +48,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # create a race condition between the creation of the task, which
         # schedules its execution, and the moment the handler starts running.)
         self.ws_server.register(self)
-        self.handler_task = asyncio.async(self.handler(), loop=self.loop)
+        self.handler_task = asyncio_ensure_future(
+            self.handler(), loop=self.loop)
 
     @asyncio.coroutine
     def handler(self):
@@ -220,7 +222,7 @@ class WebSocketServer(asyncio.AbstractServer):
         Stop serving and trigger a closing handshake on open connections.
         """
         for websocket in self.websockets:
-            asyncio.async(websocket.close(1001), loop=self.loop)
+            asyncio_ensure_future(websocket.close(1001), loop=self.loop)
         self.server.close()
 
     @asyncio.coroutine

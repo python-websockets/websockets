@@ -50,6 +50,7 @@ Bug reports, patches and suggestions welcome! Just open an issue_ or send a
    intro
    cheatsheet
    api
+   deployment
    limitations
    changelog
    license

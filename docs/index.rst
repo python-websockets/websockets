@@ -291,6 +291,11 @@ Utilities
 Changelog
 ---------
 
+2.7
+...
+
+* Added compatibility with Python 3.5.
+
 2.6
 ...
 

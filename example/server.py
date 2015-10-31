@@ -8,6 +8,7 @@ def hello(websocket, path):
     name = yield from websocket.recv()
     print("< {}".format(name))
     greeting = "Hello {}!".format(name)
+
     yield from websocket.send(greeting)
     print("> {}".format(greeting))
 

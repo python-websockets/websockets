@@ -4,6 +4,11 @@ Changelog
 3.0
 ...
 
+*In development*
+
+2.7
+...
+
 * Added compatibility with Python 3.5.
 
 * Refreshed documentation.

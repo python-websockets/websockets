@@ -45,10 +45,9 @@ class ClientServerTests(unittest.TestCase):
         self.loop.close()
 
     def run_loop_once(self):
-        # Process callbacks scheduled with call_soon. This pattern works
-        # because stop schedules a callback to stop the event loop and
-        # run_forever runs the loop until it hits this callback.
-        self.loop.stop()
+        # Process callbacks scheduled with call_soon by appending a callback
+        # to stop the event loop then running it until it hits that callback.
+        self.loop.call_soon(self.loop.stop)
         self.loop.run_forever()
 
     def start_server(self, **kwds):

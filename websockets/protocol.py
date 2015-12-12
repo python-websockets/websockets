@@ -269,7 +269,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         corresponding pong is received and which you may ignore if you don't
         want to wait.
 
-        A ping may serve as a keepalive.
+        A ping may serve as a keepalive or as a check that the remote endpoint
+        received all messages up to this point, with ``yield from ws.ping()``.
         """
         # Protect against duplicates if a payload is explicitly set.
         if data in self.pings:

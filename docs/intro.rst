@@ -143,5 +143,12 @@ This simplistic example keeps track of connected clients in memory. This only
 works as long as you run a single process. In a practical application, the
 handler may subscribe to some channels on a message broker, for example.
 
-That's really all you have to know! ``websockets`` manages the connection
-under the hood so you don't have to.
+That's all!
+-----------
+
+The design of the ``websockets`` API was driven by simplicity.
+
+You don't have to worry about performing the opening or the closing handshake,
+answering pings, or any other behavior required by the specification.
+
+``websockets`` handles all this under the hood so you don't have to.

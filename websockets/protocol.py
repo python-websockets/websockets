@@ -450,7 +450,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         try:
             # Handle flow control automatically.
             yield from self.writer.drain()
-        except ConnectionResetError:
+        except ConnectionError:
             # Terminate the connection if the socket died.
             yield from self.fail_connection(1006)
 

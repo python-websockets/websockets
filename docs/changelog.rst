@@ -6,6 +6,8 @@ Changelog
 
 *In development*
 
+* Worked around an asyncio bug affecting connection termination under load.
+
 2.7
 ...
 

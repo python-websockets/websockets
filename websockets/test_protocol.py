@@ -40,9 +40,13 @@ class TransportMock(unittest.mock.Mock):
     def connect(self, loop, protocol):
         self.loop = loop
         self.protocol = protocol
+        # Remove when dropping support for Python < 3.6.
+        self._closing = False
         self.loop.call_soon(self.protocol.connection_made, self)
 
     def close(self):
+        # Remove when dropping support for Python < 3.6.
+        self._closing = True
         self.loop.call_soon(self.protocol.connection_lost, None)
 
 
@@ -107,15 +111,25 @@ class CommonTests:
         connections anyway.) As a consequence, actual transports close
         themselves after calling it.
 
-        To emulate this behavior, tests must close the transport just after
-        calling the protocol's eof_received. Closing the transport will have
+        To emulate this behavior, this function closes the transport just
+        after calling the protocol's eof_received. Closing the transport has
         the side-effect calling the protocol's connection_lost.
-
-        This method is often called shortly after simulating invalid data to
-        ensure that the connection fails quickly.
         """
         self.loop.call_soon(self.protocol.eof_received)
         self.loop.call_soon(self.transport.close)
+
+    def process_invalid_frames(self):
+        """
+        Make the protocol fail quickly after simulating invalid data.
+
+        To achieve this, this function triggers the protocol's eof_received,
+        which interrupts pending reads waiting for more data. It delays this
+        operation with call_later because the protocol must start processing
+        frames first. Otherwise it will see a closed connection and no data.
+        """
+        self.loop.call_later(MS, self.receive_eof)
+        next_message = self.loop.run_until_complete(self.protocol.recv())
+        self.assertIsNone(next_message)
 
     def process_control_frames(self):
         """
@@ -125,7 +139,8 @@ class CommonTests:
         frame, which recv() will drop.
         """
         self.receive_frame(Frame(True, OP_TEXT, b''))
-        self.loop.run_until_complete(self.protocol.recv())
+        next_message = self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(next_message, '')
 
     def last_sent_frame(self):
         """
@@ -217,28 +232,24 @@ class CommonTests:
 
     def test_recv_protocol_error(self):
         self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8')))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1002, '')
 
     def test_recv_unicode_error(self):
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('latin-1')))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1007, '')
 
     def test_recv_text_payload_too_big(self):
         self.protocol.max_size = 1024
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1009, '')
 
     def test_recv_binary_payload_too_big(self):
         self.protocol.max_size = 1024
         self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1009, '')
 
     def test_recv_text_no_max_size(self):
@@ -258,15 +269,13 @@ class CommonTests:
         def read_message():
             raise Exception("BOOM")
         self.protocol.read_message = read_message
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         with self.assertRaises(Exception):
             self.loop.run_until_complete(self.protocol.worker)
         self.assertConnectionClosed(1011, '')
 
     def test_recv_on_closed_connection(self):
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
 
     def test_recv_cancelled(self):
         recv = self.async(self.protocol.recv())
@@ -293,9 +302,9 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_send_on_closed_connection(self):
-        self.receive_eof()
-        # Ensure the protocol processes the connection termination.
-        self.loop.run_until_complete(self.protocol.recv())
+        # This is a way to terminate the connection.
+        self.process_invalid_frames()
+
         with self.assertRaises(InvalidState):
             self.loop.run_until_complete(self.protocol.send('foobar'))
         self.assertNoFrameSent()
@@ -370,16 +379,14 @@ class CommonTests:
         self.protocol.max_size = 1024
         self.receive_frame(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
         self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1009, '')
 
     def test_fragmented_binary_payload_too_big(self):
         self.protocol.max_size = 1024
         self.receive_frame(Frame(False, OP_BINARY, b'tea' * 171))
         self.receive_frame(Frame(True, OP_CONT, b'tea' * 171))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1009, '')
 
     def test_fragmented_text_no_max_size(self):
@@ -408,21 +415,18 @@ class CommonTests:
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         # Missing the second part of the fragmented frame.
         self.receive_frame(Frame(True, OP_BINARY, b'tea'))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1002, '')
 
     def test_close_handshake_in_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         self.receive_frame(Frame(True, OP_CLOSE, b''))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1005, '')
 
     def test_connection_close_in_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
-        self.receive_eof()
-        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+        self.process_invalid_frames()
         self.assertConnectionClosed(1006, '')
 
 
@@ -561,7 +565,9 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
 
     def test_server_close(self):
         self.receive_frame(self.close_frame)
-        self.receive_eof()
+        # The client expects the server to close the connection. Simulate it
+        # to avoid having to wait for the connection timeout.
+        self.loop.call_later(MS, self.receive_eof)
         # The client is waiting for some data at this point but won't get it.
         next_message = self.loop.run_until_complete(self.protocol.recv())
 

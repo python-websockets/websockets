@@ -429,6 +429,24 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         logger.debug("%s >> %s", side, frame)
         is_masked = self.is_client
         write_frame(frame, self.writer.write, is_masked)
+
+        # Backport of the combined logic of:
+        # https://github.com/python/asyncio/pull/280
+        # https://github.com/python/asyncio/pull/291
+        # Remove when dropping support for Python < 3.6.
+        transport = self.writer._transport
+        if transport is not None:                           # pragma: no cover
+            # PR 291 added the is_closing method to transports shortly after
+            # PR 280 fixed the bug we're trying to work around in this block.
+            if not hasattr(transport, 'is_closing'):
+                # This emulates what is_closing would return if it existed.
+                try:
+                    is_closing = transport._closing
+                except AttributeError:
+                    is_closing = transport._closed
+                if is_closing:
+                    yield
+
         try:
             # Handle flow control automatically.
             yield from self.writer.drain()

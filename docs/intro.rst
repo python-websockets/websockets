@@ -83,7 +83,9 @@ Both
 ....
 
 Of course, you can combine the two patterns shown above to read and write
-messages on the same connection::
+messages on the same connection.
+
+::
 
     @asyncio.coroutine
     def handler(websocket, path):
@@ -112,6 +114,34 @@ messages on the same connection::
 
 (This code looks convoluted. If you know a more straightforward solution,
 please let me know about it!)
+
+Registration
+............
+
+If you need to maintain a list of currently connected clients, you must
+register clients when they connect and unregister them when they disconnect.
+
+::
+
+    connected = set()
+
+    @asyncio.coroutine
+    def handler(websocket, path):
+        global connected
+        # Register.
+        connected.add(websocket)
+        try:
+            # Implement logic here.
+            yield from asyncio.wait(
+                [ws.send("Hello!") for ws in connected])
+            yield from asyncio.sleep(10)
+        finally:
+            # Unregister.
+            connected.remove(websocket)
+
+This simplistic example keeps track of connected clients in memory. This only
+works as long as you run a single process. In a practical application, the
+handler may subscribe to some channels on a message broker, for example.
 
 That's really all you have to know! ``websockets`` manages the connection
 under the hood so you don't have to.

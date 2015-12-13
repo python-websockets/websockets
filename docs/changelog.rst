@@ -6,10 +6,6 @@ Changelog
 
 *In development*
 
-* :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
-  :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` supports
-  data passed as :class:`str` in addition to :class:`bytes`.
-
 .. warning::
 
     **Version 3.0 introduces a backwards-incompatible change in the**
@@ -42,6 +38,10 @@ Changelog
     documented in their signatures but isn't scheduled for deprecation either.
 
 Also:
+
+* :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
+  :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` supports
+  data passed as :class:`str` in addition to :class:`bytes`.
 
 * Worked around an asyncio bug affecting connection termination under load.
 

@@ -379,7 +379,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # longer than the worst case (2 * self.timeout) but not unlimited.
         if self.state == CLOSING:
             yield from asyncio.wait_for(
-                self.connection_closed, 3 * self.timeout, loop=self.loop)
+                self.worker, 3 * self.timeout, loop=self.loop)
             raise ConnectionClosed(self.close_code, self.close_reason)
 
         # Control may only reach this point in buggy third-party subclasses.

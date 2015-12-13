@@ -7,9 +7,9 @@ import unittest
 import unittest.mock
 
 from .compatibility import asyncio_ensure_future
-from .exceptions import InvalidState
+from .exceptions import ConnectionClosed, InvalidState
 from .framing import *
-from .protocol import CLOSED, WebSocketCommonProtocol
+from .protocol import CLOSED, CONNECTING, WebSocketCommonProtocol
 
 
 # Unit for timeouts. May be increased on slow machines by setting the
@@ -191,6 +191,8 @@ class CommonTests:
         self.assertLess(
             dt, max_time, "Too slow: {} >= {}".format(dt, max_time))
 
+    # Test public attributes.
+
     def test_local_address(self):
         get_extra_info = unittest.mock.Mock(return_value=('host', 4312))
         self.transport.get_extra_info = get_extra_info
@@ -226,12 +228,6 @@ class CommonTests:
         self.process_invalid_frames()
 
         self.assertEqual(self.protocol.state_name, 'CLOSED')
-
-    def test_connection_lost(self):
-        # Test calling connection_lost without going through close_connection.
-        self.protocol.connection_lost(None)
-
-        self.assertConnectionClosed(1006, '')
 
     # Test the recv coroutine.
 
@@ -318,11 +314,26 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.send(42))
         self.assertNoFrameSent()
 
+    def test_send_on_closing_connection(self):
+        # This is a way to start a closing handshake.
+        self.async(self.protocol.close())
+        self.run_loop_once()
+        self.assertOneFrameSent(True, OP_CLOSE, b'\x03\xe8')
+
+        # Complete the closing handshake while running the send.
+        self.receive_frame(self.close_frame)
+        if self.protocol.is_client:
+            self.receive_eof()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.send('foobar'))
+        self.assertNoFrameSent()
+
     def test_send_on_closed_connection(self):
         # This is a way to terminate the connection.
         self.process_invalid_frames()
 
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.send('foobar'))
         self.assertNoFrameSent()
 
@@ -350,11 +361,26 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.ping(42))
         self.assertNoFrameSent()
 
+    def test_ping_on_closing_connection(self):
+        # This is a way to start a closing handshake.
+        self.async(self.protocol.close())
+        self.run_loop_once()
+        self.assertOneFrameSent(True, OP_CLOSE, b'\x03\xe8')
+
+        # Complete the closing handshake while running the ping.
+        self.receive_frame(self.close_frame)
+        if self.protocol.is_client:
+            self.receive_eof()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.ping())
+        self.assertNoFrameSent()
+
     def test_ping_on_closed_connection(self):
         # This is a way to terminate the connection.
         self.process_invalid_frames()
 
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.ping())
         self.assertNoFrameSent()
 
@@ -377,11 +403,26 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.pong(42))
         self.assertNoFrameSent()
 
+    def test_pong_on_closing_connection(self):
+        # This is a way to start a closing handshake.
+        self.async(self.protocol.close())
+        self.run_loop_once()
+        self.assertOneFrameSent(True, OP_CLOSE, b'\x03\xe8')
+
+        # Complete the closing handshake while running the pong.
+        self.receive_frame(self.close_frame)
+        if self.protocol.is_client:
+            self.receive_eof()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.pong())
+        self.assertNoFrameSent()
+
     def test_pong_on_closed_connection(self):
         # This is a way to terminate the connection.
         self.process_invalid_frames()
 
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.pong())
         self.assertNoFrameSent()
 
@@ -508,6 +549,20 @@ class CommonTests:
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
         self.process_invalid_frames()
         self.assertConnectionClosed(1006, '')
+
+    # Test miscellaneous code paths to ensure full coverage.
+
+    def test_connection_lost(self):
+        # Test calling connection_lost without going through close_connection.
+        self.protocol.connection_lost(None)
+
+        self.assertConnectionClosed(1006, '')
+
+    def test_ensure_connection_before_opening_handshake(self):
+        self.protocol.state = CONNECTING
+
+        with self.assertRaises(InvalidState):
+            self.loop.run_until_complete(self.protocol.ensure_open())
 
 
 class ServerCloseTests(CommonTests, unittest.TestCase):

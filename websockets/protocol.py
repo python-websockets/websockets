@@ -16,7 +16,8 @@ import random
 import struct
 
 from .compatibility import asyncio_ensure_future
-from .exceptions import InvalidState, PayloadTooBig, WebSocketProtocolError
+from .exceptions import (ConnectionClosed, InvalidState, PayloadTooBig,
+                         WebSocketProtocolError)
 from .framing import *
 from .handshake import *
 
@@ -253,12 +254,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         This coroutine sends a message.
 
         It sends :class:`str` as a text frame and :class:`bytes` as a binary
-        frame.
-
-        It raises a :exc:`TypeError` for other inputs and
-        :exc:`~websockets.exceptions.InvalidState` once the connection is
-        closed.
+        frame. It raises a :exc:`TypeError` for other inputs.
         """
+        yield from self.ensure_open()
+
         if isinstance(data, str):
             opcode = 1
             data = data.encode('utf-8')
@@ -266,6 +265,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             opcode = 2
         else:
             raise TypeError("data must be bytes or str")
+
         yield from self.write_frame(opcode, data)
 
     @asyncio.coroutine
@@ -284,11 +284,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         overridden with the optional ``data`` argument which must be of type
         :class:`str` (which will be encoded to UTF-8) or :class:`bytes`.
         """
+        yield from self.ensure_open()
+
         if data is not None:
             data = self.encode_data(data)
+
         # Protect against duplicates if a payload is explicitly set.
         if data in self.pings:
             raise ValueError("Already waiting for a pong with the same data")
+
         # Generate a unique random payload otherwise.
         while data is None or data in self.pings:
             data = struct.pack('!I', random.getrandbits(32))
@@ -308,7 +312,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         which must be of type :class:`str` (which will be encoded to UTF-8) or
         :class:`bytes`.
         """
+        yield from self.ensure_open()
+
         data = self.encode_data(data)
+
         yield from self.write_frame(OP_PONG, data)
 
     # Private methods - no guarantees.
@@ -321,6 +328,29 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             return data
         else:
             raise TypeError("data must be bytes or str")
+
+    @asyncio.coroutine
+    def ensure_open(self):
+        # Raise a suitable exception if the connection isn't open.
+        # Handle cases from the most common to the least common.
+
+        if self.state == OPEN:
+            return
+
+        if self.state == CLOSED:
+            raise ConnectionClosed(self.close_code, self.close_reason)
+
+        # If the closing handshake is in progress, let it complete to get the
+        # proper close status and code. As an safety measure, the timeout is
+        # longer than the worst case (2 * self.timeout) but not unlimited.
+        if self.state == CLOSING:
+            yield from asyncio.wait_for(
+                self.connection_closed, 3 * self.timeout, loop=self.loop)
+            raise ConnectionClosed(self.close_code, self.close_reason)
+
+        # Control may only reach this point in buggy third-party subclasses.
+        assert self.state == CONNECTING
+        raise InvalidState("WebSocket connection isn't established yet.")
 
     @asyncio.coroutine
     def run(self):
@@ -444,10 +474,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def write_frame(self, opcode, data=b''):
-        # This may happen if a user attempts to write on a closed connection.
-        if self.state != OPEN:
+        # Defensive assertion for protocol compliance.
+        if self.state != OPEN:                              # pragma: no cover
             raise InvalidState("Cannot write to a WebSocket "
                                "in the {} state".format(self.state_name))
+
         # Make sure no other frame will be sent after a close frame. Do this
         # before yielding control to avoid sending more than one close frame.
         if opcode == OP_CLOSE:

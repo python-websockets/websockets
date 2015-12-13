@@ -1,6 +1,6 @@
 __all__ = [
     'InvalidHandshake', 'InvalidOrigin', 'InvalidState', 'InvalidURI',
-    'PayloadTooBig', 'WebSocketProtocolError',
+    'ConnectionClosed', 'PayloadTooBig', 'WebSocketProtocolError',
 ]
 
 
@@ -14,6 +14,16 @@ class InvalidOrigin(InvalidHandshake):
 
 class InvalidState(Exception):
     """Exception raised when an operation is forbidden in the current state."""
+
+
+class ConnectionClosed(InvalidState):
+    """Exception raised when trying to read or write on a closed connection."""
+
+    def __init__(self, code, reason):
+        self.code = code
+        self.reason = reason
+        super().__init__('WebSocket connection is closed: '
+                         'code = {}, reason = {}'.format(code, reason))
 
 
 class InvalidURI(Exception):

@@ -6,8 +6,8 @@ Basic example
 
 .. _server-example:
 
-Here's a WebSocket server example. It reads a name from the client and sends a
-message.
+Here's a WebSocket server example. It reads a name from the client, sends a
+greeting, and closes the connection.
 
 .. literalinclude:: ../example/server.py
 

@@ -220,6 +220,8 @@ class CommonTests:
         self.protocol.connection_lost(None)
         self.assertConnectionClosed(1006, '')
 
+    # Test the recv coroutine.
+
     def test_recv_text(self):
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
         data = self.loop.run_until_complete(self.protocol.recv())
@@ -288,6 +290,8 @@ class CommonTests:
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café')
 
+    # Test the send coroutine.
+
     def test_send_text(self):
         self.loop.run_until_complete(self.protocol.send('café'))
         self.assertOneFrameSent(True, OP_TEXT, 'café'.encode('utf-8'))
@@ -308,6 +312,67 @@ class CommonTests:
         with self.assertRaises(InvalidState):
             self.loop.run_until_complete(self.protocol.send('foobar'))
         self.assertNoFrameSent()
+
+    # Test the ping coroutine.
+
+    def test_ping_default(self):
+        self.loop.run_until_complete(self.protocol.ping())
+        # With our testing tools, it's more convenient to extract the expected
+        # ping data from the library's internals than from the frame sent.
+        ping_data = next(iter(self.protocol.pings))
+        self.assertIsInstance(ping_data, bytes)
+        self.assertEqual(len(ping_data), 4)
+        self.assertOneFrameSent(True, OP_PING, ping_data)
+
+    def test_ping_text(self):
+        self.loop.run_until_complete(self.protocol.ping('café'))
+        self.assertOneFrameSent(True, OP_PING, 'café'.encode('utf-8'))
+
+    def test_ping_binary(self):
+        self.loop.run_until_complete(self.protocol.ping(b'tea'))
+        self.assertOneFrameSent(True, OP_PING, b'tea')
+
+    def test_ping_type_error(self):
+        with self.assertRaises(TypeError):
+            self.loop.run_until_complete(self.protocol.ping(42))
+        self.assertNoFrameSent()
+
+    def test_ping_on_closed_connection(self):
+        # This is a way to terminate the connection.
+        self.process_invalid_frames()
+
+        with self.assertRaises(InvalidState):
+            self.loop.run_until_complete(self.protocol.ping())
+        self.assertNoFrameSent()
+
+    # Test the pong coroutine.
+
+    def test_pong_default(self):
+        self.loop.run_until_complete(self.protocol.pong())
+        self.assertOneFrameSent(True, OP_PONG, b'')
+
+    def test_pong_text(self):
+        self.loop.run_until_complete(self.protocol.pong('café'))
+        self.assertOneFrameSent(True, OP_PONG, 'café'.encode('utf-8'))
+
+    def test_pong_binary(self):
+        self.loop.run_until_complete(self.protocol.pong(b'tea'))
+        self.assertOneFrameSent(True, OP_PONG, b'tea')
+
+    def test_pong_type_error(self):
+        with self.assertRaises(TypeError):
+            self.loop.run_until_complete(self.protocol.pong(42))
+        self.assertNoFrameSent()
+
+    def test_pong_on_closed_connection(self):
+        # This is a way to terminate the connection.
+        self.process_invalid_frames()
+
+        with self.assertRaises(InvalidState):
+            self.loop.run_until_complete(self.protocol.pong())
+        self.assertNoFrameSent()
+
+    # Test the protocol's logic for acknowledging pings with pongs.
 
     def test_answer_ping(self):
         self.receive_frame(Frame(True, OP_PING, b'test'))
@@ -361,6 +426,8 @@ class CommonTests:
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(self.protocol.ping(b'foobar'))
         self.assertNoFrameSent()
+
+    # Test the protocol's logic for rebuilding fragmented messages.
 
     def test_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
@@ -431,6 +498,8 @@ class CommonTests:
 
 
 class ServerCloseTests(CommonTests, unittest.TestCase):
+
+    # Test the protocol logic for closing the connection on the server side.
 
     def test_server_close(self):
         self.receive_frame(self.close_frame)
@@ -548,6 +617,8 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.protocol.is_client = True
+
+    # Test the protocol logic for closing the connection on the client side.
 
     def test_client_close(self):
         self.receive_frame(self.close_frame)

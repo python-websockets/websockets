@@ -271,7 +271,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         A ping may serve as a keepalive or as a check that the remote endpoint
         received all messages up to this point, with ``yield from ws.ping()``.
+
+        By default, the ping contains four random bytes. The content may be
+        overridden with the optional ``data`` argument which must be of type
+        :class:`str` (which will be encoded to UTF-8) or :class:`bytes`.
         """
+        if data is not None:
+            data = self.encode_data(data)
         # Protect against duplicates if a payload is explicitly set.
         if data in self.pings:
             raise ValueError("Already waiting for a pong with the same data")
@@ -289,10 +295,24 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         This coroutine sends a pong.
 
         An unsolicited pong may serve as a unidirectional heartbeat.
+
+        The content may be overridden with the optional ``data`` argument
+        which must be of type :class:`str` (which will be encoded to UTF-8) or
+        :class:`bytes`.
         """
+        data = self.encode_data(data)
         yield from self.write_frame(OP_PONG, data)
 
     # Private methods - no guarantees.
+
+    def encode_data(self, data):
+        # Expect str or bytes, return bytes.
+        if isinstance(data, str):
+            return data.encode('utf-8')
+        elif isinstance(data, bytes):
+            return data
+        else:
+            raise TypeError("data must be bytes or str")
 
     @asyncio.coroutine
     def run(self):

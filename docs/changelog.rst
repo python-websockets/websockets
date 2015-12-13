@@ -6,6 +6,10 @@ Changelog
 
 *In development*
 
+* :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
+  :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` supports
+  data passed as :class:`str` in addition to :class:`bytes`.
+
 * Worked around an asyncio bug affecting connection termination under load.
 
 * Improved documentation.

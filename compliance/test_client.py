@@ -14,9 +14,10 @@ AGENT = 'websockets'
 
 
 class EchoClientProtocol(websockets.WebSocketClientProtocol):
+    """
+    WebSocket client protocol that echoes messages synchronously.
 
-    """WebSocket client protocol that echoes messages synchronously."""
-
+    """
     def __init__(self, *args, **kwargs):
         kwargs['max_size'] = 2 ** 25
         super().__init__(*args, **kwargs)

@@ -6,6 +6,7 @@ It deals with a single frame at a time. Anything that depends on the sequence
 of frames is implemented in :mod:`websockets.protocol`.
 
 .. _section 5 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-5
+
 """
 
 import asyncio
@@ -52,6 +53,7 @@ Frame.__doc__ = """WebSocket frame.
 Only these three fields are needed by higher level code. The MASK bit, payload
 length and masking-key are handled on the fly by :func:`read_frame` and
 :func:`write_frame`.
+
 """
 
 
@@ -72,6 +74,7 @@ def read_frame(reader, mask, *, max_size=None):
     This function validates the frame before returning it and raises
     :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
     incorrect values.
+
     """
     # Read the header
     data = yield from reader(2)
@@ -119,6 +122,7 @@ def write_frame(frame, writer, mask):
     This function validates the frame before sending it and raises
     :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
     incorrect values.
+
     """
     check_frame(frame)
     output = io.BytesIO()
@@ -153,6 +157,7 @@ def check_frame(frame):
     """
     Raise :exc:`~websockets.exceptions.WebSocketProtocolError` if the frame
     contains incorrect values.
+
     """
     if frame.opcode in (OP_CONT, OP_TEXT, OP_BINARY):
         return
@@ -174,6 +179,7 @@ def parse_close(data):
 
     Raise :exc:`~websockets.exceptions.WebSocketProtocolError` or
     :exc:`UnicodeDecodeError` if the data is invalid.
+
     """
     length = len(data)
     if length == 0:
@@ -193,5 +199,6 @@ def serialize_close(code, reason):
     Serialize the data for a close frame.
 
     This is the reverse of :func:`parse_close`.
+
     """
     return struct.pack('!H', code) + reason.encode('utf-8')

@@ -1,5 +1,6 @@
 """
 The :mod:`websockets.server` module defines a simple WebSocket server API.
+
 """
 
 __all__ = ['serve', 'WebSocketServerProtocol']
@@ -28,8 +29,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     For the sake of simplicity, it doesn't rely on a full HTTP implementation.
     Its support for HTTP responses is very limited.
-    """
 
+    """
     state = CONNECTING
 
     def __init__(self, ws_handler, ws_server, *,
@@ -116,6 +117,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         be a callable taking the request path and headers in arguments.
 
         Return the URI of the request.
+
         """
         # Read handshake request.
         try:
@@ -177,6 +179,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     def select_subprotocol(self, client_protos, server_protos):
         """
         Pick a subprotocol among those offered by the client.
+
         """
         common_protos = set(client_protos) & set(server_protos)
         if not common_protos:
@@ -188,8 +191,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 class WebSocketServer(asyncio.AbstractServer):
     """
     Wrapper for :class:`~asyncio.Server` that triggers the closing handshake.
-    """
 
+    """
     def __init__(self, loop=None):
         # Store a reference to loop to avoid relying on self.server._loop.
         self.loop = loop
@@ -208,6 +211,7 @@ class WebSocketServer(asyncio.AbstractServer):
         - give the protocol factory a reference to that instance
         - call :meth:`~asyncio.BaseEventLoop.create_server` with the factory
         - attach the resulting :class:`~asyncio.Server` with this method
+
         """
         self.server = server
 
@@ -220,6 +224,7 @@ class WebSocketServer(asyncio.AbstractServer):
     def close(self):
         """
         Stop serving and trigger a closing handshake on open connections.
+
         """
         for websocket in self.websockets:
             asyncio_ensure_future(websocket.close(1001), loop=self.loop)
@@ -229,6 +234,7 @@ class WebSocketServer(asyncio.AbstractServer):
     def wait_closed(self):
         """
         Wait until all connections are closed.
+
         """
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:
@@ -284,6 +290,7 @@ def serve(ws_handler, host=None, port=None, *,
         logger = logging.getLogger('websockets.server')
         logger.setLevel(logging.ERROR)
         logger.addHandler(logging.StreamHandler())
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()

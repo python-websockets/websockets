@@ -1,5 +1,6 @@
 """
 The :mod:`websockets.client` module defines a simple WebSocket client API.
+
 """
 
 __all__ = ['connect', 'WebSocketClientProtocol']
@@ -21,8 +22,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
-    """
 
+    """
     is_client = True
     state = CONNECTING
 
@@ -39,6 +40,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         If provided, ``extra_headers`` sets additional HTTP request headers.
         It must be a mapping or an iterable of (name, value) pairs.
+
         """
         headers = []
         set_header = lambda k, v: headers.append((k, v))
@@ -125,6 +127,7 @@ def connect(uri, *,
 
     It raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is invalid and
     :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()

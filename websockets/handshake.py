@@ -31,6 +31,7 @@ To open a connection, a client must:
   :func:`build_request`,
 - Read the response, check that the status code is 101, and check the headers
   with :func:`check_response`.
+
 """
 
 __all__ = [
@@ -53,6 +54,7 @@ def build_request(set_header):
     Build a handshake request to send to the server.
 
     Return the ``key`` which must be passed to :func:`check_response`.
+
     """
     rand = bytes(random.getrandbits(8) for _ in range(16))
     key = base64.b64encode(rand).decode()
@@ -77,6 +79,7 @@ def check_request(get_header):
     request and doesn't perform Host and Origin checks. These controls are
     usually performed earlier in the HTTP request handling code. They're the
     responsibility of the caller.
+
     """
     try:
         assert get_header('Upgrade').lower() == 'websocket'
@@ -97,6 +100,7 @@ def build_response(set_header, key):
     Build a handshake response to send to the client.
 
     ``key`` comes from :func:`check_request`.
+
     """
     set_header('Upgrade', 'WebSocket')
     set_header('Connection', 'Upgrade')
@@ -117,6 +121,7 @@ def check_response(get_header, key):
     This function doesn't verify that the response is an HTTP/1.1 or higher
     response with a 101 status code. These controls are the responsibility of
     the caller.
+
     """
     try:
         assert get_header('Upgrade').lower() == 'websocket'

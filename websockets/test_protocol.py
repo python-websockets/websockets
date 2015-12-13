@@ -35,6 +35,7 @@ class TransportMock(unittest.mock.Mock):
     eof_received methods directly.
 
     They could also pause_writing and resume_writing to test flow control.
+
     """
     # This should happen in __init__ but overriding Mock.__init__ is hard.
     def connect(self, loop, protocol):
@@ -97,6 +98,7 @@ class CommonTests:
     def receive_frame(self, frame):
         """
         Make the protocol receive a frame.
+
         """
         writer = self.protocol.data_received
         mask = not self.protocol.is_client
@@ -114,6 +116,7 @@ class CommonTests:
         To emulate this behavior, this function closes the transport just
         after calling the protocol's eof_received. Closing the transport has
         the side-effect calling the protocol's connection_lost.
+
         """
         self.loop.call_soon(self.protocol.eof_received)
         self.loop.call_soon(self.transport.close)
@@ -126,6 +129,7 @@ class CommonTests:
         which interrupts pending reads waiting for more data. It delays this
         operation with call_later because the protocol must start processing
         frames first. Otherwise it will see a closed connection and no data.
+
         """
         self.loop.call_later(MS, self.receive_eof)
         with self.assertRaises(ConnectionClosed):
@@ -137,6 +141,7 @@ class CommonTests:
 
         To ensure that recv completes quickly, receive an additional dummy
         frame, which recv() will drop.
+
         """
         self.receive_frame(Frame(True, OP_TEXT, b''))
         next_message = self.loop.run_until_complete(self.protocol.recv())
@@ -148,6 +153,7 @@ class CommonTests:
 
         This method assumes that at most one frame was sent. It raises an
         AssertionError otherwise.
+
         """
         stream = asyncio.StreamReader(loop=self.loop)
 

@@ -4,6 +4,7 @@ merely adequate for the WebSocket handshake messages.
 
 These functions cannot be imported from :mod:`websockets`; they must be
 imported from :mod:`websockets.http`.
+
 """
 
 __all__ = ['read_request', 'read_response', 'USER_AGENT']
@@ -37,6 +38,7 @@ def read_request(stream):
     Raise an exception if the request isn't well formatted.
 
     The request is assumed not to contain a body.
+
     """
     request_line, headers = yield from read_message(stream)
     method, path, version = request_line[:-2].decode().split(None, 2)
@@ -58,6 +60,7 @@ def read_response(stream):
     Raise an exception if the request isn't well formatted.
 
     The response is assumed not to contain a body.
+
     """
     status_line, headers = yield from read_message(stream)
     version, status, reason = status_line[:-2].decode().split(None, 2)
@@ -75,6 +78,7 @@ def read_message(stream):
     and ``headers`` is a :class:`~email.message.Message`.
 
     The message is assumed not to contain a body.
+
     """
     start_line = yield from read_line(stream)
     header_lines = io.BytesIO()
@@ -94,6 +98,7 @@ def read_message(stream):
 def read_line(stream):
     """
     Read a single line from ``stream``.
+
     """
     line = yield from stream.readline()
     if len(line) > MAX_LINE:

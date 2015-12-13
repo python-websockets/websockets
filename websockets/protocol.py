@@ -3,6 +3,7 @@ The :mod:`websockets.protocol` module handles WebSocket control and data
 frames as specified in `sections 4 to 8 of RFC 6455`_.
 
 .. _sections 4 to 8 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
+
 """
 
 __all__ = ['WebSocketCommonProtocol']
@@ -74,8 +75,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     Once the connection is closed, the status code is available in the
     :attr:`close_code` attribute and the reason in :attr:`close_reason`.
-    """
 
+    """
     # There are only two differences between the client-side and the server-
     # side behavior: masking the payload and closing the underlying TCP
     # connection. This class implements the server-side behavior by default.
@@ -149,6 +150,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         This is a ``(host, port)`` tuple or ``None`` if the connection hasn't
         been established yet.
+
         """
         if self.writer is None:
             return None
@@ -161,6 +163,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         This is a ``(host, port)`` tuple or ``None`` if the connection hasn't
         been established yet.
+
         """
         if self.writer is None:
             return None
@@ -176,6 +179,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         raises a :exc:`~websockets.exceptions.ConnectionClosed` exception.
 
         .. _EAFP: https://docs.python.org/3/glossary.html#term-eafp
+
         """
         return self.state == OPEN
 
@@ -188,6 +192,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         CONNECTING, OPEN, CLOSING, or CLOSED.
 
         To check if the connection is open, use :attr:`open` instead.
+
         """
         return ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][self.state]
 
@@ -203,6 +208,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         since errors during connection termination aren't particularly useful.
 
         ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
+
         """
         if self.state == OPEN:
             # 7.1.2. Start the WebSocket Closing Handshake
@@ -237,6 +243,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
             :meth:`recv` used to return ``None`` instead. Refer to the
             changelog for details.
+
         """
         # Don't yield from self.ensure_open() here because messages could be
         # available in the queue even if the connection is closed.
@@ -279,6 +286,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         It sends :class:`str` as a text frame and :class:`bytes` as a binary
         frame. It raises a :exc:`TypeError` for other inputs.
+
         """
         yield from self.ensure_open()
 
@@ -307,6 +315,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         By default, the ping contains four random bytes. The content may be
         overridden with the optional ``data`` argument which must be of type
         :class:`str` (which will be encoded to UTF-8) or :class:`bytes`.
+
         """
         yield from self.ensure_open()
 
@@ -335,6 +344,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         The content may be overridden with the optional ``data`` argument
         which must be of type :class:`str` (which will be encoded to UTF-8) or
         :class:`bytes`.
+
         """
         yield from self.ensure_open()
 

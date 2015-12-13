@@ -9,9 +9,10 @@ logging.basicConfig(level=logging.WARNING)
 
 
 class EchoServerProtocol(websockets.WebSocketServerProtocol):
+    """
+    WebSocket server protocol that echoes messages synchronously.
 
-    """WebSocket server protocol that echoes messages synchronously."""
-
+    """
     def __init__(self, *args, **kwargs):
         kwargs['max_size'] = 2 ** 25
         super().__init__(*args, **kwargs)

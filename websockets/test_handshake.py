@@ -29,6 +29,7 @@ class HandshakeTests(unittest.TestCase):
         Provide request headers for corruption.
 
         Assert that the transformation made them invalid.
+
         """
         headers = {}
         build_request(headers.__setitem__)
@@ -82,6 +83,7 @@ class HandshakeTests(unittest.TestCase):
         Provide response headers for corruption.
 
         Assert that the transformation made them invalid.
+
         """
         headers = {}
         build_response(headers.__setitem__, key)

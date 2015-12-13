@@ -3,6 +3,7 @@ The :mod:`websockets.uri` module implements parsing of WebSocket URIs
 according to `section 3 of RFC 6455`_.
 
 .. _section 3 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-3
+
 """
 
 __all__ = ['parse_uri', 'WebSocketURI']
@@ -21,6 +22,7 @@ WebSocketURI.__doc__ = """WebSocket URI.
 * ``host`` is the lower-case host
 * ``port`` if the integer port, it's always provided even if it's the default
 * ``resource_name`` is the resource name, that is, the path and optional query
+
 """
 
 
@@ -31,6 +33,7 @@ def parse_uri(uri):
     If the URI is valid, it returns a :class:`WebSocketURI`.
 
     Otherwise it raises an :exc:`~websockets.exceptions.InvalidURI` exception.
+
     """
     uri = urllib.parse.urlparse(uri)
     try:

@@ -34,8 +34,10 @@ class ConnectionClosed(InvalidState):
     def __init__(self, code, reason):
         self.code = code
         self.reason = reason
-        super().__init__('WebSocket connection is closed: '
-                         'code = {}, reason = {}'.format(code, reason))
+        message = 'WebSocket connection is closed: '
+        message += 'code = {}, '.format(code) if code else 'no code, '
+        message += 'reason = {}.'.format(reason) if reason else 'no reason.'
+        super().__init__(message)
 
 
 class InvalidURI(Exception):

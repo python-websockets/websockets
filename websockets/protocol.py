@@ -58,7 +58,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     The ``max_size`` parameter enforces the maximum size for incoming messages
     in bytes. The default value is 1MB. ``None`` disables the limit. If a
     message larger than the maximum size is received, :meth:`recv()` will
-    return ``None`` and the connection will be closed with status code 1009.
+    raise :exc:`~websockets.exceptions.ConnectionClosed` and the connection
+    will be closed with status code 1009.
 
     Once the handshake is complete, request and response HTTP headers are
     available:
@@ -85,7 +86,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     def __init__(self, *,
                  host=None, port=None, secure=None,
-                 timeout=10, max_size=2 ** 20, loop=None):
+                 timeout=10, max_size=2 ** 20, loop=None,
+                 legacy_recv=False):
         self.host = host
         self.port = port
         self.secure = secure
@@ -95,6 +97,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Store a reference to loop to avoid relying on self._loop, a private
         # attribute of StreamReaderProtocol, inherited from FlowControlMixin.
         self.loop = loop
+
+        self.legacy_recv = legacy_recv
 
         stream_reader = asyncio.StreamReader(loop=loop)
         super().__init__(stream_reader, self.client_connected, loop)
@@ -167,7 +171,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         This property is ``True`` when the connection is usable.
 
-        It may be used to handle disconnections gracefully.
+        It may be used to detect disconnections but this is discouraged per
+        the EAFP_ principle. When ``open`` is ``False``, using the connection
+        raises a :exc:`~websockets.exceptions.ConnectionClosed` exception.
+
+        .. _EAFP: https://docs.python.org/3/glossary.html#term-eafp
         """
         return self.state == OPEN
 
@@ -221,15 +229,26 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         It returns a :class:`str` for a text frame and :class:`bytes` for a
         binary frame.
 
-        When the end of the message stream is reached, or when a protocol
-        error occurs, :meth:`recv` returns ``None``, indicating that the
-        connection is closed.
+        When the end of the message stream is reached, :meth:`recv` raises
+        :exc:`~websockets.exceptions.ConnectionClosed`. This can happen after
+        a normal connection closure, a protocol error or a network failure.
+
+        .. versionchanged:: 3.0
+
+            :meth:`recv` used to return ``None`` instead. Refer to the
+            changelog for details.
         """
+        # Don't yield from self.ensure_open() here because messages could be
+        # available in the queue even if the connection is closed.
+
         # Return any available message
         try:
             return self.messages.get_nowait()
         except asyncio.queues.QueueEmpty:
             pass
+
+        # Don't yield from self.ensure_open() here because messages could be
+        # received before the closing frame even if the connection is closing.
 
         # Wait for a message until the connection is closed
         next_message = asyncio_ensure_future(
@@ -243,10 +262,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             next_message.cancel()
             raise
 
+        # Now there's no need to yield from self.ensure_open(). Either a
+        # message was received or the connection was closed.
+
         if next_message in done:
             return next_message.result()
         else:
             next_message.cancel()
+            if not self.legacy_recv:
+                raise ConnectionClosed(self.close_code, self.close_reason)
 
     @asyncio.coroutine
     def send(self, data):

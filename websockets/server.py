@@ -239,7 +239,7 @@ class WebSocketServer(asyncio.AbstractServer):
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          loop=None, klass=WebSocketServerProtocol,
+          loop=None, klass=WebSocketServerProtocol, legacy_recv=False,
           origins=None, subprotocols=None, extra_headers=None,
           **kwds):
     """
@@ -295,7 +295,7 @@ def serve(ws_handler, host=None, port=None, *,
         ws_handler, ws_server,
         host=host, port=port, secure=secure,
         origins=origins, subprotocols=subprotocols,
-        extra_headers=extra_headers, loop=loop)
+        extra_headers=extra_headers, loop=loop, legacy_recv=legacy_recv)
     server = yield from loop.create_server(factory, host, port, **kwds)
 
     ws_server.wrap(server)

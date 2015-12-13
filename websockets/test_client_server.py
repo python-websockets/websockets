@@ -6,7 +6,7 @@ import unittest
 import unittest.mock
 
 from .client import *
-from .exceptions import InvalidHandshake
+from .exceptions import ConnectionClosed, InvalidHandshake
 from .http import USER_AGENT, read_response
 from .server import *
 
@@ -299,8 +299,8 @@ class ClientServerTests(unittest.TestCase):
         self.start_server()
         self.start_client()
         self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, None)
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.client.recv())
         self.stop_client()
         self.stop_server()
 

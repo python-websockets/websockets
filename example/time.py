@@ -9,8 +9,6 @@ import websockets
 def time(websocket, path):
     while True:
         now = datetime.datetime.utcnow().isoformat() + 'Z'
-        if not websocket.open:
-            return
         yield from websocket.send(now)
         yield from asyncio.sleep(random.random() * 3)
 

@@ -38,10 +38,9 @@ Then open this HTML file in a browser.
 Common patterns
 ---------------
 
-You will almost always want to process several messages during the
-lifetime of a connection. Therefore you must write a loop. Here are the
-recommended patterns to exit cleanly when the connection drops, either
-because the other side closed it or for any other reason.
+You will usually want to process several messages during the lifetime of a
+connection. Therefore you must write a loop. Here are the basic patterns for
+building a WebSocket server.
 
 Consumer
 ........
@@ -52,14 +51,11 @@ For receiving messages and passing them to a ``consumer`` coroutine::
     def handler(websocket, path):
         while True:
             message = yield from websocket.recv()
-            if message is None:
-                break
             yield from consumer(message)
 
-:meth:`~websockets.protocol.WebSocketCommonProtocol.recv` returns ``None``
-when the connection is closed. In other words, ``None`` marks the end of
-the message stream. The handler coroutine should check for that case and
-return when it happens.
+:meth:`~websockets.protocol.WebSocketCommonProtocol.recv` raises a
+:exc:`~websockets.exceptions.ConnectionClosed` exception when the client
+disconnects, which breaks out of the ``while True`` loop.
 
 Producer
 ........
@@ -70,14 +66,11 @@ For getting messages from a ``producer`` coroutine and sending them::
     def handler(websocket, path):
         while True:
             message = yield from producer()
-            if not websocket.open:
-                break
             yield from websocket.send(message)
 
-:meth:`~websockets.protocol.WebSocketCommonProtocol.send` fails with an
-exception when it's called on a closed connection. Therefore the handler
-coroutine should check that the connection is still open before attempting
-to write and return otherwise.
+:meth:`~websockets.protocol.WebSocketCommonProtocol.send` raises a
+:exc:`~websockets.exceptions.ConnectionClosed` exception when the client
+disconnects, which breaks out of the ``while True`` loop.
 
 Both
 ....
@@ -98,16 +91,12 @@ messages on the same connection.
 
             if listener_task in done:
                 message = listener_task.result()
-                if message is None:
-                    break
                 yield from consumer(message)
             else:
                 listener_task.cancel()
 
             if producer_task in done:
                 message = producer_task.result()
-                if not websocket.open:
-                    break
                 yield from websocket.send(message)
             else:
                 producer_task.cancel()

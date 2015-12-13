@@ -128,8 +128,8 @@ class CommonTests:
         frames first. Otherwise it will see a closed connection and no data.
         """
         self.loop.call_later(MS, self.receive_eof)
-        next_message = self.loop.run_until_complete(self.protocol.recv())
-        self.assertIsNone(next_message)
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
 
     def process_control_frames(self):
         """
@@ -241,6 +241,27 @@ class CommonTests:
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea')
 
+    def test_recv_on_closing_connection(self):
+        # This is a way to start a closing handshake.
+        self.async(self.protocol.close())
+        self.run_loop_once()
+        self.assertOneFrameSent(True, OP_CLOSE, b'\x03\xe8')
+
+        # Complete the closing handshake while running the recv.
+        self.receive_frame(self.close_frame)
+        if self.protocol.is_client:
+            self.receive_eof()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
+
+    def test_recv_on_closed_connection(self):
+        # This is a way to terminate the connection.
+        self.process_invalid_frames()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
+
     def test_recv_protocol_error(self):
         self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8')))
         self.process_invalid_frames()
@@ -284,9 +305,6 @@ class CommonTests:
         with self.assertRaises(Exception):
             self.loop.run_until_complete(self.protocol.worker)
         self.assertConnectionClosed(1011, '')
-
-    def test_recv_on_closed_connection(self):
-        self.process_invalid_frames()
 
     def test_recv_cancelled(self):
         recv = self.async(self.protocol.recv())
@@ -564,6 +582,19 @@ class CommonTests:
         with self.assertRaises(InvalidState):
             self.loop.run_until_complete(self.protocol.ensure_open())
 
+    def test_legacy_recv(self):
+        # By default legacy_recv in disabled.
+        self.assertEqual(self.protocol.legacy_recv, False)
+
+        # This is a way to terminate the connection.
+        self.process_invalid_frames()
+
+        # Enable legacy_recv.
+        self.protocol.legacy_recv = True
+
+        # Now recv() returns None instead of raising ConnectionClosed.
+        self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
+
 
 class ServerCloseTests(CommonTests, unittest.TestCase):
 
@@ -584,11 +615,12 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
 
     def test_client_close(self):
         self.receive_frame(self.close_frame)
-        # The server is waiting for some data at this point but won't get it.
-        next_message = self.loop.run_until_complete(self.protocol.recv())
 
-        self.assertIsNone(next_message)
-        # After recv() returns None, the connection is closed.
+        # The server is waiting for some data at this point but won't get it.
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
+
+        # After recv() raises ConnectionClosed, the connection is closed.
         self.assertConnectionClosed(1000, 'close')
         self.assertOneFrameSent(*self.close_frame)
 
@@ -633,9 +665,10 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         # Fail the connection while answering a close frame from the client.
         self.loop.call_soon(self.receive_frame, self.client_close)
         self.loop.call_later(MS, self.async, self.protocol.fail_connection())
-        next_message = self.loop.run_until_complete(self.protocol.recv())
 
-        self.assertIsNone(next_message)
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
+
         # The closing handshake was completed by fail_connection.
         self.assertConnectionClosed(1011, '')
         self.assertOneFrameSent(*self.client_close)
@@ -659,8 +692,8 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
         # Receiving a message shouldn't crash.
-        next_message = self.loop.run_until_complete(recv)
-        self.assertIsNone(next_message)
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(recv)
 
         self.assertConnectionClosed(1000, 'close')
 
@@ -707,11 +740,12 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         # The client expects the server to close the connection. Simulate it
         # to avoid having to wait for the connection timeout.
         self.loop.call_later(MS, self.receive_eof)
-        # The client is waiting for some data at this point but won't get it.
-        next_message = self.loop.run_until_complete(self.protocol.recv())
 
-        self.assertIsNone(next_message)
-        # After recv() returns None, the connection is closed.
+        # The client is waiting for some data at this point but won't get it.
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
+
+        # After recv() raises ConnectionClosed, the connection is closed.
         self.assertConnectionClosed(1000, 'close')
         self.assertOneFrameSent(*self.close_frame)
 
@@ -772,9 +806,10 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         self.loop.call_soon(self.receive_frame, self.server_close)
         self.loop.call_later(MS, self.async, self.protocol.fail_connection())
         self.loop.call_later(2 * MS, self.receive_eof)
-        next_message = self.loop.run_until_complete(self.protocol.recv())
 
-        self.assertIsNone(next_message)
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
+
         # The closing handshake was completed by fail_connection.
         self.assertConnectionClosed(1011, '')
         self.assertOneFrameSent(*self.server_close)
@@ -800,8 +835,8 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
         # Receiving a message shouldn't crash.
-        next_message = self.loop.run_until_complete(recv)
-        self.assertIsNone(next_message)
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(recv)
 
         self.assertConnectionClosed(1000, 'close')
 

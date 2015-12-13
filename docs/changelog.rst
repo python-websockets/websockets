@@ -10,6 +10,39 @@ Changelog
   :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` supports
   data passed as :class:`str` in addition to :class:`bytes`.
 
+.. warning::
+
+    **Version 3.0 introduces a backwards-incompatible change in the**
+    :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` **API.**
+
+    **If you're upgrading from 2.x or earlier, please read this carefully.**
+
+    :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` used to return
+    ``None`` when the connection was closed. This required checking the return
+    value of every call::
+
+        message = yield from websocket.recv()
+        if message is None:
+            return
+
+    Now it raises a :exc:`~websockets.exceptions.ConnectionClosed` exception
+    instead. This is more Pythonic. The previous code can be simplified to::
+
+        message = yield from websocket.recv()
+
+    When implementing a server, which is the more popular use case, there's no
+    strong reason to handle such exceptions. Let them bubble up, terminate the
+    handler coroutine, and the server will simply ignore them.
+
+    In order to avoid stranding projects built upon an earlier version, the
+    previous behavior can be restored by passing ``legacy_recv=True`` to
+    :func:`~websockets.server.serve`, :func:`~websockets.client.connect`,
+    :class:`~websockets.server.WebSocketServerProtocol`, or
+    :class:`~websockets.client.WebSocketClientProtocol`. ``legacy_recv`` isn't
+    documented in their signatures but isn't scheduled for deprecation either.
+
+Also:
+
 * Worked around an asyncio bug affecting connection termination under load.
 
 * Made ``state_name`` atttribute on protocols a public API.

@@ -29,8 +29,10 @@ class ConnectionClosed(InvalidState):
     """
     Exception raised when trying to read or write on a closed connection.
 
-    """
+    Provides the connection close code and reason in its ``code`` and
+    ``reason`` attributes respectively.
 
+    """
     def __init__(self, code, reason):
         self.code = code
         self.reason = reason

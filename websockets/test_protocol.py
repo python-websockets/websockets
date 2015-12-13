@@ -601,6 +601,18 @@ class CommonTests:
         # Now recv() returns None instead of raising ConnectionClosed.
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
 
+    def test_connection_closed_attributes(self):
+        self.receive_frame(self.close_frame)
+        self.receive_eof()
+        self.loop.run_until_complete(self.protocol.close(reason='close'))
+
+        with self.assertRaises(ConnectionClosed) as context:
+            self.loop.run_until_complete(self.protocol.recv())
+
+        connection_closed = context.exception
+        self.assertEqual(connection_closed.code, 1000)
+        self.assertEqual(connection_closed.reason, 'close')
+
 
 class ServerCloseTests(CommonTests, unittest.TestCase):
 

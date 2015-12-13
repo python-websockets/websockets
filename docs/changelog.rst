@@ -8,6 +8,8 @@ Changelog
 
 * Worked around an asyncio bug affecting connection termination under load.
 
+* Improved documentation.
+
 2.7
 ...
 
@@ -81,11 +83,26 @@ Changelog
 2.0
 ...
 
-* Backwards-incompatible API change:
-  :meth:`~websockets.protocol.WebSocketCommonProtocol.send`,
-  :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
-  :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` are coroutines.
-  They used to be regular functions.
+.. warning::
+
+    **Version 2.0 introduces a backwards-incompatible change in the**
+    :meth:`~websockets.protocol.WebSocketCommonProtocol.send`,
+    :meth:`~websockets.protocol.WebSocketCommonProtocol.ping`, and
+    :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` **APIs.**
+
+    **If you're upgrading from 1.x or earlier, please read this carefully.**
+
+    These APIs used to be functions. Now they're coroutines.
+
+    Instead of::
+
+        websocket.send(message)
+
+    you must now write::
+
+        yield from websocket.send(message)
+
+Also:
 
 * Added flow control.
 

@@ -4,9 +4,9 @@ API
 Design
 ------
 
-``websockets`` provides complete client and server implementations, as shown in
-the examples above. These functions are built on top of low-level APIs
-reflecting the two phases of the WebSocket protocol:
+``websockets`` provides complete client and server implementations, as shown
+in the :doc:`getting started guide <intro>`. These functions are built on top
+of low-level APIs reflecting the two phases of the WebSocket protocol:
 
 1. An opening handshake, in the form of an HTTP Upgrade request;
 

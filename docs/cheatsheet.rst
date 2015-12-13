@@ -20,7 +20,7 @@ Server
 
   * The server takes care of establishing connections, then lets the handler
     execute the application logic, and finally closes the connection after
-    the handler returns.
+    the handler exits normally or with an exception.
 
   * You may subclass :class:`~websockets.server.WebSocketServerProtocol` and
     pass it in the ``klass`` keyword argument for advanced customization.
@@ -28,7 +28,7 @@ Server
 Client
 ------
 
-* Create a server with :func:`~websockets.client.connect` which is similar to
+* Create a client with :func:`~websockets.client.connect` which is similar to
   asyncio's :meth:`~asyncio.BaseEventLoop.create_connection`.
 
   * You may subclass :class:`~websockets.server.WebSocketClientProtocol` and

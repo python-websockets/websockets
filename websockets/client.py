@@ -116,7 +116,7 @@ def connect(uri, *,
 
     * ``origin`` sets the Origin HTTP header
     * ``subprotocols`` is a list of supported subprotocols in order of
-        decreasing preference
+      decreasing preference
     * ``extra_headers`` sets additional HTTP request headers – it can be a
       mapping or an iterable of (name, value) pairs
 

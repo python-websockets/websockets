@@ -146,8 +146,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         Local address of the connection.
 
-        The address is a ``(host, port)`` tuple or ``None`` if the connection
-        hasn't been established yet.
+        This is a ``(host, port)`` tuple or ``None`` if the connection hasn't
+        been established yet.
         """
         if self.writer is None:
             return None
@@ -158,8 +158,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         Remote address of the connection.
 
-        The address is a ``(host, port)`` tuple or ``None`` if the connection
-        hasn't been established yet.
+        This is a ``(host, port)`` tuple or ``None`` if the connection hasn't
+        been established yet.
         """
         if self.writer is None:
             return None
@@ -180,7 +180,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         This coroutine performs the closing handshake.
 
         It waits for the other end to complete the handshake. It doesn't do
-        anything once the connection is closed.
+        anything once the connection is closed. Thus it's idemptotent.
 
         It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
         since errors during connection termination aren't particularly useful.
@@ -244,7 +244,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         This coroutine sends a message.
 
-        It sends a :class:`str` as a text frame and :class:`bytes` as a binary
+        It sends :class:`str` as a text frame and :class:`bytes` as a binary
         frame.
 
         It raises a :exc:`TypeError` for other inputs and

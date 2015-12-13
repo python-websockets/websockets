@@ -213,11 +213,16 @@ class CommonTests:
 
     def test_open(self):
         self.assertTrue(self.protocol.open)
-        self.protocol.connection_lost(None)
+
+        # This is a way to terminate the connection.
+        self.process_invalid_frames()
+
         self.assertFalse(self.protocol.open)
 
     def test_connection_lost(self):
+        # Test calling connection_lost without going through close_connection.
         self.protocol.connection_lost(None)
+
         self.assertConnectionClosed(1006, '')
 
     # Test the recv coroutine.

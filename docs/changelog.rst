@@ -12,6 +12,8 @@ Changelog
 
 * Worked around an asyncio bug affecting connection termination under load.
 
+* Made ``state_name`` atttribute on protocols a public API.
+
 * Improved documentation.
 
 2.7

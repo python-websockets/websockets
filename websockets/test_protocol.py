@@ -219,6 +219,14 @@ class CommonTests:
 
         self.assertFalse(self.protocol.open)
 
+    def test_state_name(self):
+        self.assertEqual(self.protocol.state_name, 'OPEN')
+
+        # This is a way to terminate the connection.
+        self.process_invalid_frames()
+
+        self.assertEqual(self.protocol.state_name, 'CLOSED')
+
     def test_connection_lost(self):
         # Test calling connection_lost without going through close_connection.
         self.protocol.connection_lost(None)

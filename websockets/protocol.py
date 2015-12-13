@@ -135,10 +135,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if self.state == OPEN:
             self.opening_handshake.set_result(True)
 
-    @property
-    def state_name(self):
-        return ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][self.state]
-
     # Public API
 
     @property
@@ -173,6 +169,18 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         It may be used to handle disconnections gracefully.
         """
         return self.state == OPEN
+
+    @property
+    def state_name(self):
+        """
+        Current connection state, as a string.
+
+        Possible states are defined in the WebSocket specification:
+        CONNECTING, OPEN, CLOSING, or CLOSED.
+
+        To check if the connection is open, use :attr:`open` instead.
+        """
+        return ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][self.state]
 
     @asyncio.coroutine
     def close(self, code=1000, reason=''):

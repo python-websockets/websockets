@@ -57,10 +57,6 @@ Shared
 
    .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
 
-        .. autoattribute:: local_address
-        .. autoattribute:: remote_address
-
-        .. autoattribute:: open
         .. automethod:: close(code=1000, reason='')
 
         .. automethod:: recv()
@@ -68,6 +64,13 @@ Shared
 
         .. automethod:: ping(data=None)
         .. automethod:: pong(data=b'')
+
+        .. autoattribute:: local_address
+        .. autoattribute:: remote_address
+
+        .. autoattribute:: open
+        .. autoattribute:: state_name
+
 
 Exceptions
 ..........

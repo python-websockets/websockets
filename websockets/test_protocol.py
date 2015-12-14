@@ -709,7 +709,6 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         self.receive_frame(self.close_frame)
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
-        # Receiving a message shouldn't crash.
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(recv)
 
@@ -722,11 +721,8 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         self.receive_frame(self.close_frame)
         self.receive_eof()
 
-        # Sending a message shouldn't crash.
-        self.loop.run_until_complete(send)
-
-        # Complete the connection.
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(send)
 
         self.assertConnectionClosed(1006, '')
 
@@ -852,7 +848,6 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         self.receive_eof()
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
-        # Receiving a message shouldn't crash.
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(recv)
 
@@ -865,10 +860,7 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
         self.receive_frame(self.close_frame)
         self.receive_eof()
 
-        # Sending a message shouldn't crash.
-        self.loop.run_until_complete(send)
-
-        # Complete the connection.
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(send)
 
         self.assertConnectionClosed(1006, '')

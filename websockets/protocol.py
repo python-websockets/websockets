@@ -470,6 +470,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # 6.2. Receiving Data
         while True:
             frame = yield from self.read_frame(max_size)
+
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:
                 # Make sure the close frame is valid before echoing it.
@@ -477,13 +478,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 if self.state == OPEN:
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     yield from self.write_frame(OP_CLOSE, frame.data)
-                if not self.closing_handshake.done():
-                    self.close_code, self.close_reason = code, reason
-                    self.closing_handshake.set_result(True)
+                self.close_code, self.close_reason = code, reason
+                self.closing_handshake.set_result(True)
                 return
+
             elif frame.opcode == OP_PING:
                 # Answer pings.
                 yield from self.pong(frame.data)
+
             elif frame.opcode == OP_PONG:
                 # Do not acknowledge pings on unsolicited pongs.
                 if frame.data in self.pings:
@@ -493,6 +495,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                         ping_id, waiter = self.pings.popitem(0)
                         if not waiter.cancelled():
                             waiter.set_result(None)
+
             # 5.6. Data Frames
             else:
                 return frame
@@ -546,6 +549,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         except ConnectionError:
             # Terminate the connection if the socket died.
             yield from self.fail_connection(1006)
+            # And raise an exception, since the frame couldn't be sent.
+            raise ConnectionClosed(self.close_code, self.close_reason)
 
     @asyncio.coroutine
     def close_connection(self, force=False):
@@ -590,7 +595,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         logger.info("Failing the WebSocket connection: %d %s", code, reason)
         if self.state == OPEN:
             if code == 1006:
-                # Don't send a close frame is the connection is broken. Set
+                # Don't send a close frame if the connection is broken. Set
                 # the state to CLOSING to allow close_connection to proceed.
                 self.state = CLOSING
             else:

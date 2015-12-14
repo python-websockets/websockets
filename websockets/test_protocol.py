@@ -674,15 +674,17 @@ class CommonTests:
         self.assertConnectionClosed(1000, 'remote')
         self.assertOneFrameSent(*self.local_close)
 
-    def test_close_drops_frames(self):
-        text_frame = Frame(True, OP_TEXT, b'')
-        self.receive_frame(text_frame)
+    def test_close_preserves_incoming_frames(self):
+        self.receive_frame(Frame(True, OP_TEXT, b'hello'))
         self.receive_frame(self.close_frame)
         self.receive_eof_if_client()
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
         self.assertConnectionClosed(1000, 'close')
         self.assertOneFrameSent(*self.close_frame)
+
+        next_message = self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(next_message, 'hello')
 
     def test_close_protocol_error(self):
         invalid_close_frame = Frame(True, OP_CLOSE, b'\x00')

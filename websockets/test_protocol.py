@@ -72,6 +72,8 @@ class CommonTests:
         self.loop.close()
         super().tearDown()
 
+    # Utilities for writing tests.
+
     def run_loop_once(self):
         # Process callbacks scheduled with call_soon by appending a callback
         # to stop the event loop then running it until it hits that callback.
@@ -91,10 +93,9 @@ class CommonTests:
 
         self.protocol.writer.drain = delayed_drain
 
-    # These frames are used in the ServerTests and ClientTests subclasses.
     close_frame = Frame(True, OP_CLOSE, serialize_close(1000, 'close'))
-    client_close = Frame(True, OP_CLOSE, serialize_close(1000, 'client'))
-    server_close = Frame(True, OP_CLOSE, serialize_close(1000, 'server'))
+    local_close = Frame(True, OP_CLOSE, serialize_close(1000, 'local'))
+    remote_close = Frame(True, OP_CLOSE, serialize_close(1000, 'remote'))
 
     @property
     def async(self):
@@ -625,13 +626,14 @@ class CommonTests:
         self.assertEqual(connection_closed.code, 1000)
         self.assertEqual(connection_closed.reason, 'close')
 
+    # Test the protocol logic for closing the connection.
 
-class ServerCloseTests(CommonTests, unittest.TestCase):
-
-    # Test the protocol logic for closing the connection on the server side.
-
-    def test_server_close(self):
+    def test_local_close(self):
+        # Emulate how the remote endpoint answers the closing handshake.
         self.receive_frame(self.close_frame)
+        self.receive_eof_if_client()
+
+        # Run the closing handshake.
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
         self.assertConnectionClosed(1000, 'close')
@@ -643,14 +645,16 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1000, 'close')
         self.assertNoFrameSent()
 
-    def test_client_close(self):
+    def test_remote_close(self):
+        # Emulate how the remote endpoint initiates the closing handshake.
         self.receive_frame(self.close_frame)
+        self.receive_eof_if_client()
 
-        # The server is waiting for some data at this point but won't get it.
+        # Wait for some data in order to process the handshake.
+        # After recv() raises ConnectionClosed, the connection is closed.
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.recv())
 
-        # After recv() raises ConnectionClosed, the connection is closed.
         self.assertConnectionClosed(1000, 'close')
         self.assertOneFrameSent(*self.close_frame)
 
@@ -661,22 +665,89 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
         self.assertNoFrameSent()
 
     def test_simultaneous_close(self):
-        self.receive_frame(self.client_close)
-        self.loop.run_until_complete(self.protocol.close(reason='server'))
+        self.receive_frame(self.remote_close)
+        self.receive_eof_if_client()
+        self.loop.run_until_complete(self.protocol.close(reason='local'))
 
         # The close code and reason are taken from the remote side because
         # that's presumably more useful that the values from the local side.
-        self.assertConnectionClosed(1000, 'client')
-        self.assertOneFrameSent(*self.server_close)
+        self.assertConnectionClosed(1000, 'remote')
+        self.assertOneFrameSent(*self.local_close)
 
     def test_close_drops_frames(self):
         text_frame = Frame(True, OP_TEXT, b'')
         self.receive_frame(text_frame)
         self.receive_frame(self.close_frame)
+        self.receive_eof_if_client()
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
         self.assertConnectionClosed(1000, 'close')
         self.assertOneFrameSent(*self.close_frame)
+
+    def test_close_protocol_error(self):
+        invalid_close_frame = Frame(True, OP_CLOSE, b'\x00')
+        self.receive_frame(invalid_close_frame)
+        self.receive_eof_if_client()
+        self.loop.run_until_complete(self.protocol.close(reason='close'))
+
+        self.assertConnectionClosed(1002, '')
+
+    def test_close_connection_lost(self):
+        self.receive_eof()
+        self.loop.run_until_complete(self.protocol.close(reason='close'))
+
+        self.assertConnectionClosed(1006, '')
+
+    def test_remote_close_race_with_failing_connection(self):
+        self.make_drain_slow()
+
+        # Fail the connection while answering a close frame from the client.
+        self.loop.call_soon(self.receive_frame, self.remote_close)
+        self.loop.call_later(MS, self.async, self.protocol.fail_connection())
+        # The client expects the server to close the connection.
+        # Simulate it instead of waiting for the connection timeout.
+        self.loop.call_later(MS, self.receive_eof_if_client)
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
+
+        # The closing handshake was completed by fail_connection.
+        self.assertConnectionClosed(1011, '')
+        self.assertOneFrameSent(*self.remote_close)
+
+    def test_local_close_during_recv(self):
+        recv = self.async(self.protocol.recv())
+
+        self.receive_frame(self.close_frame)
+        self.receive_eof_if_client()
+
+        self.loop.run_until_complete(self.protocol.close(reason='close'))
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(recv)
+
+        self.assertConnectionClosed(1000, 'close')
+
+    # There is no test_remote_close_during_recv because it would be identical
+    # to test_remote_close.
+
+    def test_remote_close_during_send(self):
+        self.make_drain_slow()
+        send = self.async(self.protocol.send('hello'))
+
+        self.receive_frame(self.close_frame)
+        self.receive_eof()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(send)
+
+        self.assertConnectionClosed(1006, '')
+
+    # There is no test_local_close_during_send because this cannot really
+    # happen, considering that writes are serialized.
+
+
+class ServerTests(CommonTests, unittest.TestCase):
 
     def test_close_handshake_timeout(self):
         # Timeout is expected in 10ms.
@@ -689,117 +760,12 @@ class ServerCloseTests(CommonTests, unittest.TestCase):
             self.loop.run_until_complete(self.protocol.close(reason='close'))
         self.assertConnectionClosed(1006, '')
 
-    def test_client_close_race_with_failing_connection(self):
-        self.make_drain_slow()
 
-        # Fail the connection while answering a close frame from the client.
-        self.loop.call_soon(self.receive_frame, self.client_close)
-        self.loop.call_later(MS, self.async, self.protocol.fail_connection())
-
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.recv())
-
-        # The closing handshake was completed by fail_connection.
-        self.assertConnectionClosed(1011, '')
-        self.assertOneFrameSent(*self.client_close)
-
-    def test_close_protocol_error(self):
-        invalid_close_frame = Frame(True, OP_CLOSE, b'\x00')
-        self.receive_frame(invalid_close_frame)
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
-
-        self.assertConnectionClosed(1002, '')
-
-    def test_close_connection_lost(self):
-        self.receive_eof()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
-
-        self.assertConnectionClosed(1006, '')
-
-    def test_close_during_recv(self):
-        recv = self.async(self.protocol.recv())
-        self.receive_frame(self.close_frame)
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
-
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(recv)
-
-        self.assertConnectionClosed(1000, 'close')
-
-    def test_close_during_send(self):
-        self.make_drain_slow()
-
-        send = self.async(self.protocol.send('hello'))
-        self.receive_frame(self.close_frame)
-        self.receive_eof()
-
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(send)
-
-        self.assertConnectionClosed(1006, '')
-
-
-class ClientCloseTests(CommonTests, unittest.TestCase):
+class ClientTests(CommonTests, unittest.TestCase):
 
     def setUp(self):
         super().setUp()
         self.protocol.is_client = True
-
-    # Test the protocol logic for closing the connection on the client side.
-
-    def test_client_close(self):
-        self.receive_frame(self.close_frame)
-        self.receive_eof()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
-
-        self.assertConnectionClosed(1000, 'close')
-        self.assertOneFrameSent(*self.close_frame)
-
-        # Closing the connection again is a no-op.
-        self.loop.run_until_complete(self.protocol.close(reason='oh noes!'))
-
-        self.assertConnectionClosed(1000, 'close')
-        self.assertNoFrameSent()
-
-    def test_server_close(self):
-        self.receive_frame(self.close_frame)
-        # The client expects the server to close the connection. Simulate it
-        # to avoid having to wait for the connection timeout.
-        self.loop.call_later(MS, self.receive_eof)
-
-        # The client is waiting for some data at this point but won't get it.
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.recv())
-
-        # After recv() raises ConnectionClosed, the connection is closed.
-        self.assertConnectionClosed(1000, 'close')
-        self.assertOneFrameSent(*self.close_frame)
-
-        # Closing the connection again is a no-op.
-        self.loop.run_until_complete(self.protocol.close('oh noes!'))
-
-        self.assertConnectionClosed(1000, 'close')
-        self.assertNoFrameSent()
-
-    def test_simultaneous_close(self):
-        self.receive_frame(self.server_close)
-        self.receive_eof()
-        self.loop.run_until_complete(self.protocol.close(reason='client'))
-
-        # The close code and reason are taken from the remote side because
-        # that's presumably more useful that the values from the local side.
-        self.assertConnectionClosed(1000, 'server')
-        self.assertOneFrameSent(*self.client_close)
-
-    def test_close_drops_frames(self):
-        text_frame = Frame(True, OP_TEXT, b'')
-        self.receive_frame(text_frame)
-        self.receive_frame(self.close_frame)
-        self.receive_eof()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
-
-        self.assertConnectionClosed(1000, 'close')
-        self.assertOneFrameSent(*self.close_frame)
 
     def test_close_handshake_timeout(self):
         # Timeout is expected in 2 * 10 = 20ms.
@@ -823,56 +789,5 @@ class ClientCloseTests(CommonTests, unittest.TestCase):
             # stop waiting for the connection close and timeout.
             self.receive_frame(self.close_frame)
             self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1000, 'close')
-
-    def test_server_close_race_with_failing_connection(self):
-        self.make_drain_slow()
-
-        # Fail the connection while answering a close frame from the server.
-        self.loop.call_soon(self.receive_frame, self.server_close)
-        self.loop.call_later(MS, self.async, self.protocol.fail_connection())
-        self.loop.call_later(2 * MS, self.receive_eof)
-
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.recv())
-
-        # The closing handshake was completed by fail_connection.
-        self.assertConnectionClosed(1011, '')
-        self.assertOneFrameSent(*self.server_close)
-
-    def test_close_protocol_error(self):
-        invalid_close_frame = Frame(True, OP_CLOSE, b'\x00')
-        self.receive_frame(invalid_close_frame)
-        self.receive_eof()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
-
-        self.assertConnectionClosed(1002, '')
-
-    def test_close_connection_lost(self):
-        self.receive_eof()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
-
-        self.assertConnectionClosed(1006, '')
-
-    def test_close_during_recv(self):
-        recv = self.async(self.protocol.recv())
-        self.receive_frame(self.close_frame)
-        self.receive_eof()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
-
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(recv)
 
         self.assertConnectionClosed(1000, 'close')
-
-    def test_close_during_send(self):
-        self.make_drain_slow()
-
-        send = self.async(self.protocol.send('hello'))
-        self.receive_frame(self.close_frame)
-        self.receive_eof()
-
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(send)
-
-        self.assertConnectionClosed(1006, '')

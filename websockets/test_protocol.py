@@ -52,7 +52,12 @@ class TransportMock(unittest.mock.Mock):
 
 
 class CommonTests:
+    """
+    Mixin that defines most tests but doesn't inherit unittest.TestCase.
 
+    Tests are run by the ServerTests and ClientTests subclasses.
+
+    """
     def setUp(self):
         super().setUp()
         self.loop = asyncio.new_event_loop()
@@ -120,6 +125,17 @@ class CommonTests:
         """
         self.loop.call_soon(self.protocol.eof_received)
         self.loop.call_soon(self.transport.close)
+
+    def receive_eof_if_client(self):
+        """
+        Like receive_eof, but only if this is the client side.
+
+        Since the server is supposed to initiate the termination of the TCP
+        connection, this method helps making tests work for both sides.
+
+        """
+        if self.protocol.is_client:
+            self.receive_eof()
 
     def process_invalid_frames(self):
         """
@@ -255,8 +271,7 @@ class CommonTests:
 
         # Complete the closing handshake while running the recv.
         self.receive_frame(self.close_frame)
-        if self.protocol.is_client:
-            self.receive_eof()
+        self.receive_eof_if_client()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.recv())
@@ -346,8 +361,7 @@ class CommonTests:
 
         # Complete the closing handshake while running the send.
         self.receive_frame(self.close_frame)
-        if self.protocol.is_client:
-            self.receive_eof()
+        self.receive_eof_if_client()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.send('foobar'))
@@ -393,8 +407,7 @@ class CommonTests:
 
         # Complete the closing handshake while running the ping.
         self.receive_frame(self.close_frame)
-        if self.protocol.is_client:
-            self.receive_eof()
+        self.receive_eof_if_client()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.ping())
@@ -435,8 +448,7 @@ class CommonTests:
 
         # Complete the closing handshake while running the pong.
         self.receive_frame(self.close_frame)
-        if self.protocol.is_client:
-            self.receive_eof()
+        self.receive_eof_if_client()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.pong())

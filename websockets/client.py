@@ -154,3 +154,14 @@ def connect(uri, *,
         raise
 
     return protocol
+
+
+try:
+    from .python35 import Connect
+except SyntaxError:
+    pass
+else:
+    Connect.__wrapped__ = connect
+    # Copy over docstring to support building documentation on Python 3.5.
+    Connect.__doc__ = connect.__doc__
+    connect = Connect

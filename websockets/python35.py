@@ -2,7 +2,9 @@ import asyncio
 import websockets.client
 
 
-class Connect:
+class _Connect:
+
+    _client_connect_coro = NotImplemented
 
     def __init__(self, *args, **kwargs):
         self.args = args
@@ -13,7 +15,8 @@ class Connect:
         return self._websocket
 
     def __iter__(self):
-        coro = websockets.client._connect(*self.args, **self.kwargs)
+        cls = self.__class__
+        coro = cls._client_connect_coro(*self.args, **self.kwargs)
         return (yield from coro)
 
     __await__ = __iter__
@@ -22,3 +25,8 @@ class Connect:
         close_result = await self._websocket.close()
         del self._websocket
         return close_result
+
+
+def connect_coro_wrapper(client_connect_coro):
+    _Connect._client_connect_coro = client_connect_coro
+    return _Connect

@@ -3,7 +3,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 """
 
-__all__ = ['WebSocketClientProtocol']
+__all__ = ['connect', 'WebSocketClientProtocol']
 
 import asyncio
 import collections.abc
@@ -99,7 +99,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 
 @asyncio.coroutine
-def _connect(uri, *,
+def connect(uri, *,
             loop=None, klass=WebSocketClientProtocol, legacy_recv=False,
             origin=None, subprotocols=None, extra_headers=None,
             **kwds):
@@ -154,3 +154,12 @@ def _connect(uri, *,
         raise
 
     return protocol
+
+
+try:
+    from .python35 import connect_coro_wrapper
+except SyntaxError:
+    pass
+else:
+    connect = connect_coro_wrapper(connect)
+    del connect_coro_wrapper

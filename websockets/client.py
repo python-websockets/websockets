@@ -15,8 +15,14 @@ from .http import USER_AGENT, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 from .uri import parse_uri
 
+try:
+    from .python35 import WebSocketProtocolContextManagerMixin
+except ImportError:
+    WebSocketProtocolContextManagerMixin = object
 
-class WebSocketClientProtocol(WebSocketCommonProtocol):
+
+class WebSocketClientProtocol(WebSocketCommonProtocol,
+        WebSocketProtocolContextManagerMixin):
     """
     Complete WebSocket client implementation as an :class:`asyncio.Protocol`.
 

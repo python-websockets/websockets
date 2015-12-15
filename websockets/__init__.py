@@ -14,4 +14,9 @@ __all__ = (
     + uri.__all__
 )
 
+try:
+    from .python35 import Connect as connect
+except (ImportError, SyntaxError):
+    connect = client._connect
+
 from .version import version as __version__                             # noqa

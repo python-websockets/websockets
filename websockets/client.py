@@ -3,7 +3,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 """
 
-__all__ = ['connect', 'WebSocketClientProtocol']
+__all__ = ['WebSocketClientProtocol']
 
 import asyncio
 import collections.abc
@@ -15,14 +15,8 @@ from .http import USER_AGENT, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 from .uri import parse_uri
 
-try:
-    from .python35 import WebSocketProtocolContextManagerMixin
-except ImportError:
-    WebSocketProtocolContextManagerMixin = object
 
-
-class WebSocketClientProtocol(WebSocketCommonProtocol,
-        WebSocketProtocolContextManagerMixin):
+class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
     Complete WebSocket client implementation as an :class:`asyncio.Protocol`.
 
@@ -105,7 +99,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol,
 
 
 @asyncio.coroutine
-def connect(uri, *,
+def _connect(uri, *,
             loop=None, klass=WebSocketClientProtocol, legacy_recv=False,
             origin=None, subprotocols=None, extra_headers=None,
             **kwds):

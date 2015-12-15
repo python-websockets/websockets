@@ -5,12 +5,11 @@ import datetime
 import random
 import websockets
 
-@asyncio.coroutine
-def time(websocket, path):
+async def time(websocket, path):
     while True:
         now = datetime.datetime.utcnow().isoformat() + 'Z'
-        yield from websocket.send(now)
-        yield from asyncio.sleep(random.random() * 3)
+        await websocket.send(now)
+        await asyncio.sleep(random.random() * 3)
 
 start_server = websockets.serve(time, '127.0.0.1', 5678)
 

@@ -17,14 +17,14 @@ Changelog
     ``None`` when the connection was closed. This required checking the return
     value of every call::
 
-        message = yield from websocket.recv()
+        message = await websocket.recv()
         if message is None:
             return
 
     Now it raises a :exc:`~websockets.exceptions.ConnectionClosed` exception
     instead. This is more Pythonic. The previous code can be simplified to::
 
-        message = yield from websocket.recv()
+        message = await websocket.recv()
 
     When implementing a server, which is the more popular use case, there's no
     strong reason to handle such exceptions. Let them bubble up, terminate the
@@ -41,6 +41,8 @@ Also:
 
 * :func:`~websockets.client.connect` can be used as an asynchronous context
   manager on Python ≥ 3.5.
+
+* Updated documentation with ``await`` and ``async`` syntax from Python 3.5.
 
 * :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
   :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` supports
@@ -142,7 +144,7 @@ Also:
 
     you must now write::
 
-        yield from websocket.send(message)
+        await websocket.send(message)
 
 Also:
 

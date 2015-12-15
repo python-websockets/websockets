@@ -1,6 +1,11 @@
 Getting started
 ===============
 
+.. warning::
+
+    This documentation is written for Python ≥ 3.5. If you're using Python 3.4
+    or 3.3, you will have to :ref:`adapt the code samples <python-lt-35>`.
+
 Basic example
 -------------
 
@@ -54,11 +59,10 @@ Consumer
 
 For receiving messages and passing them to a ``consumer`` coroutine::
 
-    @asyncio.coroutine
-    def handler(websocket, path):
+    async def handler(websocket, path):
         while True:
-            message = yield from websocket.recv()
-            yield from consumer(message)
+            message = await websocket.recv()
+            await consumer(message)
 
 :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` raises a
 :exc:`~websockets.exceptions.ConnectionClosed` exception when the client
@@ -69,11 +73,10 @@ Producer
 
 For getting messages from a ``producer`` coroutine and sending them::
 
-    @asyncio.coroutine
-    def handler(websocket, path):
+    async def handler(websocket, path):
         while True:
-            message = yield from producer()
-            yield from websocket.send(message)
+            message = await producer()
+            await websocket.send(message)
 
 :meth:`~websockets.protocol.WebSocketCommonProtocol.send` raises a
 :exc:`~websockets.exceptions.ConnectionClosed` exception when the client
@@ -87,24 +90,23 @@ messages on the same connection.
 
 ::
 
-    @asyncio.coroutine
-    def handler(websocket, path):
+    async def handler(websocket, path):
         while True:
             listener_task = asyncio.ensure_future(websocket.recv())
             producer_task = asyncio.ensure_future(producer())
-            done, pending = yield from asyncio.wait(
+            done, pending = await asyncio.wait(
                 [listener_task, producer_task],
                 return_when=asyncio.FIRST_COMPLETED)
 
             if listener_task in done:
                 message = listener_task.result()
-                yield from consumer(message)
+                await consumer(message)
             else:
                 listener_task.cancel()
 
             if producer_task in done:
                 message = producer_task.result()
-                yield from websocket.send(message)
+                await websocket.send(message)
             else:
                 producer_task.cancel()
 
@@ -121,16 +123,14 @@ register clients when they connect and unregister them when they disconnect.
 
     connected = set()
 
-    @asyncio.coroutine
-    def handler(websocket, path):
+    async def handler(websocket, path):
         global connected
         # Register.
         connected.add(websocket)
         try:
             # Implement logic here.
-            yield from asyncio.wait(
-                [ws.send("Hello!") for ws in connected])
-            yield from asyncio.sleep(10)
+            await asyncio.wait([ws.send("Hello!") for ws in connected])
+            await asyncio.sleep(10)
         finally:
             # Unregister.
             connected.remove(websocket)
@@ -148,3 +148,30 @@ You don't have to worry about performing the opening or the closing handshake,
 answering pings, or any other behavior required by the specification.
 
 ``websockets`` handles all this under the hood so you don't have to.
+
+.. _python-lt-35:
+
+Python < 3.5
+------------
+
+This documentation uses the ``await`` and ``async`` syntax introduced in
+Python 3.5.
+
+If you're using Python 3.4 or 3.3, you must substitute::
+
+    async def ...
+
+with::
+
+    @asyncio.coroutine
+    def ...
+
+and::
+
+     await ...
+
+with::
+
+    yield from ...
+
+Otherwise you will encounter a :exc:`SyntaxError`.

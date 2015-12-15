@@ -3,13 +3,12 @@
 import asyncio
 import websockets
 
-@asyncio.coroutine
-def hello(websocket, path):
-    name = yield from websocket.recv()
+async def hello(websocket, path):
+    name = await websocket.recv()
     print("< {}".format(name))
     greeting = "Hello {}!".format(name)
 
-    yield from websocket.send(greeting)
+    await websocket.send(greeting)
     print("> {}".format(greeting))
 
 start_server = websockets.serve(hello, 'localhost', 8765)

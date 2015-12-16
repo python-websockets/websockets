@@ -138,6 +138,20 @@ class CommonTests:
         if self.protocol.is_client:
             self.receive_eof()
 
+    def close_connection(self, code=1000, reason='close'):
+        """
+        Close the connection with a standard closing handshake.
+
+        """
+        close_frame_data = serialize_close(code, reason)
+        # Prepare the response to the closing handshake from the remote side.
+        self.receive_frame(Frame(True, OP_CLOSE, close_frame_data))
+        self.receive_eof_if_client()
+        # Trigger the closing handshake from the local side and complete it.
+        self.loop.run_until_complete(self.protocol.close(code, reason))
+        # Empty the outgoing data stream so we can make assertions later on.
+        self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
+
     def process_invalid_frames(self):
         """
         Make the protocol fail quickly after simulating invalid data.
@@ -238,18 +252,12 @@ class CommonTests:
 
     def test_open(self):
         self.assertTrue(self.protocol.open)
-
-        # This is a way to terminate the connection.
-        self.process_invalid_frames()
-
+        self.close_connection()
         self.assertFalse(self.protocol.open)
 
     def test_state_name(self):
         self.assertEqual(self.protocol.state_name, 'OPEN')
-
-        # This is a way to terminate the connection.
-        self.process_invalid_frames()
-
+        self.close_connection()
         self.assertEqual(self.protocol.state_name, 'CLOSED')
 
     # Test the recv coroutine.
@@ -278,8 +286,7 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.recv())
 
     def test_recv_on_closed_connection(self):
-        # This is a way to terminate the connection.
-        self.process_invalid_frames()
+        self.close_connection()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.recv())
@@ -369,8 +376,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_send_on_closed_connection(self):
-        # This is a way to terminate the connection.
-        self.process_invalid_frames()
+        self.close_connection()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.send('foobar'))
@@ -415,8 +421,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_ping_on_closed_connection(self):
-        # This is a way to terminate the connection.
-        self.process_invalid_frames()
+        self.close_connection()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.ping())
@@ -456,8 +461,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_pong_on_closed_connection(self):
-        # This is a way to terminate the connection.
-        self.process_invalid_frames()
+        self.close_connection()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.pong())
@@ -605,8 +609,7 @@ class CommonTests:
         # By default legacy_recv in disabled.
         self.assertEqual(self.protocol.legacy_recv, False)
 
-        # This is a way to terminate the connection.
-        self.process_invalid_frames()
+        self.close_connection()
 
         # Enable legacy_recv.
         self.protocol.legacy_recv = True
@@ -615,9 +618,7 @@ class CommonTests:
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
 
     def test_connection_closed_attributes(self):
-        self.receive_frame(self.close_frame)
-        self.receive_eof()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.close_connection()
 
         with self.assertRaises(ConnectionClosed) as context:
             self.loop.run_until_complete(self.protocol.recv())

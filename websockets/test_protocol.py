@@ -142,6 +142,8 @@ class CommonTests:
         """
         Close the connection with a standard closing handshake.
 
+        This puts the connection in the CLOSED state.
+
         """
         close_frame_data = serialize_close(code, reason)
         # Prepare the response to the closing handshake from the remote side.
@@ -151,6 +153,24 @@ class CommonTests:
         self.loop.run_until_complete(self.protocol.close(code, reason))
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
+
+    def close_connection_partial(self, code=1000, reason='close'):
+        """
+        Initiate a standard closing handshake but do not complete it.
+
+        The main difference with `close_connection` is that the connection is
+        left in the CLOSING state until the event loop runs again.
+
+        """
+        close_frame_data = serialize_close(code, reason)
+        # Trigger the closing handshake from the local side.
+        self.async(self.protocol.close(code, reason))
+        self.run_loop_once()
+        # Empty the outgoing data stream so we can make assertions later on.
+        self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
+        # Prepare the response to the closing handshake from the remote side.
+        self.receive_frame(Frame(True, OP_CLOSE, close_frame_data))
+        self.receive_eof_if_client()
 
     def process_invalid_frames(self):
         """
@@ -273,14 +293,7 @@ class CommonTests:
         self.assertEqual(data, b'tea')
 
     def test_recv_on_closing_connection(self):
-        # This is a way to start a closing handshake.
-        self.async(self.protocol.close())
-        self.run_loop_once()
-        self.assertOneFrameSent(True, OP_CLOSE, b'\x03\xe8')
-
-        # Complete the closing handshake while running the recv.
-        self.receive_frame(self.close_frame)
-        self.receive_eof_if_client()
+        self.close_connection_partial()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.recv())
@@ -362,14 +375,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_send_on_closing_connection(self):
-        # This is a way to start a closing handshake.
-        self.async(self.protocol.close())
-        self.run_loop_once()
-        self.assertOneFrameSent(True, OP_CLOSE, b'\x03\xe8')
-
-        # Complete the closing handshake while running the send.
-        self.receive_frame(self.close_frame)
-        self.receive_eof_if_client()
+        self.close_connection_partial()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.send('foobar'))
@@ -407,14 +413,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_ping_on_closing_connection(self):
-        # This is a way to start a closing handshake.
-        self.async(self.protocol.close())
-        self.run_loop_once()
-        self.assertOneFrameSent(True, OP_CLOSE, b'\x03\xe8')
-
-        # Complete the closing handshake while running the ping.
-        self.receive_frame(self.close_frame)
-        self.receive_eof_if_client()
+        self.close_connection_partial()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.ping())
@@ -447,14 +446,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_pong_on_closing_connection(self):
-        # This is a way to start a closing handshake.
-        self.async(self.protocol.close())
-        self.run_loop_once()
-        self.assertOneFrameSent(True, OP_CLOSE, b'\x03\xe8')
-
-        # Complete the closing handshake while running the pong.
-        self.receive_frame(self.close_frame)
-        self.receive_eof_if_client()
+        self.close_connection_partial()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.pong())

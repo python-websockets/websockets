@@ -157,9 +157,35 @@ def connect(uri, *,
 
 
 try:
-    from .python35 import connect_coro_wrapper
+    class _connect:
+        """
+        Wrapper class for connect() for Python version 3.5 and above.
+
+        It supports the new style await syntax and the asyncronous context
+        managers protocol as per PEP 0492.
+        """
+        _connect = connect
+
+        def __init__(self, *args, **kwargs):
+            self.args = args
+            self.kwargs = kwargs
+
+        def __iter__(self):
+            cls = self.__class__
+            coro = cls._connect(*self.args, **self.kwargs)
+            return (yield from coro)
+
+        __await__ = __iter__
+
+        async def __aenter__(self):
+            self._websocket = await self
+            return self._websocket
+
+        async def __aexit__(self, exc_type, exc_value, traceback):
+            await self._websocket.close()
+            del self._websocket
 except SyntaxError:
     pass
 else:
-    connect = connect_coro_wrapper(connect)
-    del connect_coro_wrapper
+    connect = _connect
+    del _connect

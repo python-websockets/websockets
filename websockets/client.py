@@ -8,6 +8,7 @@ __all__ = ['connect', 'WebSocketClientProtocol']
 import asyncio
 import collections.abc
 import email.message
+import functools
 
 from .exceptions import InvalidHandshake
 from .handshake import build_request, check_response
@@ -157,22 +158,22 @@ def connect(uri, *,
 
 
 try:
+    @functools.wraps(connect, assigned=('__name__', '__qualname__', '__doc__'),
+                     updated=())
     class _connect:
         """
-        Wrapper class for connect() for Python version 3.5 and above.
+        Wrapper class for connect() for Python 3.5 and above.
 
         It supports the new style await syntax and the asyncronous context
         managers protocol as per PEP 0492.
         """
-        _connect = connect
-
         def __init__(self, *args, **kwargs):
             self.args = args
             self.kwargs = kwargs
 
         def __iter__(self):
             cls = self.__class__
-            coro = cls._connect(*self.args, **self.kwargs)
+            coro = cls.__wrapped__(*self.args, **self.kwargs)
             return (yield from coro)
 
         __await__ = __iter__
@@ -188,4 +189,6 @@ except SyntaxError:
     pass
 else:
     connect = _connect
+    connect.__doc__ = connect.__doc__.replace('This coroutine', 'This class', 1)
+    connect.__doc__ = connect.__doc__.replace(':func:`con', ':class:`con')
     del _connect

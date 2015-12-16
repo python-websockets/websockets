@@ -19,9 +19,8 @@ class _Connect:
         return self._websocket
 
     async def __aexit__(self, exc_type, exc_value, traceback):
-        close_result = await self._websocket.close()
+        await self._websocket.close()
         del self._websocket
-        return close_result
 
 
 def connect_coro_wrapper(client_connect_coro):

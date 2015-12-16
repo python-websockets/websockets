@@ -1,6 +1,3 @@
-import asyncio
-import websockets.client
-
 
 class _Connect:
 

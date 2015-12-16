@@ -162,7 +162,7 @@ try:
                      updated=())
     class _connect:
         """
-        Wrapper class for connect() for Python 3.5 and above.
+        Wrapper class for :func:`connect` for Python 3.5 and above.
 
         It supports the new style await syntax and the asyncronous context
         managers protocol as per PEP 0492.

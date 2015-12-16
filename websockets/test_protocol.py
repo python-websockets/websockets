@@ -125,7 +125,7 @@ class CommonTests:
 
         """
         self.loop.call_soon(self.protocol.eof_received)
-        self.loop.call_soon(self.transport.close)
+        self.loop.call_soon(self.loop.call_soon, self.transport.close)
 
     def receive_eof_if_client(self):
         """

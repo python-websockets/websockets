@@ -28,11 +28,11 @@ Here's an example of how to run a WebSocket server and connect from a browser.
 
 Run this script in a console:
 
-.. literalinclude:: ../example/time.py
+.. literalinclude:: ../example/sendtime.py
 
 Then open this HTML file in a browser.
 
-.. literalinclude:: ../example/time.html
+.. literalinclude:: ../example/showtime.html
    :language: html
 
 Common patterns

@@ -4,6 +4,8 @@ Getting started
 Basic example
 -------------
 
+*This section assumes Python ≥ 3.5. For older versions, read below.*
+
 .. _server-example:
 
 Here's a WebSocket server example. It reads a name from the client, sends a
@@ -20,6 +22,11 @@ Here's a corresponding client example.
 On the server side, the handler coroutine ``hello`` is executed once for
 each WebSocket connection. The connection is automatically closed when the
 handler returns.
+
+``async`` and ``await`` aren't available in Python < 3.5. Here's how to adapt
+the client example for older Python versions.
+
+.. literalinclude:: ../example/oldclient.py
 
 Browser-based example
 ---------------------

@@ -31,6 +31,8 @@ Client
 * Create a client with :func:`~websockets.client.connect` which is similar to
   asyncio's :meth:`~asyncio.BaseEventLoop.create_connection`.
 
+  * On Python ≥ 3.5, you can also use it as an asynchronous context manager.
+
   * You may subclass :class:`~websockets.server.WebSocketClientProtocol` and
     pass it in the ``klass`` keyword argument for advanced customization.
 
@@ -42,7 +44,8 @@ Client
   :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` if you wish but it
   isn't needed in general.
 
-* Call :meth:`~websockets.protocol.WebSocketCommonProtocol.close` to terminate
+* If you aren't using :func:`~websockets.client.connect` as a context manager,
+  call :meth:`~websockets.protocol.WebSocketCommonProtocol.close` to terminate
   the connection.
 
 Debugging

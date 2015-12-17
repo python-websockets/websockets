@@ -39,6 +39,9 @@ Changelog
 
 Also:
 
+* :func:`~websockets.client.connect` can be used as an asynchronous context
+  manager on Python ≥ 3.5.
+
 * :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
   :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` supports
   data passed as :class:`str` in addition to :class:`bytes`.

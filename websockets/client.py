@@ -128,6 +128,9 @@ def connect(uri, *,
     It raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is invalid and
     :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
 
+    On Python 3.5, it can be used as a asynchronous context manager. In that
+    case, the connection is closed when exiting the context.
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()

@@ -3,17 +3,14 @@
 import asyncio
 import websockets
 
-@asyncio.coroutine
-def hello():
-    websocket = yield from websockets.connect('ws://localhost:8765/')
+async def hello():
+    async with websockets.connect('ws://localhost:8765') as websocket:
 
-    name = input("What's your name? ")
-    yield from websocket.send(name)
-    print("> {}".format(name))
+        name = input("What's your name? ")
+        await websocket.send(name)
+        print("> {}".format(name))
 
-    greeting = yield from websocket.recv()
-    print("< {}".format(greeting))
-
-    yield from websocket.close()
+        greeting = await websocket.recv()
+        print("< {}".format(greeting))
 
 asyncio.get_event_loop().run_until_complete(hello())

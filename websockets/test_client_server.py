@@ -402,3 +402,13 @@ class ClientServerOriginTests(unittest.TestCase):
         self.loop.run_until_complete(client.close())
         server.close()
         self.loop.run_until_complete(server.wait_closed())
+
+
+try:
+    from .py35_test_client_server import ClientServerContextManager
+except SyntaxError:                                         # pragma: no cover
+    pass
+else:
+    class ClientServerContextManagerTests(ClientServerContextManager,
+                                          unittest.TestCase):
+        pass

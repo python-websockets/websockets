@@ -158,7 +158,7 @@ def connect(uri, *,
 
 try:
     from .python35 import Connect
-except SyntaxError:
+except SyntaxError:                                         # pragma: no cover
     pass
 else:
     Connect.__wrapped__ = connect

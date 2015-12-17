@@ -157,7 +157,7 @@ def connect(uri, *,
 
 
 try:
-    from .python35 import Connect
+    from .py35_client import Connect
 except SyntaxError:                                         # pragma: no cover
     pass
 else:

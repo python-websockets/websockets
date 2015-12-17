@@ -158,37 +158,11 @@ def connect(uri, *,
 
 
 try:
-    @functools.wraps(connect, assigned=('__name__', '__qualname__', '__doc__'),
-                     updated=())
-    class _connect:
-        """
-        Wrapper class for :func:`connect` for Python 3.5 and above.
-
-        It supports the new style await syntax and the asyncronous context
-        managers protocol as per PEP 0492.
-        """
-        def __init__(self, *args, **kwargs):
-            self.args = args
-            self.kwargs = kwargs
-
-        def __iter__(self):
-            cls = self.__class__
-            coro = cls.__wrapped__(*self.args, **self.kwargs)
-            return (yield from coro)
-
-        __await__ = __iter__
-
-        async def __aenter__(self):
-            self._websocket = await self
-            return self._websocket
-
-        async def __aexit__(self, exc_type, exc_value, traceback):
-            await self._websocket.close()
-            del self._websocket
+    from .python35 import Connect
 except SyntaxError:
     pass
 else:
-    connect = _connect
-    connect.__doc__ = connect.__doc__.replace('This coroutine', 'This class', 1)
-    connect.__doc__ = connect.__doc__.replace(':func:`con', ':class:`con')
-    del _connect
+    Connect.__wrapped__ = connect
+    # Copy over docstring to support building documentation on Python 3.5.
+    Connect.__doc__ = connect.__doc__
+    connect = Connect

@@ -4,8 +4,6 @@ Changelog
 3.0
 ...
 
-*In development*
-
 .. warning::
 
     **Version 3.0 introduces a backwards-incompatible change in the**

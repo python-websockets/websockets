@@ -58,7 +58,7 @@ If you don't understand what ``websockets`` is doing, enable logging::
     logger.setLevel(logging.INFO)
     logger.addHandler(logging.StreamHandler())
 
-The logs contains:
+The logs contain:
 
 * Exceptions in the connection handler at the ``ERROR`` level
 * Exceptions in the opening or closing handshake at the ``INFO`` level

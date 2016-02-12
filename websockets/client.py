@@ -160,8 +160,8 @@ def connect(uri, *,
 
 
 try:
-    from .py35_client import Connect
-except SyntaxError:                                         # pragma: no cover
+    from .py35.client import Connect
+except (SyntaxError, ImportError):                          # pragma: no cover
     pass
 else:
     Connect.__wrapped__ = connect

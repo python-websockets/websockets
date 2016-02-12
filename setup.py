@@ -27,6 +27,10 @@ py_version = sys.version_info[:2]
 if py_version < (3, 3):
     raise Exception("websockets requires Python >= 3.3.")
 
+packages = ['websockets']
+if py_version >= (3, 5):
+    packages.append('websockets/py35')
+
 setuptools.setup(
     name='websockets',
     version=version,
@@ -36,9 +40,7 @@ setuptools.setup(
     description=description,
     long_description=long_description,
     download_url='https://pypi.python.org/pypi/websockets',
-    packages=[
-        'websockets',
-    ],
+    packages=packages,
     extras_require={
         ':python_version=="3.3"': ['asyncio'],
     },

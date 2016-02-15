@@ -3,9 +3,9 @@
 
 import asyncio
 
-from .client import *
-from .server import *
-from .test_client_server import handler
+from ..client import *
+from ..server import *
+from ..test_client_server import handler
 
 
 class ClientServerContextManager:

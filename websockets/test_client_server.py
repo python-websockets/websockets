@@ -405,8 +405,8 @@ class ClientServerOriginTests(unittest.TestCase):
 
 
 try:
-    from .py35_test_client_server import ClientServerContextManager
-except SyntaxError:                                         # pragma: no cover
+    from .py35.py35_test_client_server import ClientServerContextManager
+except (SyntaxError, ImportError):                          # pragma: no cover
     pass
 else:
     class ClientServerContextManagerTests(ClientServerContextManager,

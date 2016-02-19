@@ -59,7 +59,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         try:
 
             try:
-                path = yield from self.handshake(
+                path, handler_kwargs = yield from self.handshake(
                     origins=self.origins, subprotocols=self.subprotocols,
                     extra_headers=self.extra_headers)
             except Exception as exc:
@@ -75,7 +75,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise
 
             try:
-                yield from self.ws_handler(self, path)
+                yield from self.ws_handler(self, path, **handler_kwargs)
             except Exception:
                 logger.error("Exception in connection handler", exc_info=True)
                 yield from self.fail_connection(1011)
@@ -143,6 +143,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 self.subprotocol = self.select_subprotocol(
                     client_subprotocols, subprotocols)
 
+        handler_kwargs = self.get_handler_kwargs(path, get_header)
+
         headers = []
         set_header = lambda k, v: headers.append((k, v))
         set_header('Server', USER_AGENT)
@@ -174,7 +176,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.state = OPEN
         self.opening_handshake.set_result(True)
 
-        return path
+        return path, handler_kwargs
 
     def select_subprotocol(self, client_protos, server_protos):
         """
@@ -186,6 +188,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             return None
         priority = lambda p: client_protos.index(p) + server_protos.index(p)
         return sorted(common_protos, key=priority)[0]
+
+    def get_handler_kwargs(self, path, get_header):
+        return {}
 
 
 class WebSocketServer(asyncio.AbstractServer):

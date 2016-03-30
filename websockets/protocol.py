@@ -6,8 +6,6 @@ frames as specified in `sections 4 to 8 of RFC 6455`_.
 
 """
 
-__all__ = ['WebSocketCommonProtocol']
-
 import asyncio
 import asyncio.queues
 import codecs
@@ -22,6 +20,8 @@ from .exceptions import (ConnectionClosed, InvalidState, PayloadTooBig,
 from .framing import *
 from .handshake import *
 
+
+__all__ = ['WebSocketCommonProtocol']
 
 logger = logging.getLogger(__name__)
 

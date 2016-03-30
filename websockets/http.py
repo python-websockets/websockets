@@ -7,8 +7,6 @@ imported from :mod:`websockets.http`.
 
 """
 
-__all__ = ['read_request', 'read_response', 'USER_AGENT']
-
 import asyncio
 import email.parser
 import io
@@ -16,6 +14,8 @@ import sys
 
 from .version import version as websockets_version
 
+
+__all__ = ['read_request', 'read_response', 'USER_AGENT']
 
 MAX_HEADERS = 256
 MAX_LINE = 4096

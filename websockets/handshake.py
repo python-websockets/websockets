@@ -34,17 +34,17 @@ To open a connection, a client must:
 
 """
 
-__all__ = [
-    'build_request', 'check_request',
-    'build_response', 'check_response',
-]
-
 import base64
 import hashlib
 import random
 
 from .exceptions import InvalidHandshake
 
+
+__all__ = [
+    'build_request', 'check_request',
+    'build_response', 'check_response',
+]
 
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 

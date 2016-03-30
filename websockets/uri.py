@@ -6,13 +6,13 @@ according to `section 3 of RFC 6455`_.
 
 """
 
-__all__ = ['parse_uri', 'WebSocketURI']
-
 import collections
 import urllib.parse
 
 from .exceptions import InvalidURI
 
+
+__all__ = ['parse_uri', 'WebSocketURI']
 
 WebSocketURI = collections.namedtuple(
     'WebSocketURI', ('secure', 'host', 'port', 'resource_name'))

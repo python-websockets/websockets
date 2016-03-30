@@ -3,8 +3,6 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 """
 
-__all__ = ['connect', 'WebSocketClientProtocol']
-
 import asyncio
 import collections.abc
 import email.message
@@ -14,6 +12,9 @@ from .handshake import build_request, check_response
 from .http import USER_AGENT, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 from .uri import parse_uri
+
+
+__all__ = ['connect', 'WebSocketClientProtocol']
 
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):
@@ -88,8 +89,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         check_response(get_header, key)
 
         self.subprotocol = headers.get('Sec-WebSocket-Protocol', None)
-        if (self.subprotocol is not None
-                and self.subprotocol not in subprotocols):
+        if (self.subprotocol is not None and
+                self.subprotocol not in subprotocols):
             raise InvalidHandshake(
                 "Unknown subprotocol: {}".format(self.subprotocol))
 

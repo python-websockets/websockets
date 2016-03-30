@@ -3,8 +3,6 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 
 """
 
-__all__ = ['serve', 'WebSocketServerProtocol']
-
 import asyncio
 import collections.abc
 import email.message
@@ -16,6 +14,8 @@ from .handshake import build_response, check_request
 from .http import USER_AGENT, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 
+
+__all__ = ['serve', 'WebSocketServerProtocol']
 
 logger = logging.getLogger(__name__)
 

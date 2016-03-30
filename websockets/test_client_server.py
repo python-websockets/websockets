@@ -59,11 +59,19 @@ class ClientServerTests(unittest.TestCase):
         self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
-        self.loop.run_until_complete(self.client.worker)
+        try:
+            self.loop.run_until_complete(
+                asyncio.wait_for(self.client.worker, timeout=1))
+        except asyncio.TimeoutError:                # pragma: no cover
+            self.fail("Client failed to stop")
 
     def stop_server(self):
         self.server.close()
-        self.loop.run_until_complete(self.server.wait_closed())
+        try:
+            self.loop.run_until_complete(
+                asyncio.wait_for(self.server.wait_closed(), timeout=1))
+        except asyncio.TimeoutError:                # pragma: no cover
+            self.fail("Server failed to stop")
 
     def test_basic(self):
         self.start_server()

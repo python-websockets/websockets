@@ -1,6 +1,13 @@
 Changelog
 ---------
 
+3.1
+...
+
+*In development*
+
+* Avoided a warning when closing a connection before the opening handshake.
+
 3.0
 ...
 

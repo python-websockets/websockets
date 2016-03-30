@@ -79,27 +79,6 @@ class ClientServerTests(unittest.TestCase):
         self.start_client()
         self.stop_server()
 
-    def test_server_client_quick_disconnect(self):
-        self.start_server()
-        self.server.unregister = unittest.mock.Mock()
-        # run a client that opens a socket, waits for the connection to be
-        # established, and immediately closes the connection without exchanging
-        # any data.
-        @asyncio.coroutine
-        def quick_disconnect():
-            kwds = {'ssl': self.client_context} if self.secure else {}
-            _, writer = yield from asyncio.open_connection(
-                'localhost', 8642, loop=self.loop, **kwds)
-            writer.close()
-        self.loop.run_until_complete(quick_disconnect())
-        # yield to the loop to let the WebSocketServer call its cleanup methods
-        self.loop.run_until_complete(asyncio.sleep(0.1, loop=self.loop))
-        ws = next(iter(self.server.websockets))
-        self.assertTrue(ws.worker.done())
-        # do the job of the mocked "unregister"
-        self.server.websockets.clear()
-        self.stop_server()
-
     def test_explicit_event_loop(self):
         self.start_server(loop=self.loop)
         self.start_client(loop=self.loop)
@@ -342,6 +321,18 @@ class ClientServerTests(unittest.TestCase):
 
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)
+
+    @unittest.mock.patch.object(WebSocketClientProtocol, 'handshake')
+    def test_client_closes_connection_before_handshake(self, handshake):
+        self.start_server()
+        self.start_client()
+        # We have mocked the handshake() method to prevent the client from
+        # performing the opening handshake. Force it to close the connection.
+        self.loop.run_until_complete(self.client.close_connection(force=True))
+        self.stop_client()
+        # The server should stop properly anyway. It used to hang because the
+        # worker handling the connection was waiting for the opening handshake.
+        self.stop_server()
 
 
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")

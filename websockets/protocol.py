@@ -62,6 +62,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     raise :exc:`~websockets.exceptions.ConnectionClosed` and the connection
     will be closed with status code 1009.
 
+    The ``max_queue`` parameter sets the maximum size for the incoming message
+    queue. The default value is 1024. ``0`` (zero) disables the limit. When the
+    queue is full, no more messages will be read from the websocket. In this
+    full condition, the system's receive buffer will being to fill and the TCP
+    receive window will shrink. A well-behaved peer will slow down transmission
+    in order to avoid packet loss.
+
     Once the handshake is complete, request and response HTTP headers are
     available:
 
@@ -87,8 +94,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     def __init__(self, *,
                  host=None, port=None, secure=None,
-                 timeout=10, max_size=2 ** 20, loop=None,
-                 legacy_recv=False):
+                 timeout=10, max_size=2 ** 20, max_queue=2 ** 10,
+                 loop=None, legacy_recv=False):
         self.host = host
         self.port = port
         self.secure = secure
@@ -128,7 +135,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.connection_closed = asyncio.Future(loop=loop)
 
         # Queue of received messages.
-        self.messages = asyncio.queues.Queue(loop=loop)
+        self.messages = asyncio.queues.Queue(loop=loop, maxsize=max_queue)
 
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
@@ -395,7 +402,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 msg = yield from self.read_message()
                 if msg is None:
                     break
-                self.messages.put_nowait(msg)
+                yield from self.messages.put(msg)
             except asyncio.CancelledError:
                 break
             except WebSocketProtocolError:

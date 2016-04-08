@@ -62,6 +62,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     raise :exc:`~websockets.exceptions.ConnectionClosed` and the connection
     will be closed with status code 1009.
 
+    The ``max_queue`` parameter sets the maximum size for the incoming message
+    queue. The default value is 1024. ``0`` (zero) disables the limit. When the
+    queue is full, no more messages will be read from the websocket. In this
+    full condition, the system's receive buffer will being to fill and the TCP
+    receive window will shrink. A well-behaved peer will slow down transmission
+    in order to avoid packet loss.
+
     Once the handshake is complete, request and response HTTP headers are
     available:
 

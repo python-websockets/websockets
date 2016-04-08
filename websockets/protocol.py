@@ -87,8 +87,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     def __init__(self, *,
                  host=None, port=None, secure=None,
-                 timeout=10, max_size=2 ** 20, loop=None,
-                 legacy_recv=False):
+                 timeout=10, max_size=2 ** 20, max_queue=2 ** 10,
+                 loop=None, legacy_recv=False):
         self.host = host
         self.port = port
         self.secure = secure
@@ -128,7 +128,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.connection_closed = asyncio.Future(loop=loop)
 
         # Queue of received messages.
-        self.messages = asyncio.queues.Queue(loop=loop)
+        self.messages = asyncio.queues.Queue(loop=loop, maxsize=max_queue)
 
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
@@ -395,7 +395,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 msg = yield from self.read_message()
                 if msg is None:
                     break
-                self.messages.put_nowait(msg)
+                yield from self.messages.put(msg)
             except asyncio.CancelledError:
                 break
             except WebSocketProtocolError:

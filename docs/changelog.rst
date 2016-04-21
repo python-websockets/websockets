@@ -7,8 +7,8 @@ Changelog
 *In development*
 
 * Avoided a warning when closing a connection before the opening handshake.
-* Add flow control when reading from a websocket. (The previous flow control
-  implementation only affected *writes* to a websocket.)
+
+* Added flow control for incoming data.
 
 3.0
 ...
@@ -155,7 +155,7 @@ Also:
 
 Also:
 
-* Added flow control.
+* Added flow control for outgoing data.
 
 1.0
 ...

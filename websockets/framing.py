@@ -43,18 +43,30 @@ CLOSE_CODES = {
 }
 
 
-Frame = collections.namedtuple('Frame', ('fin', 'opcode', 'data'))
-Frame.__doc__ = """WebSocket frame.
+FrameData = collections.namedtuple(
+    'FrameData',
+    ['fin', 'opcode', 'data', 'rsv1', 'rsv2', 'rsv3'],
+)
 
-* ``fin`` is the FIN bit
-* ``opcode`` is the opcode
-* ``data`` is the payload data
 
-Only these three fields are needed by higher level code. The MASK bit, payload
-length and masking-key are handled on the fly by :func:`read_frame` and
-:func:`write_frame`.
+class Frame(FrameData):
+    """
+    WebSocket frame.
 
-"""
+    * ``fin`` is the FIN bit
+    * ``rsv1`` is the RSV1 bit
+    * ``rsv2`` is the RSV2 bit
+    * ``rsv3`` is the RSV3 bit
+    * ``opcode`` is the opcode
+    * ``data`` is the payload data
+
+    Only these fields are needed by higher level code. The MASK bit, payload
+    length and masking-key are handled on the fly by :func:`read_frame` and
+    :func:`write_frame`.
+
+    """
+    def __new__(cls, fin, opcode, data, rsv1=False, rsv2=False, rsv3=False):
+        return FrameData.__new__(cls, fin, opcode, data, rsv1, rsv2, rsv3)
 
 
 @asyncio.coroutine
@@ -80,8 +92,9 @@ def read_frame(reader, mask, *, max_size=None):
     data = yield from reader(2)
     head1, head2 = struct.unpack('!BB', data)
     fin = bool(head1 & 0b10000000)
-    if head1 & 0b01110000:
-        raise WebSocketProtocolError("Reserved bits must be 0")
+    rsv1 = bool(head1 & 0b01000000)
+    rsv2 = bool(head1 & 0b00100000)
+    rsv3 = bool(head1 & 0b00010000)
     opcode = head1 & 0b00001111
     if bool(head2 & 0b10000000) != mask:
         raise WebSocketProtocolError("Incorrect masking")
@@ -103,7 +116,8 @@ def read_frame(reader, mask, *, max_size=None):
     if mask:
         data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(data))
 
-    frame = Frame(fin, opcode, data)
+    frame = Frame(fin, opcode, data, rsv1, rsv2, rsv3)
+
     check_frame(frame)
     return frame
 
@@ -128,8 +142,14 @@ def write_frame(frame, writer, mask):
     output = io.BytesIO()
 
     # Prepare the header
-    head1 = 0b10000000 if frame.fin else 0
-    head1 |= frame.opcode
+    head1 = (
+        (0b10000000 if frame.fin else 0) |
+        (0b01000000 if frame.rsv1 else 0) |
+        (0b00100000 if frame.rsv2 else 0) |
+        (0b00010000 if frame.rsv3 else 0) |
+        frame.opcode
+    )
+
     head2 = 0b10000000 if mask else 0
     length = len(frame.data)
     if length < 0x7e:
@@ -159,6 +179,9 @@ def check_frame(frame):
     contains incorrect values.
 
     """
+    if frame.rsv1 or frame.rsv2 or frame.rsv3:
+        raise WebSocketProtocolError("Reserved bits must be 0")
+
     if frame.opcode in (OP_CONT, OP_TEXT, OP_BINARY):
         return
     elif frame.opcode in (OP_CLOSE, OP_PING, OP_PONG):

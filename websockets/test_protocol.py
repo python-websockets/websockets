@@ -225,8 +225,8 @@ class CommonTests:
 
         return frame
 
-    def assertOneFrameSent(self, fin, opcode, data):
-        self.assertEqual(self.last_sent_frame(), Frame(fin, opcode, data))
+    def assertOneFrameSent(self, *args):
+        self.assertEqual(self.last_sent_frame(), Frame(*args))
 
     def assertNoFrameSent(self):
         self.assertIsNone(self.last_sent_frame())

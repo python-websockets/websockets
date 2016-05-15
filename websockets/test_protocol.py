@@ -108,7 +108,7 @@ class CommonTests:
         """
         writer = self.protocol.data_received
         mask = not self.protocol.is_client
-        self.loop.call_soon(write_frame, frame, writer, mask)
+        self.loop.call_soon(functools.partial(frame.write, writer, mask=mask))
 
     def receive_eof(self):
         """
@@ -216,8 +216,8 @@ class CommonTests:
         if stream.at_eof():
             frame = None
         else:
-            frame = self.loop.run_until_complete(read_frame(
-                stream.readexactly, self.protocol.is_client))
+            frame = self.loop.run_until_complete(Frame.read(
+                stream.readexactly, mask=self.protocol.is_client))
 
         if not stream.at_eof():                             # pragma: no cover
             data = self.loop.run_until_complete(stream.read())

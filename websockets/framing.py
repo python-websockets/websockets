@@ -20,7 +20,7 @@ from .exceptions import PayloadTooBig, WebSocketProtocolError
 
 __all__ = [
     'OP_CONT', 'OP_TEXT', 'OP_BINARY', 'OP_CLOSE', 'OP_PING', 'OP_PONG',
-    'Frame', 'read_frame', 'write_frame', 'parse_close', 'serialize_close'
+    'Frame', 'parse_close', 'serialize_close'
 ]
 
 OP_CONT, OP_TEXT, OP_BINARY = range(0x00, 0x03)
@@ -61,156 +61,165 @@ class Frame(FrameData):
     * ``data`` is the payload data
 
     Only these fields are needed by higher level code. The MASK bit, payload
-    length and masking-key are handled on the fly by :func:`read_frame` and
-    :func:`write_frame`.
+    length and masking-key are handled on the fly by :meth:`read` and
+    :meth:`write`.
 
     """
     def __new__(cls, fin, opcode, data, rsv1=False, rsv2=False, rsv3=False):
         return FrameData.__new__(cls, fin, opcode, data, rsv1, rsv2, rsv3)
 
+    @classmethod
+    @asyncio.coroutine
+    def read(cls, reader, *, mask, max_size=None, extensions=()):
+        """
+        Read a WebSocket frame and return a :class:`Frame` object.
 
-@asyncio.coroutine
-def read_frame(reader, mask, *, max_size=None, extensions=()):
-    """
-    Read a WebSocket frame and return a :class:`Frame` object.
+        ``reader`` is a coroutine taking an integer argument and reading
+        exactly this number of bytes, unless the end of file is reached.
 
-    ``reader`` is a coroutine taking an integer argument and reading exactly
-    this number of bytes, unless the end of file is reached.
+        ``mask`` is a :class:`bool` telling whether the frame should be masked
+        i.e. whether the read happens on the server side.
 
-    ``mask`` is a :class:`bool` telling whether the frame should be masked
-    i.e. whether the read happens on the server side.
+        If ``max_size`` is set and the payload exceeds this size in bytes,
+        :exc:`~websockets.exceptions.PayloadTooBig` is raised.
 
-    If ``max_size`` is set and the payload exceeds this size in bytes,
-    :exc:`~websockets.exceptions.PayloadTooBig` is raised.
+        If ``extensions`` is provided, it's a list of functions that transform
+        the frame and return it. They are applied in reverse order.
 
-    If ``extensions`` is provided, it's a list of functions that transform the
-    frame and return it. They are applied in reverse order.
+        This function validates the frame before returning it and raises
+        :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
+        incorrect values.
 
-    This function validates the frame before returning it and raises
-    :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
-    incorrect values.
-
-    """
-    # Read the header
-    data = yield from reader(2)
-    head1, head2 = struct.unpack('!BB', data)
-
-    # While not very Pythonic, this is marginally faster than calling bool().
-    fin = True if head1 & 0b10000000 else False
-    rsv1 = True if head1 & 0b01000000 else False
-    rsv2 = True if head1 & 0b00100000 else False
-    rsv3 = True if head1 & 0b00010000 else False
-    opcode = head1 & 0b00001111
-
-    if (True if head2 & 0b10000000 else False) != mask:
-        raise WebSocketProtocolError("Incorrect masking")
-
-    length = head2 & 0b01111111
-    if length == 126:
+        """
+        # Read the header
         data = yield from reader(2)
-        length, = struct.unpack('!H', data)
-    elif length == 127:
-        data = yield from reader(8)
-        length, = struct.unpack('!Q', data)
-    if max_size is not None and length > max_size:
-        raise PayloadTooBig("Payload exceeds limit "
-                            "({} > {} bytes)".format(length, max_size))
-    if mask:
-        mask_bits = yield from reader(4)
+        head1, head2 = struct.unpack('!BB', data)
 
-    # Read the data
-    data = yield from reader(length)
-    if mask:
-        data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(data))
+        # While not Pythonic, this is marginally faster than calling bool().
+        fin = True if head1 & 0b10000000 else False
+        rsv1 = True if head1 & 0b01000000 else False
+        rsv2 = True if head1 & 0b00100000 else False
+        rsv3 = True if head1 & 0b00010000 else False
+        opcode = head1 & 0b00001111
 
-    frame = Frame(fin, opcode, data, rsv1, rsv2, rsv3)
+        if (True if head2 & 0b10000000 else False) != mask:
+            raise WebSocketProtocolError("Incorrect masking")
 
-    check_frame(frame)
+        length = head2 & 0b01111111
+        if length == 126:
+            data = yield from reader(2)
+            length, = struct.unpack('!H', data)
+        elif length == 127:
+            data = yield from reader(8)
+            length, = struct.unpack('!Q', data)
+        if max_size is not None and length > max_size:
+            raise PayloadTooBig("Payload exceeds limit "
+                                "({} > {} bytes)".format(length, max_size))
+        if mask:
+            mask_bits = yield from reader(4)
 
-    for extension in reversed(extensions):
-        frame = extension(frame)
+        # Read the data
+        data = yield from reader(length)
+        if mask:
+            data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(data))
 
-    return frame
+        frame = cls(fin, opcode, data, rsv1, rsv2, rsv3)
 
+        frame.check()
 
-def write_frame(frame, writer, mask, *, extensions=()):
-    """
-    Write a WebSocket frame.
+        for extension in reversed(extensions):
+            frame = extension(frame)
 
-    ``frame`` is the :class:`Frame` object to write.
+        return frame
 
-    ``writer`` is a function accepting bytes.
+    def write(frame, writer, *, mask, extensions=()):
+        """
+        Write a WebSocket frame.
 
-    ``mask`` is a :class:`bool` telling whether the frame should be masked
-    i.e. whether the write happens on the client side.
+        ``frame`` is the :class:`Frame` object to write.
 
-    If ``extensions`` is provided, it's a list of functions that transform the
-    frame and return it. They are applied in order.
+        ``writer`` is a function accepting bytes.
 
-    This function validates the frame before sending it and raises
-    :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
-    incorrect values.
+        ``mask`` is a :class:`bool` telling whether the frame should be masked
+        i.e. whether the write happens on the client side.
 
-    """
-    for extension in extensions:
-        frame = extension(frame)
+        If ``extensions`` is provided, it's a list of functions that transform
+        the frame and return it. They are applied in order.
 
-    check_frame(frame)
+        This function validates the frame before sending it and raises
+        :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
+        incorrect values.
 
-    output = io.BytesIO()
+        """
 
-    # Prepare the header
-    head1 = (
-        (0b10000000 if frame.fin else 0) |
-        (0b01000000 if frame.rsv1 else 0) |
-        (0b00100000 if frame.rsv2 else 0) |
-        (0b00010000 if frame.rsv3 else 0) |
-        frame.opcode
-    )
+        # The first parameter is called `frame` rather than `self`,
+        # but it's the instance of class to which this method is bound.
 
-    head2 = 0b10000000 if mask else 0
+        for extension in extensions:
+            frame = extension(frame)
 
-    length = len(frame.data)
-    if length < 126:
-        output.write(struct.pack('!BB', head1, head2 | length))
-    elif length < 65536:
-        output.write(struct.pack('!BBH', head1, head2 | 126, length))
-    else:
-        output.write(struct.pack('!BBQ', head1, head2 | 127, length))
+        frame.check()
 
-    if mask:
-        mask_bits = struct.pack('!I', random.getrandbits(32))
-        output.write(mask_bits)
+        output = io.BytesIO()
 
-    # Prepare the data
-    if mask:
-        data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(frame.data))
-    else:
-        data = frame.data
-    output.write(data)
+        # Prepare the header
+        head1 = (
+            (0b10000000 if frame.fin else 0) |
+            (0b01000000 if frame.rsv1 else 0) |
+            (0b00100000 if frame.rsv2 else 0) |
+            (0b00010000 if frame.rsv3 else 0) |
+            frame.opcode
+        )
 
-    # Send the frame
-    writer(output.getvalue())
+        head2 = 0b10000000 if mask else 0
 
+        length = len(frame.data)
+        if length < 126:
+            output.write(struct.pack('!BB', head1, head2 | length))
+        elif length < 65536:
+            output.write(struct.pack('!BBH', head1, head2 | 126, length))
+        else:
+            output.write(struct.pack('!BBQ', head1, head2 | 127, length))
 
-def check_frame(frame):
-    """
-    Raise :exc:`~websockets.exceptions.WebSocketProtocolError` if the frame
-    contains incorrect values.
+        if mask:
+            mask_bits = struct.pack('!I', random.getrandbits(32))
+            output.write(mask_bits)
 
-    """
-    if frame.rsv1 or frame.rsv2 or frame.rsv3:
-        raise WebSocketProtocolError("Reserved bits must be 0")
+        # Prepare the data
+        if mask:
+            data = bytes(
+                byte ^ mask_bits[index % 4]
+                for index, byte in enumerate(frame.data)
+            )
+        else:
+            data = frame.data
+        output.write(data)
 
-    if frame.opcode in [OP_CONT, OP_TEXT, OP_BINARY]:
-        return
-    elif frame.opcode in [OP_CLOSE, OP_PING, OP_PONG]:
-        if len(frame.data) > 125:
-            raise WebSocketProtocolError("Control frame too long")
-        if not frame.fin:
-            raise WebSocketProtocolError("Fragmented control frame")
-    else:
-        raise WebSocketProtocolError("Invalid opcode")
+        # Send the frame
+        writer(output.getvalue())
+
+    def check(frame):
+        """
+        Raise :exc:`~websockets.exceptions.WebSocketProtocolError` if the frame
+        contains incorrect values.
+
+        """
+
+        # The first parameter is called `frame` rather than `self`,
+        # but it's the instance of class to which this method is bound.
+
+        if frame.rsv1 or frame.rsv2 or frame.rsv3:
+            raise WebSocketProtocolError("Reserved bits must be 0")
+
+        if frame.opcode in [OP_CONT, OP_TEXT, OP_BINARY]:
+            return
+        elif frame.opcode in [OP_CLOSE, OP_PING, OP_PONG]:
+            if len(frame.data) > 125:
+                raise WebSocketProtocolError("Control frame too long")
+            if not frame.fin:
+                raise WebSocketProtocolError("Fragmented control frame")
+        else:
+            raise WebSocketProtocolError("Invalid opcode")
 
 
 def parse_close(data):

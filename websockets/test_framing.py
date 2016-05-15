@@ -133,7 +133,7 @@ class FramingTests(unittest.TestCase):
         with self.assertRaises(WebSocketProtocolError):
             self.decode(b'\x08\x00')
 
-    def test_parse_close(self):
+    def test_parse_close_and_serialize_close(self):
         self.round_trip_close(b'\x03\xe8', 1000, '')
         self.round_trip_close(b'\x03\xe8OK', 1000, 'OK')
 
@@ -147,6 +147,10 @@ class FramingTests(unittest.TestCase):
             parse_close(b'\x03\xe7')
         with self.assertRaises(UnicodeDecodeError):
             parse_close(b'\x03\xe8\xff\xff')
+
+    def test_serialize_close_errors(self):
+        with self.assertRaises(WebSocketProtocolError):
+            serialize_close(999, '')
 
     @unittest.skipUnless(sys.version_info[:2] >= (3, 4), "rot13 is new in 3.4")
     def test_extensions(self):

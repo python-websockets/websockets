@@ -227,14 +227,13 @@ def parse_close(data):
     length = len(data)
     if length == 0:
         return 1005, ''
-    elif length == 1:
-        raise WebSocketProtocolError("Close frame too short")
-    else:
+    elif length >= 2:
         code, = struct.unpack('!H', data[:2])
-        if not (code in CLOSE_CODES or 3000 <= code < 5000):
-            raise WebSocketProtocolError("Invalid status code")
+        check_close(code)
         reason = data[2:].decode('utf-8')
         return code, reason
+    else:
+        raise WebSocketProtocolError("Close frame too short")
 
 
 def serialize_close(code, reason):
@@ -244,4 +243,14 @@ def serialize_close(code, reason):
     This is the reverse of :func:`parse_close`.
 
     """
+    check_close(code)
     return struct.pack('!H', code) + reason.encode('utf-8')
+
+
+def check_close(code):
+    """
+    Check the close code for a close frame.
+
+    """
+    if not (code in CLOSE_CODES or 3000 <= code < 5000):
+        raise WebSocketProtocolError("Invalid status code")

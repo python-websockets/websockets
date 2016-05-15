@@ -27,6 +27,15 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     is_client = True
     state = CONNECTING
 
+    def __init__(self, *,
+                 origin=None, extensions=None, subprotocols=None,
+                 extra_headers=None, **kwds):
+        self.origin = origin
+        self.available_extensions = extensions
+        self.available_subprotocols = subprotocols
+        self.extra_headers = extra_headers
+        super().__init__(**kwds)
+
     @asyncio.coroutine
     def write_http_request(self, path, headers):
         """
@@ -69,28 +78,55 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         return status_code, self.response_headers
 
-    def process_subprotocol(self, get_header, subprotocols=None):
+    def process_extensions(self, get_header, available_extensions=None):
         """
-        Handle the Sec-WebSocket-Protocol HTTP header.
+        Handle the Sec-WebSocket-Extensions HTTP response header.
+
+        """
+        extensions = get_header('Sec-WebSocket-Extensions')
+        if extensions:
+            extensions = [e.strip() for e in extensions.split(',')]
+            if available_extensions is None:
+                raise InvalidHandshake("No extensions supported.")
+            unsupported_extensions = [
+                extension
+                for extension in extensions
+                if extension not in available_extensions
+            ]
+            if unsupported_extensions:
+                raise InvalidHandshake(
+                    "Unsupported extensions: {}"
+                    .format(', '.join(unsupported_extensions)))
+            return extensions
+
+    def process_subprotocol(self, get_header, available_subprotocols=None):
+        """
+        Handle the Sec-WebSocket-Protocol HTTP response header.
 
         """
         subprotocol = get_header('Sec-WebSocket-Protocol')
         if subprotocol:
-            if subprotocols is None or subprotocol not in subprotocols:
+            if available_subprotocols is None:
+                raise InvalidHandshake("No subprotocols supported.")
+            if subprotocol not in available_subprotocols:
                 raise InvalidHandshake(
-                    "Unknown subprotocol: {}".format(subprotocol))
+                    "Unsupported subprotocol: {}".format(subprotocol))
             return subprotocol
 
     @asyncio.coroutine
-    def handshake(self, wsuri,
-                  origin=None, subprotocols=None, extra_headers=None):
+    def handshake(self, wsuri, origin=None,
+                  available_extensions=None, available_subprotocols=None,
+                  extra_headers=None):
         """
         Perform the client side of the opening handshake.
 
         If provided, ``origin`` sets the Origin HTTP header.
 
-        If provided, ``subprotocols`` is a list of supported subprotocols in
-        order of decreasing preference.
+        If provided, ``available_extensions`` is a list of supported
+        extensions in the order in which they should be used.
+
+        If provided, ``available_subprotocols`` is a list of supported
+        subprotocols in order of decreasing preference.
 
         If provided, ``extra_headers`` sets additional HTTP request headers.
         It must be a mapping or an iterable of (name, value) pairs.
@@ -105,8 +141,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Host', '{}:{}'.format(wsuri.host, wsuri.port))
         if origin is not None:
             set_header('Origin', origin)
-        if subprotocols is not None:
-            set_header('Sec-WebSocket-Protocol', ', '.join(subprotocols))
+        if available_extensions is not None:
+            set_header(
+                'Sec-WebSocket-Extensions', ', '.join(available_extensions))
+        if available_subprotocols is not None:
+            set_header(
+                'Sec-WebSocket-Protocol', ', '.join(available_subprotocols))
         if extra_headers is not None:
             if isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
@@ -126,7 +166,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         check_response(get_header, key)
 
-        self.subprotocol = self.process_subprotocol(get_header, subprotocols)
+        self.extensions = self.process_extensions(
+            get_header, available_extensions)
+
+        self.subprotocol = self.process_subprotocol(
+            get_header, available_subprotocols)
 
         assert self.state == CONNECTING
         self.state = OPEN
@@ -139,8 +183,8 @@ def connect(uri, *,
             timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
             read_limit=2 ** 16, write_limit=2 ** 16,
             loop=None, legacy_recv=False, klass=None,
-            origin=None, subprotocols=None, extra_headers=None,
-            **kwds):
+            origin=None, extensions=None, subprotocols=None,
+            extra_headers=None, **kwds):
     """
     This coroutine connects to a WebSocket server at a given ``uri``.
 
@@ -169,6 +213,8 @@ def connect(uri, *,
     :func:`connect` also accepts the following optional arguments:
 
     * ``origin`` sets the Origin HTTP header
+    * ``extensions`` is a list of supported extensions in order of decreasing
+      preference
     * ``subprotocols`` is a list of supported subprotocols in order of
       decreasing preference
     * ``extra_headers`` sets additional HTTP request headers – it can be a
@@ -204,6 +250,8 @@ def connect(uri, *,
         timeout=timeout, max_size=max_size, max_queue=max_queue,
         read_limit=read_limit, write_limit=write_limit,
         loop=loop, legacy_recv=legacy_recv,
+        origin=origin, extensions=extensions, subprotocols=subprotocols,
+        extra_headers=extra_headers,
     )
 
     transport, protocol = yield from loop.create_connection(
@@ -211,8 +259,11 @@ def connect(uri, *,
 
     try:
         yield from protocol.handshake(
-            wsuri, origin=origin, subprotocols=subprotocols,
-            extra_headers=extra_headers)
+            wsuri, origin=origin,
+            available_extensions=extensions,
+            available_subprotocols=subprotocols,
+            extra_headers=extra_headers,
+        )
     except Exception:
         yield from protocol.close_connection(force=True)
         raise

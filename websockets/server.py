@@ -39,11 +39,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     state = CONNECTING
 
     def __init__(self, ws_handler, ws_server, *,
-                 origins=None, subprotocols=None, extra_headers=None, **kwds):
+                 origins=None, extensions=None, subprotocols=None,
+                 extra_headers=None, **kwds):
         self.ws_handler = ws_handler
         self.ws_server = ws_server
         self.origins = origins
-        self.subprotocols = subprotocols
+        self.available_extensions = extensions
+        self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
         super().__init__(**kwds)
 
@@ -65,8 +67,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
             try:
                 path = yield from self.handshake(
-                    origins=self.origins, subprotocols=self.subprotocols,
-                    extra_headers=self.extra_headers)
+                    origins=self.origins,
+                    available_extensions=self.available_extensions,
+                    available_subprotocols=self.available_subprotocols,
+                    extra_headers=self.extra_headers,
+                )
             except ConnectionError as exc:
                 logger.debug(
                     "Connection error in opening handshake", exc_info=True)
@@ -236,7 +241,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def process_origin(self, get_header, origins=None):
         """
-        Handle the Origin HTTP header.
+        Handle the Origin HTTP request header.
 
         Raise :exc:`~websockets.exceptions.InvalidOrigin` if the origin isn't
         acceptable.
@@ -248,41 +253,77 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise InvalidOrigin("Origin not allowed: {}".format(origin))
         return origin
 
-    def process_subprotocol(self, get_header, subprotocols=None):
+    def process_extensions(self, get_header, available_extensions=None):
         """
-        Handle the Sec-WebSocket-Protocol HTTP header.
+        Handle the Sec-WebSocket-Extensions HTTP request header.
 
         """
-        if subprotocols is not None:
-            subprotocol = get_header('Sec-WebSocket-Protocol')
-            if subprotocol:
-                return self.select_subprotocol(
-                    [p.strip() for p in subprotocol.split(',')],
-                    subprotocols,
+        if available_extensions is not None:
+            extensions = get_header('Sec-WebSocket-Extensions')
+            if extensions:
+                return self.select_extensions(
+                    [
+                        extension.strip()
+                        for extension in extensions.split(',')
+                    ],
+                    available_extensions,
                 )
 
     @staticmethod
-    def select_subprotocol(client_protos, server_protos):
+    def select_extensions(client_extensions, server_extensions):
         """
         Pick a subprotocol among those offered by the client.
 
         """
-        common_protos = set(client_protos) & set(server_protos)
-        if not common_protos:
+        return [
+            extension
+            for extension in client_extensions
+            if extension in server_extensions
+        ]
+
+    def process_subprotocol(self, get_header, available_subprotocols=None):
+        """
+        Handle the Sec-WebSocket-Protocol HTTP request header.
+
+        """
+        if available_subprotocols is not None:
+            subprotocols = get_header('Sec-WebSocket-Protocol')
+            if subprotocols:
+                return self.select_subprotocol(
+                    [
+                        subprotocol.strip()
+                        for subprotocol in subprotocols.split(',')
+                    ],
+                    available_subprotocols,
+                )
+
+    @staticmethod
+    def select_subprotocol(client_subprotocols, server_subprotocols):
+        """
+        Pick a subprotocol among those offered by the client.
+
+        """
+        subprotocols = set(client_subprotocols) & set(server_subprotocols)
+        if not subprotocols:
             return None
-        priority = lambda p: client_protos.index(p) + server_protos.index(p)
-        return sorted(common_protos, key=priority)[0]
+        priority = lambda p: (
+            client_subprotocols.index(p) + server_subprotocols.index(p))
+        return sorted(subprotocols, key=priority)[0]
 
     @asyncio.coroutine
-    def handshake(self, origins=None, subprotocols=None, extra_headers=None):
+    def handshake(self, origins=None, available_extensions=None,
+                  available_subprotocols=None, extra_headers=None):
         """
         Perform the server side of the opening handshake.
 
         If provided, ``origins`` is a list of acceptable HTTP Origin values.
         Include ``''`` if the lack of an origin is acceptable.
 
-        If provided, ``subprotocols`` is a list of supported subprotocols in
-        order of decreasing preference.
+        If provided, ``available_extensions`` is a list of supported
+        extensions in the order in which they should be used.
+
+        If provided, ``available_subprotocols`` is a list of supported
+        subprotocols in order of decreasing preference.
 
         If provided, ``extra_headers`` sets additional HTTP response headers.
         It can be a mapping or an iterable of (name, value) pairs. It can also
@@ -308,13 +349,20 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         key = check_request(get_header)
 
         self.origin = self.process_origin(get_header, origins)
-        self.subprotocol = self.process_subprotocol(get_header, subprotocols)
+
+        self.extensions = self.process_extensions(
+            get_header, available_extensions)
+
+        self.subprotocol = self.process_subprotocol(
+            get_header, available_subprotocols)
 
         response_headers = []
         set_header = lambda k, v: response_headers.append((k, v))
 
         set_header('Server', USER_AGENT)
 
+        if self.extensions:
+            set_header('Sec-WebSocket-Extensions', ', '.join(self.extensions))
         if self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:
@@ -441,8 +489,8 @@ def serve(ws_handler, host=None, port=None, *,
           timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
           read_limit=2 ** 16, write_limit=2 ** 16,
           loop=None, legacy_recv=False, klass=None,
-          origins=None, subprotocols=None, extra_headers=None,
-          **kwds):
+          origins=None, extensions=None, subprotocols=None,
+          extra_headers=None, **kwds):
     """
     Create, start, and return a :class:`WebSocketServer` object.
 
@@ -484,6 +532,8 @@ def serve(ws_handler, host=None, port=None, *,
 
     * ``origins`` defines acceptable Origin HTTP headers — include
       ``''`` if the lack of an origin is acceptable
+    * ``extensions`` is a list of supported extensions in order of decreasing
+      preference
     * ``subprotocols`` is a list of supported subprotocols in order of
       decreasing preference
     * ``extra_headers`` sets additional HTTP response headers — it can be a
@@ -525,7 +575,7 @@ def serve(ws_handler, host=None, port=None, *,
         timeout=timeout, max_size=max_size, max_queue=max_queue,
         read_limit=read_limit, write_limit=write_limit,
         loop=loop, legacy_recv=legacy_recv,
-        origins=origins, subprotocols=subprotocols,
+        origins=origins, extensions=extensions, subprotocols=subprotocols,
         extra_headers=extra_headers,
     )
     server = yield from loop.create_server(factory, host, port, **kwds)

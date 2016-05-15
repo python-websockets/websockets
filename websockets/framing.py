@@ -91,13 +91,16 @@ def read_frame(reader, mask, *, max_size=None):
     # Read the header
     data = yield from reader(2)
     head1, head2 = struct.unpack('!BB', data)
+
     fin = bool(head1 & 0b10000000)
     rsv1 = bool(head1 & 0b01000000)
     rsv2 = bool(head1 & 0b00100000)
     rsv3 = bool(head1 & 0b00010000)
     opcode = head1 & 0b00001111
+
     if bool(head2 & 0b10000000) != mask:
         raise WebSocketProtocolError("Incorrect masking")
+
     length = head2 & 0b01111111
     if length == 126:
         data = yield from reader(2)
@@ -139,6 +142,7 @@ def write_frame(frame, writer, mask):
 
     """
     check_frame(frame)
+
     output = io.BytesIO()
 
     # Prepare the header
@@ -151,13 +155,15 @@ def write_frame(frame, writer, mask):
     )
 
     head2 = 0b10000000 if mask else 0
+
     length = len(frame.data)
-    if length < 0x7e:
+    if length < 126:
         output.write(struct.pack('!BB', head1, head2 | length))
-    elif length < 0x10000:
+    elif length < 65536:
         output.write(struct.pack('!BBH', head1, head2 | 126, length))
     else:
         output.write(struct.pack('!BBQ', head1, head2 | 127, length))
+
     if mask:
         mask_bits = struct.pack('!I', random.getrandbits(32))
         output.write(mask_bits)
@@ -182,9 +188,9 @@ def check_frame(frame):
     if frame.rsv1 or frame.rsv2 or frame.rsv3:
         raise WebSocketProtocolError("Reserved bits must be 0")
 
-    if frame.opcode in (OP_CONT, OP_TEXT, OP_BINARY):
+    if frame.opcode in [OP_CONT, OP_TEXT, OP_BINARY]:
         return
-    elif frame.opcode in (OP_CLOSE, OP_PING, OP_PONG):
+    elif frame.opcode in [OP_CLOSE, OP_PING, OP_PONG]:
         if len(frame.data) > 125:
             raise WebSocketProtocolError("Control frame too long")
         if not frame.fin:

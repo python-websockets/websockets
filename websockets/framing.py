@@ -95,13 +95,14 @@ def read_frame(reader, mask, *, max_size=None, extensions=()):
     data = yield from reader(2)
     head1, head2 = struct.unpack('!BB', data)
 
-    fin = bool(head1 & 0b10000000)
-    rsv1 = bool(head1 & 0b01000000)
-    rsv2 = bool(head1 & 0b00100000)
-    rsv3 = bool(head1 & 0b00010000)
+    # While not very Pythonic, this is marginally faster than calling bool().
+    fin = True if head1 & 0b10000000 else False
+    rsv1 = True if head1 & 0b01000000 else False
+    rsv2 = True if head1 & 0b00100000 else False
+    rsv3 = True if head1 & 0b00010000 else False
     opcode = head1 & 0b00001111
 
-    if bool(head2 & 0b10000000) != mask:
+    if (True if head2 & 0b10000000 else False) != mask:
         raise WebSocketProtocolError("Incorrect masking")
 
     length = head2 & 0b01111111

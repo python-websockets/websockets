@@ -70,7 +70,7 @@ class Frame(FrameData):
 
 
 @asyncio.coroutine
-def read_frame(reader, mask, *, max_size=None):
+def read_frame(reader, mask, *, max_size=None, extensions=()):
     """
     Read a WebSocket frame and return a :class:`Frame` object.
 
@@ -82,6 +82,9 @@ def read_frame(reader, mask, *, max_size=None):
 
     If ``max_size`` is set and the payload exceeds this size in bytes,
     :exc:`~websockets.exceptions.PayloadTooBig` is raised.
+
+    If ``extensions`` is provided, it's a list of functions that transform the
+    frame and return it. They are applied in reverse order.
 
     This function validates the frame before returning it and raises
     :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
@@ -122,10 +125,14 @@ def read_frame(reader, mask, *, max_size=None):
     frame = Frame(fin, opcode, data, rsv1, rsv2, rsv3)
 
     check_frame(frame)
+
+    for extension in reversed(extensions):
+        frame = extension(frame)
+
     return frame
 
 
-def write_frame(frame, writer, mask):
+def write_frame(frame, writer, mask, *, extensions=()):
     """
     Write a WebSocket frame.
 
@@ -136,11 +143,17 @@ def write_frame(frame, writer, mask):
     ``mask`` is a :class:`bool` telling whether the frame should be masked
     i.e. whether the write happens on the client side.
 
+    If ``extensions`` is provided, it's a list of functions that transform the
+    frame and return it. They are applied in order.
+
     This function validates the frame before sending it and raises
     :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
     incorrect values.
 
     """
+    for extension in extensions:
+        frame = extension(frame)
+
     check_frame(frame)
 
     output = io.BytesIO()

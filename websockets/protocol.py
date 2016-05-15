@@ -541,11 +541,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def read_frame(self, max_size):
-        is_masked = not self.is_client
-        frame = yield from read_frame(
-            self.reader.readexactly, is_masked, max_size=max_size)
-        side = 'client' if self.is_client else 'server'
-        logger.debug("%s << %s", side, frame)
+        frame = yield from Frame.read(
+            self.reader.readexactly,
+            mask=not self.is_client,
+            max_size=max_size,
+        )
+        logger.debug(
+            "%s << %s",
+            'client' if self.is_client else 'server', frame,
+        )
         return frame
 
     @asyncio.coroutine
@@ -559,11 +563,16 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # before yielding control to avoid sending more than one close frame.
         if opcode == OP_CLOSE:
             self.state = CLOSING
+
         frame = Frame(True, opcode, data)
-        side = 'client' if self.is_client else 'server'
-        logger.debug("%s >> %s", side, frame)
-        is_masked = self.is_client
-        write_frame(frame, self.writer.write, is_masked)
+        logger.debug(
+            "%s >> %s",
+            'client' if self.is_client else 'server', frame,
+        )
+        frame.write(
+            self.writer.write,
+            mask=self.is_client,
+        )
 
         # Backport of the combined logic of:
         # https://github.com/python/asyncio/pull/280

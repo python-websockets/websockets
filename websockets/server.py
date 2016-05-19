@@ -245,22 +245,37 @@ class WebSocketServer(asyncio.AbstractServer):
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          loop=None, klass=WebSocketServerProtocol, legacy_recv=False,
+          klass=WebSocketServerProtocol,
+          timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+          loop=None, legacy_recv=False,
           origins=None, subprotocols=None, extra_headers=None,
           **kwds):
     """
     This coroutine creates a WebSocket server.
 
-    It's a wrapper around the event loop's
-    :meth:`~asyncio.BaseEventLoop.create_server` method. ``host``, ``port`` as
-    well as extra keyword arguments are passed to
-    :meth:`~asyncio.BaseEventLoop.create_server`. For example, you can set the
-    ``ssl`` keyword argument to a :class:`~ssl.SSLContext` to enable TLS.
+    It yields a :class:`~asyncio.Server` which provides:
+
+    * a :meth:`~asyncio.Server.close` method that closes open connections with
+      status code 1001 and stops accepting new connections
+    * a :meth:`~asyncio.Server.wait_closed` coroutine that waits until closing
+      handshakes complete and connections are closed.
 
     ``ws_handler`` is the WebSocket handler. It must be a coroutine accepting
     two arguments: a :class:`WebSocketServerProtocol` and the request URI.
 
-    :func:`serve` accepts several optional arguments:
+    :func:`serve` is a wrapper around the event loop's
+    :meth:`~asyncio.BaseEventLoop.create_server` method. ``host``, ``port`` as
+    well as extra keyword arguments are passed to
+    :meth:`~asyncio.BaseEventLoop.create_server`.
+
+    For example, you can set the ``ssl`` keyword argument to a
+    :class:`~ssl.SSLContext` to enable TLS.
+
+    The behavior of the ``timeout``, ``max_size``, and ``max_queue`` optional
+    arguments is described the documentation of
+    :class:`~websockets.protocol.WebSocketCommonProtocol`.
+
+    :func:`serve` also accepts the following optional arguments:
 
     * ``origins`` defines acceptable Origin HTTP headers — include
       ``''`` if the lack of an origin is acceptable
@@ -269,13 +284,6 @@ def serve(ws_handler, host=None, port=None, *,
     * ``extra_headers`` sets additional HTTP response headers — it can be a
       mapping, an iterable of (name, value) pairs, or a callable taking the
       request path and headers in arguments.
-
-    :func:`serve` yields a :class:`~asyncio.Server` which provides:
-
-    * a :meth:`~asyncio.Server.close` method that closes open connections with
-      status code 1001 and stops accepting new connections
-    * a :meth:`~asyncio.Server.wait_closed` coroutine that waits until closing
-      handshakes complete and connections are closed.
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`WebSocketServerProtocol`, performs the opening handshake, and
@@ -301,8 +309,11 @@ def serve(ws_handler, host=None, port=None, *,
     factory = lambda: klass(
         ws_handler, ws_server,
         host=host, port=port, secure=secure,
+        timeout=timeout, max_size=max_size, max_queue=max_queue,
+        loop=loop, legacy_recv=legacy_recv,
         origins=origins, subprotocols=subprotocols,
-        extra_headers=extra_headers, loop=loop, legacy_recv=legacy_recv)
+        extra_headers=extra_headers,
+    )
     server = yield from loop.create_server(factory, host, port, **kwds)
 
     ws_server.wrap(server)

@@ -101,21 +101,31 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 @asyncio.coroutine
 def connect(uri, *,
-            loop=None, klass=WebSocketClientProtocol, legacy_recv=False,
+            klass=WebSocketClientProtocol,
+            timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+            loop=None, legacy_recv=False,
             origin=None, subprotocols=None, extra_headers=None,
             **kwds):
     """
-    This coroutine connects to a WebSocket server.
+    This coroutine connects to a WebSocket server at a given ``uri``.
 
-    It's a wrapper around the event loop's
+    It yields a :class:`WebSocketClientProtocol` which can then be used to
+    send and receive messages.
+
+    :func:`connect` is a wrapper around the event loop's
     :meth:`~asyncio.BaseEventLoop.create_connection` method. Extra keyword
     arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
+
     For example, you can set the ``ssl`` keyword argument to a
     :class:`~ssl.SSLContext` to enforce some TLS settings. When connecting to
     a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
     ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
 
-    :func:`connect` accepts several optional arguments:
+    The behavior of the ``timeout``, ``max_size``, and ``max_queue`` optional
+    arguments is described the documentation of
+    :class:`~websockets.protocol.WebSocketCommonProtocol`.
+
+    :func:`connect` also accepts the following optional arguments:
 
     * ``origin`` sets the Origin HTTP header
     * ``subprotocols`` is a list of supported subprotocols in order of
@@ -123,14 +133,12 @@ def connect(uri, *,
     * ``extra_headers`` sets additional HTTP request headers – it can be a
       mapping or an iterable of (name, value) pairs
 
-    :func:`connect` yields a :class:`WebSocketClientProtocol` which can then
-    be used to send and receive messages.
+    :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
+    invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
+    handshake fails.
 
-    It raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is invalid and
-    :exc:`~websockets.handshake.InvalidHandshake` if the handshake fails.
-
-    On Python 3.5, it can be used as a asynchronous context manager. In that
-    case, the connection is closed when exiting the context.
+    On Python 3.5, :func:`connect` can be used as a asynchronous context
+    manager. In that case, the connection is closed when exiting the context.
 
     """
     if loop is None:
@@ -144,7 +152,9 @@ def connect(uri, *,
                          "Use a wss:// URI to enable TLS.")
     factory = lambda: klass(
         host=wsuri.host, port=wsuri.port, secure=wsuri.secure,
-        loop=loop, legacy_recv=legacy_recv)
+        timeout=timeout, max_size=max_size, max_queue=max_queue,
+        loop=loop, legacy_recv=legacy_recv,
+    )
 
     transport, protocol = yield from loop.create_connection(
         factory, wsuri.host, wsuri.port, **kwds)

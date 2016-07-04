@@ -1,11 +1,16 @@
 Changelog
 ---------
 
-3.1
+3.2
 ...
+
+*In development*
 
 * Added ``timeout``, ``max_size``, and ``max_queue`` arguments to
   :func:`~websockets.client.connect()` and :func:`~websockets.server.serve()`.
+
+3.1
+...
 
 * Avoided a warning when closing a connection before the opening handshake.
 

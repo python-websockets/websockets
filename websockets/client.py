@@ -77,7 +77,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         # Read handshake response.
         try:
             status_code, headers = yield from read_response(self.reader)
-        except Exception as exc:
+        except ValueError as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
         if status_code != 101:
             raise InvalidHandshake("Bad status code: {}".format(status_code))

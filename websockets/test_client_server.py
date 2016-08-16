@@ -342,6 +342,32 @@ class ClientServerTests(unittest.TestCase):
         # worker handling the connection was waiting for the opening handshake.
         self.stop_server()
 
+    @unittest.mock.patch('websockets.server.read_request')
+    def test_server_shuts_down_during_opening_handshake(self, _read_request):
+        _read_request.side_effect = asyncio.CancelledError
+
+        self.start_server()
+        self.server.closing = True
+        with self.assertRaises(InvalidHandshake) as raised:
+            self.start_client()
+        self.stop_server()
+
+        # Opening handshake fails with 503 Service Unavailable
+        self.assertEqual(str(raised.exception), "Bad status code: 503")
+
+    def test_server_shuts_down_during_connection_handling(self):
+        self.start_server()
+        self.start_client()
+
+        self.server.close()
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.client.recv())
+        self.stop_client()
+        self.stop_server()
+
+        # Websocket connection terminates with 1001 Going Away.
+        self.assertEqual(self.client.close_code, 1001)
+
 
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")
 class SSLClientServerTests(ClientServerTests):

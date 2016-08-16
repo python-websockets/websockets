@@ -63,12 +63,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     origins=self.origins, subprotocols=self.subprotocols,
                     extra_headers=self.extra_headers)
             except Exception as exc:
-                logger.info("Exception in opening handshake: {}".format(exc))
-                if isinstance(exc, InvalidOrigin):
+                if self._is_server_shutting_down(exc):
+                    response = ('HTTP/1.1 503 Service Unavailable\r\n\r\n'
+                                'Server is shutting down.')
+                elif isinstance(exc, InvalidOrigin):
                     response = 'HTTP/1.1 403 Forbidden\r\n\r\n' + str(exc)
                 elif isinstance(exc, InvalidHandshake):
                     response = 'HTTP/1.1 400 Bad Request\r\n\r\n' + str(exc)
                 else:
+                    logger.warning("Error in opening handshake", exc_info=True)
                     response = ('HTTP/1.1 500 Internal Server Error\r\n\r\n'
                                 'See server log for more information.')
                 self.writer.write(response.encode())
@@ -76,15 +79,21 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
             try:
                 yield from self.ws_handler(self, path)
-            except Exception:
-                logger.error("Exception in connection handler", exc_info=True)
-                yield from self.fail_connection(1011)
+            except Exception as exc:
+                if self._is_server_shutting_down(exc):
+                    yield from self.fail_connection(1001)
+                else:
+                    logger.error("Error in connection handler", exc_info=True)
+                    yield from self.fail_connection(1011)
                 raise
 
             try:
                 yield from self.close()
             except Exception as exc:
-                logger.info("Exception in closing handshake: {}".format(exc))
+                if self._is_server_shutting_down(exc):
+                    pass
+                else:
+                    logger.warning("Error in closing handshake", exc_info=True)
                 raise
 
         except Exception:
@@ -100,6 +109,16 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             # task because the server waits for tasks attached to registered
             # connections before terminating.
             self.ws_server.unregister(self)
+
+    def _is_server_shutting_down(self, exc):
+        """
+        Decide whether an exception means that the server is shutting down.
+
+        """
+        return (
+            isinstance(exc, asyncio.CancelledError) and
+            self.ws_server.closing
+        )
 
     @asyncio.coroutine
     def handshake(self, origins=None, subprotocols=None, extra_headers=None):
@@ -122,7 +141,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # Read handshake request.
         try:
             path, headers = yield from read_request(self.reader)
-        except Exception as exc:
+        except ValueError as exc:
             raise InvalidHandshake("Malformed HTTP message") from exc
 
         self.request_headers = headers
@@ -197,6 +216,7 @@ class WebSocketServer(asyncio.AbstractServer):
         # Store a reference to loop to avoid relying on self.server._loop.
         self.loop = loop
 
+        self.closing = False
         self.websockets = set()
 
     def wrap(self, server):
@@ -223,23 +243,42 @@ class WebSocketServer(asyncio.AbstractServer):
 
     def close(self):
         """
-        Stop serving and trigger a closing handshake on open connections.
+        Stop accepting new connections and close open connections.
 
         """
-        for websocket in self.websockets:
-            asyncio_ensure_future(websocket.close(1001), loop=self.loop)
+        # Make a note that the server is shutting down. Websocket connections
+        # check this attribute to decide to send a "going away" close code.
+        self.closing = True
+
+        # Stop accepting new connections.
         self.server.close()
+
+        # Close open connections. For each connection, two tasks are running:
+        # 1. self.worker_task shuffles messages between the network and queues
+        # 2. self.handler_task runs the opening handshake, the handler provided
+        #    by the user and the closing handshake
+        # In the general case, cancelling the handler task will cause the
+        # handler provided by the user to exit with a CancelledError, which
+        # will then cause the worker task to terminate.
+        for websocket in self.websockets:
+            websocket.handler_task.cancel()
 
     @asyncio.coroutine
     def wait_closed(self):
         """
         Wait until all connections are closed.
 
+        This method must be called after :meth:`close()`.
+
         """
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:
+            # The handler or the worker task can terminate first, depending
+            # on how the client behaves and the server is implemented.
             yield from asyncio.wait(
-                [ws.handler_task for ws in self.websockets], loop=self.loop)
+                [websocket.handler_task for websocket in self.websockets] +
+                [websocket.worker_task for websocket in self.websockets],
+                loop=self.loop)
         yield from self.server.wait_closed()
 
 

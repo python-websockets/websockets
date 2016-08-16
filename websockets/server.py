@@ -101,6 +101,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             # connections before terminating.
             self.ws_server.unregister(self)
 
+    def hook_for_http_response(self, path, headers):
+        """
+        Provide a default response content if this is invoked by a traditional HTTP requester
+        """
+        self.writer.write('HTTP/1.1 403 Forbidden\r\n\r\nHTTP Requests unsupported'.encode())
+        self.writer.close()
+    
     @asyncio.coroutine
     def handshake(self, origins=None, subprotocols=None, extra_headers=None):
         """
@@ -127,6 +134,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         self.request_headers = headers
         self.raw_request_headers = list(headers.raw_items())
+        
+        if headers.get('Sec-WebSocket-Key') == None and path.startswith('/'):
+            # User-defined HTTP response content if this is not a websocket connection
+            self.hook_for_http_response(path, headers)
+            # Confirm to close the writer, avoiding outside handler method writing more data
+            self.writer.close()
+            raise
 
         get_header = lambda k: headers.get(k, '')
         key = check_request(get_header)

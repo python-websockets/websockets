@@ -43,7 +43,7 @@ def get_case_count(server):
 def run_case(server, case, agent):
     uri = server + '/runCase?case={}&agent={}'.format(case, agent)
     ws = yield from websockets.connect(uri, klass=EchoClientProtocol)
-    yield from ws.worker
+    yield from ws.worker_task
 
 
 @asyncio.coroutine

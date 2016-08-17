@@ -150,7 +150,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.pings = collections.OrderedDict()
 
         # Task managing the connection, initalized in self.client_connected.
-        self.worker = None
+        self.worker_task = None
 
         # In a subclass implementing the opening handshake, the state will be
         # CONNECTING at this point.
@@ -236,12 +236,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # the worker loop.
         try:
             yield from asyncio.wait_for(
-                self.worker, self.timeout, loop=self.loop)
+                self.worker_task, self.timeout, loop=self.loop)
         except asyncio.TimeoutError:
-            self.worker.cancel()
+            self.worker_task.cancel()
 
         # The worker should terminate quickly once it has been cancelled.
-        yield from self.worker
+        yield from self.worker_task
 
     @asyncio.coroutine
     def recv(self):
@@ -278,7 +278,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.messages.get(), loop=self.loop)
         try:
             done, pending = yield from asyncio.wait(
-                [next_message, self.worker],
+                [next_message, self.worker_task],
                 loop=self.loop, return_when=asyncio.FIRST_COMPLETED)
         except asyncio.CancelledError:
             # Handle the Task.cancel()
@@ -395,7 +395,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # longer than the worst case (2 * self.timeout) but not unlimited.
         if self.state == CLOSING:
             yield from asyncio.wait_for(
-                self.worker, 3 * self.timeout, loop=self.loop)
+                self.worker_task, 3 * self.timeout, loop=self.loop)
             raise ConnectionClosed(self.close_code, self.close_reason)
 
         # Control may only reach this point in buggy third-party subclasses.
@@ -628,7 +628,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.reader = reader
         self.writer = writer
         # Start the task that handles incoming messages.
-        self.worker = asyncio_ensure_future(self.run(), loop=self.loop)
+        self.worker_task = asyncio_ensure_future(self.run(), loop=self.loop)
 
     def eof_received(self):
         super().eof_received()

@@ -27,7 +27,7 @@ class EchoServerProtocol(websockets.WebSocketServerProtocol):
 
 @asyncio.coroutine
 def noop(ws, path):
-    yield from ws.worker
+    yield from ws.worker_task
 
 
 start_server = websockets.serve(noop, '127.0.0.1', 8642, klass=EchoServerProtocol)

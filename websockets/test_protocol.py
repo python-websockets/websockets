@@ -345,7 +345,7 @@ class CommonTests:
         self.protocol.read_message = read_message
         self.process_invalid_frames()
         with self.assertRaises(Exception):
-            self.loop.run_until_complete(self.protocol.worker)
+            self.loop.run_until_complete(self.protocol.worker_task)
         self.assertConnectionClosed(1011, '')
 
     def test_recv_cancelled(self):

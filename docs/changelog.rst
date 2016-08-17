@@ -1,10 +1,13 @@
 Changelog
 ---------
 
-3.2
+3.3
 ...
 
 *In development*
+
+3.2
+...
 
 * Added ``timeout``, ``max_size``, and ``max_queue`` arguments to
   :func:`~websockets.client.connect()` and :func:`~websockets.server.serve()`.

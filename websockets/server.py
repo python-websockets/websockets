@@ -193,7 +193,7 @@ class WebSocketServer(asyncio.AbstractServer):
     Wrapper for :class:`~asyncio.Server` that triggers the closing handshake.
 
     """
-    def __init__(self, loop=None):
+    def __init__(self, loop):
         # Store a reference to loop to avoid relying on self.server._loop.
         self.loop = loop
 
@@ -303,7 +303,7 @@ def serve(ws_handler, host=None, port=None, *,
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    ws_server = WebSocketServer()
+    ws_server = WebSocketServer(loop)
 
     secure = kwds.get('ssl') is not None
     factory = lambda: klass(

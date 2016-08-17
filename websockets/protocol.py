@@ -113,6 +113,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.max_size = max_size
         # Store a reference to loop to avoid relying on self._loop, a private
         # attribute of StreamReaderProtocol, inherited from FlowControlMixin.
+        if loop is None:
+            loop = asyncio.get_event_loop()
         self.loop = loop
 
         self.legacy_recv = legacy_recv

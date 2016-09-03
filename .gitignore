@@ -1,6 +1,5 @@
 *.pyc
 .coverage
-.DS_Store
 .tox
 build/
 compliance/reports/
@@ -8,6 +7,4 @@ dist/
 docs/_build/
 htmlcov/
 MANIFEST
-README
-README.html
 websockets.egg-info/

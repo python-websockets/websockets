@@ -1,25 +1,16 @@
-import os
+import os.path
 import sys
 
 import setuptools
 
-
-# Avoid polluting the .tar.gz with ._* files under Mac OS X
-os.putenv('COPYFILE_DISABLE', 'true')
-
-root = os.path.dirname(__file__)
-
-# Prevent distutils from complaining that a standard file wasn't found
-README = os.path.join(root, 'README')
-if not os.path.exists(README):
-    os.symlink(README + '.rst', README)
+root_dir = os.path.abspath(os.path.dirname(__file__))
 
 description = "An implementation of the WebSocket Protocol (RFC 6455)"
 
-with open(os.path.join(root, 'README'), encoding='utf-8') as f:
-    long_description = '\n\n'.join(f.read().split('\n\n')[1:])
+with open(os.path.join(root_dir, 'README.rst')) as f:
+    long_description = f.read()
 
-with open(os.path.join(root, 'websockets', 'version.py'), encoding='utf-8') as f:
+with open(os.path.join(root_dir, 'websockets', 'version.py')) as f:
     exec(f.read())
 
 py_version = sys.version_info[:2]
@@ -28,22 +19,19 @@ if py_version < (3, 3):
     raise Exception("websockets requires Python >= 3.3.")
 
 packages = ['websockets']
+
 if py_version >= (3, 5):
     packages.append('websockets/py35')
 
 setuptools.setup(
     name='websockets',
     version=version,
-    author='Aymeric Augustin',
-    author_email='aymeric.augustin@m4x.org',
-    url='https://github.com/aaugustin/websockets',
     description=description,
     long_description=long_description,
-    download_url='https://pypi.python.org/pypi/websockets',
-    packages=packages,
-    extras_require={
-        ':python_version=="3.3"': ['asyncio'],
-    },
+    url='https://github.com/aaugustin/websockets',
+    author='Aymeric Augustin',
+    author_email='aymeric.augustin@m4x.org',
+    license='BSD',
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",
@@ -56,6 +44,8 @@ setuptools.setup(
         "Programming Language :: Python :: 3.4",
         "Programming Language :: Python :: 3.5",
     ],
-    platforms='all',
-    license='BSD'
+    packages=packages,
+    extras_require={
+        ':python_version=="3.3"': ['asyncio'],
+    },
 )

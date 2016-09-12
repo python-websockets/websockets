@@ -59,7 +59,7 @@ Consumer
 
 For receiving messages and passing them to a ``consumer`` coroutine::
 
-    async def handler(websocket, path):
+    async def receiver_handler(websocket, path):
         while True:
             message = await websocket.recv()
             await consumer(message)
@@ -73,7 +73,7 @@ Producer
 
 For getting messages from a ``producer`` coroutine and sending them::
 
-    async def handler(websocket, path):
+    async def producer_handler(websocket, path):
         while True:
             message = await producer()
             await websocket.send(message)
@@ -85,8 +85,20 @@ disconnects, which breaks out of the ``while True`` loop.
 Both
 ....
 
-Of course, you can combine the two patterns shown above to read and write
-messages on the same connection.
+You can read and write messages on the same connection by combining the
+two patterns shown above and running the two loops in parallel.
+
+::
+
+    async def handler(websocket, path):
+        # This call prevents the handler from exiting, which would
+        # terminate the websocket connection.
+        await asyncio.wait([
+            receiver_handler(websocket, path),
+            producer_handler(websocket, path),
+        ])
+
+For comparison, here is a more manual approach using one loop.
 
 ::
 
@@ -110,8 +122,6 @@ messages on the same connection.
             else:
                 producer_task.cancel()
 
-(This code looks convoluted. If you know a more straightforward solution,
-please let me know about it!)
 
 Registration
 ............

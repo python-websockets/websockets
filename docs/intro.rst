@@ -111,6 +111,8 @@ messages on the same connection.
                 producer_task = asyncio.ensure_future(producer())
                 pending.add(producer_task)
 
+(This code looks convoluted. If you know a more straightforward solution, 
+please let me know about it!)
 
 Registration
 ............

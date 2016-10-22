@@ -91,27 +91,26 @@ messages on the same connection.
 ::
 
     async def handler(websocket, path):
+        listener_task = asyncio.ensure_future(websocket.recv())
+        producer_task = asyncio.ensure_future(producer())
+        pending = {listener_task, producer_task}
         while True:
-            listener_task = asyncio.ensure_future(websocket.recv())
-            producer_task = asyncio.ensure_future(producer())
             done, pending = await asyncio.wait(
-                [listener_task, producer_task],
+                pending,
                 return_when=asyncio.FIRST_COMPLETED)
 
             if listener_task in done:
                 message = listener_task.result()
                 await consumer(message)
-            else:
-                listener_task.cancel()
+                listener_task = asyncio.ensure_future(websocket.recv())
+                pending.add(listener_task)
 
             if producer_task in done:
                 message = producer_task.result()
                 await websocket.send(message)
-            else:
-                producer_task.cancel()
+                producer_task = asyncio.ensure_future(producer())
+                pending.add(producer_task)
 
-(This code looks convoluted. If you know a more straightforward solution,
-please let me know about it!)
 
 Registration
 ............

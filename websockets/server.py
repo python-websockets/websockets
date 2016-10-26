@@ -9,7 +9,7 @@ import email.message
 import logging
 
 from .compatibility import asyncio_ensure_future
-from .exceptions import InvalidHandshake, InvalidOrigin
+from .exceptions import InvalidHandshake, InvalidOrigin, NotAllowedToConnect
 from .handshake import build_response, check_request
 from .http import USER_AGENT, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -68,6 +68,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                                 'Server is shutting down.')
                 elif isinstance(exc, InvalidOrigin):
                     response = 'HTTP/1.1 403 Forbidden\r\n\r\n' + str(exc)
+                elif isinstance(exc, NotAllowedToConnect):
+                    response = 'HTTP/1.1 401 Unauthorized\r\n\r\n' + str(exc)
                 elif isinstance(exc, InvalidHandshake):
                     response = 'HTTP/1.1 400 Bad Request\r\n\r\n' + str(exc)
                 else:
@@ -120,6 +122,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             self.ws_server.closing
         )
 
+    def is_allowed_to_connect(self, path, headers):
+        """
+        Decide whether the client can be connected based on the path and headers
+        of the initial http request. Should raise NotAllowedToConnect otherwise
+
+        This method is intended to be overriden in an inherited class
+        """
+        pass
+
     @asyncio.coroutine
     def handshake(self, origins=None, subprotocols=None, extra_headers=None):
         """
@@ -161,6 +172,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 client_subprotocols = [p.strip() for p in protocol.split(',')]
                 self.subprotocol = self.select_subprotocol(
                     client_subprotocols, subprotocols)
+
+        # is_allowed_to_connect hook
+        # it is supposed to raise NotAllowedToConnect excpetion when the connection is not allowed
+        self.is_allowed_to_connect(path, headers)
 
         headers = []
         set_header = lambda k, v: headers.append((k, v))

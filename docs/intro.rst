@@ -90,28 +90,25 @@ messages on the same connection.
 
 ::
 
-    async def handler(websocket, path):
+    async def listener_handler(websocket):
         while True:
-            listener_task = asyncio.ensure_future(websocket.recv())
-            producer_task = asyncio.ensure_future(producer())
-            done, pending = await asyncio.wait(
-                [listener_task, producer_task],
-                return_when=asyncio.FIRST_COMPLETED)
+            message = await websocket.recv()
+            await consumer(message)
 
-            if listener_task in done:
-                message = listener_task.result()
-                await consumer(message)
-            else:
-                listener_task.cancel()
+    async def producer_handler(websocket):
+        while True:
+            message = await producer()
+            await websocket.send(message)
 
-            if producer_task in done:
-                message = producer_task.result()
-                await websocket.send(message)
-            else:
-                producer_task.cancel()
+    async def handler(websocket, path):
+        listener_task = asyncio.ensure_future(listener_handler(websocket))
+        producer_task = asyncio.ensure_future(producer_handler(websocket))
+        done, pending = await asyncio.wait(
+            [listener_task, producer_task],
+            return_when=asyncio.FIRST_COMPLETED)
 
-(This code looks convoluted. If you know a more straightforward solution,
-please let me know about it!)
+        for task in pending:
+            task.cancel()
 
 Registration
 ............

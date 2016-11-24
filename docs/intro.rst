@@ -90,7 +90,7 @@ messages on the same connection.
 
 ::
 
-    async def listener_handler(websocket):
+    async def consumer_handler(websocket):
         while True:
             message = await websocket.recv()
             await consumer(message)
@@ -101,11 +101,12 @@ messages on the same connection.
             await websocket.send(message)
 
     async def handler(websocket, path):
-        listener_task = asyncio.ensure_future(listener_handler(websocket))
+        consumer_task = asyncio.ensure_future(consumer_handler(websocket))
         producer_task = asyncio.ensure_future(producer_handler(websocket))
         done, pending = await asyncio.wait(
-            [listener_task, producer_task],
-            return_when=asyncio.FIRST_COMPLETED)
+            [consumer_task, producer_task],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
 
         for task in pending:
             task.cancel()

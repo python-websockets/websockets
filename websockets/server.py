@@ -62,6 +62,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 path = yield from self.handshake(
                     origins=self.origins, subprotocols=self.subprotocols,
                     extra_headers=self.extra_headers)
+            except ConnectionError as exc:
+                logger.info('Connection error during opening handshake', exc_info=True)
+                raise
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
                     response = ('HTTP/1.1 503 Service Unavailable\r\n\r\n'
@@ -89,6 +92,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
             try:
                 yield from self.close()
+            except ConnectionError as exc:
+                if self._is_server_shutting_down(exc):
+                    pass
+                logger.info('Connection error in closing handshake', exc_info=True)
+                raise
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
                     pass

@@ -258,7 +258,7 @@ class CommonTests:
         self.run_loop_once()
         # The connection is established.
         self.assertEqual(self.protocol.local_address, ('host', 4312))
-        get_extra_info.assert_called_once_with('sockname', None)
+        get_extra_info.assert_called_with('sockname', None)
 
     def test_remote_address(self):
         get_extra_info = unittest.mock.Mock(return_value=('host', 4312))
@@ -268,7 +268,7 @@ class CommonTests:
         self.run_loop_once()
         # The connection is established.
         self.assertEqual(self.protocol.remote_address, ('host', 4312))
-        get_extra_info.assert_called_once_with('peername', None)
+        get_extra_info.assert_called_with('peername', None)
 
     def test_open(self):
         self.assertTrue(self.protocol.open)

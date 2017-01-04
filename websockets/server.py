@@ -195,7 +195,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         return path
 
-    def select_subprotocol(self, client_protos, server_protos):
+    @staticmethod
+    def select_subprotocol(client_protos, server_protos):
         """
         Pick a subprotocol among those offered by the client.
 

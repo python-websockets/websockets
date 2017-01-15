@@ -7,7 +7,7 @@ import asyncio
 import collections.abc
 import email.message
 
-from .exceptions import InvalidHandshake
+from .exceptions import InvalidHandshake, InvalidMessage
 from .handshake import build_request, check_response
 from .http import USER_AGENT, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -78,7 +78,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         try:
             status_code, headers = yield from read_response(self.reader)
         except ValueError as exc:
-            raise InvalidHandshake("Malformed HTTP message") from exc
+            raise InvalidMessage("Malformed HTTP message") from exc
         if status_code != 101:
             raise InvalidHandshake("Bad status code: {}".format(status_code))
 

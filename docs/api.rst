@@ -38,6 +38,7 @@ Server
 
         .. automethod:: handshake(origins=None, subprotocols=None, extra_headers=None)
         .. automethod:: select_subprotocol(client_protos, server_protos)
+        .. automethod:: get_response_status()
 
 Client
 ......

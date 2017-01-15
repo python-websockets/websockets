@@ -234,8 +234,7 @@ class ClientServerTests(unittest.TestCase):
         self.stop_client()
         self.stop_server()
 
-    @unittest.mock.patch.object(
-        WebSocketServerProtocol, 'select_subprotocol', autospec=True)
+    @unittest.mock.patch.object(WebSocketServerProtocol, 'select_subprotocol')
     def test_subprotocol_error(self, _select_subprotocol):
         _select_subprotocol.return_value = 'superchat'
 

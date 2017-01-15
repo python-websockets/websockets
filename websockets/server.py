@@ -178,7 +178,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def process_origin(self, get_header, origins=None):
         """
-        Handle the Origin HTTP header when ``origins`` is provided.
+        Handle the Origin HTTP header.
 
         Raise :exc:`~websockets.exceptions.InvalidOrigin` if the origin isn't
         acceptable.
@@ -192,15 +192,16 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def process_subprotocol(self, get_header, subprotocols=None):
         """
-        Handle the Sec-WebSocket-Protocol HTTP header when ``subprotocols`` is provided.
+        Handle the Sec-WebSocket-Protocol HTTP header.
 
         """
         if subprotocols is not None:
-            protocol = get_header('Sec-WebSocket-Protocol')
-            if protocol:
-                client_subprotocols = [p.strip() for p in protocol.split(',')]
+            subprotocol = get_header('Sec-WebSocket-Protocol')
+            if subprotocol:
                 return self.select_subprotocol(
-                    client_subprotocols, subprotocols)
+                    [p.strip() for p in subprotocol.split(',')],
+                    subprotocols,
+                )
 
     @staticmethod
     def select_subprotocol(client_protos, server_protos):

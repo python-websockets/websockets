@@ -1,3 +1,4 @@
+
 """
 The :mod:`websockets.server` module defines a simple WebSocket server API.
 
@@ -6,10 +7,11 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 import asyncio
 import collections.abc
 import email.message
+import http
 import logging
 
 from .compatibility import asyncio_ensure_future
-from .exceptions import InvalidHandshake, InvalidOrigin
+from .exceptions import InvalidHandshake, InvalidMessage, InvalidOrigin
 from .handshake import build_response, check_request
 from .http import USER_AGENT, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -18,6 +20,13 @@ from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 __all__ = ['serve', 'WebSocketServerProtocol']
 
 logger = logging.getLogger(__name__)
+
+try:
+    SWITCHING_PROTOCOLS = http.HTTPStatus.SWITCHING_PROTOCOLS
+except AttributeError:                                      # pragma: no cover
+    class SWITCHING_PROTOCOLS:
+        value = 101
+        phrase = 'Switching protocols'
 
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
@@ -127,6 +136,104 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         )
 
     @asyncio.coroutine
+    def read_request_headers(self):
+        """
+        Read headers from the HTTP request.
+
+        Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
+        is malformed or isn't a HTTP/1.1 GET request.
+
+        """
+        try:
+            path, headers = yield from read_request(self.reader)
+        except ValueError as exc:
+            raise InvalidMessage("Malformed HTTP message") from exc
+
+        self.request_headers = headers
+        self.raw_request_headers = list(headers.raw_items())
+
+        return path, headers
+
+    @asyncio.coroutine
+    def write_response_headers(self, status, headers):
+        """
+        Write headers to the HTTP response.
+
+        """
+        self.response_headers = email.message.Message()
+        for name, value in headers:
+            self.response_headers[name] = value
+        self.raw_response_headers = headers
+
+        # Since the status line and headers only contain ASCII characters,
+        # we can keep this simple.
+        response = [
+            'HTTP/1.1 {value} {phrase}'.format(
+                value=status.value, phrase=status.phrase)]
+        response.extend('{}: {}'.format(k, v) for k, v in headers)
+        response.append('\r\n')
+        response = '\r\n'.join(response).encode()
+
+        self.writer.write(response)
+
+    def process_origin(self, get_header, origins=None):
+        """
+        Handle the Origin HTTP header when ``origins`` is provided.
+
+        Raise :exc:`~websockets.exceptions.InvalidOrigin` if the origin isn't
+        acceptable.
+
+        """
+        if origins is not None:
+            origin = get_header('Origin')
+            if origin not in origins:
+                raise InvalidOrigin("Origin not allowed: {}".format(origin))
+            return origin
+
+    def process_subprotocol(self, get_header, subprotocols=None):
+        """
+        Handle the Sec-WebSocket-Protocol HTTP header when ``subprotocols`` is provided.
+
+        """
+        if subprotocols is not None:
+            protocol = get_header('Sec-WebSocket-Protocol')
+            if protocol:
+                client_subprotocols = [p.strip() for p in protocol.split(',')]
+                return self.select_subprotocol(
+                    client_subprotocols, subprotocols)
+
+    @staticmethod
+    def select_subprotocol(client_protos, server_protos):
+        """
+        Pick a subprotocol among those offered by the client.
+
+        """
+        common_protos = set(client_protos) & set(server_protos)
+        if not common_protos:
+            return None
+        priority = lambda p: client_protos.index(p) + server_protos.index(p)
+        return sorted(common_protos, key=priority)[0]
+
+    @asyncio.coroutine
+    def get_response_status(self):
+        """
+        Return a :class:`~http.HTTPStatus` for the HTTP response.
+
+        (:class:`~http.HTTPStatus` was added in Python 3.5. On earlier
+        versions, a compatible object must be returned. Check the definition
+        of ``SWITCHING_PROTOCOLS`` for an example.)
+
+        This method may be overridden to check the request headers and set a
+        different status, for example to authenticate the request and return
+        ``HTTPStatus.UNAUTHORIZED`` or ``HTTPStatus.FORBIDDEN``.
+
+        It is declared as a coroutine because such authentication checks are
+        likely to require network requests.
+
+        """
+        return SWITCHING_PROTOCOLS
+
+    @asyncio.coroutine
     def handshake(self, origins=None, subprotocols=None, extra_headers=None):
         """
         Perform the server side of the opening handshake.
@@ -141,37 +248,27 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         It can be a mapping or an iterable of (name, value) pairs. It can also
         be a callable taking the request path and headers in arguments.
 
+        Raise :exc:`~websockets.exceptions.InvalidHandshake` or a subclass if
+        the handshake fails.
+
         Return the URI of the request.
 
         """
-        # Read handshake request.
-        try:
-            path, headers = yield from read_request(self.reader)
-        except ValueError as exc:
-            raise InvalidHandshake("Malformed HTTP message") from exc
-
-        self.request_headers = headers
-        self.raw_request_headers = list(headers.raw_items())
-
+        path, headers = yield from self.read_request_headers()
         get_header = lambda k: headers.get(k, '')
+
         key = check_request(get_header)
 
-        if origins is not None:
-            origin = get_header('Origin')
-            if not set(origin.split() or ['']) <= set(origins):
-                raise InvalidOrigin("Origin not allowed: {}".format(origin))
-
-        if subprotocols is not None:
-            protocol = get_header('Sec-WebSocket-Protocol')
-            if protocol:
-                client_subprotocols = [p.strip() for p in protocol.split(',')]
-                self.subprotocol = self.select_subprotocol(
-                    client_subprotocols, subprotocols)
+        self.origin = self.process_origin(get_header, origins)
+        self.subprotocol = self.process_subprotocol(get_header, subprotocols)
 
         headers = []
         set_header = lambda k, v: headers.append((k, v))
+
+        status = yield from self.get_response_status()
+
         set_header('Server', USER_AGENT)
-        if self.subprotocol:
+        if status.value == 101 and self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:
             if callable(extra_headers):
@@ -182,36 +279,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 set_header(name, value)
         build_response(set_header, key)
 
-        self.response_headers = email.message.Message()
-        for name, value in headers:
-            self.response_headers[name] = value
-        self.raw_response_headers = headers
-
-        # Send handshake response. Since the status line and headers only
-        # contain ASCII characters, we can keep this simple.
-        response = ['HTTP/1.1 101 Switching Protocols']
-        response.extend('{}: {}'.format(k, v) for k, v in headers)
-        response.append('\r\n')
-        response = '\r\n'.join(response).encode()
-        self.writer.write(response)
+        yield from self.write_response_headers(status, headers)
 
         assert self.state == CONNECTING
         self.state = OPEN
         self.opening_handshake.set_result(True)
 
         return path
-
-    @staticmethod
-    def select_subprotocol(client_protos, server_protos):
-        """
-        Pick a subprotocol among those offered by the client.
-
-        """
-        common_protos = set(client_protos) & set(server_protos)
-        if not common_protos:
-            return None
-        priority = lambda p: client_protos.index(p) + server_protos.index(p)
-        return sorted(common_protos, key=priority)[0]
 
 
 class WebSocketServer(asyncio.AbstractServer):

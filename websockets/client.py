@@ -29,6 +29,57 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     state = CONNECTING
 
     @asyncio.coroutine
+    def write_request_headers(self, path, headers):
+        """
+        Write headers to the HTTP request.
+
+        """
+        self.request_headers = email.message.Message()
+        for name, value in headers:
+            self.request_headers[name] = value
+        self.raw_request_headers = headers
+
+        # Since the path and headers only contain ASCII characters,
+        # we can keep this simple.
+        request = ['GET {path} HTTP/1.1'.format(path=path)]
+        request.extend('{}: {}'.format(k, v) for k, v in headers)
+        request.append('\r\n')
+        request = '\r\n'.join(request).encode()
+
+        self.writer.write(request)
+
+    @asyncio.coroutine
+    def read_response_headers(self):
+        """
+        Read headers from the HTTP response.
+
+        Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
+        is malformed or isn't a HTTP/1.1 GET request.
+
+        """
+        try:
+            status_code, headers = yield from read_response(self.reader)
+        except ValueError as exc:
+            raise InvalidMessage("Malformed HTTP message") from exc
+
+        self.response_headers = headers
+        self.raw_response_headers = list(headers.raw_items())
+
+        return status_code, headers
+
+    def process_subprotocol(self, get_header, subprotocols=None):
+        """
+        Handle the Sec-WebSocket-Protocol HTTP header.
+
+        """
+        subprotocol = get_header('Sec-WebSocket-Protocol')
+        if subprotocol:
+            if subprotocols is None or subprotocol not in subprotocols:
+                raise InvalidHandshake(
+                    "Unknown subprotocol: {}".format(subprotocol))
+            return subprotocol
+
+    @asyncio.coroutine
     def handshake(self, wsuri,
                   origin=None, subprotocols=None, extra_headers=None):
         """
@@ -45,6 +96,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         headers = []
         set_header = lambda k, v: headers.append((k, v))
+
         if wsuri.port == (443 if wsuri.secure else 80):     # pragma: no cover
             set_header('Host', wsuri.host)
         else:
@@ -59,40 +111,20 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             for name, value in extra_headers:
                 set_header(name, value)
         set_header('User-Agent', USER_AGENT)
+
         key = build_request(set_header)
 
-        self.request_headers = email.message.Message()
-        for name, value in headers:
-            self.request_headers[name] = value
-        self.raw_request_headers = headers
+        yield from self.write_request_headers(wsuri.resource_name, headers)
 
-        # Send handshake request. Since the URI and the headers only contain
-        # ASCII characters, we can keep this simple.
-        request = ['GET %s HTTP/1.1' % wsuri.resource_name]
-        request.extend('{}: {}'.format(k, v) for k, v in headers)
-        request.append('\r\n')
-        request = '\r\n'.join(request).encode()
-        self.writer.write(request)
+        status_code, headers = yield from self.read_response_headers()
+        get_header = lambda k: headers.get(k, '')
 
-        # Read handshake response.
-        try:
-            status_code, headers = yield from read_response(self.reader)
-        except ValueError as exc:
-            raise InvalidMessage("Malformed HTTP message") from exc
         if status_code != 101:
             raise InvalidHandshake("Bad status code: {}".format(status_code))
 
-        self.response_headers = headers
-        self.raw_response_headers = list(headers.raw_items())
-
-        get_header = lambda k: headers.get(k, '')
         check_response(get_header, key)
 
-        self.subprotocol = headers.get('Sec-WebSocket-Protocol', None)
-        if (self.subprotocol is not None and
-                self.subprotocol not in subprotocols):
-            raise InvalidHandshake(
-                "Unknown subprotocol: {}".format(self.subprotocol))
+        self.subprotocol = self.process_subprotocol(get_header, subprotocols)
 
         assert self.state == CONNECTING
         self.state = OPEN

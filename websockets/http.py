@@ -63,7 +63,7 @@ def read_response(stream):
 
     """
     status_line, headers = yield from read_message(stream)
-    version, status, reason = status_line[:-2].decode().split(None, 2)
+    version, status, reason = status_line[:-2].decode().split(" ", 2)
     if version != 'HTTP/1.1':
         raise ValueError("Unsupported HTTP version")
     return int(status), headers

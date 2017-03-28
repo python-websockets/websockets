@@ -124,6 +124,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.reader = None
         self.writer = None
+        self._drain_lock = asyncio.Lock(loop=loop)
 
         self.request_headers = None
         self.raw_request_headers = None
@@ -562,8 +563,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     yield
 
         try:
-            # Handle flow control automatically.
-            yield from self.writer.drain()
+            # drain() cannot be called concurrently by multiple coroutines:
+            # http://bugs.python.org/issue29930. Remove this lock when no
+            # version of Python where this bugs exists is supported anymore.
+            with (yield from self._drain_lock):
+                # Handle flow control automatically.
+                yield from self.writer.drain()
         except ConnectionError:
             # Terminate the connection if the socket died.
             yield from self.fail_connection(1006)

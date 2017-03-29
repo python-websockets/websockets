@@ -1,10 +1,17 @@
 Changelog
 ---------
 
-3.3
+3.4
 ...
 
 *In development*
+
+3.3
+...
+
+* Reduced noise in logs caused by connection resets.
+
+* Avoided crashing on concurrent writes on slow connections.
 
 3.2
 ...

@@ -7,7 +7,7 @@ root_dir = os.path.abspath(os.path.dirname(__file__))
 
 description = "An implementation of the WebSocket Protocol (RFC 6455)"
 
-with open(os.path.join(root_dir, 'README.rst')) as f:
+with open(os.path.join(root_dir, 'README.rst'), encoding="utf-8") as f:
     long_description = f.read()
 
 with open(os.path.join(root_dir, 'websockets', 'version.py')) as f:

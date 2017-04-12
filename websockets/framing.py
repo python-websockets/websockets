@@ -23,7 +23,6 @@ except ImportError:
         return bytes(b ^ mask[i % 4] for i, b in enumerate(data))
 
 
-
 __all__ = [
     'OP_CONT', 'OP_TEXT', 'OP_BINARY', 'OP_CLOSE', 'OP_PING', 'OP_PONG',
     'Frame', 'read_frame', 'write_frame', 'parse_close', 'serialize_close'

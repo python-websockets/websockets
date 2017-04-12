@@ -8,3 +8,4 @@ docs/_build/
 htmlcov/
 MANIFEST
 websockets.egg-info/
+*.so

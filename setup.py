@@ -17,54 +17,18 @@ class custom_build_ext(build_ext):
     """Allow C extension building to fail.
     The C extension speeds up websocket masking, but is not essential.
     """
-
-    warning_message = """
-********************************************************************
-WARNING: %s could not
-be compiled. No C extensions are essential for websockets to run,
-although they do result in significant speed improvements for
-websockets.
-%s
-Here are some hints for popular operating systems:
-If you are seeing this message on Linux you probably need to
-install GCC and/or the Python development package for your
-version of Python.
-Debian and Ubuntu users should issue the following command:
-    $ sudo apt-get install build-essential python-dev
-RedHat and CentOS users should issue the following command:
-    $ sudo yum install gcc python-devel
-Fedora users should issue the following command:
-    $ sudo dnf install gcc python-devel
-If you are seeing this message on OSX please read the documentation
-here:
-http://api.mongodb.org/python/current/installation.html#osx
-********************************************************************
-"""
-
     def run(self):
         try:
             build_ext.run(self)
         except Exception:
-            e = sys.exc_info()[1]
-            sys.stdout.write('%s\n' % str(e))
-            warnings.warn(self.warning_message % ("Extension modules",
-                                                  "There was an issue with "
-                                                  "your platform configuration"
-                                                  " - see above."))
+            warnings.warn("Build C extension failed")
 
     def build_extension(self, ext):
         name = ext.name
         try:
             build_ext.build_extension(self, ext)
         except Exception:
-            e = sys.exc_info()[1]
-            sys.stdout.write('%s\n' % str(e))
-            warnings.warn(self.warning_message % ("The %s extension "
-                                                  "module" % (name,),
-                                                  "The output above "
-                                                  "this warning shows how "
-                                                  "the compilation "
-                                                  "failed."))
+            warnings.warn("Build C extension module %s failed" % name)
 
 
 root_dir = os.path.abspath(os.path.dirname(__file__))

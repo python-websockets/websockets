@@ -7,10 +7,12 @@ root_dir = os.path.abspath(os.path.dirname(__file__))
 
 description = "An implementation of the WebSocket Protocol (RFC 6455)"
 
-with open(os.path.join(root_dir, 'README.rst')) as f:
+readme_file = os.path.join(root_dir, 'README.rst')
+with open(readme_file, encoding='utf-8') as f:
     long_description = f.read()
 
-with open(os.path.join(root_dir, 'websockets', 'version.py')) as f:
+version_module = os.path.join(root_dir, 'websockets', 'version.py')
+with open(version_module, encoding='utf-8') as f:
     exec(f.read())
 
 py_version = sys.version_info[:2]

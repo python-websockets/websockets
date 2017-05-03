@@ -31,6 +31,8 @@ def read_request(stream):
     """
     Read an HTTP/1.1 request from ``stream``.
 
+    ``stream`` is an :class:`~asyncio.StreamReader`.
+
     Return ``(path, headers)`` where ``path`` is a :class:`str` and
     ``headers`` is a :class:`~email.message.Message`. ``path`` isn't
     URL-decoded.
@@ -54,6 +56,8 @@ def read_response(stream):
     """
     Read an HTTP/1.1 response from ``stream``.
 
+    ``stream`` is an :class:`~asyncio.StreamReader`.
+
     Return ``(status, headers)`` where ``status`` is a :class:`int` and
     ``headers`` is a :class:`~email.message.Message`.
 
@@ -73,6 +77,8 @@ def read_response(stream):
 def read_message(stream):
     """
     Read an HTTP message from ``stream``.
+
+    ``stream`` is an :class:`~asyncio.StreamReader`.
 
     Return ``(start_line, headers)`` where ``start_line`` is :class:`bytes`
     and ``headers`` is a :class:`~email.message.Message`.
@@ -98,6 +104,8 @@ def read_message(stream):
 def read_line(stream):
     """
     Read a single line from ``stream``.
+
+    ``stream`` is an :class:`~asyncio.StreamReader`.
 
     """
     line = yield from stream.readline()

@@ -29,8 +29,8 @@ __all__ = [
     'Frame', 'parse_close', 'serialize_close'
 ]
 
-OP_CONT, OP_TEXT, OP_BINARY = range(0x00, 0x03)
-OP_CLOSE, OP_PING, OP_PONG = range(0x08, 0x0b)
+DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY = 0x00, 0x01, 0x02
+CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0a
 
 CLOSE_CODES = {
     1000: "OK",
@@ -214,9 +214,9 @@ class Frame(FrameData):
         if frame.rsv1 or frame.rsv2 or frame.rsv3:
             raise WebSocketProtocolError("Reserved bits must be 0")
 
-        if frame.opcode in [OP_CONT, OP_TEXT, OP_BINARY]:
+        if frame.opcode in DATA_OPCODES:
             return
-        elif frame.opcode in [OP_CLOSE, OP_PING, OP_PONG]:
+        elif frame.opcode in CTRL_OPCODES:
             if len(frame.data) > 125:
                 raise WebSocketProtocolError("Control frame too long")
             if not frame.fin:

@@ -5,7 +5,9 @@ import websockets
 
 
 logging.basicConfig(level=logging.WARNING)
-#logging.getLogger('websockets').setLevel(logging.DEBUG)
+
+# Uncomment this line to make only websockets more verbose.
+# logging.getLogger('websockets').setLevel(logging.DEBUG)
 
 
 class EchoServerProtocol(websockets.WebSocketServerProtocol):
@@ -30,7 +32,8 @@ def noop(ws, path):
     yield from ws.worker_task
 
 
-start_server = websockets.serve(noop, '127.0.0.1', 8642, klass=EchoServerProtocol)
+start_server = websockets.serve(
+    noop, '127.0.0.1', 8642, klass=EchoServerProtocol)
 
 try:
     asyncio.get_event_loop().run_until_complete(start_server)

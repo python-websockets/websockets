@@ -7,7 +7,10 @@ import websockets
 
 
 logging.basicConfig(level=logging.WARNING)
-#logging.getLogger('websockets').setLevel(logging.DEBUG)
+
+# Uncomment this line to make only websockets more verbose.
+# logging.getLogger('websockets').setLevel(logging.DEBUG)
+
 
 SERVER = 'ws://127.0.0.1:8642'
 AGENT = 'websockets'

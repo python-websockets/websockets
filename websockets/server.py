@@ -63,7 +63,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     origins=self.origins, subprotocols=self.subprotocols,
                     extra_headers=self.extra_headers)
             except ConnectionError as exc:
-                logger.info('Connection error during opening handshake', exc_info=True)
+                logger.info(
+                    "Connection error during opening handshake", exc_info=True)
                 raise
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
@@ -95,7 +96,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             except ConnectionError as exc:
                 if self._is_server_shutting_down(exc):
                     pass
-                logger.info('Connection error in closing handshake', exc_info=True)
+                logger.info(
+                    "Connection error in closing handshake", exc_info=True)
                 raise
             except Exception as exc:
                 if self._is_server_shutting_down(exc):

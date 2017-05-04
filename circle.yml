@@ -1,0 +1,13 @@
+machine:
+    post:
+        - pyenv global 3.3.6 3.4.4 3.5.2 3.6.1
+    python:
+        version: 3.6.1
+
+dependencies:
+    pre:
+        - pip install tox
+
+test:
+    override:
+        - tox

@@ -367,6 +367,34 @@ class ClientServerTests(unittest.TestCase):
         # Websocket connection terminates with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
 
+    @unittest.mock.patch('websockets.server.read_request')
+    def test_connection_error_during_opening_handshake(self, _read_request):
+        _read_request.side_effect = ConnectionError
+
+        self.start_server()
+        with self.assertRaises(InvalidHandshake) as raised:
+            self.start_client()
+        self.stop_server()
+
+        # Opening handshake doesn't complete -- since we faked a connection
+        # error, the server doesn't send a response to the client.
+        self.assertEqual(str(raised.exception), "Malformed HTTP message")
+
+    @unittest.mock.patch('websockets.server.WebSocketServerProtocol.close')
+    def test_connection_error_during_closing_handshake(self, close):
+        close.side_effect = ConnectionError
+
+        self.start_server()
+        self.start_client()
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        reply = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(reply, "Hello!")
+        self.stop_client()
+        self.stop_server()
+
+        # Connection ends with an abnormal closure.
+        self.assertEqual(self.client.close_code, 1006)
+
 
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")
 class SSLClientServerTests(ClientServerTests):

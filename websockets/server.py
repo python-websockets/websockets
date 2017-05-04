@@ -94,9 +94,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             try:
                 yield from self.close()
             except ConnectionError as exc:
-                if not self._is_server_shutting_down(exc):
-                    logger.debug(
-                        "Connection error in closing handshake", exc_info=True)
+                logger.debug(
+                    "Connection error in closing handshake", exc_info=True)
                 raise
             except Exception as exc:
                 if not self._is_server_shutting_down(exc):

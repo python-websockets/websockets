@@ -98,7 +98,7 @@ class CommonTests:
     remote_close = Frame(True, OP_CLOSE, serialize_close(1000, 'remote'))
 
     @property
-    def async(self):
+    def ensure_future(self):
         return functools.partial(asyncio_ensure_future, loop=self.loop)
 
     def receive_frame(self, frame):
@@ -164,7 +164,7 @@ class CommonTests:
         """
         close_frame_data = serialize_close(code, reason)
         # Trigger the closing handshake from the local side.
-        self.async(self.protocol.close(code, reason))
+        self.ensure_future(self.protocol.close(code, reason))
         self.run_loop_once()
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
@@ -349,7 +349,7 @@ class CommonTests:
         self.assertConnectionClosed(1011, '')
 
     def test_recv_cancelled(self):
-        recv = self.async(self.protocol.recv())
+        recv = self.ensure_future(self.protocol.recv())
         self.loop.call_soon(recv.cancel)
         with self.assertRaises(asyncio.CancelledError):
             self.loop.run_until_complete(recv)
@@ -698,7 +698,8 @@ class CommonTests:
 
         # Fail the connection while answering a close frame from the client.
         self.loop.call_soon(self.receive_frame, self.remote_close)
-        self.loop.call_later(MS, self.async, self.protocol.fail_connection())
+        self.loop.call_later(
+            MS, self.ensure_future, self.protocol.fail_connection())
         # The client expects the server to close the connection.
         # Simulate it instead of waiting for the connection timeout.
         self.loop.call_later(MS, self.receive_eof_if_client)
@@ -711,7 +712,7 @@ class CommonTests:
         self.assertOneFrameSent(*self.remote_close)
 
     def test_local_close_during_recv(self):
-        recv = self.async(self.protocol.recv())
+        recv = self.ensure_future(self.protocol.recv())
 
         self.receive_frame(self.close_frame)
         self.receive_eof_if_client()
@@ -728,7 +729,7 @@ class CommonTests:
 
     def test_remote_close_during_send(self):
         self.make_drain_slow()
-        send = self.async(self.protocol.send('hello'))
+        send = self.ensure_future(self.protocol.send('hello'))
 
         self.receive_frame(self.close_frame)
         self.receive_eof()

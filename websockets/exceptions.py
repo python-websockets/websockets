@@ -1,6 +1,7 @@
 __all__ = [
     'InvalidHandshake', 'InvalidOrigin', 'InvalidState', 'InvalidURI',
     'ConnectionClosed', 'PayloadTooBig', 'WebSocketProtocolError',
+    'NotAllowedToConnect',
 ]
 
 
@@ -14,6 +15,13 @@ class InvalidHandshake(Exception):
 class InvalidOrigin(InvalidHandshake):
     """
     Exception raised when the origin in a handshake request is forbidden.
+
+    """
+
+
+class NotAllowedToConnect(InvalidHandshake):
+    """
+    Exception raised when an authentication during the handshake fails.
 
     """
 

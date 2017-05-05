@@ -136,6 +136,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 def connect(uri, *,
             klass=WebSocketClientProtocol,
             timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+            read_limit=2 ** 16, write_limit=2 ** 16,
             loop=None, legacy_recv=False,
             origin=None, subprotocols=None, extra_headers=None,
             **kwds):
@@ -154,9 +155,9 @@ def connect(uri, *,
     a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
     ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
 
-    The behavior of the ``timeout``, ``max_size``, and ``max_queue`` optional
-    arguments is described the documentation of
-    :class:`~websockets.protocol.WebSocketCommonProtocol`.
+    The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
+    ``read_limit``, and ``write_limit`` optional arguments is described in the
+    documentation of :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
     :func:`connect` also accepts the following optional arguments:
 
@@ -186,6 +187,7 @@ def connect(uri, *,
     factory = lambda: klass(
         host=wsuri.host, port=wsuri.port, secure=wsuri.secure,
         timeout=timeout, max_size=max_size, max_queue=max_queue,
+        read_limit=read_limit, write_limit=write_limit,
         loop=loop, legacy_recv=legacy_recv,
     )
 

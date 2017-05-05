@@ -388,6 +388,7 @@ class WebSocketServer(asyncio.AbstractServer):
 def serve(ws_handler, host=None, port=None, *,
           klass=WebSocketServerProtocol,
           timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+          read_limit=2 ** 16, write_limit=2 ** 16,
           loop=None, legacy_recv=False,
           origins=None, subprotocols=None, extra_headers=None,
           **kwds):
@@ -412,9 +413,9 @@ def serve(ws_handler, host=None, port=None, *,
     For example, you can set the ``ssl`` keyword argument to a
     :class:`~ssl.SSLContext` to enable TLS.
 
-    The behavior of the ``timeout``, ``max_size``, and ``max_queue`` optional
-    arguments is described the documentation of
-    :class:`~websockets.protocol.WebSocketCommonProtocol`.
+    The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
+    ``read_limit``, and ``write_limit`` optional arguments is described in the
+    documentation of :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
     :func:`serve` also accepts the following optional arguments:
 
@@ -451,6 +452,7 @@ def serve(ws_handler, host=None, port=None, *,
         ws_handler, ws_server,
         host=host, port=port, secure=secure,
         timeout=timeout, max_size=max_size, max_queue=max_queue,
+        read_limit=read_limit, write_limit=write_limit,
         loop=loop, legacy_recv=legacy_recv,
         origins=origins, subprotocols=subprotocols,
         extra_headers=extra_headers,

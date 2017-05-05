@@ -147,7 +147,7 @@ def connect(uri, *,
     send and receive messages.
 
     :func:`connect` is a wrapper around the event loop's
-    :meth:`~asyncio.BaseEventLoop.create_connection` method. Extra keyword
+    :meth:`~asyncio.BaseEventLoop.create_connection` method. Unknown keyword
     arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
 
     For example, you can set the ``ssl`` keyword argument to a

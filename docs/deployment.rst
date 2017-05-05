@@ -91,11 +91,12 @@ Graceful shutdown
 -----------------
 
 You may want to close connections gracefully when shutting down the server,
-perhaps after executing some cleanup logic.
+perhaps after executing some cleanup logic. There are two ways to achieve this
+with the object returned by :func:`~websockets.server.serve`:
 
-The proper way to do this is to call the ``close()`` method of the object
-returned by :func:`~websockets.server.serve`, then wait for ``wait_closed()``
-to complete.
+- using it as a asynchronous context manager, or
+- calling its ``close()`` method, then waiting for its ``wait_closed()``
+  method to complete.
 
 Tasks that handle connections will be cancelled, in the sense that
 :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` raises
@@ -106,6 +107,11 @@ On Unix systems, shutdown is usually triggered by sending a signal.
 Here's a full example (Unix-only):
 
 .. literalinclude:: ../example/shutdown.py
+
+``async``, ``await``, and asynchronous context managers aren't available in
+Python < 3.5. Here's the equivalent for older Python versions:
+
+.. literalinclude:: ../example/oldshutdown.py
 
 It's more difficult to achieve the same effect on Windows. Some third-party
 projects try to help with this problem.

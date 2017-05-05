@@ -407,7 +407,7 @@ def serve(ws_handler, host=None, port=None, *,
 
     :func:`serve` is a wrapper around the event loop's
     :meth:`~asyncio.BaseEventLoop.create_server` method. ``host``, ``port`` as
-    well as extra keyword arguments are passed to
+    well as unknown keyword arguments are passed to
     :meth:`~asyncio.BaseEventLoop.create_server`.
 
     For example, you can set the ``ssl`` keyword argument to a
@@ -441,6 +441,9 @@ def serve(ws_handler, host=None, port=None, *,
         logger.setLevel(logging.ERROR)
         logger.addHandler(logging.StreamHandler())
 
+    On Python 3.5, :func:`serve` can be used as a asynchronous context
+    manager. In that case, the server is shut down when exiting the context.
+
     """
     if loop is None:
         loop = asyncio.get_event_loop()
@@ -462,3 +465,14 @@ def serve(ws_handler, host=None, port=None, *,
     ws_server.wrap(server)
 
     return ws_server
+
+
+try:
+    from .py35.server import Serve
+except (SyntaxError, ImportError):                          # pragma: no cover
+    pass
+else:
+    Serve.__wrapped__ = serve
+    # Copy over docstring to support building documentation on Python 3.5.
+    Serve.__doc__ = serve.__doc__
+    serve = Serve

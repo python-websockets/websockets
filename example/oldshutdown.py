@@ -13,15 +13,17 @@ async def echo(websocket, path):
         else:
             await websocket.send(msg)
 
-async def echo_server(stop):
-    async with websockets.serve(echo, 'localhost', 8765):
-        await stop
-
 loop = asyncio.get_event_loop()
 
-# The stop condition is set when receiving SIGTERM.
+# Create the server.
+start_server = websockets.serve(echo, 'localhost', 8765)
+server = loop.run_until_complete(start_server)
+
+# Run the server until SIGTERM.
 stop = asyncio.Future()
 loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
+loop.run_until_complete(stop)
 
-# Run the server until the stop condition is met.
-loop.run_until_complete(echo_server(stop))
+# Shut down the server.
+server.close()
+loop.run_until_complete(server.wait_closed())

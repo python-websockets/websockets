@@ -6,6 +6,9 @@ Changelog
 
 *In development*
 
+* :func:`~websockets.server.serve` can be used as an asynchronous context
+  manager on Python ≥ 3.5.
+
 * Added support rejecting incoming connections by customizing
   :meth:`~websockets.server.WebSocketServerProtocol.get_response_status()`.
 

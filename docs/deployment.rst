@@ -112,3 +112,16 @@ projects try to help with this problem.
 
 If your server doesn't run in the main thread, look at
 :func:`~asyncio.AbstractEventLoop.call_soon_threadsafe`.
+
+Port sharing
+------------
+
+The WebSocket protocol is an extension of HTTP/1.1. It can be tempting to
+serve both HTTP and WebSocket on the same port.
+
+The author of ``websockets`` doesn't think that's a good idea, due to the
+widely different operational characteristics of HTTP and WebSocket.
+
+If you need to respond to requests with a protocol other than WebSocket, for
+example TCP or HTTP health checks, run a server for that protocol on another
+port, within the same Python process, with :func:`~asyncio.start_server`.

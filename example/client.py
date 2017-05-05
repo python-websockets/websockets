@@ -5,7 +5,7 @@ import websockets
 
 async def hello():
     async with websockets.connect('ws://localhost:8765') as websocket:
-
+      while True:
         name = input("What's your name? ")
         await websocket.send(name)
         print("> {}".format(name))

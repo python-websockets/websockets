@@ -78,8 +78,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     this is 128MB. You may want to lower the limits, depending on your
     application's requirements.
 
-    Once the handshake is complete, request and response HTTP headers are
-    available:
+    As soon as the HTTP request and response in the opening handshake are
+    processed, the request path is available in the :attr:`path` attribute,
+    and the request and response HTTP headers are available:
 
     * as a MIME :class:`~email.message.Message` in the :attr:`request_headers`
       and :attr:`response_headers` attributes
@@ -126,6 +127,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.writer = None
         self._drain_lock = asyncio.Lock(loop=loop)
 
+        self.path = None
         self.request_headers = None
         self.raw_request_headers = None
         self.response_headers = None

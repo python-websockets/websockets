@@ -1,4 +1,5 @@
 import asyncio
+import http
 import logging
 import os
 import ssl
@@ -21,6 +22,8 @@ testcert = os.path.join(os.path.dirname(__file__), 'testcert.pem')
 def handler(ws, path):
     if path == '/attributes':
         yield from ws.send(repr((ws.host, ws.port, ws.secure)))
+    elif path == '/path':
+        yield from ws.send(str(ws.path))
     elif path == '/headers':
         yield from ws.send(str(ws.request_headers))
         yield from ws.send(str(ws.response_headers))
@@ -31,6 +34,21 @@ def handler(ws, path):
         yield from ws.send(repr(ws.subprotocol))
     else:
         yield from ws.send((yield from ws.recv()))
+
+
+try:
+    FORBIDDEN = http.HTTPStatus.FORBIDDEN
+except AttributeError:                                      # pragma: no cover
+    class FORBIDDEN:
+        value = 403
+        phrase = 'Forbidden'
+
+
+class ForbiddenWebSocketServerProtocol(WebSocketServerProtocol):
+
+    @asyncio.coroutine
+    def get_response_status(self, set_header):
+        return FORBIDDEN
 
 
 class ClientServerTests(unittest.TestCase):
@@ -104,6 +122,16 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(client_attrs, expected_attrs)
         server_attrs = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_attrs, repr(expected_attrs))
+        self.stop_client()
+        self.stop_server()
+
+    def test_protocol_path(self):
+        self.start_server()
+        self.start_client('path')
+        client_path = self.client.path
+        self.assertEqual(client_path, '/path')
+        server_path = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_path, '/path')
         self.stop_client()
         self.stop_server()
 
@@ -187,6 +215,12 @@ class ClientServerTests(unittest.TestCase):
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
         self.stop_client()
+        self.stop_server()
+
+    def test_authentication(self):
+        self.start_server(klass=ForbiddenWebSocketServerProtocol)
+        with self.assertRaises(InvalidHandshake):
+            self.start_client()
         self.stop_server()
 
     def test_no_subprotocol(self):

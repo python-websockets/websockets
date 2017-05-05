@@ -90,6 +90,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 self.writer.write(response.encode())
                 raise
 
+            # Subclasses can customize get_response_status() or handshake() to
+            # reject the handshake, typically after checking authentication.
+            if path is None:
+                return
+
             try:
                 yield from self.ws_handler(self, path)
             except Exception as exc:
@@ -136,9 +141,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         )
 
     @asyncio.coroutine
-    def read_request_headers(self):
+    def read_http_request(self):
         """
-        Read headers from the HTTP request.
+        Read status line and headers from the HTTP request.
 
         Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
         is malformed or isn't a HTTP/1.1 GET request.
@@ -149,15 +154,16 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
+        self.path = path
         self.request_headers = headers
         self.raw_request_headers = list(headers.raw_items())
 
         return path, headers
 
     @asyncio.coroutine
-    def write_response_headers(self, status, headers):
+    def write_http_response(self, status, headers):
         """
-        Write headers to the HTTP response.
+        Write status line and headers to the HTTP response.
 
         """
         self.response_headers = email.message.Message()
@@ -216,7 +222,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return sorted(common_protos, key=priority)[0]
 
     @asyncio.coroutine
-    def get_response_status(self):
+    def get_response_status(self, set_header):
         """
         Return a :class:`~http.HTTPStatus` for the HTTP response.
 
@@ -230,6 +236,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         It is declared as a coroutine because such authentication checks are
         likely to require network requests.
+
+        The connection is closed immediately after sending the response when
+        the status code is not ``HTTPStatus.SWITCHING_PROTOCOLS``.
+
+        Call ``set_header(key, value)`` to set additional response headers.
 
         """
         return SWITCHING_PROTOCOLS
@@ -255,7 +266,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Return the URI of the request.
 
         """
-        path, headers = yield from self.read_request_headers()
+        path, headers = yield from self.read_http_request()
         get_header = lambda k: headers.get(k, '')
 
         key = check_request(get_header)
@@ -266,10 +277,19 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         headers = []
         set_header = lambda k, v: headers.append((k, v))
 
-        status = yield from self.get_response_status()
-
         set_header('Server', USER_AGENT)
-        if status.value == 101 and self.subprotocol:
+
+        status = yield from self.get_response_status(set_header)
+
+        # Abort the connection if the status code isn't 101.
+        if status.value != SWITCHING_PROTOCOLS.value:
+            yield from self.write_http_response(status, headers)
+            self.opening_handshake.set_result(False)
+            yield from self.close_connection(force=True)
+            return
+
+        # Status code is 101, establish the connection.
+        if self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:
             if callable(extra_headers):
@@ -280,7 +300,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 set_header(name, value)
         build_response(set_header, key)
 
-        yield from self.write_response_headers(status, headers)
+        yield from self.write_http_response(status, headers)
 
         assert self.state == CONNECTING
         self.state = OPEN

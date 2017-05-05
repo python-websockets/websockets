@@ -6,6 +6,9 @@ Changelog
 
 *In development*
 
+* Added support rejecting incoming connections by customizing
+  :meth:`~websockets.server.WebSocketServerProtocol.get_response_status()`.
+
 3.3
 ...
 

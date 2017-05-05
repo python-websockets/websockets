@@ -29,11 +29,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     state = CONNECTING
 
     @asyncio.coroutine
-    def write_request_headers(self, path, headers):
+    def write_http_request(self, path, headers):
         """
-        Write headers to the HTTP request.
+        Write status line and headers to the HTTP request.
 
         """
+        self.path = path
         self.request_headers = email.message.Message()
         for name, value in headers:
             self.request_headers[name] = value
@@ -49,9 +50,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.writer.write(request)
 
     @asyncio.coroutine
-    def read_response_headers(self):
+    def read_http_response(self):
         """
-        Read headers from the HTTP response.
+        Read status line and headers from the HTTP response.
 
         Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
         is malformed or isn't a HTTP/1.1 GET request.
@@ -114,9 +115,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         key = build_request(set_header)
 
-        yield from self.write_request_headers(wsuri.resource_name, headers)
+        yield from self.write_http_request(wsuri.resource_name, headers)
 
-        status_code, headers = yield from self.read_response_headers()
+        status_code, headers = yield from self.read_http_response()
         get_header = lambda k: headers.get(k, '')
 
         if status_code != 101:

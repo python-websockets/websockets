@@ -9,6 +9,8 @@ Changelog
 * Added support rejecting incoming connections by customizing
   :meth:`~websockets.server.WebSocketServerProtocol.get_response_status()`.
 
+* Made read and write buffer sizes configurable.
+
 3.3
 ...
 

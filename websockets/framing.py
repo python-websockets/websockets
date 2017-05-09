@@ -19,6 +19,7 @@ from .exceptions import PayloadTooBig, WebSocketProtocolError
 
 
 __all__ = [
+    'DATA_OPCODES', 'CTRL_OPCODES',
     'OP_CONT', 'OP_TEXT', 'OP_BINARY', 'OP_CLOSE', 'OP_PING', 'OP_PONG',
     'Frame', 'parse_close', 'serialize_close'
 ]
@@ -83,8 +84,9 @@ class Frame(FrameData):
         If ``max_size`` is set and the payload exceeds this size in bytes,
         :exc:`~websockets.exceptions.PayloadTooBig` is raised.
 
-        If ``extensions`` is provided, it's a list of functions that transform
-        the frame and return it. They are applied in reverse order.
+        If ``extensions`` is provided, it's a list of classes with an
+        ``decode()`` method that transform the frame and return a new frame.
+        They are applied in order.
 
         This function validates the frame before returning it and raises
         :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
@@ -128,7 +130,7 @@ class Frame(FrameData):
         frame.check()
 
         for extension in reversed(extensions):
-            frame = extension(frame)
+            frame = extension.decode(frame)
 
         return frame
 
@@ -143,8 +145,9 @@ class Frame(FrameData):
         ``mask`` is a :class:`bool` telling whether the frame should be masked
         i.e. whether the write happens on the client side.
 
-        If ``extensions`` is provided, it's a list of functions that transform
-        the frame and return it. They are applied in order.
+        If ``extensions`` is provided, it's a list of classes with an
+        ``encode()`` method that transform the frame and return a new frame.
+        They are applied in order.
 
         This function validates the frame before sending it and raises
         :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
@@ -156,7 +159,7 @@ class Frame(FrameData):
         # but it's the instance of class to which this method is bound.
 
         for extension in extensions:
-            frame = extension(frame)
+            frame = extension.encode(frame)
 
         frame.check()
 

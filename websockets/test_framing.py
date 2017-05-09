@@ -155,14 +155,19 @@ class FramingTests(unittest.TestCase):
     @unittest.skipUnless(sys.version_info[:2] >= (3, 4), "rot13 is new in 3.4")
     def test_extensions(self):
 
-        # This extensions is symmetrical.
-        def rot13(frame):
-            assert frame.opcode == OP_TEXT
-            text = frame.data.decode()
-            data = codecs.encode(text, 'rot13').encode()
-            return frame._replace(data=data)
+        class Rot13:
+
+            @staticmethod
+            def encode(frame):
+                assert frame.opcode == OP_TEXT
+                text = frame.data.decode()
+                data = codecs.encode(text, 'rot13').encode()
+                return frame._replace(data=data)
+
+            # This extensions is symmetrical.
+            decode = encode
 
         self.round_trip(
             b'\x81\x05uryyb',
             Frame(True, OP_TEXT, b'hello'),
-            extensions=[rot13])
+            extensions=[Rot13()])

@@ -148,6 +148,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.response_headers = None
         self.raw_response_headers = None
 
+        self.extensions = []
         self.subprotocol = None
 
         # Code and reason must be set when the closing handshake completes.
@@ -542,6 +543,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.reader.readexactly,
             mask=not self.is_client,
             max_size=max_size,
+            extensions=self.extensions,
         )
         logger.debug(
             "%s << %s",
@@ -569,6 +571,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         frame.write(
             self.writer.write,
             mask=self.is_client,
+            extensions=self.extensions,
         )
 
         # Backport of the combined logic of:

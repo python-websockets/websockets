@@ -15,6 +15,7 @@ from .compatibility import (
 from .exceptions import (
     AbortHandshake, InvalidHandshake, InvalidMessage, InvalidOrigin
 )
+from .extensions import PerMessageDeflate
 from .handshake import build_response, check_request
 from .http import USER_AGENT, build_headers, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -258,28 +259,18 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Handle the Sec-WebSocket-Extensions HTTP request header.
 
         """
-        if available_extensions is not None:
-            extensions = get_header('Sec-WebSocket-Extensions')
-            if extensions:
-                return self.select_extensions(
-                    [
-                        extension.strip()
-                        for extension in extensions.split(',')
-                    ],
-                    available_extensions,
-                )
-
-    @staticmethod
-    def select_extensions(client_extensions, server_extensions):
-        """
-        Pick a subprotocol among those offered by the client.
-
-        """
-        return [
-            extension
-            for extension in client_extensions
-            if extension in server_extensions
-        ]
+        # TODO this doesn't allow configuring available extensions.
+        extensions = get_header('Sec-WebSocket-Extensions')
+        if extensions:
+            extensions = [
+                extension.strip()
+                for extension in extensions.split(',')
+            ]
+            for extension in extensions:
+                extension, params = extension.split(';', 1)
+                if extension == 'permessage-deflate':
+                    return [PerMessageDeflate()]
+        return []
 
     def process_subprotocol(self, get_header, available_subprotocols=None):
         """
@@ -289,11 +280,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if available_subprotocols is not None:
             subprotocols = get_header('Sec-WebSocket-Protocol')
             if subprotocols:
+                subprotocols = [
+                    subprotocol.strip()
+                    for subprotocol in subprotocols.split(',')
+                ]
                 return self.select_subprotocol(
-                    [
-                        subprotocol.strip()
-                        for subprotocol in subprotocols.split(',')
-                    ],
+                    subprotocols,
                     available_subprotocols,
                 )
 
@@ -362,7 +354,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         set_header('Server', USER_AGENT)
 
         if self.extensions:
-            set_header('Sec-WebSocket-Extensions', ', '.join(self.extensions))
+            set_header('Sec-WebSocket-Extensions', ', '.join(
+                extension.name() for extension in self.extensions))
         if self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:

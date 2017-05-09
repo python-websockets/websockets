@@ -6,6 +6,6 @@
    "servers": [{"agent": "websockets", "url": "ws://localhost:8642", "options": {"version": 18}}],
 
    "cases": ["*"],
-   "exclude-cases": [],
+   "exclude-cases": ["12.*", "13.*"],
    "exclude-agent-cases": {}
 }

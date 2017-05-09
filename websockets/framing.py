@@ -77,7 +77,7 @@ class Frame(FrameData):
 
     @classmethod
     @asyncio.coroutine
-    def read(cls, reader, *, mask, max_size=None, extensions=()):
+    def read(cls, reader, *, mask, max_size=None, extensions=None):
         """
         Read a WebSocket frame and return a :class:`Frame` object.
 
@@ -133,14 +133,16 @@ class Frame(FrameData):
 
         frame = cls(fin, opcode, data, rsv1, rsv2, rsv3)
 
-        frame.check()
-
+        if extensions is None:
+            extensions = []
         for extension in reversed(extensions):
             frame = extension.decode(frame)
 
+        frame.check()
+
         return frame
 
-    def write(frame, writer, *, mask, extensions=()):
+    def write(frame, writer, *, mask, extensions=None):
         """
         Write a WebSocket frame.
 
@@ -161,13 +163,15 @@ class Frame(FrameData):
 
         """
 
+        frame.check()
+
         # The first parameter is called `frame` rather than `self`,
         # but it's the instance of class to which this method is bound.
 
+        if extensions is None:
+            extensions = []
         for extension in extensions:
             frame = extension.encode(frame)
-
-        frame.check()
 
         output = io.BytesIO()
 

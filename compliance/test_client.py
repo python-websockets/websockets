@@ -16,23 +16,6 @@ SERVER = 'ws://127.0.0.1:8642'
 AGENT = 'websockets'
 
 
-class EchoClientProtocol(websockets.WebSocketClientProtocol):
-    """
-    WebSocket client protocol that echoes messages synchronously.
-
-    """
-    def __init__(self, *args, **kwargs):
-        kwargs['max_size'] = 2 ** 25
-        super().__init__(*args, **kwargs)
-
-    @asyncio.coroutine
-    def read_message(self):
-        msg = yield from super().read_message()
-        if msg is not None:
-            yield from self.send(msg)
-        return msg
-
-
 @asyncio.coroutine
 def get_case_count(server):
     uri = server + '/getCaseCount'
@@ -45,8 +28,13 @@ def get_case_count(server):
 @asyncio.coroutine
 def run_case(server, case, agent):
     uri = server + '/runCase?case={}&agent={}'.format(case, agent)
-    ws = yield from websockets.connect(uri, klass=EchoClientProtocol)
-    yield from ws.worker_task
+    ws = yield from websockets.connect(uri, max_size=2 ** 25, max_queue=1)
+    while True:
+        try:
+            msg = yield from ws.recv()
+            yield from ws.send(msg)
+        except websockets.ConnectionClosed:
+            break
 
 
 @asyncio.coroutine

@@ -217,7 +217,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             for extension in extensions:
                 extension, params = extension.split(';', 1)
                 if extension == 'permessage-deflate':
-                    return [PerMessageDeflate()]
+                    return [PerMessageDeflate(params)]
         return []
 
     def process_subprotocol(self, get_header, available_subprotocols=None):
@@ -330,7 +330,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # Status code is 101, establish the connection.
         if self.extensions:
             set_header('Sec-WebSocket-Extensions', ', '.join(
-                extension.name() for extension in self.extensions))
+                extension.response() for extension in self.extensions))
         if self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:

@@ -7,6 +7,8 @@ import asyncio
 import collections.abc
 import email.message
 
+from websockets.extensions import parse_extensions, PerMessageDeflate
+
 from .exceptions import InvalidHandshake, InvalidMessage
 from .handshake import build_request, check_response
 from .http import USER_AGENT, read_response
@@ -32,7 +34,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                  origin=None, extensions=None, subprotocols=None,
                  extra_headers=None, **kwds):
         self.origin = origin
-        self.available_extensions = extensions
+        self.available_extensions = [
+            'permessage-deflate; client_no_context_takeover; client_max_window_bits'
+        ]
+        if extensions:
+            self.available_extensions.append(extensions)
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
         super().__init__(**kwds)
@@ -84,19 +90,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         extensions = get_header('Sec-WebSocket-Extensions')
         if extensions:
-            extensions = [e.strip() for e in extensions.split(',')]
-            if available_extensions is None:
-                raise InvalidHandshake("No extensions supported.")
-            unsupported_extensions = [
-                extension
-                for extension in extensions
-                if extension not in available_extensions
-            ]
-            if unsupported_extensions:
-                raise InvalidHandshake(
-                    "Unsupported extensions: {}"
-                    .format(', '.join(unsupported_extensions)))
-            return extensions
+            extensions = parse_extensions(extensions)
+            for extension in extensions:
+                extension, params = extension
+                if extension == 'permessage-deflate':
+                    return [PerMessageDeflate(True, params)]
+        return []
 
     def process_subprotocol(self, get_header, available_subprotocols=None):
         """
@@ -245,9 +244,9 @@ def connect(uri, *,
     try:
         yield from protocol.handshake(
             wsuri, origin=origin,
-            available_extensions=extensions,
-            available_subprotocols=subprotocols,
-            extra_headers=extra_headers,
+            available_extensions=protocol.available_extensions,
+            available_subprotocols=protocol.available_subprotocols,
+            extra_headers=protocol.extra_headers,
         )
     except Exception:
         yield from protocol.close_connection(force=True)

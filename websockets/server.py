@@ -12,7 +12,7 @@ import logging
 
 from .compatibility import asyncio_ensure_future
 from .exceptions import InvalidHandshake, InvalidMessage, InvalidOrigin
-from .extensions import PerMessageDeflate
+from .extensions import PerMessageDeflate, parse_extensions
 from .handshake import build_response, check_request
 from .http import USER_AGENT, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -210,14 +210,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # TODO this doesn't allow configuring available extensions.
         extensions = get_header('Sec-WebSocket-Extensions')
         if extensions:
-            extensions = [
-                extension.strip()
-                for extension in extensions.split(',')
-            ]
+            extensions = parse_extensions(extensions)
             for extension in extensions:
-                extension, params = extension.split(';', 1)
+                extension, params = extension
                 if extension == 'permessage-deflate':
-                    return [PerMessageDeflate(params)]
+                    return [PerMessageDeflate(False, params)]
         return []
 
     def process_subprotocol(self, get_header, available_subprotocols=None):

@@ -2,11 +2,41 @@ import zlib
 
 from .framing import CTRL_OPCODES, OP_CONT
 
-
-__all__ = ['PerMessageDeflate']
-
+__all__ = ['PerMessageDeflate', 'parse_extensions']
 
 _EMPTY_UNCOMPRESSED_BLOCK = b'\x00\x00\xff\xff'
+
+
+def unquote_value(value):
+    if value and value[0] == value[-1] == '"':
+        return value[1:-1]
+    return value
+
+
+def parse_extensions(header):
+    """
+    Parse an extension header and return a list of extension/parameters
+    :param header: str
+    :return: [('extension name', {parameters dict}), ...]
+    """
+    extensions = []
+    header = header.replace('\n', ',')
+    for ext_string in header.split(','):
+        ext_name, *params_list = ext_string.strip().split(';')
+        ext_name = ext_name.strip()
+        if not ext_name:
+            # Can happen with an initial carriage return
+            continue
+        parameters = {}
+        for param in params_list:
+            if '=' in param:
+                param, param_value = param.split('=', 1)
+                param_value = unquote_value(param_value.strip())
+            else:
+                param_value = None
+            parameters[param.strip()] = param_value
+        extensions.append((ext_name, parameters))
+    return extensions
 
 
 class PerMessageDeflate:
@@ -17,42 +47,48 @@ class PerMessageDeflate:
 
     """
 
-    # This class implements the server-side behavior by default.
-    # To get the client-side behavior, set is_client = True.
-    is_client = False
-
-    def __init__(self, parameter_string, *,
+    def __init__(self, is_client, parameters, *,
                  server_no_context_takeover=False,
                  client_no_context_takeover=False,
                  server_max_window_bits=15,
                  client_max_window_bits=15):
+        self.is_client = is_client
         self.server_no_context_takeover = server_no_context_takeover
         self.client_no_context_takeover = client_no_context_takeover
         self.server_max_window_bits = server_max_window_bits
         self.client_max_window_bits = client_max_window_bits
 
-        for param in [p.strip() for p in parameter_string.split(';')]:
+        for param, value in parameters.items():
             if param == 'server_no_context_takeover':
+                assert value is None
                 self.server_no_context_takeover = True
             elif param == 'client_no_context_takeover':
+                assert value is None
                 self.client_no_context_takeover = True
             elif param.startswith('client_max_window_bits'):
-                if '=' in param:
-                    window_bits = int(param.split('=')[1])
+                if value:
+                    window_bits = int(value)
                     assert 8 <= window_bits <= 15
-                    self.server_max_window_bits = min(window_bits,
-                                                      self.server_max_window_bits)
+                    window_bits = min(window_bits, self.client_max_window_bits)
+                    self.client_max_window_bits = window_bits
             elif param.startswith('server_max_window_bits'):
-                assert '=' in param
-                window_bits = int(param.split('=')[1])
+                assert value is not None
+                window_bits = int(value)
                 assert 8 <= window_bits <= 15
-                self.server_max_window_bits = min(window_bits,
-                                                  self.server_max_window_bits)
+                window_bits = min(window_bits, self.server_max_window_bits)
+                self.server_max_window_bits = window_bits
             else:
                 raise ValueError('invalid parameter')
 
         # Internal state.
-        if self.server_no_context_takeover:
+        if self.is_client:
+            self.transient_encoder = self.client_no_context_takeover
+            self.transient_decoder = self.server_no_context_takeover
+        else:
+            self.transient_encoder = self.server_no_context_takeover
+            self.transient_decoder = self.client_no_context_takeover
+
+        if self.transient_decoder:
             self.decoder = None
         else:
             self.decoder = zlib.decompressobj(
@@ -62,7 +98,8 @@ class PerMessageDeflate:
                     self.client_max_window_bits
                 ),
             )
-        if self.client_no_context_takeover:
+
+        if self.transient_encoder:
             self.encoder = None
         else:
             self.encoder = zlib.compressobj(
@@ -100,10 +137,10 @@ class PerMessageDeflate:
         else:
             if not frame.rsv1:
                 return frame
-            if not frame.fin:   # frame.rsv1 is True at this point
+            if not frame.fin:  # frame.rsv1 is True at this point
                 self.decode_cont_data = True
 
-            if self.server_no_context_takeover:
+            if self.transient_decoder:
                 self.decoder = zlib.decompressobj(
                     wbits=-(
                         self.server_max_window_bits
@@ -129,14 +166,14 @@ class PerMessageDeflate:
         if frame.opcode in CTRL_OPCODES:
             return frame
 
-        if self.client_no_context_takeover:
+        if self.transient_encoder:
             self.encoder = zlib.compressobj(
                 wbits=-(
-                        self.client_max_window_bits
-                        if self.is_client else
-                        self.server_max_window_bits
-                    ),
-                )
+                    self.client_max_window_bits
+                    if self.is_client else
+                    self.server_max_window_bits
+                ),
+            )
 
         # Compress data frames.
         # Since we don't do fragmentation, this is easy.

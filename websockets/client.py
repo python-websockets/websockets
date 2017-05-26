@@ -7,9 +7,8 @@ import asyncio
 import collections.abc
 import email.message
 
-from websockets.extensions import parse_extensions, PerMessageDeflate
-
 from .exceptions import InvalidHandshake, InvalidMessage
+from .extensions import PerMessageDeflate, parse_extensions
 from .handshake import build_request, check_response
 from .http import USER_AGENT, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -37,7 +36,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.available_extensions = []
         if use_compression:
             self.available_extensions.append(
-                'permessage-deflate; client_no_context_takeover; client_max_window_bits'
+                'permessage-deflate; '
+                'client_no_context_takeover; '
+                'client_max_window_bits'
             )
         if extensions:
             self.available_extensions.append(extensions)

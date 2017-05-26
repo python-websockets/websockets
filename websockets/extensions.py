@@ -181,7 +181,7 @@ class PerMessageDeflate:
             self.encoder.compress(frame.data) +
             self.encoder.flush(zlib.Z_SYNC_FLUSH)
         )
-        if data.endswith(_EMPTY_UNCOMPRESSED_BLOCK):
+        if data.endswith(_EMPTY_UNCOMPRESSED_BLOCK):  # pragma: no cover
             data = data[:-4]
 
         return frame._replace(data=data, rsv1=frame.opcode != OP_CONT)

@@ -30,12 +30,14 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
     def __init__(self, *,
                  origin=None, extensions=None, subprotocols=None,
-                 extra_headers=None, **kwds):
+                 extra_headers=None, use_compression=True, **kwds):
         self.origin = origin
-        self.available_extensions = [
-            'permessage-deflate'
-            '; client_no_context_takeover; client_max_window_bits'
-        ]
+        self.available_extensions = []
+        if use_compression:
+            self.available_extensions.append(
+                'permessage-deflate'
+                '; client_no_context_takeover; client_max_window_bits'
+            )
         if extensions:
             self.available_extensions.append(extensions)
         self.available_subprotocols = subprotocols
@@ -183,7 +185,7 @@ def connect(uri, *,
             read_limit=2 ** 16, write_limit=2 ** 16,
             loop=None, legacy_recv=False, klass=None,
             origin=None, extensions=None, subprotocols=None,
-            extra_headers=None, **kwds):
+            extra_headers=None, use_compression=True, **kwds):
     """
     This coroutine connects to a WebSocket server at a given ``uri``.
 
@@ -218,6 +220,7 @@ def connect(uri, *,
       decreasing preference
     * ``extra_headers`` sets additional HTTP request headers – it can be a
       mapping or an iterable of (name, value) pairs
+    * ``use_compression`` allow client to force compression to be disabled
 
     :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
     invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
@@ -250,7 +253,7 @@ def connect(uri, *,
         read_limit=read_limit, write_limit=write_limit,
         loop=loop, legacy_recv=legacy_recv,
         origin=origin, extensions=extensions, subprotocols=subprotocols,
-        extra_headers=extra_headers,
+        extra_headers=extra_headers, use_compression=use_compression
     )
 
     transport, protocol = yield from loop.create_connection(

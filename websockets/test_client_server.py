@@ -177,6 +177,13 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(reply, "Hello!")
 
     @with_server()
+    @with_client(use_compression=False)
+    def test_basic_no_compression(self):
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        reply = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(reply, "Hello!")
+
+    @with_server()
     def test_server_close_while_client_connected(self):
         self.start_client()
 

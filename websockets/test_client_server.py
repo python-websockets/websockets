@@ -100,6 +100,15 @@ class ClientServerTests(unittest.TestCase):
         self.stop_client()
         self.stop_server()
 
+    def test_basic_no_compression(self):
+        self.start_server()
+        self.start_client(use_compression=False)
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        reply = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(reply, "Hello!")
+        self.stop_client()
+        self.stop_server()
+
     def test_server_close_while_client_connected(self):
         self.start_server()
         self.start_client()

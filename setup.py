@@ -20,7 +20,7 @@ py_version = sys.version_info[:2]
 if py_version < (3, 3):
     raise Exception("websockets requires Python >= 3.3.")
 
-packages = ['websockets']
+packages = ['websockets', 'websockets/extensions']
 
 if py_version >= (3, 5):
     packages.append('websockets/py35')

@@ -7,7 +7,8 @@ import asyncio
 import collections.abc
 
 from .exceptions import InvalidHandshake, InvalidMessage, InvalidStatusCode
-from .extensions import PerMessageDeflate, parse_extensions
+from .extensions.permessage_deflate import PerMessageDeflate
+from .extensions.utils import parse_extensions
 from .handshake import build_request, check_response
 from .http import USER_AGENT, build_headers, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol

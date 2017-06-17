@@ -1,52 +1,22 @@
+"""
+The :mod:`websockets.extensions.permessage_deflate` module implements the
+Compression Extensions for WebSocket as specified in `RFC 7692`_.
+
+.. _RFC 7692: http://tools.ietf.org/html/rfc7692
+
+"""
+
 import zlib
 
-from .framing import CTRL_OPCODES, OP_CONT
+from ..framing import CTRL_OPCODES, OP_CONT
 
 
-__all__ = ['PerMessageDeflate', 'parse_extensions']
+__all__ = ['PerMessageDeflate']
 
 _EMPTY_UNCOMPRESSED_BLOCK = b'\x00\x00\xff\xff'
 
 
-def unquote_value(value):
-    if value and value[0] == value[-1] == '"':
-        return value[1:-1]
-    return value
-
-
-def parse_extensions(header):
-    """
-    Parse an extension header and return a list of extension/parameters
-    :param header: str
-    :return: [('extension name', {parameters dict}), ...]
-    """
-    extensions = []
-    header = header.replace('\n', ',')
-    for ext_string in header.split(','):
-        ext_name, *params_list = ext_string.strip().split(';')
-        ext_name = ext_name.strip()
-        if not ext_name:
-            # Can happen with an initial carriage return
-            continue
-        parameters = {}
-        for param in params_list:
-            if '=' in param:
-                param, param_value = param.split('=', 1)
-                param_value = unquote_value(param_value.strip())
-            else:
-                param_value = None
-            parameters[param.strip()] = param_value
-        extensions.append((ext_name, parameters))
-    return extensions
-
-
 class PerMessageDeflate:
-    """
-    Compression Extensions for WebSocket (`RFC 7692`_).
-
-    .. _RFC 7692: http://tools.ietf.org/html/rfc7692
-
-    """
 
     def __init__(self, is_client, parameters, *,
                  server_no_context_takeover=False,

@@ -56,7 +56,7 @@ Shared
 
 .. automodule:: websockets.protocol
 
-   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, loop=None)
+   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, loop=None)
 
         .. automethod:: close(code=1000, reason='')
 

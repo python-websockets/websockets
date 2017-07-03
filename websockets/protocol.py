@@ -261,9 +261,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 self.worker_task, self.timeout, loop=self.loop)
         except asyncio.TimeoutError:
             self.worker_task.cancel()
-
-        # The worker should terminate quickly once it has been cancelled.
-        yield from self.worker_task
+        finally:
+            # The worker should terminate quickly once it has been cancelled.
+            yield from self.worker_task
 
     @asyncio.coroutine
     def recv(self):

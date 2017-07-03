@@ -368,11 +368,12 @@ class ClientServerTests(unittest.TestCase):
             close_task.cancel()
             try:
                 # Wait for the cancellation to kick in.
-                while True:
-                    yield from asyncio.sleep(0)
+                yield from asyncio.sleep(1)
             except asyncio.CancelledError:
                 # Simulate the worker taking time to finish.
                 yield from asyncio.sleep(0.1)
+            else:
+                raise RuntimeError('CancelledError not raised')
         _run.side_effect = patched_run
 
         self.start_client()

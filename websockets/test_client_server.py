@@ -348,12 +348,12 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server()
     @unittest.mock.patch('websockets.protocol.WebSocketCommonProtocol.run')
-    def test_issue_142(self, _run):
+    def test_client_worker_finished_when_close_cancelled(self, _run):
         """
-        Check that the underlying worker is finished if client.close()
-        is cancelled.
+        Check that the worker gets finished if client.close() is cancelled
+        while waiting on the worker.
 
-        This tests this issue:
+        This tests issue #142:
         https://github.com/aaugustin/websockets/issues/142
         """
         tasks = []

@@ -348,14 +348,16 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server()
     @unittest.mock.patch('websockets.protocol.WebSocketCommonProtocol.run')
-    def test_client_worker_finished_when_close_cancelled(self, _run):
+    def test_client_cancelled_close_waits_for_worker(self, _run):
         """
-        Check that the worker gets finished if client.close() is cancelled
-        while waiting on the worker.
+        Check that client.close() waits for the worker after being cancelled.
 
         This tests issue #142:
         https://github.com/aaugustin/websockets/issues/142
         """
+        class WorkerWaitedOn(Exception):
+            pass
+
         tasks = []
         @asyncio.coroutine
         def patched_run():
@@ -370,20 +372,15 @@ class ClientServerTests(unittest.TestCase):
                 # Wait for the cancellation to kick in.
                 yield from asyncio.sleep(1)
             except asyncio.CancelledError:
-                # Simulate the worker taking time to finish.
-                yield from asyncio.sleep(0.1)
-            else:
-                raise RuntimeError('CancelledError not raised')
+                raise WorkerWaitedOn()
         _run.side_effect = patched_run
 
         self.start_client()
         try:
             future = asyncio_ensure_future(self.client.close(), loop=self.loop)
             tasks.append(future)
-            with self.assertRaises(asyncio.CancelledError):
+            with self.assertRaises(WorkerWaitedOn):
                 self.loop.run_until_complete(future)
-
-            self.assertTrue(self.client.worker_task.done())
         finally:
             self.loop.run_until_complete(self.client.close_connection(force=True))
 

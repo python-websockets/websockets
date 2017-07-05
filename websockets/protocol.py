@@ -684,3 +684,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if self.writer is not None:
             self.writer.close()
         super().connection_lost(exc)
+
+
+try:
+    from .py36.protocol import __aiter__
+except (SyntaxError, ImportError):                          # pragma: no cover
+    pass
+else:
+    WebSocketCommonProtocol.__aiter__ = __aiter__

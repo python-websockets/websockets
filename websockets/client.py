@@ -5,7 +5,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 import asyncio
 import collections.abc
-import email.message
+import http.client
 
 from .exceptions import InvalidHandshake, InvalidMessage
 from .handshake import build_request, check_response
@@ -35,9 +35,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         self.path = path
-        self.request_headers = email.message.Message()
-        for name, value in headers:
-            self.request_headers[name] = value
+        self.request_headers = http.client.HTTPMessage()
+        self.request_headers._headers = headers     # HACK
         self.raw_request_headers = headers
 
         # Since the path and headers only contain ASCII characters,
@@ -63,10 +62,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
-        self.response_headers = headers
-        self.raw_response_headers = list(headers.raw_items())
+        self.response_headers = http.client.HTTPMessage()
+        self.response_headers._headers = headers    # HACK
+        self.raw_response_headers = headers
 
-        return status_code, headers
+        return status_code, self.response_headers
 
     def process_subprotocol(self, get_header, subprotocols=None):
         """

@@ -6,8 +6,7 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 
 import asyncio
 import collections.abc
-import email.message
-import http
+import http.client
 import logging
 
 from .compatibility import asyncio_ensure_future
@@ -155,10 +154,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             raise InvalidMessage("Malformed HTTP message") from exc
 
         self.path = path
-        self.request_headers = headers
-        self.raw_request_headers = list(headers.raw_items())
+        self.request_headers = http.client.HTTPMessage()
+        self.request_headers._headers = headers     # HACK
+        self.raw_request_headers = headers
 
-        return path, headers
+        return path, self.request_headers
 
     @asyncio.coroutine
     def write_http_response(self, status, headers):
@@ -166,9 +166,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Write status line and headers to the HTTP response.
 
         """
-        self.response_headers = email.message.Message()
-        for name, value in headers:
-            self.response_headers[name] = value
+        self.response_headers = http.client.HTTPMessage()
+        self.response_headers._headers = headers    # HACK
         self.raw_response_headers = headers
 
         # Since the status line and headers only contain ASCII characters,

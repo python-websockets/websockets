@@ -92,10 +92,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     processed, the request path is available in the :attr:`path` attribute,
     and the request and response HTTP headers are available:
 
-    * as a MIME :class:`~email.message.Message` in the :attr:`request_headers`
+    * as a :class:`~http.client.HTTPMessage` in the :attr:`request_headers`
       and :attr:`response_headers` attributes
     * as an iterable of (name, value) pairs in the :attr:`raw_request_headers`
       and :attr:`raw_response_headers` attributes
+
+    These attributes must be treated as immutable.
 
     If a subprotocol was negotiated, it's available in the :attr:`subprotocol`
     attribute.

@@ -257,6 +257,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         """
         yield from self.read_http_request()
+
         request_headers = self.request_headers
         get_header = lambda k: request_headers.get(k, '')
         self.origin = self.process_origin(get_header, origins)
@@ -269,7 +270,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if status is None:
             return response_headers
 
-        yield from self.write_http_response(status, headers)
+        yield from self.write_http_response(status, response_headers)
         self.opening_handshake.set_result(False)
         yield from self.close_connection(force=True)
 

@@ -229,7 +229,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         This method may be overridden to check the request headers and set a
         different status, for example to authenticate the request and return
-        ``HTTPStatus.UNAUTHORIZED`` or ``HTTPStatus.FORBIDDEN``.
+        ``HTTPStatus.UNAUTHORIZED`` or ``HTTPStatus.FORBIDDEN``. The
+        current request path can be accessed from within this method
+        as ``self.path``.
 
         It is declared as a coroutine because such authentication checks are
         likely to require network requests.
@@ -260,7 +262,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Raise :exc:`~websockets.exceptions.InvalidHandshake` or a subclass if
         the handshake fails.
 
-        Return the URI of the request.
+        Return the URI of the request, or ``None`` if the handshake was
+        aborted.
 
         """
         path, headers = yield from self.read_http_request()

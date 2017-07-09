@@ -14,6 +14,8 @@ Changelog
 
 * Made read and write buffer sizes configurable.
 
+* Rewrote HTTP handling for simplicity and performance.
+
 3.3
 ...
 

@@ -1,11 +1,11 @@
 machine:
     post:
-        - pyenv global 3.3.6 3.4.4 3.5.2 3.6.1
+        - pyenv global 3.6.1 3.5.3 3.4.4 3.3.6
     python:
         version: 3.6.1
 
 dependencies:
-    pre:
+    override:
         - pip install tox
 
 test:

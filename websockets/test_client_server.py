@@ -8,7 +8,7 @@ import unittest
 import unittest.mock
 
 from .client import *
-from .exceptions import ConnectionClosed, InvalidHandshake
+from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
 from .http import USER_AGENT, read_response
 from .server import *
 
@@ -251,7 +251,7 @@ class ClientServerTests(unittest.TestCase):
 
     def test_authentication(self):
         self.start_server(klass=ForbiddenWebSocketServerProtocol)
-        with self.assertRaises(InvalidHandshake):
+        with self.assertRaises(InvalidStatus):
             self.start_client()
         self.stop_server()
 
@@ -355,12 +355,12 @@ class ClientServerTests(unittest.TestCase):
     def test_server_does_not_switch_protocols(self, _read_response):
         @asyncio.coroutine
         def wrong_read_response(stream):
-            code, headers = yield from read_response(stream)
-            return 400, headers
+            code, headers, reason = yield from read_response(stream)
+            return 400, headers, "Bad Request"
         _read_response.side_effect = wrong_read_response
 
         self.start_server()
-        with self.assertRaises(InvalidHandshake):
+        with self.assertRaises(InvalidStatus):
             self.start_client()
         self.run_loop_once()
         self.stop_server()
@@ -418,7 +418,8 @@ class ClientServerTests(unittest.TestCase):
         self.stop_server()
 
         # Opening handshake fails with 503 Service Unavailable
-        self.assertEqual(str(raised.exception), "Bad status code: 503")
+        self.assertEqual(str(raised.exception),
+            "Bad status code: 503 (Service Unavailable)")
 
     def test_server_shuts_down_during_connection_handling(self):
         self.start_server()
@@ -432,6 +433,16 @@ class ClientServerTests(unittest.TestCase):
 
         # Websocket connection terminates with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
+
+    def test_invalid_status_error_during_client_connect(self):
+        self.start_server(klass=ForbiddenWebSocketServerProtocol)
+        with self.assertRaises(InvalidStatus) as context:
+            self.start_client()
+        exception = context.exception
+        self.assertEqual(str(exception), 'Bad status code: 403 (Forbidden)')
+        self.assertEqual(exception.code, 403)
+        self.assertEqual(exception.reason, 'Forbidden')
+        self.stop_server()
 
     @unittest.mock.patch('websockets.server.read_request')
     def test_connection_error_during_opening_handshake(self, _read_request):

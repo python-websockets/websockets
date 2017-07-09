@@ -16,6 +16,10 @@ Changelog
 
 * Rewrote HTTP handling for simplicity and performance.
 
+* An invalid response status code during :func:`~websockets.client.connect`
+  now raises :class:`~websockets.exceptions.InvalidStatus` with ``code`` and
+  ``reason`` attributes.
+
 3.3
 ...
 

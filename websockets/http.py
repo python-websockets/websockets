@@ -128,7 +128,7 @@ def read_response(stream):
 
     headers = yield from read_headers(stream)
 
-    return status, headers
+    return status, headers, reason
 
 
 @asyncio.coroutine

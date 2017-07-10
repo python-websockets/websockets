@@ -57,14 +57,14 @@ method can be overridden to return a different :class:`~http.HTTPStatus`
 member.
 
 For example, the request headers can be examined and the request
-authenticated before returning ``HTTPStatus.UNAUTHORIZED`` or
+authenticated to decide whether to return ``HTTPStatus.UNAUTHORIZED`` or
 ``HTTPStatus.FORBIDDEN``. Similarly, the current request path can be
 examined to check for ``HTTPStatus.NOT_FOUND``.
 
 The following instance attributes are guaranteed to be available from
 within this method:
 
-* ``origins``
+* ``origin``
 * ``path``
 * ``raw_request_headers``
 * ``request_headers``

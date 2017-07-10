@@ -223,7 +223,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     @asyncio.coroutine
     def get_response_status(self, set_header):
         """
-        Return a :class:`~http.HTTPStatus` for the HTTP response.
+        Return an :class:`~http.HTTPStatus` member for the HTTP response.
 
         (:class:`~http.HTTPStatus` was added in Python 3.5. On earlier
         versions, a compatible object must be returned. Check the definition

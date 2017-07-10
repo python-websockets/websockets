@@ -53,7 +53,8 @@ Customizing Request Handling
 To selectively bypass the handshake and respond with HTTP status codes other
 than the default, the
 :meth:`~websockets.server.WebSocketServerProtocol.get_response_status`
-method can be overridden.
+method can be overridden to return a different :class:`~http.HTTPStatus`
+member.
 
 For example, the request headers can be examined and the request
 authenticated before returning ``HTTPStatus.UNAUTHORIZED`` or

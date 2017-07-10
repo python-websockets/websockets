@@ -218,8 +218,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         priority = lambda p: client_protos.index(p) + server_protos.index(p)
         return sorted(common_protos, key=priority)[0]
 
-    # This method is declared as a coroutine because overridden versions
-    # can require network requests (e.g. for authentication checks).
+    # This method is declared as a coroutine because overridden versions can
+    # require network requests, for example (e.g. for authentication checks).
     @asyncio.coroutine
     def get_response_status(self, set_header):
         """

@@ -22,7 +22,7 @@ Server
     execute the application logic, and finally closes the connection after
     the handler exits normally or with an exception.
 
-  * For advanced customization, you may subclass
+  * For :ref:`advanced customization <custom-handling>`, you may subclass
     :class:`~websockets.server.WebSocketServerProtocol` and pass either this
     subclass or a factory function as the ``create_protocol`` argument.
 

@@ -218,6 +218,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         priority = lambda p: client_protos.index(p) + server_protos.index(p)
         return sorted(common_protos, key=priority)[0]
 
+    # This method is declared as a coroutine because overridden versions
+    # can require network requests (e.g. for authentication checks).
     @asyncio.coroutine
     def get_response_status(self, set_header):
         """
@@ -227,19 +229,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         versions, a compatible object must be returned. Check the definition
         of ``SWITCHING_PROTOCOLS`` for an example.)
 
-        This method may be overridden to check the request headers and set a
-        different status, for example to authenticate the request and return
-        ``HTTPStatus.UNAUTHORIZED`` or ``HTTPStatus.FORBIDDEN``. The
-        current request path can be accessed from within this method
-        as ``self.path``.
+        The ``set_header`` argument is a function accepting a header name
+        and value.
 
-        It is declared as a coroutine because such authentication checks are
-        likely to require network requests.
+        The following instance attributes should be set prior to calling
+        this method: ``origin``, ``path``, ``raw_request_headers``, and
+        ``request_headers``.
 
-        The connection is closed immediately after sending the response when
-        the status code is not ``HTTPStatus.SWITCHING_PROTOCOLS``.
-
-        Call ``set_header(key, value)`` to set additional response headers.
+        This method may be overridden to interrupt the handshake and respond
+        with a different status.
 
         """
         return SWITCHING_PROTOCOLS

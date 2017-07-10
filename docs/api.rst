@@ -50,11 +50,18 @@ Server
 Customizing Request Handling
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-To selectively bypass the handshake and respond with HTTP status codes other
-than the default, the
+To set additional response headers or to selectively bypass the handshake,
+you can subclass :class:`~websockets.server.WebSocketServerProtocol`,
+override the
 :meth:`~websockets.server.WebSocketServerProtocol.get_response_status`
-method can be overridden to return a different :class:`~http.HTTPStatus`
-member.
+method, and pass the class to :func:`~websockets.server.serve()` using the
+``klass`` keyword argument.
+
+If :meth:`~websockets.server.WebSocketServerProtocol.get_response_status`
+returns a status code other than the default of
+``HTTPStatus.SWITCHING_PROTOCOLS``, the
+:class:`~websockets.server.WebSocketServerProtocol` object will close the
+connection immediately and respond with that status code.
 
 For example, the request headers can be examined and the request
 authenticated to decide whether to return ``HTTPStatus.UNAUTHORIZED`` or
@@ -69,13 +76,9 @@ within this method:
 * ``raw_request_headers``
 * ``request_headers``
 
-If :meth:`~websockets.server.WebSocketServerProtocol.get_response_status`
-returns a status code other than the default of
-``HTTPStatus.SWITCHING_PROTOCOLS``, the
-:class:`~websockets.server.WebSocketServerProtocol` object will close the
-connection immediately and respond with that status code. The
-``set_header(key, value)`` function, which is provided as an argument to the
-method, can be used to set additional response headers.
+The ``set_header(key, value)`` function, which is provided as an argument to
+``get_response_status()``, can be used to set additional response headers,
+regardless of whether the handshake is aborted.
 
 Client
 ......

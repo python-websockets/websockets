@@ -306,9 +306,24 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return path
 
 
-class WebSocketServer(asyncio.AbstractServer):
+class WebSocketServer:
     """
-    Wrapper for :class:`~asyncio.Server` that triggers the closing handshake.
+    Wraps an underlying :class:`~asyncio.Server` object.
+
+    This class provides the return type of :func:`~websockets.server.serve`.
+    This class shouldn't be instantiated directly.
+
+    Objects of this class store a reference to an underlying
+    :class:`~asyncio.Server` object returned by
+    :meth:`~asyncio.AbstractEventLoop.create_server`. The class stores a
+    reference rather than inheriting from :class:`~asyncio.Server` in part
+    because :meth:`~asyncio.AbstractEventLoop.create_server` doesn't support
+    passing a custom :class:`~asyncio.Server` class.
+
+    :class:`WebSocketServer` supports cleaning up the underlying
+    :class:`~asyncio.Server` object and other resources by implementing the
+    interface of ``asyncio.events.AbstractServer``, namely its ``close()``
+    and ``wait_closed()`` methods.
 
     """
     def __init__(self, loop):
@@ -322,13 +337,13 @@ class WebSocketServer(asyncio.AbstractServer):
         """
         Attach to a given :class:`~asyncio.Server`.
 
-        Since :meth:`~asyncio.BaseEventLoop.create_server` doesn't support
+        Since :meth:`~asyncio.AbstractEventLoop.create_server` doesn't support
         injecting a custom ``Server`` class, a simple solution that doesn't
         rely on private APIs is to:
 
         - instantiate a :class:`WebSocketServer`
         - give the protocol factory a reference to that instance
-        - call :meth:`~asyncio.BaseEventLoop.create_server` with the factory
+        - call :meth:`~asyncio.AbstractEventLoop.create_server` with the factory
         - attach the resulting :class:`~asyncio.Server` with this method
 
         """
@@ -342,7 +357,11 @@ class WebSocketServer(asyncio.AbstractServer):
 
     def close(self):
         """
-        Stop accepting new connections and close open connections.
+        Close the underlying server, and clean up connections.
+
+        This calls :meth:`~asyncio.Server.close` on the underlying
+        :class:`~asyncio.Server` object, closes open connections with
+        status code 1001, and stops accepting new connections.
 
         """
         # Make a note that the server is shutting down. Websocket connections
@@ -365,7 +384,11 @@ class WebSocketServer(asyncio.AbstractServer):
     @asyncio.coroutine
     def wait_closed(self):
         """
-        Wait until all connections are closed.
+        Wait until the underlying server and all connections are closed.
+
+        This calls :meth:`~asyncio.Server.wait_closed` on the underlying
+        :class:`~asyncio.Server` object and waits until closing handshakes
+        are complete and all connections are closed.
 
         This method must be called after :meth:`close()`.
 
@@ -390,25 +413,31 @@ def serve(ws_handler, host=None, port=None, *,
           origins=None, subprotocols=None, extra_headers=None,
           **kwds):
     """
-    This coroutine creates a WebSocket server.
-
-    It yields a :class:`~asyncio.Server` which provides:
-
-    * a :meth:`~asyncio.Server.close` method that closes open connections with
-      status code 1001 and stops accepting new connections
-    * a :meth:`~asyncio.Server.wait_closed` coroutine that waits until closing
-      handshakes complete and connections are closed.
-
-    ``ws_handler`` is the WebSocket handler. It must be a coroutine accepting
-    two arguments: a :class:`WebSocketServerProtocol` and the request URI.
+    Create, start, and return a :class:`WebSocketServer` object.
 
     :func:`serve` is a wrapper around the event loop's
-    :meth:`~asyncio.BaseEventLoop.create_server` method. ``host``, ``port`` as
-    well as unknown keyword arguments are passed to
-    :meth:`~asyncio.BaseEventLoop.create_server`.
+    :meth:`~asyncio.AbstractEventLoop.create_server` method.
+    Internally, the function creates and starts a :class:`~asyncio.Server`
+    object by calling :meth:`~asyncio.AbstractEventLoop.create_server`. The
+    :class:`WebSocketServer` keeps a reference to this object.
 
-    For example, you can set the ``ssl`` keyword argument to a
-    :class:`~ssl.SSLContext` to enable TLS.
+    The returned :class:`WebSocketServer` and its resources can be cleaned
+    up by calling its :meth:`~websockets.server.WebSocketServer.close` and
+    :meth:`~websockets.server.WebSocketServer.wait_closed` methods.
+
+    On Python 3.5 and greater, :func:`serve` can also be used as an
+    asynchronous context manager. In this case, the server is shut down
+    when exiting the context.
+
+    The ``ws_handler`` argument is the WebSocket handler. It must be a
+    coroutine accepting two arguments: a :class:`WebSocketServerProtocol`
+    and the request URI.
+
+    The ``host`` and ``port`` arguments, as well as unrecognized keyword
+    arguments, are passed along to
+    :meth:`~asyncio.AbstractEventLoop.create_server`. For example, you can
+    set the ``ssl`` keyword argument to a :class:`~ssl.SSLContext` to enable
+    TLS.
 
     The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
     ``read_limit``, and ``write_limit`` optional arguments is described in the
@@ -437,9 +466,6 @@ def serve(ws_handler, host=None, port=None, *,
         logger = logging.getLogger('websockets.server')
         logger.setLevel(logging.ERROR)
         logger.addHandler(logging.StreamHandler())
-
-    On Python 3.5, :func:`serve` can be used as a asynchronous context
-    manager. In that case, the server is shut down when exiting the context.
 
     """
     if loop is None:

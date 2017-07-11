@@ -16,7 +16,7 @@ Server
     but it isn't needed in general.
 
 * Create a server with :func:`~websockets.server.serve` which is similar to
-  asyncio's :meth:`~asyncio.BaseEventLoop.create_server`.
+  asyncio's :meth:`~asyncio.AbstractEventLoop.create_server`.
 
   * The server takes care of establishing connections, then lets the handler
     execute the application logic, and finally closes the connection after

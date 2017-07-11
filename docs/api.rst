@@ -34,6 +34,11 @@ Server
 
    .. autofunction:: serve(ws_handler, host=None, port=None, *, klass=WebSocketServerProtocol, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, loop=None, origins=None, subprotocols=None, extra_headers=None, **kwds)
 
+   .. autoclass:: WebSocketServer
+
+        .. automethod:: close()
+        .. automethod:: wait_closed()
+
    .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, loop=None, origins=None, subprotocols=None, extra_headers=None)
 
         .. automethod:: handshake(origins=None, subprotocols=None, extra_headers=None)

@@ -1,5 +1,6 @@
 import asyncio
 import http
+import http.client
 import logging
 import os
 import ssl
@@ -216,6 +217,37 @@ class ClientServerTests(unittest.TestCase):
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
         self.stop_client()
         self.stop_server()
+
+    def test_get_response_status_attributes_available(self):
+        # Save the attribute values to a dict instead of asserting inside
+        # get_response_status() because assertion errors there do not
+        # currently bubble up for easy viewing.
+        attrs = {}
+
+        class SaveAttributesProtocol(WebSocketServerProtocol):
+            @asyncio.coroutine
+            def get_response_status(self, set_header):
+                attrs['origin'] = self.origin
+                attrs['path'] = self.path
+                attrs['raw_request_headers'] = self.raw_request_headers.copy()
+                attrs['request_headers'] = self.request_headers
+                status = yield from super().get_response_status(set_header)
+                return status
+
+        self.start_server(klass=SaveAttributesProtocol)
+        try:
+            self.start_client(path='foo/bar', origin='http://otherhost')
+            self.assertEqual(attrs['origin'], 'http://otherhost')
+            self.assertEqual(attrs['path'], '/foo/bar')
+            # To reduce test brittleness, only check one nontrivial aspect
+            # of the request headers.
+            self.assertIn(('Origin', 'http://otherhost'),
+                          attrs['raw_request_headers'])
+            request_headers = attrs['request_headers']
+            self.assertIsInstance(request_headers, http.client.HTTPMessage)
+            self.assertEqual(request_headers.get('origin'), 'http://otherhost')
+        finally:
+            self.stop_server()
 
     def test_authentication(self):
         self.start_server(klass=ForbiddenWebSocketServerProtocol)

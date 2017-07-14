@@ -247,7 +247,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     @asyncio.coroutine
     def pre_handshake(self, origins=None):
         """
-        Handle the response, if possible, before the opening handshake.
+        Do pre-handshake response handling.
 
         If provided, ``origins`` is a list of acceptable HTTP Origin values.
         Include ``''`` if the lack of an origin is acceptable.

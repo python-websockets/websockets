@@ -301,6 +301,34 @@ class ClientServerTests(unittest.TestCase):
             self.assertIsInstance(request_headers, http.client.HTTPMessage)
             self.assertEqual(request_headers.get('origin'), 'http://otherhost')
 
+    def test_get_response_status_precedes_handshake(self):
+        class State:
+            handshake_called = False
+
+        class HandshakeStoringProtocol(WebSocketServerProtocol):
+            @asyncio.coroutine
+            def get_response_status(self, set_header):
+                if self.path != '/valid':
+                    return http.HTTPStatus.NOT_FOUND
+
+                status = yield from super().get_response_status(set_header)
+                return status
+
+            @asyncio.coroutine
+            def handshake(self, *args, **kwargs):
+                State.handshake_called = True
+                result = yield from super().handshake(*args, **kwargs)
+                return result
+
+        with self.temp_server(create_protocol=HandshakeStoringProtocol):
+            with self.assertRaises(InvalidHandshake) as cm:
+                self.start_client(path='invalid')
+            self.assertEqual(str(cm.exception), 'Bad status code: 404')
+            self.assertFalse(State.handshake_called)
+            # Check that our overridden handshake() is working correctly.
+            self.start_client(path='valid')
+            self.assertTrue(State.handshake_called)
+
     def assert_client_raises_code(self, code):
         with self.assertRaises(InvalidStatus) as raised:
             self.start_client()

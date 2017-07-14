@@ -190,11 +190,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         acceptable.
 
         """
+        origin = get_header('Origin')
         if origins is not None:
-            origin = get_header('Origin')
             if origin not in origins:
                 raise InvalidOrigin("Origin not allowed: {}".format(origin))
-            return origin
+        return origin
 
     def process_subprotocol(self, get_header, subprotocols=None):
         """

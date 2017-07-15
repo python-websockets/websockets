@@ -43,6 +43,7 @@ try:
     # Order by status code.
     UNAUTHORIZED = http.HTTPStatus.UNAUTHORIZED
     FORBIDDEN = http.HTTPStatus.FORBIDDEN
+    NOT_FOUND = http.HTTPStatus.NOT_FOUND
 except AttributeError:                                      # pragma: no cover
     class UNAUTHORIZED:
         value = 401
@@ -51,6 +52,10 @@ except AttributeError:                                      # pragma: no cover
     class FORBIDDEN:
         value = 403
         phrase = 'Forbidden'
+
+    class NOT_FOUND:
+        value = 404
+        phrase = 'Not Found'
 
 
 @contextmanager
@@ -309,7 +314,7 @@ class ClientServerTests(unittest.TestCase):
             @asyncio.coroutine
             def get_response_status(self, set_header):
                 if self.path != '/valid':
-                    return http.HTTPStatus.NOT_FOUND
+                    return NOT_FOUND
                 return (yield from super().get_response_status(set_header))
 
             @asyncio.coroutine

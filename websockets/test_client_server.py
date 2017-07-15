@@ -310,15 +310,12 @@ class ClientServerTests(unittest.TestCase):
             def get_response_status(self, set_header):
                 if self.path != '/valid':
                     return http.HTTPStatus.NOT_FOUND
-
-                status = yield from super().get_response_status(set_header)
-                return status
+                return (yield from super().get_response_status(set_header))
 
             @asyncio.coroutine
             def handshake(self, *args, **kwargs):
                 State.handshake_called = True
-                result = yield from super().handshake(*args, **kwargs)
-                return result
+                return (yield from super().handshake(*args, **kwargs))
 
         with self.temp_server(create_protocol=HandshakeStoringProtocol):
             with self.assertRaises(InvalidHandshake) as cm:

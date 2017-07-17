@@ -2,10 +2,10 @@ import asyncio
 import unittest
 
 from .http import *
-from .http import read_headers  # private API
+from .http import build_headers, read_headers
 
 
-class HTTPTests(unittest.TestCase):
+class HTTPAsyncTests(unittest.TestCase):
 
     def setUp(self):
         super().setUp()
@@ -97,3 +97,31 @@ class HTTPTests(unittest.TestCase):
         self.stream.feed_data(b'foo: bar\n\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_headers(self.stream))
+
+
+class HTTPSyncTests(unittest.TestCase):
+
+    def test_build_headers(self):
+        headers = build_headers([
+            ('X-Foo', 'Bar'),
+            ('X-Baz', 'Quux Quux'),
+        ])
+
+        self.assertEqual(headers['X-Foo'], 'Bar')
+        self.assertEqual(headers['X-Bar'], None)
+
+        self.assertEqual(headers.get('X-Bar', ''), '')
+        self.assertEqual(headers.get('X-Baz', ''), 'Quux Quux')
+
+    def test_build_headers_multi_value(self):
+        headers = build_headers([
+            ('X-Foo', 'Bar'),
+            ('X-Foo', 'Baz'),
+        ])
+
+        # Getting a single value is non-deterministic.
+        self.assertIn(headers['X-Foo'], ['Bar', 'Baz'])
+        self.assertIn(headers.get('X-Foo'), ['Bar', 'Baz'])
+
+        # Ordering is deterministic when getting all values.
+        self.assertEqual(headers.get_all('X-Foo'), ['Bar', 'Baz'])

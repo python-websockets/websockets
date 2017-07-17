@@ -8,6 +8,7 @@ imported from :mod:`websockets.http`.
 """
 
 import asyncio
+import http.client
 import re
 import sys
 
@@ -191,3 +192,15 @@ def read_line(stream):
     if not line.endswith(b'\r\n'):
         raise ValueError("Line without CRLF")
     return line
+
+
+def build_headers(raw_headers):
+    """
+    Build a date structure for HTTP headers from a list of name - value pairs.
+
+    See also https://github.com/aaugustin/websockets/issues/210.
+
+    """
+    headers = http.client.HTTPMessage()
+    headers._headers = raw_headers  # HACK
+    return headers

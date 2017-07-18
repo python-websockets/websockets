@@ -343,7 +343,8 @@ class WebSocketServer:
 
         - instantiate a :class:`WebSocketServer`
         - give the protocol factory a reference to that instance
-        - call :meth:`~asyncio.AbstractEventLoop.create_server` with the factory
+        - call :meth:`~asyncio.AbstractEventLoop.create_server` with the
+          factory
         - attach the resulting :class:`~asyncio.Server` with this method
 
         """

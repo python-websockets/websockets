@@ -438,7 +438,7 @@ class ClientServerTests(unittest.TestCase):
         with self.assertRaises(InvalidStatus) as raised:
             self.start_client()
         exception = raised.exception
-        self.assertEqual(str(exception), 'Status code not 101: 403')
+        self.assertEqual(str(exception), "Status code not 101: 403")
         self.assertEqual(exception.code, 403)
         self.stop_server()
 

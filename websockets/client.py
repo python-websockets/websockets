@@ -56,15 +56,14 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         try:
-            status_code, headers, reason = (
-                yield from read_response(self.reader))
+            status_code, headers = yield from read_response(self.reader)
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
         self.response_headers = build_headers(headers)
         self.raw_response_headers = headers
 
-        return status_code, self.response_headers, reason
+        return status_code, self.response_headers
 
     def process_subprotocol(self, get_header, subprotocols=None):
         """
@@ -115,11 +114,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         yield from self.write_http_request(wsuri.resource_name, headers)
 
-        status_code, headers, reason = yield from self.read_http_response()
+        status_code, headers = yield from self.read_http_response()
         get_header = lambda k: headers.get(k, '')
 
         if status_code != 101:
-            raise InvalidStatus(status_code, reason=reason)
+            raise InvalidStatus(status_code)
 
         check_response(get_header, key)
 

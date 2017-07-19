@@ -355,8 +355,8 @@ class ClientServerTests(unittest.TestCase):
     def test_server_does_not_switch_protocols(self, _read_response):
         @asyncio.coroutine
         def wrong_read_response(stream):
-            code, headers, reason = yield from read_response(stream)
-            return 400, headers, "Bad Request"
+            code, headers = yield from read_response(stream)
+            return 400, headers
         _read_response.side_effect = wrong_read_response
 
         self.start_server()
@@ -418,8 +418,7 @@ class ClientServerTests(unittest.TestCase):
         self.stop_server()
 
         # Opening handshake fails with 503 Service Unavailable
-        self.assertEqual(str(raised.exception),
-                         "Bad status code: 503 (Service Unavailable)")
+        self.assertEqual(str(raised.exception), "Status code not 101: 503")
 
     def test_server_shuts_down_during_connection_handling(self):
         self.start_server()
@@ -439,9 +438,8 @@ class ClientServerTests(unittest.TestCase):
         with self.assertRaises(InvalidStatus) as raised:
             self.start_client()
         exception = raised.exception
-        self.assertEqual(str(exception), 'Bad status code: 403 (Forbidden)')
+        self.assertEqual(str(exception), 'Status code not 101: 403')
         self.assertEqual(exception.code, 403)
-        self.assertEqual(exception.reason, 'Forbidden')
         self.stop_server()
 
     @unittest.mock.patch('websockets.server.read_request')
@@ -533,7 +531,8 @@ class ClientServerOriginTests(unittest.TestCase):
     def test_checking_origin_fails(self):
         server = self.loop.run_until_complete(
             serve(handler, 'localhost', 8642, origins=['http://localhost']))
-        with self.assertRaisesRegex(InvalidHandshake, "Bad status code: 403"):
+        with self.assertRaisesRegex(InvalidHandshake,
+                                    "Status code not 101: 403"):
             self.loop.run_until_complete(
                 connect('ws://localhost:8642/', origin='http://otherhost'))
 

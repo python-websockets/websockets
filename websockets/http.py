@@ -127,6 +127,8 @@ def read_response(stream):
         raise ValueError("Invalid HTTP reason phrase: %r" % reason)
 
     headers = yield from read_headers(stream)
+    # This can raise UnicodeDecodeError.
+    reason = reason.decode('ascii')
 
     return status, headers, reason
 

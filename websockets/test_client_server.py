@@ -419,7 +419,7 @@ class ClientServerTests(unittest.TestCase):
 
         # Opening handshake fails with 503 Service Unavailable
         self.assertEqual(str(raised.exception),
-            "Bad status code: 503 (Service Unavailable)")
+                         "Bad status code: 503 (Service Unavailable)")
 
     def test_server_shuts_down_during_connection_handling(self):
         self.start_server()

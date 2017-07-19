@@ -50,7 +50,6 @@ class InvalidState(Exception):
     """
 
 
-# TODO: DRY up with InvalidStatus?
 class ConnectionClosed(InvalidState):
     """
     Exception raised when trying to read or write on a closed connection.

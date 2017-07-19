@@ -436,9 +436,9 @@ class ClientServerTests(unittest.TestCase):
 
     def test_invalid_status_error_during_client_connect(self):
         self.start_server(klass=ForbiddenWebSocketServerProtocol)
-        with self.assertRaises(InvalidStatus) as context:
+        with self.assertRaises(InvalidStatus) as raised:
             self.start_client()
-        exception = context.exception
+        exception = raised.exception
         self.assertEqual(str(exception), 'Bad status code: 403 (Forbidden)')
         self.assertEqual(exception.code, 403)
         self.assertEqual(exception.reason, 'Forbidden')

@@ -66,7 +66,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # it attemps to log relevant ones and close the connection properly.
         try:
             try:
-                response_headers = yield from self.pre_handshake(origins=self.origins)
+                response_headers = (
+                    yield from self.pre_handshake(origins=self.origins))
                 if response_headers is None:
                     # Then the response was already written.
                     return
@@ -275,7 +276,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         yield from self.close_connection(force=True)
 
     @asyncio.coroutine
-    def handshake(self, response_headers, subprotocols=None, extra_headers=None):
+    def handshake(self, response_headers, subprotocols=None,
+                  extra_headers=None):
         """
         Perform the server side of the opening handshake.
 
@@ -304,14 +306,16 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:
             if callable(extra_headers):
-                extra_headers = extra_headers(self.path, self.raw_request_headers)
+                extra_headers = extra_headers(self.path,
+                                              self.raw_request_headers)
             if isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
                 set_header(name, value)
         build_response(set_header, key)
 
-        yield from self.write_http_response(SWITCHING_PROTOCOLS, response_headers)
+        yield from self.write_http_response(SWITCHING_PROTOCOLS,
+                                            response_headers)
 
         assert self.state == CONNECTING
         self.state = OPEN

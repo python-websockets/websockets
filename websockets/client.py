@@ -6,7 +6,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 import asyncio
 import collections.abc
 
-from .exceptions import InvalidHandshake, InvalidMessage
+from .exceptions import InvalidHandshake, InvalidMessage, InvalidStatus
 from .handshake import build_request, check_response
 from .http import USER_AGENT, build_headers, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -118,7 +118,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         get_header = lambda k: headers.get(k, '')
 
         if status_code != 101:
-            raise InvalidHandshake("Bad status code: {}".format(status_code))
+            raise InvalidStatus(status_code)
 
         check_response(get_header, key)
 

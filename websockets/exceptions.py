@@ -1,6 +1,6 @@
 __all__ = [
     'InvalidHandshake', 'InvalidMessage', 'InvalidOrigin', 'InvalidState',
-    'InvalidURI', 'ConnectionClosed', 'PayloadTooBig',
+    'InvalidStatus', 'InvalidURI', 'ConnectionClosed', 'PayloadTooBig',
     'WebSocketProtocolError',
 ]
 
@@ -24,6 +24,19 @@ class InvalidOrigin(InvalidHandshake):
     Exception raised when the origin in a handshake request is forbidden.
 
     """
+
+
+class InvalidStatus(InvalidHandshake):
+    """
+    Exception raised when a handshake response status code is invalid.
+
+    Provides the integer status code in its ``code`` attribute.
+
+    """
+    def __init__(self, code):
+        self.code = code
+        message = 'Status code not 101: {}'.format(code)
+        super().__init__(message)
 
 
 class InvalidState(Exception):

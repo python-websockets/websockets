@@ -323,9 +323,9 @@ class ClientServerTests(unittest.TestCase):
                 return (yield from super().handshake(*args, **kwargs))
 
         with self.temp_server(create_protocol=HandshakeStoringProtocol):
-            with self.assertRaises(InvalidHandshake) as cm:
+            with self.assertRaises(InvalidStatus) as cm:
                 self.start_client(path='invalid')
-            self.assertEqual(str(cm.exception), 'Bad status code: 404')
+            self.assertEqual(cm.exception.code, 404)
             self.assertFalse(State.handshake_called)
             # Check that our overridden handshake() is working correctly.
             self.start_client(path='valid')

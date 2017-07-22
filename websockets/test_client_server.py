@@ -357,8 +357,8 @@ class ClientServerTests(unittest.TestCase):
         """
         class WorkerWaitedOn(Exception):
             pass
-
         tasks = []
+
         @asyncio.coroutine
         def patched_run():
             while not tasks:
@@ -382,7 +382,8 @@ class ClientServerTests(unittest.TestCase):
             with self.assertRaises(WorkerWaitedOn):
                 self.loop.run_until_complete(future)
         finally:
-            self.loop.run_until_complete(self.client.close_connection(force=True))
+            self.loop.run_until_complete(
+                self.client.close_connection(force=True))
 
     @with_server()
     @unittest.mock.patch('websockets.server.build_response')

@@ -72,14 +72,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     # Then the response was already written.
                     return
 
-                try:
-                    yield from self.handshake(
-                        response_headers, subprotocols=self.subprotocols,
-                        extra_headers=self.extra_headers)
-                except ConnectionError as exc:
-                    logger.debug(
-                        "Connection error in opening handshake", exc_info=True)
-                    raise
+                yield from self.handshake(
+                    response_headers, subprotocols=self.subprotocols,
+                    extra_headers=self.extra_headers)
+            except ConnectionError as exc:
+                logger.debug(
+                    "Connection error in opening handshake", exc_info=True)
+                raise
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
                     response = ('HTTP/1.1 503 Service Unavailable\r\n\r\n'

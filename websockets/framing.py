@@ -16,6 +16,11 @@ import random
 import struct
 
 from .exceptions import PayloadTooBig, WebSocketProtocolError
+try:
+    from .speedups import websocket_mask
+except ImportError:
+    def websocket_mask(mask, data):
+        return bytes(b ^ mask[i % 4] for i, b in enumerate(data))
 
 
 __all__ = [
@@ -101,7 +106,7 @@ def read_frame(reader, mask, *, max_size=None):
     # Read the data
     data = yield from reader(length)
     if mask:
-        data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(data))
+        data = websocket_mask(mask_bits, data)
 
     frame = Frame(fin, opcode, data)
     check_frame(frame)
@@ -144,7 +149,7 @@ def write_frame(frame, writer, mask):
 
     # Prepare the data
     if mask:
-        data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(frame.data))
+        data = websocket_mask(mask_bits, frame.data)
     else:
         data = frame.data
     output.write(data)

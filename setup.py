@@ -1,7 +1,12 @@
+import glob
 import os.path
-import sys
-
+import platform
 import setuptools
+import sys
+from distutils import log
+from distutils.cmd import Command
+from distutils.core import Extension
+
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
@@ -25,6 +30,36 @@ packages = ['websockets']
 if py_version >= (3, 5):
     packages.append('websockets/py35')
 
+ext_modules = [
+    Extension(
+        'websockets.speedups',
+        sources=['websockets/speedups.c'],
+        optional=True,
+    ),
+]
+
+# Let's define a class to clean in-place built extensions
+class CleanExtensionCommand(Command):
+    """A custom command to clean all in-place built C extensions."""
+
+    description = 'clean all in-place built C extensions'
+    user_options = []
+
+    def initialize_options(self):
+        """Set default values for options."""
+
+    def finalize_options(self):
+        """Post-process options."""
+
+    def run(self):
+        """Run command."""
+        for ext in ['*.so', '*.pyd']:
+            for file in glob.glob('./websockets/' + ext):
+                log.info("removing '%s'", file)
+                if self.dry_run:
+                    continue
+                os.remove(file)
+
 setuptools.setup(
     name='websockets',
     version=version,
@@ -45,8 +80,13 @@ setuptools.setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     packages=packages,
+    ext_modules=ext_modules,
+    cmdclass={
+        'cleanext': CleanExtensionCommand,
+    },
     extras_require={
         ':python_version=="3.3"': ['asyncio'],
     },

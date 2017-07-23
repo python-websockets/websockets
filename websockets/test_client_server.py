@@ -147,8 +147,7 @@ class ClientServerTests(unittest.TestCase):
     def test_protocol_attributes(self):
         self.start_client('attributes')
         expected_attrs = ('localhost', 8642, self.secure)
-        client_attrs = (self.client.host, self.client.port,
-                        self.client.secure)
+        client_attrs = (self.client.host, self.client.port, self.client.secure)
         self.assertEqual(client_attrs, expected_attrs)
         server_attrs = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_attrs, repr(expected_attrs))
@@ -273,18 +272,15 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     def test_no_subprotocol(self):
         self.start_client('subprotocol')
-        server_subprotocol = self.loop.run_until_complete(
-            self.client.recv())
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
         self.stop_client()
 
     @with_server(subprotocols=['superchat', 'chat'])
     def test_subprotocol_found(self):
-        self.start_client('subprotocol',
-                          subprotocols=['otherchat', 'chat'])
-        server_subprotocol = self.loop.run_until_complete(
-            self.client.recv())
+        self.start_client('subprotocol', subprotocols=['otherchat', 'chat'])
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr('chat'))
         self.assertEqual(self.client.subprotocol, 'chat')
         self.stop_client()
@@ -292,8 +288,7 @@ class ClientServerTests(unittest.TestCase):
     @with_server(subprotocols=['superchat'])
     def test_subprotocol_not_found(self):
         self.start_client('subprotocol', subprotocols=['otherchat'])
-        server_subprotocol = self.loop.run_until_complete(
-            self.client.recv())
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
         self.stop_client()
@@ -301,8 +296,7 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     def test_subprotocol_not_offered(self):
         self.start_client('subprotocol', subprotocols=['otherchat', 'chat'])
-        server_subprotocol = self.loop.run_until_complete(
-            self.client.recv())
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
         self.stop_client()
@@ -310,8 +304,7 @@ class ClientServerTests(unittest.TestCase):
     @with_server(subprotocols=['superchat', 'chat'])
     def test_subprotocol_not_requested(self):
         self.start_client('subprotocol')
-        server_subprotocol = self.loop.run_until_complete(
-            self.client.recv())
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
         self.stop_client()
@@ -407,15 +400,13 @@ class ClientServerTests(unittest.TestCase):
     @unittest.mock.patch.object(WebSocketClientProtocol, 'handshake')
     def test_client_closes_connection_before_handshake(self, handshake):
         self.start_client()
-        # We have mocked the handshake() method to prevent the client
-        # from performing the opening handshake. Force it to close the
-        # connection.
+        # We have mocked the handshake() method to prevent the client from
+        # performing the opening handshake. Force it to close the connection.
         self.loop.run_until_complete(
             self.client.close_connection(force=True))
         self.stop_client()
-        # The server should stop properly anyway. It used to hang because
-        # the worker handling the connection was waiting for the opening
-        # handshake.
+        # The server should stop properly anyway. It used to hang because the
+        # worker handling the connection was waiting for the opening handshake.
 
     @with_server()
     @unittest.mock.patch('websockets.server.read_request')

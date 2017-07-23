@@ -68,6 +68,20 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
         _mm_storeu_si128((__m128i *)(output + i), out_128);
     }
 
+#else
+
+    // Without SSE2 support, XOR by blocks of 8 bytes = 64 bits.
+
+    // We assume the memory allocator aligns everything on 8 bytes boundaries.
+
+    Py_ssize_t input_len_64 = input_len & ~7;
+    uint64_t mask_64 = (*(uint64_t *)mask << 32) | *(uint64_t *)mask;
+
+    for (; i < input_len_64; i += 8)
+    {
+        *(uint64_t *)(output + i) = *(uint64_t *)(input + i) ^ mask_64;
+    }
+
 #endif
 
     // XOR the remainder of the input byte by byte.

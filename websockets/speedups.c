@@ -3,7 +3,7 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#if __AVX__
+#if __AVX__ || __SSE2__
 #include <x86intrin.h>
 #endif
 
@@ -63,6 +63,23 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
         __m256i in_256 = _mm256_loadu_si256((__m256i *)(input + i));
         __m256i out_256 = _mm256_xor_si256(in_256, mask_256);
         _mm256_storeu_si256((__m256i *)(output + i), out_256);
+    }
+
+#elif __SSE2__
+
+    // With SSE2 support, XOR by blocks of 16 bytes = 128 bits.
+
+    // Since we cannot control the 16-bytes alignment of input and output
+    // buffers, we rely on loadu/storeu rather than load/store.
+
+    Py_ssize_t input_len_128 = input_len & ~15;
+    __m128i mask_128 = _mm_set1_epi32(*(uint32_t *)mask);
+
+    for (; i < input_len_128; i += 16)
+    {
+        __m128i in_128 = _mm_loadu_si128((__m128i *)(input + i));
+        __m128i out_128 = _mm_xor_si128(in_128, mask_128);
+        _mm_storeu_si128((__m128i *)(output + i), out_128);
     }
 
 #endif

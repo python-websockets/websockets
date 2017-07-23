@@ -32,14 +32,14 @@ Server
 
 .. automodule:: websockets.server
 
-   .. autofunction:: serve(ws_handler, host=None, port=None, *, klass=WebSocketServerProtocol, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, loop=None, origins=None, subprotocols=None, extra_headers=None, **kwds)
+   .. autofunction:: serve(ws_handler, host=None, port=None, *, klass=WebSocketServerProtocol, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, subprotocols=None, extra_headers=None, **kwds)
 
    .. autoclass:: WebSocketServer
 
         .. automethod:: close()
         .. automethod:: wait_closed()
 
-   .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, loop=None, origins=None, subprotocols=None, extra_headers=None)
+   .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, subprotocols=None, extra_headers=None)
 
         .. automethod:: handshake(origins=None, subprotocols=None, extra_headers=None)
         .. automethod:: select_subprotocol(client_protos, server_protos)
@@ -50,9 +50,9 @@ Client
 
 .. automodule:: websockets.client
 
-   .. autofunction:: connect(uri, *, klass=WebSocketClientProtocol, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, loop=None, origin=None, subprotocols=None, extra_headers=None, **kwds)
+   .. autofunction:: connect(uri, *, klass=WebSocketClientProtocol, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origin=None, subprotocols=None, extra_headers=None, **kwds)
 
-   .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, loop=None)
+   .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None)
 
         .. automethod:: handshake(wsuri, origin=None, subprotocols=None, extra_headers=None)
 
@@ -61,7 +61,7 @@ Shared
 
 .. automodule:: websockets.protocol
 
-   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, loop=None)
+   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None)
 
         .. automethod:: close(code=1000, reason='')
 

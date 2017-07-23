@@ -14,6 +14,7 @@ class UtilsTests(unittest.TestCase):
             (b'', b'1234', b''),
             (b'aBcDe', b'\x00\x00\x00\x00', b'aBcDe'),
             (b'abcdABCD', b'1234', b'PPPPpppp'),
+            (b'abcdABCD' * 10, b'1234', b'PPPPpppp' * 10),
         ]:
             self.assertEqual(self.apply_mask(data_in, mask), data_out)
 

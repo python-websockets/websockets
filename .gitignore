@@ -1,4 +1,5 @@
 *.pyc
+*.so
 .coverage
 .tox
 build/

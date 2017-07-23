@@ -25,6 +25,14 @@ packages = ['websockets']
 if py_version >= (3, 5):
     packages.append('websockets/py35')
 
+ext_modules = [
+    setuptools.Extension(
+        'websockets.speedups',
+        sources=['websockets/speedups.c'],
+        optional=True,
+    )
+]
+
 setuptools.setup(
     name='websockets',
     version=version,
@@ -45,8 +53,10 @@ setuptools.setup(
         'Programming Language :: Python :: 3.3',
         'Programming Language :: Python :: 3.4',
         'Programming Language :: Python :: 3.5',
+        'Programming Language :: Python :: 3.6',
     ],
     packages=packages,
+    ext_modules=ext_modules,
     extras_require={
         ':python_version=="3.3"': ['asyncio'],
     },

@@ -18,6 +18,12 @@ import struct
 from .exceptions import PayloadTooBig, WebSocketProtocolError
 
 
+try:
+    from .speedups import apply_mask
+except ImportError:                                         # pragma: no cover
+    from .utils import apply_mask
+
+
 __all__ = [
     'OP_CONT', 'OP_TEXT', 'OP_BINARY', 'OP_CLOSE', 'OP_PING', 'OP_PONG',
     'Frame', 'read_frame', 'write_frame', 'parse_close', 'serialize_close'
@@ -101,7 +107,7 @@ def read_frame(reader, mask, *, max_size=None):
     # Read the data
     data = yield from reader(length)
     if mask:
-        data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(data))
+        data = apply_mask(data, mask_bits)
 
     frame = Frame(fin, opcode, data)
     check_frame(frame)
@@ -144,7 +150,7 @@ def write_frame(frame, writer, mask):
 
     # Prepare the data
     if mask:
-        data = bytes(b ^ mask_bits[i % 4] for i, b in enumerate(frame.data))
+        data = apply_mask(frame.data, mask_bits)
     else:
         data = frame.data
     output.write(data)

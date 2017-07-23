@@ -3,6 +3,10 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
+#if __AVX__
+#include <x86intrin.h>
+#endif
+
 const Py_ssize_t MASK_LEN = 4;
 
 static PyObject *
@@ -22,7 +26,7 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
 
     PyObject *result;
     char *output;
-    Py_ssize_t i;
+    Py_ssize_t i = 0;
 
     if (!PyArg_ParseTupleAndKeywords(
             args, kwds, "s#s#", kwlist, &input, &input_len, &mask, &mask_len))
@@ -45,7 +49,27 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
     // Since we juste created result, we don't need error checks.
     output = PyBytes_AS_STRING(result);
 
-    for (i = 0; i < input_len; i++)
+    // Apparently GCC cannot figure out the following optimizations by itself.
+
+#if __AVX__
+
+    // With AVX support, XOR by blocks of 32 bytes = 256 bits.
+
+    Py_ssize_t input_len_256 = input_len & ~31;
+    __m256 mask_256 = _mm256_set1_epi32(*(int *)mask);
+
+    for (; i < input_len_256; i += 32)
+    {
+        __m256i in_256 = _mm256_loadu_si256((__m256i *)(input + i));
+        __m256i out_256 = _mm256_xor_si256(in_256, mask_256);
+        _mm256_storeu_si256((__m256i *)(output + i), out_256);
+    }
+
+#endif
+
+    // XOR the remainder of the input byte by byte.
+
+    for (; i < input_len; i++)
     {
         output[i] = input[i] ^ mask[i % MASK_LEN];
     }

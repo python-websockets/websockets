@@ -8,7 +8,7 @@
 #include <emmintrin.h>
 #endif
 
-const Py_ssize_t MASK_LEN = 4;
+static const Py_ssize_t MASK_LEN = 4;
 
 static PyObject *
 apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
@@ -90,7 +90,7 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
 
     for (; i < input_len; i++)
     {
-        output[i] = input[i] ^ mask[i % MASK_LEN];
+        output[i] = input[i] ^ mask[i & (MASK_LEN - 1)];
     }
 
     return result;

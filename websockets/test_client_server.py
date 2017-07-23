@@ -6,6 +6,7 @@ import os
 import ssl
 import unittest
 import unittest.mock
+from contextlib import contextmanager
 
 from .client import *
 from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
@@ -92,131 +93,128 @@ class ClientServerTests(unittest.TestCase):
         except asyncio.TimeoutError:                # pragma: no cover
             self.fail("Server failed to stop")
 
+    @contextmanager
+    def temp_server(self, **kwds):
+        self.start_server(**kwds)
+        try:
+            yield
+        finally:
+            self.stop_server()
+
     def test_basic(self):
-        self.start_server()
-        self.start_client()
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, "Hello!")
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client()
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
+            self.stop_client()
 
     def test_server_close_while_client_connected(self):
-        self.start_server()
-        self.start_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client()
 
     def test_explicit_event_loop(self):
-        self.start_server(loop=self.loop)
-        self.start_client(loop=self.loop)
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, "Hello!")
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server(loop=self.loop):
+            self.start_client(loop=self.loop)
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
+            self.stop_client()
 
     def test_protocol_attributes(self):
-        self.start_server()
-        self.start_client('attributes')
-        expected_attrs = ('localhost', 8642, self.secure)
-        client_attrs = (self.client.host, self.client.port, self.client.secure)
-        self.assertEqual(client_attrs, expected_attrs)
-        server_attrs = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_attrs, repr(expected_attrs))
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client('attributes')
+            expected_attrs = ('localhost', 8642, self.secure)
+            client_attrs = (self.client.host, self.client.port,
+                            self.client.secure)
+            self.assertEqual(client_attrs, expected_attrs)
+            server_attrs = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(server_attrs, repr(expected_attrs))
+            self.stop_client()
 
     def test_protocol_path(self):
-        self.start_server()
-        self.start_client('path')
-        client_path = self.client.path
-        self.assertEqual(client_path, '/path')
-        server_path = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_path, '/path')
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client('path')
+            client_path = self.client.path
+            self.assertEqual(client_path, '/path')
+            server_path = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(server_path, '/path')
+            self.stop_client()
 
     def test_protocol_headers(self):
-        self.start_server()
-        self.start_client('headers')
-        client_req = self.client.request_headers
-        client_resp = self.client.response_headers
-        self.assertEqual(client_req['User-Agent'], USER_AGENT)
-        self.assertEqual(client_resp['Server'], USER_AGENT)
-        server_req = self.loop.run_until_complete(self.client.recv())
-        server_resp = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_req, str(client_req))
-        self.assertEqual(server_resp, str(client_resp))
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client('headers')
+            client_req = self.client.request_headers
+            client_resp = self.client.response_headers
+            self.assertEqual(client_req['User-Agent'], USER_AGENT)
+            self.assertEqual(client_resp['Server'], USER_AGENT)
+            server_req = self.loop.run_until_complete(self.client.recv())
+            server_resp = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(server_req, str(client_req))
+            self.assertEqual(server_resp, str(client_resp))
+            self.stop_client()
 
     def test_protocol_raw_headers(self):
-        self.start_server()
-        self.start_client('raw_headers')
-        client_req = self.client.raw_request_headers
-        client_resp = self.client.raw_response_headers
-        self.assertEqual(dict(client_req)['User-Agent'], USER_AGENT)
-        self.assertEqual(dict(client_resp)['Server'], USER_AGENT)
-        server_req = self.loop.run_until_complete(self.client.recv())
-        server_resp = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_req, repr(client_req))
-        self.assertEqual(server_resp, repr(client_resp))
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client('raw_headers')
+            client_req = self.client.raw_request_headers
+            client_resp = self.client.raw_response_headers
+            self.assertEqual(dict(client_req)['User-Agent'], USER_AGENT)
+            self.assertEqual(dict(client_resp)['Server'], USER_AGENT)
+            server_req = self.loop.run_until_complete(self.client.recv())
+            server_resp = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(server_req, repr(client_req))
+            self.assertEqual(server_resp, repr(client_resp))
+            self.stop_client()
 
     def test_protocol_custom_request_headers_dict(self):
-        self.start_server()
-        self.start_client('raw_headers', extra_headers={'X-Spam': 'Eggs'})
-        req_headers = self.loop.run_until_complete(self.client.recv())
-        self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", req_headers)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client('raw_headers', extra_headers={'X-Spam': 'Eggs'})
+            req_headers = self.loop.run_until_complete(self.client.recv())
+            self.loop.run_until_complete(self.client.recv())
+            self.assertIn("('X-Spam', 'Eggs')", req_headers)
+            self.stop_client()
 
     def test_protocol_custom_request_headers_list(self):
-        self.start_server()
-        self.start_client('raw_headers', extra_headers=[('X-Spam', 'Eggs')])
-        req_headers = self.loop.run_until_complete(self.client.recv())
-        self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", req_headers)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client('raw_headers',
+                              extra_headers=[('X-Spam', 'Eggs')])
+            req_headers = self.loop.run_until_complete(self.client.recv())
+            self.loop.run_until_complete(self.client.recv())
+            self.assertIn("('X-Spam', 'Eggs')", req_headers)
+            self.stop_client()
 
     def test_protocol_custom_response_headers_callable_dict(self):
-        self.start_server(extra_headers=lambda p, r: {'X-Spam': 'Eggs'})
-        self.start_client('raw_headers')
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server(extra_headers=lambda p, r: {'X-Spam': 'Eggs'}):
+            self.start_client('raw_headers')
+            self.loop.run_until_complete(self.client.recv())
+            resp_headers = self.loop.run_until_complete(self.client.recv())
+            self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+            self.stop_client()
 
     def test_protocol_custom_response_headers_callable_list(self):
-        self.start_server(extra_headers=lambda p, r: [('X-Spam', 'Eggs')])
-        self.start_client('raw_headers')
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server(extra_headers=lambda p, r: [('X-Spam', 'Eggs')]):
+            self.start_client('raw_headers')
+            self.loop.run_until_complete(self.client.recv())
+            resp_headers = self.loop.run_until_complete(self.client.recv())
+            self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+            self.stop_client()
 
     def test_protocol_custom_response_headers_dict(self):
-        self.start_server(extra_headers={'X-Spam': 'Eggs'})
-        self.start_client('raw_headers')
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server(extra_headers={'X-Spam': 'Eggs'}):
+            self.start_client('raw_headers')
+            self.loop.run_until_complete(self.client.recv())
+            resp_headers = self.loop.run_until_complete(self.client.recv())
+            self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+            self.stop_client()
 
     def test_protocol_custom_response_headers_list(self):
-        self.start_server(extra_headers=[('X-Spam', 'Eggs')])
-        self.start_client('raw_headers')
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server(extra_headers=[('X-Spam', 'Eggs')]):
+            self.start_client('raw_headers')
+            self.loop.run_until_complete(self.client.recv())
+            resp_headers = self.loop.run_until_complete(self.client.recv())
+            self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+            self.stop_client()
 
     def test_get_response_status_attributes_available(self):
         # Save the attribute values to a dict instead of asserting inside
@@ -234,8 +232,7 @@ class ClientServerTests(unittest.TestCase):
                 status = yield from super().get_response_status(set_header)
                 return status
 
-        self.start_server(klass=SaveAttributesProtocol)
-        try:
+        with self.temp_server(klass=SaveAttributesProtocol):
             self.start_client(path='foo/bar', origin='http://otherhost')
             self.assertEqual(attrs['origin'], 'http://otherhost')
             self.assertEqual(attrs['path'], '/foo/bar')
@@ -246,88 +243,84 @@ class ClientServerTests(unittest.TestCase):
             request_headers = attrs['request_headers']
             self.assertIsInstance(request_headers, http.client.HTTPMessage)
             self.assertEqual(request_headers.get('origin'), 'http://otherhost')
-        finally:
-            self.stop_server()
 
     def test_authentication(self):
-        self.start_server(klass=ForbiddenWebSocketServerProtocol)
-        with self.assertRaises(InvalidStatus):
-            self.start_client()
-        self.stop_server()
+        with self.temp_server(klass=ForbiddenWebSocketServerProtocol):
+            with self.assertRaises(InvalidStatus):
+                self.start_client()
 
     def test_no_subprotocol(self):
-        self.start_server()
-        self.start_client('subprotocol')
-        server_subprotocol = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_subprotocol, repr(None))
-        self.assertEqual(self.client.subprotocol, None)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client('subprotocol')
+            server_subprotocol = self.loop.run_until_complete(
+                self.client.recv())
+            self.assertEqual(server_subprotocol, repr(None))
+            self.assertEqual(self.client.subprotocol, None)
+            self.stop_client()
 
     def test_subprotocol_found(self):
-        self.start_server(subprotocols=['superchat', 'chat'])
-        self.start_client('subprotocol', subprotocols=['otherchat', 'chat'])
-        server_subprotocol = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_subprotocol, repr('chat'))
-        self.assertEqual(self.client.subprotocol, 'chat')
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server(subprotocols=['superchat', 'chat']):
+            self.start_client('subprotocol',
+                              subprotocols=['otherchat', 'chat'])
+            server_subprotocol = self.loop.run_until_complete(
+                self.client.recv())
+            self.assertEqual(server_subprotocol, repr('chat'))
+            self.assertEqual(self.client.subprotocol, 'chat')
+            self.stop_client()
 
     def test_subprotocol_not_found(self):
-        self.start_server(subprotocols=['superchat'])
-        self.start_client('subprotocol', subprotocols=['otherchat'])
-        server_subprotocol = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_subprotocol, repr(None))
-        self.assertEqual(self.client.subprotocol, None)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server(subprotocols=['superchat']):
+            self.start_client('subprotocol', subprotocols=['otherchat'])
+            server_subprotocol = self.loop.run_until_complete(
+                self.client.recv())
+            self.assertEqual(server_subprotocol, repr(None))
+            self.assertEqual(self.client.subprotocol, None)
+            self.stop_client()
 
     def test_subprotocol_not_offered(self):
-        self.start_server()
-        self.start_client('subprotocol', subprotocols=['otherchat', 'chat'])
-        server_subprotocol = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_subprotocol, repr(None))
-        self.assertEqual(self.client.subprotocol, None)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client('subprotocol',
+                              subprotocols=['otherchat', 'chat'])
+            server_subprotocol = self.loop.run_until_complete(
+                self.client.recv())
+            self.assertEqual(server_subprotocol, repr(None))
+            self.assertEqual(self.client.subprotocol, None)
+            self.stop_client()
 
     def test_subprotocol_not_requested(self):
-        self.start_server(subprotocols=['superchat', 'chat'])
-        self.start_client('subprotocol')
-        server_subprotocol = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_subprotocol, repr(None))
-        self.assertEqual(self.client.subprotocol, None)
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server(subprotocols=['superchat', 'chat']):
+            self.start_client('subprotocol')
+            server_subprotocol = self.loop.run_until_complete(
+                self.client.recv())
+            self.assertEqual(server_subprotocol, repr(None))
+            self.assertEqual(self.client.subprotocol, None)
+            self.stop_client()
 
     @unittest.mock.patch.object(WebSocketServerProtocol, 'select_subprotocol')
     def test_subprotocol_error(self, _select_subprotocol):
         _select_subprotocol.return_value = 'superchat'
 
-        self.start_server(subprotocols=['superchat'])
-        with self.assertRaises(InvalidHandshake):
-            self.start_client('subprotocol', subprotocols=['otherchat'])
-        self.run_loop_once()
-        self.stop_server()
+        with self.temp_server(subprotocols=['superchat']):
+            with self.assertRaises(InvalidHandshake):
+                self.start_client('subprotocol', subprotocols=['otherchat'])
+            self.run_loop_once()
 
     @unittest.mock.patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):
         _read_request.side_effect = ValueError("read_request failed")
 
-        self.start_server()
-        with self.assertRaises(InvalidHandshake):
-            self.start_client()
-        self.stop_server()
+        with self.temp_server():
+            with self.assertRaises(InvalidHandshake):
+                self.start_client()
 
     @unittest.mock.patch('websockets.client.read_response')
     def test_client_receives_malformed_response(self, _read_response):
         _read_response.side_effect = ValueError("read_response failed")
 
-        self.start_server()
-        with self.assertRaises(InvalidHandshake):
-            self.start_client()
-        self.run_loop_once()
-        self.stop_server()
+        with self.temp_server():
+            with self.assertRaises(InvalidHandshake):
+                self.start_client()
+            self.run_loop_once()
 
     @unittest.mock.patch('websockets.client.build_request')
     def test_client_sends_invalid_handshake_request(self, _build_request):
@@ -335,10 +328,9 @@ class ClientServerTests(unittest.TestCase):
             return '42'
         _build_request.side_effect = wrong_build_request
 
-        self.start_server()
-        with self.assertRaises(InvalidHandshake):
-            self.start_client()
-        self.stop_server()
+        with self.temp_server():
+            with self.assertRaises(InvalidHandshake):
+                self.start_client()
 
     @unittest.mock.patch('websockets.server.build_response')
     def test_server_sends_invalid_handshake_response(self, _build_response):
@@ -346,10 +338,9 @@ class ClientServerTests(unittest.TestCase):
             return build_response(set_header, '42')
         _build_response.side_effect = wrong_build_response
 
-        self.start_server()
-        with self.assertRaises(InvalidHandshake):
-            self.start_client()
-        self.stop_server()
+        with self.temp_server():
+            with self.assertRaises(InvalidHandshake):
+                self.start_client()
 
     @unittest.mock.patch('websockets.client.read_response')
     def test_server_does_not_switch_protocols(self, _read_response):
@@ -359,23 +350,21 @@ class ClientServerTests(unittest.TestCase):
             return 400, headers
         _read_response.side_effect = wrong_read_response
 
-        self.start_server()
-        with self.assertRaises(InvalidStatus):
-            self.start_client()
-        self.run_loop_once()
-        self.stop_server()
+        with self.temp_server():
+            with self.assertRaises(InvalidStatus):
+                self.start_client()
+            self.run_loop_once()
 
     @unittest.mock.patch('websockets.server.WebSocketServerProtocol.send')
     def test_server_handler_crashes(self, send):
         send.side_effect = ValueError("send failed")
 
-        self.start_server()
-        self.start_client()
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.client.recv())
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client()
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            with self.assertRaises(ConnectionClosed):
+                self.loop.run_until_complete(self.client.recv())
+            self.stop_client()
 
         # Connection ends with an unexpected error.
         self.assertEqual(self.client.close_code, 1011)
@@ -384,87 +373,83 @@ class ClientServerTests(unittest.TestCase):
     def test_server_close_crashes(self, close):
         close.side_effect = ValueError("close failed")
 
-        self.start_server()
-        self.start_client()
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, "Hello!")
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client()
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
+            self.stop_client()
 
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)
 
     @unittest.mock.patch.object(WebSocketClientProtocol, 'handshake')
     def test_client_closes_connection_before_handshake(self, handshake):
-        self.start_server()
-        self.start_client()
-        # We have mocked the handshake() method to prevent the client from
-        # performing the opening handshake. Force it to close the connection.
-        self.loop.run_until_complete(self.client.close_connection(force=True))
-        self.stop_client()
-        # The server should stop properly anyway. It used to hang because the
-        # worker handling the connection was waiting for the opening handshake.
-        self.stop_server()
+        with self.temp_server():
+            self.start_client()
+            # We have mocked the handshake() method to prevent the client
+            # from performing the opening handshake. Force it to close the
+            # connection.
+            self.loop.run_until_complete(
+                self.client.close_connection(force=True))
+            self.stop_client()
+            # The server should stop properly anyway. It used to hang because
+            # the worker handling the connection was waiting for the opening
+            # handshake.
 
     @unittest.mock.patch('websockets.server.read_request')
     def test_server_shuts_down_during_opening_handshake(self, _read_request):
         _read_request.side_effect = asyncio.CancelledError
 
-        self.start_server()
-        self.server.closing = True
-        with self.assertRaises(InvalidHandshake) as raised:
-            self.start_client()
-        self.stop_server()
+        with self.temp_server():
+            self.server.closing = True
+            with self.assertRaises(InvalidHandshake) as raised:
+                self.start_client()
 
         # Opening handshake fails with 503 Service Unavailable
         self.assertEqual(str(raised.exception), "Status code not 101: 503")
 
     def test_server_shuts_down_during_connection_handling(self):
-        self.start_server()
-        self.start_client()
+        with self.temp_server():
+            self.start_client()
 
-        self.server.close()
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.client.recv())
-        self.stop_client()
-        self.stop_server()
+            self.server.close()
+            with self.assertRaises(ConnectionClosed):
+                self.loop.run_until_complete(self.client.recv())
+            self.stop_client()
 
         # Websocket connection terminates with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
 
     def test_invalid_status_error_during_client_connect(self):
-        self.start_server(klass=ForbiddenWebSocketServerProtocol)
-        with self.assertRaises(InvalidStatus) as raised:
-            self.start_client()
-        exception = raised.exception
-        self.assertEqual(str(exception), "Status code not 101: 403")
-        self.assertEqual(exception.code, 403)
-        self.stop_server()
+        with self.temp_server(klass=ForbiddenWebSocketServerProtocol):
+            with self.assertRaises(InvalidStatus) as raised:
+                self.start_client()
+            exception = raised.exception
+            self.assertEqual(str(exception), "Status code not 101: 403")
+            self.assertEqual(exception.code, 403)
 
     @unittest.mock.patch('websockets.server.read_request')
     def test_connection_error_during_opening_handshake(self, _read_request):
         _read_request.side_effect = ConnectionError
 
-        self.start_server()
-        # Exception appears to be platform-dependent: InvalidHandshake on
-        # macOS, ConnectionResetError on Linux. This doesn't matter; this
-        # test primarily aims at covering a code path on the server side.
-        with self.assertRaises(Exception):
-            self.start_client()
-        self.stop_server()
+        with self.temp_server():
+            # Exception appears to be platform-dependent: InvalidHandshake on
+            # macOS, ConnectionResetError on Linux. This doesn't matter; this
+            # test primarily aims at covering a code path on the server side.
+            with self.assertRaises(Exception):
+                self.start_client()
 
     @unittest.mock.patch('websockets.server.WebSocketServerProtocol.close')
     def test_connection_error_during_closing_handshake(self, close):
         close.side_effect = ConnectionError
 
-        self.start_server()
-        self.start_client()
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, "Hello!")
-        self.stop_client()
-        self.stop_server()
+        with self.temp_server():
+            self.start_client()
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
+            self.stop_client()
 
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)
@@ -499,11 +484,10 @@ class SSLClientServerTests(ClientServerTests):
         self.client = self.loop.run_until_complete(client)
 
     def test_ws_uri_is_rejected(self):
-        self.start_server()
-        client = connect('ws://localhost:8642/', ssl=self.client_context)
-        with self.assertRaises(ValueError):
-            self.loop.run_until_complete(client)
-        self.stop_server()
+        with self.temp_server():
+            client = connect('ws://localhost:8642/', ssl=self.client_context)
+            with self.assertRaises(ValueError):
+                self.loop.run_until_complete(client)
 
 
 class ClientServerOriginTests(unittest.TestCase):

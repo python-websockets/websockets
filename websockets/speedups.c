@@ -2,6 +2,7 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
+#include <stdint.h> /* uint32_t, uint64_t */
 
 #if __SSE2__
 #include <emmintrin.h>

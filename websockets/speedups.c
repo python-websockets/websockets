@@ -3,8 +3,8 @@
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
 
-#if __AVX__ || __SSE2__
-#include <x86intrin.h>
+#if __SSE2__
+#include <emmintrin.h>
 #endif
 
 const Py_ssize_t MASK_LEN = 4;
@@ -51,21 +51,7 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
 
     // Apparently GCC cannot figure out the following optimizations by itself.
 
-#if __AVX__
-
-    // With AVX support, XOR by blocks of 32 bytes = 256 bits.
-
-    Py_ssize_t input_len_256 = input_len & ~31;
-    __m256 mask_256 = _mm256_set1_epi32(*(int *)mask);
-
-    for (; i < input_len_256; i += 32)
-    {
-        __m256i in_256 = _mm256_loadu_si256((__m256i *)(input + i));
-        __m256i out_256 = _mm256_xor_si256(in_256, mask_256);
-        _mm256_storeu_si256((__m256i *)(output + i), out_256);
-    }
-
-#elif __SSE2__
+#if __SSE2__
 
     // With SSE2 support, XOR by blocks of 16 bytes = 128 bits.
 

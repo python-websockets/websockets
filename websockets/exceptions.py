@@ -1,7 +1,7 @@
 __all__ = [
-    'AbortHandshake', 'InvalidHandshake', 'InvalidMessage', 'InvalidOrigin',
-    'InvalidState', 'InvalidStatusCode', 'InvalidURI', 'ConnectionClosed',
-    'PayloadTooBig', 'WebSocketProtocolError',
+    'AbortHandshake', 'InvalidHandshake', 'InvalidHeader', 'InvalidMessage',
+    'InvalidOrigin', 'InvalidState', 'InvalidStatusCode', 'InvalidURI',
+    'ConnectionClosed', 'PayloadTooBig', 'WebSocketProtocolError',
 ]
 
 
@@ -28,6 +28,18 @@ class InvalidMessage(InvalidHandshake):
     Exception raised when the HTTP message in a handshake request is malformed.
 
     """
+
+
+class InvalidHeader(InvalidHandshake):
+    """
+    Exception raised when a HTTP header doesn't have the expected format.
+
+    """
+    def __init__(self, message, string, pos):
+        self.string = string
+        self.pos = pos
+        message = '{} at {} in {}'.format(message, pos, string)
+        super().__init__(message)
 
 
 class InvalidOrigin(InvalidHandshake):

@@ -1,72 +1,68 @@
 import unittest
 
+from ..exceptions import InvalidHeader
 from .utils import *
 
 
-class ExtensionParsingTests(unittest.TestCase):
+class UtilsTests(unittest.TestCase):
 
-    def test_simple(self):
-        self.assert_parse_extensions('permessage-deflate', [
-            ('permessage-deflate', {})
-        ])
+    def test_parse_extension_list(self):
+        for header, parsed in [
+            # Synthetic examples
+            (
+                'foo',
+                [('foo', [])],
+            ),
+            (
+                'foo, bar',
+                [('foo', []), ('bar', [])],
+            ),
+            (
+                'foo; name; token=token; quoted-string="quoted string", '
+                'bar; quux; quuux',
+                [
+                    ('foo', [('name', None), ('token', 'token'),
+                             ('quoted-string', 'quoted string')]),
+                    ('bar', [('quux', None), ('quuux', None)]),
+                ],
+            ),
+            # Pathological examples
+            (
+                'a; b="q,s;1\\"2\'3\\\\4="; c="q;s,6=7\\\\8\'9\\\""',
+                [('a', [('b', 'q,s;1"2\'3\\4='), ('c', 'q;s,6=7\\8\'9"')])]
+            ),
+            (
+                ',\t, ,  ,foo  ;bar = 42,,   baz,,',
+                [('foo', [('bar', '42')]), ('baz', [])],
+            ),
+            # Realistic use cases for permessage-deflate
+            (
+                'permessage-deflate',
+                [('permessage-deflate', [])],
+            ),
+            (
+                'permessage-deflate; client_max_window_bits',
+                [('permessage-deflate', [('client_max_window_bits', None)])],
+            ),
+            (
+                'permessage-deflate; server_max_window_bits=10',
+                [('permessage-deflate', [('server_max_window_bits', '10')])],
+            ),
+        ]:
+            self.assertEqual(parse_extension_list(header), parsed)
 
-    def test_one_extension_no_value(self):
-        self.assert_parse_extensions(
-            'permessage-deflate; client_max_window_bits', [
-                ('permessage-deflate', {'client_max_window_bits': None})
-            ])
+    def test_parse_extension_list_invalid_header(self):
+        for header in [
+            # Truncated examples
+            '',
+            ',\t,'
+            'foo;',
+            'foo; bar;',
+            'foo; bar=',
+            'foo; bar="baz',
+            # Wrong delimiter
+            'foo, bar, baz=quux; quuux',
 
-    def test_one_extension_value(self):
-        self.assert_parse_extensions(
-            'permessage-deflate; server_max_window_bits=10', [
-                ('permessage-deflate', {'server_max_window_bits': '10'})
-            ])
-
-    def test_one_extension_quoted_value(self):
-        self.assert_parse_extensions(
-            'permessage-deflate; server_max_window_bits="10"', [
-                ('permessage-deflate', {'server_max_window_bits': '10'})
-            ])
-
-    def test_one_extension_multiple_params(self):
-        self.assert_parse_extensions(
-            'permessage-deflate; option_a;option_b="10";option_c=foo',
-            [
-                ('permessage-deflate', {
-                    'option_a': None,
-                    'option_b': '10',
-                    'option_c': 'foo'
-                })
-            ])
-
-    def test_multi_extensions(self):
-        self.assert_parse_extensions(
-            'ext_one; option_a;option_b="10", ext_two, ext_three; foo; bar=42',
-            [
-                ('ext_one', {
-                    'option_a': None,
-                    'option_b': '10'
-                }),
-                ('ext_two', {}),
-                ('ext_three', {
-                    'foo': None,
-                    'bar': '42'
-                })
-            ])
-
-    def test_multi_line(self):
-        self.assert_parse_extensions(
-            '\next_one, \next_two, \n\next_three; foo; bar=42',
-            [
-                ('ext_one', {}),
-                ('ext_two', {}),
-                ('ext_three', {
-                    'foo': None,
-                    'bar': '42'
-                })
-            ])
-
-    @staticmethod
-    def assert_parse_extensions(header, expected):
-        result = parse_extensions(header)
-        assert result == expected
+        ]:
+            with self.assertRaises(InvalidHeader):
+                parse_extension_list(header)

@@ -8,7 +8,7 @@ import collections.abc
 
 from .exceptions import InvalidHandshake, InvalidMessage, InvalidStatusCode
 from .extensions.permessage_deflate import PerMessageDeflate
-from .extensions.utils import parse_extensions
+from .extensions.utils import parse_extension_list
 from .handshake import build_request, check_response
 from .http import USER_AGENT, build_headers, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -94,11 +94,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         extensions = get_header('Sec-WebSocket-Extensions')
         if extensions:
-            extensions = parse_extensions(extensions)
+            extensions = parse_extension_list(extensions)
             for extension in extensions:
                 extension, params = extension
                 if extension == 'permessage-deflate':
-                    return [PerMessageDeflate(True, params)]
+                    return [PerMessageDeflate(True, dict(params))]
         return []
 
     def process_subprotocol(self, get_header, available_subprotocols=None):

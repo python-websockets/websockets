@@ -462,8 +462,10 @@ class ClientServerTests(unittest.TestCase):
             # Exception appears to be platform-dependent: InvalidHandshake on
             # macOS, ConnectionResetError on Linux. This doesn't matter; this
             # test primarily aims at covering a code path on the server side.
-            with self.assertRaises(Exception):
+            with self.assertRaises(Exception) as cm:
                 self.start_client()
+            exc = cm.exception
+            print(f'\n****:', repr(exc), exc.__module__)
 
         return written
 

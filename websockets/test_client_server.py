@@ -228,7 +228,7 @@ class ClientServerTests(unittest.TestCase):
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
         self.stop_client()
 
-    @with_server(extra_headers={'X-Spam': 'Eggs'})
+    @with_server(extra_headers=[('X-Spam', 'Eggs')])
     def test_protocol_custom_response_headers_list(self):
         self.start_client('raw_headers')
         self.loop.run_until_complete(self.client.recv())

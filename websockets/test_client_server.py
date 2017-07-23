@@ -465,7 +465,7 @@ class ClientServerTests(unittest.TestCase):
             with self.assertRaises(Exception) as cm:
                 self.start_client()
             exc = cm.exception
-            print('\n****:', repr(exc))
+            print('\n****:', self.id(), repr(exc))
 
         return written
 

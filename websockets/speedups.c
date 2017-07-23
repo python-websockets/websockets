@@ -75,7 +75,8 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
     // We assume the memory allocator aligns everything on 8 bytes boundaries.
 
     Py_ssize_t input_len_64 = input_len & ~7;
-    uint64_t mask_64 = (*(uint64_t *)mask << 32) | *(uint64_t *)mask;
+    uint32_t mask_32 = *(uint32_t *)mask;
+    uint64_t mask_64 = ((uint64_t)mask_32 << 32) | (uint64_t)mask_32;
 
     for (; i < input_len_64; i += 8)
     {

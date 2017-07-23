@@ -30,7 +30,7 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
     Py_ssize_t i = 0;
 
     if (!PyArg_ParseTupleAndKeywords(
-            args, kwds, "s#s#", kwlist, &input, &input_len, &mask, &mask_len))
+            args, kwds, "y#y#", kwlist, &input, &input_len, &mask, &mask_len))
     {
         return NULL;
     }

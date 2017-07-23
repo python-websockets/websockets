@@ -188,8 +188,14 @@ def connect(uri, *,
         loop=loop, legacy_recv=legacy_recv,
     )
 
+    if 'sock' in kwds:
+        host = None
+        port = None
+    else:
+        host = wsuri.host
+        port = wsuri.port
     transport, protocol = yield from loop.create_connection(
-        factory, wsuri.host, wsuri.port, **kwds)
+        factory, host, port, **kwds)
 
     try:
         yield from protocol.handshake(

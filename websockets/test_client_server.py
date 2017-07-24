@@ -384,11 +384,10 @@ class ClientServerTests(unittest.TestCase):
     def test_server_handler_crashes(self, send):
         send.side_effect = ValueError("send failed")
 
-        self.start_client()
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.client.recv())
-        self.stop_client()
+        with self.temp_client():
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            with self.assertRaises(ConnectionClosed):
+                self.loop.run_until_complete(self.client.recv())
 
         # Connection ends with an unexpected error.
         self.assertEqual(self.client.close_code, 1011)
@@ -398,11 +397,10 @@ class ClientServerTests(unittest.TestCase):
     def test_server_close_crashes(self, close):
         close.side_effect = ValueError("close failed")
 
-        self.start_client()
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, "Hello!")
-        self.stop_client()
+        with self.temp_client():
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
 
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)
@@ -431,12 +429,10 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server()
     def test_server_shuts_down_during_connection_handling(self):
-        self.start_client()
-
-        self.server.close()
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.client.recv())
-        self.stop_client()
+        with self.temp_client():
+            self.server.close()
+            with self.assertRaises(ConnectionClosed):
+                self.loop.run_until_complete(self.client.recv())
 
         # Websocket connection terminates with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
@@ -465,11 +461,10 @@ class ClientServerTests(unittest.TestCase):
     def test_connection_error_during_closing_handshake(self, close):
         close.side_effect = ConnectionError
 
-        self.start_client()
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, "Hello!")
-        self.stop_client()
+        with self.temp_client():
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
 
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)

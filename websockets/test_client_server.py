@@ -56,19 +56,42 @@ def temp_test_server(test, **kwds):
         test.stop_server()
 
 
-def with_server(**kwds):
+@contextmanager
+def temp_test_client(test, *args, **kwds):
+    test.start_client(*args, **kwds)
+    try:
+        yield
+    finally:
+        test.stop_client()
+
+
+def with_manager(manager, *args, **kwds):
     """
-    Return a decorator for TestCase methods that starts and stops a server.
+    Return a decorator that wraps a function with a context manager.
     """
-    def decorate(test_func):
-        @functools.wraps(test_func)
-        def _decorate(self, *args, **kwargs):
-            with temp_test_server(self, **kwds):
-                return test_func(self, *args, **kwargs)
+    def decorate(func):
+        @functools.wraps(func)
+        def _decorate(self, *_args, **_kwds):
+            with manager(self, *args, **kwds):
+                return func(self, *_args, **_kwds)
 
         return _decorate
 
     return decorate
+
+
+def with_server(**kwds):
+    """
+    Return a decorator for TestCase methods that starts and stops a server.
+    """
+    return with_manager(temp_test_server, **kwds)
+
+
+def with_client(*args, **kwds):
+    """
+    Return a decorator for TestCase methods that starts and stops a client.
+    """
+    return with_manager(temp_test_client, *args, **kwds)
 
 
 class ForbiddenWebSocketServerProtocol(WebSocketServerProtocol):
@@ -123,13 +146,17 @@ class ClientServerTests(unittest.TestCase):
         with temp_test_server(self, **kwds):
             yield
 
+    @contextmanager
+    def temp_client(self, *args, **kwds):
+        with temp_test_client(self, *args, **kwds):
+            yield
+
     @with_server()
+    @with_client()
     def test_basic(self):
-        self.start_client()
         self.loop.run_until_complete(self.client.send("Hello!"))
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, "Hello!")
-        self.stop_client()
 
     @with_server()
     def test_server_close_while_client_connected(self):
@@ -137,34 +164,31 @@ class ClientServerTests(unittest.TestCase):
 
     def test_explicit_event_loop(self):
         with self.temp_server(loop=self.loop):
-            self.start_client(loop=self.loop)
-            self.loop.run_until_complete(self.client.send("Hello!"))
-            reply = self.loop.run_until_complete(self.client.recv())
-            self.assertEqual(reply, "Hello!")
-            self.stop_client()
+            with self.temp_client(loop=self.loop):
+                self.loop.run_until_complete(self.client.send("Hello!"))
+                reply = self.loop.run_until_complete(self.client.recv())
+                self.assertEqual(reply, "Hello!")
 
     @with_server()
+    @with_client('attributes')
     def test_protocol_attributes(self):
-        self.start_client('attributes')
         expected_attrs = ('localhost', 8642, self.secure)
         client_attrs = (self.client.host, self.client.port, self.client.secure)
         self.assertEqual(client_attrs, expected_attrs)
         server_attrs = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_attrs, repr(expected_attrs))
-        self.stop_client()
 
     @with_server()
+    @with_client('path')
     def test_protocol_path(self):
-        self.start_client('path')
         client_path = self.client.path
         self.assertEqual(client_path, '/path')
         server_path = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_path, '/path')
-        self.stop_client()
 
     @with_server()
+    @with_client('headers')
     def test_protocol_headers(self):
-        self.start_client('headers')
         client_req = self.client.request_headers
         client_resp = self.client.response_headers
         self.assertEqual(client_req['User-Agent'], USER_AGENT)
@@ -173,11 +197,10 @@ class ClientServerTests(unittest.TestCase):
         server_resp = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_req, str(client_req))
         self.assertEqual(server_resp, str(client_resp))
-        self.stop_client()
 
     @with_server()
+    @with_client('raw_headers')
     def test_protocol_raw_headers(self):
-        self.start_client('raw_headers')
         client_req = self.client.raw_request_headers
         client_resp = self.client.raw_response_headers
         self.assertEqual(dict(client_req)['User-Agent'], USER_AGENT)
@@ -186,55 +209,48 @@ class ClientServerTests(unittest.TestCase):
         server_resp = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_req, repr(client_req))
         self.assertEqual(server_resp, repr(client_resp))
-        self.stop_client()
 
     @with_server()
+    @with_client('raw_headers', extra_headers={'X-Spam': 'Eggs'})
     def test_protocol_custom_request_headers_dict(self):
-        self.start_client('raw_headers', extra_headers={'X-Spam': 'Eggs'})
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
-        self.stop_client()
 
     @with_server()
+    @with_client('raw_headers', extra_headers=[('X-Spam', 'Eggs')])
     def test_protocol_custom_request_headers_list(self):
-        self.start_client('raw_headers', extra_headers=[('X-Spam', 'Eggs')])
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
-        self.stop_client()
 
     @with_server(extra_headers=lambda p, r: {'X-Spam': 'Eggs'})
+    @with_client('raw_headers')
     def test_protocol_custom_response_headers_callable_dict(self):
-        self.start_client('raw_headers')
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-        self.stop_client()
 
     @with_server(extra_headers=lambda p, r: [('X-Spam', 'Eggs')])
+    @with_client('raw_headers')
     def test_protocol_custom_response_headers_callable_list(self):
-        self.start_client('raw_headers')
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-        self.stop_client()
 
     @with_server(extra_headers={'X-Spam': 'Eggs'})
+    @with_client('raw_headers')
     def test_protocol_custom_response_headers_dict(self):
-        self.start_client('raw_headers')
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-        self.stop_client()
 
     @with_server(extra_headers=[('X-Spam', 'Eggs')])
+    @with_client('raw_headers')
     def test_protocol_custom_response_headers_list(self):
-        self.start_client('raw_headers')
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-        self.stop_client()
 
     def test_get_response_status_attributes_available(self):
         # Save the attribute values to a dict instead of asserting inside
@@ -270,44 +286,39 @@ class ClientServerTests(unittest.TestCase):
             self.start_client()
 
     @with_server()
+    @with_client('subprotocol')
     def test_no_subprotocol(self):
-        self.start_client('subprotocol')
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
-        self.stop_client()
 
     @with_server(subprotocols=['superchat', 'chat'])
+    @with_client('subprotocol', subprotocols=['otherchat', 'chat'])
     def test_subprotocol_found(self):
-        self.start_client('subprotocol', subprotocols=['otherchat', 'chat'])
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr('chat'))
         self.assertEqual(self.client.subprotocol, 'chat')
-        self.stop_client()
 
     @with_server(subprotocols=['superchat'])
+    @with_client('subprotocol', subprotocols=['otherchat'])
     def test_subprotocol_not_found(self):
-        self.start_client('subprotocol', subprotocols=['otherchat'])
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
-        self.stop_client()
 
     @with_server()
+    @with_client('subprotocol', subprotocols=['otherchat', 'chat'])
     def test_subprotocol_not_offered(self):
-        self.start_client('subprotocol', subprotocols=['otherchat', 'chat'])
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
-        self.stop_client()
 
     @with_server(subprotocols=['superchat', 'chat'])
+    @with_client('subprotocol')
     def test_subprotocol_not_requested(self):
-        self.start_client('subprotocol')
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
-        self.stop_client()
 
     @with_server(subprotocols=['superchat'])
     @unittest.mock.patch.object(WebSocketServerProtocol, 'select_subprotocol')
@@ -397,14 +408,12 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(self.client.close_code, 1006)
 
     @with_server()
+    @with_client()
     @unittest.mock.patch.object(WebSocketClientProtocol, 'handshake')
     def test_client_closes_connection_before_handshake(self, handshake):
-        self.start_client()
         # We have mocked the handshake() method to prevent the client from
         # performing the opening handshake. Force it to close the connection.
-        self.loop.run_until_complete(
-            self.client.close_connection(force=True))
-        self.stop_client()
+        self.loop.run_until_complete(self.client.close_connection(force=True))
         # The server should stop properly anyway. It used to hang because the
         # worker handling the connection was waiting for the opening handshake.
 

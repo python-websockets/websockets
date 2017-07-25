@@ -466,36 +466,37 @@ class ClientServerTests(unittest.TestCase):
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)
 
-class CustomSocketClientTests (ClientServerTests):
 
-    class CustomSocket (socket.socket):
-        def __init__ (self, typ, transp):
+class CustomSocketClientTests(ClientServerTests):
+    class CustomSocket(socket.socket):
+        def __init__(self, typ, transp):
             self.used = False
-            super().__init__ ( typ, transp)
+            super().__init__(typ, transp)
 
-        def recv (self, buffersize, flags=0):
+        def recv(self, buffersize, flags=0):
             self.used = True
-            return super().recv (buffersize, flags)
+            return super().recv(buffersize, flags)
 
-        def send (self, bytes, flags=0):
+        def send(self, bytes, flags=0):
             self.used = True
-            return super().send (bytes, flags)
+            return super().send(bytes, flags)
 
     def start_client(self, path='', **kwds):
-        self.sock = self.CustomSocket (socket.AF_INET, socket.SOCK_STREAM)
-        self.sock.connect (('localhost', 8642))
+        self.sock = self.CustomSocket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect(('localhost', 8642))
         kwds['sock'] = self.sock
         client = connect('ws://localhost:8642/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
-        super().stop_client ()
-        self.sock.close ()
-        self.assertEqual (self.sock.used, True)
+        super().stop_client()
+        self.sock.close()
+        self.assertEqual(self.sock.used, True)
 
     def test_client_closes_connection_before_handshake(self):
         # Not needed because the socket immediately closed
         pass
+
 
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")
 class SSLClientServerTests(ClientServerTests):

@@ -5,6 +5,7 @@ import http.client
 import logging
 import os
 import ssl
+import socket
 import unittest
 import unittest.mock
 from contextlib import contextmanager
@@ -465,6 +466,13 @@ class ClientServerTests(unittest.TestCase):
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)
 
+class CustomSocketClientTests (ClientServerTests):
+    def start_client(self, path='', **kwds):
+        sock = socket.socket (socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect (('localhost', 8642))
+        kwds['sock'] = sock
+        client = connect('ws://localhost:8642/' + path, **kwds)
+        self.client = self.loop.run_until_complete(client)
 
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")
 class SSLClientServerTests(ClientServerTests):

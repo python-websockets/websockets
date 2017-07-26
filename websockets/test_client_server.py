@@ -10,7 +10,8 @@ import unittest.mock
 from contextlib import contextmanager
 
 from .client import *
-from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
+from .exceptions import (ConnectionClosed, InvalidHandshake, InvalidMessage,
+                         InvalidStatus)
 from .http import USER_AGENT, read_response
 from .server import *
 
@@ -440,7 +441,7 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(str(exception), "Status code not 101: 403")
         self.assertEqual(exception.code, 403)
 
-    def do_error_during_opening_handshake(self, exception_cls):
+    def raise_while_opening(self, exception_cls):
         written = []
 
         class WriteCollectingProtocol(WebSocketServerProtocol):
@@ -459,20 +460,26 @@ class ClientServerTests(unittest.TestCase):
                 raise exception_cls()
 
         with self.temp_server(klass=WriteCollectingProtocol):
-            # Exception appears to be platform-dependent: InvalidHandshake on
-            # macOS, ConnectionResetError on Linux. This doesn't matter; this
-            # test primarily aims at covering a code path on the server side.
-            with self.assertRaises(Exception):
+            with self.assertRaises(Exception) as raised:
                 self.start_client()
 
-        return written
+        return written, raised.exception
 
     def test_connection_error_during_opening_handshake(self):
-        written = self.do_error_during_opening_handshake(Exception)
+        written, exception = self.raise_while_opening(Exception)
         self.assertTrue(written)
+        self.assertIsInstance(exception, InvalidStatus)
+        self.assertEqual(exception.code, 500)
 
-        written = self.do_error_during_opening_handshake(ConnectionError)
+        written, exception = self.raise_while_opening(ConnectionError)
         self.assertFalse(written)
+        # This exception is currently platform-dependent.  It was observed
+        # to be ConnectionResetError on Linux in the non-SSL case, and
+        # InvalidMessage otherwise (including both Linux and Mac OS X).
+        # This doesn't matter though since this test is primarily for testing
+        # a code path on the server side.
+        self.assertIsInstance(exception, (ConnectionResetError,
+                                          InvalidMessage))
 
     @with_server()
     @unittest.mock.patch('websockets.server.WebSocketServerProtocol.close')

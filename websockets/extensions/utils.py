@@ -167,7 +167,7 @@ def build_extension(name, parameters):
 
 def build_extension_list(extensions):
     """
-    Parse a Sec-WebSocket-Extensions header.
+    Unparse a Sec-WebSocket-Extensions header.
 
     This is the reverse of parse_extension_list.
 

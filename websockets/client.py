@@ -6,9 +6,11 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 import asyncio
 import collections.abc
 
-from .exceptions import InvalidHandshake, InvalidMessage, InvalidStatusCode
-from .extensions.permessage_deflate import PerMessageDeflate
-from .extensions.utils import parse_extension_list
+from .exceptions import (
+    InvalidHandshake, InvalidMessage, InvalidStatusCode, NegotiationError
+)
+from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
+from .extensions.utils import build_extension_list, parse_extension_list
 from .handshake import build_request, check_response
 from .http import USER_AGENT, build_headers, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -31,16 +33,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
     def __init__(self, *,
                  origin=None, extensions=None, subprotocols=None,
-                 extra_headers=None, use_compression=True, **kwds):
+                 extra_headers=None, **kwds):
         self.origin = origin
-        self.available_extensions = []
-        if use_compression:
-            self.available_extensions.append(
-                'permessage-deflate'
-                '; client_no_context_takeover; client_max_window_bits'
-            )
-        if extensions:
-            self.available_extensions.append(extensions)
+        self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
         super().__init__(**kwds)
@@ -93,12 +88,57 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         extensions = get_header('Sec-WebSocket-Extensions')
+
         if extensions:
-            extensions = parse_extension_list(extensions)
-            for extension in extensions:
-                extension, params = extension
-                if extension == 'permessage-deflate':
-                    return [PerMessageDeflate(True, dict(params))]
+
+            if available_extensions is None:
+                raise InvalidHandshake("No extensions supported.")
+
+            # For each extension selected in the server response, check that
+            # it matches an extension in our list of available extensions.
+
+            # RFC 6455 leaves the exact process up to the specification of
+            # each extension. To provide this flexibility, we tell each
+            # extension which extensions were accepted up to this point.
+
+            # Such flexibility prevents us from providing any guarantees
+            # against reordered or duplicated extensions in the response.
+            # Extensions must implement ther own requirements, based on the
+            # list of previously accepted extensions.
+
+            accepted_extensions = []
+
+            for name, response_params in parse_extension_list(extensions):
+
+                for extension_factory in available_extensions:
+
+                    # Skip non-matching extensions based on their name.
+                    if extension_factory.name != name:
+                        continue
+
+                    # This is allowed to raise NegotiationError.
+                    extension = extension_factory.process_response_params(
+                        response_params, accepted_extensions)
+
+                    # Skip non-matching extensions based on their params.
+                    if extension is None:
+                        continue
+
+                    # Add matching extension to the final list.
+                    accepted_extensions.append(extension)
+
+                    # Break out of the loop once we have a match.
+                    break
+
+                # If we didn't break from the loop, no extension in our list
+                # matched what the server sent. Fail the connection.
+                else:
+                    raise NegotiationError(
+                        "Unsupported extension: name={}, params={}".format(
+                            name, response_params))
+
+            return accepted_extensions
+
         return []
 
     def process_subprotocol(self, get_header, available_subprotocols=None):
@@ -107,13 +147,19 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         subprotocol = get_header('Sec-WebSocket-Protocol')
+
         if subprotocol:
+
             if available_subprotocols is None:
                 raise InvalidHandshake("No subprotocols supported.")
+
             if subprotocol not in available_subprotocols:
-                raise InvalidHandshake(
+                raise NegotiationError(
                     "Unsupported subprotocol: {}".format(subprotocol))
+
             return subprotocol
+
+        return None
 
     @asyncio.coroutine
     def handshake(self, wsuri, origin=None,
@@ -141,19 +187,30 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Host', wsuri.host)
         else:
             set_header('Host', '{}:{}'.format(wsuri.host, wsuri.port))
+
         if origin is not None:
             set_header('Origin', origin)
+
         if available_extensions is not None:
-            set_header(
-                'Sec-WebSocket-Extensions', ', '.join(available_extensions))
+            extensions_header = build_extension_list([
+                (
+                    extension_factory.name,
+                    extension_factory.get_request_params(),
+                )
+                for extension_factory in available_extensions
+            ])
+            set_header('Sec-WebSocket-Extensions', extensions_header)
+
         if available_subprotocols is not None:
-            set_header(
-                'Sec-WebSocket-Protocol', ', '.join(available_subprotocols))
+            protocol_header = ', '.join(available_subprotocols)
+            set_header('Sec-WebSocket-Protocol', protocol_header)
+
         if extra_headers is not None:
             if isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
                 set_header(name, value)
+
         set_header('User-Agent', USER_AGENT)
 
         key = build_request(set_header)
@@ -221,7 +278,8 @@ def connect(uri, *,
       decreasing preference
     * ``extra_headers`` sets additional HTTP request headers – it can be a
       mapping or an iterable of (name, value) pairs
-    * ``use_compression`` allow client to force compression to be disabled
+    * ``use_compression`` is a shortcut to enable compression of messages with
+      the "permessage-deflate" extension; it is enabled by default
 
     :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
     invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
@@ -248,13 +306,25 @@ def connect(uri, *,
     elif kwds.get('ssl') is not None:
         raise ValueError("connect() received a SSL context for a ws:// URI. "
                          "Use a wss:// URI to enable TLS.")
+
+    if use_compression:
+        if extensions is None:
+            extensions = []
+        if not any(
+            extension_factory.name == ClientPerMessageDeflateFactory.name
+            for extension_factory in extensions
+        ):
+            extensions.append(ClientPerMessageDeflateFactory(
+                client_max_window_bits=True,
+            ))
+
     factory = lambda: create_protocol(
         host=wsuri.host, port=wsuri.port, secure=wsuri.secure,
         timeout=timeout, max_size=max_size, max_queue=max_queue,
         read_limit=read_limit, write_limit=write_limit,
         loop=loop, legacy_recv=legacy_recv,
         origin=origin, extensions=extensions, subprotocols=subprotocols,
-        extra_headers=extra_headers, use_compression=use_compression
+        extra_headers=extra_headers,
     )
 
     transport, protocol = yield from loop.create_connection(

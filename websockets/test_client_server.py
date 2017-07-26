@@ -473,7 +473,7 @@ class ClientServerTests(unittest.TestCase):
 
         written, exception = self.raise_while_opening(ConnectionError)
         self.assertFalse(written)
-        # This exception is currently platform-dependent.  It was observed
+        # This exception is currently platform-dependent. It was observed
         # to be ConnectionResetError on Linux in the non-SSL case, and
         # InvalidMessage otherwise (including both Linux and Mac OS X).
         # This doesn't matter though since this test is primarily for testing

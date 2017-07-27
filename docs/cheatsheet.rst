@@ -23,7 +23,8 @@ Server
     the handler exits normally or with an exception.
 
   * You may subclass :class:`~websockets.server.WebSocketServerProtocol` and
-    pass it in the ``klass`` keyword argument for advanced customization.
+    pass it or a factory function as the ``create_protocol`` argument for
+    advanced customization.
 
 Client
 ------
@@ -34,7 +35,8 @@ Client
   * On Python ≥ 3.5, you can also use it as an asynchronous context manager.
 
   * You may subclass :class:`~websockets.server.WebSocketClientProtocol` and
-    pass it in the ``klass`` keyword argument for advanced customization.
+    pass it or a factory function as the ``create_protocol`` argument for
+    advanced customization.
 
 * Call :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` and
   :meth:`~websockets.protocol.WebSocketCommonProtocol.send` to receive and

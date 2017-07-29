@@ -50,6 +50,9 @@ class UtilsTests(unittest.TestCase):
             ),
         ]:
             self.assertEqual(parse_extension_list(header), parsed)
+            # Also ensure that build_extension_list round-trips cleanly.
+            unparsed = build_extension_list(parsed)
+            self.assertEqual(parse_extension_list(unparsed), parsed)
 
     def test_parse_extension_list_invalid_header(self):
         for header in [

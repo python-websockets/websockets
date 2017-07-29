@@ -3,7 +3,7 @@ import re
 from ..exceptions import InvalidHeader
 
 
-__all__ = ['parse_extension_list']
+__all__ = ['build_extension_list', 'parse_extension_list']
 
 
 # To avoid a dependency on a parsing library, we implement manually the ABNF
@@ -140,3 +140,39 @@ def parse_extension_list(string, pos=0):
     assert pos == len(string)
 
     return extensions
+
+
+_quote_re = re.compile(r'([\x22\x5c])')
+
+
+# Workaround for the lack of re.fullmatch in older Pythons
+_exact_token_re = re.compile(r'^[-!#$%&\'*+.^_`|~0-9a-zA-Z]+$')
+
+
+def build_extension_param(name, value):
+    if value is None:
+        return name
+    elif _exact_token_re.match(value):
+        return '{}={}'.format(name, value)
+    else:
+        return '{}="{}"'.format(name, _quote_re.sub(r'\\\1', value))
+
+
+def build_extension(name, parameters):
+    return '; '.join([name] + [
+        build_extension_param(name, value)
+        for name, value in parameters
+    ])
+
+
+def build_extension_list(extensions):
+    """
+    Parse a Sec-WebSocket-Extensions header.
+
+    This is the reverse of parse_extension_list.
+
+    """
+    return ', '.join(
+        build_extension(name, parameters)
+        for name, parameters in extensions
+    )

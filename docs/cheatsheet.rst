@@ -22,9 +22,9 @@ Server
     execute the application logic, and finally closes the connection after
     the handler exits normally or with an exception.
 
-  * You may subclass :class:`~websockets.server.WebSocketServerProtocol` and
-    pass it or a factory function as the ``create_protocol`` argument for
-    advanced customization.
+  * For advanced customization, you may subclass
+    :class:`~websockets.server.WebSocketServerProtocol` and pass either this
+    subclass or a factory function as the ``create_protocol`` argument.
 
 Client
 ------
@@ -34,9 +34,9 @@ Client
 
   * On Python ≥ 3.5, you can also use it as an asynchronous context manager.
 
-  * You may subclass :class:`~websockets.server.WebSocketClientProtocol` and
-    pass it or a factory function as the ``create_protocol`` argument for
-    advanced customization.
+  * For advanced customization, you may subclass
+    :class:`~websockets.server.WebSocketClientProtocol` and pass either this
+    subclass or a factory function as the ``create_protocol`` argument.
 
 * Call :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` and
   :meth:`~websockets.protocol.WebSocketCommonProtocol.send` to receive and

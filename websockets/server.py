@@ -407,10 +407,10 @@ class WebSocketServer:
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          create_protocol=None, klass=None,
+          create_protocol=None,
           timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
           read_limit=2 ** 16, write_limit=2 ** 16,
-          loop=None, legacy_recv=False,
+          loop=None, legacy_recv=False, klass=None,
           origins=None, subprotocols=None, extra_headers=None,
           **kwds):
     """
@@ -440,10 +440,9 @@ def serve(ws_handler, host=None, port=None, *,
     set the ``ssl`` keyword argument to a :class:`~ssl.SSLContext` to enable
     TLS.
 
-    The ``create_protocol`` parameter allows customizing the
-    :class:`WebSocketServerProtocol` class used. The argument should be a
-    callable or class accepting the same arguments as
-    :class:`WebSocketServerProtocol` and that returns a
+    The ``create_protocol`` parameter allows customizing the asyncio protocol
+    that manages the connection. It should be a callable or class accepting
+    the same arguments as :class:`WebSocketServerProtocol` and returning a
     :class:`WebSocketServerProtocol` instance. It defaults to
     :class:`WebSocketServerProtocol`.
 
@@ -479,7 +478,13 @@ def serve(ws_handler, host=None, port=None, *,
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    create_protocol = create_protocol or klass or WebSocketServerProtocol
+    # Backwards-compatibility: create_protocol used to be called klass.
+    # In the unlikely event that both are specified, klass is ignored.
+    if create_protocol is None:
+        create_protocol = klass
+
+    if create_protocol is None:
+        create_protocol = WebSocketServerProtocol
 
     ws_server = WebSocketServer(loop)
 

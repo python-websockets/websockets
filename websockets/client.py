@@ -130,10 +130,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 
 @asyncio.coroutine
-def connect(uri, *, create_protocol=None, klass=None,
+def connect(uri, *,
+            create_protocol=None,
             timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
             read_limit=2 ** 16, write_limit=2 ** 16,
-            loop=None, legacy_recv=False,
+            loop=None, legacy_recv=False, klass=None,
             origin=None, subprotocols=None, extra_headers=None,
             **kwds):
     """
@@ -155,10 +156,9 @@ def connect(uri, *, create_protocol=None, klass=None,
     ``read_limit``, and ``write_limit`` optional arguments is described in the
     documentation of :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
-    The ``create_protocol`` parameter allows customizing the
-    :class:`WebSocketClientProtocol` class used. The argument should be a
-    callable or class accepting the same arguments as
-    :class:`WebSocketClientProtocol` and that returns a
+    The ``create_protocol`` parameter allows customizing the asyncio protocol
+    that manages the connection. It should be a callable or class accepting
+    the same arguments as :class:`WebSocketClientProtocol` and returning a
     :class:`WebSocketClientProtocol` instance. It defaults to
     :class:`WebSocketClientProtocol`.
 
@@ -181,7 +181,13 @@ def connect(uri, *, create_protocol=None, klass=None,
     if loop is None:
         loop = asyncio.get_event_loop()
 
-    create_protocol = create_protocol or klass or WebSocketClientProtocol
+    # Backwards-compatibility: create_protocol used to be called klass.
+    # In the unlikely event that both are specified, klass is ignored.
+    if create_protocol is None:
+        create_protocol = klass
+
+    if create_protocol is None:
+        create_protocol = WebSocketClientProtocol
 
     wsuri = parse_uri(uri)
     if wsuri.secure:

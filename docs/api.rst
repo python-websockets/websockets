@@ -54,8 +54,8 @@ To set additional response headers or to selectively bypass the handshake,
 you can subclass :class:`~websockets.server.WebSocketServerProtocol`,
 override the
 :meth:`~websockets.server.WebSocketServerProtocol.get_response_status`
-method, and pass the class to :func:`~websockets.server.serve()` using the
-``klass`` keyword argument.
+method, and pass the class to :func:`~websockets.server.serve()` via the
+``create_protocol`` keyword argument.
 
 If :meth:`~websockets.server.WebSocketServerProtocol.get_response_status`
 returns a status code other than the default of

@@ -131,10 +131,10 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 @asyncio.coroutine
 def connect(uri, *,
-            klass=WebSocketClientProtocol,
+            create_protocol=None,
             timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
             read_limit=2 ** 16, write_limit=2 ** 16,
-            loop=None, legacy_recv=False,
+            loop=None, legacy_recv=False, klass=None,
             origin=None, subprotocols=None, extra_headers=None,
             **kwds):
     """
@@ -156,6 +156,12 @@ def connect(uri, *,
     ``read_limit``, and ``write_limit`` optional arguments is described in the
     documentation of :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
+    The ``create_protocol`` parameter allows customizing the asyncio protocol
+    that manages the connection. It should be a callable or class accepting
+    the same arguments as :class:`WebSocketClientProtocol` and returning a
+    :class:`WebSocketClientProtocol` instance. It defaults to
+    :class:`WebSocketClientProtocol`.
+
     :func:`connect` also accepts the following optional arguments:
 
     * ``origin`` sets the Origin HTTP header
@@ -175,13 +181,21 @@ def connect(uri, *,
     if loop is None:
         loop = asyncio.get_event_loop()
 
+    # Backwards-compatibility: create_protocol used to be called klass.
+    # In the unlikely event that both are specified, klass is ignored.
+    if create_protocol is None:
+        create_protocol = klass
+
+    if create_protocol is None:
+        create_protocol = WebSocketClientProtocol
+
     wsuri = parse_uri(uri)
     if wsuri.secure:
         kwds.setdefault('ssl', True)
     elif kwds.get('ssl') is not None:
         raise ValueError("connect() received a SSL context for a ws:// URI. "
                          "Use a wss:// URI to enable TLS.")
-    factory = lambda: klass(
+    factory = lambda: create_protocol(
         host=wsuri.host, port=wsuri.port, secure=wsuri.secure,
         timeout=timeout, max_size=max_size, max_queue=max_queue,
         read_limit=read_limit, write_limit=write_limit,

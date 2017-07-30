@@ -40,8 +40,14 @@ def handler(ws, path):
 
 
 try:
+    # Order by status code.
+    UNAUTHORIZED = http.HTTPStatus.UNAUTHORIZED
     FORBIDDEN = http.HTTPStatus.FORBIDDEN
 except AttributeError:                                      # pragma: no cover
+    class UNAUTHORIZED:
+        value = 401
+        phrase = 'Unauthorized'
+
     class FORBIDDEN:
         value = 403
         phrase = 'Forbidden'
@@ -94,11 +100,26 @@ def with_client(*args, **kwds):
     return with_manager(temp_test_client, *args, **kwds)
 
 
-class ForbiddenWebSocketServerProtocol(WebSocketServerProtocol):
+class UnauthorizedServerProtocol(WebSocketServerProtocol):
+
+    @asyncio.coroutine
+    def get_response_status(self, set_header):
+        return UNAUTHORIZED
+
+
+class ForbiddenServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
     def get_response_status(self, set_header):
         return FORBIDDEN
+
+
+class FooClientProtocol(WebSocketClientProtocol):
+    pass
+
+
+class BarClientProtocol(WebSocketClientProtocol):
+    pass
 
 
 class ClientServerTests(unittest.TestCase):
@@ -268,7 +289,7 @@ class ClientServerTests(unittest.TestCase):
                 status = yield from super().get_response_status(set_header)
                 return status
 
-        with self.temp_server(klass=SaveAttributesProtocol):
+        with self.temp_server(create_protocol=SaveAttributesProtocol):
             self.start_client(path='foo/bar', origin='http://otherhost')
             self.assertEqual(attrs['origin'], 'http://otherhost')
             self.assertEqual(attrs['path'], '/foo/bar')
@@ -280,10 +301,50 @@ class ClientServerTests(unittest.TestCase):
             self.assertIsInstance(request_headers, http.client.HTTPMessage)
             self.assertEqual(request_headers.get('origin'), 'http://otherhost')
 
-    @with_server(klass=ForbiddenWebSocketServerProtocol)
-    def test_authentication(self):
-        with self.assertRaises(InvalidStatus):
+    def assert_client_raises_code(self, code):
+        with self.assertRaises(InvalidStatus) as raised:
             self.start_client()
+        self.assertEqual(raised.exception.code, code)
+
+    @with_server(create_protocol=UnauthorizedServerProtocol)
+    def test_server_create_protocol(self):
+        self.assert_client_raises_code(401)
+
+    @with_server(create_protocol=(lambda *args, **kwargs:
+                 UnauthorizedServerProtocol(*args, **kwargs)))
+    def test_server_create_protocol_function(self):
+        self.assert_client_raises_code(401)
+
+    @with_server(klass=UnauthorizedServerProtocol)
+    def test_server_klass(self):
+        self.assert_client_raises_code(401)
+
+    @with_server(create_protocol=ForbiddenServerProtocol,
+                 klass=UnauthorizedServerProtocol)
+    def test_server_create_protocol_over_klass(self):
+        self.assert_client_raises_code(403)
+
+    @with_server()
+    @with_client('path', create_protocol=FooClientProtocol)
+    def test_client_create_protocol(self):
+        self.assertIsInstance(self.client, FooClientProtocol)
+
+    @with_server()
+    @with_client('path', create_protocol=(
+                 lambda *args, **kwargs: FooClientProtocol(*args, **kwargs)))
+    def test_client_create_protocol_function(self):
+        self.assertIsInstance(self.client, FooClientProtocol)
+
+    @with_server()
+    @with_client('path', klass=FooClientProtocol)
+    def test_client_klass(self):
+        self.assertIsInstance(self.client, FooClientProtocol)
+
+    @with_server()
+    @with_client('path', create_protocol=BarClientProtocol,
+                 klass=FooClientProtocol)
+    def test_client_create_protocol_over_klass(self):
+        self.assertIsInstance(self.client, BarClientProtocol)
 
     @with_server()
     @with_client('subprotocol')
@@ -437,7 +498,7 @@ class ClientServerTests(unittest.TestCase):
         # Websocket connection terminates with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
 
-    @with_server(klass=ForbiddenWebSocketServerProtocol)
+    @with_server(create_protocol=ForbiddenServerProtocol)
     def test_invalid_status_error_during_client_connect(self):
         with self.assertRaises(InvalidStatus) as raised:
             self.start_client()

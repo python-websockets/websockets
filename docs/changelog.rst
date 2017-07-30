@@ -6,6 +6,11 @@ Changelog
 
 *In development*
 
+* Renamed :func:`~websockets.server.serve()` and
+  :func:`~websockets.client.connect()`'s ``klass`` argument to
+  ``create_protocol`` to reflect that it can also be a callable.
+  For backwards compatibility, ``klass`` is still supported.
+
 * :func:`~websockets.server.serve` can be used as an asynchronous context
   manager on Python ≥ 3.5.
 

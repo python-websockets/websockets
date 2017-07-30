@@ -407,10 +407,10 @@ class WebSocketServer:
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          klass=WebSocketServerProtocol,
+          create_protocol=None,
           timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
           read_limit=2 ** 16, write_limit=2 ** 16,
-          loop=None, legacy_recv=False,
+          loop=None, legacy_recv=False, klass=None,
           origins=None, subprotocols=None, extra_headers=None,
           **kwds):
     """
@@ -439,6 +439,12 @@ def serve(ws_handler, host=None, port=None, *,
     :meth:`~asyncio.AbstractEventLoop.create_server`. For example, you can
     set the ``ssl`` keyword argument to a :class:`~ssl.SSLContext` to enable
     TLS.
+
+    The ``create_protocol`` parameter allows customizing the asyncio protocol
+    that manages the connection. It should be a callable or class accepting
+    the same arguments as :class:`WebSocketServerProtocol` and returning a
+    :class:`WebSocketServerProtocol` instance. It defaults to
+    :class:`WebSocketServerProtocol`.
 
     The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
     ``read_limit``, and ``write_limit`` optional arguments is described in the
@@ -472,10 +478,18 @@ def serve(ws_handler, host=None, port=None, *,
     if loop is None:
         loop = asyncio.get_event_loop()
 
+    # Backwards-compatibility: create_protocol used to be called klass.
+    # In the unlikely event that both are specified, klass is ignored.
+    if create_protocol is None:
+        create_protocol = klass
+
+    if create_protocol is None:
+        create_protocol = WebSocketServerProtocol
+
     ws_server = WebSocketServer(loop)
 
     secure = kwds.get('ssl') is not None
-    factory = lambda: klass(
+    factory = lambda: create_protocol(
         ws_handler, ws_server,
         host=host, port=port, secure=secure,
         timeout=timeout, max_size=max_size, max_queue=max_queue,

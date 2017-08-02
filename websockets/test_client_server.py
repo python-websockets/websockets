@@ -43,6 +43,7 @@ try:
     # Order by status code.
     UNAUTHORIZED = http.HTTPStatus.UNAUTHORIZED
     FORBIDDEN = http.HTTPStatus.FORBIDDEN
+    NOT_FOUND = http.HTTPStatus.NOT_FOUND
 except AttributeError:                                      # pragma: no cover
     class UNAUTHORIZED:
         value = 401
@@ -51,6 +52,10 @@ except AttributeError:                                      # pragma: no cover
     class FORBIDDEN:
         value = 403
         phrase = 'Forbidden'
+
+    class NOT_FOUND:
+        value = 404
+        phrase = 'Not Found'
 
 
 @contextmanager
@@ -300,6 +305,31 @@ class ClientServerTests(unittest.TestCase):
             request_headers = attrs['request_headers']
             self.assertIsInstance(request_headers, http.client.HTTPMessage)
             self.assertEqual(request_headers.get('origin'), 'http://otherhost')
+
+    def test_get_response_status_precedes_handshake(self):
+        class State:
+            handshake_called = False
+
+        class HandshakeStoringProtocol(WebSocketServerProtocol):
+            @asyncio.coroutine
+            def get_response_status(self, set_header):
+                if self.path != '/valid':
+                    return NOT_FOUND
+                return (yield from super().get_response_status(set_header))
+
+            @asyncio.coroutine
+            def handshake(self, *args, **kwargs):
+                State.handshake_called = True
+                return (yield from super().handshake(*args, **kwargs))
+
+        with self.temp_server(create_protocol=HandshakeStoringProtocol):
+            with self.assertRaises(InvalidStatus) as cm:
+                self.start_client(path='invalid')
+            self.assertEqual(cm.exception.code, 404)
+            self.assertFalse(State.handshake_called)
+            # Check that our overridden handshake() is working correctly.
+            self.start_client(path='valid')
+            self.assertTrue(State.handshake_called)
 
     def assert_client_raises_code(self, code):
         with self.assertRaises(InvalidStatus) as raised:

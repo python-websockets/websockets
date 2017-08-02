@@ -65,10 +65,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # Since this method doesn't have a caller able to handle exceptions,
         # it attemps to log relevant ones and close the connection properly.
         try:
-
             try:
-                path = yield from self.handshake(
-                    origins=self.origins, subprotocols=self.subprotocols,
+                response_headers = (
+                    yield from self.pre_handshake(origins=self.origins))
+                if response_headers is None:
+                    # Then the response was already written.
+                    return
+
+                yield from self.handshake(
+                    response_headers, subprotocols=self.subprotocols,
                     extra_headers=self.extra_headers)
             except ConnectionError as exc:
                 logger.debug(
@@ -89,13 +94,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 self.writer.write(response.encode())
                 raise
 
-            # Subclasses can customize get_response_status() or handshake() to
-            # reject the handshake, typically after checking authentication.
-            if path is None:
-                return
-
             try:
-                yield from self.ws_handler(self, path)
+                yield from self.ws_handler(self, self.path)
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
                     yield from self.fail_connection(1001)
@@ -234,21 +234,51 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         It is declared as a coroutine because such authentication checks are
         likely to require network requests.
 
-        The connection is closed immediately after sending the response when
-        the status code is not ``HTTPStatus.SWITCHING_PROTOCOLS``.
+        A return value of ``None`` means to continue to the opening
+        handshake, which would result in ``HTTPStatus.SWITCHING_PROTOCOLS``
+        on success. If the return value is not ``None``, the connection is
+        closed immediately after sending the response.
 
         Call ``set_header(key, value)`` to set additional response headers.
 
         """
-        return SWITCHING_PROTOCOLS
+        return None
 
     @asyncio.coroutine
-    def handshake(self, origins=None, subprotocols=None, extra_headers=None):
+    def pre_handshake(self, origins=None):
         """
-        Perform the server side of the opening handshake.
+        Do pre-handshake response handling.
 
         If provided, ``origins`` is a list of acceptable HTTP Origin values.
         Include ``''`` if the lack of an origin is acceptable.
+
+        Return the response headers so far, or None if the response has
+        already been handled.
+
+        """
+        yield from self.read_http_request()
+
+        request_headers = self.request_headers
+        get_header = lambda k: request_headers.get(k, '')
+        self.origin = self.process_origin(get_header, origins)
+
+        response_headers = []
+        set_header = lambda k, v: response_headers.append((k, v))
+        set_header('Server', USER_AGENT)
+
+        status = yield from self.get_response_status(set_header)
+        if status is None:
+            return response_headers
+
+        yield from self.write_http_response(status, response_headers)
+        self.opening_handshake.set_result(False)
+        yield from self.close_connection(force=True)
+
+    @asyncio.coroutine
+    def handshake(self, response_headers, subprotocols=None,
+                  extra_headers=None):
+        """
+        Perform the server side of the opening handshake.
 
         If provided, ``subprotocols`` is a list of supported subprotocols in
         order of decreasing preference.
@@ -263,47 +293,32 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Return the URI of the request.
 
         """
-        path, headers = yield from self.read_http_request()
+        headers = self.request_headers
         get_header = lambda k: headers.get(k, '')
-
         key = check_request(get_header)
 
-        self.origin = self.process_origin(get_header, origins)
         self.subprotocol = self.process_subprotocol(get_header, subprotocols)
-
-        headers = []
-        set_header = lambda k, v: headers.append((k, v))
-
-        set_header('Server', USER_AGENT)
-
-        status = yield from self.get_response_status(set_header)
-
-        # Abort the connection if the status code isn't 101.
-        if status.value != SWITCHING_PROTOCOLS.value:
-            yield from self.write_http_response(status, headers)
-            self.opening_handshake.set_result(False)
-            yield from self.close_connection(force=True)
-            return
+        set_header = lambda k, v: response_headers.append((k, v))
 
         # Status code is 101, establish the connection.
         if self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:
             if callable(extra_headers):
-                extra_headers = extra_headers(path, self.raw_request_headers)
+                extra_headers = extra_headers(self.path,
+                                              self.raw_request_headers)
             if isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
                 set_header(name, value)
         build_response(set_header, key)
 
-        yield from self.write_http_response(status, headers)
+        yield from self.write_http_response(SWITCHING_PROTOCOLS,
+                                            response_headers)
 
         assert self.state == CONNECTING
         self.state = OPEN
         self.opening_handshake.set_result(True)
-
-        return path
 
 
 class WebSocketServer:

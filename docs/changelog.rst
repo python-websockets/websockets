@@ -27,6 +27,11 @@ Changelog
   now raises :class:`~websockets.exceptions.InvalidStatus` with a ``code``
   attribute.
 
+* Fixed an issue where
+  :meth:`~websockets.protocol.WebSocketCommonProtocol.close` can return
+  without waiting for an underlying worker task to complete if
+  :meth:`~asyncio.Task.cancel` is called on it.
+
 3.3
 ...
 

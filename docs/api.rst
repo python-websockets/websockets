@@ -43,7 +43,42 @@ Server
 
         .. automethod:: handshake(origins=None, subprotocols=None, extra_headers=None)
         .. automethod:: select_subprotocol(client_protos, server_protos)
-        .. automethod:: get_response_status()
+        .. automethod:: get_response_status(set_header)
+
+.. _custom-handling:
+
+Customizing Request Handling
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+To set additional response headers or to selectively bypass the handshake,
+you can subclass :class:`~websockets.server.WebSocketServerProtocol`,
+override the
+:meth:`~websockets.server.WebSocketServerProtocol.get_response_status`
+method, and pass the class to :func:`~websockets.server.serve()` via the
+``create_protocol`` keyword argument.
+
+If :meth:`~websockets.server.WebSocketServerProtocol.get_response_status`
+returns a status code other than the default of
+``HTTPStatus.SWITCHING_PROTOCOLS``, the
+:class:`~websockets.server.WebSocketServerProtocol` object will close the
+connection immediately and respond with that status code.
+
+For example, the request headers can be examined and the request
+authenticated to decide whether to return ``HTTPStatus.UNAUTHORIZED`` or
+``HTTPStatus.FORBIDDEN``. Similarly, the current request path can be
+examined to check for ``HTTPStatus.NOT_FOUND``.
+
+The following instance attributes are guaranteed to be available from
+within this method:
+
+* ``origin``
+* ``path``
+* ``raw_request_headers``
+* ``request_headers``
+
+The ``set_header(key, value)`` function, which is provided as an argument to
+``get_response_status()``, can be used to set additional response headers,
+regardless of whether the handshake is aborted.
 
 Client
 ......

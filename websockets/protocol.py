@@ -15,8 +15,9 @@ import random
 import struct
 
 from .compatibility import asyncio_ensure_future
-from .exceptions import (ConnectionClosed, InvalidState, PayloadTooBig,
-                         WebSocketProtocolError)
+from .exceptions import (
+    ConnectionClosed, InvalidState, PayloadTooBig, WebSocketProtocolError
+)
 from .framing import *
 from .handshake import *
 

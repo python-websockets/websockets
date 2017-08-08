@@ -81,12 +81,14 @@ class Extension:
         """
         Decode an incoming frame.
 
+        Return a frame.
+
         """
-        return frame
 
     def encode(self, frame):
         """
         Encode an outgoing frame.
 
+        Return a frame.
+
         """
-        return frame

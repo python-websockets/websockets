@@ -175,4 +175,4 @@ def build_extension_list(extensions):
     return ', '.join(
         build_extension(name, parameters)
         for name, parameters in extensions
-    )
+    ) if extensions else None

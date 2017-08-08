@@ -10,6 +10,7 @@ import unittest.mock
 from contextlib import contextmanager
 
 from .client import *
+from .compatibility import FORBIDDEN, UNAUTHORIZED
 from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
 from .http import USER_AGENT, read_response
 from .server import *
@@ -37,20 +38,6 @@ def handler(ws, path):
         yield from ws.send(repr(ws.subprotocol))
     else:
         yield from ws.send((yield from ws.recv()))
-
-
-try:
-    # Order by status code.
-    UNAUTHORIZED = http.HTTPStatus.UNAUTHORIZED
-    FORBIDDEN = http.HTTPStatus.FORBIDDEN
-except AttributeError:                                      # pragma: no cover
-    class UNAUTHORIZED:
-        value = 401
-        phrase = 'Unauthorized'
-
-    class FORBIDDEN:
-        value = 403
-        phrase = 'Forbidden'
 
 
 @contextmanager

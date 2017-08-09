@@ -11,7 +11,6 @@ import urllib.request
 
 from .client import *
 from .compatibility import FORBIDDEN, OK, UNAUTHORIZED
-from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatusCode
 from .exceptions import (
     ConnectionClosed, InvalidHandshake, InvalidStatusCode, NegotiationError
 )

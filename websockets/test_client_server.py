@@ -1,7 +1,5 @@
 import asyncio
 import functools
-import http
-import http.client
 import logging
 import os
 import ssl
@@ -90,15 +88,15 @@ def with_client(*args, **kwds):
 class UnauthorizedServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
-    def get_response_status(self, set_header):
-        return UNAUTHORIZED
+    def process_request(self, path, request_headers):
+        return UNAUTHORIZED, []
 
 
 class ForbiddenServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
-    def get_response_status(self, set_header):
-        return FORBIDDEN
+    def process_request(self, path, request_headers):
+        return FORBIDDEN, []
 
 
 class FooClientProtocol(WebSocketClientProtocol):
@@ -259,34 +257,6 @@ class ClientServerTests(unittest.TestCase):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-
-    def test_get_response_status_attributes_available(self):
-        # Save the attribute values to a dict instead of asserting inside
-        # get_response_status() because assertion errors there do not
-        # currently bubble up for easy viewing.
-        attrs = {}
-
-        class SaveAttributesProtocol(WebSocketServerProtocol):
-            @asyncio.coroutine
-            def get_response_status(self, set_header):
-                attrs['origin'] = self.origin
-                attrs['path'] = self.path
-                attrs['raw_request_headers'] = self.raw_request_headers.copy()
-                attrs['request_headers'] = self.request_headers
-                status = yield from super().get_response_status(set_header)
-                return status
-
-        with self.temp_server(create_protocol=SaveAttributesProtocol):
-            self.start_client(path='foo/bar', origin='http://otherhost')
-            self.assertEqual(attrs['origin'], 'http://otherhost')
-            self.assertEqual(attrs['path'], '/foo/bar')
-            # To reduce test brittleness, only check one nontrivial aspect
-            # of the request headers.
-            self.assertIn(('Origin', 'http://otherhost'),
-                          attrs['raw_request_headers'])
-            request_headers = attrs['request_headers']
-            self.assertIsInstance(request_headers, http.client.HTTPMessage)
-            self.assertEqual(request_headers.get('origin'), 'http://otherhost')
 
     def assert_client_raises_code(self, status_code):
         with self.assertRaises(InvalidStatusCode) as raised:

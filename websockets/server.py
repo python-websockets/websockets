@@ -139,6 +139,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
         is malformed or isn't a HTTP/1.1 GET request.
 
+        This coroutine assumes that there is no request body.
+
         """
         try:
             path, headers = yield from read_request(self.reader)
@@ -152,9 +154,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return path, self.request_headers
 
     @asyncio.coroutine
-    def write_http_response(self, status, headers):
+    def write_http_response(self, status, headers, body=None):
         """
         Write status line and headers to the HTTP response.
+
+        This coroutine is also able to write a response body.
 
         """
         self.response_headers = build_headers(headers)
@@ -170,6 +174,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response = '\r\n'.join(response).encode()
 
         self.writer.write(response)
+
+        if body is not None:
+            self.writer.write(body)
 
     def process_origin(self, get_header, origins=None):
         """
@@ -218,11 +225,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         ``request_headers`` are a :class:`~http.client.HTTPMessage`.
 
         If this coroutine returns ``None``, the WebSocket handshake continues.
-        If it returns a HTTP status code and HTTP headers, that HTTP response
-        is sent and the connection is closed immediately.
+        If it returns a status code, headers and a optionally a response body,
+        that HTTP response is sent and the connection is closed.
 
-        The HTTP status must be a :class:`~http.HTTPStatus` and HTTP headers
-        must be an iterable of ``(name, value)`` pairs.
+        The HTTP status must be a :class:`~http.HTTPStatus`. HTTP headers must
+        be an iterable of ``(name, value)`` pairs. If provided, the HTTP
+        response body must be :class:`bytes`.
 
         (:class:`~http.HTTPStatus` was added in Python 3.5. Use a compatible
         object on earlier versions. Look at ``SWITCHING_PROTOCOLS`` in

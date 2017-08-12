@@ -12,6 +12,7 @@ try:                                                # pragma: no cover
                                                     # Python ≥ 3.5
     SWITCHING_PROTOCOLS = http.HTTPStatus.SWITCHING_PROTOCOLS
     # Used only in tests.
+    OK = http.HTTPStatus.OK
     UNAUTHORIZED = http.HTTPStatus.UNAUTHORIZED
     FORBIDDEN = http.HTTPStatus.FORBIDDEN
 except AttributeError:                              # pragma: no cover
@@ -19,6 +20,10 @@ except AttributeError:                              # pragma: no cover
     class SWITCHING_PROTOCOLS:
         value = 101
         phrase = "Switching Protocols"
+
+    class OK:
+        value = 200
+        phrase = "OK"
 
     class UNAUTHORIZED:
         value = 401

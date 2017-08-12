@@ -81,8 +81,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 self.writer.write(response.encode())
                 raise
 
-            # Subclasses can customize get_response_status() or handshake() to
-            # reject the handshake, typically after checking authentication.
+            # Subclasses can customize process_request() to reject the
+            # handshake, typically after checking authentication.
             if path is None:
                 return
 
@@ -211,13 +211,22 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return sorted(common_protos, key=priority)[0]
 
     @asyncio.coroutine
-    def get_response_status(self, set_header):
+    def process_request(self, path, request_headers):
         """
-        Return a :class:`~http.HTTPStatus` for the HTTP response.
+        Intercept the HTTP request and return a HTTP response if needed.
 
-        (:class:`~http.HTTPStatus` was added in Python 3.5. On earlier
-        versions, a compatible object must be returned. Check the definition
-        of ``SWITCHING_PROTOCOLS`` for an example.)
+        ``request_headers`` are a :class:`~http.client.HTTPMessage`.
+
+        If this coroutine returns ``None``, the WebSocket handshake continues.
+        If it returns a HTTP status code and HTTP headers, that HTTP response
+        is sent and the connection is closed immediately.
+
+        The HTTP status must be a :class:`~http.HTTPStatus` and HTTP headers
+        must be an iterable of ``(name, value)`` pairs.
+
+        (:class:`~http.HTTPStatus` was added in Python 3.5. Use a compatible
+        object on earlier versions. Look at ``SWITCHING_PROTOCOLS`` in
+        ``websockets.compatibility`` for an example.)
 
         This method may be overridden to check the request headers and set a
         different status, for example to authenticate the request and return
@@ -226,13 +235,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         It is declared as a coroutine because such authentication checks are
         likely to require network requests.
 
-        The connection is closed immediately after sending the response when
-        the status code is not ``HTTPStatus.SWITCHING_PROTOCOLS``.
-
-        Call ``set_header(key, value)`` to set additional response headers.
-
         """
-        return SWITCHING_PROTOCOLS
 
     @asyncio.coroutine
     def handshake(self, origins=None, subprotocols=None, extra_headers=None):
@@ -255,29 +258,30 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Return the URI of the request.
 
         """
-        path, headers = yield from self.read_http_request()
-        get_header = lambda k: headers.get(k, '')
+        path, request_headers = yield from self.read_http_request()
+
+        # Hook for customizing request handling, for example checking
+        # authentication or treating some paths as plain HTTP endpoints.
+
+        early_response = yield from self.process_request(path, request_headers)
+        if early_response is not None:
+            yield from self.write_http_response(*early_response)
+            self.opening_handshake.set_result(False)
+            yield from self.close_connection(force=True)
+            return
+
+        get_header = lambda k: request_headers.get(k, '')
 
         key = check_request(get_header)
 
         self.origin = self.process_origin(get_header, origins)
         self.subprotocol = self.process_subprotocol(get_header, subprotocols)
 
-        headers = []
-        set_header = lambda k, v: headers.append((k, v))
+        response_headers = []
+        set_header = lambda k, v: response_headers.append((k, v))
 
         set_header('Server', USER_AGENT)
 
-        status = yield from self.get_response_status(set_header)
-
-        # Abort the connection if the status code isn't 101.
-        if status.value != SWITCHING_PROTOCOLS.value:
-            yield from self.write_http_response(status, headers)
-            self.opening_handshake.set_result(False)
-            yield from self.close_connection(force=True)
-            return
-
-        # Status code is 101, establish the connection.
         if self.subprotocol:
             set_header('Sec-WebSocket-Protocol', self.subprotocol)
         if extra_headers is not None:
@@ -289,7 +293,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 set_header(name, value)
         build_response(set_header, key)
 
-        yield from self.write_http_response(status, headers)
+        yield from self.write_http_response(
+            SWITCHING_PROTOCOLS, response_headers)
 
         assert self.state == CONNECTING
         self.state = OPEN

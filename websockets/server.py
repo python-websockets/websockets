@@ -8,8 +8,13 @@ import asyncio
 import collections.abc
 import logging
 
-from .compatibility import SWITCHING_PROTOCOLS, asyncio_ensure_future
-from .exceptions import InvalidHandshake, InvalidMessage, InvalidOrigin
+from .compatibility import (
+    BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE,
+    SWITCHING_PROTOCOLS, asyncio_ensure_future
+)
+from .exceptions import (
+    AbortHandshake, InvalidHandshake, InvalidMessage, InvalidOrigin
+)
 from .handshake import build_response, check_request
 from .http import USER_AGENT, build_headers, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -68,22 +73,43 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
-                    response = ('HTTP/1.1 503 Service Unavailable\r\n\r\n'
-                                'Server is shutting down.')
+                    early_response = (
+                        SERVICE_UNAVAILABLE,
+                        [],
+                        b"Server is shutting down.",
+                    )
+                elif isinstance(exc, AbortHandshake):
+                    early_response = (
+                        exc.status,
+                        exc.headers,
+                        exc.body,
+                    )
                 elif isinstance(exc, InvalidOrigin):
-                    response = 'HTTP/1.1 403 Forbidden\r\n\r\n' + str(exc)
+                    logger.warning("Invalid origin", exc_info=True)
+                    early_response = (
+                        FORBIDDEN,
+                        [],
+                        str(exc).encode(),
+                    )
                 elif isinstance(exc, InvalidHandshake):
-                    response = 'HTTP/1.1 400 Bad Request\r\n\r\n' + str(exc)
+                    logger.warning("Invalid handshake", exc_info=True)
+                    early_response = (
+                        BAD_REQUEST,
+                        [],
+                        str(exc).encode(),
+                    )
                 else:
                     logger.warning("Error in opening handshake", exc_info=True)
-                    response = ('HTTP/1.1 500 Internal Server Error\r\n\r\n'
-                                'See server log for more information.')
-                self.writer.write(response.encode())
-                raise
+                    early_response = (
+                        INTERNAL_SERVER_ERROR,
+                        [],
+                        b"See server log for more information.",
+                    )
 
-            # Subclasses can customize process_request() to reject the
-            # handshake, typically after checking authentication.
-            if path is None:
+                yield from self.write_http_response(*early_response)
+                self.opening_handshake.set_result(False)
+                yield from self.close_connection(force=True)
+
                 return
 
             try:
@@ -275,10 +301,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         early_response = yield from self.process_request(path, request_headers)
         if early_response is not None:
-            yield from self.write_http_response(*early_response)
-            self.opening_handshake.set_result(False)
-            yield from self.close_connection(force=True)
-            return
+            raise AbortHandshake(*early_response)
 
         get_header = lambda k: request_headers.get(k, '')
 

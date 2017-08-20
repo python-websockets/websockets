@@ -1,7 +1,7 @@
 __all__ = [
-    'InvalidHandshake', 'InvalidMessage', 'InvalidOrigin', 'InvalidState',
-    'InvalidStatusCode', 'InvalidURI', 'ConnectionClosed', 'PayloadTooBig',
-    'WebSocketProtocolError',
+    'AbortHandshake', 'InvalidHandshake', 'InvalidMessage', 'InvalidOrigin',
+    'InvalidState', 'InvalidStatusCode', 'InvalidURI', 'ConnectionClosed',
+    'PayloadTooBig', 'WebSocketProtocolError',
 ]
 
 
@@ -10,6 +10,17 @@ class InvalidHandshake(Exception):
     Exception raised when a handshake request or response is invalid.
 
     """
+
+
+class AbortHandshake(InvalidHandshake):
+    """
+    Exception raised to abort a handshake and return a HTTP response.
+
+    """
+    def __init__(self, status, headers, body=None):
+        self.status = status
+        self.headers = headers
+        self.body = body
 
 
 class InvalidMessage(InvalidHandshake):

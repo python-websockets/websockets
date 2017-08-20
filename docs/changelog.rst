@@ -1,10 +1,13 @@
 Changelog
 ---------
 
-3.4
+3.5
 ...
 
 *In development*
+
+3.4
+...
 
 * Renamed :func:`~websockets.server.serve()` and
   :func:`~websockets.client.connect()`'s ``klass`` argument to

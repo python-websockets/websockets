@@ -1,0 +1,35 @@
+env:
+  global:
+#   Don't attempt to build Python 2.7 wheels; websockets only works on Python 3.
+    - CIBW_SKIP=cp27*
+#   Commented out because tests don't pass reliably on macOS, see #241.
+#    - CIBW_TEST_COMMAND="python3 -m unittest discover websockets"
+
+matrix:
+  include:
+    - dist: trusty
+      sudo: required
+      language: python
+      python: "3.3"
+      services:
+        - docker
+    - os: osx
+      osx_image: xcode8.3
+
+install:
+# Python 3 is needed to run cibuildwheel for websockets.
+  - if [ "${TRAVIS_OS_NAME:-}" == "osx" ]; then
+      brew install python3;
+    fi
+# Install cibuildwheel using pip3 to make sure Python 3 is used.
+  - pip3 install cibuildwheel==0.4.0
+# Create file '.cibuildwheel' so that extension build is not optional (c.f. setup.py).
+  - touch .cibuildwheel
+
+script:
+  - cibuildwheel --output-dir wheelhouse
+# Upload to PyPI on tags
+  - if [ "${TRAVIS_TAG:-}" != "" ]; then
+      python -m pip install twine &&
+      python -m twine upload --skip-existing wheelhouse/*;
+    fi

@@ -29,7 +29,7 @@ ext_modules = [
     setuptools.Extension(
         'websockets.speedups',
         sources=['websockets/speedups.c'],
-        optional=True,
+        optional=not os.path.exists(os.path.join(root_dir, '.cibuildwheel')),
     )
 ]
 

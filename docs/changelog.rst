@@ -24,7 +24,7 @@ Changelog
 * Added an optional C extension to speed up low level operations.
 
 * An invalid response status code during :func:`~websockets.client.connect`
-  now raises :class:`~websockets.exceptions.InvalidStatus` with a ``code``
+  now raises :class:`~websockets.exceptions.InvalidStatusCode` with a ``code``
   attribute.
 
 3.3

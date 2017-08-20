@@ -1,6 +1,6 @@
 __all__ = [
     'InvalidHandshake', 'InvalidMessage', 'InvalidOrigin', 'InvalidState',
-    'InvalidStatus', 'InvalidURI', 'ConnectionClosed', 'PayloadTooBig',
+    'InvalidStatusCode', 'InvalidURI', 'ConnectionClosed', 'PayloadTooBig',
     'WebSocketProtocolError',
 ]
 
@@ -26,7 +26,7 @@ class InvalidOrigin(InvalidHandshake):
     """
 
 
-class InvalidStatus(InvalidHandshake):
+class InvalidStatusCode(InvalidHandshake):
     """
     Exception raised when a handshake response status code is invalid.
 

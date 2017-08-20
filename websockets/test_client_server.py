@@ -11,7 +11,7 @@ from contextlib import contextmanager
 
 from .client import *
 from .compatibility import FORBIDDEN, UNAUTHORIZED
-from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
+from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatusCode
 from .http import USER_AGENT, read_response
 from .server import *
 
@@ -289,7 +289,7 @@ class ClientServerTests(unittest.TestCase):
             self.assertEqual(request_headers.get('origin'), 'http://otherhost')
 
     def assert_client_raises_code(self, code):
-        with self.assertRaises(InvalidStatus) as raised:
+        with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client()
         self.assertEqual(raised.exception.code, code)
 
@@ -423,7 +423,7 @@ class ClientServerTests(unittest.TestCase):
             return 400, headers
         _read_response.side_effect = wrong_read_response
 
-        with self.assertRaises(InvalidStatus):
+        with self.assertRaises(InvalidStatusCode):
             self.start_client()
         self.run_loop_once()
 
@@ -487,7 +487,7 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server(create_protocol=ForbiddenServerProtocol)
     def test_invalid_status_error_during_client_connect(self):
-        with self.assertRaises(InvalidStatus) as raised:
+        with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client()
         exception = raised.exception
         self.assertEqual(str(exception), "Status code not 101: 403")

@@ -180,6 +180,34 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if body is not None:
             self.writer.write(body)
 
+    @asyncio.coroutine
+    def process_request(self, path, request_headers):
+        """
+        Intercept the HTTP request and return an HTTP response if needed.
+
+        ``request_headers`` are a :class:`~http.client.HTTPMessage`.
+
+        If this coroutine returns ``None``, the WebSocket handshake continues.
+        If it returns a status code, headers and a optionally a response body,
+        that HTTP response is sent and the connection is closed.
+
+        The HTTP status must be a :class:`~http.HTTPStatus`. HTTP headers must
+        be an iterable of ``(name, value)`` pairs. If provided, the HTTP
+        response body must be :class:`bytes`.
+
+        (:class:`~http.HTTPStatus` was added in Python 3.5. Use a compatible
+        object on earlier versions. Look at ``SWITCHING_PROTOCOLS`` in
+        ``websockets.compatibility`` for an example.)
+
+        This method may be overridden to check the request headers and set a
+        different status, for example to authenticate the request and return
+        ``HTTPStatus.UNAUTHORIZED`` or ``HTTPStatus.FORBIDDEN``.
+
+        It is declared as a coroutine because such authentication checks are
+        likely to require network requests.
+
+        """
+
     def process_origin(self, get_header, origins=None):
         """
         Handle the Origin HTTP header.
@@ -218,34 +246,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             return None
         priority = lambda p: client_protos.index(p) + server_protos.index(p)
         return sorted(common_protos, key=priority)[0]
-
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
-        """
-        Intercept the HTTP request and return an HTTP response if needed.
-
-        ``request_headers`` are a :class:`~http.client.HTTPMessage`.
-
-        If this coroutine returns ``None``, the WebSocket handshake continues.
-        If it returns a status code, headers and a optionally a response body,
-        that HTTP response is sent and the connection is closed.
-
-        The HTTP status must be a :class:`~http.HTTPStatus`. HTTP headers must
-        be an iterable of ``(name, value)`` pairs. If provided, the HTTP
-        response body must be :class:`bytes`.
-
-        (:class:`~http.HTTPStatus` was added in Python 3.5. Use a compatible
-        object on earlier versions. Look at ``SWITCHING_PROTOCOLS`` in
-        ``websockets.compatibility`` for an example.)
-
-        This method may be overridden to check the request headers and set a
-        different status, for example to authenticate the request and return
-        ``HTTPStatus.UNAUTHORIZED`` or ``HTTPStatus.FORBIDDEN``.
-
-        It is declared as a coroutine because such authentication checks are
-        likely to require network requests.
-
-        """
 
     @asyncio.coroutine
     def handshake(self, origins=None, subprotocols=None, extra_headers=None):

@@ -1,16 +1,16 @@
 import asyncio
+import contextlib
 import functools
-import http
-import http.client
 import logging
 import os
 import ssl
+import sys
 import unittest
 import unittest.mock
-from contextlib import contextmanager
+import urllib.request
 
 from .client import *
-from .compatibility import FORBIDDEN, UNAUTHORIZED
+from .compatibility import FORBIDDEN, OK, UNAUTHORIZED
 from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatus
 from .http import USER_AGENT, read_response
 from .server import *
@@ -40,7 +40,7 @@ def handler(ws, path):
         yield from ws.send((yield from ws.recv()))
 
 
-@contextmanager
+@contextlib.contextmanager
 def temp_test_server(test, **kwds):
     test.start_server(**kwds)
     try:
@@ -49,7 +49,7 @@ def temp_test_server(test, **kwds):
         test.stop_server()
 
 
-@contextmanager
+@contextlib.contextmanager
 def temp_test_client(test, *args, **kwds):
     test.start_client(*args, **kwds)
     try:
@@ -90,15 +90,24 @@ def with_client(*args, **kwds):
 class UnauthorizedServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
-    def get_response_status(self, set_header):
-        return UNAUTHORIZED
+    def process_request(self, path, request_headers):
+        return UNAUTHORIZED, []
 
 
 class ForbiddenServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
-    def get_response_status(self, set_header):
-        return FORBIDDEN
+    def process_request(self, path, request_headers):
+        return FORBIDDEN, []
+
+
+class HealthCheckServerProtocol(WebSocketServerProtocol):
+
+    @asyncio.coroutine
+    def process_request(self, path, request_headers):
+        if path == '/__health__/':
+            body = b'status = green\n'
+            return OK, [('Content-Length', str(len(body)))], body
 
 
 class FooClientProtocol(WebSocketClientProtocol):
@@ -149,12 +158,12 @@ class ClientServerTests(unittest.TestCase):
         except asyncio.TimeoutError:                # pragma: no cover
             self.fail("Server failed to stop")
 
-    @contextmanager
+    @contextlib.contextmanager
     def temp_server(self, **kwds):
         with temp_test_server(self, **kwds):
             yield
 
-    @contextmanager
+    @contextlib.contextmanager
     def temp_client(self, *args, **kwds):
         with temp_test_client(self, *args, **kwds):
             yield
@@ -260,33 +269,37 @@ class ClientServerTests(unittest.TestCase):
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
-    def test_get_response_status_attributes_available(self):
-        # Save the attribute values to a dict instead of asserting inside
-        # get_response_status() because assertion errors there do not
-        # currently bubble up for easy viewing.
-        attrs = {}
+    @with_server(create_protocol=HealthCheckServerProtocol)
+    @with_client()
+    def test_custom_protocol_http_request(self):
+        # One URL returns an HTTP response.
 
-        class SaveAttributesProtocol(WebSocketServerProtocol):
-            @asyncio.coroutine
-            def get_response_status(self, set_header):
-                attrs['origin'] = self.origin
-                attrs['path'] = self.path
-                attrs['raw_request_headers'] = self.raw_request_headers.copy()
-                attrs['request_headers'] = self.request_headers
-                status = yield from super().get_response_status(set_header)
-                return status
+        if self.secure:
+            url = 'https://localhost:8642/__health__/'
+            if sys.version_info[:2] < (3, 4):               # pragma: no cover
+                # Python 3.3 didn't check SSL certificates.
+                open_health_check = functools.partial(
+                    urllib.request.urlopen, url)
+            else:                                           # pragma: no cover
+                open_health_check = functools.partial(
+                    urllib.request.urlopen, url, context=self.client_context)
+        else:
+            url = 'http://localhost:8642/__health__/'
+            open_health_check = functools.partial(
+                urllib.request.urlopen, url)
 
-        with self.temp_server(create_protocol=SaveAttributesProtocol):
-            self.start_client(path='foo/bar', origin='http://otherhost')
-            self.assertEqual(attrs['origin'], 'http://otherhost')
-            self.assertEqual(attrs['path'], '/foo/bar')
-            # To reduce test brittleness, only check one nontrivial aspect
-            # of the request headers.
-            self.assertIn(('Origin', 'http://otherhost'),
-                          attrs['raw_request_headers'])
-            request_headers = attrs['request_headers']
-            self.assertIsInstance(request_headers, http.client.HTTPMessage)
-            self.assertEqual(request_headers.get('origin'), 'http://otherhost')
+        response = self.loop.run_until_complete(
+            self.loop.run_in_executor(None, open_health_check))
+
+        with contextlib.closing(response):
+            self.assertEqual(response.code, 200)
+            self.assertEqual(response.read(), b'status = green\n')
+
+        # Other URLs create a WebSocket connection.
+
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        reply = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(reply, "Hello!")
 
     def assert_client_raises_code(self, code):
         with self.assertRaises(InvalidStatus) as raised:

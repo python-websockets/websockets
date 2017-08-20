@@ -41,9 +41,9 @@ Server
 
    .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, subprotocols=None, extra_headers=None)
 
-        .. automethod:: handshake(origins=None, subprotocols=None, extra_headers=None)
+        .. automethod:: handshake(path, request_headers, origins=None, subprotocols=None, extra_headers=None)
+        .. automethod:: process_request(path, request_headers)
         .. automethod:: select_subprotocol(client_protos, server_protos)
-        .. automethod:: get_response_status()
 
 Client
 ......

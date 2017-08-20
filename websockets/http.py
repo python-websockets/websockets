@@ -49,7 +49,7 @@ _value_re = re.compile(rb'^[\x09\x20-\x7e\x80-\xff]*$')
 @asyncio.coroutine
 def read_request(stream):
     """
-    Read an HTTP/1.1 request from ``stream``.
+    Read an HTTP/1.1 GET request from ``stream``.
 
     ``stream`` is an :class:`~asyncio.StreamReader`.
 
@@ -62,7 +62,9 @@ def read_request(stream):
 
     Raise an exception if the request isn't well formatted.
 
-    The request is assumed not to contain a body.
+    Don't attempt to read the request body because WebSocket handshake
+    requests don't have one. If the request contains a body, it may be
+    read from ``stream`` after this coroutine returns.
 
     """
     # https://tools.ietf.org/html/rfc7230#section-3.1.1
@@ -101,9 +103,11 @@ def read_response(stream):
 
     Non-ASCII characters are represented with surrogate escapes.
 
-    Raise an exception if the request isn't well formatted.
+    Raise an exception if the response isn't well formatted.
 
-    The response is assumed not to contain a body.
+    Don't attempt to read the response body, because WebSocket handshake
+    responses don't have one. If the response contains a body, it may be
+    read from ``stream`` after this coroutine returns.
 
     """
     # https://tools.ietf.org/html/rfc7230#section-3.1.2
@@ -134,7 +138,7 @@ def read_response(stream):
 @asyncio.coroutine
 def read_headers(stream):
     """
-    Read an HTTP message from ``stream``.
+    Read HTTP headers from ``stream``.
 
     ``stream`` is an :class:`~asyncio.StreamReader`.
 
@@ -142,8 +146,6 @@ def read_headers(stream):
     and ``headers`` is a list of ``(name, value)`` tuples.
 
     Non-ASCII characters are represented with surrogate escapes.
-
-    The message is assumed not to contain a body.
 
     """
     # https://tools.ietf.org/html/rfc7230#section-3.2

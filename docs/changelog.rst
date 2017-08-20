@@ -1,10 +1,26 @@
 Changelog
 ---------
 
-3.4
+4.0
 ...
 
 *In development*
+
+.. warning::
+
+    **Version 4.0 introduces a backwards-incompatible change in the**
+    :meth:`~websockets.protocol.WebSocketClientProtocol.handshake` and
+    :meth:`~websockets.protocol.WebSocketServerProtocol.handshake` **APIs.**
+
+    **If you're upgrading from 3.x or earlier, please read this carefully.**
+
+    Both used to read and write handshake requests and responses. Now they're
+    regular methods, not coroutines. I/O is performed by their caller. Their
+    arguments and return values changed accordingly.
+
+    If you're overriding these methods, you must review and update your code.
+
+Also:
 
 * Renamed :func:`~websockets.server.serve()` and
   :func:`~websockets.client.connect()`'s ``klass`` argument to

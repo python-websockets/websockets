@@ -30,12 +30,12 @@ class InvalidStatusCode(InvalidHandshake):
     """
     Exception raised when a handshake response status code is invalid.
 
-    Provides the integer status code in its ``code`` attribute.
+    Provides the integer status code in its ``status_code`` attribute.
 
     """
-    def __init__(self, code):
-        self.code = code
-        message = 'Status code not 101: {}'.format(code)
+    def __init__(self, status_code):
+        self.status_code = status_code
+        message = 'Status code not 101: {}'.format(status_code)
         super().__init__(message)
 
 

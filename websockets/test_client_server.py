@@ -288,10 +288,10 @@ class ClientServerTests(unittest.TestCase):
             self.assertIsInstance(request_headers, http.client.HTTPMessage)
             self.assertEqual(request_headers.get('origin'), 'http://otherhost')
 
-    def assert_client_raises_code(self, code):
+    def assert_client_raises_code(self, status_code):
         with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client()
-        self.assertEqual(raised.exception.code, code)
+        self.assertEqual(raised.exception.status_code, status_code)
 
     @with_server(create_protocol=UnauthorizedServerProtocol)
     def test_server_create_protocol(self):
@@ -419,7 +419,7 @@ class ClientServerTests(unittest.TestCase):
     def test_server_does_not_switch_protocols(self, _read_response):
         @asyncio.coroutine
         def wrong_read_response(stream):
-            code, headers = yield from read_response(stream)
+            status_code, headers = yield from read_response(stream)
             return 400, headers
         _read_response.side_effect = wrong_read_response
 
@@ -491,7 +491,7 @@ class ClientServerTests(unittest.TestCase):
             self.start_client()
         exception = raised.exception
         self.assertEqual(str(exception), "Status code not 101: 403")
-        self.assertEqual(exception.code, 403)
+        self.assertEqual(exception.status_code, 403)
 
     @with_server()
     @unittest.mock.patch('websockets.server.read_request')

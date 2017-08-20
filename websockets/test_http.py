@@ -44,9 +44,9 @@ class HTTPAsyncTests(unittest.TestCase):
             b'Sec-WebSocket-Protocol: chat\r\n'
             b'\r\n'
         )
-        status, headers = self.loop.run_until_complete(
+        status_code, headers = self.loop.run_until_complete(
             read_response(self.stream))
-        self.assertEqual(status, 101)
+        self.assertEqual(status_code, 101)
         self.assertEqual(dict(headers)['Upgrade'], 'websocket')
 
     def test_request_method(self):

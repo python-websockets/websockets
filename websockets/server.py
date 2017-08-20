@@ -227,7 +227,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         likely to require network requests.
 
         The connection is closed immediately after sending the response when
-        the status code is not ``HTTPStatus.SWITCHING_PROTOCOLS``.
+        the status is not ``HTTPStatus.SWITCHING_PROTOCOLS``.
 
         Call ``set_header(key, value)`` to set additional response headers.
 

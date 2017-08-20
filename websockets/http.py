@@ -96,8 +96,8 @@ def read_response(stream):
 
     ``stream`` is an :class:`~asyncio.StreamReader`.
 
-    Return ``(status, headers)`` where ``status`` is a :class:`int` and
-    ``headers`` is a list of ``(name, value)`` tuples.
+    Return ``(status_code, headers)`` where ``status_code`` is a :class:`int`
+    and ``headers`` is a list of ``(name, value)`` tuples.
 
     Non-ASCII characters are represented with surrogate escapes.
 
@@ -109,26 +109,26 @@ def read_response(stream):
     # https://tools.ietf.org/html/rfc7230#section-3.1.2
 
     # As in read_request, parsing is simple because a fixed value is expected
-    # for version, status is a 3-digit number, and reason can be ignored.
+    # for version, status_code is a 3-digit number, and reason can be ignored.
 
     # Given the implementation of read_line(), status_line ends with CRLF.
     status_line = yield from read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
-    version, status, reason = status_line[:-2].split(b' ', 2)
+    version, status_code, reason = status_line[:-2].split(b' ', 2)
 
     if version != b'HTTP/1.1':
         raise ValueError("Unsupported HTTP version: %r" % version)
     # This may raise "ValueError: invalid literal for int() with base 10"
-    status = int(status)
-    if not 100 <= status < 1000:
-        raise ValueError("Unsupported HTTP status code: %d" % status)
+    status_code = int(status_code)
+    if not 100 <= status_code < 1000:
+        raise ValueError("Unsupported HTTP status_code code: %d" % status_code)
     if not _value_re.match(reason):
         raise ValueError("Invalid HTTP reason phrase: %r" % reason)
 
     headers = yield from read_headers(stream)
 
-    return status, headers
+    return status_code, headers
 
 
 @asyncio.coroutine

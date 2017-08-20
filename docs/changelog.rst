@@ -127,7 +127,7 @@ Also:
 
 * Supported running on a non-default event loop.
 
-* Returned a 403 error code instead of 400 when the request Origin isn't
+* Returned a 403 status code instead of 400 when the request Origin isn't
   allowed.
 
 * Cancelling :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` no
@@ -135,7 +135,7 @@ Also:
 
 * Clarified that the closing handshake can be initiated by the client.
 
-* Set the close status code and reason more consistently.
+* Set the close code and reason more consistently.
 
 * Strengthened connection termination by simplifying the implementation.
 

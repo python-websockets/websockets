@@ -272,7 +272,7 @@ class ClientServerTests(unittest.TestCase):
     @with_server(create_protocol=HealthCheckServerProtocol)
     @with_client()
     def test_custom_protocol_http_request(self):
-        # One URL returns a HTTP response.
+        # One URL returns an HTTP response.
 
         if self.secure:
             url = 'https://localhost:8642/__health__/'

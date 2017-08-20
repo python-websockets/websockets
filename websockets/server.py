@@ -134,12 +134,14 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     @asyncio.coroutine
     def read_http_request(self):
         """
-        Read status line and headers from the HTTP request.
+        Read request line and headers from the HTTP request.
 
         Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
-        is malformed or isn't a HTTP/1.1 GET request.
+        is malformed or isn't an HTTP/1.1 GET request.
 
-        This coroutine assumes that there is no request body.
+        Don't attempt to read the request body because WebSocket handshake
+        requests don't have one. If the request contains a body, it may be
+        read from ``self.reader`` after this coroutine returns.
 
         """
         try:
@@ -220,7 +222,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     @asyncio.coroutine
     def process_request(self, path, request_headers):
         """
-        Intercept the HTTP request and return a HTTP response if needed.
+        Intercept the HTTP request and return an HTTP response if needed.
 
         ``request_headers`` are a :class:`~http.client.HTTPMessage`.
 

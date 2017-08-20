@@ -30,7 +30,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     @asyncio.coroutine
     def write_http_request(self, path, headers):
         """
-        Write status line and headers to the HTTP request.
+        Write request line and headers to the HTTP request.
 
         """
         self.path = path
@@ -52,7 +52,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         Read status line and headers from the HTTP response.
 
         Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
-        is malformed or isn't a HTTP/1.1 GET request.
+        is malformed or isn't an HTTP/1.1 GET request.
+
+        Don't attempt to read the response body because WebSocket handshake
+        responses don't have one. If the response contains a body, it may be
+        read from ``self.reader`` after this coroutine returns.
 
         """
         try:

@@ -42,58 +42,56 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
     }
 
     result = PyBytes_FromStringAndSize(NULL, input_len);
-    if (result == NULL)
+    if (result != NULL)
     {
-        return NULL;
-    }
+        // Since we juste created result, we don't need error checks.
+        output = PyBytes_AS_STRING(result);
 
-    // Since we juste created result, we don't need error checks.
-    output = PyBytes_AS_STRING(result);
+        // Apparently GCC cannot figure out the following optimizations by itself.
 
-    // Apparently GCC cannot figure out the following optimizations by itself.
-
-    // We need a new scope for MSVC 2010 (non C99 friendly)
-    {
+        // We need a new scope for MSVC 2010 (non C99 friendly)
+        {
 #if __SSE2__
 
-        // With SSE2 support, XOR by blocks of 16 bytes = 128 bits.
+            // With SSE2 support, XOR by blocks of 16 bytes = 128 bits.
 
-        // Since we cannot control the 16-bytes alignment of input and output
-        // buffers, we rely on loadu/storeu rather than load/store.
+            // Since we cannot control the 16-bytes alignment of input and output
+            // buffers, we rely on loadu/storeu rather than load/store.
 
-        Py_ssize_t input_len_128 = input_len & ~15;
-        __m128i mask_128 = _mm_set1_epi32(*(uint32_t *)mask);
+            Py_ssize_t input_len_128 = input_len & ~15;
+            __m128i mask_128 = _mm_set1_epi32(*(uint32_t *)mask);
 
-        for (; i < input_len_128; i += 16)
-        {
-            __m128i in_128 = _mm_loadu_si128((__m128i *)(input + i));
-            __m128i out_128 = _mm_xor_si128(in_128, mask_128);
-            _mm_storeu_si128((__m128i *)(output + i), out_128);
-        }
+            for (; i < input_len_128; i += 16)
+            {
+                __m128i in_128 = _mm_loadu_si128((__m128i *)(input + i));
+                __m128i out_128 = _mm_xor_si128(in_128, mask_128);
+                _mm_storeu_si128((__m128i *)(output + i), out_128);
+            }
 
 #else
 
-        // Without SSE2 support, XOR by blocks of 8 bytes = 64 bits.
+            // Without SSE2 support, XOR by blocks of 8 bytes = 64 bits.
 
-        // We assume the memory allocator aligns everything on 8 bytes boundaries.
+            // We assume the memory allocator aligns everything on 8 bytes boundaries.
 
-        Py_ssize_t input_len_64 = input_len & ~7;
-        uint32_t mask_32 = *(uint32_t *)mask;
-        uint64_t mask_64 = ((uint64_t)mask_32 << 32) | (uint64_t)mask_32;
+            Py_ssize_t input_len_64 = input_len & ~7;
+            uint32_t mask_32 = *(uint32_t *)mask;
+            uint64_t mask_64 = ((uint64_t)mask_32 << 32) | (uint64_t)mask_32;
 
-        for (; i < input_len_64; i += 8)
-        {
-            *(uint64_t *)(output + i) = *(uint64_t *)(input + i) ^ mask_64;
-        }
+            for (; i < input_len_64; i += 8)
+            {
+                *(uint64_t *)(output + i) = *(uint64_t *)(input + i) ^ mask_64;
+            }
 
 #endif
-    }
+        }
 
-    // XOR the remainder of the input byte by byte.
+        // XOR the remainder of the input byte by byte.
 
-    for (; i < input_len; i++)
-    {
-        output[i] = input[i] ^ mask[i & (MASK_LEN - 1)];
+        for (; i < input_len; i++)
+        {
+            output[i] = input[i] ^ mask[i & (MASK_LEN - 1)];
+        }
     }
 
     return result;

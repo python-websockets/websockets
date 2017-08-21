@@ -121,7 +121,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                         response_params, accepted_extensions)
 
                     # Skip non-matching extensions based on their params.
-                    if extension is None:
+                    # There are no tests because the only extension currently
+                    # built in, permessage-deflate, doesn't need this feature.
+                    if extension is None:                   # pragma: no cover
                         continue
 
                     # Add matching extension to the final list.

@@ -297,7 +297,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     assert (response_params is None) == (extension is None)
 
                     # Skip non-matching extensions based on their params.
-                    if extension is None:
+                    # There are no tests because the only extension currently
+                    # built in, permessage-deflate, doesn't need this feature.
+                    if extension is None:                   # pragma: no cover
                         continue
 
                     # Add matching extension to the final list.
@@ -314,7 +316,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
             return extensions_header, accepted_extensions
 
-        return None, None
+        return None, []
 
     def process_subprotocol(self, get_header, available_subprotocols=None):
         """

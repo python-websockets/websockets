@@ -417,6 +417,18 @@ class PerMessageDeflate:
         # There's no need for self.encode_cont_data because we always encode
         # outgoing frames, so it would always be True.
 
+    def __repr__(self):
+        return 'PerMessageDeflate({})'.format(', '.join([
+            'remote_no_context_takeover={}'.format(
+                self.remote_no_context_takeover),
+            'local_no_context_takeover={}'.format(
+                self.local_no_context_takeover),
+            'remote_max_window_bits={}'.format(
+                self.remote_max_window_bits),
+            'local_max_window_bits={}'.format(
+                self.local_max_window_bits),
+        ]))
+
     def decode(self, frame):
         """
         Decode an incoming frame.

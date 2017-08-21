@@ -14,6 +14,10 @@ from .compatibility import FORBIDDEN, OK, UNAUTHORIZED
 from .exceptions import (
     ConnectionClosed, InvalidHandshake, InvalidStatusCode, NegotiationError
 )
+from .extensions.permessage_deflate import (
+    ClientPerMessageDeflateFactory, PerMessageDeflate,
+    ServerPerMessageDeflateFactory
+)
 from .handshake import build_response
 from .http import USER_AGENT, read_response
 from .server import *
@@ -37,6 +41,8 @@ def handler(ws, path):
     elif path == '/raw_headers':
         yield from ws.send(repr(ws.raw_request_headers))
         yield from ws.send(repr(ws.raw_response_headers))
+    elif path == '/extensions':
+        yield from ws.send(repr(ws.extensions))
     elif path == '/subprotocol':
         yield from ws.send(repr(ws.subprotocol))
     else:
@@ -121,6 +127,50 @@ class BarClientProtocol(WebSocketClientProtocol):
     pass
 
 
+class ClientNoOpExtensionFactory:
+    name = 'x-no-op'
+
+    def __init__(self, params=None):
+        if params is None:
+            params = []
+        self.params = params
+
+    def get_request_params(self):
+        return self.params
+
+    def process_response_params(self, params, accepted_extensions):
+        if params:
+            raise NegotiationError()
+        return NoOpExtension()
+
+
+class ServerNoOpExtensionFactory:
+    name = 'x-no-op'
+
+    def __init__(self, params=None):
+        if params is None:
+            params = []
+        self.params = params
+
+    def process_request_params(self, params, accepted_extensions):
+        if params:
+            raise NegotiationError()
+        return self.params, NoOpExtension()
+
+
+class NoOpExtension:
+    name = 'x-no-op'
+
+    def __repr__(self):
+        return 'NoOpExtension()'
+
+    def decode(self, frame):
+        return frame
+
+    def encode(self, frame):
+        return frame
+
+
 class ClientServerTests(unittest.TestCase):
 
     secure = False
@@ -178,13 +228,6 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     @with_client()
     def test_basic(self):
-        self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, "Hello!")
-
-    @with_server()
-    @with_client(use_compression=False)
-    def test_basic_no_compression(self):
         self.loop.run_until_complete(self.client.send("Hello!"))
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, "Hello!")
@@ -361,6 +404,140 @@ class ClientServerTests(unittest.TestCase):
         self.assertIsInstance(self.client, BarClientProtocol)
 
     @with_server()
+    @with_client('extensions')
+    def test_no_extension(self):
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([]))
+        self.assertEqual(repr(self.client.extensions), repr([]))
+
+    @with_server(extensions=[ServerNoOpExtensionFactory()])
+    @with_client('extensions', extensions=[ClientNoOpExtensionFactory()])
+    def test_extension(self):
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([NoOpExtension()]))
+        self.assertEqual(repr(self.client.extensions), repr([NoOpExtension()]))
+
+    @with_server()
+    @with_client('extensions', extensions=[ClientNoOpExtensionFactory()])
+    def test_extension_not_accepted(self):
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([]))
+        self.assertEqual(repr(self.client.extensions), repr([]))
+
+    @with_server(extensions=[ServerNoOpExtensionFactory()])
+    @with_client('extensions')
+    def test_extension_not_requested(self):
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([]))
+        self.assertEqual(repr(self.client.extensions), repr([]))
+
+    @with_server(extensions=[ServerNoOpExtensionFactory()])
+    def test_extension_server_rejection(self):
+        with self.assertRaises(InvalidStatusCode):
+            self.start_client(
+                'extensions',
+                extensions=[ClientNoOpExtensionFactory([('foo', None)])],
+            )
+
+    @with_server(extensions=[ServerNoOpExtensionFactory([('foo', None)])])
+    def test_extension_client_rejection(self):
+        with self.assertRaises(NegotiationError):
+            self.start_client(
+                'extensions',
+                extensions=[ClientNoOpExtensionFactory()],
+            )
+
+    @with_server(extensions=[ServerPerMessageDeflateFactory()])
+    @with_client('extensions', extensions=[ClientNoOpExtensionFactory()])
+    def test_extension_mismatch(self):
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([]))
+        self.assertEqual(repr(self.client.extensions), repr([]))
+
+    @with_server(
+        extensions=[
+            ServerNoOpExtensionFactory(),
+            ServerPerMessageDeflateFactory(),
+        ],
+    )
+    @with_client(
+        'extensions',
+        extensions=[
+            ClientPerMessageDeflateFactory(),
+            ClientNoOpExtensionFactory(),
+        ],
+    )
+    def test_extension_order(self):
+        # The order requested by the client has priority.
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([
+            PerMessageDeflate(False, False, 15, 15),
+            NoOpExtension(),
+        ]))
+        self.assertEqual(repr(self.client.extensions), repr([
+            PerMessageDeflate(False, False, 15, 15),
+            NoOpExtension(),
+        ]))
+
+    @with_server(extensions=[ServerNoOpExtensionFactory()])
+    @unittest.mock.patch.object(WebSocketServerProtocol, 'process_extensions')
+    def test_extensions_error(self, _process_extensions):
+        _process_extensions.return_value = 'x-no-op', [NoOpExtension()]
+
+        with self.assertRaises(NegotiationError):
+            self.start_client(
+                'extensions',
+                extensions=[ClientPerMessageDeflateFactory()],
+            )
+
+    @with_server(extensions=[ServerNoOpExtensionFactory()])
+    @unittest.mock.patch.object(WebSocketServerProtocol, 'process_extensions')
+    def test_extensions_error_no_extensions(self, _process_extensions):
+        _process_extensions.return_value = 'x-no-op', [NoOpExtension()]
+
+        with self.assertRaises(InvalidHandshake):
+            self.start_client('extensions')
+
+    @with_server(use_compression=True)
+    @with_client('extensions', use_compression=True)
+    def test_use_compression(self):
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([
+            PerMessageDeflate(False, False, 15, 15),
+        ]))
+        self.assertEqual(repr(self.client.extensions), repr([
+            PerMessageDeflate(False, False, 15, 15),
+        ]))
+
+    @with_server(
+        extensions=[
+            ServerPerMessageDeflateFactory(
+                client_no_context_takeover=True,
+                server_max_window_bits=10,
+            ),
+        ],
+        use_compression=True,   # overridden by explicit config
+    )
+    @with_client(
+        'extensions',
+        extensions=[
+            ClientPerMessageDeflateFactory(
+                server_no_context_takeover=True,
+                client_max_window_bits=12,
+            ),
+        ],
+        use_compression=True,   # overridden by explicit config
+    )
+    def test_use_compression_explicit_config(self):
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([
+            PerMessageDeflate(True, True, 12, 10),
+        ]))
+        self.assertEqual(repr(self.client.extensions), repr([
+            PerMessageDeflate(True, True, 10, 12),
+        ]))
+
+    @with_server()
     @with_client('subprotocol')
     def test_no_subprotocol(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
@@ -369,14 +546,14 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server(subprotocols=['superchat', 'chat'])
     @with_client('subprotocol', subprotocols=['otherchat', 'chat'])
-    def test_subprotocol_found(self):
+    def test_subprotocol(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr('chat'))
         self.assertEqual(self.client.subprotocol, 'chat')
 
     @with_server(subprotocols=['superchat'])
     @with_client('subprotocol', subprotocols=['otherchat'])
-    def test_subprotocol_not_found(self):
+    def test_subprotocol_not_accepted(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
@@ -396,12 +573,21 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(self.client.subprotocol, None)
 
     @with_server(subprotocols=['superchat'])
-    @unittest.mock.patch.object(WebSocketServerProtocol, 'select_subprotocol')
-    def test_subprotocol_error(self, _select_subprotocol):
-        _select_subprotocol.return_value = 'superchat'
+    @unittest.mock.patch.object(WebSocketServerProtocol, 'process_subprotocol')
+    def test_subprotocol_error(self, _process_subprotocol):
+        _process_subprotocol.return_value = 'superchat'
 
         with self.assertRaises(NegotiationError):
             self.start_client('subprotocol', subprotocols=['otherchat'])
+        self.run_loop_once()
+
+    @with_server(subprotocols=['superchat'])
+    @unittest.mock.patch.object(WebSocketServerProtocol, 'process_subprotocol')
+    def test_subprotocol_error_no_subprotocols(self, _process_subprotocol):
+        _process_subprotocol.return_value = 'superchat'
+
+        with self.assertRaises(InvalidHandshake):
+            self.start_client('subprotocol')
         self.run_loop_once()
 
     @with_server()
@@ -573,12 +759,16 @@ class SSLClientServerTests(ClientServerTests):
         return ssl_context
 
     def start_server(self, *args, **kwds):
-        kwds['ssl'] = self.server_context
+        kwds.setdefault('ssl', self.server_context)
+        # Don't enable compression by default in tests.
+        kwds.setdefault('use_compression', False)
         server = serve(handler, 'localhost', 8642, **kwds)
         self.server = self.loop.run_until_complete(server)
 
     def start_client(self, path='', **kwds):
-        kwds['ssl'] = self.client_context
+        kwds.setdefault('ssl', self.client_context)
+        # Don't enable compression by default in tests.
+        kwds.setdefault('use_compression', False)
         client = connect('wss://localhost:8642/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 

@@ -6,8 +6,9 @@ machine:
 
 dependencies:
     override:
-        - pip install tox
+        - pip install tox codecov
 
 test:
     override:
         - tox
+        - codecov

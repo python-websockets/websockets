@@ -12,6 +12,7 @@ import urllib.request
 from .client import *
 from .compatibility import FORBIDDEN, OK, UNAUTHORIZED
 from .exceptions import ConnectionClosed, InvalidHandshake, InvalidStatusCode
+from .handshake import build_response
 from .http import USER_AGENT, read_response
 from .server import *
 
@@ -439,6 +440,15 @@ class ClientServerTests(unittest.TestCase):
         with self.assertRaises(InvalidStatusCode):
             self.start_client()
         self.run_loop_once()
+
+    @with_server()
+    @unittest.mock.patch(
+        'websockets.server.WebSocketServerProtocol.process_request')
+    def test_server_error_in_handshake(self, _process_request):
+        _process_request.side_effect = Exception("process_request crashed")
+
+        with self.assertRaises(InvalidHandshake):
+            self.start_client()
 
     @with_server()
     @unittest.mock.patch('websockets.server.WebSocketServerProtocol.send')

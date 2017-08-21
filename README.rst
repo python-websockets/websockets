@@ -1,5 +1,5 @@
-WebSockets |pypi| |circleci|
-============================
+WebSockets |pypi| |circleci| |codecov|
+======================================
 
 ``websockets`` is a library for developing WebSocket servers_ and clients_ in
 Python. It implements `RFC 6455`_ with a focus on correctness and simplicity.
@@ -29,5 +29,7 @@ Bug reports, patches and suggestions welcome! Just open an issue_ or send a
 
 .. |pypi| image:: https://img.shields.io/pypi/v/websockets.svg
   :target: https://pypi.python.org/pypi/websockets
-.. |circleci| image:: https://circleci.com/gh/aaugustin/websockets/tree/master.svg?style=svg
+.. |circleci| image:: https://circleci.com/gh/aaugustin/websockets/tree/master.svg?style=shield
     :target: https://circleci.com/gh/aaugustin/websockets/tree/master
+.. |codecov| image:: https://codecov.io/gh/aaugustin/websockets/branch/master/graph/badge.svg
+  :target: https://codecov.io/gh/aaugustin/websockets

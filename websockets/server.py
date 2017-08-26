@@ -261,6 +261,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         extensions = get_header('Sec-WebSocket-Extensions')
 
+        extensions_header = []
+        accepted_extensions = []
+
         if extensions and available_extensions is not None:
 
             # For each extension proposed in the client request, check if it
@@ -276,9 +279,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             # accepted extensions.
 
             # The current implementation doesn't allow reordering extensions.
-
-            extensions_header = []
-            accepted_extensions = []
 
             for name, request_params in parse_extension_list(extensions):
 
@@ -312,11 +312,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 # If we didn't break from the loop, no extension in our list
                 # matched what the client sent. Ignore that extension.
 
+        # Serialize extension header.
+        if extensions_header:
             extensions_header = build_extension_list(extensions_header)
+        else:
+            extensions_header = None
 
-            return extensions_header, accepted_extensions
-
-        return None, []
+        return extensions_header, accepted_extensions
 
     def process_subprotocol(self, get_header, available_subprotocols=None):
         """

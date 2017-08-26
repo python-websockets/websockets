@@ -26,6 +26,9 @@ def parse_OWS(string, pos):
 
 _token_re = re.compile(r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+')
 
+# Workaround for the lack of re.fullmatch in older Pythons
+_exact_token_re = re.compile(r'^[-!#$%&\'*+.^_`|~0-9a-zA-Z]+$')
+
 
 def parse_token(string, pos):
     match = _token_re.match(string, pos)
@@ -56,7 +59,13 @@ def parse_extension_param(string, pos):
     if peek_ahead(string, pos) == '=':
         pos = parse_OWS(string, pos + 1)
         if peek_ahead(string, pos) == '"':
+            pos_before = pos    # for proper error reporting below
             value, pos = parse_quoted_string(string, pos)
+            # https://tools.ietf.org/html/rfc6455#section-9.1 says: the value
+            # after quoted-string unescaping MUST conform to the 'token' ABNF.
+            if _exact_token_re.match(value) is None:
+                raise InvalidHeader("invalid quoted string content",
+                                    string=string, pos=pos_before)
         else:
             value, pos = parse_token(string, pos)
         pos = parse_OWS(string, pos)
@@ -142,25 +151,10 @@ def parse_extension_list(string, pos=0):
     return extensions
 
 
-_quote_re = re.compile(r'([\x22\x5c])')
-
-
-# Workaround for the lack of re.fullmatch in older Pythons
-_exact_token_re = re.compile(r'^[-!#$%&\'*+.^_`|~0-9a-zA-Z]+$')
-
-
-def build_extension_param(name, value):
-    if value is None:
-        return name
-    elif _exact_token_re.match(value):
-        return '{}={}'.format(name, value)
-    else:
-        return '{}="{}"'.format(name, _quote_re.sub(r'\\\1', value))
-
-
 def build_extension(name, parameters):
     return '; '.join([name] + [
-        build_extension_param(name, value)
+        # Quoted strings aren't necessary because values are always tokens.
+        name if value is None else '{}={}'.format(name, value)
         for name, value in parameters
     ])
 

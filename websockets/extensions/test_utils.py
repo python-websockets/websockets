@@ -18,19 +18,15 @@ class UtilsTests(unittest.TestCase):
                 [('foo', []), ('bar', [])],
             ),
             (
-                'foo; name; token=token; quoted-string="quoted string", '
+                'foo; name; token=token; quoted-string="quoted-string", '
                 'bar; quux; quuux',
                 [
                     ('foo', [('name', None), ('token', 'token'),
-                             ('quoted-string', 'quoted string')]),
+                             ('quoted-string', 'quoted-string')]),
                     ('bar', [('quux', None), ('quuux', None)]),
                 ],
             ),
             # Pathological examples
-            (
-                'a; b="q,s;1\\"2\'3\\\\4="; c="q;s,6=7\\\\8\'9\\\""',
-                [('a', [('b', 'q,s;1"2\'3\\4='), ('c', 'q;s,6=7\\8\'9"')])]
-            ),
             (
                 ',\t, ,  ,foo  ;bar = 42,,   baz,,',
                 [('foo', [('bar', '42')]), ('baz', [])],
@@ -65,7 +61,8 @@ class UtilsTests(unittest.TestCase):
             'foo; bar="baz',
             # Wrong delimiter
             'foo, bar, baz=quux; quuux',
-
+            # Value in quoted string parameter that isn't a token
+            'foo; bar=" "',
         ]:
             with self.assertRaises(InvalidHeader):
                 parse_extension_list(header)

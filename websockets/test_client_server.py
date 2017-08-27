@@ -130,13 +130,8 @@ class BarClientProtocol(WebSocketClientProtocol):
 class ClientNoOpExtensionFactory:
     name = 'x-no-op'
 
-    def __init__(self, params=None):
-        if params is None:
-            params = []
-        self.params = params
-
     def get_request_params(self):
-        return self.params
+        return []
 
     def process_response_params(self, params, accepted_extensions):
         if params:
@@ -148,13 +143,9 @@ class ServerNoOpExtensionFactory:
     name = 'x-no-op'
 
     def __init__(self, params=None):
-        if params is None:
-            params = []
-        self.params = params
+        self.params = params or []
 
     def process_request_params(self, params, accepted_extensions):
-        if params:
-            raise NegotiationError()
         return self.params, NoOpExtension()
 
 
@@ -431,14 +422,6 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(server_extensions, repr([]))
         self.assertEqual(repr(self.client.extensions), repr([]))
 
-    @with_server(extensions=[ServerNoOpExtensionFactory()])
-    def test_extension_server_rejection(self):
-        with self.assertRaises(InvalidStatusCode):
-            self.start_client(
-                'extensions',
-                extensions=[ClientNoOpExtensionFactory([('foo', None)])],
-            )
-
     @with_server(extensions=[ServerNoOpExtensionFactory([('foo', None)])])
     def test_extension_client_rejection(self):
         with self.assertRaises(NegotiationError):
@@ -446,6 +429,29 @@ class ClientServerTests(unittest.TestCase):
                 'extensions',
                 extensions=[ClientNoOpExtensionFactory()],
             )
+
+    @with_server(
+        extensions=[
+            # No match because the client doesn't send client_max_window_bits.
+            ServerPerMessageDeflateFactory(client_max_window_bits=10),
+            ServerPerMessageDeflateFactory(),
+        ],
+    )
+    @with_client(
+        'extensions',
+        extensions=[
+            ClientPerMessageDeflateFactory(),
+        ],
+    )
+    def test_extension_no_match_then_match(self):
+        # The order requested by the client has priority.
+        server_extensions = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_extensions, repr([
+            PerMessageDeflate(False, False, 15, 15),
+        ]))
+        self.assertEqual(repr(self.client.extensions), repr([
+            PerMessageDeflate(False, False, 15, 15),
+        ]))
 
     @with_server(extensions=[ServerPerMessageDeflateFactory()])
     @with_client('extensions', extensions=[ClientNoOpExtensionFactory()])

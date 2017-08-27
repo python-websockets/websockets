@@ -82,31 +82,40 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         return status_code, self.response_headers
 
-    def process_extensions(self, get_header, available_extensions=None):
+    def process_extensions(self, get_header, available_extensions):
         """
         Handle the Sec-WebSocket-Extensions HTTP response header.
 
+        Check that each extension is supported, as well as its parameters.
+
+        Return the list of accepted extensions.
+
+        Raise :exc:`~websockets.exceptions.InvalidHandshake` to abort the
+        connection.
+
+        RFC 6455 leaves the rules up to the specification of each extension.
+
+        To provide this level of flexibility, for each extension accepted by
+        the server, we check for a match with each extension available in the
+        client configuration. If no match is found, an exception is raised.
+
+        If several variants of the same extension are accepted by the server,
+        it may be configured severel times, which won't make sense in general.
+        Extensions must implement their own requirements. For this purpose,
+        the list of previously accepted extensions is provided.
+
+        Other requirements, for example related to mandatory extensions or the
+        order of extensions, may be implemented by overriding this method.
+
         """
         extensions = get_header('Sec-WebSocket-Extensions')
+
+        accepted_extensions = []
 
         if extensions:
 
             if available_extensions is None:
                 raise InvalidHandshake("No extensions supported.")
-
-            # For each extension selected in the server response, check that
-            # it matches an extension in our list of available extensions.
-
-            # RFC 6455 leaves the exact process up to the specification of
-            # each extension. To provide this flexibility, we tell each
-            # extension which extensions were accepted up to this point.
-
-            # Such flexibility prevents us from providing any guarantees
-            # against reordered or duplicated extensions in the response.
-            # Extensions must implement ther own requirements, based on the
-            # list of previously accepted extensions.
-
-            accepted_extensions = []
 
             for name, response_params in parse_extension_list(extensions):
 
@@ -116,14 +125,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                     if extension_factory.name != name:
                         continue
 
-                    # This is allowed to raise NegotiationError.
-                    extension = extension_factory.process_response_params(
-                        response_params, accepted_extensions)
-
                     # Skip non-matching extensions based on their params.
-                    # There are no tests because the only extension currently
-                    # built in, permessage-deflate, doesn't need this feature.
-                    if extension is None:                   # pragma: no cover
+                    try:
+                        extension = extension_factory.process_response_params(
+                            response_params, accepted_extensions)
+                    except NegotiationError:
                         continue
 
                     # Add matching extension to the final list.
@@ -139,13 +145,15 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                         "Unsupported extension: name={}, params={}".format(
                             name, response_params))
 
-            return accepted_extensions
+        return accepted_extensions
 
-        return []
-
-    def process_subprotocol(self, get_header, available_subprotocols=None):
+    def process_subprotocol(self, get_header, available_subprotocols):
         """
         Handle the Sec-WebSocket-Protocol HTTP response header.
+
+        Check that it contains a supported subprotocol.
+
+        Return the selected subprotocol.
 
         """
         subprotocol = get_header('Sec-WebSocket-Protocol')

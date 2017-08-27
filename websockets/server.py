@@ -12,7 +12,8 @@ from .compatibility import (
     SWITCHING_PROTOCOLS, asyncio_ensure_future
 )
 from .exceptions import (
-    AbortHandshake, InvalidHandshake, InvalidMessage, InvalidOrigin
+    AbortHandshake, InvalidHandshake, InvalidMessage, InvalidOrigin,
+    NegotiationError
 )
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from .extensions.utils import build_extension_list, parse_extension_list
@@ -254,31 +255,44 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise InvalidOrigin("Origin not allowed: {}".format(origin))
         return origin
 
-    def process_extensions(self, get_header, available_extensions=None):
+    def process_extensions(self, get_header, available_extensions):
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.
+
+        Accept or reject each extension proposed in the client request.
+        Negotiate parameters for accepted extensions.
+
+        Return the Sec-WebSocket-Extensions HTTP response header and the list
+        of accepted extensions.
+
+        Raise :exc:`~websockets.exceptions.InvalidHandshake` to abort the
+        handshake with an HTTP 400 error code. (The default implementation
+        never does this.)
+
+        RFC 6455 leaves the rules up to the specification of each extension.
+
+        To provide this level of flexibility, for each extension proposed by
+        the client, we check for a match with each extension available in the
+        server configuration. If no match is found, the extension is ignored.
+
+        If several variants of the same extension are proposed by the client,
+        it may be accepted severel times, which won't make sense in general.
+        Extensions must implement their own requirements. For this purpose,
+        the list of previously accepted extensions is provided.
+
+        This process doesn't allow the server to reorder extensions. It can
+        only select a subset of the extensions proposed by the client.
+
+        Other requirements, for example related to mandatory extensions or the
+        order of extensions, may be implemented by overriding this method.
 
         """
         extensions = get_header('Sec-WebSocket-Extensions')
 
-        extensions_header = []
+        response_header = []
         accepted_extensions = []
 
         if extensions and available_extensions is not None:
-
-            # For each extension proposed in the client request, check if it
-            # matches an extension in our list of available extensions.
-
-            # RFC 6455 leaves the exact process up to the specification of
-            # each extension. To provide this flexibility, we tell each
-            # extension which extensions were accepted up to this point.
-
-            # Such flexibility prevents us from providing any guarantees
-            # against duplicated extensions in the request. Extensions must
-            # implement ther own requirements, based on the list of previously
-            # accepted extensions.
-
-            # The current implementation doesn't allow reordering extensions.
 
             for name, request_params in parse_extension_list(extensions):
 
@@ -288,56 +302,51 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     if extension_factory.name != name:
                         continue
 
-                    # This is allowed to raise NegotiationError.
-                    response_params, extension = (
-                        extension_factory.process_request_params(
-                            request_params, accepted_extensions)
-                    )
-
-                    assert (response_params is None) == (extension is None)
-
                     # Skip non-matching extensions based on their params.
-                    # There are no tests because the only extension currently
-                    # built in, permessage-deflate, doesn't need this feature.
-                    if extension is None:                   # pragma: no cover
+                    try:
+                        response_params, extension = (
+                            extension_factory.process_request_params(
+                                request_params, accepted_extensions))
+                    except NegotiationError:
                         continue
 
                     # Add matching extension to the final list.
-                    extensions_header.append((name, response_params))
+                    response_header.append((name, response_params))
                     accepted_extensions.append(extension)
 
                     # Break out of the loop once we have a match.
                     break
 
                 # If we didn't break from the loop, no extension in our list
-                # matched what the client sent. Ignore that extension.
+                # matched what the client sent. The extension is declined.
 
         # Serialize extension header.
-        if extensions_header:
-            extensions_header = build_extension_list(extensions_header)
+        if response_header:
+            response_header = build_extension_list(response_header)
         else:
-            extensions_header = None
+            response_header = None
 
-        return extensions_header, accepted_extensions
+        return response_header, accepted_extensions
 
-    def process_subprotocol(self, get_header, available_subprotocols=None):
+    def process_subprotocol(self, get_header, available_subprotocols):
         """
         Handle the Sec-WebSocket-Protocol HTTP request header.
 
+        Return Sec-WebSocket-Protocol HTTP response header, which is the same
+        as the selected subprotocol.
+
         """
-        if available_subprotocols is not None:
+        subprotocols = get_header('Sec-WebSocket-Protocol')
 
-            subprotocols = get_header('Sec-WebSocket-Protocol')
-
-            if subprotocols:
-                subprotocols = [
-                    subprotocol.strip()
-                    for subprotocol in subprotocols.split(',')
-                ]
-                return self.select_subprotocol(
-                    subprotocols,
-                    available_subprotocols,
-                )
+        if subprotocols and available_subprotocols is not None:
+            subprotocols = [
+                subprotocol.strip()
+                for subprotocol in subprotocols.split(',')
+            ]
+            return self.select_subprotocol(
+                subprotocols,
+                available_subprotocols,
+            )
 
         return None
 
@@ -348,7 +357,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         If several subprotocols are supported by the client and the server,
         the default implementation selects the preferred subprotocols by
-        giving equal valueto the priorities of the client and the server.
+        giving equal value to the priorities of the client and the server.
 
         If no subprotocols are supported by the client and the server, it
         proceeds without a subprotocol.

@@ -33,10 +33,9 @@ class ClientExtensionFactory:
         represented by extension instances.
 
         Return an extension instance (an instance of a subclass of
-        :class:`Extension`) to accept this response or ``None`` to reject it.
+        :class:`Extension`) if these parameters are acceptable.
 
-        Raise :exc:`~websockets.exceptions.NegotiationError` to abort the
-        handshake and fail the WebSocket connection.
+        Raise :exc:`~websockets.exceptions.NegotiationError` if they aren't.
 
         """
 
@@ -57,15 +56,11 @@ class ServerExtensionFactory:
         ``accepted_extensions`` is a list of previously accepted extensions,
         represented by extension instances.
 
-        Return response params and an extension instance to accept this
-        extension or ``None, None`` to reject it.
-
         Return response params (a list of (name, value) pairs) and an
         extension instance (an instance of a subclass of :class:`Extension`)
-        to accept this response or ``None, None`` to reject it.
+        to accept this extension.
 
-        Raise :exc:`~websockets.exceptions.NegotiationError` to abort the
-        handshake and fail the websocket connection.
+        Raise :exc:`~websockets.exceptions.NegotiationError` to reject it.
 
         """
 

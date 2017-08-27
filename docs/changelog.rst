@@ -1,10 +1,21 @@
 Changelog
 ---------
 
-3.5
+4.0
 ...
 
 *In development*
+
+.. warning::
+
+    **Version 4.0 enables compression with the permessage-deflate extension.**
+
+    In August 2017, Firefox and Chrome support it, but not Safari and IE.
+
+    Compression should improve performance but it increases RAM and CPU use.
+
+    If you want to disable compression, add ``compression=None`` when calling
+    :func:`~websockets.server.serve` or :func:`~websockets.client.connect`.
 
 3.4
 ...

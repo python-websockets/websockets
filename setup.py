@@ -5,7 +5,7 @@ import setuptools
 
 root_dir = os.path.abspath(os.path.dirname(__file__))
 
-description = "An implementation of the WebSocket Protocol (RFC 6455)"
+description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
 
 readme_file = os.path.join(root_dir, 'README.rst')
 with open(readme_file, encoding='utf-8') as f:
@@ -20,7 +20,7 @@ py_version = sys.version_info[:2]
 if py_version < (3, 3):
     raise Exception("websockets requires Python >= 3.3.")
 
-packages = ['websockets']
+packages = ['websockets', 'websockets/extensions']
 
 if py_version >= (3, 5):
     packages.append('websockets/py35')

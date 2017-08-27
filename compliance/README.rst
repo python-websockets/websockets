@@ -4,21 +4,28 @@ Autobahn Testsuite
 General information and installation instructions are available at
 http://autobahn.ws/testsuite.
 
+To improve performance, you should compile the C extension first::
+
+    $ python setup.py build_ext --inplace
+
 Running the test suite
 ----------------------
 
+All commands below must be run from the directory containing this file.
+
 To test the server::
 
-    $ python test_server.py
+    $ PYTHONPATH=.. python test_server.py
     $ wstest -m fuzzingclient
 
 To test the client::
 
     $ wstest -m fuzzingserver
-    $ python test_client.py
+    $ PYTHONPATH=.. python test_client.py
 
-Run the first command in a shell. Run the second command in another shell. It
-should take about one minute to complete. Then kill the first one with Ctrl-C.
+Run the first command in a shell. Run the second command in another shell.
+It should take about ten minutes to complete — wstest is the bottleneck.
+Then kill the first one with Ctrl-C.
 
 The test client or server shouldn't display any exceptions. The results are
 stored in reports/clients/index.html.
@@ -40,3 +47,7 @@ the previous frame.
 In 6.4.3 and 6.4.4, even though it uses an incremental decoder, ``websockets``
 doesn't notice the invalid utf-8 fast enough to get a "Strict" pass. These
 tests are more strict than the RFC.
+
+12.4.* are skipped: https://github.com/crossbario/autobahn-testsuite/issues/77
+
+12.5.* are skipped: https://github.com/crossbario/autobahn-testsuite/issues/77

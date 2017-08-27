@@ -1,4 +1,3 @@
-
 """
 The :mod:`websockets.server` module defines a simple WebSocket server API.
 
@@ -13,8 +12,11 @@ from .compatibility import (
     SWITCHING_PROTOCOLS, asyncio_ensure_future
 )
 from .exceptions import (
-    AbortHandshake, InvalidHandshake, InvalidMessage, InvalidOrigin
+    AbortHandshake, InvalidHandshake, InvalidMessage, InvalidOrigin,
+    NegotiationError
 )
+from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
+from .extensions.utils import build_extension_list, parse_extension_list
 from .handshake import build_response, check_request
 from .http import USER_AGENT, build_headers, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
@@ -39,11 +41,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     state = CONNECTING
 
     def __init__(self, ws_handler, ws_server, *,
-                 origins=None, subprotocols=None, extra_headers=None, **kwds):
+                 origins=None, extensions=None, subprotocols=None,
+                 extra_headers=None, **kwds):
         self.ws_handler = ws_handler
         self.ws_server = ws_server
         self.origins = origins
-        self.subprotocols = subprotocols
+        self.available_extensions = extensions
+        self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
         super().__init__(**kwds)
 
@@ -65,8 +69,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
             try:
                 path = yield from self.handshake(
-                    origins=self.origins, subprotocols=self.subprotocols,
-                    extra_headers=self.extra_headers)
+                    origins=self.origins,
+                    available_extensions=self.available_extensions,
+                    available_subprotocols=self.available_subprotocols,
+                    extra_headers=self.extra_headers,
+                )
             except ConnectionError as exc:
                 logger.debug(
                     "Connection error in opening handshake", exc_info=True)
@@ -236,7 +243,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def process_origin(self, get_header, origins=None):
         """
-        Handle the Origin HTTP header.
+        Handle the Origin HTTP request header.
 
         Raise :exc:`~websockets.exceptions.InvalidOrigin` if the origin isn't
         acceptable.
@@ -248,41 +255,149 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise InvalidOrigin("Origin not allowed: {}".format(origin))
         return origin
 
-    def process_subprotocol(self, get_header, subprotocols=None):
+    @staticmethod
+    def process_extensions(headers, available_extensions):
         """
-        Handle the Sec-WebSocket-Protocol HTTP header.
+        Handle the Sec-WebSocket-Extensions HTTP request header.
+
+        Accept or reject each extension proposed in the client request.
+        Negotiate parameters for accepted extensions.
+
+        Return the Sec-WebSocket-Extensions HTTP response header and the list
+        of accepted extensions.
+
+        Raise :exc:`~websockets.exceptions.InvalidHandshake` to abort the
+        handshake with an HTTP 400 error code. (The default implementation
+        never does this.)
+
+        RFC 6455 leaves the rules up to the specification of each extension.
+
+        To provide this level of flexibility, for each extension proposed by
+        the client, we check for a match with each extension available in the
+        server configuration. If no match is found, the extension is ignored.
+
+        If several variants of the same extension are proposed by the client,
+        it may be accepted severel times, which won't make sense in general.
+        Extensions must implement their own requirements. For this purpose,
+        the list of previously accepted extensions is provided.
+
+        This process doesn't allow the server to reorder extensions. It can
+        only select a subset of the extensions proposed by the client.
+
+        Other requirements, for example related to mandatory extensions or the
+        order of extensions, may be implemented by overriding this method.
 
         """
-        if subprotocols is not None:
-            subprotocol = get_header('Sec-WebSocket-Protocol')
-            if subprotocol:
-                return self.select_subprotocol(
-                    [p.strip() for p in subprotocol.split(',')],
-                    subprotocols,
-                )
+        response_header = []
+        accepted_extensions = []
+
+        header_values = headers.get_all('Sec-WebSocket-Extensions')
+
+        if header_values is not None and available_extensions is not None:
+
+            parsed_header_values = sum([
+                parse_extension_list(header_value)
+                for header_value in header_values
+            ], [])
+
+            for name, request_params in parsed_header_values:
+
+                for extension_factory in available_extensions:
+
+                    # Skip non-matching extensions based on their name.
+                    if extension_factory.name != name:
+                        continue
+
+                    # Skip non-matching extensions based on their params.
+                    try:
+                        response_params, extension = (
+                            extension_factory.process_request_params(
+                                request_params, accepted_extensions))
+                    except NegotiationError:
+                        continue
+
+                    # Add matching extension to the final list.
+                    response_header.append((name, response_params))
+                    accepted_extensions.append(extension)
+
+                    # Break out of the loop once we have a match.
+                    break
+
+                # If we didn't break from the loop, no extension in our list
+                # matched what the client sent. The extension is declined.
+
+        # Serialize extension header.
+        if response_header:
+            response_header = build_extension_list(response_header)
+        else:
+            response_header = None
+
+        return response_header, accepted_extensions
+
+    # Not @staticmethod because it calls self.select_subprotocol()
+    def process_subprotocol(self, headers, available_subprotocols):
+        """
+        Handle the Sec-WebSocket-Protocol HTTP request header.
+
+        Return Sec-WebSocket-Protocol HTTP response header, which is the same
+        as the selected subprotocol.
+
+        """
+        subprotocols = None
+
+        header_values = headers.get_all('Sec-WebSocket-Protocol')
+
+        if header_values is not None and available_subprotocols is not None:
+            parsed_header_values = [
+                subprotocol.strip()
+                for header_value in header_values
+                for subprotocol in header_value.split(',')
+            ]
+            subprotocols = self.select_subprotocol(
+                parsed_header_values,
+                available_subprotocols,
+            )
+
+        return subprotocols
 
     @staticmethod
-    def select_subprotocol(client_protos, server_protos):
+    def select_subprotocol(client_subprotocols, server_subprotocols):
         """
         Pick a subprotocol among those offered by the client.
 
+        If several subprotocols are supported by the client and the server,
+        the default implementation selects the preferred subprotocols by
+        giving equal value to the priorities of the client and the server.
+
+        If no subprotocols are supported by the client and the server, it
+        proceeds without a subprotocol.
+
+        This is unlikely to be the most useful implementation in practice, as
+        many servers providing a subprotocol will require that the client uses
+        that subprotocol. Such rules can be implemented in a subclass.
+
         """
-        common_protos = set(client_protos) & set(server_protos)
-        if not common_protos:
+        subprotocols = set(client_subprotocols) & set(server_subprotocols)
+        if not subprotocols:
             return None
-        priority = lambda p: client_protos.index(p) + server_protos.index(p)
-        return sorted(common_protos, key=priority)[0]
+        priority = lambda p: (
+            client_subprotocols.index(p) + server_subprotocols.index(p))
+        return sorted(subprotocols, key=priority)[0]
 
     @asyncio.coroutine
-    def handshake(self, origins=None, subprotocols=None, extra_headers=None):
+    def handshake(self, origins=None, available_extensions=None,
+                  available_subprotocols=None, extra_headers=None):
         """
         Perform the server side of the opening handshake.
 
         If provided, ``origins`` is a list of acceptable HTTP Origin values.
         Include ``''`` if the lack of an origin is acceptable.
 
-        If provided, ``subprotocols`` is a list of supported subprotocols in
-        order of decreasing preference.
+        If provided, ``available_extensions`` is a list of supported
+        extensions in the order in which they should be used.
+
+        If provided, ``available_subprotocols`` is a list of supported
+        subprotocols in order of decreasing preference.
 
         If provided, ``extra_headers`` sets additional HTTP response headers.
         It can be a mapping or an iterable of (name, value) pairs. It can also
@@ -308,15 +423,24 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         key = check_request(get_header)
 
         self.origin = self.process_origin(get_header, origins)
-        self.subprotocol = self.process_subprotocol(get_header, subprotocols)
+
+        extensions_header, self.extensions = self.process_extensions(
+            request_headers, available_extensions)
+
+        protocol_header = self.subprotocol = self.process_subprotocol(
+            request_headers, available_subprotocols)
 
         response_headers = []
         set_header = lambda k, v: response_headers.append((k, v))
 
         set_header('Server', USER_AGENT)
 
-        if self.subprotocol:
-            set_header('Sec-WebSocket-Protocol', self.subprotocol)
+        if extensions_header is not None:
+            set_header('Sec-WebSocket-Extensions', extensions_header)
+
+        if self.subprotocol is not None:
+            set_header('Sec-WebSocket-Protocol', protocol_header)
+
         if extra_headers is not None:
             if callable(extra_headers):
                 extra_headers = extra_headers(path, self.raw_request_headers)
@@ -324,6 +448,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
                 set_header(name, value)
+
         build_response(set_header, key)
 
         yield from self.write_http_response(
@@ -441,8 +566,8 @@ def serve(ws_handler, host=None, port=None, *,
           timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
           read_limit=2 ** 16, write_limit=2 ** 16,
           loop=None, legacy_recv=False, klass=None,
-          origins=None, subprotocols=None, extra_headers=None,
-          **kwds):
+          origins=None, extensions=None, subprotocols=None,
+          extra_headers=None, compression='deflate', **kwds):
     """
     Create, start, and return a :class:`WebSocketServer` object.
 
@@ -484,11 +609,16 @@ def serve(ws_handler, host=None, port=None, *,
 
     * ``origins`` defines acceptable Origin HTTP headers — include
       ``''`` if the lack of an origin is acceptable
+    * ``extensions`` is a list of supported extensions in order of decreasing
+      preference
     * ``subprotocols`` is a list of supported subprotocols in order of
       decreasing preference
     * ``extra_headers`` sets additional HTTP response headers — it can be a
       mapping, an iterable of (name, value) pairs, or a callable taking the
       request path and headers in arguments.
+    * ``compression`` is a shortcut to configure compression extensions;
+      by default it enables the "permessage-deflate" extension; set it to
+      ``None`` to disable compression
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`WebSocketServerProtocol`, performs the opening handshake, and
@@ -519,13 +649,25 @@ def serve(ws_handler, host=None, port=None, *,
     ws_server = WebSocketServer(loop)
 
     secure = kwds.get('ssl') is not None
+
+    if compression == 'deflate':
+        if extensions is None:
+            extensions = []
+        if not any(
+            extension_factory.name == ServerPerMessageDeflateFactory.name
+            for extension_factory in extensions
+        ):
+            extensions.append(ServerPerMessageDeflateFactory())
+    elif compression is not None:
+        raise ValueError("Unsupported compression: {}".format(compression))
+
     factory = lambda: create_protocol(
         ws_handler, ws_server,
         host=host, port=port, secure=secure,
         timeout=timeout, max_size=max_size, max_queue=max_queue,
         read_limit=read_limit, write_limit=write_limit,
         loop=loop, legacy_recv=legacy_recv,
-        origins=origins, subprotocols=subprotocols,
+        origins=origins, extensions=extensions, subprotocols=subprotocols,
         extra_headers=extra_headers,
     )
     server = yield from loop.create_server(factory, host, port, **kwds)

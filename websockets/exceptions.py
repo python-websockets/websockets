@@ -1,7 +1,10 @@
 __all__ = [
-    'AbortHandshake', 'InvalidHandshake', 'InvalidMessage', 'InvalidOrigin',
-    'InvalidState', 'InvalidStatusCode', 'InvalidURI', 'ConnectionClosed',
-    'PayloadTooBig', 'WebSocketProtocolError',
+
+    'AbortHandshake', 'InvalidHandshake', 'InvalidHeader', 'InvalidMessage',
+    'InvalidOrigin', 'InvalidState', 'InvalidStatusCode', 'NegotiationError',
+    'InvalidParameterName', 'InvalidParameterValue', 'DuplicateParameter',
+    'InvalidURI', 'ConnectionClosed', 'PayloadTooBig',
+    'WebSocketProtocolError',
 ]
 
 
@@ -30,6 +33,18 @@ class InvalidMessage(InvalidHandshake):
     """
 
 
+class InvalidHeader(InvalidHandshake):
+    """
+    Exception raised when a HTTP header doesn't have the expected format.
+
+    """
+    def __init__(self, message, string, pos):
+        self.string = string
+        self.pos = pos
+        message = "{} at {} in {}".format(message, pos, string)
+        super().__init__(message)
+
+
 class InvalidOrigin(InvalidHandshake):
     """
     Exception raised when the origin in a handshake request is forbidden.
@@ -46,7 +61,48 @@ class InvalidStatusCode(InvalidHandshake):
     """
     def __init__(self, status_code):
         self.status_code = status_code
-        message = 'Status code not 101: {}'.format(status_code)
+        message = "Status code not 101: {}".format(status_code)
+        super().__init__(message)
+
+
+class NegotiationError(InvalidHandshake):
+    """
+    Exception raised when negociating an extension fails.
+
+    """
+
+
+class InvalidParameterName(NegotiationError):
+    """
+    Exception raised when a parameter name in an extension header is invalid.
+
+    """
+    def __init__(self, name):
+        self.name = name
+        message = "Invalid parameter name: {}".format(name)
+        super().__init__(message)
+
+
+class InvalidParameterValue(NegotiationError):
+    """
+    Exception raised when a parameter value in an extension header is invalid.
+
+    """
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
+        message = "Invalid value for parameter {}: {}".format(name, value)
+        super().__init__(message)
+
+
+class DuplicateParameter(NegotiationError):
+    """
+    Exception raised when a parameter name is repeated in an extension header.
+
+    """
+    def __init__(self, name):
+        self.name = name
+        message = "Duplicate parameter: {}".format(name)
         super().__init__(message)
 
 
@@ -68,9 +124,9 @@ class ConnectionClosed(InvalidState):
     def __init__(self, code, reason):
         self.code = code
         self.reason = reason
-        message = 'WebSocket connection is closed: '
-        message += 'code = {}, '.format(code) if code else 'no code, '
-        message += 'reason = {}.'.format(reason) if reason else 'no reason.'
+        message = "WebSocket connection is closed: "
+        message += "code = {}, ".format(code) if code else "no code, "
+        message += "reason = {}.".format(reason) if reason else "no reason."
         super().__init__(message)
 
 

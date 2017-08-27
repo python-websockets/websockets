@@ -2,8 +2,8 @@ WebSockets
 ==========
 
 ``websockets`` is a library for developing WebSocket servers_ and clients_ in
-Python. It implements `RFC 6455`_ with a focus on correctness and simplicity.
-It passes the `Autobahn Testsuite`_.
+Python. It implements `RFC 6455`_ and `RFC 7692`_ with a focus on correctness
+and simplicity. It passes the `Autobahn Testsuite`_.
 
 Built on top of :mod:`asyncio`, Python's standard asynchronous I/O framework,
 it provides a straightforward API based on coroutines, making it easy to write
@@ -39,6 +39,7 @@ Bug reports, patches and suggestions welcome! Just open an issue_ or send a
 .. _servers: https://github.com/aaugustin/websockets/blob/master/example/server.py
 .. _clients: https://github.com/aaugustin/websockets/blob/master/example/client.py
 .. _RFC 6455: http://tools.ietf.org/html/rfc6455
+.. _RFC 7692: http://tools.ietf.org/html/rfc7692
 .. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/master/compliance/README.rst
 .. _PEP 3156: http://www.python.org/dev/peps/pep-3156/
 .. _issue: https://github.com/aaugustin/websockets/issues/new

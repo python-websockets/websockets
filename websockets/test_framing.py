@@ -1,4 +1,6 @@
 import asyncio
+import codecs
+import sys
 import unittest
 import unittest.mock
 
@@ -15,31 +17,32 @@ class FramingTests(unittest.TestCase):
     def tearDown(self):
         self.loop.close()
 
-    def decode(self, message, mask=False, max_size=None):
+    def decode(self, message, mask=False, max_size=None, extensions=()):
         self.stream = asyncio.StreamReader(loop=self.loop)
         self.stream.feed_data(message)
         self.stream.feed_eof()
-        frame = self.loop.run_until_complete(read_frame(
-            self.stream.readexactly, mask, max_size=max_size))
+        frame = self.loop.run_until_complete(Frame.read(
+            self.stream.readexactly, mask=mask,
+            max_size=max_size, extensions=extensions))
         # Make sure all the data was consumed.
         self.assertTrue(self.stream.at_eof())
         return frame
 
-    def encode(self, frame, mask=False):
+    def encode(self, frame, mask=False, extensions=()):
         writer = unittest.mock.Mock()
-        write_frame(frame, writer, mask)
+        frame.write(writer, mask=mask, extensions=extensions)
         # Ensure the entire frame is sent with a single call to writer().
         # Multiple calls cause TCP fragmentation and degrade performance.
         self.assertEqual(writer.call_count, 1)
         # The frame data is the single positional argument of that call.
         return writer.call_args[0][0]
 
-    def round_trip(self, message, expected, mask=False):
-        decoded = self.decode(message, mask)
+    def round_trip(self, message, expected, mask=False, extensions=()):
+        decoded = self.decode(message, mask, extensions=extensions)
         self.assertEqual(decoded, expected)
-        encoded = self.encode(decoded, mask)
+        encoded = self.encode(decoded, mask, extensions=extensions)
         if mask:    # non-deterministic encoding
-            decoded = self.decode(encoded, mask)
+            decoded = self.decode(encoded, mask, extensions=extensions)
             self.assertEqual(decoded, expected)
         else:       # deterministic encoding
             self.assertEqual(encoded, message)
@@ -130,7 +133,7 @@ class FramingTests(unittest.TestCase):
         with self.assertRaises(WebSocketProtocolError):
             self.decode(b'\x08\x00')
 
-    def test_parse_close(self):
+    def test_parse_close_and_serialize_close(self):
         self.round_trip_close(b'\x03\xe8', 1000, '')
         self.round_trip_close(b'\x03\xe8OK', 1000, 'OK')
 
@@ -144,3 +147,27 @@ class FramingTests(unittest.TestCase):
             parse_close(b'\x03\xe7')
         with self.assertRaises(UnicodeDecodeError):
             parse_close(b'\x03\xe8\xff\xff')
+
+    def test_serialize_close_errors(self):
+        with self.assertRaises(WebSocketProtocolError):
+            serialize_close(999, '')
+
+    @unittest.skipUnless(sys.version_info[:2] >= (3, 4), "rot13 is new in 3.4")
+    def test_extensions(self):
+
+        class Rot13:
+
+            @staticmethod
+            def encode(frame):
+                assert frame.opcode == OP_TEXT
+                text = frame.data.decode()
+                data = codecs.encode(text, 'rot13').encode()
+                return frame._replace(data=data)
+
+            # This extensions is symmetrical.
+            decode = encode
+
+        self.round_trip(
+            b'\x81\x05uryyb',
+            Frame(True, OP_TEXT, b'hello'),
+            extensions=[Rot13()])

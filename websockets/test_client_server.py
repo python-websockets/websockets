@@ -596,6 +596,16 @@ class ClientServerTests(unittest.TestCase):
             self.start_client('subprotocol')
         self.run_loop_once()
 
+    @with_server(subprotocols=['superchat', 'chat'])
+    @unittest.mock.patch.object(WebSocketServerProtocol, 'process_subprotocol')
+    def test_subprotocol_error_two_subprotocols(self, _process_subprotocol):
+        _process_subprotocol.return_value = 'superchat, chat'
+
+        with self.assertRaises(InvalidHandshake):
+            self.start_client(
+                'subprotocol', subprotocols=['superchat', 'chat'])
+        self.run_loop_once()
+
     @with_server()
     @unittest.mock.patch('websockets.server.read_request')
     def test_server_receives_malformed_request(self, _read_request):

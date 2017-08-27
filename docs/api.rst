@@ -108,5 +108,8 @@ URI parser
 Utilities
 .........
 
+.. automodule:: websockets.headers
+   :members:
+
 .. automodule:: websockets.http
    :members:

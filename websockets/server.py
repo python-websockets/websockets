@@ -16,8 +16,10 @@ from .exceptions import (
     NegotiationError
 )
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
-from .extensions.utils import build_extension_list, parse_extension_list
 from .handshake import build_response, check_request
+from .headers import (
+    build_extension_list, parse_extension_list, parse_protocol_list
+)
 from .http import USER_AGENT, build_headers, read_request
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 
@@ -343,22 +345,23 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         as the selected subprotocol.
 
         """
-        subprotocols = None
+        subprotocol = None
 
         header_values = headers.get_all('Sec-WebSocket-Protocol')
 
         if header_values is not None and available_subprotocols is not None:
-            parsed_header_values = [
-                subprotocol.strip()
+
+            parsed_header_values = sum([
+                parse_protocol_list(header_value)
                 for header_value in header_values
-                for subprotocol in header_value.split(',')
-            ]
-            subprotocols = self.select_subprotocol(
+            ], [])
+
+            subprotocol = self.select_subprotocol(
                 parsed_header_values,
                 available_subprotocols,
             )
 
-        return subprotocols
+        return subprotocol
 
     @staticmethod
     def select_subprotocol(client_subprotocols, server_subprotocols):

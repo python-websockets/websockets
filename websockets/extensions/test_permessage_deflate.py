@@ -10,7 +10,19 @@ from ..framing import (
     serialize_close
 )
 from .permessage_deflate import *
-from .test_utils import ExtensionTestsMixin
+
+
+class ExtensionTestsMixin:
+
+    def assertExtensionEqual(self, extension1, extension2):
+        self.assertEqual(extension1.remote_no_context_takeover,
+                         extension2.remote_no_context_takeover)
+        self.assertEqual(extension1.local_no_context_takeover,
+                         extension2.local_no_context_takeover)
+        self.assertEqual(extension1.remote_max_window_bits,
+                         extension2.remote_max_window_bits)
+        self.assertEqual(extension1.local_max_window_bits,
+                         extension2.local_max_window_bits)
 
 
 class ClientPerMessageDeflateFactoryTests(unittest.TestCase,

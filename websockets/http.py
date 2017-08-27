@@ -1,9 +1,9 @@
 """
-The :mod:`websockets.http` module provides HTTP parsing functions. They're
-merely adequate for the WebSocket handshake messages.
+The :mod:`websockets.http` module provides basic HTTP parsing and
+serialization. It is merely adequate for WebSocket handshake messages.
 
-These functions cannot be imported from :mod:`websockets`; they must be
-imported from :mod:`websockets.http`.
+Its functions cannot be imported from :mod:`websockets`. They must be imported
+from :mod:`websockets.http`.
 
 """
 

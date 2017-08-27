@@ -10,8 +10,11 @@ from .exceptions import (
     InvalidHandshake, InvalidMessage, InvalidStatusCode, NegotiationError
 )
 from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
-from .extensions.utils import build_extension_list, parse_extension_list
 from .handshake import build_request, check_response
+from .headers import (
+    build_extension_list, build_protocol_list, parse_extension_list,
+    parse_protocol_list
+)
 from .http import USER_AGENT, build_headers, read_response
 from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
 from .uri import parse_uri
@@ -172,8 +175,17 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if available_subprotocols is None:
                 raise InvalidHandshake("No subprotocols supported.")
 
-            # TODO - handle the case when len(header_values) != 1
-            subprotocol = header_values[0]
+            parsed_header_values = sum([
+                parse_protocol_list(header_value)
+                for header_value in header_values
+            ], [])
+
+            if len(parsed_header_values) > 1:
+                raise InvalidHandshake(
+                    "Multiple subprotocols: {}".format(
+                        ', '.join(parsed_header_values)))
+
+            subprotocol = parsed_header_values[0]
 
             if subprotocol not in available_subprotocols:
                 raise NegotiationError(
@@ -222,7 +234,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Sec-WebSocket-Extensions', extensions_header)
 
         if available_subprotocols is not None:
-            protocol_header = ', '.join(available_subprotocols)
+            protocol_header = build_protocol_list(available_subprotocols)
             set_header('Sec-WebSocket-Protocol', protocol_header)
 
         if extra_headers is not None:

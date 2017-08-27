@@ -1,9 +1,21 @@
+"""
+The :mod:`websockets.headers` module provides parsers and serializers for HTTP
+headers used in WebSocket handshake messages.
+
+Its functions cannot be imported from :mod:`websockets`. They must be imported
+from :mod:`websockets.headers`.
+
+"""
+
 import re
 
-from ..exceptions import InvalidHeader
+from .exceptions import InvalidHeader
 
 
-__all__ = ['build_extension_list', 'parse_extension_list']
+__all__ = [
+    'parse_extension_list', 'build_extension_list',
+    'parse_protocol_list', 'build_protocol_list',
+]
 
 
 # To avoid a dependency on a parsing library, we implement manually the ABNF
@@ -91,7 +103,7 @@ def parse_extension_list(string, pos=0):
 
     The string is assumed not to start or end with whitespace.
 
-    The return value has the following format::
+    Return a value with the following format::
 
         [
             (
@@ -167,3 +179,69 @@ def build_extension_list(extensions):
         build_extension(name, parameters)
         for name, parameters in extensions
     )
+
+
+def parse_protocol(string, pos):
+    name, pos = parse_token(string, pos)
+    pos = parse_OWS(string, pos)
+    return name, pos
+
+
+def parse_protocol_list(string, pos=0):
+    """
+    Parse a Sec-WebSocket-Protocol header.
+
+    The string is assumed not to start or end with whitespace.
+
+    Return a list of protocols.
+
+    Raise InvalidHeader if the header cannot be parsed.
+
+    """
+    # Per https://tools.ietf.org/html/rfc7230#section-7, "a recipient MUST
+    # parse and ignore a reasonable number of empty list elements"; hence
+    # while loops that remove extra delimiters.
+
+    # Remove extra delimiters before the first extension.
+    while peek_ahead(string, pos) == ',':
+        pos = parse_OWS(string, pos + 1)
+
+    protocols = []
+    while True:
+        # Loop invariant: a protocol starts at pos in string.
+        protocol, pos = parse_protocol(string, pos)
+        protocols.append(protocol)
+
+        # We may have reached the end of the string.
+        if pos == len(string):
+            break
+
+        # There must be a delimiter after each element except the last one.
+        if peek_ahead(string, pos) == ',':
+            pos = parse_OWS(string, pos + 1)
+        else:
+            raise InvalidHeader("expected comma", string=string, pos=pos)
+
+        # Remove extra delimiters before the next protocol.
+        while peek_ahead(string, pos) == ',':
+            pos = parse_OWS(string, pos + 1)
+
+        # We may have reached the end of the string.
+        if pos == len(string):
+            break
+
+    # Since we only advance in the string by one character with peek_ahead()
+    # or with the end position of a regex match, we can't overshoot the end.
+    assert pos == len(string)
+
+    return protocols
+
+
+def build_protocol_list(protocols):
+    """
+    Unparse a Sec-WebSocket-Protocol header.
+
+    This is the reverse of parse_protocol_list.
+
+    """
+    return ', '.join(protocols)

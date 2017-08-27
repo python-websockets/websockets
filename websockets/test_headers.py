@@ -1,10 +1,10 @@
 import unittest
 
-from ..exceptions import InvalidHeader
-from .utils import *
+from .exceptions import InvalidHeader
+from .headers import *
 
 
-class UtilsTests(unittest.TestCase):
+class HeadersTests(unittest.TestCase):
 
     def test_parse_extension_list(self):
         for header, parsed in [
@@ -47,6 +47,7 @@ class UtilsTests(unittest.TestCase):
         ]:
             with self.subTest(header=header, parsed=parsed):
                 self.assertEqual(parse_extension_list(header), parsed)
+                # Also ensure that build_extension_list round-trips cleanly.
                 unparsed = build_extension_list(parsed)
                 self.assertEqual(parse_extension_list(unparsed), parsed)
 
@@ -68,15 +69,37 @@ class UtilsTests(unittest.TestCase):
                 with self.assertRaises(InvalidHeader):
                     parse_extension_list(header)
 
+    def test_parse_protocol_list(self):
+        for header, parsed in [
+            # Synthetic examples
+            (
+                'foo',
+                ['foo'],
+            ),
+            (
+                'foo, bar',
+                ['foo', 'bar'],
+            ),
+            # Pathological examples
+            (
+                ',\t, ,  ,foo  ,,   bar,baz,,',
+                ['foo', 'bar', 'baz'],
+            ),
+        ]:
+            with self.subTest(header=header, parsed=parsed):
+                self.assertEqual(parse_protocol_list(header), parsed)
+                # Also ensure that build_protocol_list round-trips cleanly.
+                unparsed = build_protocol_list(parsed)
+                self.assertEqual(parse_protocol_list(unparsed), parsed)
 
-class ExtensionTestsMixin:
-
-    def assertExtensionEqual(self, extension1, extension2):
-        self.assertEqual(extension1.remote_no_context_takeover,
-                         extension2.remote_no_context_takeover)
-        self.assertEqual(extension1.local_no_context_takeover,
-                         extension2.local_no_context_takeover)
-        self.assertEqual(extension1.remote_max_window_bits,
-                         extension2.remote_max_window_bits)
-        self.assertEqual(extension1.local_max_window_bits,
-                         extension2.local_max_window_bits)
+    def test_parse_protocol_list_invalid_header(self):
+        for header in [
+            # Truncated examples
+            '',
+            ',\t,'
+            # Wrong delimiter
+            'foo; bar',
+        ]:
+            with self.subTest(header=header):
+                with self.assertRaises(InvalidHeader):
+                    parse_protocol_list(header)

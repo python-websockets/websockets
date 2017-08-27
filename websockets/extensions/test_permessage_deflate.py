@@ -26,6 +26,7 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
             (True, False, None, 8),         # client_max_window_bits ≥ 8
             (True, True, None, 15),         # client_max_window_bits ≤ 15
             (False, False, None, True),     # client_max_window_bits
+            (False, False, None, None, {'memLevel': 4}),
         ]:
             # This does not raise an exception.
             ClientPerMessageDeflateFactory(*config)
@@ -37,6 +38,7 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
             (True, False, 16, 15),          # server_max_window_bits > 15
             (True, True, 15, 16),           # client_max_window_bits > 15
             (False, False, True, None),     # server_max_window_bits
+            (False, False, None, None, {'wbits': 11}),
         ]:
             with self.assertRaises(ValueError):
                 ClientPerMessageDeflateFactory(*config)
@@ -306,6 +308,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             (False, True, 15, None),        # server_max_window_bits ≤ 15
             (True, False, None, 8),         # client_max_window_bits ≥ 8
             (True, True, None, 15),         # client_max_window_bits ≤ 15
+            (False, False, None, None, {'memLevel': 4}),
         ]:
             # This does not raise an exception.
             ServerPerMessageDeflateFactory(*config)
@@ -318,6 +321,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             (True, True, 15, 16),           # client_max_window_bits > 15
             (False, False, None, True),     # client_max_window_bits
             (False, False, True, None),     # server_max_window_bits
+            (False, False, None, None, {'wbits': 11}),
         ]:
             with self.assertRaises(ValueError):
                 ServerPerMessageDeflateFactory(*config)
@@ -778,3 +782,18 @@ class PerMessageDeflateTests(unittest.TestCase):
 
         self.assertEqual(dec_frame1, frame)
         self.assertEqual(dec_frame2, frame)
+
+    # Compression settings can be customized.
+
+    def test_compress_settings(self):
+        # Configure an extension so that no compression actually occurs.
+        extension = PerMessageDeflate(False, False, 15, 15, {'level': 0})
+
+        frame = Frame(True, OP_TEXT, 'café'.encode('utf-8'))
+
+        enc_frame = extension.encode(frame)
+
+        self.assertEqual(enc_frame, frame._replace(
+            rsv1=True,
+            data=b'\x00\x05\x00\xfa\xffcaf\xc3\xa9\x00',    # not compressed
+        ))

@@ -255,7 +255,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise InvalidOrigin("Origin not allowed: {}".format(origin))
         return origin
 
-    def process_extensions(self, get_header, available_extensions):
+    @staticmethod
+    def process_extensions(headers, available_extensions):
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.
 
@@ -287,14 +288,19 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         order of extensions, may be implemented by overriding this method.
 
         """
-        extensions = get_header('Sec-WebSocket-Extensions')
-
         response_header = []
         accepted_extensions = []
 
-        if extensions and available_extensions is not None:
+        header_values = headers.get_all('Sec-WebSocket-Extensions')
 
-            for name, request_params in parse_extension_list(extensions):
+        if header_values is not None and available_extensions is not None:
+
+            parsed_header_values = sum([
+                parse_extension_list(header_value)
+                for header_value in header_values
+            ], [])
+
+            for name, request_params in parsed_header_values:
 
                 for extension_factory in available_extensions:
 
@@ -328,7 +334,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         return response_header, accepted_extensions
 
-    def process_subprotocol(self, get_header, available_subprotocols):
+    # Not @staticmethod because it calls self.select_subprotocol()
+    def process_subprotocol(self, headers, available_subprotocols):
         """
         Handle the Sec-WebSocket-Protocol HTTP request header.
 
@@ -336,19 +343,22 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         as the selected subprotocol.
 
         """
-        subprotocols = get_header('Sec-WebSocket-Protocol')
+        subprotocols = None
 
-        if subprotocols and available_subprotocols is not None:
-            subprotocols = [
+        header_values = headers.get_all('Sec-WebSocket-Protocol')
+
+        if header_values is not None and available_subprotocols is not None:
+            parsed_header_values = [
                 subprotocol.strip()
-                for subprotocol in subprotocols.split(',')
+                for header_value in header_values
+                for subprotocol in header_value.split(',')
             ]
-            return self.select_subprotocol(
-                subprotocols,
+            subprotocols = self.select_subprotocol(
+                parsed_header_values,
                 available_subprotocols,
             )
 
-        return None
+        return subprotocols
 
     @staticmethod
     def select_subprotocol(client_subprotocols, server_subprotocols):
@@ -415,10 +425,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.origin = self.process_origin(get_header, origins)
 
         extensions_header, self.extensions = self.process_extensions(
-            get_header, available_extensions)
+            request_headers, available_extensions)
 
-        self.subprotocol = self.process_subprotocol(
-            get_header, available_subprotocols)
+        protocol_header = self.subprotocol = self.process_subprotocol(
+            request_headers, available_subprotocols)
 
         response_headers = []
         set_header = lambda k, v: response_headers.append((k, v))
@@ -429,7 +439,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             set_header('Sec-WebSocket-Extensions', extensions_header)
 
         if self.subprotocol is not None:
-            set_header('Sec-WebSocket-Protocol', self.subprotocol)
+            set_header('Sec-WebSocket-Protocol', protocol_header)
 
         if extra_headers is not None:
             if callable(extra_headers):

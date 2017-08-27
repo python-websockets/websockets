@@ -82,7 +82,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         return status_code, self.response_headers
 
-    def process_extensions(self, get_header, available_extensions):
+    @staticmethod
+    def process_extensions(headers, available_extensions):
         """
         Handle the Sec-WebSocket-Extensions HTTP response header.
 
@@ -108,16 +109,21 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         order of extensions, may be implemented by overriding this method.
 
         """
-        extensions = get_header('Sec-WebSocket-Extensions')
-
         accepted_extensions = []
 
-        if extensions:
+        header_values = headers.get_all('Sec-WebSocket-Extensions')
+
+        if header_values is not None:
 
             if available_extensions is None:
                 raise InvalidHandshake("No extensions supported.")
 
-            for name, response_params in parse_extension_list(extensions):
+            parsed_header_values = sum([
+                parse_extension_list(header_value)
+                for header_value in header_values
+            ], [])
+
+            for name, response_params in parsed_header_values:
 
                 for extension_factory in available_extensions:
 
@@ -147,7 +153,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         return accepted_extensions
 
-    def process_subprotocol(self, get_header, available_subprotocols):
+    @staticmethod
+    def process_subprotocol(headers, available_subprotocols):
         """
         Handle the Sec-WebSocket-Protocol HTTP response header.
 
@@ -156,20 +163,23 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         Return the selected subprotocol.
 
         """
-        subprotocol = get_header('Sec-WebSocket-Protocol')
+        subprotocol = None
 
-        if subprotocol:
+        header_values = headers.get_all('Sec-WebSocket-Protocol')
+
+        if header_values is not None:
 
             if available_subprotocols is None:
                 raise InvalidHandshake("No subprotocols supported.")
+
+            # TODO - handle the case when len(header_values) != 1
+            subprotocol = header_values[0]
 
             if subprotocol not in available_subprotocols:
                 raise NegotiationError(
                     "Unsupported subprotocol: {}".format(subprotocol))
 
-            return subprotocol
-
-        return None
+        return subprotocol
 
     @asyncio.coroutine
     def handshake(self, wsuri, origin=None,
@@ -190,8 +200,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         It must be a mapping or an iterable of (name, value) pairs.
 
         """
-        headers = []
-        set_header = lambda k, v: headers.append((k, v))
+        request_headers = []
+        set_header = lambda k, v: request_headers.append((k, v))
 
         if wsuri.port == (443 if wsuri.secure else 80):     # pragma: no cover
             set_header('Host', wsuri.host)
@@ -225,10 +235,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         key = build_request(set_header)
 
-        yield from self.write_http_request(wsuri.resource_name, headers)
+        yield from self.write_http_request(
+            wsuri.resource_name, request_headers)
 
-        status_code, headers = yield from self.read_http_response()
-        get_header = lambda k: headers.get(k, '')
+        status_code, response_headers = yield from self.read_http_response()
+        get_header = lambda k: response_headers.get(k, '')
 
         if status_code != 101:
             raise InvalidStatusCode(status_code)
@@ -236,10 +247,10 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         check_response(get_header, key)
 
         self.extensions = self.process_extensions(
-            get_header, available_extensions)
+            response_headers, available_extensions)
 
         self.subprotocol = self.process_subprotocol(
-            get_header, available_subprotocols)
+            response_headers, available_subprotocols)
 
         assert self.state == CONNECTING
         self.state = OPEN

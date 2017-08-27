@@ -3,10 +3,10 @@
    "url": "ws://localhost:8642",
 
    "options": {"failByDrop": false},
-   "outdir": "./reports/servers",
+   "outdir": "./reports/clients",
    "webport": 8080,
 
    "cases": ["*"],
-   "exclude-cases": ["12.5.*"],
+   "exclude-cases": ["12.4.*", "12.5.*"],
    "exclude-agent-cases": {}
 }

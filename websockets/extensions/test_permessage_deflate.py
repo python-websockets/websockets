@@ -295,6 +295,12 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 expected = PerMessageDeflate(*result)
                 self.assertExtensionEqual(extension, expected)
 
+    def test_process_response_params_deduplication(self):
+        factory = ClientPerMessageDeflateFactory(False, False, None, None)
+        with self.assertRaises(NegotiationError):
+            factory.process_response_params(
+                [], [PerMessageDeflate(False, False, 15, 15)])
+
 
 class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
                                           ExtensionTestsMixin):
@@ -584,6 +590,12 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
                 self.assertEqual(params, response_params)
                 expected = PerMessageDeflate(*result)
                 self.assertExtensionEqual(extension, expected)
+
+    def test_process_response_params_deduplication(self):
+        factory = ServerPerMessageDeflateFactory(False, False, None, None)
+        with self.assertRaises(NegotiationError):
+            factory.process_request_params(
+                [], [PerMessageDeflate(False, False, 15, 15)])
 
 
 class PerMessageDeflateTests(unittest.TestCase):

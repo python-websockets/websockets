@@ -154,6 +154,9 @@ class ClientPerMessageDeflateFactory:
         Return an extension instance.
 
         """
+        if any(other.name == self.name for other in accepted_extensions):
+            raise NegotiationError("Received duplicate {}".format(self.name))
+
         # Request parameters are available in instance variables.
 
         # Load response parameters in local variables.
@@ -290,6 +293,9 @@ class ServerPerMessageDeflateFactory:
         Return response params and an extension instance.
 
         """
+        if any(other.name == self.name for other in accepted_extensions):
+            raise NegotiationError("Skipped duplicate {}".format(self.name))
+
         # Load request parameters in local variables.
         (
             server_no_context_takeover,

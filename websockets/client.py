@@ -245,7 +245,7 @@ def connect(uri, *,
             read_limit=2 ** 16, write_limit=2 ** 16,
             loop=None, legacy_recv=False, klass=None,
             origin=None, extensions=None, subprotocols=None,
-            extra_headers=None, use_compression=True, **kwds):
+            extra_headers=None, compression='deflate', **kwds):
     """
     This coroutine connects to a WebSocket server at a given ``uri``.
 
@@ -280,8 +280,9 @@ def connect(uri, *,
       decreasing preference
     * ``extra_headers`` sets additional HTTP request headers – it can be a
       mapping or an iterable of (name, value) pairs
-    * ``use_compression`` is a shortcut to enable compression of messages with
-      the "permessage-deflate" extension; it is enabled by default
+    * ``compression`` is a shortcut to configure compression extensions;
+      by default it enables the "permessage-deflate" extension; set it to
+      ``None`` to disable compression
 
     :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
     invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
@@ -309,7 +310,7 @@ def connect(uri, *,
         raise ValueError("connect() received a SSL context for a ws:// URI. "
                          "Use a wss:// URI to enable TLS.")
 
-    if use_compression:
+    if compression == 'deflate':
         if extensions is None:
             extensions = []
         if not any(
@@ -319,6 +320,8 @@ def connect(uri, *,
             extensions.append(ClientPerMessageDeflateFactory(
                 client_max_window_bits=True,
             ))
+    elif compression is not None:
+        raise ValueError("Unsupported compression: {}".format(compression))
 
     factory = lambda: create_protocol(
         host=wsuri.host, port=wsuri.port, secure=wsuri.secure,

@@ -190,13 +190,13 @@ class ClientServerTests(unittest.TestCase):
 
     def start_server(self, **kwds):
         # Don't enable compression by default in tests.
-        kwds.setdefault('use_compression', False)
+        kwds.setdefault('compression', None)
         server = serve(handler, 'localhost', 8642, **kwds)
         self.server = self.loop.run_until_complete(server)
 
     def start_client(self, path='', **kwds):
         # Don't enable compression by default in tests.
-        kwds.setdefault('use_compression', False)
+        kwds.setdefault('compression', None)
         client = connect('ws://localhost:8642/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 
@@ -498,9 +498,9 @@ class ClientServerTests(unittest.TestCase):
         with self.assertRaises(InvalidHandshake):
             self.start_client('extensions')
 
-    @with_server(use_compression=True)
-    @with_client('extensions', use_compression=True)
-    def test_use_compression(self):
+    @with_server(compression='deflate')
+    @with_client('extensions', compression='deflate')
+    def test_compression_deflate(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_extensions, repr([
             PerMessageDeflate(False, False, 15, 15),
@@ -516,7 +516,7 @@ class ClientServerTests(unittest.TestCase):
                 server_max_window_bits=10,
             ),
         ],
-        use_compression=True,   # overridden by explicit config
+        compression='deflate',  # overridden by explicit config
     )
     @with_client(
         'extensions',
@@ -526,9 +526,9 @@ class ClientServerTests(unittest.TestCase):
                 client_max_window_bits=12,
             ),
         ],
-        use_compression=True,   # overridden by explicit config
+        compression='deflate',  # overridden by explicit config
     )
-    def test_use_compression_explicit_config(self):
+    def test_compression_deflate_and_explicit_config(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_extensions, repr([
             PerMessageDeflate(True, True, 12, 10),
@@ -536,6 +536,12 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(repr(self.client.extensions), repr([
             PerMessageDeflate(True, True, 10, 12),
         ]))
+
+    def test_compression_unsupported(self):
+        with self.assertRaises(ValueError):
+            self.loop.run_until_complete(self.start_server(compression='xz'))
+        with self.assertRaises(ValueError):
+            self.loop.run_until_complete(self.start_client(compression='xz'))
 
     @with_server()
     @with_client('subprotocol')
@@ -761,14 +767,14 @@ class SSLClientServerTests(ClientServerTests):
     def start_server(self, *args, **kwds):
         kwds.setdefault('ssl', self.server_context)
         # Don't enable compression by default in tests.
-        kwds.setdefault('use_compression', False)
+        kwds.setdefault('compression', None)
         server = serve(handler, 'localhost', 8642, **kwds)
         self.server = self.loop.run_until_complete(server)
 
     def start_client(self, path='', **kwds):
         kwds.setdefault('ssl', self.client_context)
         # Don't enable compression by default in tests.
-        kwds.setdefault('use_compression', False)
+        kwds.setdefault('compression', None)
         client = connect('wss://localhost:8642/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 

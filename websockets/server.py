@@ -548,7 +548,7 @@ def serve(ws_handler, host=None, port=None, *,
           read_limit=2 ** 16, write_limit=2 ** 16,
           loop=None, legacy_recv=False, klass=None,
           origins=None, extensions=None, subprotocols=None,
-          extra_headers=None, use_compression=True, **kwds):
+          extra_headers=None, compression='deflate', **kwds):
     """
     Create, start, and return a :class:`WebSocketServer` object.
 
@@ -597,8 +597,9 @@ def serve(ws_handler, host=None, port=None, *,
     * ``extra_headers`` sets additional HTTP response headers — it can be a
       mapping, an iterable of (name, value) pairs, or a callable taking the
       request path and headers in arguments.
-    * ``use_compression`` is a shortcut to enable compression of messages with
-      the "permessage-deflate" extension; it is enabled by default
+    * ``compression`` is a shortcut to configure compression extensions;
+      by default it enables the "permessage-deflate" extension; set it to
+      ``None`` to disable compression
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`WebSocketServerProtocol`, performs the opening handshake, and
@@ -630,7 +631,7 @@ def serve(ws_handler, host=None, port=None, *,
 
     secure = kwds.get('ssl') is not None
 
-    if use_compression:
+    if compression == 'deflate':
         if extensions is None:
             extensions = []
         if not any(
@@ -638,6 +639,8 @@ def serve(ws_handler, host=None, port=None, *,
             for extension_factory in extensions
         ):
             extensions.append(ServerPerMessageDeflateFactory())
+    elif compression is not None:
+        raise ValueError("Unsupported compression: {}".format(compression))
 
     factory = lambda: create_protocol(
         ws_handler, ws_server,

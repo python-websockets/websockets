@@ -5,7 +5,7 @@ Extensions_ aren't implemented. No extensions are registered_ at the time of
 writing.
 
 The client doesn't attempt to guarantee that there is no more than one
-connection to a given IP adress in a CONNECTING state.
+connection to a given IP address in a CONNECTING state.
 
 The client doesn't support connecting through a proxy.
 

@@ -4,7 +4,6 @@ import functools
 import logging
 import os
 import ssl
-import sys
 import unittest
 import unittest.mock
 import urllib.request
@@ -324,13 +323,8 @@ class ClientServerTests(unittest.TestCase):
 
         if self.secure:
             url = 'https://localhost:8642/__health__/'
-            if sys.version_info[:2] < (3, 4):               # pragma: no cover
-                # Python 3.3 didn't check SSL certificates.
-                open_health_check = functools.partial(
-                    urllib.request.urlopen, url)
-            else:                                           # pragma: no cover
-                open_health_check = functools.partial(
-                    urllib.request.urlopen, url, context=self.client_context)
+            open_health_check = functools.partial(
+                urllib.request.urlopen, url, context=self.client_context)
         else:
             url = 'http://localhost:8642/__health__/'
             open_health_check = functools.partial(

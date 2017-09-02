@@ -1,6 +1,5 @@
 import asyncio
 import codecs
-import sys
 import unittest
 import unittest.mock
 
@@ -152,7 +151,6 @@ class FramingTests(unittest.TestCase):
         with self.assertRaises(WebSocketProtocolError):
             serialize_close(999, '')
 
-    @unittest.skipUnless(sys.version_info[:2] >= (3, 4), "rot13 is new in 3.4")
     def test_extensions(self):
 
         class Rot13:

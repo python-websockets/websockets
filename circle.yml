@@ -1,6 +1,6 @@
 machine:
     post:
-        - pyenv global 3.6.1 3.5.3 3.4.4 3.3.6
+        - pyenv global 3.6.1 3.5.3 3.4.4
     python:
         version: 3.6.1
 

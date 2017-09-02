@@ -1,16 +1,16 @@
 env:
   global:
-#   Don't attempt to build Python 2.7 wheels; websockets only works on Python 3.
-    - CIBW_SKIP=cp27*
-#   Commented out because tests don't pass reliably on macOS, see #241.
-#    - CIBW_TEST_COMMAND="python3 -m unittest discover websockets"
+  # websockets only works on Python >= 3.4.
+    - CIBW_SKIP="cp27-* cp33-*"
+  # Commented out because tests don't pass reliably on macOS, see #241.
+  # - CIBW_TEST_COMMAND="python3 -m unittest discover websockets"
 
 matrix:
   include:
     - dist: trusty
       sudo: required
       language: python
-      python: "3.3"
+      python: "3.6"
       services:
         - docker
     - os: osx

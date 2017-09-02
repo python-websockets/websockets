@@ -14,8 +14,7 @@ Installation
 
 Installation is as simple as ``pip install websockets``.
 
-It requires Python ≥ 3.4 or Python 3.3 with the ``asyncio`` module, which is
-available with ``pip install asyncio``.
+It requires Python ≥ 3.4.
 
 User guide
 ----------

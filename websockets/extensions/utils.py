@@ -26,9 +26,6 @@ def parse_OWS(string, pos):
 
 _token_re = re.compile(r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+')
 
-# Workaround for the lack of re.fullmatch in older Pythons
-_exact_token_re = re.compile(r'^[-!#$%&\'*+.^_`|~0-9a-zA-Z]+$')
-
 
 def parse_token(string, pos):
     match = _token_re.match(string, pos)
@@ -63,7 +60,7 @@ def parse_extension_param(string, pos):
             value, pos = parse_quoted_string(string, pos)
             # https://tools.ietf.org/html/rfc6455#section-9.1 says: the value
             # after quoted-string unescaping MUST conform to the 'token' ABNF.
-            if _exact_token_re.match(value) is None:
+            if _token_re.fullmatch(value) is None:
                 raise InvalidHeader("invalid quoted string content",
                                     string=string, pos=pos_before)
         else:

@@ -45,10 +45,10 @@ class UtilsTests(unittest.TestCase):
                 [('permessage-deflate', [('server_max_window_bits', '10')])],
             ),
         ]:
-            self.assertEqual(parse_extension_list(header), parsed)
-            # Also ensure that build_extension_list round-trips cleanly.
-            unparsed = build_extension_list(parsed)
-            self.assertEqual(parse_extension_list(unparsed), parsed)
+            with self.subTest(header=header, parsed=parsed):
+                self.assertEqual(parse_extension_list(header), parsed)
+                unparsed = build_extension_list(parsed)
+                self.assertEqual(parse_extension_list(unparsed), parsed)
 
     def test_parse_extension_list_invalid_header(self):
         for header in [
@@ -64,8 +64,9 @@ class UtilsTests(unittest.TestCase):
             # Value in quoted string parameter that isn't a token
             'foo; bar=" "',
         ]:
-            with self.assertRaises(InvalidHeader):
-                parse_extension_list(header)
+            with self.subTest(header=header):
+                with self.assertRaises(InvalidHeader):
+                    parse_extension_list(header)
 
 
 class ExtensionTestsMixin:

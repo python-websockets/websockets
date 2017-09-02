@@ -23,11 +23,11 @@ class URITests(unittest.TestCase):
 
     def test_success(self):
         for uri, parsed in VALID_URIS:
-            # wrap in `with self.subTest():` when dropping Python 3.3
-            self.assertEqual(parse_uri(uri), parsed)
+            with self.subTest(uri=uri, parsed=parsed):
+                self.assertEqual(parse_uri(uri), parsed)
 
     def test_error(self):
         for uri in INVALID_URIS:
-            # wrap in `with self.subTest():` when dropping Python 3.3
-            with self.assertRaises(InvalidURI):
-                parse_uri(uri)
+            with self.subTest(uri=uri):
+                with self.assertRaises(InvalidURI):
+                    parse_uri(uri)

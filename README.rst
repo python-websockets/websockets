@@ -9,9 +9,9 @@ Built on top of Python's asynchronous I/O support introduced in `PEP 3156`_,
 it provides an API based on coroutines, making it easy to write highly
 concurrent applications.
 
-Installation is as simple as ``pip install websockets``. It requires Python ≥
-3.4 or Python 3.3 with the ``asyncio`` module, which is available with ``pip
-install asyncio``.
+Installation is as simple as ``pip install websockets``.
+
+It requires Python ≥ 3.4.
 
 Documentation is available on `Read the Docs`_.
 

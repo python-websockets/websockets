@@ -1,16 +1,16 @@
 environment:
-# Don't attempt to build Python 2.7 wheels; websockets only works on Python 3.
-  CIBW_SKIP: cp27*
+# websockets only works on Python >= 3.4.
+  CIBW_SKIP: cp27-* cp33-*
 # Commented out because tests don't pass reliably on Windows, see #240.
 #  CIBW_TEST_COMMAND: python -m unittest discover websockets
 
 # Since Python 2 is still the default, invoke Python 3 explicitly.
 install:
-  - cmd: C:\Python33-x64\python.exe -m pip install cibuildwheel==0.4.0
+  - cmd: C:\Python36-x64\python.exe -m pip install cibuildwheel==0.4.0
 # Create file '.cibuildwheel' so that extension build is not optional (c.f. setup.py).
   - cmd: touch .cibuildwheel
 build_script:
-  - cmd: C:\Python33-x64\python.exe -m cibuildwheel --output-dir wheelhouse
+  - cmd: C:\Python36-x64\python.exe -m cibuildwheel --output-dir wheelhouse
 # Upload to PyPI on tags
   - ps: >-
       if ($env:APPVEYOR_REPO_TAG -eq "true") {

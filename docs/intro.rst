@@ -3,8 +3,8 @@ Getting started
 
 .. warning::
 
-    This documentation is written for Python ≥ 3.5. If you're using Python 3.4
-    or 3.3, you will have to :ref:`adapt the code samples <python-lt-35>`.
+    This documentation is written for Python ≥ 3.5. If you're using Python
+    3.4, you will have to :ref:`adapt the code samples <python-lt-35>`.
 
 Basic example
 -------------
@@ -143,7 +143,7 @@ Python < 3.5
 This documentation uses the ``await`` and ``async`` syntax introduced in
 Python 3.5.
 
-If you're using Python 3.4 or 3.3, you must substitute::
+If you're using Python 3.4, you must substitute::
 
     async def ...
 

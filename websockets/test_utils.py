@@ -16,7 +16,8 @@ class UtilsTests(unittest.TestCase):
             (b'abcdABCD', b'1234', b'PPPPpppp'),
             (b'abcdABCD' * 10, b'1234', b'PPPPpppp' * 10),
         ]:
-            self.assertEqual(self.apply_mask(data_in, mask), data_out)
+            with self.subTest(data_in=data_in, mask=mask, data_out=data_out):
+                self.assertEqual(self.apply_mask(data_in, mask), data_out)
 
     def test_apply_mask_check_input_types(self):
         for data_in, mask in [
@@ -24,8 +25,9 @@ class UtilsTests(unittest.TestCase):
             (b'abcd', None),
             (None, b'abcd'),
         ]:
-            with self.assertRaises(TypeError):
-                self.apply_mask(data_in, mask)
+            with self.subTest(data_in=data_in, mask=mask):
+                with self.assertRaises(TypeError):
+                    self.apply_mask(data_in, mask)
 
     def test_apply_mask_check_mask_length(self):
         for data_in, mask in [
@@ -34,8 +36,9 @@ class UtilsTests(unittest.TestCase):
             (b'', b'aBcDe'),
             (b'12345678', b'12345678'),
         ]:
-            with self.assertRaises(ValueError):
-                self.apply_mask(data_in, mask)
+            with self.subTest(data_in=data_in, mask=mask):
+                with self.assertRaises(ValueError):
+                    self.apply_mask(data_in, mask)
 
 
 try:

@@ -28,8 +28,9 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
             (False, False, None, True),     # client_max_window_bits
             (False, False, None, None, {'memLevel': 4}),
         ]:
-            # This does not raise an exception.
-            ClientPerMessageDeflateFactory(*config)
+            with self.subTest(config=config):
+                # This does not raise an exception.
+                ClientPerMessageDeflateFactory(*config)
 
     def test_init_error(self):
         for config in [
@@ -40,8 +41,9 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
             (False, False, True, None),     # server_max_window_bits
             (False, False, None, None, {'wbits': 11}),
         ]:
-            with self.assertRaises(ValueError):
-                ClientPerMessageDeflateFactory(*config)
+            with self.subTest(config=config):
+                with self.assertRaises(ValueError):
+                    ClientPerMessageDeflateFactory(*config)
 
     def test_get_request_params(self):
         for config, result in [
@@ -85,8 +87,9 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 ],
             ),
         ]:
-            factory = ClientPerMessageDeflateFactory(*config)
-            self.assertEqual(factory.get_request_params(), result)
+            with self.subTest(config=config, result=result):
+                factory = ClientPerMessageDeflateFactory(*config)
+                self.assertEqual(factory.get_request_params(), result)
 
     def test_process_response_params(self):
         for config, response_params, result in [
@@ -285,15 +288,20 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 (True, True, 12, 12),
             ),
         ]:
-            factory = ClientPerMessageDeflateFactory(*config)
-            if isinstance(result, type) and issubclass(result, Exception):
-                with self.assertRaises(result):
-                    factory.process_response_params(response_params, [])
-            else:
-                extension = factory.process_response_params(
-                    response_params, [])
-                expected = PerMessageDeflate(*result)
-                self.assertExtensionEqual(extension, expected)
+            with self.subTest(
+                config=config,
+                response_params=response_params,
+                result=result,
+            ):
+                factory = ClientPerMessageDeflateFactory(*config)
+                if isinstance(result, type) and issubclass(result, Exception):
+                    with self.assertRaises(result):
+                        factory.process_response_params(response_params, [])
+                else:
+                    extension = factory.process_response_params(
+                        response_params, [])
+                    expected = PerMessageDeflate(*result)
+                    self.assertExtensionEqual(extension, expected)
 
     def test_process_response_params_deduplication(self):
         factory = ClientPerMessageDeflateFactory(False, False, None, None)
@@ -316,8 +324,9 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             (True, True, None, 15),         # client_max_window_bits ≤ 15
             (False, False, None, None, {'memLevel': 4}),
         ]:
-            # This does not raise an exception.
-            ServerPerMessageDeflateFactory(*config)
+            with self.subTest(config=config):
+                # This does not raise an exception.
+                ServerPerMessageDeflateFactory(*config)
 
     def test_init_error(self):
         for config in [
@@ -329,8 +338,9 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             (False, False, True, None),     # server_max_window_bits
             (False, False, None, None, {'wbits': 11}),
         ]:
-            with self.assertRaises(ValueError):
-                ServerPerMessageDeflateFactory(*config)
+            with self.subTest(config=config):
+                with self.assertRaises(ValueError):
+                    ServerPerMessageDeflateFactory(*config)
 
     def test_process_request_params(self):
         # Parameters in result appear swapped vs. config because the order is
@@ -580,16 +590,22 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
                 (True, True, 12, 12),
             ),
         ]:
-            factory = ServerPerMessageDeflateFactory(*config)
-            if isinstance(result, type) and issubclass(result, Exception):
-                with self.assertRaises(result):
-                    factory.process_request_params(request_params, [])
-            else:
-                params, extension = factory.process_request_params(
-                    request_params, [])
-                self.assertEqual(params, response_params)
-                expected = PerMessageDeflate(*result)
-                self.assertExtensionEqual(extension, expected)
+            with self.subTest(
+                config=config,
+                request_params=request_params,
+                response_params=response_params,
+                result=result,
+            ):
+                factory = ServerPerMessageDeflateFactory(*config)
+                if isinstance(result, type) and issubclass(result, Exception):
+                    with self.assertRaises(result):
+                        factory.process_request_params(request_params, [])
+                else:
+                    params, extension = factory.process_request_params(
+                        request_params, [])
+                    self.assertEqual(params, response_params)
+                    expected = PerMessageDeflate(*result)
+                    self.assertExtensionEqual(extension, expected)
 
     def test_process_response_params_deduplication(self):
         factory = ServerPerMessageDeflateFactory(False, False, None, None)

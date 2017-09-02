@@ -30,7 +30,7 @@ USER_AGENT = ' '.join((
 
 # Regex for validating header names.
 
-_token_re = re.compile(rb'^[-!#$%&\'*+.^_`|~0-9a-zA-Z]+$')
+_token_re = re.compile(rb'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+')
 
 # Regex for validating header values.
 
@@ -43,7 +43,7 @@ _token_re = re.compile(rb'^[-!#$%&\'*+.^_`|~0-9a-zA-Z]+$')
 
 # See also https://www.rfc-editor.org/errata_search.php?rfc=7230&eid=4189
 
-_value_re = re.compile(rb'^[\x09\x20-\x7e\x80-\xff]*$')
+_value_re = re.compile(rb'[\x09\x20-\x7e\x80-\xff]*')
 
 
 @asyncio.coroutine
@@ -127,7 +127,7 @@ def read_response(stream):
     status_code = int(status_code)
     if not 100 <= status_code < 1000:
         raise ValueError("Unsupported HTTP status_code code: %d" % status_code)
-    if not _value_re.match(reason):
+    if not _value_re.fullmatch(reason):
         raise ValueError("Invalid HTTP reason phrase: %r" % reason)
 
     headers = yield from read_headers(stream)
@@ -160,10 +160,10 @@ def read_headers(stream):
 
         # This may raise "ValueError: not enough values to unpack"
         name, value = line[:-2].split(b':', 1)
-        if not _token_re.match(name):
+        if not _token_re.fullmatch(name):
             raise ValueError("Invalid HTTP header name: %r" % name)
         value = value.strip(b' \t')
-        if not _value_re.match(value):
+        if not _value_re.fullmatch(value):
             raise ValueError("Invalid HTTP header value: %r" % value)
 
         headers.append((

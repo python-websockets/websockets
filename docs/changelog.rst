@@ -22,6 +22,8 @@ Also:
 * Stopped leaking pending tasks when :meth:`~asyncio.Task.cancel` is called on
   a connection while it's being closed.
 
+* Reduced verbosity of "Failing the WebSocket connection" logs.
+
 3.4
 ...
 

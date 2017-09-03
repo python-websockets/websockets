@@ -649,7 +649,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):
         # 7.1.7. Fail the WebSocket Connection
-        logger.info("Failing the WebSocket connection: %d %s", code, reason)
+        logger.debug("Failing the WebSocket connection: %d %s", code, reason)
         if self.state == OPEN:
             if code == 1006:
                 # Don't send a close frame if the connection is broken. Set

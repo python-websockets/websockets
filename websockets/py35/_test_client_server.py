@@ -1,14 +1,14 @@
 # Tests containing Python 3.5+ syntax, extracted from test_client_server.py.
-# To avoid test discovery, this module's name must not start with test_.
 
 import asyncio
+import unittest
 
 from ..client import *
 from ..server import *
 from ..test_client_server import handler
 
 
-class ClientServerContextManager:
+class ContextManagerTests(unittest.TestCase):
 
     def setUp(self):
         self.loop = asyncio.new_event_loop()

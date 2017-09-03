@@ -19,6 +19,9 @@ Changelog
 
 Also:
 
+* :class:`~websockets.protocol.WebSocketCommonProtocol` instances can be used
+  as asynchronous iterators on Python ≥ 3.6. They yield incoming messages.
+
 * Stopped leaking pending tasks when :meth:`~asyncio.Task.cancel` is called on
   a connection while it's being closed.
 

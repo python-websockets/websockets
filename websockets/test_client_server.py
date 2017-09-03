@@ -856,10 +856,12 @@ class ClientServerOriginTests(unittest.TestCase):
 
 
 try:
-    from .py35.client_server import ClientServerContextManager
+    from .py35._test_client_server import ContextManagerTests           # noqa
 except (SyntaxError, ImportError):                          # pragma: no cover
     pass
-else:
-    class ClientServerContextManagerTests(ClientServerContextManager,
-                                          unittest.TestCase):
-        pass
+
+
+try:
+    from .py36._test_client_server import AsyncIteratorTests            # noqa
+except (SyntaxError, ImportError):                          # pragma: no cover
+    pass

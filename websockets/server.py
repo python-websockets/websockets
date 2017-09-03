@@ -584,9 +584,8 @@ def serve(ws_handler, host=None, port=None, *,
     up by calling its :meth:`~websockets.server.WebSocketServer.close` and
     :meth:`~websockets.server.WebSocketServer.wait_closed` methods.
 
-    On Python 3.5 and greater, :func:`serve` can also be used as an
-    asynchronous context manager. In this case, the server is shut down
-    when exiting the context.
+    On Python ≥ 3.5, :func:`serve` can also be used as an asynchronous context
+    manager. In this case, the server is shut down when exiting the context.
 
     The ``ws_handler`` argument is the WebSocket handler. It must be a
     coroutine accepting two arguments: a :class:`WebSocketServerProtocol`

@@ -60,6 +60,15 @@ Consumer
 For receiving messages and passing them to a ``consumer`` coroutine::
 
     async def consumer_handler(websocket, path):
+        async for message in websocket:
+            await consumer(message)
+
+Iteration terminates when the client disconnects.
+
+Asynchronous iteration isn't available in Python < 3.6; here's the same code
+for earlier Python versions::
+
+    async def consumer_handler(websocket, path):
         while True:
             message = await websocket.recv()
             await consumer(message)

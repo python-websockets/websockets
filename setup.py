@@ -25,6 +25,9 @@ packages = ['websockets', 'websockets/extensions']
 if py_version >= (3, 5):
     packages.append('websockets/py35')
 
+if py_version >= (3, 6):
+    packages.append('websockets/py36')
+
 ext_modules = [
     setuptools.Extension(
         'websockets.speedups',

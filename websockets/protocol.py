@@ -49,6 +49,17 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     control frames automatically. It sends outgoing data frames and performs
     the closing handshake.
 
+    On Python ≥ 3.6, :class:`WebSocketCommonProtocol` instances support
+    asynchronous iteration::
+
+        async for message in websocket:
+            await process(message)
+
+    The iterator yields incoming messages. It exits normally when the
+    connection is closed with the status code 1000 OK. It raises a
+    :exc:`~websockets.exceptions.ConnectionClosed` exception when the
+    connection is closed with any other status code.
+
     The ``host``, ``port`` and ``secure`` parameters are simply stored as
     attributes for handlers that need them.
 
@@ -701,3 +712,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if self.writer is not None:
             self.writer.close()
         super().connection_lost(exc)
+
+
+try:
+    from .py36.protocol import __aiter__
+except (SyntaxError, ImportError):                          # pragma: no cover
+    pass
+else:
+    WebSocketCommonProtocol.__aiter__ = __aiter__

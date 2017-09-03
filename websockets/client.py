@@ -283,6 +283,9 @@ def connect(uri, *,
     It yields a :class:`WebSocketClientProtocol` which can then be used to
     send and receive messages.
 
+    On Python ≥ 3.5, :func:`connect` can be used as a asynchronous context
+    manager. In that case, the connection is closed when exiting the context.
+
     :func:`connect` is a wrapper around the event loop's
     :meth:`~asyncio.BaseEventLoop.create_connection` method. Unknown keyword
     arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
@@ -318,9 +321,6 @@ def connect(uri, *,
     :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
     invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
     handshake fails.
-
-    On Python 3.5, :func:`connect` can be used as a asynchronous context
-    manager. In that case, the connection is closed when exiting the context.
 
     """
     if loop is None:

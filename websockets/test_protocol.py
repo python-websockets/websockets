@@ -742,6 +742,28 @@ class CommonTests:
     # There is no test_local_close_during_send because this cannot really
     # happen, considering that writes are serialized.
 
+    def test_cancelled_close_waits_for_worker(self):
+        # Regression test for #142.
+
+        # Start the closing handshake.
+        close_task = self.ensure_future(self.protocol.close(reason='close'))
+        self.run_loop_once()
+        self.assertOneFrameSent(*self.close_frame)
+
+        # Now close_task is waiting for worker_task which is waiting for the
+        # closing handshake to complete.
+
+        # Cancelling close_task throws a CancelledError into worker_task,
+        # which catches that exception and waits for close_connection().
+        self.loop.call_later(MS, close_task.cancel)
+        # close_task resumes waiting for worker_task. Drop the connection so
+        # that close_connection(), worker_task and close_task terminate.
+        self.loop.call_later(2 * MS, self.receive_eof)
+
+        # Make sure the worker task terminated before close().
+        self.loop.run_until_complete(close_task)
+        self.assertTrue(self.protocol.worker_task.done())
+
 
 class ServerTests(CommonTests, unittest.TestCase):
 

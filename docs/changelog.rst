@@ -17,6 +17,11 @@ Changelog
     If you want to disable compression, add ``compression=None`` when calling
     :func:`~websockets.server.serve` or :func:`~websockets.client.connect`.
 
+Also:
+
+* Stopped leaking pending tasks when :meth:`~asyncio.Task.cancel` is called on
+  a connection while it's being closed.
+
 3.4
 ...
 

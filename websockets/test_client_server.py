@@ -723,6 +723,20 @@ class ClientServerTests(unittest.TestCase):
         # Websocket connection terminates with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
 
+    @with_server()
+    @unittest.mock.patch('websockets.server.WebSocketServerProtocol.close')
+    def test_server_shuts_down_during_connection_close(self, _close):
+        _close.side_effect = asyncio.CancelledError
+
+        self.server.closing = True
+        with self.temp_client():
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
+
+        # Websocket connection terminates abnormally.
+        self.assertEqual(self.client.close_code, 1006)
+
     @with_server(create_protocol=ForbiddenServerProtocol)
     def test_invalid_status_error_during_client_connect(self):
         with self.assertRaises(InvalidStatusCode) as raised:

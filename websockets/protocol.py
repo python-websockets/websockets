@@ -261,6 +261,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         try:
             yield from asyncio.wait_for(
                 self.worker_task, self.timeout, loop=self.loop)
+        except asyncio.CancelledError:
+            pass
         except asyncio.TimeoutError:
             self.worker_task.cancel()
 

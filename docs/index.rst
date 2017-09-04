@@ -52,6 +52,7 @@ Bug reports, patches and suggestions welcome! Just open an issue_ or send a
    api
    deployment
    security
+   design
    limitations
    changelog
    license

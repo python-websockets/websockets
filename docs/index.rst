@@ -51,6 +51,7 @@ Bug reports, patches and suggestions welcome! Just open an issue_ or send a
    cheatsheet
    api
    deployment
+   security
    limitations
    changelog
    license

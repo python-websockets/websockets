@@ -167,16 +167,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.extensions = []
         self.subprotocol = None
 
-        # Code and reason must be set when the closing handshake completes.
+        # The close code and reason are set when receiving a close frame or
+        # losing the TCP connection.
         self.close_code = None
         self.close_reason = ''
 
         # Futures tracking steps in the connection's lifecycle.
         # Set to True when the opening handshake has completed properly.
         self.opening_handshake = asyncio.Future(loop=loop)
-        # Set to True when the closing handshake has completed properly and to
-        # False when the connection terminates abnormally.
-        self.closing_handshake = asyncio.Future(loop=loop)
         # Set to None when the connection state becomes CLOSED.
         self.connection_closed = asyncio.Future(loop=loop)
 
@@ -463,7 +461,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     def run(self):
         # This coroutine guarantees that the connection is closed at exit.
         yield from self.opening_handshake
-        while not self.closing_handshake.done():
+        while True:
             try:
                 msg = yield from self.read_message()
                 if msg is None:
@@ -473,12 +471,16 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 break
             except WebSocketProtocolError:
                 yield from self.fail_connection(1002)
+                break
             except asyncio.IncompleteReadError:
                 yield from self.fail_connection(1006)
+                break
             except UnicodeDecodeError:
                 yield from self.fail_connection(1007)
+                break
             except PayloadTooBig:
                 yield from self.fail_connection(1009)
+                break
             except Exception:
                 logger.warning("Error in data transfer", exc_info=True)
                 yield from self.fail_connection(1011)
@@ -553,7 +555,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 if self.state == OPEN:
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     yield from self.write_frame(OP_CLOSE, frame.data)
-                self.closing_handshake.set_result(True)
                 return
 
             elif frame.opcode == OP_PING:
@@ -689,8 +690,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             else:
                 frame_data = serialize_close(code, reason)
                 yield from self.write_frame(OP_CLOSE, frame_data)
-        if not self.closing_handshake.done():
-            self.closing_handshake.set_result(False)
         yield from self.close_connection()
 
     # asyncio.StreamReaderProtocol methods
@@ -751,8 +750,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.opening_handshake.set_result(False)
         if self.close_code is None:
             self.close_code = 1006
-        if not self.closing_handshake.done():
-            self.closing_handshake.set_result(False)
         if not self.connection_closed.done():
             self.connection_closed.set_result(None)
         # Close the transport in case close_connection() wasn't executed.

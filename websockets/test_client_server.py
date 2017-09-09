@@ -194,7 +194,7 @@ class ClientServerTests(unittest.TestCase):
     def stop_client(self):
         try:
             self.loop.run_until_complete(
-                asyncio.wait_for(self.client.worker_task, timeout=1))
+                asyncio.wait_for(self.client.close_connection_task, timeout=1))
         except asyncio.TimeoutError:                # pragma: no cover
             self.fail("Client failed to stop")
 
@@ -223,9 +223,13 @@ class ClientServerTests(unittest.TestCase):
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, "Hello!")
 
-    @with_server()
     def test_server_close_while_client_connected(self):
-        self.start_client()
+        with self.temp_server(loop=self.loop):
+            self.start_client()
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.client.recv())
+        # Connection ends with 1001 going away.
+        self.assertEqual(self.client.close_code, 1001)
 
     def test_explicit_event_loop(self):
         with self.temp_server(loop=self.loop):
@@ -714,9 +718,9 @@ class ClientServerTests(unittest.TestCase):
     def test_client_closes_connection_before_handshake(self, handshake):
         # We have mocked the handshake() method to prevent the client from
         # performing the opening handshake. Force it to close the connection.
-        self.loop.run_until_complete(self.client.close_connection(force=True))
+        self.client.writer.close()
         # The server should stop properly anyway. It used to hang because the
-        # worker handling the connection was waiting for the opening handshake.
+        # task handling the connection was waiting for the opening handshake.
 
     @with_server()
     @unittest.mock.patch('websockets.server.read_request')

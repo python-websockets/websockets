@@ -117,7 +117,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     )
 
                 yield from self.write_http_response(*early_response)
-                yield from self.close_connection(force=True)
+                yield from self.close_connection(after_handshake=False)
 
                 return
 
@@ -531,12 +531,12 @@ class WebSocketServer:
         self.server.close()
 
         # Close open connections. For each connection, two tasks are running:
-        # 1. self.worker_task shuffles messages between the network and queues
+        # 1. self.transfer_data_task receives incoming WebSocket messages
         # 2. self.handler_task runs the opening handshake, the handler provided
         #    by the user and the closing handshake
         # In the general case, cancelling the handler task will cause the
         # handler provided by the user to exit with a CancelledError, which
-        # will then cause the worker task to terminate.
+        # will then cause the transfer data task to terminate.
         for websocket in self.websockets:
             websocket.handler_task.cancel()
 
@@ -554,11 +554,13 @@ class WebSocketServer:
         """
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:
-            # The handler or the worker task can terminate first, depending
-            # on how the client behaves and the server is implemented.
+            # Either the handler or the connection can terminate first,
+            # depending on how the client behaves and the server is
+            # implemented.
             yield from asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets] +
-                [websocket.worker_task for websocket in self.websockets],
+                [websocket.close_connection_task
+                    for websocket in self.websockets],
                 loop=self.loop)
         yield from self.server.wait_closed()
 

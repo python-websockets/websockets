@@ -374,7 +374,7 @@ def connect(uri, *,
             extra_headers=protocol.extra_headers,
         )
     except Exception:
-        yield from protocol.close_connection(force=True)
+        yield from protocol.close_connection(after_handshake=False)
         raise
 
     return protocol

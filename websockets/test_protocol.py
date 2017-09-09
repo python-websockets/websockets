@@ -41,20 +41,34 @@ class TransportMock(unittest.mock.Mock):
 
     """
     # This should happen in __init__ but overriding Mock.__init__ is hard.
-    def connect(self, loop, protocol):
+    def setup_mock(self, loop, protocol):
         self.loop = loop
         self.protocol = protocol
-        # Remove when dropping support for Python < 3.6.
+        self._eof = False
         self._closing = False
         # Simulate a successful TCP handshake.
-        self.loop.call_soon(self.protocol.connection_made, self)
+        self.protocol.connection_made(self)
         # Simulate a successful WebSocket handshake.
-        self.loop.call_soon(self.protocol.connection_open)
+        self.protocol.connection_open()
+
+    def can_write_eof(self):
+        return True
+
+    def write_eof(self):
+        # When the protocol half-closes the TCP connection, it expects the
+        # other end to close it. Simulate that.
+        if not self._eof:
+            self.loop.call_soon(self.close)
+        self._eof = True
+
+    def is_closing(self):
+        return self._closing
 
     def close(self):
-        # Remove when dropping support for Python < 3.6.
+        # Simulate how actual transports drop the connection.
+        if not self._closing:
+            self.loop.call_soon(self.protocol.connection_lost, None)
         self._closing = True
-        self.loop.call_soon(self.protocol.connection_lost, None)
 
 
 class CommonTests:
@@ -70,11 +84,11 @@ class CommonTests:
         asyncio.set_event_loop(self.loop)
         self.protocol = WebSocketCommonProtocol()
         self.transport = TransportMock()
-        self.transport.connect(self.loop, self.protocol)
+        self.transport.setup_mock(self.loop, self.protocol)
 
     def tearDown(self):
-        self.loop.run_until_complete(
-            self.protocol.close_connection(force=True))
+        self.transport.close()
+        self.loop.run_until_complete(self.protocol.close())
         self.loop.close()
         super().tearDown()
 
@@ -114,24 +128,19 @@ class CommonTests:
         """
         writer = self.protocol.data_received
         mask = not self.protocol.is_client
-        self.loop.call_soon(functools.partial(frame.write, writer, mask=mask))
+        frame.write(writer, mask=mask)
 
     def receive_eof(self):
         """
-        Make the protocol receive the end of stream.
+        Make the protocol receive the end of the data stream.
 
-        WebSocketCommonProtocol.eof_received returns None — it is inherited
-        from StreamReaderProtocol. (Returning True wouldn't work on secure
-        connections anyway.) As a consequence, actual transports close
-        themselves after calling it.
-
-        To emulate this behavior, this function closes the transport just
-        after calling the protocol's eof_received. Closing the transport has
-        the side-effect calling the protocol's connection_lost.
+        Since ``WebSocketCommonProtocol.eof_received`` returns ``None``, an
+        actual transport would close itself after calling it. This function
+        emulates that behavior.
 
         """
-        self.loop.call_soon(self.protocol.eof_received)
-        self.loop.call_soon(self.loop.call_soon, self.transport.close)
+        self.protocol.eof_received()
+        self.loop.call_soon(self.transport.close)
 
     def receive_eof_if_client(self):
         """
@@ -183,26 +192,12 @@ class CommonTests:
         Make the protocol fail quickly after simulating invalid data.
 
         To achieve this, this function triggers the protocol's eof_received,
-        which interrupts pending reads waiting for more data. It delays this
-        operation with call_later because the protocol must start processing
-        frames first. Otherwise it will see a closed connection and no data.
+        which interrupts pending reads waiting for more data.
 
         """
-        self.loop.call_later(MS, self.receive_eof)
-        with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.recv())
-
-    def process_control_frames(self):
-        """
-        Process control frames received by the protocol.
-
-        To ensure that recv completes quickly, receive an additional dummy
-        frame, which recv() will drop.
-
-        """
-        self.receive_frame(Frame(True, OP_TEXT, b''))
-        next_message = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(next_message, '')
+        self.run_loop_once()
+        self.receive_eof()
+        self.loop.run_until_complete(self.protocol.close_connection_task)
 
     def last_sent_frame(self):
         """
@@ -273,33 +268,41 @@ class CommonTests:
     def test_local_address(self):
         get_extra_info = unittest.mock.Mock(return_value=('host', 4312))
         self.transport.get_extra_info = get_extra_info
-        # The connection isn't established yet.
-        self.assertEqual(self.protocol.local_address, None)
-        self.run_loop_once()
-        # The connection is established.
+
         self.assertEqual(self.protocol.local_address, ('host', 4312))
         get_extra_info.assert_called_with('sockname', None)
+
+    def test_local_address_before_connection(self):
+        # Emulate the situation before connection_open() runs.
+        self.protocol.writer, _writer = None, self.protocol.writer
+
+        try:
+            self.assertEqual(self.protocol.local_address, None)
+        finally:
+            self.protocol.writer = _writer
 
     def test_remote_address(self):
         get_extra_info = unittest.mock.Mock(return_value=('host', 4312))
         self.transport.get_extra_info = get_extra_info
-        # The connection isn't established yet.
-        self.assertEqual(self.protocol.remote_address, None)
-        self.run_loop_once()
-        # The connection is established.
+
         self.assertEqual(self.protocol.remote_address, ('host', 4312))
         get_extra_info.assert_called_with('peername', None)
 
+    def test_remote_address_before_connection(self):
+        # Emulate the situation before connection_open() runs.
+        self.protocol.writer, _writer = None, self.protocol.writer
+
+        try:
+            self.assertEqual(self.protocol.remote_address, None)
+        finally:
+            self.protocol.writer = _writer
+
     def test_open(self):
-        self.assertFalse(self.protocol.open)
-        self.run_loop_once()
         self.assertTrue(self.protocol.open)
         self.close_connection()
         self.assertFalse(self.protocol.open)
 
     def test_state_name(self):
-        self.assertEqual(self.protocol.state_name, 'CONNECTING')
-        self.run_loop_once()
         self.assertEqual(self.protocol.state_name, 'OPEN')
         self.close_connection()
         self.assertEqual(self.protocol.state_name, 'CLOSED')
@@ -368,8 +371,6 @@ class CommonTests:
             raise Exception("BOOM")
         self.protocol.read_message = read_message
         self.process_invalid_frames()
-        with self.assertRaises(Exception):
-            self.loop.run_until_complete(self.protocol.worker_task)
         self.assertConnectionFailed(1011, '')
 
     def test_recv_cancelled(self):
@@ -487,12 +488,12 @@ class CommonTests:
 
     def test_answer_ping(self):
         self.receive_frame(Frame(True, OP_PING, b'test'))
-        self.process_control_frames()
+        self.run_loop_once()
         self.assertOneFrameSent(True, OP_PONG, b'test')
 
     def test_ignore_pong(self):
         self.receive_frame(Frame(True, OP_PONG, b'test'))
-        self.process_control_frames()
+        self.run_loop_once()
         self.assertNoFrameSent()
 
     def test_acknowledge_ping(self):
@@ -501,7 +502,8 @@ class CommonTests:
         ping_frame = self.last_sent_frame()
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
         self.receive_frame(pong_frame)
-        self.process_control_frames()
+        self.run_loop_once()
+        self.run_loop_once()
         self.assertTrue(ping.done())
 
     def test_acknowledge_previous_pings(self):
@@ -511,13 +513,15 @@ class CommonTests:
         ) for i in range(3)]
         # Unsolicited pong doesn't acknowledge pings
         self.receive_frame(Frame(True, OP_PONG, b''))
-        self.process_control_frames()
+        self.run_loop_once()
+        self.run_loop_once()
         self.assertFalse(pings[0][0].done())
         self.assertFalse(pings[1][0].done())
         self.assertFalse(pings[2][0].done())
         # Pong acknowledges all previous pings
         self.receive_frame(Frame(True, OP_PONG, pings[1][1].data))
-        self.process_control_frames()
+        self.run_loop_once()
+        self.run_loop_once()
         self.assertTrue(pings[0][0].done())
         self.assertTrue(pings[1][0].done())
         self.assertFalse(pings[2][0].done())
@@ -528,7 +532,8 @@ class CommonTests:
         ping.cancel()
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
         self.receive_frame(pong_frame)
-        self.process_control_frames()
+        self.run_loop_once()
+        self.run_loop_once()
         self.assertTrue(ping.cancelled())
 
     def test_duplicate_ping(self):
@@ -620,9 +625,6 @@ class CommonTests:
         self.assertConnectionFailed(1006, '')
 
     def test_ensure_connection_before_opening_handshake(self):
-        # Finalize the connection opening sequence.
-        self.run_loop_once()
-
         # Simulate a bug by forcibly reverting the protocol state.
         self.protocol.state = CONNECTING
 
@@ -647,16 +649,16 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed) as context:
             self.loop.run_until_complete(self.protocol.recv())
 
-        connection_closed = context.exception
-        self.assertEqual(connection_closed.code, 1000)
-        self.assertEqual(connection_closed.reason, 'close')
+        connection_closed_exc = context.exception
+        self.assertEqual(connection_closed_exc.code, 1000)
+        self.assertEqual(connection_closed_exc.reason, 'close')
 
     # Test the protocol logic for closing the connection.
 
     def test_local_close(self):
         # Emulate how the remote endpoint answers the closing handshake.
-        self.receive_frame(self.close_frame)
-        self.receive_eof_if_client()
+        self.loop.call_soon(self.receive_frame, self.close_frame)
+        self.loop.call_soon(self.receive_eof_if_client)
 
         # Run the closing handshake.
         self.loop.run_until_complete(self.protocol.close(reason='close'))
@@ -672,8 +674,8 @@ class CommonTests:
 
     def test_remote_close(self):
         # Emulate how the remote endpoint initiates the closing handshake.
-        self.receive_frame(self.close_frame)
-        self.receive_eof_if_client()
+        self.loop.call_soon(self.receive_frame, self.close_frame)
+        self.loop.call_soon(self.receive_eof_if_client)
 
         # Wait for some data in order to process the handshake.
         # After recv() raises ConnectionClosed, the connection is closed.
@@ -690,8 +692,10 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_simultaneous_close(self):
-        self.receive_frame(self.remote_close)
-        self.receive_eof_if_client()
+        # Delay the incoming close frame until after we send the outgoing one.
+        self.loop.call_soon(self.receive_frame, self.remote_close)
+        self.loop.call_soon(self.receive_eof_if_client)
+
         self.loop.run_until_complete(self.protocol.close(reason='local'))
 
         # The close code and reason are taken from the remote side because
@@ -701,8 +705,9 @@ class CommonTests:
 
     def test_close_preserves_incoming_frames(self):
         self.receive_frame(Frame(True, OP_TEXT, b'hello'))
-        self.receive_frame(self.close_frame)
-        self.receive_eof_if_client()
+
+        self.loop.call_soon(self.receive_frame, self.close_frame)
+        self.loop.call_soon(self.receive_eof_if_client)
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
         self.assertConnectionClosed(1000, 'close')
@@ -730,8 +735,8 @@ class CommonTests:
     def test_local_close_during_recv(self):
         recv = self.ensure_future(self.protocol.recv())
 
-        self.receive_frame(self.close_frame)
-        self.receive_eof_if_client()
+        self.loop.call_soon(self.receive_frame, self.close_frame)
+        self.loop.call_soon(self.receive_eof_if_client)
 
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
@@ -758,7 +763,7 @@ class CommonTests:
     # There is no test_local_close_during_send because this cannot really
     # happen, considering that writes are serialized.
 
-    def test_cancelled_close_waits_for_worker(self):
+    def test_cancelled_close_waits_for_transfer_data_task(self):
         # Regression test for #142.
 
         # Start the closing handshake.
@@ -766,19 +771,20 @@ class CommonTests:
         self.run_loop_once()
         self.assertOneFrameSent(*self.close_frame)
 
-        # Now close_task is waiting for worker_task which is waiting for the
-        # closing handshake to complete.
+        # Now close_task is waiting for transfer_data_task which is waiting
+        # for the closing handshake to complete.
 
-        # Cancelling close_task throws a CancelledError into worker_task,
+        # Cancelling close_task throws a CancelledError in transfer_data_task,
         # which catches that exception and waits for close_connection().
         self.loop.call_later(MS, close_task.cancel)
-        # close_task resumes waiting for worker_task. Drop the connection so
-        # that close_connection(), worker_task and close_task terminate.
+        # close_task resumes waiting for transfer_data_task. Drop the
+        # connection so that close_connection(), transfer_data_task and
+        # close_connection_task terminate.
         self.loop.call_later(2 * MS, self.receive_eof)
 
         # Make sure the worker task terminated before close().
         self.loop.run_until_complete(close_task)
-        self.assertTrue(self.protocol.worker_task.done())
+        self.assertTrue(self.protocol.transfer_data_task.done())
 
 
 class ServerTests(CommonTests, unittest.TestCase):
@@ -788,16 +794,25 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.protocol.is_client = False
         self.protocol.side = 'server'
 
-    def test_close_handshake_timeout(self):
-        # Timeout is expected in 10ms.
+    def test_local_close_timeout(self):
         self.protocol.timeout = 10 * MS
+        # If the client doesn't send a close frame, time out in 10ms.
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(9 * MS, 19 * MS):
-            # Unlike previous tests, no close frame will be received in
-            # response. The server will stop waiting for the close frame and
-            # timeout.
             self.loop.run_until_complete(self.protocol.close(reason='close'))
         self.assertConnectionClosed(1006, '')
+
+    def test_local_close_connection_lost_timeout(self):
+        self.protocol.timeout = 10 * MS
+        # If the client doesn't close its side of the TCP connection after we
+        # half-close our side with write_eof(), time out in 10ms.
+        # Check the timing within -1/+9ms for robustness.
+        with self.assertCompletesWithin(9 * MS, 19 * MS):
+            # HACK: disable write_eof => other end drops connection emulation.
+            self.transport._eof = True
+            self.receive_frame(self.close_frame)
+            self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.assertConnectionClosed(1000, 'close')
 
 
 class ClientTests(CommonTests, unittest.TestCase):
@@ -807,27 +822,26 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.protocol.is_client = True
         self.protocol.side = 'client'
 
-    def test_close_handshake_timeout(self):
-        # Timeout is expected in 2 * 10 = 20ms.
+    def test_local_close_timeout(self):
         self.protocol.timeout = 10 * MS
+        # If the server doesn't send a close frame, time out in 30ms:
+        # - 10ms waiting for a close frame
+        # - 10ms waiting for a half-close
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
-            # Unlike previous tests, no close frame will be received in
-            # response and the connection will not be closed. The client will
-            # stop waiting for the close frame and timeout, then stop waiting
-            # for the connection close and timeout again.
             self.loop.run_until_complete(self.protocol.close(reason='close'))
         self.assertConnectionClosed(1006, '')
 
-    def test_eof_received_timeout(self):
-        # Timeout is expected in 10ms.
+    def test_local_close_connection_lost_timeout(self):
         self.protocol.timeout = 10 * MS
+        # If the server doesn't half-close its side of the TCP connection
+        # after we send a close frame, time out in 20ms:
+        # - 10ms waiting for a half-close
+        # - 10ms waiting for a close
         # Check the timing within -1/+9ms for robustness.
-        with self.assertCompletesWithin(9 * MS, 19 * MS):
-            # Unlike previous tests, the close frame will be received in
-            # response but the connection will not be closed. The client will
-            # stop waiting for the connection close and timeout.
+        with self.assertCompletesWithin(19 * MS, 29 * MS):
+            # HACK: disable write_eof => other end drops connection emulation.
+            self.transport._eof = True
             self.receive_frame(self.close_frame)
             self.loop.run_until_complete(self.protocol.close(reason='close'))
-
         self.assertConnectionClosed(1000, 'close')

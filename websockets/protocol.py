@@ -148,7 +148,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.legacy_recv = legacy_recv
 
-        # This limit is both the line length limit and half the buffer limit.
+        # Configure read buffer limits. The high-water limit is defined by
+        # ``self.read_limit``. The ``limit`` argument controls the line length
+        # limit and half the buffer limit of :class:`~asyncio.StreamReader`.
+        # That's why it must be set to half of ``self.read_limit``.
         stream_reader = asyncio.StreamReader(limit=read_limit // 2, loop=loop)
         super().__init__(stream_reader, self.client_connected, loop)
 
@@ -191,6 +194,19 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # CONNECTING at this point.
         if self.state == OPEN:
             self.opening_handshake.set_result(True)
+
+    def client_connected(self, reader, writer):
+        """
+        Callback for :class:`~asyncio.StreamReaderProtocol`.
+
+        Record references to the stream reader and the stream writer to avoid
+        using private APIs``self._stream_reader`` and ``self._stream_writer``.
+
+        """
+        self.reader = reader
+        self.writer = writer
+        # Start the task that handles incoming messages.
+        self.worker_task = asyncio_ensure_future(self.run(), loop=self.loop)
 
     # Public API
 
@@ -674,32 +690,51 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.closing_handshake.set_result(False)
         yield from self.close_connection()
 
-    # asyncio StreamReaderProtocol methods
+    # asyncio.StreamReaderProtocol methods
 
-    def client_connected(self, reader, writer):
-        self.reader = reader
-        self.writer = writer
-        # Configure write buffer limit.
-        self.writer._transport.set_write_buffer_limits(self.write_limit)
-        # Start the task that handles incoming messages.
-        self.worker_task = asyncio_ensure_future(self.run(), loop=self.loop)
+    def connection_made(self, transport):
+        """
+        Configure write buffer limits.
+
+        The high-water limit is defined by ``self.write_limit``.
+
+        The low-water limit currently defaults to ``self.write_limit // 4`` in
+        :meth:`~asyncio.WriteTransport.set_write_buffer_limits`, which should
+        be all right for reasonable use cases of this library.
+
+        """
+        transport.set_write_buffer_limits(self.write_limit)
+        super().connection_made(transport)
 
     def eof_received(self):
+        """
+        Ensure the transport is closed after receiving EOF.
+
+        Since Python 3.5, `:meth:~StreamReaderProtocol.eof_received` returns
+        ``True``. See http://bugs.python.org/issue24539 for details.
+
+        This is inappropriate for websockets for at least three reasons:
+
+        1. The use case is to read data until EOF with self.reader.read(-1).
+           Since websockets is a TLV protocol, this never happens.
+
+        2. It doesn't work on SSL connections. A falsy value must be
+           returned to have the same behavior on SSL and plain connections.
+
+        3. The websockets protocol has its own closing handshake. Endpoints
+           close the TCP connection after sending a Close frame.
+
+        As a consequence we revert to the previous, more useful behavior.
+
+        """
         super().eof_received()
-        # Since Python 3.5, StreamReaderProtocol.eof_received() returns True
-        # to leave the transport open (http://bugs.python.org/issue24539).
-        # This is inappropriate for websockets for at least three reasons.
-        # 1. The use case is to read data until EOF with self.reader.read(-1).
-        #    Since websockets is a TLV protocol, this never happens.
-        # 2. It doesn't work on SSL connections. A falsy value must be
-        #    returned to have the same behavior on SSL and plain connections.
-        # 3. The websockets protocol has its own closing handshake. Endpoints
-        #    close the TCP connection after sending a Close frame.
-        # As a consequence we revert to the previous, more useful behavior.
         return
 
     def connection_lost(self, exc):
-        # 7.1.4. The WebSocket Connection is Closed
+        """
+        Implement section 7.1.4. The WebSocket Connection is Closed.
+
+        """
         self.state = CLOSED
         if not self.opening_handshake.done():
             self.opening_handshake.set_result(False)

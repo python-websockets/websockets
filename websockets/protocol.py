@@ -123,7 +123,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     # connection. Set is_client and side to pick a side.
     is_client = None
     side = 'undefined'
-    state = OPEN
 
     def __init__(self, *,
                  host=None, port=None, secure=None,
@@ -158,6 +157,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.writer = None
         self._drain_lock = asyncio.Lock(loop=loop)
 
+        # This class implements the data transfer and closing handshake, which
+        # are shared between the client-side and the server-side. Subclasses
+        # implement the opening handshake and execute connection_open() to
+        # change the state to OPEN.
+        self.state = CONNECTING
+
         self.path = None
         self.request_headers = None
         self.raw_request_headers = None
@@ -172,9 +177,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.close_code = None
         self.close_reason = ''
 
-        # Futures tracking steps in the connection's lifecycle.
-        # Set to True when the opening handshake has completed properly.
-        self.opening_handshake = asyncio.Future(loop=loop)
         # Set to None when the connection state becomes CLOSED.
         self.connection_closed = asyncio.Future(loop=loop)
 
@@ -184,26 +186,19 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
 
-        # Task managing the connection, initalized in self.client_connected.
+        # Task managing the connection, initialized in connection_open.
         self.worker_task = None
-
-        # In a subclass implementing the opening handshake, the state will be
-        # CONNECTING at this point.
-        if self.state == OPEN:
-            self.opening_handshake.set_result(True)
 
     def client_connected(self, reader, writer):
         """
         Callback for :class:`~asyncio.StreamReaderProtocol`.
 
         Record references to the stream reader and the stream writer to avoid
-        using private APIs``self._stream_reader`` and ``self._stream_writer``.
+        using private attributes ``_stream_reader`` and ``_stream_writer``.
 
         """
         self.reader = reader
         self.writer = writer
-        # Start the task that handles incoming messages.
-        self.worker_task = asyncio_ensure_future(self.run(), loop=self.loop)
 
     # Public API
 
@@ -434,6 +429,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         else:
             raise TypeError("data must be bytes or str")
 
+    def connection_open(self):
+        assert self.state == CONNECTING
+        self.state = OPEN
+        # Start the task that handles incoming messages.
+        self.worker_task = asyncio_ensure_future(self.run(), loop=self.loop)
+
     @asyncio.coroutine
     def ensure_open(self):
         # Raise a suitable exception if the connection isn't open.
@@ -460,7 +461,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @asyncio.coroutine
     def run(self):
         # This coroutine guarantees that the connection is closed at exit.
-        yield from self.opening_handshake
         while True:
             try:
                 msg = yield from self.read_message()
@@ -746,8 +746,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         logger.debug("%s - connection_lost(%s)", self.side, exc)
         self.state = CLOSED
-        if not self.opening_handshake.done():
-            self.opening_handshake.set_result(False)
         if self.close_code is None:
             self.close_code = 1006
         if not self.connection_closed.done():

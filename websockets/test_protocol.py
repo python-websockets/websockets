@@ -31,6 +31,9 @@ class TransportMock(unittest.mock.Mock):
     It calls the protocol's connection_made and connection_lost methods like
     actual transports.
 
+    It also calls the protocol's connection_open method to bypass the
+    WebSocket handshake.
+
     To simulate incoming data, tests call the protocol's data_received and
     eof_received methods directly.
 
@@ -43,7 +46,10 @@ class TransportMock(unittest.mock.Mock):
         self.protocol = protocol
         # Remove when dropping support for Python < 3.6.
         self._closing = False
+        # Simulate a successful TCP handshake.
         self.loop.call_soon(self.protocol.connection_made, self)
+        # Simulate a successful WebSocket handshake.
+        self.loop.call_soon(self.protocol.connection_open)
 
     def close(self):
         # Remove when dropping support for Python < 3.6.
@@ -285,11 +291,15 @@ class CommonTests:
         get_extra_info.assert_called_with('peername', None)
 
     def test_open(self):
+        self.assertFalse(self.protocol.open)
+        self.run_loop_once()
         self.assertTrue(self.protocol.open)
         self.close_connection()
         self.assertFalse(self.protocol.open)
 
     def test_state_name(self):
+        self.assertEqual(self.protocol.state_name, 'CONNECTING')
+        self.run_loop_once()
         self.assertEqual(self.protocol.state_name, 'OPEN')
         self.close_connection()
         self.assertEqual(self.protocol.state_name, 'CLOSED')
@@ -610,6 +620,10 @@ class CommonTests:
         self.assertConnectionFailed(1006, '')
 
     def test_ensure_connection_before_opening_handshake(self):
+        # Finalize the connection opening sequence.
+        self.run_loop_once()
+
+        # Simulate a bug by forcibly reverting the protocol state.
         self.protocol.state = CONNECTING
 
         with self.assertRaises(InvalidState):

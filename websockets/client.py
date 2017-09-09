@@ -16,7 +16,7 @@ from .headers import (
     parse_protocol_list
 )
 from .http import USER_AGENT, build_headers, read_response
-from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
+from .protocol import WebSocketCommonProtocol
 from .uri import parse_uri
 
 
@@ -33,7 +33,6 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
     is_client = True
     side = 'client'
-    state = CONNECTING
 
     def __init__(self, *,
                  origin=None, extensions=None, subprotocols=None,
@@ -267,9 +266,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.subprotocol = self.process_subprotocol(
             response_headers, available_subprotocols)
 
-        assert self.state == CONNECTING
-        self.state = OPEN
-        self.opening_handshake.set_result(True)
+        self.connection_open()
 
 
 @asyncio.coroutine

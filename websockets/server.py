@@ -21,7 +21,7 @@ from .headers import (
     build_extension_list, parse_extension_list, parse_protocol_list
 )
 from .http import USER_AGENT, build_headers, read_request
-from .protocol import CONNECTING, OPEN, WebSocketCommonProtocol
+from .protocol import WebSocketCommonProtocol
 
 
 __all__ = ['serve', 'WebSocketServerProtocol']
@@ -42,7 +42,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
     is_client = False
     side = 'server'
-    state = CONNECTING
 
     def __init__(self, ws_handler, ws_server, *,
                  origins=None, extensions=None, subprotocols=None,
@@ -118,7 +117,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     )
 
                 yield from self.write_http_response(*early_response)
-                self.opening_handshake.set_result(False)
                 yield from self.close_connection(force=True)
 
                 return
@@ -461,9 +459,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         yield from self.write_http_response(
             SWITCHING_PROTOCOLS, response_headers)
 
-        assert self.state == CONNECTING
-        self.state = OPEN
-        self.opening_handshake.set_result(True)
+        self.connection_open()
 
         return path
 

@@ -435,8 +435,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         response_headers = []
         set_header = lambda k, v: response_headers.append((k, v))
-
-        set_header('Server', USER_AGENT)
+        is_header_set = lambda k: k in dict(response_headers).keys()
 
         if extensions_header is not None:
             set_header('Sec-WebSocket-Extensions', extensions_header)
@@ -451,6 +450,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
                 set_header(name, value)
+
+        if not is_header_set('Server'):
+            set_header('Server', USER_AGENT)
 
         build_response(set_header, key)
 

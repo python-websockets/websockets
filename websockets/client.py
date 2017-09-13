@@ -214,6 +214,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         request_headers = []
         set_header = lambda k, v: request_headers.append((k, v))
+        is_header_set = lambda k: k in dict(request_headers).keys()
 
         if wsuri.port == (443 if wsuri.secure else 80):     # pragma: no cover
             set_header('Host', wsuri.host)
@@ -243,7 +244,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             for name, value in extra_headers:
                 set_header(name, value)
 
-        set_header('User-Agent', USER_AGENT)
+        if not is_header_set('User-Agent'):
+            set_header('User-Agent', USER_AGENT)
 
         key = build_request(set_header)
 

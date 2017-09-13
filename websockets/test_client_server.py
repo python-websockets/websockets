@@ -288,6 +288,14 @@ class ClientServerTests(unittest.TestCase):
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
+    @with_server()
+    @with_client('raw_headers', extra_headers=[('User-Agent', 'Eggs')])
+    def test_protocol_custom_request_user_agent(self):
+        req_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(req_headers.count("User-Agent"), 1)
+        self.assertIn("('User-Agent', 'Eggs')", req_headers)
+
     @with_server(extra_headers=lambda p, r: {'X-Spam': 'Eggs'})
     @with_client('raw_headers')
     def test_protocol_custom_response_headers_callable_dict(self):
@@ -315,6 +323,14 @@ class ClientServerTests(unittest.TestCase):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+
+    @with_server(extra_headers=[('Server', 'Eggs')])
+    @with_client('raw_headers')
+    def test_protocol_custom_response_user_agent(self):
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(resp_headers.count("Server"), 1)
+        self.assertIn("('Server', 'Eggs')", resp_headers)
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     @with_client()

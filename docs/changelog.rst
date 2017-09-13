@@ -27,6 +27,8 @@ Also:
 
 * Reduced verbosity of "Failing the WebSocket connection" logs.
 
+* Allowed ``extra_headers`` to override ``Server`` and ``User-Agent`` headers.
+
 3.4
 ...
 

@@ -32,6 +32,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
     """
     is_client = True
+    side = 'client'
     state = CONNECTING
 
     def __init__(self, *,

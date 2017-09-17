@@ -120,10 +120,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     """
     # There are only two differences between the client-side and the server-
     # side behavior: masking the payload and closing the underlying TCP
-    # connection. This class implements the server-side behavior by default.
-    # To get the client-side behavior, set is_client = True.
-
-    is_client = False
+    # connection. Set is_client and side to pick a side.
+    is_client = None
+    side = 'undefined'
     state = OPEN
 
     def __init__(self, *,
@@ -577,10 +576,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             max_size=max_size,
             extensions=self.extensions,
         )
-        logger.debug(
-            "%s << %s",
-            'client' if self.is_client else 'server', frame,
-        )
+        logger.debug("%s < %s", self.side, frame)
         return frame
 
     @asyncio.coroutine
@@ -596,10 +592,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.state = CLOSING
 
         frame = Frame(True, opcode, data)
-        logger.debug(
-            "%s >> %s",
-            'client' if self.is_client else 'server', frame,
-        )
+        logger.debug("%s > %s", self.side, frame)
         frame.write(
             self.writer.write,
             mask=self.is_client,
@@ -675,8 +668,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):
-        # 7.1.7. Fail the WebSocket Connection
-        logger.debug("Failing the WebSocket connection: %d %s", code, reason)
+        """
+        7.1.7. Fail the WebSocket Connection
+
+        """
+        logger.debug(
+            "%s ! failing WebSocket connection: %d %s",
+            self.side, code, reason,
+        )
         if self.state == OPEN:
             if code == 1006:
                 # Don't send a close frame if the connection is broken. Set
@@ -701,24 +700,30 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         :meth:`~asyncio.WriteTransport.set_write_buffer_limits`, which should
         be all right for reasonable use cases of this library.
 
+        This is the earliest point where we can get hold of the transport,
+        which means it's the best point for configuring it.
+
         """
+        logger.debug("%s - connection_made(%s)", self.side, transport)
         transport.set_write_buffer_limits(self.write_limit)
         super().connection_made(transport)
 
     def eof_received(self):
         """
-        Ensure the transport is closed after receiving EOF.
+        Close the transport after receiving EOF.
 
         Since Python 3.5, `:meth:~StreamReaderProtocol.eof_received` returns
-        ``True``. See http://bugs.python.org/issue24539 for details.
+        ``True`` on non-TLS connections.
+
+        See http://bugs.python.org/issue24539 for more information.
 
         This is inappropriate for websockets for at least three reasons:
 
         1. The use case is to read data until EOF with self.reader.read(-1).
            Since websockets is a TLV protocol, this never happens.
 
-        2. It doesn't work on SSL connections. A falsy value must be
-           returned to have the same behavior on SSL and plain connections.
+        2. It doesn't work on TLS connections. A falsy value must be
+           returned to have the same behavior on TLS and plain connections.
 
         3. The websockets protocol has its own closing handshake. Endpoints
            close the TCP connection after sending a Close frame.
@@ -726,14 +731,16 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         As a consequence we revert to the previous, more useful behavior.
 
         """
+        logger.debug("%s - eof_received()", self.side)
         super().eof_received()
         return
 
     def connection_lost(self, exc):
         """
-        Implement section 7.1.4. The WebSocket Connection is Closed.
+        7.1.4. The WebSocket Connection is Closed.
 
         """
+        logger.debug("%s - connection_lost(%s)", self.side, exc)
         self.state = CLOSED
         if not self.opening_handshake.done():
             self.opening_handshake.set_result(False)

@@ -40,6 +40,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     Its support for HTTP responses is very limited.
 
     """
+    is_client = False
+    side = 'server'
     state = CONNECTING
 
     def __init__(self, ws_handler, ws_server, *,

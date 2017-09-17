@@ -769,6 +769,11 @@ class CommonTests:
 
 class ServerTests(CommonTests, unittest.TestCase):
 
+    def setUp(self):
+        super().setUp()
+        self.protocol.is_client = False
+        self.protocol.side = 'server'
+
     def test_close_handshake_timeout(self):
         # Timeout is expected in 10ms.
         self.protocol.timeout = 10 * MS
@@ -786,6 +791,7 @@ class ClientTests(CommonTests, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.protocol.is_client = True
+        self.protocol.side = 'client'
 
     def test_close_handshake_timeout(self):
         # Timeout is expected in 2 * 10 = 20ms.

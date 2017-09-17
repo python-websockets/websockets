@@ -187,7 +187,8 @@ class ClientServerTests(unittest.TestCase):
     def start_client(self, path='', **kwds):
         # Don't enable compression by default in tests.
         kwds.setdefault('compression', None)
-        client = connect('ws://localhost:8642/' + path, **kwds)
+        proto = 'ws' if kwds.get('ssl') is None else 'wss'
+        client = connect(proto + '://localhost:8642/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
@@ -804,19 +805,13 @@ class SSLClientServerTests(ClientServerTests):
         ssl_context.verify_mode = ssl.CERT_REQUIRED
         return ssl_context
 
-    def start_server(self, *args, **kwds):
+    def start_server(self, **kwds):
         kwds.setdefault('ssl', self.server_context)
-        # Don't enable compression by default in tests.
-        kwds.setdefault('compression', None)
-        server = serve(handler, 'localhost', 8642, **kwds)
-        self.server = self.loop.run_until_complete(server)
+        super().start_server(**kwds)
 
     def start_client(self, path='', **kwds):
         kwds.setdefault('ssl', self.client_context)
-        # Don't enable compression by default in tests.
-        kwds.setdefault('compression', None)
-        client = connect('wss://localhost:8642/' + path, **kwds)
-        self.client = self.loop.run_until_complete(client)
+        super().start_client(path, **kwds)
 
     @with_server()
     def test_ws_uri_is_rejected(self):

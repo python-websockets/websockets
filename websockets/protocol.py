@@ -284,15 +284,20 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             yield from self.write_frame(OP_CLOSE, frame_data)
 
         # If no close frame is received within the timeout, cancel the data
-        # transfer task in order to exit the infinite loop.
+        # transfer task in order to exit the infinite loop. transfer_data()
+        # will catch CancelledError and exit without an exception. However
+        # wait_for() will raise CancelledError anyway. As a consequence, if
+        # close() is called several times concurrently and one of these calls
+        # is cancelled, other calls will see that the data transfer task has
+        # completed. This is why there's no need to catch CancelledError here.
         try:
+            # If close() is cancelled during the wait, self.transfer_data_task
+            # is cancelled before the timeout elapses (on Python ≥ 3.4.3).
+            # This helps closing connections when shutting down a server.
             yield from asyncio.wait_for(
-                asyncio.shield(self.transfer_data_task),
-                self.timeout, loop=self.loop)
-        except (asyncio.CancelledError, asyncio.TimeoutError):
+                self.transfer_data_task, self.timeout, loop=self.loop)
+        except asyncio.TimeoutError:
             pass
-        if self.close_code is None:
-            self.transfer_data_task.cancel()
 
         # Wait for the close connection task to close the TCP connection.
         yield from asyncio.shield(self.close_connection_task)

@@ -46,7 +46,7 @@ __all__ = [
     'build_response', 'check_response',
 ]
 
-GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
 
 def build_request(set_header):

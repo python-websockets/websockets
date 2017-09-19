@@ -153,7 +153,7 @@ def read_headers(stream):
     # We don't attempt to support obsolete line folding.
 
     headers = []
-    for _ in range(MAX_HEADERS):
+    for _ in range(MAX_HEADERS + 1):
         line = yield from read_line(stream)
         if line == b'\r\n':
             break

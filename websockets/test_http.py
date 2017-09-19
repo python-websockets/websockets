@@ -30,9 +30,10 @@ class HTTPAsyncTests(unittest.TestCase):
             b'Sec-WebSocket-Version: 13\r\n'
             b'\r\n'
         )
-        path, hdrs = self.loop.run_until_complete(read_request(self.stream))
+        path, headers = self.loop.run_until_complete(
+            read_request(self.stream))
         self.assertEqual(path, '/chat')
-        self.assertEqual(dict(hdrs)['Upgrade'], 'websocket')
+        self.assertEqual(dict(headers)['Upgrade'], 'websocket')
 
     def test_read_response(self):
         # Example from the protocol overview in RFC 6455
@@ -85,12 +86,13 @@ class HTTPAsyncTests(unittest.TestCase):
             self.loop.run_until_complete(read_headers(self.stream))
 
     def test_headers_limit(self):
-        self.stream.feed_data(b'foo: bar\r\n' * 500 + b'\r\n')
+        self.stream.feed_data(b'foo: bar\r\n' * 257 + b'\r\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_headers(self.stream))
 
     def test_line_limit(self):
-        self.stream.feed_data(b'a' * 5000 + b'\r\n\r\n')
+        # Header line contains 5 + 4090 + 2 = 4097 bytes.
+        self.stream.feed_data(b'foo: ' + b'a' * 4090 + b'\r\n\r\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_headers(self.stream))
 

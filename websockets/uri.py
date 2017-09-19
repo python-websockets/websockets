@@ -15,7 +15,7 @@ from .exceptions import InvalidURI
 __all__ = ['parse_uri', 'WebSocketURI']
 
 WebSocketURI = collections.namedtuple(
-    'WebSocketURI', ('secure', 'host', 'port', 'resource_name'))
+    'WebSocketURI', ['secure', 'host', 'port', 'resource_name'])
 WebSocketURI.__doc__ = """WebSocket URI.
 
 * ``secure`` is the secure flag
@@ -37,7 +37,7 @@ def parse_uri(uri):
     """
     uri = urllib.parse.urlparse(uri)
     try:
-        assert uri.scheme in ('ws', 'wss')
+        assert uri.scheme in ['ws', 'wss']
         assert uri.params == ''
         assert uri.fragment == ''
         assert uri.username is None

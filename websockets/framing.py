@@ -92,14 +92,14 @@ class Frame(FrameData):
 
         If ``extensions`` is provided, it's a list of classes with an
         ``decode()`` method that transform the frame and return a new frame.
-        They are applied in order.
+        They are applied in reverse order.
 
         This function validates the frame before returning it and raises
         :exc:`~websockets.exceptions.WebSocketProtocolError` if it contains
         incorrect values.
 
         """
-        # Read the header
+        # Read the header.
         data = yield from reader(2)
         head1, head2 = struct.unpack('!BB', data)
 
@@ -121,12 +121,13 @@ class Frame(FrameData):
             data = yield from reader(8)
             length, = struct.unpack('!Q', data)
         if max_size is not None and length > max_size:
-            raise PayloadTooBig("Payload exceeds limit "
-                                "({} > {} bytes)".format(length, max_size))
+            raise PayloadTooBig(
+                "Payload length exceeds limit ({} > {} bytes)"
+                .format(length, max_size))
         if mask:
             mask_bits = yield from reader(4)
 
-        # Read the data
+        # Read the data.
         data = yield from reader(length)
         if mask:
             data = apply_mask(data, mask_bits)
@@ -162,11 +163,10 @@ class Frame(FrameData):
         incorrect values.
 
         """
-
-        frame.check()
-
         # The first parameter is called `frame` rather than `self`,
         # but it's the instance of class to which this method is bound.
+
+        frame.check()
 
         if extensions is None:
             extensions = []
@@ -175,7 +175,7 @@ class Frame(FrameData):
 
         output = io.BytesIO()
 
-        # Prepare the header
+        # Prepare the header.
         head1 = (
             (0b10000000 if frame.fin else 0) |
             (0b01000000 if frame.rsv1 else 0) |
@@ -198,23 +198,27 @@ class Frame(FrameData):
             mask_bits = struct.pack('!I', random.getrandbits(32))
             output.write(mask_bits)
 
-        # Prepare the data
+        # Prepare the data.
         if mask:
             data = apply_mask(frame.data, mask_bits)
         else:
             data = frame.data
         output.write(data)
 
-        # Send the frame
+        # Send the frame.
+
+        # The frame is written in a single call to writer in order to prevent
+        # TCP fragmentation. See #68 for details.
         writer(output.getvalue())
 
     def check(frame):
         """
-        Raise :exc:`~websockets.exceptions.WebSocketProtocolError` if the frame
-        contains incorrect values.
+        Check that this frame contains acceptable values.
+
+        Raise :exc:`~websockets.exceptions.WebSocketProtocolError` if this
+        frame contains incorrect values.
 
         """
-
         # The first parameter is called `frame` rather than `self`,
         # but it's the instance of class to which this method is bound.
 
@@ -229,7 +233,8 @@ class Frame(FrameData):
             if not frame.fin:
                 raise WebSocketProtocolError("Fragmented control frame")
         else:
-            raise WebSocketProtocolError("Invalid opcode")
+            raise WebSocketProtocolError(
+                "Invalid opcode ({})".format(frame.opcode))
 
 
 def parse_close(data):
@@ -244,14 +249,15 @@ def parse_close(data):
 
     """
     length = len(data)
-    if length == 0:
-        return 1005, ''
-    elif length >= 2:
+    if length >= 2:
         code, = struct.unpack('!H', data[:2])
         check_close(code)
         reason = data[2:].decode('utf-8')
         return code, reason
+    elif length == 0:
+        return 1005, ''
     else:
+        assert length == 1
         raise WebSocketProtocolError("Close frame too short")
 
 

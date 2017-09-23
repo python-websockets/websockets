@@ -378,7 +378,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         want to wait.
 
         A ping may serve as a keepalive or as a check that the remote endpoint
-        received all messages up to this point, with ``yield from ws.ping()``.
+        received all messages up to this point::
+
+            pong_waiter = await ws.ping()
+            await pong_waiter   # only if you want to wait for the pong
 
         By default, the ping contains four random bytes. The content may be
         overridden with the optional ``data`` argument which must be of type

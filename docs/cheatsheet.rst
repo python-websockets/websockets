@@ -86,7 +86,8 @@ idle connections after some time::
         except asyncio.TimeoutError:
             # No data in 20 seconds, check the connection.
             try:
-                await asyncio.wait_for(ws.ping(), timeout=10)
+                pong_waiter = await ws.ping()
+                await asyncio.wait_for(pong_waiter, timeout=10)
             except asyncio.TimeoutError:
                 # No response to ping in 10 seconds, disconnect.
                 break

@@ -399,8 +399,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             data = struct.pack('!I', random.getrandbits(32))
 
         self.pings[data] = asyncio.Future(loop=self.loop)
+
         yield from self.write_frame(OP_PING, data)
-        return self.pings[data]
+
+        return asyncio.shield(self.pings[data])
 
     @asyncio.coroutine
     def pong(self, data=b''):
@@ -561,9 +563,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     # Acknowledge all pings up to the one matching this pong.
                     ping_id = None
                     while ping_id != frame.data:
-                        ping_id, waiter = self.pings.popitem(0)
-                        if not waiter.cancelled():
-                            waiter.set_result(None)
+                        ping_id, pong_waiter = self.pings.popitem(0)
+                        pong_waiter.set_result(None)
 
             # 5.6. Data Frames
             else:

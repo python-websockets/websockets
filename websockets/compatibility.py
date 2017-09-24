@@ -1,3 +1,9 @@
+"""
+The :mod:`websockets.compatibility` module provides helpers for bridging
+compatibility issues across Python versions.
+
+"""
+
 import asyncio
 import http
 

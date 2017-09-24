@@ -98,7 +98,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     The ``write_limit`` argument sets the high-water limit of the buffer for
     outgoing bytes. The low-water limit is a quarter of the high-water limit.
     The default value is 64kB, equal to asyncio's default (based on the
-    current implementation of ``_FlowControlMixin``).
+    current implementation of ``FlowControlMixin``).
 
     As soon as the HTTP request and response in the opening handshake are
     processed, the request path is available in the :attr:`path` attribute,
@@ -139,7 +139,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.write_limit = write_limit
 
         # Store a reference to loop to avoid relying on self._loop, a private
-        # attribute of StreamReaderProtocol, inherited from _FlowControlMixin.
+        # attribute of StreamReaderProtocol, inherited from FlowControlMixin.
         if loop is None:
             loop = asyncio.get_event_loop()
         self.loop = loop
@@ -256,7 +256,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         Current connection state, as a string.
 
         Possible states are defined in the WebSocket specification:
-        CONNECTING, OPEN, CLOSING, or CLOSED.
+        ``CONNECTING``, ``OPEN``, ``CLOSING``, or ``CLOSED``.
 
         To check if the connection is open, use :attr:`open` instead.
 
@@ -435,6 +435,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     # Private methods - no guarantees.
 
     def encode_data(self, data):
+        """
+        Expect :class:`str` or :class:`bytes`. Return :class:`bytes`.
+
+        :class:`str` are encoded with UTF-8.
+
+        """
         # Expect str or bytes, return bytes.
         if isinstance(data, str):
             return data.encode('utf-8')
@@ -444,6 +450,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             raise TypeError("data must be bytes or str")
 
     def connection_open(self):
+        """
+        Callback when the opening handshake completes.
+
+        """
         assert self.state == CONNECTING
         self.state = OPEN
         # Start the task that receives incoming WebSocket messages.
@@ -455,9 +465,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def ensure_open(self):
-        # Raise a suitable exception if the connection isn't open.
-        # Handle cases from the most common to the least common.
+        """
+        Check that the WebSocket connection is open.
 
+        Raise :exc:`~websockets.exceptions.ConnectionClosed` if it isn't.
+
+        """
+        # Handle cases from the most common to the least common.
         if self.state == OPEN:
             return
 
@@ -479,6 +493,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def transfer_data(self):
+        """
+        Read incoming messages and put them in a queue.
+
+        This coroutine runs in a task until the closing handshake is started.
+
+        """
         try:
             while True:
                 msg = yield from self.read_message()
@@ -503,7 +523,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def read_message(self):
-        # Reassemble fragmented messages.
+        """
+        Read a single message from the connection.
+
+        Re-assemble data frames if the message is fragmented.
+
+        Return ``None`` when the closing handshake is started.
+
+        """
         frame = yield from self.read_data_frame(max_size=self.max_size)
 
         # A close frame was received.
@@ -559,7 +586,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def read_data_frame(self, max_size):
-        # Deal with control frames automatically and return next data frame.
+        """
+        Read a single data frame from the connection.
+
+        Process control frames received before the next data frame.
+
+        Return ``None`` if a close frame is encountered before any data frame.
+
+        """
         # 6.2. Receiving Data
         while True:
             frame = yield from self.read_frame(max_size)
@@ -595,6 +629,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     @asyncio.coroutine
     def read_frame(self, max_size):
+        """
+        Read a single frame from the connection.
+
+        """
         frame = yield from Frame.read(
             self.reader.readexactly,
             mask=not self.is_client,

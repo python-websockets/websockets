@@ -55,19 +55,28 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         super().__init__(**kwds)
 
     def connection_made(self, transport):
+        """
+        Register connection and initialize a task to handle it.
+
+        """
         super().connection_made(transport)
-        # Register the connection with the server when creating the handler
-        # task. (Registering at the beginning of the handler coroutine would
+        # Register the connection with the server before creating the handler
+        # task. Registering at the beginning of the handler coroutine would
         # create a race condition between the creation of the task, which
-        # schedules its execution, and the moment the handler starts running.)
+        # schedules its execution, and the moment the handler starts running.
         self.ws_server.register(self)
         self.handler_task = asyncio_ensure_future(
             self.handler(), loop=self.loop)
 
     @asyncio.coroutine
     def handler(self):
-        # Since this method doesn't have a caller able to handle exceptions,
-        # it attemps to log relevant ones and close the connection properly.
+        """
+        Handle the lifecycle of a WebSocket connection.
+
+        Since this method doesn't have a caller able to handle exceptions, it
+        attemps to log relevant ones and close the connection properly.
+
+        """
         try:
 
             try:
@@ -406,10 +415,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         It can be a mapping or an iterable of (name, value) pairs. It can also
         be a callable taking the request path and headers in arguments.
 
-        Raise :exc:`~websockets.exceptions.InvalidHandshake` or a subclass if
-        the handshake fails.
+        Raise :exc:`~websockets.exceptions.InvalidHandshake` if the handshake
+        fails.
 
-        Return the URI of the request.
+        Return the path of the URI of the request.
 
         """
         path, request_headers = yield from self.read_http_request()
@@ -509,9 +518,17 @@ class WebSocketServer:
         self.server = server
 
     def register(self, protocol):
+        """
+        Register a connection with this server.
+
+        """
         self.websockets.add(protocol)
 
     def unregister(self, protocol):
+        """
+        Unregister a connection with this server.
+
+        """
         self.websockets.remove(protocol)
 
     def close(self):

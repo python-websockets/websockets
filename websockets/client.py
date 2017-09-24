@@ -194,9 +194,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         return subprotocol
 
     @asyncio.coroutine
-    def handshake(self, wsuri, origin=None,
-                  available_extensions=None, available_subprotocols=None,
-                  extra_headers=None):
+    def handshake(self, wsuri, origin=None, available_extensions=None,
+                  available_subprotocols=None, extra_headers=None):
         """
         Perform the client side of the opening handshake.
 
@@ -210,6 +209,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         If provided, ``extra_headers`` sets additional HTTP request headers.
         It must be a mapping or an iterable of (name, value) pairs.
+
+        Raise :exc:`~websockets.exceptions.InvalidHandshake` if the handshake
+        fails.
 
         """
         request_headers = []

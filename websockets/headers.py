@@ -23,7 +23,14 @@ __all__ = [
 # definitions from https://tools.ietf.org/html/rfc7230#appendix-B.
 
 def peek_ahead(string, pos):
-    # We never peek more than one character ahead.
+    """
+    Return the next character from ``string`` at the given position.
+
+    Return ``None`` at the end of ``string``.
+
+    We never need to peek more than one character ahead.
+
+    """
     return None if pos == len(string) else string[pos]
 
 
@@ -31,6 +38,14 @@ _OWS_re = re.compile(r'[\t ]*')
 
 
 def parse_OWS(string, pos):
+    """
+    Parse optional whitespace from ``string`` at the given position.
+
+    Return the new position.
+
+    The whitespace itself isn't returned because it isn't significant.
+
+    """
     # There's always a match, possibly empty, whose content doesn't matter.
     match = _OWS_re.match(string, pos)
     return match.end()
@@ -40,6 +55,14 @@ _token_re = re.compile(r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+')
 
 
 def parse_token(string, pos):
+    """
+    Parse a token from ``string`` at the given position.
+
+    Return the token value and the new position.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+
+    """
     match = _token_re.match(string, pos)
     if match is None:
         raise InvalidHeader("expected token", string=string, pos=pos)
@@ -54,6 +77,14 @@ _unquote_re = re.compile(r'\\([\x09\x20-\x7e\x80-\xff])')
 
 
 def parse_quoted_string(string, pos):
+    """
+    Parse a quoted string from ``string`` at the given position.
+
+    Return the unquoted value and the new position.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+
+    """
     match = _quoted_string_re.match(string, pos)
     if match is None:
         raise InvalidHeader("expected quoted string", string=string, pos=pos)
@@ -61,6 +92,14 @@ def parse_quoted_string(string, pos):
 
 
 def parse_extension_param(string, pos):
+    """
+    Parse a single extension parameter from ``string`` at the given position.
+
+    Return a ``(name, value)`` pair and the new position.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+
+    """
     # Extract parameter name.
     name, pos = parse_token(string, pos)
     pos = parse_OWS(string, pos)
@@ -85,6 +124,15 @@ def parse_extension_param(string, pos):
 
 
 def parse_extension(string, pos):
+    """
+    Parse an extension definition from ``string`` at the given position.
+
+    Return an ``(extension name, parameters)`` pair, where ``parameters`` is a
+    list of ``(name, value)`` pairs, and the new position.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+
+    """
     # Extract extension name.
     name, pos = parse_token(string, pos)
     pos = parse_OWS(string, pos)
@@ -99,7 +147,7 @@ def parse_extension(string, pos):
 
 def parse_extension_list(string, pos=0):
     """
-    Parse a Sec-WebSocket-Extensions header.
+    Parse a ``Sec-WebSocket-Extensions`` header.
 
     The string is assumed not to start or end with whitespace.
 
@@ -118,7 +166,7 @@ def parse_extension_list(string, pos=0):
 
     Parameter values are ``None`` when no value is provided.
 
-    Raise InvalidHeader if the header cannot be parsed.
+    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
 
     """
     # Per https://tools.ietf.org/html/rfc7230#section-7, "a recipient MUST
@@ -161,6 +209,12 @@ def parse_extension_list(string, pos=0):
 
 
 def build_extension(name, parameters):
+    """
+    Build an extension definition.
+
+    This is the reverse of :func:`parse_extension`.
+
+    """
     return '; '.join([name] + [
         # Quoted strings aren't necessary because values are always tokens.
         name if value is None else '{}={}'.format(name, value)
@@ -170,9 +224,9 @@ def build_extension(name, parameters):
 
 def build_extension_list(extensions):
     """
-    Unparse a Sec-WebSocket-Extensions header.
+    Unparse a ``Sec-WebSocket-Extensions`` header.
 
-    This is the reverse of parse_extension_list.
+    This is the reverse of :func:`parse_extension_list`.
 
     """
     return ', '.join(
@@ -182,6 +236,14 @@ def build_extension_list(extensions):
 
 
 def parse_protocol(string, pos):
+    """
+    Parse a protocol definition from ``string`` at the given position.
+
+    Return the protocol and the new position.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+
+    """
     name, pos = parse_token(string, pos)
     pos = parse_OWS(string, pos)
     return name, pos
@@ -189,13 +251,13 @@ def parse_protocol(string, pos):
 
 def parse_protocol_list(string, pos=0):
     """
-    Parse a Sec-WebSocket-Protocol header.
+    Parse a ``Sec-WebSocket-Protocol`` header.
 
     The string is assumed not to start or end with whitespace.
 
     Return a list of protocols.
 
-    Raise InvalidHeader if the header cannot be parsed.
+    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
 
     """
     # Per https://tools.ietf.org/html/rfc7230#section-7, "a recipient MUST
@@ -239,9 +301,9 @@ def parse_protocol_list(string, pos=0):
 
 def build_protocol_list(protocols):
     """
-    Unparse a Sec-WebSocket-Protocol header.
+    Unparse a ``Sec-WebSocket-Protocol`` header.
 
-    This is the reverse of parse_protocol_list.
+    This is the reverse of :func:`parse_protocol_list`.
 
     """
     return ', '.join(protocols)

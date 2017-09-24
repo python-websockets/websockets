@@ -32,6 +32,10 @@ def _build_parameters(
     server_max_window_bits,
     client_max_window_bits,
 ):
+    """
+    Build a list of ``(name, value)`` pairs for some compression parameters.
+
+    """
     params = []
     if server_no_context_takeover:
         params.append(('server_no_context_takeover', None))
@@ -47,6 +51,13 @@ def _build_parameters(
 
 
 def _extract_parameters(params, *, is_server):
+    """
+    Extract compression parameters from a list of ``(name, value)`` pairs.
+
+    If ``is_server`` is ``True``, ``client_max_window_bits`` may be provided
+    without a value. This is only allow in handshake requests.
+
+    """
     server_no_context_takeover = False
     client_no_context_takeover = False
     server_max_window_bits = None
@@ -81,7 +92,7 @@ def _extract_parameters(params, *, is_server):
         elif name == 'client_max_window_bits':
             if client_max_window_bits is not None:
                 raise DuplicateParameter(name)
-            if is_server and value is None:     # only in handshake responses
+            if is_server and value is None:     # only in handshake requests
                 client_max_window_bits = True
             elif value in _MAX_WINDOW_BITS_VALUES:
                 client_max_window_bits = int(value)

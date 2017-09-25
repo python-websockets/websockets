@@ -574,7 +574,8 @@ def serve(ws_handler, host=None, port=None, *,
           read_limit=2 ** 16, write_limit=2 ** 16,
           loop=None, legacy_recv=False, klass=None,
           origins=None, extensions=None, subprotocols=None,
-          extra_headers=None, compression='deflate', **kwds):
+          extra_headers=None, compression='deflate',
+          unix_socket=False, **kwds):
     """
     Create, start, and return a :class:`WebSocketServer` object.
 
@@ -600,6 +601,9 @@ def serve(ws_handler, host=None, port=None, *,
     :meth:`~asyncio.AbstractEventLoop.create_server`. For example, you can
     set the ``ssl`` keyword argument to a :class:`~ssl.SSLContext` to enable
     TLS.
+
+    The ``unix_socket`` parameter allows using unix socket.
+    If set to True, the path to the socket is the ``host`` argument.
 
     The ``create_protocol`` parameter allows customizing the asyncio protocol
     that manages the connection. It should be a callable or class accepting
@@ -676,7 +680,10 @@ def serve(ws_handler, host=None, port=None, *,
         origins=origins, extensions=extensions, subprotocols=subprotocols,
         extra_headers=extra_headers,
     )
-    server = yield from loop.create_server(factory, host, port, **kwds)
+    if unix_socket:
+        server = yield from loop.create_unix_server(factory, path=host)
+    else:
+        server = yield from loop.create_server(factory, host, port, **kwds)
 
     ws_server.wrap(server)
 

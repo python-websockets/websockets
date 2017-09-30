@@ -3,6 +3,7 @@ env:
   # websockets only works on Python >= 3.4.
     - CIBW_SKIP="cp27-* cp33-*"
     - CIBW_TEST_COMMAND="python3 -m unittest websockets"
+    - WEBSOCKETS_TESTS_TIMEOUT_FACTOR=100
 
 matrix:
   include:

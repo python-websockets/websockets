@@ -1,8 +1,7 @@
 environment:
 # websockets only works on Python >= 3.4.
   CIBW_SKIP: cp27-* cp33-*
-# Commented out because tests don't pass reliably on Windows, see #240.
-#  CIBW_TEST_COMMAND: python -m unittest discover websockets
+  CIBW_TEST_COMMAND: python -m unittest websockets
 
 # Since Python 2 is still the default, invoke Python 3 explicitly.
 install:

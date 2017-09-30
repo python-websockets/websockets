@@ -2,8 +2,7 @@ env:
   global:
   # websockets only works on Python >= 3.4.
     - CIBW_SKIP="cp27-* cp33-*"
-  # Commented out because tests don't pass reliably on macOS, see #241.
-  # - CIBW_TEST_COMMAND="python3 -m unittest discover websockets"
+    - CIBW_TEST_COMMAND="python3 -m unittest websockets"
 
 matrix:
   include:

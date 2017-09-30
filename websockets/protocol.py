@@ -66,7 +66,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     The ``timeout`` parameter defines the maximum wait time in seconds for
     completing the closing handshake and, only on the client side, for
     terminating the TCP connection. :meth:`close()` will complete in at most
-    ``3 * timeout`` on the server side and ``4 * timeout`` on the client side.
+    ``4 * timeout`` on the server side and ``5 * timeout`` on the client side.
 
     The ``max_size`` parameter enforces the maximum size for incoming messages
     in bytes. The default value is 1MB. ``None`` disables the limit. If a
@@ -773,12 +773,23 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # Closing a transport is idempotent. If the transport was already
             # closed, for example from eof_received(), it's fine.
 
-            # Close the TCP connection.
+            # Close the TCP connection. Buffers are flushed asynchronously.
             logger.debug(
                 "%s x closing TCP connection", self.side)
             self.writer.close()
-            # There's little need to await self.wait_for_connection_lost()
-            # here. Closing the transport triggers self.connection_lost().
+
+            if (yield from self.wait_for_connection_lost()):
+                return
+            logger.debug(
+                "%s ! timed out waiting for TCP close", self.side)
+
+            # Abort the TCP connection. Buffers are discarded.
+            logger.debug(
+                "%s x aborting TCP connection", self.side)
+            self.writer.transport.abort()
+
+            # connection_lost() is called quickly after aborting.
+            yield from self.wait_for_connection_lost()
 
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):

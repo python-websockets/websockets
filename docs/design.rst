@@ -247,6 +247,9 @@ If the other side doesn't send a close frame within the connection's timeout,
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`, which has the
 same effect.
 
+The closing handshake can take up to ``2 * timeout``: one ``timeout`` to write
+a close frame and one ``timeout`` to receive a close frame.
+
 Then ``websockets`` terminates the TCP connection.
 
 
@@ -277,6 +280,14 @@ easier to implement the timeout on the closing handshake. Cancelling
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` creates no risk
 of cancelling :attr:`~protocol.WebSocketCommonProtocol.close_connection_task`
 and failing to close the TCP connection, thus leaking resources.
+
+Terminating the TCP connection can take up to ``2 * timeout`` on the server
+side and ``3 * timeout`` on the client side. Clients start by waiting for the
+server to close the connection, hence the extra ``timeout``. Then both sides
+go through the following steps until the TCP connection is lost: half-closing
+the connection (only for non-TLS connections), closing the connection,
+aborting the connection. At this point the connection drops regardless of what
+happens on the network.
 
 
 .. _cancellation:

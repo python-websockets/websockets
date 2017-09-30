@@ -70,6 +70,11 @@ class TransportMock(unittest.mock.Mock):
             self.loop.call_soon(self.protocol.connection_lost, None)
         self._closing = True
 
+    def abort(self):
+        # Change this to an `if` if tests call abort() multiple times.
+        assert self.protocol.state != CLOSED
+        self.loop.call_soon(self.protocol.connection_lost, None)
+
 
 class CommonTests:
     """
@@ -789,7 +794,7 @@ class ServerTests(CommonTests, unittest.TestCase):
             self.loop.run_until_complete(self.protocol.close(reason='close'))
         self.assertConnectionClosed(1006, '')
 
-    def test_local_close_connection_lost_timeout(self):
+    def test_local_close_connection_lost_timeout_after_write_eof(self):
         self.protocol.timeout = 10 * MS
         # If the client doesn't close its side of the TCP connection after we
         # half-close our side with write_eof(), time out in 10ms.
@@ -797,6 +802,21 @@ class ServerTests(CommonTests, unittest.TestCase):
         with self.assertCompletesWithin(9 * MS, 19 * MS):
             # HACK: disable write_eof => other end drops connection emulation.
             self.transport._eof = True
+            self.receive_frame(self.close_frame)
+            self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.assertConnectionClosed(1000, 'close')
+
+    def test_local_close_connection_lost_timeout_after_close(self):
+        self.protocol.timeout = 10 * MS
+        # If the client doesn't close its side of the TCP connection after we
+        # half-close our side with write_eof() and close it with close(), time
+        # out in 20ms.
+        # Check the timing within -1/+9ms for robustness.
+        with self.assertCompletesWithin(19 * MS, 29 * MS):
+            # HACK: disable write_eof => other end drops connection emulation.
+            self.transport._eof = True
+            # HACK: disable close => other end drops connection emulation.
+            self.transport._closing = True
             self.receive_frame(self.close_frame)
             self.loop.run_until_complete(self.protocol.close(reason='close'))
         self.assertConnectionClosed(1000, 'close')
@@ -830,16 +850,34 @@ class ClientTests(CommonTests, unittest.TestCase):
             self.loop.run_until_complete(self.protocol.close(reason='close'))
         self.assertConnectionClosed(1006, '')
 
-    def test_local_close_connection_lost_timeout(self):
+    def test_local_close_connection_lost_timeout_after_write_eof(self):
         self.protocol.timeout = 10 * MS
         # If the server doesn't half-close its side of the TCP connection
         # after we send a close frame, time out in 20ms:
         # - 10ms waiting for receiving a half-close
-        # - 10ms waiting for receiving a close
+        # - 10ms waiting for receiving a close after write_eof
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             # HACK: disable write_eof => other end drops connection emulation.
             self.transport._eof = True
+            self.receive_frame(self.close_frame)
+            self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.assertConnectionClosed(1000, 'close')
+
+    def test_local_close_connection_lost_timeout_after_close(self):
+        self.protocol.timeout = 10 * MS
+        # If the client doesn't close its side of the TCP connection after we
+        # half-close our side with write_eof() and close it with close(), time
+        # out in 20ms.
+        # - 10ms waiting for receiving a half-close
+        # - 10ms waiting for receiving a close after write_eof
+        # - 10ms waiting for receiving a close after close
+        # Check the timing within -1/+9ms for robustness.
+        with self.assertCompletesWithin(29 * MS, 39 * MS):
+            # HACK: disable write_eof => other end drops connection emulation.
+            self.transport._eof = True
+            # HACK: disable close => other end drops connection emulation.
+            self.transport._closing = True
             self.receive_frame(self.close_frame)
             self.loop.run_until_complete(self.protocol.close(reason='close'))
         self.assertConnectionClosed(1000, 'close')

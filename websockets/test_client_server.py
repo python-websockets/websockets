@@ -25,7 +25,7 @@ from .server import *
 # Avoid displaying stack traces at the ERROR logging level.
 logging.basicConfig(level=logging.CRITICAL)
 
-testcert = os.path.join(os.path.dirname(__file__), 'testcert.pem')
+testcert = os.path.join(os.path.dirname(__file__), 'test_localhost.pem')
 
 
 @asyncio.coroutine

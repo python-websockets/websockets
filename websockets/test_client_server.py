@@ -4,6 +4,7 @@ import functools
 import logging
 import os
 import ssl
+import socket
 import unittest
 import unittest.mock
 import urllib.request
@@ -789,6 +790,56 @@ class ClientServerTests(unittest.TestCase):
 
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)
+
+
+class CustomSocketClientTests(unittest.TestCase):
+    class CustomSocket(socket.socket):
+        def __init__(self, typ, transp):
+            self.used = False
+            super().__init__(typ, transp)
+
+        def recv(self, buffersize, flags=0):
+            self.used = True
+            return super().recv(buffersize, flags)
+
+        def send(self, bytes, flags=0):
+            self.used = True
+            return super().send(bytes, flags)
+
+    def __init__(self, *args, **kwargs):
+        self.testClient = ClientServerTests()
+        self.testClient.start_client = self.start_client
+        self.testClient.stop_client = self.stop_client
+        super().__init__(*args, **kwargs)
+
+    def setUp(self):
+        self.testClient.setUp()
+
+    def tearDown(self):
+        self.testClient.tearDown()
+
+    def start_client(self, path='', **kwds):
+        self.sock = self.CustomSocket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock.connect(('localhost', 8642))
+        kwds['sock'] = self.sock
+        clnt = connect('ws://localhost:8642/' + path, **kwds)
+        self.testClient.client = self.testClient.loop.run_until_complete(clnt)
+
+    def stop_client(self):
+        self.sock.close()
+        self.assertEqual(self.sock.used, True)
+
+    def test_basic(self):
+        self.testClient.test_basic()
+
+    def test_explicit_event_loop(self):
+        self.testClient.test_explicit_event_loop()
+
+    def test_protocol_path(self):
+        self.testClient.test_protocol_path()
+
+    def test_protocol_headers(self):
+        self.testClient.test_protocol_path()
 
 
 @unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")

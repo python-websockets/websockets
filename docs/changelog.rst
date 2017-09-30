@@ -22,6 +22,8 @@ Also:
 * :class:`~websockets.protocol.WebSocketCommonProtocol` instances can be used
   as asynchronous iterators on Python ≥ 3.6. They yield incoming messages.
 
+* Reorganized and extended documentation.
+
 * Aborted connections if they don't close within the configured ``timeout``.
 
 * Rewrote connection termination to increase robustness in edge cases.

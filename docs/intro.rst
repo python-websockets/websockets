@@ -6,6 +6,13 @@ Getting started
     This documentation is written for Python ≥ 3.5. If you're using Python
     3.4, you will have to :ref:`adapt the code samples <python-lt-35>`.
 
+Installation
+------------
+
+``websockets`` requires Python ≥ 3.4. Install it with::
+
+    pip install websockets
+
 Basic example
 -------------
 

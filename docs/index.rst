@@ -1,58 +1,76 @@
 WebSockets
 ==========
 
-``websockets`` is a library for developing WebSocket servers_ and clients_ in
-Python. It implements `RFC 6455`_ and `RFC 7692`_ with a focus on correctness
-and simplicity. It passes the `Autobahn Testsuite`_.
-
-Built on top of :mod:`asyncio`, Python's standard asynchronous I/O framework,
-it provides a straightforward API based on coroutines, making it easy to write
-highly concurrent applications.
-
-Installation
-------------
-
-Installation is as simple as ``pip install websockets``.
-
-It requires Python ≥ 3.4.
-
-User guide
-----------
-
-If you're new to ``websockets``, :doc:`intro` describes usage patterns and
-provides examples.
-
-If you've used ``websockets`` before and just need a quick reference, have a
-look at :doc:`cheatsheet`.
-
-If you need more details, the :doc:`api` documentation is for you.
-
-If you're upgrading ``websockets``, check the :doc:`changelog`.
-
-Contributing
-------------
-
-Bug reports, patches and suggestions welcome! Just open an issue_ or send a
-`pull request`_.
+``websockets`` is a library for building WebSocket servers_ and clients_ in
+Python with a focus on correctness and simplicity.
 
 .. _servers: https://github.com/aaugustin/websockets/blob/master/example/server.py
 .. _clients: https://github.com/aaugustin/websockets/blob/master/example/client.py
-.. _RFC 6455: http://tools.ietf.org/html/rfc6455
-.. _RFC 7692: http://tools.ietf.org/html/rfc7692
-.. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/master/compliance/README.rst
-.. _PEP 3156: http://www.python.org/dev/peps/pep-3156/
-.. _issue: https://github.com/aaugustin/websockets/issues/new
-.. _pull request: https://github.com/aaugustin/websockets/compare/
+
+Built on top of :mod:`asyncio`, Python's standard asynchronous I/O framework,
+it provides an elegant coroutine-based API.
+
+Here's a client that says "Hello world!":
+
+.. literalinclude:: ../example/hello.py
+
+And here's an echo server:
+
+.. literalinclude:: ../example/echo.py
+
+Do you like it? Let's dive in!
+
+Tutorials
+---------
+
+If you're new to ``websockets``, this is the place to start.
 
 .. toctree::
-   :hidden:
+   :maxdepth: 2
 
    intro
+
+How-to guides
+-------------
+
+These guides will help you build and deploy a ``websockets`` application.
+
+.. toctree::
+   :maxdepth: 2
+
    cheatsheet
-   api
    deployment
-   security
+
+Reference
+---------
+
+Find all the details you could ask for, and then some.
+
+.. toctree::
+   :maxdepth: 2
+
+   api
+
+Discussions
+-----------
+
+Get a deeper understanding of how ``websockets`` is built and why.
+
+.. toctree::
+   :maxdepth: 2
+
    design
    limitations
+   security
+
+Project
+-------
+
+This is about websockets-the-project rather than websockets-the-software.
+
+.. toctree::
+   :maxdepth: 2
+
+   contributing
    changelog
    license

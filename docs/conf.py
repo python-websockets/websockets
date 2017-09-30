@@ -98,7 +98,7 @@ html_theme = 'alabaster'
 # documentation.
 html_theme_options = {
     'logo': 'websockets.svg',
-    'description': 'WebSockets for Python 3',
+    'description': 'A library for building WebSocket servers and clients in Python with a focus on correctness and simplicity.',
     'github_button': True,
     'github_user': 'aaugustin',
     'github_repo': 'websockets',

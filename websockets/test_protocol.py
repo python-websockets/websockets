@@ -100,7 +100,7 @@ class CommonTests:
         self.loop.call_soon(self.loop.stop)
         self.loop.run_forever()
 
-    def make_drain_slow(self):
+    def make_drain_slow(self, delay=3 * MS):
         # Process connection_made in order to initialize self.protocol.writer.
         self.run_loop_once()
 
@@ -108,7 +108,7 @@ class CommonTests:
 
         @asyncio.coroutine
         def delayed_drain():
-            yield from asyncio.sleep(3 * MS, loop=self.loop)
+            yield from asyncio.sleep(delay, loop=self.loop)
             yield from original_drain()
 
         self.protocol.writer.drain = delayed_drain
@@ -180,7 +180,8 @@ class CommonTests:
         close_frame_data = serialize_close(code, reason)
         # Trigger the closing handshake from the local side.
         self.ensure_future(self.protocol.close(code, reason))
-        self.run_loop_once()
+        self.run_loop_once()    # wait_for executes
+        self.run_loop_once()    # write_frame executes
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
         # Prepare the response to the closing handshake from the remote side.
@@ -657,8 +658,8 @@ class CommonTests:
 
     def test_local_close(self):
         # Emulate how the remote endpoint answers the closing handshake.
-        self.loop.call_soon(self.receive_frame, self.close_frame)
-        self.loop.call_soon(self.receive_eof_if_client)
+        self.loop.call_later(MS, self.receive_frame, self.close_frame)
+        self.loop.call_later(MS, self.receive_eof_if_client)
 
         # Run the closing handshake.
         self.loop.run_until_complete(self.protocol.close(reason='close'))
@@ -674,8 +675,8 @@ class CommonTests:
 
     def test_remote_close(self):
         # Emulate how the remote endpoint initiates the closing handshake.
-        self.loop.call_soon(self.receive_frame, self.close_frame)
-        self.loop.call_soon(self.receive_eof_if_client)
+        self.loop.call_later(MS, self.receive_frame, self.close_frame)
+        self.loop.call_later(MS, self.receive_eof_if_client)
 
         # Wait for some data in order to process the handshake.
         # After recv() raises ConnectionClosed, the connection is closed.
@@ -693,8 +694,8 @@ class CommonTests:
 
     def test_simultaneous_close(self):
         # Delay the incoming close frame until after we send the outgoing one.
-        self.loop.call_soon(self.receive_frame, self.remote_close)
-        self.loop.call_soon(self.receive_eof_if_client)
+        self.loop.call_later(MS, self.receive_frame, self.remote_close)
+        self.loop.call_later(MS, self.receive_eof_if_client)
 
         self.loop.run_until_complete(self.protocol.close(reason='local'))
 
@@ -706,8 +707,8 @@ class CommonTests:
     def test_close_preserves_incoming_frames(self):
         self.receive_frame(Frame(True, OP_TEXT, b'hello'))
 
-        self.loop.call_soon(self.receive_frame, self.close_frame)
-        self.loop.call_soon(self.receive_eof_if_client)
+        self.loop.call_later(MS, self.receive_frame, self.close_frame)
+        self.loop.call_later(MS, self.receive_eof_if_client)
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
         self.assertConnectionClosed(1000, 'close')
@@ -735,8 +736,8 @@ class CommonTests:
     def test_local_close_during_recv(self):
         recv = self.ensure_future(self.protocol.recv())
 
-        self.loop.call_soon(self.receive_frame, self.close_frame)
-        self.loop.call_soon(self.receive_eof_if_client)
+        self.loop.call_later(MS, self.receive_frame, self.close_frame)
+        self.loop.call_later(MS, self.receive_eof_if_client)
 
         self.loop.run_until_complete(self.protocol.close(reason='close'))
 
@@ -771,7 +772,16 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.protocol.is_client = False
         self.protocol.side = 'server'
 
-    def test_local_close_timeout(self):
+    def test_local_close_send_close_frame_timeout(self):
+        self.protocol.timeout = 10 * MS
+        self.make_drain_slow(50 * MS)
+        # If we can't send a close frame, time out in 10ms.
+        # Check the timing within -1/+9ms for robustness.
+        with self.assertCompletesWithin(9 * MS, 19 * MS):
+            self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.assertConnectionClosed(1006, '')
+
+    def test_local_close_receive_close_frame_timeout(self):
         self.protocol.timeout = 10 * MS
         # If the client doesn't send a close frame, time out in 10ms.
         # Check the timing within -1/+9ms for robustness.
@@ -799,11 +809,22 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.protocol.is_client = True
         self.protocol.side = 'client'
 
-    def test_local_close_timeout(self):
+    def test_local_close_send_close_frame_timeout(self):
         self.protocol.timeout = 10 * MS
-        # If the server doesn't send a close frame, time out in 30ms:
-        # - 10ms waiting for a close frame
-        # - 10ms waiting for a half-close
+        self.make_drain_slow(50 * MS)
+        # If we can't send a close frame, time out in 20ms.
+        # - 10ms waiting for sending a close frame
+        # - 10ms waiting for receiving a half-close
+        # Check the timing within -1/+9ms for robustness.
+        with self.assertCompletesWithin(19 * MS, 29 * MS):
+            self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.assertConnectionClosed(1006, '')
+
+    def test_local_close_receive_close_frame_timeout(self):
+        self.protocol.timeout = 10 * MS
+        # If the server doesn't send a close frame, time out in 20ms:
+        # - 10ms waiting for receiving a close frame
+        # - 10ms waiting for receiving a half-close
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             self.loop.run_until_complete(self.protocol.close(reason='close'))
@@ -813,8 +834,8 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.protocol.timeout = 10 * MS
         # If the server doesn't half-close its side of the TCP connection
         # after we send a close frame, time out in 20ms:
-        # - 10ms waiting for a half-close
-        # - 10ms waiting for a close
+        # - 10ms waiting for receiving a half-close
+        # - 10ms waiting for receiving a close
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             # HACK: disable write_eof => other end drops connection emulation.

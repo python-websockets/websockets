@@ -66,7 +66,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     The ``timeout`` parameter defines the maximum wait time in seconds for
     completing the closing handshake and, only on the client side, for
     terminating the TCP connection. :meth:`close()` will complete in at most
-    ``2 * timeout`` on the server side and ``3 * timeout`` on the client side.
+    ``3 * timeout`` on the server side and ``4 * timeout`` on the client side.
 
     The ``max_size`` parameter enforces the maximum size for incoming messages
     in bytes. The default value is 1MB. ``None`` disables the limit. If a
@@ -281,15 +281,25 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # 7.1.2. Start the WebSocket Closing Handshake
             # 7.1.3. The WebSocket Closing Handshake is Started
             frame_data = serialize_close(code, reason)
-            yield from self.write_frame(OP_CLOSE, frame_data)
+            try:
+                yield from asyncio.wait_for(
+                    self.write_frame(OP_CLOSE, frame_data),
+                    self.timeout, loop=self.loop)
+            except asyncio.TimeoutError:
+                # If the close frame cannot be sent because the send buffers
+                # are full, the closing handshake won't complete anyway.
+                # Cancel the data transfer task to shut down faster.
+                # Cancelling a task is idempotent.
+                self.transfer_data_task.cancel()
 
-        # If no close frame is received within the timeout, cancel the data
-        # transfer task in order to exit the infinite loop. transfer_data()
-        # will catch CancelledError and exit without an exception. However
-        # wait_for() will raise CancelledError anyway. As a consequence, if
-        # close() is called several times concurrently and one of these calls
-        # is cancelled, other calls will see that the data transfer task has
-        # completed. This is why there's no need to catch CancelledError here.
+        # If no close frame is received within the timeout, wait_for() cancels
+        # the data transfer task and raises TimeoutError. Then transfer_data()
+        # catches CancelledError and exits without an exception.
+
+        # If close() is called multiple times concurrently and one of these
+        # calls hits the timeout, other calls will resume executing without an
+        # exception, so there's no need to catch CancelledError here.
+
         try:
             # If close() is cancelled during the wait, self.transfer_data_task
             # is cancelled before the timeout elapses (on Python ≥ 3.4.3).

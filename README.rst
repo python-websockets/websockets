@@ -1,5 +1,29 @@
-WebSockets |pypi| |circleci| |codecov|
-======================================
+WebSockets
+==========
+
+|rtd| |pypi-v| |pypi-pyversions| |pypi-l| |pypi-wheel| |circleci| |codecov|
+
+.. |rtd| image:: https://readthedocs.org/projects/websockets/badge/?version=latest
+   :target: https://websockets.readthedocs.io/
+
+.. |pypi-v| image:: https://img.shields.io/pypi/v/websockets.svg
+    :target: https://pypi.python.org/pypi/websockets
+
+.. |pypi-pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
+    :target: https://pypi.python.org/pypi/websockets
+
+.. |pypi-l| image:: https://img.shields.io/pypi/l/websockets.svg
+    :target: https://pypi.python.org/pypi/websockets
+
+.. |pypi-wheel| image:: https://img.shields.io/pypi/wheel/websockets.svg
+    :target: https://pypi.python.org/pypi/websockets
+
+.. |circleci| image:: https://img.shields.io/circleci/project/github/aaugustin/websockets.svg
+   :target: https://circleci.com/gh/aaugustin/websockets
+
+.. |codecov| image:: https://codecov.io/gh/aaugustin/websockets/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/aaugustin/websockets
+
 
 ``websockets`` is a library for developing WebSocket servers_ and clients_ in
 Python. It implements `RFC 6455`_ and `RFC 7692`_ with a focus on correctness
@@ -27,10 +51,3 @@ Bug reports, patches and suggestions welcome! Just open an issue_ or send a
 .. _Read the Docs: https://websockets.readthedocs.io/
 .. _issue: https://github.com/aaugustin/websockets/issues/new
 .. _pull request: https://github.com/aaugustin/websockets/compare/
-
-.. |pypi| image:: https://img.shields.io/pypi/v/websockets.svg
-  :target: https://pypi.python.org/pypi/websockets
-.. |circleci| image:: https://circleci.com/gh/aaugustin/websockets/tree/master.svg?style=shield
-    :target: https://circleci.com/gh/aaugustin/websockets/tree/master
-.. |codecov| image:: https://codecov.io/gh/aaugustin/websockets/branch/master/graph/badge.svg
-  :target: https://codecov.io/gh/aaugustin/websockets

@@ -1,6 +1,26 @@
 WebSockets
 ==========
 
+|pypi-v| |pypi-pyversions| |pypi-l| |pypi-wheel| |circleci| |codecov|
+
+.. |pypi-v| image:: https://img.shields.io/pypi/v/websockets.svg
+    :target: https://pypi.python.org/pypi/websockets
+
+.. |pypi-pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
+    :target: https://pypi.python.org/pypi/websockets
+
+.. |pypi-l| image:: https://img.shields.io/pypi/l/websockets.svg
+    :target: https://pypi.python.org/pypi/websockets
+
+.. |pypi-wheel| image:: https://img.shields.io/pypi/wheel/websockets.svg
+    :target: https://pypi.python.org/pypi/websockets
+
+.. |circleci| image:: https://img.shields.io/circleci/project/github/aaugustin/websockets.svg
+   :target: https://circleci.com/gh/aaugustin/websockets
+
+.. |codecov| image:: https://codecov.io/gh/aaugustin/websockets/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/aaugustin/websockets
+
 ``websockets`` is a library for building WebSocket servers_ and clients_ in
 Python with a focus on correctness and simplicity.
 

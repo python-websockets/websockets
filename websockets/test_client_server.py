@@ -836,15 +836,24 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(exception.status_code, 403)
 
     @with_server()
-    @unittest.mock.patch('websockets.server.read_request')
-    def test_connection_error_during_opening_handshake(self, _read_request):
-        _read_request.side_effect = ConnectionError
+    @unittest.mock.patch(
+        'websockets.server.WebSocketServerProtocol.write_http_response')
+    @unittest.mock.patch(
+        'websockets.server.WebSocketServerProtocol.read_http_request')
+    def test_connection_error_during_opening_handshake(
+            self, _read_http_request, _write_http_response):
+        _read_http_request.side_effect = ConnectionError
 
-        # Exception appears to be platform-dependent: InvalidHandshake on
-        # macOS, ConnectionResetError on Linux. This doesn't matter; this
-        # test primarily aims at covering a code path on the server side.
+        # This exception is currently platform-dependent. It was observed to
+        # be ConnectionResetError on Linux in the non-SSL case, and
+        # InvalidMessage otherwise (including both Linux and macOS). This
+        # doesn't matter though since this test is primarily for testing a
+        # code path on the server side.
         with self.assertRaises(Exception):
             self.start_client()
+
+        # No response must not be written if the network connection is broken.
+        _write_http_response.assert_not_called()
 
     @with_server()
     @unittest.mock.patch('websockets.server.WebSocketServerProtocol.close')

@@ -466,20 +466,21 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         Raise :exc:`~websockets.exceptions.ConnectionClosed` if it isn't.
 
         """
-        # Handle cases from the most common to the least common.
+        # Handle cases from most common to least common for performance.
         if self.state == OPEN:
             return
 
         if self.state == CLOSED:
             raise ConnectionClosed(self.close_code, self.close_reason)
 
-        # If the closing handshake is in progress, let it complete to get the
-        # proper close status and code. As a safety measure, the timeout is
-        # longer than the worst case (3 * self.timeout) but not unlimited.
         if self.state == CLOSING:
-            yield from asyncio.wait_for(
-                asyncio.shield(self.transfer_data_task),
-                4 * self.timeout, loop=self.loop)
+            # If we started the closing handshake, wait for its completion to
+            # get the proper close code and status. self.transfer_data_task
+            # will complete within 2 * timeout after calling close().
+            # If we moved to the CLOSING state because we're failing the
+            # connection, self.transfer_data_task will complete immediately.
+            if self.close_code is None:
+                yield from asyncio.shield(self.transfer_data_task)
             raise ConnectionClosed(self.close_code, self.close_reason)
 
         # Control may only reach this point in buggy third-party subclasses.

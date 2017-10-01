@@ -160,7 +160,7 @@ class CommonTests:
 
     def close_connection(self, code=1000, reason='close'):
         """
-        Close the connection with a standard closing handshake.
+        Execute a closing handshake.
 
         This puts the connection in the CLOSED state.
 
@@ -174,9 +174,9 @@ class CommonTests:
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
 
-    def close_connection_partial(self, code=1000, reason='close'):
+    def half_close_connection_local(self, code=1000, reason='close'):
         """
-        Initiate a standard closing handshake but do not complete it.
+        Start a closing handshake but do not complete it.
 
         The main difference with `close_connection` is that the connection is
         left in the CLOSING state until the event loop runs again.
@@ -190,6 +190,20 @@ class CommonTests:
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
         # Prepare the response to the closing handshake from the remote side.
+        self.loop.call_soon(
+            self.receive_frame, Frame(True, OP_CLOSE, close_frame_data))
+        self.loop.call_soon(self.receive_eof_if_client)
+
+    def half_close_connection_remote(self, code=1000, reason='close'):
+        """
+        Receive a closing handshake.
+
+        The main difference with `close_connection` is that the connection is
+        left in the CLOSING state until the event loop runs again.
+
+        """
+        close_frame_data = serialize_close(code, reason)
+        # Trigger the closing handshake from the remote side.
         self.receive_frame(Frame(True, OP_CLOSE, close_frame_data))
         self.receive_eof_if_client()
 
@@ -325,8 +339,14 @@ class CommonTests:
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea')
 
-    def test_recv_on_closing_connection(self):
-        self.close_connection_partial()
+    def test_recv_on_closing_connection_local(self):
+        self.half_close_connection_local()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.recv())
+
+    def test_recv_on_closing_connection_remote(self):
+        self.half_close_connection_remote()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.recv())
@@ -405,12 +425,19 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.send(42))
         self.assertNoFrameSent()
 
-    def test_send_on_closing_connection(self):
-        self.close_connection_partial()
+    def test_send_on_closing_connection_local(self):
+        self.half_close_connection_local()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.send('foobar'))
         self.assertNoFrameSent()
+
+    def test_send_on_closing_connection_remote(self):
+        self.half_close_connection_remote()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.send('foobar'))
+        self.assertOneFrameSent(True, OP_CLOSE, serialize_close(1000, 'close'))
 
     def test_send_on_closed_connection(self):
         self.close_connection()
@@ -443,12 +470,19 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.ping(42))
         self.assertNoFrameSent()
 
-    def test_ping_on_closing_connection(self):
-        self.close_connection_partial()
+    def test_ping_on_closing_connection_local(self):
+        self.half_close_connection_local()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.ping())
         self.assertNoFrameSent()
+
+    def test_ping_on_closing_connection_remote(self):
+        self.half_close_connection_remote()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.ping())
+        self.assertOneFrameSent(True, OP_CLOSE, serialize_close(1000, 'close'))
 
     def test_ping_on_closed_connection(self):
         self.close_connection()
@@ -476,12 +510,19 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.pong(42))
         self.assertNoFrameSent()
 
-    def test_pong_on_closing_connection(self):
-        self.close_connection_partial()
+    def test_pong_on_closing_connection_local(self):
+        self.half_close_connection_local()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.pong())
         self.assertNoFrameSent()
+
+    def test_pong_on_closing_connection_remote(self):
+        self.half_close_connection_remote()
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(self.protocol.pong())
+        self.assertOneFrameSent(True, OP_CLOSE, serialize_close(1000, 'close'))
 
     def test_pong_on_closed_connection(self):
         self.close_connection()

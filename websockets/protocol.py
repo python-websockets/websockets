@@ -408,7 +408,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         yield from self.ensure_open()
 
         if data is not None:
-            data = self.encode_data(data)
+            data = encode_data(data)
 
         # Protect against duplicates if a payload is explicitly set.
         if data in self.pings:
@@ -438,26 +438,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         yield from self.ensure_open()
 
-        data = self.encode_data(data)
+        data = encode_data(data)
 
         yield from self.write_frame(OP_PONG, data)
 
     # Private methods - no guarantees.
-
-    def encode_data(self, data):
-        """
-        Expect :class:`str` or :class:`bytes`. Return :class:`bytes`.
-
-        :class:`str` are encoded with UTF-8.
-
-        """
-        # Expect str or bytes, return bytes.
-        if isinstance(data, str):
-            return data.encode('utf-8')
-        elif isinstance(data, bytes):
-            return data
-        else:
-            raise TypeError("data must be bytes or str")
 
     def connection_open(self):
         """

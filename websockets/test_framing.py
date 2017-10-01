@@ -169,6 +169,16 @@ class FramingTests(unittest.TestCase):
         with self.assertRaises(WebSocketProtocolError):
             self.decode(b'\x88\x7e\x00\x7e' + 126 * b'a')
 
+    def test_encode_data_str(self):
+        self.assertEqual(encode_data('café'), b'caf\xc3\xa9')
+
+    def test_encode_data_bytes(self):
+        self.assertEqual(encode_data(b'tea'), b'tea')
+
+    def test_encode_data_other(self):
+        with self.assertRaises(TypeError):
+            encode_data(None)
+
     def test_fragmented_control_frame(self):
         # Fin bit correctly set.
         self.decode(b'\x88\x00')

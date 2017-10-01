@@ -27,7 +27,7 @@ except ImportError:                                         # pragma: no cover
 __all__ = [
     'DATA_OPCODES', 'CTRL_OPCODES',
     'OP_CONT', 'OP_TEXT', 'OP_BINARY', 'OP_CLOSE', 'OP_PING', 'OP_PONG',
-    'Frame', 'parse_close', 'serialize_close'
+    'Frame', 'encode_data', 'parse_close', 'serialize_close'
 ]
 
 DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY = 0x00, 0x01, 0x02
@@ -235,6 +235,22 @@ class Frame(FrameData):
         else:
             raise WebSocketProtocolError(
                 "Invalid opcode ({})".format(frame.opcode))
+
+
+def encode_data(data):
+    """
+    Helper that converts :class:`str` or :class:`bytes` to :class:`bytes`.
+
+    :class:`str` are encoded with UTF-8.
+
+    """
+    # Expect str or bytes, return bytes.
+    if isinstance(data, str):
+        return data.encode('utf-8')
+    elif isinstance(data, bytes):
+        return data
+    else:
+        raise TypeError("data must be bytes or str")
 
 
 def parse_close(data):

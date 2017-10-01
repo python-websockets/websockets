@@ -1,6 +1,8 @@
 Getting started
 ===============
 
+.. currentmodule:: websockets
+
 .. warning::
 
     This documentation is written for Python ≥ 3.5. If you're using Python
@@ -80,9 +82,9 @@ for earlier Python versions::
             message = await websocket.recv()
             await consumer(message)
 
-:meth:`~websockets.protocol.WebSocketCommonProtocol.recv` raises a
-:exc:`~websockets.exceptions.ConnectionClosed` exception when the client
-disconnects, which breaks out of the ``while True`` loop.
+:meth:`~protocol.WebSocketCommonProtocol.recv` raises a
+:exc:`~exceptions.ConnectionClosed` exception when the client disconnects,
+which breaks out of the ``while True`` loop.
 
 Producer
 ........
@@ -94,9 +96,9 @@ For getting messages from a ``producer`` coroutine and sending them::
             message = await producer()
             await websocket.send(message)
 
-:meth:`~websockets.protocol.WebSocketCommonProtocol.send` raises a
-:exc:`~websockets.exceptions.ConnectionClosed` exception when the client
-disconnects, which breaks out of the ``while True`` loop.
+:meth:`~protocol.WebSocketCommonProtocol.send` raises a
+:exc:`~exceptions.ConnectionClosed` exception when the client disconnects,
+which breaks out of the ``while True`` loop.
 
 Both
 ....

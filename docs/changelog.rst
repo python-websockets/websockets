@@ -1,6 +1,8 @@
 Changelog
 ---------
 
+.. currentmodule:: websockets
+
 4.0
 ...
 
@@ -15,12 +17,12 @@ Changelog
     Compression should improve performance but it increases RAM and CPU use.
 
     If you want to disable compression, add ``compression=None`` when calling
-    :func:`~websockets.server.serve` or :func:`~websockets.client.connect`.
+    :func:`~server.serve()` or :func:`~client.connect()`.
 
 Also:
 
-* :class:`~websockets.protocol.WebSocketCommonProtocol` instances can be used
-  as asynchronous iterators on Python ≥ 3.6. They yield incoming messages.
+* :class:`~protocol.WebSocketCommonProtocol` instances can be used as
+  asynchronous iterators on Python ≥ 3.6. They yield incoming messages.
 
 * Reorganized and extended documentation.
 
@@ -38,16 +40,15 @@ Also:
 3.4
 ...
 
-* Renamed :func:`~websockets.server.serve()` and
-  :func:`~websockets.client.connect()`'s ``klass`` argument to
-  ``create_protocol`` to reflect that it can also be a callable.
+* Renamed :func:`~server.serve()` and :func:`~client.connect()`'s ``klass``
+  argument to ``create_protocol`` to reflect that it can also be a callable.
   For backwards compatibility, ``klass`` is still supported.
 
-* :func:`~websockets.server.serve` can be used as an asynchronous context
-  manager on Python ≥ 3.5.
+* :func:`~server.serve` can be used as an asynchronous context manager on
+  Python ≥ 3.5.
 
 * Added support for customizing handling of incoming connections with
-  :meth:`~websockets.server.WebSocketServerProtocol.process_request()`.
+  :meth:`~server.WebSocketServerProtocol.process_request()`.
 
 * Made read and write buffer sizes configurable.
 
@@ -55,12 +56,11 @@ Also:
 
 * Added an optional C extension to speed up low level operations.
 
-* An invalid response status code during :func:`~websockets.client.connect`
-  now raises :class:`~websockets.exceptions.InvalidStatusCode` with a ``code``
-  attribute.
+* An invalid response status code during :func:`~client.connect()` now raises
+  :class:`~exceptions.InvalidStatusCode` with a ``code`` attribute.
 
-* Providing a ``sock`` argument to :func:`~websockets.client.connect()` no
-  longer crashes.
+* Providing a ``sock`` argument to :func:`~client.connect()` no longer
+  crashes.
 
 3.3
 ...
@@ -73,7 +73,7 @@ Also:
 ...
 
 * Added ``timeout``, ``max_size``, and ``max_queue`` arguments to
-  :func:`~websockets.client.connect()` and :func:`~websockets.server.serve()`.
+  :func:`~client.connect()` and :func:`~server.serve()`.
 
 * Made server shutdown more robust.
 
@@ -90,20 +90,20 @@ Also:
 .. warning::
 
     **Version 3.0 introduces a backwards-incompatible change in the**
-    :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` **API.**
+    :meth:`~protocol.WebSocketCommonProtocol.recv` **API.**
 
     **If you're upgrading from 2.x or earlier, please read this carefully.**
 
-    :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` used to return
-    ``None`` when the connection was closed. This required checking the return
-    value of every call::
+    :meth:`~protocol.WebSocketCommonProtocol.recv` used to return ``None``
+    when the connection was closed. This required checking the return value of
+    every call::
 
         message = await websocket.recv()
         if message is None:
             return
 
-    Now it raises a :exc:`~websockets.exceptions.ConnectionClosed` exception
-    instead. This is more Pythonic. The previous code can be simplified to::
+    Now it raises a :exc:`~exceptions.ConnectionClosed` exception instead.
+    This is more Pythonic. The previous code can be simplified to::
 
         message = await websocket.recv()
 
@@ -113,21 +113,21 @@ Also:
 
     In order to avoid stranding projects built upon an earlier version, the
     previous behavior can be restored by passing ``legacy_recv=True`` to
-    :func:`~websockets.server.serve`, :func:`~websockets.client.connect`,
-    :class:`~websockets.server.WebSocketServerProtocol`, or
-    :class:`~websockets.client.WebSocketClientProtocol`. ``legacy_recv`` isn't
-    documented in their signatures but isn't scheduled for deprecation either.
+    :func:`~server.serve`, :func:`~client.connect`,
+    :class:`~server.WebSocketServerProtocol`, or
+    :class:`~client.WebSocketClientProtocol`. ``legacy_recv`` isn't documented
+    in their signatures but isn't scheduled for deprecation either.
 
 Also:
 
-* :func:`~websockets.client.connect` can be used as an asynchronous context
-  manager on Python ≥ 3.5.
+* :func:`~client.connect` can be used as an asynchronous context manager on
+  Python ≥ 3.5.
 
 * Updated documentation with ``await`` and ``async`` syntax from Python 3.5.
 
-* :meth:`~websockets.protocol.WebSocketCommonProtocol.ping` and
-  :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` supports
-  data passed as :class:`str` in addition to :class:`bytes`.
+* :meth:`~protocol.WebSocketCommonProtocol.ping` and
+  :meth:`~protocol.WebSocketCommonProtocol.pong` support data passed as
+  :class:`str` in addition to :class:`bytes`.
 
 * Worked around an asyncio bug affecting connection termination under load.
 
@@ -165,8 +165,8 @@ Also:
 * Returned a 403 status code instead of 400 when the request Origin isn't
   allowed.
 
-* Cancelling :meth:`~websockets.protocol.WebSocketCommonProtocol.recv` no
-  longer drops the next message.
+* Cancelling :meth:`~protocol.WebSocketCommonProtocol.recv` no longer drops
+  the next message.
 
 * Clarified that the closing handshake can be initiated by the client.
 
@@ -183,8 +183,8 @@ Also:
 
 * Supported non-default event loop.
 
-* Added ``loop`` argument to :func:`~websockets.client.connect` and
-  :func:`~websockets.server.serve`.
+* Added ``loop`` argument to :func:`~client.connect` and
+  :func:`~server.serve`.
 
 2.3
 ...
@@ -211,9 +211,9 @@ Also:
 .. warning::
 
     **Version 2.0 introduces a backwards-incompatible change in the**
-    :meth:`~websockets.protocol.WebSocketCommonProtocol.send`,
-    :meth:`~websockets.protocol.WebSocketCommonProtocol.ping`, and
-    :meth:`~websockets.protocol.WebSocketCommonProtocol.pong` **APIs.**
+    :meth:`~protocol.WebSocketCommonProtocol.send`,
+    :meth:`~protocol.WebSocketCommonProtocol.ping`, and
+    :meth:`~protocol.WebSocketCommonProtocol.pong` **APIs.**
 
     **If you're upgrading from 1.x or earlier, please read this carefully.**
 

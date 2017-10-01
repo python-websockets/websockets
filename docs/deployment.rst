@@ -1,6 +1,8 @@
 Deployment
 ==========
 
+.. currentmodule:: websockets
+
 Application server
 ------------------
 
@@ -22,15 +24,15 @@ Graceful shutdown
 
 You may want to close connections gracefully when shutting down the server,
 perhaps after executing some cleanup logic. There are two ways to achieve this
-with the object returned by :func:`~websockets.server.serve`:
+with the object returned by :func:`~server.serve`:
 
 - using it as a asynchronous context manager, or
 - calling its ``close()`` method, then waiting for its ``wait_closed()``
   method to complete.
 
 Tasks that handle connections will be cancelled. For example, if the handler
-is awaiting :meth:`~websockets.protocol.WebSocketCommonProtocol.recv`, that
-call will raise :exc:`~asyncio.CancelledError`.
+is awaiting :meth:`~protocol.WebSocketCommonProtocol.recv`, that call will
+raise :exc:`~asyncio.CancelledError`.
 
 On Unix systems, shutdown is usually triggered by sending a signal.
 

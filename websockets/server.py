@@ -281,7 +281,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         handshake with an HTTP 400 error code. (The default implementation
         never does this.)
 
-        RFC 6455 leaves the rules up to the specification of each extension.
+        :rfc:`6455` leaves the rules up to the specification of each
+        :extension.
 
         To provide this level of flexibility, for each extension proposed by
         the client, we check for a match with each extension available in the

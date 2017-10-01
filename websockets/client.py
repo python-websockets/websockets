@@ -97,7 +97,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         Raise :exc:`~websockets.exceptions.InvalidHandshake` to abort the
         connection.
 
-        RFC 6455 leaves the rules up to the specification of each extension.
+        :rfc:`6455` leaves the rules up to the specification of each
+        :extension.
 
         To provide this level of flexibility, for each extension accepted by
         the server, we check for a match with each extension available in the

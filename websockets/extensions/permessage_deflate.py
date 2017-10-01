@@ -1,8 +1,6 @@
 """
 The :mod:`websockets.extensions.permessage_deflate` module implements the
-Compression Extensions for WebSocket as specified in `RFC 7692`_.
-
-.. _RFC 7692: http://tools.ietf.org/html/rfc7692
+Compression Extensions for WebSocket as specified in :rfc:`7692`.
 
 """
 

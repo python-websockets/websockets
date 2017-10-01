@@ -2,10 +2,11 @@ import asyncio
 import contextlib
 import functools
 import logging
-import os
+import os.path
 import socket
 import ssl
 import sys
+import tempfile
 import unittest
 import unittest.mock
 import urllib.request
@@ -282,6 +283,29 @@ class ClientServerTests(unittest.TestCase):
 
         finally:
             sock.close()
+
+    @unittest.skipUnless(
+        hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
+    def test_unix_socket(self):
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, 'websockets')
+
+            # Like self.start_server() but with unix_serve().
+            unix_server = unix_serve(handler, path)
+            self.server = self.loop.run_until_complete(unix_server)
+
+            sock = socket.socket(socket.AF_UNIX)
+            sock.connect(path)
+
+            try:
+                with self.temp_client(sock=sock):
+                    self.loop.run_until_complete(self.client.send("Hello!"))
+                    reply = self.loop.run_until_complete(self.client.recv())
+                    self.assertEqual(reply, "Hello!")
+
+            finally:
+                sock.close()
+                self.stop_server()
 
     @with_server()
     @with_client('attributes')
@@ -861,6 +885,9 @@ class SSLClientServerTests(ClientServerTests):
     def start_client(self, path='', **kwds):
         kwds.setdefault('ssl', self.client_context)
         super().start_client(path, **kwds)
+
+    # TLS over Unix sockets doesn't make sense.
+    test_unix_socket = None
 
     @with_server()
     def test_ws_uri_is_rejected(self):

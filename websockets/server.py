@@ -24,7 +24,7 @@ from .http import USER_AGENT, build_headers, read_request
 from .protocol import WebSocketCommonProtocol
 
 
-__all__ = ['serve', 'WebSocketServerProtocol']
+__all__ = ['serve', 'unix_serve', 'WebSocketServerProtocol']
 
 logger = logging.getLogger(__name__)
 
@@ -585,7 +585,7 @@ class WebSocketServer:
 
 @asyncio.coroutine
 def serve(ws_handler, host=None, port=None, *,
-          create_protocol=None,
+          path=None, create_protocol=None,
           timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
           read_limit=2 ** 16, write_limit=2 ** 16,
           loop=None, legacy_recv=False, klass=None,
@@ -657,9 +657,6 @@ def serve(ws_handler, host=None, port=None, *,
         logger.addHandler(logging.StreamHandler())
 
     """
-    if loop is None:
-        loop = asyncio.get_event_loop()
-
     # Backwards-compatibility: create_protocol used to be called klass.
     # In the unlikely event that both are specified, klass is ignored.
     if create_protocol is None:
@@ -667,6 +664,9 @@ def serve(ws_handler, host=None, port=None, *,
 
     if create_protocol is None:
         create_protocol = WebSocketServerProtocol
+
+    if loop is None:
+        loop = asyncio.get_event_loop()
 
     ws_server = WebSocketServer(loop)
 
@@ -692,11 +692,30 @@ def serve(ws_handler, host=None, port=None, *,
         origins=origins, extensions=extensions, subprotocols=subprotocols,
         extra_headers=extra_headers,
     )
-    server = yield from loop.create_server(factory, host, port, **kwds)
+    if path is None:
+        server = yield from loop.create_server(factory, host, port, **kwds)
+    else:
+        server = yield from loop.create_unix_server(factory, path, **kwds)
 
     ws_server.wrap(server)
 
     return ws_server
+
+
+@asyncio.coroutine
+def unix_serve(ws_handler, path, **kwargs):
+    """
+    Similar to :func:`serve()`, but for listening on Unix sockets.
+
+    This function calls the event loop's
+    :meth:`~asyncio.AbstractEventLoop.create_unix_server` method.
+
+    It is only available on Unix.
+
+    It's useful for deploying a server behind a reverse proxy such as nginx.
+
+    """
+    return serve(ws_handler, path=path, **kwargs)
 
 
 try:

@@ -24,6 +24,8 @@ Also:
 * :class:`~protocol.WebSocketCommonProtocol` instances can be used as
   asynchronous iterators on Python ≥ 3.6. They yield incoming messages.
 
+* Added :func:`~websockets.server.unix_serve` for listening on Unix sockets.
+
 * Reorganized and extended documentation.
 
 * Aborted connections if they don't close within the configured ``timeout``.

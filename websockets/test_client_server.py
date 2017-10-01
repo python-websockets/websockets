@@ -3,7 +3,9 @@ import contextlib
 import functools
 import logging
 import os
+import socket
 import ssl
+import sys
 import unittest
 import unittest.mock
 import urllib.request
@@ -69,6 +71,7 @@ def temp_test_client(test, *args, **kwds):
 def with_manager(manager, *args, **kwds):
     """
     Return a decorator that wraps a function with a context manager.
+
     """
     def decorate(func):
         @functools.wraps(func)
@@ -84,6 +87,7 @@ def with_manager(manager, *args, **kwds):
 def with_server(**kwds):
     """
     Return a decorator for TestCase methods that starts and stops a server.
+
     """
     return with_manager(temp_test_server, **kwds)
 
@@ -91,6 +95,7 @@ def with_server(**kwds):
 def with_client(*args, **kwds):
     """
     Return a decorator for TestCase methods that starts and stops a client.
+
     """
     return with_manager(temp_test_client, *args, **kwds)
 
@@ -237,6 +242,46 @@ class ClientServerTests(unittest.TestCase):
                 self.loop.run_until_complete(self.client.send("Hello!"))
                 reply = self.loop.run_until_complete(self.client.recv())
                 self.assertEqual(reply, "Hello!")
+
+    # The way the legacy SSL implementation wraps sockets makes it extremely
+    # hard to write a test for Python 3.4.
+    @unittest.skipIf(
+        sys.version_info[:2] <= (3, 4), 'this test requires Python 3.5+')
+    @with_server()
+    def test_explicit_socket(self):
+
+        class TrackedSocket(socket.socket):
+            def __init__(self, *args, **kwargs):
+                self.used_for_read = False
+                self.used_for_write = False
+                super().__init__(*args, **kwargs)
+
+            def recv(self, *args, **kwargs):
+                self.used_for_read = True
+                return super().recv(*args, **kwargs)
+
+            def send(self, *args, **kwargs):
+                self.used_for_write = True
+                return super().send(*args, **kwargs)
+
+        sock = TrackedSocket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(('localhost', 8642))
+        server_hostname = 'localhost' if self.secure else None
+
+        try:
+            self.assertFalse(sock.used_for_read)
+            self.assertFalse(sock.used_for_write)
+
+            with self.temp_client(sock=sock, server_hostname=server_hostname):
+                self.loop.run_until_complete(self.client.send("Hello!"))
+                reply = self.loop.run_until_complete(self.client.recv())
+                self.assertEqual(reply, "Hello!")
+
+            self.assertTrue(sock.used_for_read)
+            self.assertTrue(sock.used_for_write)
+
+        finally:
+            sock.close()
 
     @with_server()
     @with_client('attributes')

@@ -59,6 +59,9 @@ Also:
   now raises :class:`~websockets.exceptions.InvalidStatusCode` with a ``code``
   attribute.
 
+* Providing a ``sock`` argument to :func:`~websockets.client.connect()` no
+  longer crashes.
+
 3.3
 ...
 

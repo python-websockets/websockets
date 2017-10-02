@@ -1,5 +1,4 @@
 __all__ = [
-
     'AbortHandshake', 'InvalidHandshake', 'InvalidHeader', 'InvalidMessage',
     'InvalidOrigin', 'InvalidState', 'InvalidStatusCode', 'NegotiationError',
     'InvalidParameterName', 'InvalidParameterValue', 'DuplicateParameter',
@@ -24,6 +23,9 @@ class AbortHandshake(InvalidHandshake):
         self.status = status
         self.headers = headers
         self.body = body
+        message = "HTTP {}, {} headers, {} bytes".format(
+            status, len(headers), 0 if body is None else len(body))
+        super().__init__(message)
 
 
 class InvalidMessage(InvalidHandshake):
@@ -113,6 +115,23 @@ class InvalidState(Exception):
     """
 
 
+CLOSE_CODES = {
+    1000: "OK",
+    1001: "going away",
+    1002: "protocol error",
+    1003: "unsupported type",
+    # 1004 is reserved
+    1005: "no status code [internal]",
+    1006: "connection closed abnormally [internal]",
+    1007: "invalid data",
+    1008: "policy violation",
+    1009: "message too big",
+    1010: "extension required",
+    1011: "unexpected error",
+    1015: "TLS failure [internal]",
+}
+
+
 class ConnectionClosed(InvalidState):
     """
     Exception raised when trying to read or write on a closed connection.
@@ -125,8 +144,17 @@ class ConnectionClosed(InvalidState):
         self.code = code
         self.reason = reason
         message = "WebSocket connection is closed: "
-        message += "code = {}, ".format(code) if code else "no code, "
-        message += "reason = {}.".format(reason) if reason else "no reason."
+        if 3000 <= code < 4000:
+            explanation = "registered"
+        elif 4000 <= code < 5000:
+            explanation = "private use"
+        else:
+            explanation = CLOSE_CODES.get(code, "unknown")
+        message += "code = {} ({}), ".format(code, explanation)
+        if reason:
+            message += "reason = {}.".format(reason)
+        else:
+            message += "no reason."
         super().__init__(message)
 
 

@@ -33,22 +33,19 @@ __all__ = [
 DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY = 0x00, 0x01, 0x02
 CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0a
 
-CLOSE_CODES = {
-    1000: "OK",
-    1001: "going away",
-    1002: "protocol error",
-    1003: "unsupported type",
-    # 1004: - (reserved)
-    # 1005: no status code (internal)
-    # 1006: connection closed abnormally (internal)
-    1007: "invalid data",
-    1008: "policy violation",
-    1009: "message too big",
-    1010: "extension required",
-    1011: "unexpected error",
-    # 1015: TLS failure (internal)
-}
-
+# Close code that are allowed in a close frame.
+# Using a list optimizes `code in EXTERNAL_CLOSE_CODES`.
+EXTERNAL_CLOSE_CODES = [
+    1000,
+    1001,
+    1002,
+    1003,
+    1007,
+    1008,
+    1009,
+    1010,
+    1011,
+]
 
 FrameData = collections.namedtuple(
     'FrameData',
@@ -294,5 +291,5 @@ def check_close(code):
     Check the close code for a close frame.
 
     """
-    if not (code in CLOSE_CODES or 3000 <= code < 5000):
+    if not (code in EXTERNAL_CLOSE_CODES or 3000 <= code < 5000):
         raise WebSocketProtocolError("Invalid status code")

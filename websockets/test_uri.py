@@ -23,7 +23,7 @@ class URITests(unittest.TestCase):
 
     def test_success(self):
         for uri, parsed in VALID_URIS:
-            with self.subTest(uri=uri, parsed=parsed):
+            with self.subTest(uri=uri):
                 self.assertEqual(parse_uri(uri), parsed)
 
     def test_error(self):

@@ -16,7 +16,7 @@ class UtilsTests(unittest.TestCase):
             (b'abcdABCD', b'1234', b'PPPPpppp'),
             (b'abcdABCD' * 10, b'1234', b'PPPPpppp' * 10),
         ]:
-            with self.subTest(data_in=data_in, mask=mask, data_out=data_out):
+            with self.subTest(data_in=data_in, mask=mask):
                 self.assertEqual(self.apply_mask(data_in, mask), data_out)
 
     def test_apply_mask_check_input_types(self):

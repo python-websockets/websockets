@@ -45,7 +45,7 @@ class HeadersTests(unittest.TestCase):
                 [('permessage-deflate', [('server_max_window_bits', '10')])],
             ),
         ]:
-            with self.subTest(header=header, parsed=parsed):
+            with self.subTest(header=header):
                 self.assertEqual(parse_extension_list(header), parsed)
                 # Also ensure that build_extension_list round-trips cleanly.
                 unparsed = build_extension_list(parsed)
@@ -86,7 +86,7 @@ class HeadersTests(unittest.TestCase):
                 ['foo', 'bar', 'baz'],
             ),
         ]:
-            with self.subTest(header=header, parsed=parsed):
+            with self.subTest(header=header):
                 self.assertEqual(parse_protocol_list(header), parsed)
                 # Also ensure that build_protocol_list round-trips cleanly.
                 unparsed = build_protocol_list(parsed)

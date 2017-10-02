@@ -99,7 +99,7 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 ],
             ),
         ]:
-            with self.subTest(config=config, result=result):
+            with self.subTest(config=config):
                 factory = ClientPerMessageDeflateFactory(*config)
                 self.assertEqual(factory.get_request_params(), result)
 
@@ -303,7 +303,6 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
             with self.subTest(
                 config=config,
                 response_params=response_params,
-                result=result,
             ):
                 factory = ClientPerMessageDeflateFactory(*config)
                 if isinstance(result, type) and issubclass(result, Exception):
@@ -606,7 +605,6 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
                 config=config,
                 request_params=request_params,
                 response_params=response_params,
-                result=result,
             ):
                 factory = ServerPerMessageDeflateFactory(*config)
                 if isinstance(result, type) and issubclass(result, Exception):

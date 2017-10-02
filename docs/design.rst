@@ -420,3 +420,27 @@ For each connection, the sending side contains these buffers:
   You can set another limit by passing a ``write_limit`` keyword argument to
   :func:`~client.connect()` or :func:`~server.serve()`.
 - OS buffers: tuning them is an advanced optimization.
+
+Concurrency
+-----------
+
+Calling any combination of :meth:`~protocol.WebSocketCommonProtocol.recv()`,
+:meth:`~protocol.WebSocketCommonProtocol.send()`,
+:meth:`~protocol.WebSocketCommonProtocol.close()`
+:meth:`~protocol.WebSocketCommonProtocol.ping()`, or
+:meth:`~protocol.WebSocketCommonProtocol.pong()` concurrently is safe,
+including multiple calls to the same method.
+
+As shown above, receiving frames is independent from sending frames. That
+isolates :meth:`~protocol.WebSocketCommonProtocol.recv()`, which receives
+frames, from the other methods, which send frames.
+
+While :meth:`~protocol.WebSocketCommonProtocol.recv()` supports being called
+multiple times concurrently, this is unlikely to be useful: when multiple
+callers are waiting for the next message, exactly one of them will get it, but
+there is no guarantee about which one.
+
+Methods that send frames also support concurrent calls. While the connection
+is open, each frame is sent with a single write. Combined with the concurrency
+model of :mod:`asyncio`, this enforces serialization. After the connection is
+closed, sending a frame raises :exc:`~websockets.exceptions.ConnectionClosed`.

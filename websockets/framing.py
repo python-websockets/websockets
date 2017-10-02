@@ -208,7 +208,8 @@ class Frame(FrameData):
         # Send the frame.
 
         # The frame is written in a single call to writer in order to prevent
-        # TCP fragmentation. See #68 for details.
+        # TCP fragmentation. See #68 for details. This also makes it safe to
+        # send frames concurrently from multiple coroutines.
         writer(output.getvalue())
 
     def check(frame):

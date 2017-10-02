@@ -268,8 +268,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         This coroutine performs the closing handshake.
 
-        It waits for the other end to complete the handshake. It doesn't do
-        anything once the connection is closed. Thus it's idemptotent.
+        It waits for the other end to complete the handshake and for the TCP
+        connection to terminate.
+
+        It doesn't do anything once the connection is closed. In other words
+        it's idemptotent.
 
         It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
         since errors during connection termination aren't particularly useful.

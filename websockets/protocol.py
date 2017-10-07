@@ -478,12 +478,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         if self.state == CLOSING:
             # If we started the closing handshake, wait for its completion to
-            # get the proper close code and status. self.transfer_data_task
-            # will complete within 2 * timeout after calling close().
-            # If we moved to the CLOSING state because we're failing the
-            # connection, self.transfer_data_task will complete immediately.
+            # get the proper close code and status. self.close_connection_task
+            # will complete within 4 or 5 * timeout after calling close().
+            # The CLOSING state also occurs when failing the connection. In
+            # that case self.close_connection_task will complete even faster.
             if self.close_code is None:
-                yield from asyncio.shield(self.transfer_data_task)
+                yield from asyncio.shield(self.close_connection_task)
             raise ConnectionClosed(self.close_code, self.close_reason)
 
         # Control may only reach this point in buggy third-party subclasses.

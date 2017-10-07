@@ -65,7 +65,7 @@ def parse_token(string, pos):
     """
     match = _token_re.match(string, pos)
     if match is None:
-        raise InvalidHeader("expected token", string=string, pos=pos)
+        raise InvalidHeader("Expected token", string=string, pos=pos)
     return match.group(), match.end()
 
 
@@ -87,7 +87,7 @@ def parse_quoted_string(string, pos):
     """
     match = _quoted_string_re.match(string, pos)
     if match is None:
-        raise InvalidHeader("expected quoted string", string=string, pos=pos)
+        raise InvalidHeader("Expected quoted string", string=string, pos=pos)
     return _unquote_re.sub(r'\1', match.group()[1:-1]), match.end()
 
 
@@ -112,7 +112,7 @@ def parse_extension_param(string, pos):
             # https://tools.ietf.org/html/rfc6455#section-9.1 says: the value
             # after quoted-string unescaping MUST conform to the 'token' ABNF.
             if _token_re.fullmatch(value) is None:
-                raise InvalidHeader("invalid quoted string content",
+                raise InvalidHeader("Invalid quoted string content",
                                     string=string, pos=pos_before)
         else:
             value, pos = parse_token(string, pos)
@@ -191,7 +191,7 @@ def parse_extension_list(string, pos=0):
         if peek_ahead(string, pos) == ',':
             pos = parse_OWS(string, pos + 1)
         else:
-            raise InvalidHeader("expected comma", string=string, pos=pos)
+            raise InvalidHeader("Expected comma", string=string, pos=pos)
 
         # Remove extra delimiters before the next extension.
         while peek_ahead(string, pos) == ',':
@@ -282,7 +282,7 @@ def parse_protocol_list(string, pos=0):
         if peek_ahead(string, pos) == ',':
             pos = parse_OWS(string, pos + 1)
         else:
-            raise InvalidHeader("expected comma", string=string, pos=pos)
+            raise InvalidHeader("Expected comma", string=string, pos=pos)
 
         # Remove extra delimiters before the next protocol.
         while peek_ahead(string, pos) == ',':

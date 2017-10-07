@@ -488,7 +488,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         # Control may only reach this point in buggy third-party subclasses.
         assert self.state == CONNECTING
-        raise InvalidState("WebSocket connection isn't established yet.")
+        raise InvalidState("WebSocket connection isn't established yet")
 
     @asyncio.coroutine
     def transfer_data(self):

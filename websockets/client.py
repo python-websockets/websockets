@@ -120,7 +120,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if header_values is not None:
 
             if available_extensions is None:
-                raise InvalidHandshake("No extensions supported.")
+                raise InvalidHandshake("No extensions supported")
 
             parsed_header_values = sum([
                 parse_extension_list(header_value)
@@ -152,7 +152,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                 # matched what the server sent. Fail the connection.
                 else:
                     raise NegotiationError(
-                        "Unsupported extension: name={}, params={}".format(
+                        "Unsupported extension: name = {}, params = {}".format(
                             name, response_params))
 
         return accepted_extensions
@@ -174,7 +174,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if header_values is not None:
 
             if available_subprotocols is None:
-                raise InvalidHandshake("No subprotocols supported.")
+                raise InvalidHandshake("No subprotocols supported")
 
             parsed_header_values = sum([
                 parse_protocol_list(header_value)
@@ -341,8 +341,8 @@ def connect(uri, *,
     if wsuri.secure:
         kwds.setdefault('ssl', True)
     elif kwds.get('ssl') is not None:
-        raise ValueError("connect() received a SSL context for a ws:// URI. "
-                         "Use a wss:// URI to enable TLS.")
+        raise ValueError("connect() received a SSL context for a ws:// URI, "
+                         "use a wss:// URI to enable TLS")
 
     if compression == 'deflate':
         if extensions is None:

@@ -20,8 +20,8 @@ class ExceptionsTests(unittest.TestCase):
                 "Malformed HTTP message",
             ),
             (
-                InvalidHeader("expected token", "a=|", 3),
-                "expected token at 3 in a=|",
+                InvalidHeader("Expected token", "a=|", 3),
+                "Expected token at 3 in a=|",
             ),
             (
                 InvalidOrigin("Origin not allowed: ''"),
@@ -48,50 +48,50 @@ class ExceptionsTests(unittest.TestCase):
                 "Duplicate parameter: a",
             ),
             (
-                InvalidState("WebSocket connection isn't established yet."),
-                "WebSocket connection isn't established yet.",
+                InvalidState("WebSocket connection isn't established yet"),
+                "WebSocket connection isn't established yet",
             ),
             (
                 ConnectionClosed(1000, ''),
                 "WebSocket connection is closed: code = 1000 "
-                "(OK), no reason.",
+                "(OK), no reason",
             ),
             (
                 ConnectionClosed(1001, 'bye'),
                 "WebSocket connection is closed: code = 1001 "
-                "(going away), reason = bye.",
+                "(going away), reason = bye",
             ),
             (
                 ConnectionClosed(1006, None),
                 "WebSocket connection is closed: code = 1006 "
-                "(connection closed abnormally [internal]), no reason."
+                "(connection closed abnormally [internal]), no reason"
             ),
             (
                 ConnectionClosed(1016, None),
                 "WebSocket connection is closed: code = 1016 "
-                "(unknown), no reason."
+                "(unknown), no reason"
             ),
             (
                 ConnectionClosed(3000, None),
                 "WebSocket connection is closed: code = 3000 "
-                "(registered), no reason."
+                "(registered), no reason"
             ),
             (
                 ConnectionClosed(4000, None),
                 "WebSocket connection is closed: code = 4000 "
-                "(private use), no reason."
+                "(private use), no reason"
             ),
             (
                 InvalidURI("| isn't a valid URI"),
                 "| isn't a valid URI",
             ),
             (
-                PayloadTooBig("Payload length exceeds limit (2 > 1 bytes)"),
-                "Payload length exceeds limit (2 > 1 bytes)",
+                PayloadTooBig("Payload length exceeds limit: 2 > 1 bytes"),
+                "Payload length exceeds limit: 2 > 1 bytes",
             ),
             (
-                WebSocketProtocolError("Invalid opcode (7)"),
-                "Invalid opcode (7)",
+                WebSocketProtocolError("Invalid opcode: 7"),
+                "Invalid opcode: 7",
             ),
         ]:
             with self.subTest(exception=exception):

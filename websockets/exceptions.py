@@ -152,9 +152,9 @@ class ConnectionClosed(InvalidState):
             explanation = CLOSE_CODES.get(code, "unknown")
         message += "code = {} ({}), ".format(code, explanation)
         if reason:
-            message += "reason = {}.".format(reason)
+            message += "reason = {}".format(reason)
         else:
-            message += "no reason."
+            message += "no reason"
         super().__init__(message)
 
 

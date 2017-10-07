@@ -199,14 +199,29 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     def client_connected(self, reader, writer):
         """
-        Callback for :class:`~asyncio.StreamReaderProtocol`.
+        Callback when the TCP connection is established.
 
         Record references to the stream reader and the stream writer to avoid
-        using private attributes ``_stream_reader`` and ``_stream_writer``.
+        using private attributes ``_stream_reader`` and ``_stream_writer`` of
+        :class:`~asyncio.StreamReaderProtocol`.
 
         """
         self.reader = reader
         self.writer = writer
+
+    def connection_open(self):
+        """
+        Callback when the WebSocket opening handshake completes.
+
+        """
+        assert self.state == CONNECTING
+        self.state = OPEN
+        # Start the task that receives incoming WebSocket messages.
+        self.transfer_data_task = asyncio_ensure_future(
+            self.transfer_data(), loop=self.loop)
+        # Start the task that eventually closes the TCP connection.
+        self.close_connection_task = asyncio_ensure_future(
+            self.close_connection(), loop=self.loop)
 
     # Public API
 
@@ -262,58 +277,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         return ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][self.state]
-
-    @asyncio.coroutine
-    def close(self, code=1000, reason=''):
-        """
-        This coroutine performs the closing handshake.
-
-        It waits for the other end to complete the handshake and for the TCP
-        connection to terminate.
-
-        It doesn't do anything once the connection is closed. In other words
-        it's idemptotent.
-
-        It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
-        since errors during connection termination aren't particularly useful.
-
-        ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
-
-        """
-        if self.state == OPEN:
-            # 7.1.2. Start the WebSocket Closing Handshake
-            # 7.1.3. The WebSocket Closing Handshake is Started
-            frame_data = serialize_close(code, reason)
-            try:
-                yield from asyncio.wait_for(
-                    self.write_frame(OP_CLOSE, frame_data),
-                    self.timeout, loop=self.loop)
-            except asyncio.TimeoutError:
-                # If the close frame cannot be sent because the send buffers
-                # are full, the closing handshake won't complete anyway.
-                # Cancel the data transfer task to shut down faster.
-                # Cancelling a task is idempotent.
-                self.transfer_data_task.cancel()
-
-        # If no close frame is received within the timeout, wait_for() cancels
-        # the data transfer task and raises TimeoutError. Then transfer_data()
-        # catches CancelledError and exits without an exception.
-
-        # If close() is called multiple times concurrently and one of these
-        # calls hits the timeout, other calls will resume executing without an
-        # exception, so there's no need to catch CancelledError here.
-
-        try:
-            # If close() is cancelled during the wait, self.transfer_data_task
-            # is cancelled before the timeout elapses (on Python ≥ 3.4.3).
-            # This helps closing connections when shutting down a server.
-            yield from asyncio.wait_for(
-                self.transfer_data_task, self.timeout, loop=self.loop)
-        except asyncio.TimeoutError:
-            pass
-
-        # Wait for the close connection task to close the TCP connection.
-        yield from asyncio.shield(self.close_connection_task)
 
     @asyncio.coroutine
     def recv(self):
@@ -389,6 +352,58 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         yield from self.write_frame(opcode, data)
 
     @asyncio.coroutine
+    def close(self, code=1000, reason=''):
+        """
+        This coroutine performs the closing handshake.
+
+        It waits for the other end to complete the handshake and for the TCP
+        connection to terminate.
+
+        It doesn't do anything once the connection is closed. In other words
+        it's idemptotent.
+
+        It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
+        since errors during connection termination aren't particularly useful.
+
+        ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
+
+        """
+        if self.state == OPEN:
+            # 7.1.2. Start the WebSocket Closing Handshake
+            # 7.1.3. The WebSocket Closing Handshake is Started
+            frame_data = serialize_close(code, reason)
+            try:
+                yield from asyncio.wait_for(
+                    self.write_frame(OP_CLOSE, frame_data),
+                    self.timeout, loop=self.loop)
+            except asyncio.TimeoutError:
+                # If the close frame cannot be sent because the send buffers
+                # are full, the closing handshake won't complete anyway.
+                # Cancel the data transfer task to shut down faster.
+                # Cancelling a task is idempotent.
+                self.transfer_data_task.cancel()
+
+        # If no close frame is received within the timeout, wait_for() cancels
+        # the data transfer task and raises TimeoutError. Then transfer_data()
+        # catches CancelledError and exits without an exception.
+
+        # If close() is called multiple times concurrently and one of these
+        # calls hits the timeout, other calls will resume executing without an
+        # exception, so there's no need to catch CancelledError here.
+
+        try:
+            # If close() is cancelled during the wait, self.transfer_data_task
+            # is cancelled before the timeout elapses (on Python ≥ 3.4.3).
+            # This helps closing connections when shutting down a server.
+            yield from asyncio.wait_for(
+                self.transfer_data_task, self.timeout, loop=self.loop)
+        except asyncio.TimeoutError:
+            pass
+
+        # Wait for the close connection task to close the TCP connection.
+        yield from asyncio.shield(self.close_connection_task)
+
+    @asyncio.coroutine
     def ping(self, data=None):
         """
         This coroutine sends a ping.
@@ -446,20 +461,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         yield from self.write_frame(OP_PONG, data)
 
     # Private methods - no guarantees.
-
-    def connection_open(self):
-        """
-        Callback when the opening handshake completes.
-
-        """
-        assert self.state == CONNECTING
-        self.state = OPEN
-        # Start the task that receives incoming WebSocket messages.
-        self.transfer_data_task = asyncio_ensure_future(
-            self.transfer_data(), loop=self.loop)
-        # Start the task that eventually closes the TCP connection.
-        self.close_connection_task = asyncio_ensure_future(
-            self.close_connection(), loop=self.loop)
 
     @asyncio.coroutine
     def ensure_open(self):
@@ -700,26 +701,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 return transport._closed
 
     @asyncio.coroutine
-    def wait_for_connection_lost(self):
-        """
-        Wait until the TCP connection is closed or ``self.timeout`` elapses.
-
-        Return ``True`` if the connection is closed and ``False`` otherwise.
-
-        """
-        if not self.connection_lost_waiter.done():
-            try:
-                yield from asyncio.wait_for(
-                    asyncio.shield(self.connection_lost_waiter),
-                    self.timeout, loop=self.loop)
-            except asyncio.TimeoutError:
-                pass
-        # Re-check self.connection_lost_waiter.done() synchronously because
-        # connection_lost() could run between the moment the timeout occurs
-        # and the moment this coroutine resumes running.
-        return self.connection_lost_waiter.done()
-
-    @asyncio.coroutine
     def close_connection(self, after_handshake=True):
         """
         7.1.1. Close the WebSocket Connection
@@ -779,6 +760,26 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
             # connection_lost() is called quickly after aborting.
             yield from self.wait_for_connection_lost()
+
+    @asyncio.coroutine
+    def wait_for_connection_lost(self):
+        """
+        Wait until the TCP connection is closed or ``self.timeout`` elapses.
+
+        Return ``True`` if the connection is closed and ``False`` otherwise.
+
+        """
+        if not self.connection_lost_waiter.done():
+            try:
+                yield from asyncio.wait_for(
+                    asyncio.shield(self.connection_lost_waiter),
+                    self.timeout, loop=self.loop)
+            except asyncio.TimeoutError:
+                pass
+        # Re-check self.connection_lost_waiter.done() synchronously because
+        # connection_lost() could run between the moment the timeout occurs
+        # and the moment this coroutine resumes running.
+        return self.connection_lost_waiter.done()
 
     @asyncio.coroutine
     def fail_connection(self, code=1011, reason=''):

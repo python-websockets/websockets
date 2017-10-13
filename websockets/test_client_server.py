@@ -187,14 +187,15 @@ class ClientServerTests(unittest.TestCase):
     def start_server(self, **kwds):
         # Don't enable compression by default in tests.
         kwds.setdefault('compression', None)
-        server = serve(handler, 'localhost', 8642, **kwds)
+        server = serve(handler, 'localhost', 0, **kwds)
         self.server = self.loop.run_until_complete(server)
+        self.port = self.server.sockets()[0].getsockname()[1]
 
     def start_client(self, path='', **kwds):
         # Don't enable compression by default in tests.
         kwds.setdefault('compression', None)
         proto = 'ws' if kwds.get('ssl') is None else 'wss'
-        client = connect(proto + '://localhost:8642/' + path, **kwds)
+        client = connect(proto + '://localhost:' + str(self.port) + '/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
@@ -266,7 +267,7 @@ class ClientServerTests(unittest.TestCase):
                 return super().send(*args, **kwargs)
 
         sock = TrackedSocket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(('localhost', 8642))
+        sock.connect(('localhost', self.port))
         server_hostname = 'localhost' if self.secure else None
 
         try:

@@ -311,7 +311,7 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     @with_client('attributes')
     def test_protocol_attributes(self):
-        expected_attrs = ('localhost', 8642, self.secure)
+        expected_attrs = ('localhost', self.port, self.secure)
         client_attrs = (self.client.host, self.client.port, self.client.secure)
         self.assertEqual(client_attrs, expected_attrs)
         server_attrs = self.loop.run_until_complete(self.client.recv())
@@ -413,11 +413,11 @@ class ClientServerTests(unittest.TestCase):
         # One URL returns an HTTP response.
 
         if self.secure:
-            url = 'https://localhost:8642/__health__/'
+            url = 'https://localhost:' + str(self.port) + '/__health__/'
             open_health_check = functools.partial(
                 urllib.request.urlopen, url, context=self.client_context)
         else:
-            url = 'http://localhost:8642/__health__/'
+            url = 'http://localhost:' + str(self.port) + '/__health__/'
             open_health_check = functools.partial(
                 urllib.request.urlopen, url)
 
@@ -901,7 +901,7 @@ class SSLClientServerTests(ClientServerTests):
 
     @with_server()
     def test_ws_uri_is_rejected(self):
-        client = connect('ws://localhost:8642/', ssl=self.client_context)
+        client = connect('ws://localhost:' + str(self.port) + '/', ssl=self.client_context)
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(client)
 

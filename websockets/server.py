@@ -476,22 +476,21 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
 class WebSocketServer:
     """
-    Wraps an underlying :class:`~asyncio.Server` object.
+    Wrapper for :class:`~asyncio.Server` that closes connections on exit.
 
     This class provides the return type of :func:`~websockets.server.serve`.
-    This class shouldn't be instantiated directly.
 
-    Objects of this class store a reference to an underlying
-    :class:`~asyncio.Server` object returned by
-    :meth:`~asyncio.AbstractEventLoop.create_server`. The class stores a
-    reference rather than inheriting from :class:`~asyncio.Server` in part
-    because :meth:`~asyncio.AbstractEventLoop.create_server` doesn't support
-    passing a custom :class:`~asyncio.Server` class.
+    It mimics the interface of :class:`~asyncio.AbstractServer`, namely its
+    :meth:`~asyncio.AbstractServer.close()` and
+    :meth:`~asyncio.AbstractServer.wait_closed()` methods, to close WebSocket
+    connections properly on exit, in addition to closing the underlying
+    :class:`~asyncio.Server`.
 
-    :class:`WebSocketServer` supports cleaning up the underlying
-    :class:`~asyncio.Server` object and other resources by implementing the
-    interface of ``asyncio.events.AbstractServer``, namely its ``close()``
-    and ``wait_closed()`` methods.
+    Instances of this class store a reference to the :class:`~asyncio.Server`
+    object returned by :meth:`~asyncio.AbstractEventLoop.create_server` rather
+    than inherit from :class:`~asyncio.Server` in part because
+    :meth:`~asyncio.AbstractEventLoop.create_server` doesn't support passing a
+    custom :class:`~asyncio.Server` class.
 
     """
     def __init__(self, loop):
@@ -506,8 +505,8 @@ class WebSocketServer:
         Attach to a given :class:`~asyncio.Server`.
 
         Since :meth:`~asyncio.AbstractEventLoop.create_server` doesn't support
-        injecting a custom ``Server`` class, a simple solution that doesn't
-        rely on private APIs is to:
+        injecting a custom ``Server`` class, the easiest solution that doesn't
+        rely on private :mod:`asyncio` APIs is to:
 
         - instantiate a :class:`WebSocketServer`
         - give the protocol factory a reference to that instance

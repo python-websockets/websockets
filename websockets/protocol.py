@@ -213,7 +213,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         Callback when the WebSocket opening handshake completes.
 
+        Enter the OPEN state and start the data transfer phase.
+
         """
+        # 4.1. The WebSocket Connection is Established.
         assert self.state == CONNECTING
         self.state = OPEN
         # Start the task that receives incoming WebSocket messages.

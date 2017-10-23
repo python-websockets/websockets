@@ -172,6 +172,7 @@ class ClientServerTests(unittest.TestCase):
     secure = False
 
     def setUp(self):
+        self.port = None
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 

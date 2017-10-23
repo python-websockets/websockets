@@ -312,9 +312,11 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     @with_client('attributes')
     def test_protocol_attributes(self):
-        expected_attrs = ('localhost', self.port, self.secure)
+        expected_client_attrs = ('localhost', self.port, self.secure)
         client_attrs = (self.client.host, self.client.port, self.client.secure)
         self.assertEqual(client_attrs, expected_attrs)
+        # todo... maybe have the server report the actual port, instead of listen port...
+        expected_server_attrs = ('localhost', 0, self.secure)
         server_attrs = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_attrs, repr(expected_attrs))
 

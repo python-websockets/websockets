@@ -172,6 +172,7 @@ class ClientServerTests(unittest.TestCase):
     secure = False
 
     def setUp(self):
+        self.port = 0
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
 
@@ -187,14 +188,15 @@ class ClientServerTests(unittest.TestCase):
     def start_server(self, **kwds):
         # Don't enable compression by default in tests.
         kwds.setdefault('compression', None)
-        server = serve(handler, 'localhost', 8642, **kwds)
+        server = serve(handler, 'localhost', 0, **kwds)
         self.server = self.loop.run_until_complete(server)
+        self.port = self.server.sockets()[0].getsockname()[1]
 
     def start_client(self, path='', **kwds):
         # Don't enable compression by default in tests.
         kwds.setdefault('compression', None)
         proto = 'ws' if kwds.get('ssl') is None else 'wss'
-        client = connect(proto + '://localhost:8642/' + path, **kwds)
+        client = connect(proto + '://localhost:' + str(self.port) + '/' + path, **kwds)
         self.client = self.loop.run_until_complete(client)
 
     def stop_client(self):
@@ -266,7 +268,7 @@ class ClientServerTests(unittest.TestCase):
                 return super().send(*args, **kwargs)
 
         sock = TrackedSocket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(('localhost', 8642))
+        sock.connect(('localhost', self.port))
         server_hostname = 'localhost' if self.secure else None
 
         try:
@@ -310,9 +312,11 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     @with_client('attributes')
     def test_protocol_attributes(self):
-        expected_attrs = ('localhost', 8642, self.secure)
+        expected_client_attrs = ('localhost', self.port, self.secure)
         client_attrs = (self.client.host, self.client.port, self.client.secure)
         self.assertEqual(client_attrs, expected_attrs)
+        # todo... maybe have the server report the actual port, instead of listen port...
+        expected_server_attrs = ('localhost', 0, self.secure)
         server_attrs = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_attrs, repr(expected_attrs))
 
@@ -412,11 +416,11 @@ class ClientServerTests(unittest.TestCase):
         # One URL returns an HTTP response.
 
         if self.secure:
-            url = 'https://localhost:8642/__health__/'
+            url = 'https://localhost:' + str(self.port) + '/__health__/'
             open_health_check = functools.partial(
                 urllib.request.urlopen, url, context=self.client_context)
         else:
-            url = 'http://localhost:8642/__health__/'
+            url = 'http://localhost:' + str(self.port) + '/__health__/'
             open_health_check = functools.partial(
                 urllib.request.urlopen, url)
 
@@ -900,7 +904,7 @@ class SSLClientServerTests(ClientServerTests):
 
     @with_server()
     def test_ws_uri_is_rejected(self):
-        client = connect('ws://localhost:8642/', ssl=self.client_context)
+        client = connect('ws://localhost:' + str(self.port) + '/', ssl=self.client_context)
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(client)
 

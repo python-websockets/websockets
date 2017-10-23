@@ -531,7 +531,10 @@ class WebSocketServer:
 
         """
         self.websockets.remove(protocol)
-
+    
+    def sockets(self):
+        return self.server.sockets
+        
     def close(self):
         """
         Close the underlying server, and clean up connections.

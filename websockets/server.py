@@ -53,6 +53,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
         super().__init__(**kwds)
+        self.port = ws_server.port
 
     def connection_made(self, transport):
         """
@@ -517,6 +518,11 @@ class WebSocketServer:
 
         """
         self.server = server
+        self.port = None
+        if len(server.sockets) > 0:
+            name = server.sockets[0].getsockname()
+            if len(name) > 0:
+                self.port = name[1]
 
     def register(self, protocol):
         """

@@ -6,6 +6,7 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 import asyncio
 import collections.abc
 import logging
+import sys
 
 from .compatibility import (
     BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE,
@@ -741,4 +742,12 @@ def unix_serve(ws_handler, path, **kwargs):
     return serve(ws_handler, path=path, **kwargs)
 
 
-serve = Serve
+if sys.version_info[:2] <= (3, 4):                          # pragma: no cover
+    import functools
+
+    @asyncio.coroutine
+    @functools.wraps(Serve.__init__)
+    def serve(*args, **kwds):
+        return Serve(*args, **kwds).__await__()
+else:
+    serve = Serve

@@ -701,12 +701,12 @@ class Serve:
         )
 
         if path is None:
-            server_coro = loop.create_server(factory, host, port, **kwds)
+            creating_server = loop.create_server(factory, host, port, **kwds)
         else:
-            server_coro = loop.create_unix_server(factory, path, **kwds)
+            creating_server = loop.create_unix_server(factory, path, **kwds)
 
-        self._server_coro = server_coro
-        self.server = ws_server
+        self._creating_server = creating_server
+        self.ws_server = ws_server
 
     @asyncio.coroutine
     def __aenter__(self):
@@ -714,14 +714,14 @@ class Serve:
 
     @asyncio.coroutine
     def __aexit__(self, exc_type, exc_value, traceback):
-        self.server.close()
-        yield from self.server.wait_closed()
+        self.ws_server.close()
+        yield from self.ws_server.wait_closed()
 
     def __await__(self):
-        asyncio_server = yield from self._server_coro
-        self.server.wrap(asyncio_server)
+        server = yield from self._creating_server
+        self.ws_server.wrap(server)
 
-        return self.server
+        return self.ws_server
 
     __iter__ = __await__
 

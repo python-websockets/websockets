@@ -901,7 +901,11 @@ class SSLClientServerTests(ClientServerTests):
     @with_server()
     def test_ws_uri_is_rejected(self):
         with self.assertRaises(ValueError):
-            connect('ws://localhost:8642/', ssl=self.client_context)
+            client = connect('ws://localhost:8642/', ssl=self.client_context)
+            # With Python ≥ 3.5, the exception is raised by connect() even
+            # before awaiting.  However, with Python 3.4 the exception is
+            # raised only when awaiting.
+            self.loop.run_until_complete(client)          # pragma: no cover
 
 
 class ClientServerOriginTests(unittest.TestCase):

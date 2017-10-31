@@ -705,6 +705,7 @@ class Serve:
         else:
             creating_server = loop.create_unix_server(factory, path, **kwds)
 
+        # This is a coroutine object.
         self._creating_server = creating_server
         self.ws_server = ws_server
 

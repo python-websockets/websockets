@@ -714,7 +714,6 @@ class Serve:
     def __await__(self):
         server = yield from self._creating_server
         self.ws_server.wrap(server)
-
         return self.ws_server
 
     __iter__ = __await__

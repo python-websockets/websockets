@@ -383,12 +383,11 @@ class Connect:
 
     @asyncio.coroutine
     def __aenter__(self):
-        self.websocket = yield from self
-        return self.websocket
+        return (yield from self)
 
     @asyncio.coroutine
     def __aexit__(self, exc_type, exc_value, traceback):
-        yield from self.websocket.close()
+        yield from self.ws_client.close()
 
     def __await__(self):
         transport, protocol = yield from self._creating_connection
@@ -404,6 +403,7 @@ class Connect:
             yield from protocol.close_connection(after_handshake=False)
             raise
 
+        self.ws_client = protocol
         return protocol
 
     __iter__ = __await__

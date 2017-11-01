@@ -274,6 +274,52 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 
 class Connect:
+    """
+    This coroutine connects to a WebSocket server at a given ``uri``.
+
+    It yields a :class:`WebSocketClientProtocol` which can then be used to
+    send and receive messages.
+
+    On Python ≥ 3.5, :func:`connect` can be used as a asynchronous context
+    manager. In that case, the connection is closed when exiting the context.
+
+    :func:`connect` is a wrapper around the event loop's
+    :meth:`~asyncio.BaseEventLoop.create_connection` method. Unknown keyword
+    arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
+
+    For example, you can set the ``ssl`` keyword argument to a
+    :class:`~ssl.SSLContext` to enforce some TLS settings. When connecting to
+    a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
+    ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
+
+    The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
+    ``read_limit``, and ``write_limit`` optional arguments is described in the
+    documentation of :class:`~websockets.protocol.WebSocketCommonProtocol`.
+
+    The ``create_protocol`` parameter allows customizing the asyncio protocol
+    that manages the connection. It should be a callable or class accepting
+    the same arguments as :class:`WebSocketClientProtocol` and returning a
+    :class:`WebSocketClientProtocol` instance. It defaults to
+    :class:`WebSocketClientProtocol`.
+
+    :func:`connect` also accepts the following optional arguments:
+
+    * ``origin`` sets the Origin HTTP header
+    * ``extensions`` is a list of supported extensions in order of
+      decreasing preference
+    * ``subprotocols`` is a list of supported subprotocols in order of
+      decreasing preference
+    * ``extra_headers`` sets additional HTTP request headers – it can be a
+      mapping or an iterable of (name, value) pairs
+    * ``compression`` is a shortcut to configure compression extensions;
+      by default it enables the "permessage-deflate" extension; set it to
+      ``None`` to disable compression
+
+    :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
+    invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
+    handshake fails.
+
+    """
 
     def __init__(self, uri, *,
                  create_protocol=None,
@@ -282,57 +328,6 @@ class Connect:
                  loop=None, legacy_recv=False, klass=None,
                  origin=None, extensions=None, subprotocols=None,
                  extra_headers=None, compression='deflate', **kwds):
-        """
-        This coroutine connects to a WebSocket server at a given ``uri``.
-
-        It yields a :class:`WebSocketClientProtocol` which can then be used to
-        send and receive messages.
-
-        On Python ≥ 3.5, :func:`connect` can be used as a asynchronous
-        context manager. In that case, the connection is closed when exiting
-        the context.
-
-        :func:`connect` is a wrapper around the event loop's
-        :meth:`~asyncio.BaseEventLoop.create_connection` method. Unknown
-        keyword arguments are passed to
-        :meth:`~asyncio.BaseEventLoop.create_connection`.
-
-        For example, you can set the ``ssl`` keyword argument to a
-        :class:`~ssl.SSLContext` to enforce some TLS settings. When
-        connecting to a ``wss://`` URI, if this argument isn't provided
-        explicitly, it's set to ``True``, which means Python's default
-        :class:`~ssl.SSLContext` is used.
-
-        The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
-        ``read_limit``, and ``write_limit`` optional arguments is described
-        in the documentation of
-        :class:`~websockets.protocol.WebSocketCommonProtocol`.
-
-        The ``create_protocol`` parameter allows customizing the asyncio
-        protocol that manages the connection. It should be a callable or
-        class accepting the same arguments as
-        :class:`WebSocketClientProtocol` and returning a
-        :class:`WebSocketClientProtocol` instance. It defaults to
-        :class:`WebSocketClientProtocol`.
-
-        :func:`connect` also accepts the following optional arguments:
-
-        * ``origin`` sets the Origin HTTP header
-        * ``extensions`` is a list of supported extensions in order of
-          decreasing preference
-        * ``subprotocols`` is a list of supported subprotocols in order of
-          decreasing preference
-        * ``extra_headers`` sets additional HTTP request headers – it can be a
-          mapping or an iterable of (name, value) pairs
-        * ``compression`` is a shortcut to configure compression extensions;
-          by default it enables the "permessage-deflate" extension; set it to
-          ``None`` to disable compression
-
-        :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri``
-        is invalid and :exc:`~websockets.handshake.InvalidHandshake` if the
-        opening handshake fails.
-
-        """
         if loop is None:
             loop = asyncio.get_event_loop()
 
@@ -415,11 +410,10 @@ class Connect:
 
 
 if sys.version_info[:2] <= (3, 4):                          # pragma: no cover
-    import functools
-
     @asyncio.coroutine
-    @functools.wraps(Connect.__init__)
     def connect(*args, **kwds):
         return Connect(*args, **kwds).__await__()
+    connect.__doc__ = Connect.__doc__
+
 else:
     connect = Connect

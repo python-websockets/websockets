@@ -78,8 +78,6 @@ Shared
         .. autoattribute:: remote_address
 
         .. autoattribute:: open
-        .. autoattribute:: state_name
-
 
 Exceptions
 ..........

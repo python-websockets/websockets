@@ -10,6 +10,7 @@ import asyncio
 import asyncio.queues
 import codecs
 import collections
+import enum
 import logging
 import random
 import struct
@@ -29,7 +30,8 @@ logger = logging.getLogger(__name__)
 
 # A WebSocket connection goes through the following four states, in order:
 
-CONNECTING, OPEN, CLOSING, CLOSED = range(4)
+class State(enum.IntEnum):
+    CONNECTING, OPEN, CLOSING, CLOSED = range(4)
 
 # In order to ensure consistency, the code always checks the current value of
 # WebSocketCommonProtocol.state before assigning a new value and never yields
@@ -161,7 +163,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # are shared between the client-side and the server-side.
         # Subclasses implement the opening handshake and, on success, execute
         # :meth:`connection_open()` to change the state to OPEN.
-        self.state = CONNECTING
+        self.state = State.CONNECTING
 
         # HTTP protocol parameters.
         self.path = None
@@ -217,8 +219,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         # 4.1. The WebSocket Connection is Established.
-        assert self.state == CONNECTING
-        self.state = OPEN
+        assert self.state == State.CONNECTING
+        self.state = State.OPEN
         # Start the task that receives incoming WebSocket messages.
         self.transfer_data_task = asyncio_ensure_future(
             self.transfer_data(), loop=self.loop)
@@ -266,20 +268,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         .. _EAFP: https://docs.python.org/3/glossary.html#term-eafp
 
         """
-        return self.state == OPEN
-
-    @property
-    def state_name(self):
-        """
-        Current connection state, as a string.
-
-        Possible states are defined in the WebSocket specification:
-        ``CONNECTING``, ``OPEN``, ``CLOSING``, or ``CLOSED``.
-
-        To check if the connection is open, use :attr:`open` instead.
-
-        """
-        return ['CONNECTING', 'OPEN', 'CLOSING', 'CLOSED'][self.state]
+        return self.state == State.OPEN
 
     @asyncio.coroutine
     def recv(self):
@@ -371,7 +360,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
 
         """
-        if self.state == OPEN:
+        if self.state == State.OPEN:
             # 7.1.2. Start the WebSocket Closing Handshake
             # 7.1.3. The WebSocket Closing Handshake is Started
             frame_data = serialize_close(code, reason)
@@ -474,13 +463,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         # Handle cases from most common to least common for performance.
-        if self.state == OPEN:
+        if self.state == State.OPEN:
             return
 
-        if self.state == CLOSED:
+        if self.state == State.CLOSED:
             raise ConnectionClosed(self.close_code, self.close_reason)
 
-        if self.state == CLOSING:
+        if self.state == State.CLOSING:
             # If we started the closing handshake, wait for its completion to
             # get the proper close code and status. self.close_connection_task
             # will complete within 4 or 5 * timeout after calling close().
@@ -491,7 +480,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             raise ConnectionClosed(self.close_code, self.close_reason)
 
         # Control may only reach this point in buggy third-party subclasses.
-        assert self.state == CONNECTING
+        assert self.state == State.CONNECTING
         raise InvalidState("WebSocket connection isn't established yet")
 
     @asyncio.coroutine
@@ -608,7 +597,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 # 7.1.5.  The WebSocket Connection Close Code
                 # 7.1.6.  The WebSocket Connection Close Reason
                 self.close_code, self.close_reason = code, reason
-                if self.state == OPEN:
+                if self.state == State.OPEN:
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     yield from self.write_frame(OP_CLOSE, frame.data)
                 return
@@ -648,14 +637,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @asyncio.coroutine
     def write_frame(self, opcode, data=b''):
         # Defensive assertion for protocol compliance.
-        if self.state != OPEN:                              # pragma: no cover
+        if self.state != State.OPEN:                        # pragma: no cover
             raise InvalidState("Cannot write to a WebSocket "
-                               "in the {} state".format(self.state_name))
+                               "in the {} state".format(self.state.name))
 
         # Make sure no other frame will be sent after a close frame. Do this
         # before yielding control to avoid sending more than one close frame.
         if opcode == OP_CLOSE:
-            self.state = CLOSING
+            self.state = State.CLOSING
 
         frame = Frame(True, opcode, data)
         logger.debug("%s > %s", self.side, frame)
@@ -795,7 +784,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.side, code, reason,
         )
         # Don't send a close frame if the connection is broken.
-        if self.state == OPEN and code != 1006:
+        if self.state == State.OPEN and code != 1006:
             frame_data = serialize_close(code, reason)
             yield from self.write_frame(OP_CLOSE, frame_data)
 
@@ -852,7 +841,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         logger.debug("%s - connection_lost(%s)", self.side, exc)
-        self.state = CLOSED
+        self.state = State.CLOSED
         if self.close_code is None:
             self.close_code = 1006
         # If self.connection_lost_waiter isn't pending, that's a bug, because:

@@ -41,6 +41,7 @@ Server
 
         .. automethod:: close()
         .. automethod:: wait_closed()
+        .. autoattribute:: sockets
 
    .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, host=None, port=None, secure=None, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, extensions=None, subprotocols=None, extra_headers=None)
 

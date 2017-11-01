@@ -3,6 +3,7 @@ import contextlib
 import functools
 import logging
 import os.path
+import random
 import socket
 import ssl
 import sys
@@ -101,6 +102,33 @@ def with_client(*args, **kwds):
     return with_manager(temp_test_client, *args, **kwds)
 
 
+def get_server_uri(server, secure=False, resource_name='/'):
+    """
+    Return a WebSocket URI for connecting to the given server.
+
+    """
+    proto = 'wss' if secure else 'ws'
+
+    # Pick a random socket in order to test both IPv4 and IPv6 on systems
+    # where both are available. Randomizing tests is usually a bad idea. If
+    # needed, either use the first socket, or test separately IPv4 and IPv6.
+    server_socket = random.choice(server.sockets)
+
+    # That case
+    if server_socket.family == socket.AF_INET6:             # pragma: no cover
+        host, port = server_socket.getsockname()[:2]
+        host = '[{}]'.format(host)
+    elif server_socket.family == socket.AF_INET:
+        host, port = server_socket.getsockname()
+    elif server_socket.family == socket.AF_UNIX:
+        # The host and port are ignored when connecting to a Unix socket.
+        host, port = 'localhost', 0
+    else:                                                   # pragma: no cover
+        raise ValueError("Expected an IPv6, IPv4, or Unix socket")
+
+    return '{}://{}:{}{}'.format(proto, host, port, resource_name)
+
+
 class UnauthorizedServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
@@ -187,15 +215,16 @@ class ClientServerTests(unittest.TestCase):
     def start_server(self, **kwds):
         # Don't enable compression by default in tests.
         kwds.setdefault('compression', None)
-        server = serve(handler, 'localhost', 8642, **kwds)
-        self.server = self.loop.run_until_complete(server)
+        start_server = serve(handler, 'localhost', 0, **kwds)
+        self.server = self.loop.run_until_complete(start_server)
 
-    def start_client(self, path='', **kwds):
+    def start_client(self, resource_name='/', **kwds):
         # Don't enable compression by default in tests.
         kwds.setdefault('compression', None)
-        proto = 'ws' if kwds.get('ssl') is None else 'wss'
-        client = connect(proto + '://localhost:8642/' + path, **kwds)
-        self.client = self.loop.run_until_complete(client)
+        secure = kwds.get('ssl') is not None
+        server_uri = get_server_uri(self.server, secure, resource_name)
+        start_client = connect(server_uri, **kwds)
+        self.client = self.loop.run_until_complete(start_client)
 
     def stop_client(self):
         try:
@@ -265,24 +294,28 @@ class ClientServerTests(unittest.TestCase):
                 self.used_for_write = True
                 return super().send(*args, **kwargs)
 
-        sock = TrackedSocket(socket.AF_INET, socket.SOCK_STREAM)
-        sock.connect(('localhost', 8642))
-        server_hostname = 'localhost' if self.secure else None
+        server_socket = [
+            s for s in self.server.sockets if s.family == socket.AF_INET][0]
+        client_socket = TrackedSocket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect(server_socket.getsockname())
 
         try:
-            self.assertFalse(sock.used_for_read)
-            self.assertFalse(sock.used_for_write)
+            self.assertFalse(client_socket.used_for_read)
+            self.assertFalse(client_socket.used_for_write)
 
-            with self.temp_client(sock=sock, server_hostname=server_hostname):
+            with self.temp_client(
+                sock=client_socket,
+                server_hostname='localhost' if self.secure else None,
+            ):
                 self.loop.run_until_complete(self.client.send("Hello!"))
                 reply = self.loop.run_until_complete(self.client.recv())
                 self.assertEqual(reply, "Hello!")
 
-            self.assertTrue(sock.used_for_read)
-            self.assertTrue(sock.used_for_write)
+            self.assertTrue(client_socket.used_for_read)
+            self.assertTrue(client_socket.used_for_write)
 
         finally:
-            sock.close()
+            client_socket.close()
 
     @unittest.skipUnless(
         hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
@@ -294,30 +327,36 @@ class ClientServerTests(unittest.TestCase):
             unix_server = unix_serve(handler, path)
             self.server = self.loop.run_until_complete(unix_server)
 
-            sock = socket.socket(socket.AF_UNIX)
-            sock.connect(path)
+            client_socket = socket.socket(socket.AF_UNIX)
+            client_socket.connect(path)
 
             try:
-                with self.temp_client(sock=sock):
+                with self.temp_client(sock=client_socket):
                     self.loop.run_until_complete(self.client.send("Hello!"))
                     reply = self.loop.run_until_complete(self.client.recv())
                     self.assertEqual(reply, "Hello!")
 
             finally:
-                sock.close()
+                client_socket.close()
                 self.stop_server()
 
     @with_server()
-    @with_client('attributes')
+    @with_client('/attributes')
     def test_protocol_attributes(self):
-        expected_attrs = ('localhost', 8642, self.secure)
+        # The test could be connecting with IPv6 or IPv4.
+        expected_client_attrs = [
+            server_socket.getsockname()[:2] + (self.secure,)
+            for server_socket in self.server.sockets
+        ]
         client_attrs = (self.client.host, self.client.port, self.client.secure)
-        self.assertEqual(client_attrs, expected_attrs)
+        self.assertIn(client_attrs, expected_client_attrs)
+
+        expected_server_attrs = ('localhost', 0, self.secure)
         server_attrs = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_attrs, repr(expected_attrs))
+        self.assertEqual(server_attrs, repr(expected_server_attrs))
 
     @with_server()
-    @with_client('path')
+    @with_client('/path')
     def test_protocol_path(self):
         client_path = self.client.path
         self.assertEqual(client_path, '/path')
@@ -325,7 +364,7 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(server_path, '/path')
 
     @with_server()
-    @with_client('headers')
+    @with_client('/headers')
     def test_protocol_headers(self):
         client_req = self.client.request_headers
         client_resp = self.client.response_headers
@@ -337,7 +376,7 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(server_resp, str(client_resp))
 
     @with_server()
-    @with_client('raw_headers')
+    @with_client('/raw_headers')
     def test_protocol_raw_headers(self):
         client_req = self.client.raw_request_headers
         client_resp = self.client.raw_response_headers
@@ -349,21 +388,21 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(server_resp, repr(client_resp))
 
     @with_server()
-    @with_client('raw_headers', extra_headers={'X-Spam': 'Eggs'})
+    @with_client('/raw_headers', extra_headers={'X-Spam': 'Eggs'})
     def test_protocol_custom_request_headers_dict(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
     @with_server()
-    @with_client('raw_headers', extra_headers=[('X-Spam', 'Eggs')])
+    @with_client('/raw_headers', extra_headers=[('X-Spam', 'Eggs')])
     def test_protocol_custom_request_headers_list(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
     @with_server()
-    @with_client('raw_headers', extra_headers=[('User-Agent', 'Eggs')])
+    @with_client('/raw_headers', extra_headers=[('User-Agent', 'Eggs')])
     def test_protocol_custom_request_user_agent(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
@@ -371,35 +410,35 @@ class ClientServerTests(unittest.TestCase):
         self.assertIn("('User-Agent', 'Eggs')", req_headers)
 
     @with_server(extra_headers=lambda p, r: {'X-Spam': 'Eggs'})
-    @with_client('raw_headers')
+    @with_client('/raw_headers')
     def test_protocol_custom_response_headers_callable_dict(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
     @with_server(extra_headers=lambda p, r: [('X-Spam', 'Eggs')])
-    @with_client('raw_headers')
+    @with_client('/raw_headers')
     def test_protocol_custom_response_headers_callable_list(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
     @with_server(extra_headers={'X-Spam': 'Eggs'})
-    @with_client('raw_headers')
+    @with_client('/raw_headers')
     def test_protocol_custom_response_headers_dict(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
     @with_server(extra_headers=[('X-Spam', 'Eggs')])
-    @with_client('raw_headers')
+    @with_client('/raw_headers')
     def test_protocol_custom_response_headers_list(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
     @with_server(extra_headers=[('Server', 'Eggs')])
-    @with_client('raw_headers')
+    @with_client('/raw_headers')
     def test_protocol_custom_response_user_agent(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
@@ -411,12 +450,15 @@ class ClientServerTests(unittest.TestCase):
     def test_custom_protocol_http_request(self):
         # One URL returns an HTTP response.
 
+        # Set url to 'https?://<host>:<port>/__health__/'.
+        url = get_server_uri(
+            self.server, resource_name='/__health__/', secure=self.secure)
+        url = url.replace('ws', 'http')
+
         if self.secure:
-            url = 'https://localhost:8642/__health__/'
             open_health_check = functools.partial(
                 urllib.request.urlopen, url, context=self.client_context)
         else:
-            url = 'http://localhost:8642/__health__/'
             open_health_check = functools.partial(
                 urllib.request.urlopen, url)
 
@@ -457,50 +499,50 @@ class ClientServerTests(unittest.TestCase):
         self.assert_client_raises_code(403)
 
     @with_server()
-    @with_client('path', create_protocol=FooClientProtocol)
+    @with_client('/path', create_protocol=FooClientProtocol)
     def test_client_create_protocol(self):
         self.assertIsInstance(self.client, FooClientProtocol)
 
     @with_server()
-    @with_client('path', create_protocol=(
+    @with_client('/path', create_protocol=(
                  lambda *args, **kwargs: FooClientProtocol(*args, **kwargs)))
     def test_client_create_protocol_function(self):
         self.assertIsInstance(self.client, FooClientProtocol)
 
     @with_server()
-    @with_client('path', klass=FooClientProtocol)
+    @with_client('/path', klass=FooClientProtocol)
     def test_client_klass(self):
         self.assertIsInstance(self.client, FooClientProtocol)
 
     @with_server()
-    @with_client('path', create_protocol=BarClientProtocol,
+    @with_client('/path', create_protocol=BarClientProtocol,
                  klass=FooClientProtocol)
     def test_client_create_protocol_over_klass(self):
         self.assertIsInstance(self.client, BarClientProtocol)
 
     @with_server()
-    @with_client('extensions')
+    @with_client('/extensions')
     def test_no_extension(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_extensions, repr([]))
         self.assertEqual(repr(self.client.extensions), repr([]))
 
     @with_server(extensions=[ServerNoOpExtensionFactory()])
-    @with_client('extensions', extensions=[ClientNoOpExtensionFactory()])
+    @with_client('/extensions', extensions=[ClientNoOpExtensionFactory()])
     def test_extension(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_extensions, repr([NoOpExtension()]))
         self.assertEqual(repr(self.client.extensions), repr([NoOpExtension()]))
 
     @with_server()
-    @with_client('extensions', extensions=[ClientNoOpExtensionFactory()])
+    @with_client('/extensions', extensions=[ClientNoOpExtensionFactory()])
     def test_extension_not_accepted(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_extensions, repr([]))
         self.assertEqual(repr(self.client.extensions), repr([]))
 
     @with_server(extensions=[ServerNoOpExtensionFactory()])
-    @with_client('extensions')
+    @with_client('/extensions')
     def test_extension_not_requested(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_extensions, repr([]))
@@ -510,7 +552,7 @@ class ClientServerTests(unittest.TestCase):
     def test_extension_client_rejection(self):
         with self.assertRaises(NegotiationError):
             self.start_client(
-                'extensions',
+                '/extensions',
                 extensions=[ClientNoOpExtensionFactory()],
             )
 
@@ -522,7 +564,7 @@ class ClientServerTests(unittest.TestCase):
         ],
     )
     @with_client(
-        'extensions',
+        '/extensions',
         extensions=[
             ClientPerMessageDeflateFactory(),
         ],
@@ -538,7 +580,7 @@ class ClientServerTests(unittest.TestCase):
         ]))
 
     @with_server(extensions=[ServerPerMessageDeflateFactory()])
-    @with_client('extensions', extensions=[ClientNoOpExtensionFactory()])
+    @with_client('/extensions', extensions=[ClientNoOpExtensionFactory()])
     def test_extension_mismatch(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_extensions, repr([]))
@@ -551,7 +593,7 @@ class ClientServerTests(unittest.TestCase):
         ],
     )
     @with_client(
-        'extensions',
+        '/extensions',
         extensions=[
             ClientPerMessageDeflateFactory(),
             ClientNoOpExtensionFactory(),
@@ -576,7 +618,7 @@ class ClientServerTests(unittest.TestCase):
 
         with self.assertRaises(NegotiationError):
             self.start_client(
-                'extensions',
+                '/extensions',
                 extensions=[ClientPerMessageDeflateFactory()],
             )
 
@@ -586,10 +628,10 @@ class ClientServerTests(unittest.TestCase):
         _process_extensions.return_value = 'x-no-op', [NoOpExtension()]
 
         with self.assertRaises(InvalidHandshake):
-            self.start_client('extensions')
+            self.start_client('/extensions')
 
     @with_server(compression='deflate')
-    @with_client('extensions', compression='deflate')
+    @with_client('/extensions', compression='deflate')
     def test_compression_deflate(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_extensions, repr([
@@ -609,7 +651,7 @@ class ClientServerTests(unittest.TestCase):
         compression='deflate',  # overridden by explicit config
     )
     @with_client(
-        'extensions',
+        '/extensions',
         extensions=[
             ClientPerMessageDeflateFactory(
                 server_no_context_takeover=True,
@@ -627,42 +669,45 @@ class ClientServerTests(unittest.TestCase):
             PerMessageDeflate(True, True, 10, 12),
         ]))
 
-    def test_compression_unsupported(self):
+    def test_compression_unsupported_server(self):
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(self.start_server(compression='xz'))
+
+    @with_server()
+    def test_compression_unsupported_client(self):
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(self.start_client(compression='xz'))
 
     @with_server()
-    @with_client('subprotocol')
+    @with_client('/subprotocol')
     def test_no_subprotocol(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
 
     @with_server(subprotocols=['superchat', 'chat'])
-    @with_client('subprotocol', subprotocols=['otherchat', 'chat'])
+    @with_client('/subprotocol', subprotocols=['otherchat', 'chat'])
     def test_subprotocol(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr('chat'))
         self.assertEqual(self.client.subprotocol, 'chat')
 
     @with_server(subprotocols=['superchat'])
-    @with_client('subprotocol', subprotocols=['otherchat'])
+    @with_client('/subprotocol', subprotocols=['otherchat'])
     def test_subprotocol_not_accepted(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
 
     @with_server()
-    @with_client('subprotocol', subprotocols=['otherchat', 'chat'])
+    @with_client('/subprotocol', subprotocols=['otherchat', 'chat'])
     def test_subprotocol_not_offered(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
         self.assertEqual(self.client.subprotocol, None)
 
     @with_server(subprotocols=['superchat', 'chat'])
-    @with_client('subprotocol')
+    @with_client('/subprotocol')
     def test_subprotocol_not_requested(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr(None))
@@ -674,7 +719,7 @@ class ClientServerTests(unittest.TestCase):
         _process_subprotocol.return_value = 'superchat'
 
         with self.assertRaises(NegotiationError):
-            self.start_client('subprotocol', subprotocols=['otherchat'])
+            self.start_client('/subprotocol', subprotocols=['otherchat'])
         self.run_loop_once()
 
     @with_server(subprotocols=['superchat'])
@@ -683,7 +728,7 @@ class ClientServerTests(unittest.TestCase):
         _process_subprotocol.return_value = 'superchat'
 
         with self.assertRaises(InvalidHandshake):
-            self.start_client('subprotocol')
+            self.start_client('/subprotocol')
         self.run_loop_once()
 
     @with_server(subprotocols=['superchat', 'chat'])
@@ -693,7 +738,7 @@ class ClientServerTests(unittest.TestCase):
 
         with self.assertRaises(InvalidHandshake):
             self.start_client(
-                'subprotocol', subprotocols=['superchat', 'chat'])
+                '/subprotocol', subprotocols=['superchat', 'chat'])
         self.run_loop_once()
 
     @with_server()
@@ -891,7 +936,7 @@ class SSLClientServerTests(ClientServerTests):
         kwds.setdefault('ssl', self.server_context)
         super().start_server(**kwds)
 
-    def start_client(self, path='', **kwds):
+    def start_client(self, path='/', **kwds):
         kwds.setdefault('ssl', self.client_context)
         super().start_client(path, **kwds)
 
@@ -901,7 +946,10 @@ class SSLClientServerTests(ClientServerTests):
     @with_server()
     def test_ws_uri_is_rejected(self):
         with self.assertRaises(ValueError):
-            client = connect('ws://localhost:8642/', ssl=self.client_context)
+            client = connect(
+                get_server_uri(self.server, secure=False),
+                ssl=self.client_context,
+            )
             # With Python ≥ 3.5, the exception is raised by connect() even
             # before awaiting.  However, with Python 3.4 the exception is
             # raised only when awaiting.
@@ -919,9 +967,9 @@ class ClientServerOriginTests(unittest.TestCase):
 
     def test_checking_origin_succeeds(self):
         server = self.loop.run_until_complete(
-            serve(handler, 'localhost', 8642, origins=['http://localhost']))
+            serve(handler, 'localhost', 0, origins=['http://localhost']))
         client = self.loop.run_until_complete(
-            connect('ws://localhost:8642/', origin='http://localhost'))
+            connect(get_server_uri(server), origin='http://localhost'))
 
         self.loop.run_until_complete(client.send("Hello!"))
         self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")
@@ -932,19 +980,19 @@ class ClientServerOriginTests(unittest.TestCase):
 
     def test_checking_origin_fails(self):
         server = self.loop.run_until_complete(
-            serve(handler, 'localhost', 8642, origins=['http://localhost']))
+            serve(handler, 'localhost', 0, origins=['http://localhost']))
         with self.assertRaisesRegex(InvalidHandshake,
                                     "Status code not 101: 403"):
             self.loop.run_until_complete(
-                connect('ws://localhost:8642/', origin='http://otherhost'))
+                connect(get_server_uri(server), origin='http://otherhost'))
 
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
     def test_checking_lack_of_origin_succeeds(self):
         server = self.loop.run_until_complete(
-            serve(handler, 'localhost', 8642, origins=['']))
-        client = self.loop.run_until_complete(connect('ws://localhost:8642/'))
+            serve(handler, 'localhost', 0, origins=['']))
+        client = self.loop.run_until_complete(connect(get_server_uri(server)))
 
         self.loop.run_until_complete(client.send("Hello!"))
         self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")

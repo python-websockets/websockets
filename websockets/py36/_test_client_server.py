@@ -7,6 +7,7 @@ import unittest
 from ..client import *
 from ..exceptions import ConnectionClosed
 from ..server import *
+from ..test_client_server import get_server_uri
 
 
 # Fail at import time, not just at run time, to prevent test
@@ -36,14 +37,14 @@ class AsyncIteratorTests(unittest.TestCase):
             for message in MESSAGES:
                 await ws.send(message)
 
-        server = serve(handler, 'localhost', 8642)
-        self.server = self.loop.run_until_complete(server)
+        start_server = serve(handler, 'localhost', 0)
+        server = self.loop.run_until_complete(start_server)
 
         messages = []
 
         async def run_client():
             nonlocal messages
-            async with connect('ws://localhost:8642/') as ws:
+            async with connect(get_server_uri(server)) as ws:
                 async for message in ws:
                     messages.append(message)
 
@@ -51,8 +52,8 @@ class AsyncIteratorTests(unittest.TestCase):
 
         self.assertEqual(messages, MESSAGES)
 
-        self.server.close()
-        self.loop.run_until_complete(self.server.wait_closed())
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
 
     def test_iterate_on_messages_exit_not_ok(self):
 
@@ -61,14 +62,14 @@ class AsyncIteratorTests(unittest.TestCase):
                 await ws.send(message)
             await ws.close(1001)
 
-        server = serve(handler, 'localhost', 8642)
-        self.server = self.loop.run_until_complete(server)
+        start_server = serve(handler, 'localhost', 0)
+        server = self.loop.run_until_complete(start_server)
 
         messages = []
 
         async def run_client():
             nonlocal messages
-            async with connect('ws://localhost:8642/') as ws:
+            async with connect(get_server_uri(server)) as ws:
                 async for message in ws:
                     messages.append(message)
 
@@ -77,5 +78,5 @@ class AsyncIteratorTests(unittest.TestCase):
 
         self.assertEqual(messages, MESSAGES)
 
-        self.server.close()
-        self.loop.run_until_complete(self.server.wait_closed())
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())

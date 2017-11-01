@@ -32,6 +32,8 @@ Also:
 
 * Added :func:`~websockets.server.unix_serve` for listening on Unix sockets.
 
+* Added the :attr:`~websockets.server.WebSocketServer.sockets` attribute.
+
 * Reorganized and extended documentation.
 
 * Aborted connections if they don't close within the configured ``timeout``.

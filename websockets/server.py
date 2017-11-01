@@ -582,6 +582,16 @@ class WebSocketServer:
                 loop=self.loop)
         yield from self.server.wait_closed()
 
+    @property
+    def sockets(self):
+        """
+        List of :class:`~socket.socket` objects the server is listening to.
+
+        ``None`` if the server is closed.
+
+        """
+        return self.server.sockets
+
 
 class Serve:
     """

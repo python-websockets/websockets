@@ -6,6 +6,7 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 import asyncio
 import collections.abc
 import logging
+import sys
 
 from .compatibility import (
     BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE,
@@ -582,123 +583,147 @@ class WebSocketServer:
         yield from self.server.wait_closed()
 
 
-@asyncio.coroutine
-def serve(ws_handler, host=None, port=None, *,
-          path=None, create_protocol=None,
-          timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
-          read_limit=2 ** 16, write_limit=2 ** 16,
-          loop=None, legacy_recv=False, klass=None,
-          origins=None, extensions=None, subprotocols=None,
-          extra_headers=None, compression='deflate', **kwds):
-    """
-    Create, start, and return a :class:`WebSocketServer` object.
+class Serve:
 
-    :func:`serve` is a wrapper around the event loop's
-    :meth:`~asyncio.AbstractEventLoop.create_server` method.
-    Internally, the function creates and starts a :class:`~asyncio.Server`
-    object by calling :meth:`~asyncio.AbstractEventLoop.create_server`. The
-    :class:`WebSocketServer` keeps a reference to this object.
+    def __init__(self, ws_handler, host=None, port=None, *,
+                 path=None, create_protocol=None,
+                 timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+                 read_limit=2 ** 16, write_limit=2 ** 16,
+                 loop=None, legacy_recv=False, klass=None,
+                 origins=None, extensions=None, subprotocols=None,
+                 extra_headers=None, compression='deflate', **kwds):
+        """
+        Create, start, and return a :class:`WebSocketServer` object.
 
-    The returned :class:`WebSocketServer` and its resources can be cleaned
-    up by calling its :meth:`~websockets.server.WebSocketServer.close` and
-    :meth:`~websockets.server.WebSocketServer.wait_closed` methods.
+        :func:`serve` is a wrapper around the event loop's
+        :meth:`~asyncio.AbstractEventLoop.create_server` method. Internally,
+        the function creates and starts a :class:`~asyncio.Server` object by
+        calling :meth:`~asyncio.AbstractEventLoop.create_server`. The
+        :class:`WebSocketServer` keeps a reference to this object.
 
-    On Python ≥ 3.5, :func:`serve` can also be used as an asynchronous context
-    manager. In this case, the server is shut down when exiting the context.
+        The returned :class:`WebSocketServer` and its resources can be
+        cleaned up by calling its
+        :meth:`~websockets.server.WebSocketServer.close` and
+        :meth:`~websockets.server.WebSocketServer.wait_closed` methods.
 
-    The ``ws_handler`` argument is the WebSocket handler. It must be a
-    coroutine accepting two arguments: a :class:`WebSocketServerProtocol`
-    and the request URI.
+        On Python ≥ 3.5, :func:`serve` can also be used as an asynchronous
+        context manager. In this case, the server is shut down when exiting
+        the context.
 
-    The ``host`` and ``port`` arguments, as well as unrecognized keyword
-    arguments, are passed along to
-    :meth:`~asyncio.AbstractEventLoop.create_server`. For example, you can
-    set the ``ssl`` keyword argument to a :class:`~ssl.SSLContext` to enable
-    TLS.
+        The ``ws_handler`` argument is the WebSocket handler. It must be a
+        coroutine accepting two arguments: a :class:`WebSocketServerProtocol`
+        and the request URI.
 
-    The ``create_protocol`` parameter allows customizing the asyncio protocol
-    that manages the connection. It should be a callable or class accepting
-    the same arguments as :class:`WebSocketServerProtocol` and returning a
-    :class:`WebSocketServerProtocol` instance. It defaults to
-    :class:`WebSocketServerProtocol`.
+        The ``host`` and ``port`` arguments, as well as unrecognized keyword
+        arguments, are passed along to
+        :meth:`~asyncio.AbstractEventLoop.create_server`. For example, you
+        can set the ``ssl`` keyword argument to a :class:`~ssl.SSLContext` to
+        enable TLS.
 
-    The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
-    ``read_limit``, and ``write_limit`` optional arguments is described in the
-    documentation of :class:`~websockets.protocol.WebSocketCommonProtocol`.
+        The ``create_protocol`` parameter allows customizing the asyncio
+        protocol that manages the connection. It should be a callable or
+        class accepting the same arguments as
+        :class:`WebSocketServerProtocol` and returning a
+        :class:`WebSocketServerProtocol` instance. It defaults to
+        :class:`WebSocketServerProtocol`.
 
-    :func:`serve` also accepts the following optional arguments:
+        The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
+        ``read_limit``, and ``write_limit`` optional arguments is described
+        in the documentation of
+        :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
-    * ``origins`` defines acceptable Origin HTTP headers — include
-      ``''`` if the lack of an origin is acceptable
-    * ``extensions`` is a list of supported extensions in order of decreasing
-      preference
-    * ``subprotocols`` is a list of supported subprotocols in order of
-      decreasing preference
-    * ``extra_headers`` sets additional HTTP response headers — it can be a
-      mapping, an iterable of (name, value) pairs, or a callable taking the
-      request path and headers in arguments.
-    * ``compression`` is a shortcut to configure compression extensions;
-      by default it enables the "permessage-deflate" extension; set it to
-      ``None`` to disable compression
+        :func:`serve` also accepts the following optional arguments:
 
-    Whenever a client connects, the server accepts the connection, creates a
-    :class:`WebSocketServerProtocol`, performs the opening handshake, and
-    delegates to the WebSocket handler. Once the handler completes, the server
-    performs the closing handshake and closes the connection.
+        * ``origins`` defines acceptable Origin HTTP headers — include
+          ``''`` if the lack of an origin is acceptable
+        * ``extensions`` is a list of supported extensions in order of
+          decreasing preference
+        * ``subprotocols`` is a list of supported subprotocols in order of
+          decreasing preference
+        * ``extra_headers`` sets additional HTTP response headers — it can be a
+          mapping, an iterable of (name, value) pairs, or a callable taking the
+          request path and headers in arguments.
+        * ``compression`` is a shortcut to configure compression extensions;
+          by default it enables the "permessage-deflate" extension; set it to
+          ``None`` to disable compression
 
-    Since there's no useful way to propagate exceptions triggered in handlers,
-    they're sent to the ``'websockets.server'`` logger instead. Debugging is
-    much easier if you configure logging to print them::
+        Whenever a client connects, the server accepts the connection,
+        creates a :class:`WebSocketServerProtocol`, performs the opening
+        handshake, and delegates to the WebSocket handler. Once the handler
+        completes, the server performs the closing handshake and closes the
+        connection.
 
-        import logging
-        logger = logging.getLogger('websockets.server')
-        logger.setLevel(logging.ERROR)
-        logger.addHandler(logging.StreamHandler())
+        Since there's no useful way to propagate exceptions triggered in
+        handlers, they're sent to the ``'websockets.server'`` logger instead.
+        Debugging is much easier if you configure logging to print them::
 
-    """
-    # Backwards-compatibility: create_protocol used to be called klass.
-    # In the unlikely event that both are specified, klass is ignored.
-    if create_protocol is None:
-        create_protocol = klass
+            import logging
+            logger = logging.getLogger('websockets.server')
+            logger.setLevel(logging.ERROR)
+            logger.addHandler(logging.StreamHandler())
 
-    if create_protocol is None:
-        create_protocol = WebSocketServerProtocol
+        """
+        # Backwards-compatibility: create_protocol used to be called klass.
+        # In the unlikely event that both are specified, klass is ignored.
+        if create_protocol is None:
+            create_protocol = klass
 
-    if loop is None:
-        loop = asyncio.get_event_loop()
+        if create_protocol is None:
+            create_protocol = WebSocketServerProtocol
 
-    ws_server = WebSocketServer(loop)
+        if loop is None:
+            loop = asyncio.get_event_loop()
 
-    secure = kwds.get('ssl') is not None
+        ws_server = WebSocketServer(loop)
 
-    if compression == 'deflate':
-        if extensions is None:
-            extensions = []
-        if not any(
-            extension_factory.name == ServerPerMessageDeflateFactory.name
-            for extension_factory in extensions
-        ):
-            extensions.append(ServerPerMessageDeflateFactory())
-    elif compression is not None:
-        raise ValueError("Unsupported compression: {}".format(compression))
+        secure = kwds.get('ssl') is not None
 
-    factory = lambda: create_protocol(
-        ws_handler, ws_server,
-        host=host, port=port, secure=secure,
-        timeout=timeout, max_size=max_size, max_queue=max_queue,
-        read_limit=read_limit, write_limit=write_limit,
-        loop=loop, legacy_recv=legacy_recv,
-        origins=origins, extensions=extensions, subprotocols=subprotocols,
-        extra_headers=extra_headers,
-    )
-    if path is None:
-        server = yield from loop.create_server(factory, host, port, **kwds)
-    else:
-        server = yield from loop.create_unix_server(factory, path, **kwds)
+        if compression == 'deflate':
+            if extensions is None:
+                extensions = []
+            if not any(
+                extension_factory.name == ServerPerMessageDeflateFactory.name
+                for extension_factory in extensions
+            ):
+                extensions.append(ServerPerMessageDeflateFactory())
+        elif compression is not None:
+            raise ValueError("Unsupported compression: {}".format(compression))
 
-    ws_server.wrap(server)
+        factory = lambda: create_protocol(
+            ws_handler, ws_server,
+            host=host, port=port, secure=secure,
+            timeout=timeout, max_size=max_size, max_queue=max_queue,
+            read_limit=read_limit, write_limit=write_limit,
+            loop=loop, legacy_recv=legacy_recv,
+            origins=origins, extensions=extensions, subprotocols=subprotocols,
+            extra_headers=extra_headers,
+        )
 
-    return ws_server
+        if path is None:
+            creating_server = loop.create_server(factory, host, port, **kwds)
+        else:
+            creating_server = loop.create_unix_server(factory, path, **kwds)
+
+        # This is a coroutine object.
+        self._creating_server = creating_server
+        self.ws_server = ws_server
+
+    @asyncio.coroutine
+    def __aenter__(self):
+        return (yield from self)
+
+    @asyncio.coroutine
+    def __aexit__(self, exc_type, exc_value, traceback):
+        self.ws_server.close()
+        yield from self.ws_server.wait_closed()
+
+    def __await__(self):
+        server = yield from self._creating_server
+        self.ws_server.wrap(server)
+
+        return self.ws_server
+
+    __iter__ = __await__
 
 
 @asyncio.coroutine
@@ -717,12 +742,12 @@ def unix_serve(ws_handler, path, **kwargs):
     return serve(ws_handler, path=path, **kwargs)
 
 
-try:
-    from .py35.server import Serve
-except (SyntaxError, ImportError):                          # pragma: no cover
-    pass
+if sys.version_info[:2] <= (3, 4):                          # pragma: no cover
+    import functools
+
+    @asyncio.coroutine
+    @functools.wraps(Serve.__init__)
+    def serve(*args, **kwds):
+        return Serve(*args, **kwds).__await__()
 else:
-    Serve.__wrapped__ = serve
-    # Copy over docstring to support building documentation on Python 3.5.
-    Serve.__doc__ = serve.__doc__
     serve = Serve

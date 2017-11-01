@@ -5,6 +5,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 import asyncio
 import collections.abc
+import sys
 
 from .exceptions import (
     InvalidHandshake, InvalidMessage, InvalidStatusCode, NegotiationError
@@ -272,129 +273,153 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.connection_open()
 
 
-@asyncio.coroutine
-def connect(uri, *,
-            create_protocol=None,
-            timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
-            read_limit=2 ** 16, write_limit=2 ** 16,
-            loop=None, legacy_recv=False, klass=None,
-            origin=None, extensions=None, subprotocols=None,
-            extra_headers=None, compression='deflate', **kwds):
-    """
-    This coroutine connects to a WebSocket server at a given ``uri``.
+class Connect:
 
-    It yields a :class:`WebSocketClientProtocol` which can then be used to
-    send and receive messages.
+    def __init__(self, uri, *,
+                 create_protocol=None,
+                 timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+                 read_limit=2 ** 16, write_limit=2 ** 16,
+                 loop=None, legacy_recv=False, klass=None,
+                 origin=None, extensions=None, subprotocols=None,
+                 extra_headers=None, compression='deflate', **kwds):
+        """
+        This coroutine connects to a WebSocket server at a given ``uri``.
 
-    On Python ≥ 3.5, :func:`connect` can be used as a asynchronous context
-    manager. In that case, the connection is closed when exiting the context.
+        It yields a :class:`WebSocketClientProtocol` which can then be used to
+        send and receive messages.
 
-    :func:`connect` is a wrapper around the event loop's
-    :meth:`~asyncio.BaseEventLoop.create_connection` method. Unknown keyword
-    arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
+        On Python ≥ 3.5, :func:`connect` can be used as a asynchronous
+        context manager. In that case, the connection is closed when exiting
+        the context.
 
-    For example, you can set the ``ssl`` keyword argument to a
-    :class:`~ssl.SSLContext` to enforce some TLS settings. When connecting to
-    a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
-    ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
+        :func:`connect` is a wrapper around the event loop's
+        :meth:`~asyncio.BaseEventLoop.create_connection` method. Unknown
+        keyword arguments are passed to
+        :meth:`~asyncio.BaseEventLoop.create_connection`.
 
-    The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
-    ``read_limit``, and ``write_limit`` optional arguments is described in the
-    documentation of :class:`~websockets.protocol.WebSocketCommonProtocol`.
+        For example, you can set the ``ssl`` keyword argument to a
+        :class:`~ssl.SSLContext` to enforce some TLS settings. When
+        connecting to a ``wss://`` URI, if this argument isn't provided
+        explicitly, it's set to ``True``, which means Python's default
+        :class:`~ssl.SSLContext` is used.
 
-    The ``create_protocol`` parameter allows customizing the asyncio protocol
-    that manages the connection. It should be a callable or class accepting
-    the same arguments as :class:`WebSocketClientProtocol` and returning a
-    :class:`WebSocketClientProtocol` instance. It defaults to
-    :class:`WebSocketClientProtocol`.
+        The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
+        ``read_limit``, and ``write_limit`` optional arguments is described
+        in the documentation of
+        :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
-    :func:`connect` also accepts the following optional arguments:
+        The ``create_protocol`` parameter allows customizing the asyncio
+        protocol that manages the connection. It should be a callable or
+        class accepting the same arguments as
+        :class:`WebSocketClientProtocol` and returning a
+        :class:`WebSocketClientProtocol` instance. It defaults to
+        :class:`WebSocketClientProtocol`.
 
-    * ``origin`` sets the Origin HTTP header
-    * ``extensions`` is a list of supported extensions in order of decreasing
-      preference
-    * ``subprotocols`` is a list of supported subprotocols in order of
-      decreasing preference
-    * ``extra_headers`` sets additional HTTP request headers – it can be a
-      mapping or an iterable of (name, value) pairs
-    * ``compression`` is a shortcut to configure compression extensions;
-      by default it enables the "permessage-deflate" extension; set it to
-      ``None`` to disable compression
+        :func:`connect` also accepts the following optional arguments:
 
-    :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
-    invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
-    handshake fails.
+        * ``origin`` sets the Origin HTTP header
+        * ``extensions`` is a list of supported extensions in order of
+          decreasing preference
+        * ``subprotocols`` is a list of supported subprotocols in order of
+          decreasing preference
+        * ``extra_headers`` sets additional HTTP request headers – it can be a
+          mapping or an iterable of (name, value) pairs
+        * ``compression`` is a shortcut to configure compression extensions;
+          by default it enables the "permessage-deflate" extension; set it to
+          ``None`` to disable compression
 
-    """
-    if loop is None:
-        loop = asyncio.get_event_loop()
+        :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri``
+        is invalid and :exc:`~websockets.handshake.InvalidHandshake` if the
+        opening handshake fails.
 
-    # Backwards-compatibility: create_protocol used to be called klass.
-    # In the unlikely event that both are specified, klass is ignored.
-    if create_protocol is None:
-        create_protocol = klass
+        """
+        if loop is None:
+            loop = asyncio.get_event_loop()
 
-    if create_protocol is None:
-        create_protocol = WebSocketClientProtocol
+        # Backwards-compatibility: create_protocol used to be called klass.
+        # In the unlikely event that both are specified, klass is ignored.
+        if create_protocol is None:
+            create_protocol = klass
 
-    wsuri = parse_uri(uri)
-    if wsuri.secure:
-        kwds.setdefault('ssl', True)
-    elif kwds.get('ssl') is not None:
-        raise ValueError("connect() received a SSL context for a ws:// URI, "
-                         "use a wss:// URI to enable TLS")
+        if create_protocol is None:
+            create_protocol = WebSocketClientProtocol
 
-    if compression == 'deflate':
-        if extensions is None:
-            extensions = []
-        if not any(
-            extension_factory.name == ClientPerMessageDeflateFactory.name
-            for extension_factory in extensions
-        ):
-            extensions.append(ClientPerMessageDeflateFactory(
-                client_max_window_bits=True,
-            ))
-    elif compression is not None:
-        raise ValueError("Unsupported compression: {}".format(compression))
+        wsuri = parse_uri(uri)
+        if wsuri.secure:
+            kwds.setdefault('ssl', True)
+        elif kwds.get('ssl') is not None:
+            raise ValueError("connect() received a SSL context for a ws:// "
+                             "URI, use a wss:// URI to enable TLS")
 
-    factory = lambda: create_protocol(
-        host=wsuri.host, port=wsuri.port, secure=wsuri.secure,
-        timeout=timeout, max_size=max_size, max_queue=max_queue,
-        read_limit=read_limit, write_limit=write_limit,
-        loop=loop, legacy_recv=legacy_recv,
-        origin=origin, extensions=extensions, subprotocols=subprotocols,
-        extra_headers=extra_headers,
-    )
+        if compression == 'deflate':
+            if extensions is None:
+                extensions = []
+            if not any(
+                extension_factory.name == ClientPerMessageDeflateFactory.name
+                for extension_factory in extensions
+            ):
+                extensions.append(ClientPerMessageDeflateFactory(
+                    client_max_window_bits=True,
+                ))
+        elif compression is not None:
+            raise ValueError("Unsupported compression: {}".format(compression))
 
-    if kwds.get('sock') is None:
-        host, port = wsuri.host, wsuri.port
-    else:
-        # If sock is given, host and port mustn't be specified.
-        host, port = None, None
-
-    transport, protocol = yield from loop.create_connection(
-        factory, host, port, **kwds)
-
-    try:
-        yield from protocol.handshake(
-            wsuri, origin=origin,
-            available_extensions=protocol.available_extensions,
-            available_subprotocols=protocol.available_subprotocols,
-            extra_headers=protocol.extra_headers,
+        factory = lambda: create_protocol(
+            host=wsuri.host, port=wsuri.port, secure=wsuri.secure,
+            timeout=timeout, max_size=max_size, max_queue=max_queue,
+            read_limit=read_limit, write_limit=write_limit,
+            loop=loop, legacy_recv=legacy_recv,
+            origin=origin, extensions=extensions, subprotocols=subprotocols,
+            extra_headers=extra_headers,
         )
-    except Exception:
-        yield from protocol.close_connection(after_handshake=False)
-        raise
 
-    return protocol
+        if kwds.get('sock') is None:
+            host, port = wsuri.host, wsuri.port
+        else:
+            # If sock is given, host and port mustn't be specified.
+            host, port = None, None
+
+        self._wsuri = wsuri
+        self._origin = origin
+
+        # This is a coroutine object.
+        self._creating_connection = loop.create_connection(
+            factory, host, port, **kwds)
+
+    @asyncio.coroutine
+    def __aenter__(self):
+        self.websocket = yield from self
+        return self.websocket
+
+    @asyncio.coroutine
+    def __aexit__(self, exc_type, exc_value, traceback):
+        yield from self.websocket.close()
+
+    def __await__(self):
+        transport, protocol = yield from self._creating_connection
+
+        try:
+            yield from protocol.handshake(
+                self._wsuri, origin=self._origin,
+                available_extensions=protocol.available_extensions,
+                available_subprotocols=protocol.available_subprotocols,
+                extra_headers=protocol.extra_headers,
+            )
+        except Exception:
+            yield from protocol.close_connection(after_handshake=False)
+            raise
+
+        return protocol
+
+    __iter__ = __await__
 
 
-try:
-    from .py35.client import Connect
-except (SyntaxError, ImportError):                          # pragma: no cover
-    pass
+if sys.version_info[:2] <= (3, 4):                          # pragma: no cover
+    import functools
+
+    @asyncio.coroutine
+    @functools.wraps(Connect.__init__)
+    def connect(*args, **kwds):
+        return Connect(*args, **kwds).__await__()
 else:
-    Connect.__wrapped__ = connect
-    # Copy over docstring to support building documentation on Python 3.5.
-    Connect.__doc__ = connect.__doc__
     connect = Connect

@@ -19,6 +19,12 @@ Changelog
     If you want to disable compression, add ``compression=None`` when calling
     :func:`~server.serve()` or :func:`~client.connect()`.
 
+.. warning::
+
+    **Version 4.0 removes the ``state_name`` attribute of protocols.**
+
+    Use ``protocol.state.name`` instead of ``protocol.state_name``.
+
 Also:
 
 * :class:`~protocol.WebSocketCommonProtocol` instances can be used as

@@ -9,7 +9,7 @@ import unittest.mock
 from .compatibility import asyncio_ensure_future
 from .exceptions import ConnectionClosed, InvalidState
 from .framing import *
-from .protocol import CLOSED, CONNECTING, WebSocketCommonProtocol
+from .protocol import State, WebSocketCommonProtocol
 
 
 # Unit for timeouts. May be increased on slow machines by setting the
@@ -72,7 +72,7 @@ class TransportMock(unittest.mock.Mock):
 
     def abort(self):
         # Change this to an `if` if tests call abort() multiple times.
-        assert self.protocol.state != CLOSED
+        assert self.protocol.state != State.CLOSED
         self.loop.call_soon(self.protocol.connection_lost, None)
 
 
@@ -254,14 +254,14 @@ class CommonTests:
 
     def assertConnectionClosed(self, code, message):
         # The following line guarantees that connection_lost was called.
-        self.assertEqual(self.protocol.state, CLOSED)
+        self.assertEqual(self.protocol.state, State.CLOSED)
         # A close frame was received.
         self.assertEqual(self.protocol.close_code, code)
         self.assertEqual(self.protocol.close_reason, message)
 
     def assertConnectionFailed(self, code, message):
         # The following line guarantees that connection_lost was called.
-        self.assertEqual(self.protocol.state, CLOSED)
+        self.assertEqual(self.protocol.state, State.CLOSED)
         # No close frame was received.
         self.assertEqual(self.protocol.close_code, 1006)
         self.assertEqual(self.protocol.close_reason, '')
@@ -321,11 +321,6 @@ class CommonTests:
         self.assertTrue(self.protocol.open)
         self.close_connection()
         self.assertFalse(self.protocol.open)
-
-    def test_state_name(self):
-        self.assertEqual(self.protocol.state_name, 'OPEN')
-        self.close_connection()
-        self.assertEqual(self.protocol.state_name, 'CLOSED')
 
     # Test the recv coroutine.
 
@@ -673,7 +668,7 @@ class CommonTests:
 
     def test_ensure_connection_before_opening_handshake(self):
         # Simulate a bug by forcibly reverting the protocol state.
-        self.protocol.state = CONNECTING
+        self.protocol.state = State.CONNECTING
 
         with self.assertRaises(InvalidState):
             self.loop.run_until_complete(self.protocol.ensure_open())

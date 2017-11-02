@@ -32,5 +32,5 @@ script:
 # Upload to PyPI on tags
   - if [ "${TRAVIS_TAG:-}" != "" ]; then
       pip3 install twine;
-      twine upload --skip-existing wheelhouse/*;
+      python3 -m twine upload --skip-existing wheelhouse/*;
     fi

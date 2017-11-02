@@ -660,13 +660,18 @@ class Serve:
 
     """
 
-    def __init__(self, ws_handler, host=None, port=None, *,
-                 path=None, create_protocol=None,
-                 timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
-                 read_limit=2 ** 16, write_limit=2 ** 16,
-                 loop=None, legacy_recv=False, klass=None,
-                 origins=None, extensions=None, subprotocols=None,
-                 extra_headers=None, compression='deflate', **kwds):
+    def __init__(self, *args, **kwds):
+        self._args = args
+        self._kwds = kwds
+
+    @asyncio.coroutine
+    def _run(self, ws_handler, host=None, port=None, *,
+             path=None, create_protocol=None,
+             timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+             read_limit=2 ** 16, write_limit=2 ** 16,
+             loop=None, legacy_recv=False, klass=None,
+             origins=None, extensions=None, subprotocols=None,
+             extra_headers=None, compression='deflate', **kwds):
         # Backwards-compatibility: create_protocol used to be called klass.
         # In the unlikely event that both are specified, klass is ignored.
         if create_protocol is None:
@@ -708,9 +713,10 @@ class Serve:
         else:
             creating_server = loop.create_unix_server(factory, path, **kwds)
 
-        # This is a coroutine object.
-        self._creating_server = creating_server
+        server = yield from creating_server
+        ws_server.wrap(server)
         self.ws_server = ws_server
+        return ws_server
 
     @asyncio.coroutine
     def __aenter__(self):
@@ -722,9 +728,7 @@ class Serve:
         yield from self.ws_server.wait_closed()
 
     def __await__(self):
-        server = yield from self._creating_server
-        self.ws_server.wrap(server)
-        return self.ws_server
+        return (yield from self._run(*self._args, **self._kwds))
 
     __iter__ = __await__
 

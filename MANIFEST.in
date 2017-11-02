@@ -1,5 +1,2 @@
 include LICENSE
 include websockets/test_localhost.pem
-
-graft websockets/py35
-graft websockets/py36

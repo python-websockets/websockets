@@ -3,10 +3,13 @@ Changelog
 
 .. currentmodule:: websockets
 
-4.0
+4.1
 ...
 
 *In development*
+
+4.0
+...
 
 .. warning::
 

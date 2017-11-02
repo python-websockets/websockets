@@ -72,7 +72,7 @@ class TransportMock(unittest.mock.Mock):
 
     def abort(self):
         # Change this to an `if` if tests call abort() multiple times.
-        assert self.protocol.state != State.CLOSED
+        assert self.protocol.state is not State.CLOSED
         self.loop.call_soon(self.protocol.connection_lost, None)
 
 

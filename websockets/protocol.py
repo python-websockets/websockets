@@ -219,7 +219,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         # 4.1. The WebSocket Connection is Established.
-        assert self.state == State.CONNECTING
+        assert self.state is State.CONNECTING
         self.state = State.OPEN
         # Start the task that receives incoming WebSocket messages.
         self.transfer_data_task = asyncio_ensure_future(
@@ -268,7 +268,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         .. _EAFP: https://docs.python.org/3/glossary.html#term-eafp
 
         """
-        return self.state == State.OPEN
+        return self.state is State.OPEN
 
     @asyncio.coroutine
     def recv(self):
@@ -360,7 +360,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
 
         """
-        if self.state == State.OPEN:
+        if self.state is State.OPEN:
             # 7.1.2. Start the WebSocket Closing Handshake
             # 7.1.3. The WebSocket Closing Handshake is Started
             frame_data = serialize_close(code, reason)
@@ -463,13 +463,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         # Handle cases from most common to least common for performance.
-        if self.state == State.OPEN:
+        if self.state is State.OPEN:
             return
 
-        if self.state == State.CLOSED:
+        if self.state is State.CLOSED:
             raise ConnectionClosed(self.close_code, self.close_reason)
 
-        if self.state == State.CLOSING:
+        if self.state is State.CLOSING:
             # If we started the closing handshake, wait for its completion to
             # get the proper close code and status. self.close_connection_task
             # will complete within 4 or 5 * timeout after calling close().
@@ -480,7 +480,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             raise ConnectionClosed(self.close_code, self.close_reason)
 
         # Control may only reach this point in buggy third-party subclasses.
-        assert self.state == State.CONNECTING
+        assert self.state is State.CONNECTING
         raise InvalidState("WebSocket connection isn't established yet")
 
     @asyncio.coroutine
@@ -597,7 +597,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 # 7.1.5.  The WebSocket Connection Close Code
                 # 7.1.6.  The WebSocket Connection Close Reason
                 self.close_code, self.close_reason = code, reason
-                if self.state == State.OPEN:
+                if self.state is State.OPEN:
                     # 7.1.3. The WebSocket Closing Handshake is Started
                     yield from self.write_frame(OP_CLOSE, frame.data)
                 return
@@ -637,7 +637,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @asyncio.coroutine
     def write_frame(self, opcode, data=b''):
         # Defensive assertion for protocol compliance.
-        if self.state != State.OPEN:                        # pragma: no cover
+        if self.state is not State.OPEN:                    # pragma: no cover
             raise InvalidState("Cannot write to a WebSocket "
                                "in the {} state".format(self.state.name))
 
@@ -784,7 +784,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.side, code, reason,
         )
         # Don't send a close frame if the connection is broken.
-        if self.state == State.OPEN and code != 1006:
+        if self.state is State.OPEN and code != 1006:
             frame_data = serialize_close(code, reason)
             yield from self.write_frame(OP_CLOSE, frame_data)
 

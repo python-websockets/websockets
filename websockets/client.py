@@ -321,13 +321,17 @@ class Connect:
 
     """
 
-    def __init__(self, uri, *,
-                 create_protocol=None,
-                 timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
-                 read_limit=2 ** 16, write_limit=2 ** 16,
-                 loop=None, legacy_recv=False, klass=None,
-                 origin=None, extensions=None, subprotocols=None,
-                 extra_headers=None, compression='deflate', **kwds):
+    def __init__(self, *args, **kwds):
+        self._args = args
+        self._kwds = kwds
+
+    def _run(self, uri, *,
+             create_protocol=None,
+             timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+             read_limit=2 ** 16, write_limit=2 ** 16,
+             loop=None, legacy_recv=False, klass=None,
+             origin=None, extensions=None, subprotocols=None,
+             extra_headers=None, compression='deflate', **kwds):
         if loop is None:
             loop = asyncio.get_event_loop()
 
@@ -374,27 +378,12 @@ class Connect:
             # If sock is given, host and port mustn't be specified.
             host, port = None, None
 
-        self._wsuri = wsuri
-        self._origin = origin
-
-        # This is a coroutine object.
-        self._creating_connection = loop.create_connection(
+        transport, protocol = yield from loop.create_connection(
             factory, host, port, **kwds)
-
-    @asyncio.coroutine
-    def __aenter__(self):
-        return (yield from self)
-
-    @asyncio.coroutine
-    def __aexit__(self, exc_type, exc_value, traceback):
-        yield from self.ws_client.close()
-
-    def __await__(self):
-        transport, protocol = yield from self._creating_connection
 
         try:
             yield from protocol.handshake(
-                self._wsuri, origin=self._origin,
+                wsuri, origin=origin,
                 available_extensions=protocol.available_extensions,
                 available_subprotocols=protocol.available_subprotocols,
                 extra_headers=protocol.extra_headers,
@@ -405,6 +394,17 @@ class Connect:
 
         self.ws_client = protocol
         return protocol
+
+    @asyncio.coroutine
+    def __aenter__(self):
+        return (yield from self)
+
+    @asyncio.coroutine
+    def __aexit__(self, exc_type, exc_value, traceback):
+        yield from self.ws_client.close()
+
+    def __await__(self):
+        return (yield from self._run(*self._args, **self._kwds))
 
     __iter__ = __await__
 

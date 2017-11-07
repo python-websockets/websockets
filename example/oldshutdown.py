@@ -9,7 +9,7 @@ async def echo(websocket, path):
         try:
             msg = await websocket.recv()
         except websockets.ConnectionClosed:
-            pass
+            break
         else:
             await websocket.send(msg)
 

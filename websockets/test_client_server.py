@@ -853,7 +853,9 @@ class ClientServerTests(unittest.TestCase):
     @asyncio.coroutine
     def test_server_wait_closed_with_process_request(self):
         try:
-            server = yield from serve(handler, 'localhost', 0, create_protocol=UnauthorizedServerProtocol)
+            server = (
+                yield from serve(handler, 'localhost', 0,
+                                 create_protocol=UnauthorizedServerProtocol))
             server_uri = get_server_uri(server)
             with self.assertRaises(InvalidStatusCode):
                 yield from connect(server_uri)

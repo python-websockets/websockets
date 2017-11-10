@@ -572,13 +572,8 @@ class WebSocketServer:
         """
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:
-            # Either the handler or the connection can terminate first,
-            # depending on how the client behaves and the server is
-            # implemented.
             yield from asyncio.wait(
-                [websocket.handler_task for websocket in self.websockets] +
-                [websocket.close_connection_task
-                    for websocket in self.websockets],
+                [websocket.handler_task for websocket in self.websockets],
                 loop=self.loop)
         yield from self.server.wait_closed()
 

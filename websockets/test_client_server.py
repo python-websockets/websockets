@@ -52,6 +52,19 @@ def handler(ws, path):
         yield from ws.send((yield from ws.recv()))
 
 
+def make_sync(async_test):
+    """
+    Convert an async test to a synchronous one.
+    """
+    @functools.wraps(async_test)
+    def sync_test(self, *args, **kwds):
+        # This is a coroutine object that runs the test.
+        coro = async_test(self, *args, **kwds)
+        self.loop.run_until_complete(coro)
+
+    return sync_test
+
+
 @contextlib.contextmanager
 def temp_test_server(test, **kwds):
     test.start_server(**kwds)
@@ -835,6 +848,20 @@ class ClientServerTests(unittest.TestCase):
         self.client.writer.close()
         # The server should stop properly anyway. It used to hang because the
         # task handling the connection was waiting for the opening handshake.
+
+    @make_sync
+    @asyncio.coroutine
+    def test_server_wait_closed_with_process_request(self):
+        try:
+            server = yield from serve(handler, 'localhost', 0, create_protocol=UnauthorizedServerProtocol)
+            server_uri = get_server_uri(server)
+            with self.assertRaises(InvalidStatusCode):
+                yield from connect(server_uri)
+        finally:
+            server.close()
+            # Calling wait_closed() should not raise an exception:
+            # https://github.com/aaugustin/websockets/issues/309
+            yield from server.wait_closed()
 
     @with_server()
     @unittest.mock.patch('websockets.server.read_request')

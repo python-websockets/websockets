@@ -614,6 +614,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     while ping_id != frame.data:
                         ping_id, pong_waiter = self.pings.popitem(0)
                         pong_waiter.set_result(None)
+                else:
+                    logger.debug("%s ignoring unsolicited pong", self.side)
 
             # 5.6. Data Frames
             else:

@@ -745,7 +745,7 @@ def unix_serve(ws_handler, path, **kwargs):
     return serve(ws_handler, path=path, **kwargs)
 
 
-if sys.version_info[:2] <= (3, 4):                          # pragma: no cover
+if sys.version_info[:3] <= (3, 5, 0):                     # pragma: no cover
     @asyncio.coroutine
     def serve(*args, **kwds):
         return Serve(*args, **kwds).__await__()

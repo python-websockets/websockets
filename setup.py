@@ -60,4 +60,5 @@ setuptools.setup(
     packages=packages,
     ext_modules=ext_modules,
     include_package_data=True,
+    zip_safe=True,
 )

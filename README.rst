@@ -54,7 +54,7 @@ Here's a client that says "Hello world!":
     asyncio.get_event_loop().run_until_complete(
         hello('ws://localhost:8765'))
 
-And here's an echo server:
+And here's an echo server (for Python ≥ 3.6):
 
 .. code:: python
 

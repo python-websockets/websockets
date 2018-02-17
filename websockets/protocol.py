@@ -510,7 +510,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         except PayloadTooBig:
             yield from self.fail_connection(1009)
         except Exception:
-            logger.warning("Error in data transfer", exc_info=True)
+            if self.state not in (State.CLOSING, State.CLOSED):
+                logger.warning("Error in data transfer", exc_info=True)
             yield from self.fail_connection(1011)
 
     @asyncio.coroutine

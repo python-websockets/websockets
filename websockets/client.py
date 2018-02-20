@@ -5,6 +5,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 import asyncio
 import collections.abc
+import inspect
 import sys
 
 from .exceptions import (
@@ -390,7 +391,10 @@ class Connect:
         yield from self.ws_client.close()
 
     def __await__(self):
-        transport, protocol = yield from self._creating_connection
+        if inspect.isawaitable(self._creating_connection):
+            transport, protocol = yield from self._creating_connection.__await__()
+        else:
+            transport, protocol = yield from self._creating_connection
 
         try:
             yield from protocol.handshake(

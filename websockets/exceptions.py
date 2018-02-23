@@ -144,9 +144,9 @@ class ConnectionClosed(InvalidState):
         self.code = code
         self.reason = reason
         message = "WebSocket connection is closed: "
-        if 3000 <= code < 4000:
+        if code and 3000 <= code < 4000:
             explanation = "registered"
-        elif 4000 <= code < 5000:
+        elif code and 4000 <= code < 5000:
             explanation = "private use"
         else:
             explanation = CLOSE_CODES.get(code, "unknown")

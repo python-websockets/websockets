@@ -141,6 +141,7 @@ class ConnectionClosed(InvalidState):
 
     """
     def __init__(self, code, reason):
+        code = code or 1006
         self.code = code
         self.reason = reason
         message = "WebSocket connection is closed: "

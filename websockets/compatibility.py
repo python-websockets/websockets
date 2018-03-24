@@ -10,9 +10,11 @@ import http
 
 # Replace with BaseEventLoop.create_task when dropping Python < 3.4.2.
 try:                                                         # pragma: no cover
-    asyncio_ensure_future = getattr(asyncio, 'ensure_future')# Python ≥ 3.5
+    # Python ≥ 3.5
+    asyncio_ensure_future = getattr(asyncio, 'ensure_future')
 except AttributeError:                                       # pragma: no cover
-    asyncio_ensure_future = getattr(asyncio, 'async')        # Python < 3.5
+    # Python < 3.5
+    asyncio_ensure_future = getattr(asyncio, 'async')
 
 try:                                                # pragma: no cover
                                                     # Python ≥ 3.5

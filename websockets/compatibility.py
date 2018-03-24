@@ -52,4 +52,3 @@ except AttributeError:                              # pragma: no cover
     class SERVICE_UNAVAILABLE:
         value = 503
         phrase = "Service Unavailable"
-

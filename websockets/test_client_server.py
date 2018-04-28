@@ -109,12 +109,14 @@ def with_client(*args, **kwds):
     return with_manager(temp_test_client, *args, **kwds)
 
 
-def get_server_uri(server, secure=False, resource_name='/'):
+def get_server_uri(server, secure=False, resource_name='/', user_info=None):
     """
     Return a WebSocket URI for connecting to the given server.
 
     """
     proto = 'wss' if secure else 'ws'
+
+    user_info = ':'.join(user_info) + '@' if user_info else ''
 
     # Pick a random socket in order to test both IPv4 and IPv6 on systems
     # where both are available. Randomizing tests is usually a bad idea. If
@@ -133,7 +135,7 @@ def get_server_uri(server, secure=False, resource_name='/'):
     else:                                                   # pragma: no cover
         raise ValueError("Expected an IPv6, IPv4, or Unix socket")
 
-    return '{}://{}:{}{}'.format(proto, host, port, resource_name)
+    return '{}://{}{}:{}{}'.format(proto, user_info, host, port, resource_name)
 
 
 class UnauthorizedServerProtocol(WebSocketServerProtocol):
@@ -225,11 +227,12 @@ class ClientServerTests(unittest.TestCase):
         start_server = serve(handler, 'localhost', 0, **kwds)
         self.server = self.loop.run_until_complete(start_server)
 
-    def start_client(self, resource_name='/', **kwds):
+    def start_client(self, resource_name='/', user_info=None, **kwds):
         # Don't enable compression by default in tests.
         kwds.setdefault('compression', None)
         secure = kwds.get('ssl') is not None
-        server_uri = get_server_uri(self.server, secure, resource_name)
+        server_uri = get_server_uri(
+            self.server, secure, resource_name, user_info)
         start_client = connect(server_uri, **kwds)
         self.client = self.loop.run_until_complete(start_client)
 
@@ -371,6 +374,14 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(client_path, '/path')
         server_path = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_path, '/path')
+
+    @with_server()
+    @with_client('/headers', user_info=('user', 'pass'))
+    def test_protocol_basic_auth(self):
+        self.assertEqual(
+            self.client.request_headers['Authorization'],
+            'Basic dXNlcjpwYXNz',
+        )
 
     @with_server()
     @with_client('/headers')

@@ -15,13 +15,17 @@ from .exceptions import InvalidURI
 __all__ = ['parse_uri', 'WebSocketURI']
 
 WebSocketURI = collections.namedtuple(
-    'WebSocketURI', ['secure', 'host', 'port', 'resource_name'])
+    'WebSocketURI', ['secure', 'host', 'port', 'resource_name', 'user_info'])
 WebSocketURI.__doc__ = """WebSocket URI.
 
 * ``secure`` is the secure flag
 * ``host`` is the lower-case host
 * ``port`` if the integer port, it's always provided even if it's the default
 * ``resource_name`` is the resource name, that is, the path and optional query
+* ``user_info`` is an ``(username, password)`` tuple when the URI contains
+  `User Information`_, else ``None``.
+
+.. _User Information: https://tools.ietf.org/html/rfc3986#section-3.2.1
 
 """
 
@@ -40,8 +44,6 @@ def parse_uri(uri):
         assert uri.scheme in ['ws', 'wss']
         assert uri.params == ''
         assert uri.fragment == ''
-        assert uri.username is None
-        assert uri.password is None
         assert uri.hostname is not None
     except AssertionError as exc:
         raise InvalidURI("{} isn't a valid URI".format(uri)) from exc
@@ -52,4 +54,7 @@ def parse_uri(uri):
     resource_name = uri.path or '/'
     if uri.query:
         resource_name += '?' + uri.query
-    return WebSocketURI(secure, host, port, resource_name)
+    user_info = None
+    if uri.username or uri.password:
+        user_info = (uri.username, uri.password)
+    return WebSocketURI(secure, host, port, resource_name, user_info)

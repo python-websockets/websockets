@@ -16,7 +16,7 @@ from .headers import (
     build_extension_list, build_protocol_list, parse_extension_list,
     parse_protocol_list
 )
-from .http import USER_AGENT, build_headers, read_response
+from .http import USER_AGENT, basic_auth_header, build_headers, read_response
 from .protocol import WebSocketCommonProtocol
 from .uri import parse_uri
 
@@ -224,6 +224,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Host', wsuri.host)
         else:
             set_header('Host', '{}:{}'.format(wsuri.host, wsuri.port))
+
+        if wsuri.user_info:
+            set_header(*basic_auth_header(*wsuri.user_info))
 
         if origin is not None:
             set_header('Origin', origin)

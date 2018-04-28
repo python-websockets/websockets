@@ -8,6 +8,7 @@ from :mod:`websockets.http`.
 """
 
 import asyncio
+import base64
 import http.client
 import re
 import sys
@@ -206,3 +207,15 @@ def build_headers(raw_headers):
     headers = http.client.HTTPMessage()
     headers._headers = raw_headers  # HACK
     return headers
+
+
+def basic_auth_header(username, password):
+    """
+    Build an Authorization header for HTTP Basic Auth.
+
+    """
+    # https://tools.ietf.org/html/rfc7617#section-2
+    assert ':' not in username
+    user_pass = '{}:{}'.format(username, password)
+    basic_credentials = base64.b64encode(user_pass.encode()).decode()
+    return ('Authorization', 'Basic ' + basic_credentials)

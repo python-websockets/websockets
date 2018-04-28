@@ -3,10 +3,23 @@ Changelog
 
 .. currentmodule:: websockets
 
-4.1
+5.0
 ...
 
 *In development*
+
+.. warning::
+
+    **Version 5.0 adds a ``user_info`` field to the return value of
+    :func:`~websockets.parse_uri`, :class:`~websockets.WebSocketURI`.**
+
+    If you're unpacking :class:`~websockets.WebSocketURI` into four variables,
+    adjust your code to account for that fifth field.
+
+Also:
+
+* :func:`~client.connect()` performs HTTP Basic Auth when the URI contains
+  credentials.
 
 * :func:`~server.unix_serve` can be used as an asynchronous context manager on
   Python ≥ 3.5.1.

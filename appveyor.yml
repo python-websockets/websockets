@@ -4,13 +4,15 @@ environment:
   CIBW_TEST_COMMAND: python -m unittest websockets
   WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
 
-# Since Python 2 is still the default, invoke Python 3 explicitly.
 install:
-  - cmd: C:\Python36-x64\python.exe -m pip install --upgrade cibuildwheel
+# Ensure python is Python 3.
+  - set PATH=C:\Python34;%PATH%
+  - cmd: python -m pip install --upgrade cibuildwheel
 # Create file '.cibuildwheel' so that extension build is not optional (c.f. setup.py).
   - cmd: touch .cibuildwheel
+
 build_script:
-  - cmd: C:\Python36-x64\python.exe -m cibuildwheel --output-dir wheelhouse
+  - cmd: python -m cibuildwheel --output-dir wheelhouse
 # Upload to PyPI on tags
   - ps: >-
       if ($env:APPVEYOR_REPO_TAG -eq "true") {

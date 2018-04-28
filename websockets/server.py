@@ -729,7 +729,6 @@ class Serve:
     __iter__ = __await__
 
 
-@asyncio.coroutine
 def unix_serve(ws_handler, path, **kwargs):
     """
     Similar to :func:`serve()`, but for listening on Unix sockets.

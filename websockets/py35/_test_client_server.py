@@ -1,9 +1,14 @@
 # Tests containing Python 3.5+ syntax, extracted from test_client_server.py.
 
 import asyncio
+import os
+import socket
+import sys
+import tempfile
 import unittest
 
 from ..client import *
+from ..protocol import State
 from ..server import *
 from ..test_client_server import get_server_uri, handler
 
@@ -22,10 +27,12 @@ class ContextManagerTests(unittest.TestCase):
         server = self.loop.run_until_complete(start_server)
 
         async def run_client():
+            # Use connect as an asynchronous context manager.
             async with connect(get_server_uri(server)) as client:
-                await client.send("Hello!")
-                reply = await client.recv()
-                self.assertEqual(reply, "Hello!")
+                self.assertEqual(client.state, State.OPEN)
+
+            # Check that exiting the context manager closed the connection.
+            self.assertEqual(client.state, State.CLOSED)
 
         self.loop.run_until_complete(run_client())
 
@@ -34,10 +41,28 @@ class ContextManagerTests(unittest.TestCase):
 
     def test_server(self):
         async def run_server():
+            # Use serve as an asynchronous context manager.
             async with serve(handler, 'localhost', 0) as server:
-                client = await connect(get_server_uri(server))
-                await client.send("Hello!")
-                reply = await client.recv()
-                self.assertEqual(reply, "Hello!")
+                self.assertTrue(server.sockets)
+
+            # Check that exiting the context manager closed the server.
+            self.assertFalse(server.sockets)
 
         self.loop.run_until_complete(run_server())
+
+    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
+    @unittest.skipIf(
+        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+')
+    @unittest.skipUnless(
+        hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
+    def test_unix_server(self):
+        async def run_server(path):
+            async with unix_serve(handler, path) as server:
+                self.assertTrue(server.sockets)
+
+            # Check that exiting the context manager closed the server.
+            self.assertFalse(server.sockets)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = os.path.join(temp_dir, 'websockets')
+            self.loop.run_until_complete(run_server(path))

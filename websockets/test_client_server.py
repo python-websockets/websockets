@@ -24,6 +24,7 @@ from .extensions.permessage_deflate import (
 from .handshake import build_response
 from .http import USER_AGENT, read_response
 from .server import *
+from .test_protocol import MS
 
 
 # Avoid displaying stack traces at the ERROR logging level.
@@ -48,6 +49,12 @@ def handler(ws, path):
         yield from ws.send(repr(ws.extensions))
     elif path == '/subprotocol':
         yield from ws.send(repr(ws.subprotocol))
+    elif path == '/slow_stop':
+        try:
+            yield from asyncio.sleep(1000 * MS)
+        except asyncio.CancelledError:
+            yield from asyncio.sleep(MS)
+            raise
     else:
         yield from ws.send((yield from ws.recv()))
 
@@ -260,7 +267,9 @@ class ClientServerTests(unittest.TestCase):
 
     def test_server_close_while_client_connected(self):
         with self.temp_server(loop=self.loop):
-            self.start_client()
+            # This endpoint waits just a bit when the connection is cancelled
+            # in order to test that wait_closed() really waits for completion.
+            self.start_client('/slow_stop')
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.client.recv())
         # Connection ends with 1001 going away.

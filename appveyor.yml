@@ -6,7 +6,7 @@ environment:
 
 # Since Python 2 is still the default, invoke Python 3 explicitly.
 install:
-  - cmd: C:\Python36-x64\python.exe -m pip install cibuildwheel==0.4.0
+  - cmd: C:\Python36-x64\python.exe -m pip install --upgrade cibuildwheel
 # Create file '.cibuildwheel' so that extension build is not optional (c.f. setup.py).
   - cmd: touch .cibuildwheel
 build_script:

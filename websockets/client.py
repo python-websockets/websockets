@@ -280,7 +280,7 @@ class Connect:
     It yields a :class:`WebSocketClientProtocol` which can then be used to
     send and receive messages.
 
-    On Python ≥ 3.5, :func:`connect` can be used as a asynchronous context
+    On Python ≥ 3.5.1, :func:`connect` can be used as a asynchronous context
     manager. In that case, the connection is closed when exiting the context.
 
     :func:`connect` is a wrapper around the event loop's
@@ -409,7 +409,10 @@ class Connect:
     __iter__ = __await__
 
 
-if sys.version_info[:2] <= (3, 4):                          # pragma: no cover
+# Disable asynchronous context manager functionality only on Python < 3.5.1
+# because it doesn't exist on Python < 3.5 and asyncio.ensure_future didn't
+# accept arbitrary awaitables in Python 3.5; that was fixed in Python 3.5.1.
+if sys.version_info[:3] <= (3, 5, 0):                       # pragma: no cover
     @asyncio.coroutine
     def connect(*args, **kwds):
         return Connect(*args, **kwds).__await__()

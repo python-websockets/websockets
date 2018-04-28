@@ -9,7 +9,7 @@ Changelog
 *In development*
 
 * :func:`~server.unix_serve` can be used as an asynchronous context manager on
-  Python ≥ 3.5.
+  Python ≥ 3.5.1.
 
 4.0
 ...
@@ -61,7 +61,7 @@ Also:
   For backwards compatibility, ``klass`` is still supported.
 
 * :func:`~server.serve` can be used as an asynchronous context manager on
-  Python ≥ 3.5.
+  Python ≥ 3.5.1.
 
 * Added support for customizing handling of incoming connections with
   :meth:`~server.WebSocketServerProtocol.process_request()`.
@@ -137,7 +137,7 @@ Also:
 Also:
 
 * :func:`~client.connect` can be used as an asynchronous context manager on
-  Python ≥ 3.5.
+  Python ≥ 3.5.1.
 
 * Updated documentation with ``await`` and ``async`` syntax from Python 3.5.
 

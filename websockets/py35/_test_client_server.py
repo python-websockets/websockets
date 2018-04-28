@@ -22,6 +22,9 @@ class ContextManagerTests(unittest.TestCase):
     def tearDown(self):
         self.loop.close()
 
+    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
+    @unittest.skipIf(
+        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+')
     def test_client(self):
         start_server = serve(handler, 'localhost', 0)
         server = self.loop.run_until_complete(start_server)
@@ -39,6 +42,9 @@ class ContextManagerTests(unittest.TestCase):
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
+    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
+    @unittest.skipIf(
+        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+')
     def test_server(self):
         async def run_server():
             # Use serve as an asynchronous context manager.

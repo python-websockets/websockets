@@ -8,6 +8,9 @@ Changelog
 
 *In development*
 
+* :func:`~server.unix_serve` can be used as an asynchronous context manager on
+  Python ≥ 3.5.
+
 4.0
 ...
 
@@ -33,9 +36,9 @@ Also:
 * :class:`~protocol.WebSocketCommonProtocol` instances can be used as
   asynchronous iterators on Python ≥ 3.6. They yield incoming messages.
 
-* Added :func:`~websockets.server.unix_serve` for listening on Unix sockets.
+* Added :func:`~server.unix_serve` for listening on Unix sockets.
 
-* Added the :attr:`~websockets.server.WebSocketServer.sockets` attribute.
+* Added the :attr:`~server.WebSocketServer.sockets` attribute.
 
 * Reorganized and extended documentation.
 

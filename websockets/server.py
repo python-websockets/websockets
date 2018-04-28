@@ -744,7 +744,10 @@ def unix_serve(ws_handler, path, **kwargs):
     return serve(ws_handler, path=path, **kwargs)
 
 
-if sys.version_info[:2] <= (3, 4):                          # pragma: no cover
+# Disable asynchronous context manager functionality only on Python < 3.5.1
+# because it doesn't exist on Python < 3.5 and asyncio.ensure_future didn't
+# accept arbitrary awaitables in Python 3.5; that was fixed in Python 3.5.1.
+if sys.version_info[:3] <= (3, 5, 0):                       # pragma: no cover
     @asyncio.coroutine
     def serve(*args, **kwds):
         return Serve(*args, **kwds).__await__()

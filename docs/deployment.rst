@@ -40,8 +40,9 @@ Here's a full example (Unix-only):
 
 .. literalinclude:: ../example/shutdown.py
 
-``async``, ``await``, and asynchronous context managers aren't available in
-Python < 3.5. Here's the equivalent for older Python versions:
+``async`` and ``await`` were introduced in Python 3.5. websockets supports
+asynchronous context managers on Python ≥ 3.5.1. Here's the equivalent for
+older Python versions:
 
 .. literalinclude:: ../example/oldshutdown.py
 

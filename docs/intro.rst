@@ -3,22 +3,27 @@ Getting started
 
 .. currentmodule:: websockets
 
-.. warning::
-
-    This documentation is written for Python ≥ 3.5. If you're using Python
-    3.4, you will have to :ref:`adapt the code samples <python-lt-35>`.
-
 Installation
 ------------
 
-``websockets`` requires Python ≥ 3.4. Install it with::
+Install ``websockets`` with::
 
     pip install websockets
+
+``websockets`` requires Python ≥ 3.4. We recommend using the latest version.
+
+If you're using an older version, be aware that for each minor version (3.x),
+only the latest bugfix release (3.x.y) is officially supported.
+
+.. warning::
+
+    This documentation is written for Python ≥ 3.5.1. If you're using an older
+    Python version, you need to :ref:`adapt the code samples <python-lt-351>`.
 
 Basic example
 -------------
 
-*This section assumes Python ≥ 3.5. For older versions, read below.*
+*This section assumes Python ≥ 3.5.1. For older versions, read below.*
 
 .. _server-example:
 
@@ -37,8 +42,9 @@ Here's a corresponding client example.
 
 .. literalinclude:: ../example/client.py
 
-``async`` and ``await`` aren't available in Python < 3.5. Here's how to adapt
-the client example for older Python versions.
+``async`` and ``await`` were introduced in Python 3.5. websockets supports
++asynchronous context managers on Python ≥ 3.5.1. Here's how to adapt the
+client example for older Python versions.
 
 .. literalinclude:: ../example/oldclient.py
 
@@ -74,8 +80,8 @@ For receiving messages and passing them to a ``consumer`` coroutine::
 
 Iteration terminates when the client disconnects.
 
-Asynchronous iteration isn't available in Python < 3.6; here's the same code
-for earlier Python versions::
+Asynchronous iteration was introduced in Python 3.6; here's the same code for
+earlier Python versions::
 
     async def consumer_handler(websocket, path):
         while True:
@@ -153,15 +159,15 @@ answering pings, or any other behavior required by the specification.
 
 ``websockets`` handles all this under the hood so you don't have to.
 
-.. _python-lt-35:
+.. _python-lt-351:
 
-Python < 3.5
-------------
+Python < 3.5.1
+--------------
 
 This documentation uses the ``await`` and ``async`` syntax introduced in
 Python 3.5.
 
-If you're using Python 3.4, you must substitute::
+If you're using Python < 3.5, you must substitute::
 
     async def ...
 
@@ -179,3 +185,9 @@ with::
     yield from ...
 
 Otherwise you will encounter a :exc:`SyntaxError`.
+
+websockets supports asynchronous context managers only on Python ≥ 3.5.1
+because :func:`~asyncio.ensure_future` was changed to accept arbitrary
+awaitables in that version.
+
+If you're using Python ≤ 3.5, you can't use this feature.

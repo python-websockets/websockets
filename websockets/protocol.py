@@ -300,7 +300,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Don't yield from self.ensure_open() here because messages could be
         # received before the closing frame even if the connection is closing.
 
-        # Wait for a message until the connection is closed
+        # Wait for a message until the connection is closed.
         next_message = asyncio_ensure_future(
             self.messages.get(), loop=self.loop)
         try:
@@ -312,15 +312,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             next_message.cancel()
             raise
 
-        # Now there's no need to yield from self.ensure_open(). Either a
-        # message was received or the connection was closed.
-
         if next_message in done:
             return next_message.result()
         else:
             next_message.cancel()
             if not self.legacy_recv:
-                raise ConnectionClosed(self.close_code, self.close_reason)
+                assert self.state in [State.CLOSING, State.CLOSED]
+                # Wait until the connection is closed to raise
+                # ConnectionClosed with the correct code and reason.
+                yield from self.ensure_open()
 
     @asyncio.coroutine
     def send(self, data):

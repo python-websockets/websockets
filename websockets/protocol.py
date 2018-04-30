@@ -320,7 +320,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         else:
             next_message.cancel()
             if not self.legacy_recv:
-                raise ConnectionClosed(self.close_code, self.close_reason)
+                # this should always raise a ConnectionClosed
+                yield from self.ensure_open()
+                assert(False)
 
     @asyncio.coroutine
     def send(self, data):

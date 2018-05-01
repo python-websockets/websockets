@@ -24,6 +24,9 @@ Also:
 * :func:`~server.unix_serve` can be used as an asynchronous context manager on
   Python ≥ 3.5.1.
 
+* If a :meth:`~protocol.WebSocketCommonProtocol.ping` doesn't receive a pong,
+  it's cancelled when the connection is closed.
+
 4.0
 ...
 

@@ -736,6 +736,19 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             if after_handshake:
                 yield from self.transfer_data_task
 
+            # Cancel all pending pings because they'll never receive a pong.
+            for ping in self.pings.values():
+                ping.cancel()
+            if self.pings:
+                pings_hex = ', '.join(
+                    binascii.hexlify(ping_id).decode() or '[empty]'
+                    for ping_id in self.pings
+                )
+                plural = 's' if len(self.pings) > 1 else ''
+                logger.debug(
+                    "%s - cancelled pending ping%s: %s",
+                    self.side, plural, pings_hex)
+
             # A client should wait for a TCP Close from the server.
             if self.is_client and after_handshake:
                 if (yield from self.wait_for_connection_lost()):

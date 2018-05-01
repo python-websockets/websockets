@@ -8,6 +8,7 @@ frames as specified in `sections 4 to 8 of RFC 6455`_.
 
 import asyncio
 import asyncio.queues
+import binascii
 import codecs
 import collections
 import enum
@@ -604,16 +605,41 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
             elif frame.opcode == OP_PING:
                 # Answer pings.
+                # Replace by frame.data.hex() when dropping Python < 3.5.
+                ping_hex = binascii.hexlify(frame.data).decode() or '[empty]'
+                logger.debug("%s - received ping, sending pong: %s",
+                             self.side, ping_hex)
                 yield from self.pong(frame.data)
 
             elif frame.opcode == OP_PONG:
-                # Do not acknowledge pings on unsolicited pongs.
+                # Acknowledge pings on solicited pongs.
                 if frame.data in self.pings:
                     # Acknowledge all pings up to the one matching this pong.
                     ping_id = None
+                    ping_ids = []
                     while ping_id != frame.data:
                         ping_id, pong_waiter = self.pings.popitem(0)
+                        ping_ids.append(ping_id)
                         pong_waiter.set_result(None)
+                    pong_hex = (
+                        binascii.hexlify(frame.data).decode() or '[empty]')
+                    logger.debug("%s - received solicited pong: %s",
+                                 self.side, pong_hex)
+                    ping_ids = ping_ids[:-1]
+                    if ping_ids:
+                        pings_hex = ', '.join(
+                            binascii.hexlify(ping_id).decode() or '[empty]'
+                            for ping_id in ping_ids
+                        )
+                        plural = 's' if len(ping_ids) > 1 else ''
+                        logger.debug(
+                            "%s - acknowledged previous ping%s: %s",
+                            self.side, plural, pings_hex)
+                else:
+                    pong_hex = (
+                        binascii.hexlify(frame.data).decode() or '[empty]')
+                    logger.debug("%s - received unsolicited pong: %s",
+                                 self.side, pong_hex)
 
             # 5.6. Data Frames
             else:

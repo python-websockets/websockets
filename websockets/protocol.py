@@ -165,6 +165,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Subclasses implement the opening handshake and, on success, execute
         # :meth:`connection_open()` to change the state to OPEN.
         self.state = State.CONNECTING
+        logger.debug("%s - state = CONNECTING", self.side)
 
         # HTTP protocol parameters.
         self.path = None
@@ -222,6 +223,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # 4.1. The WebSocket Connection is Established.
         assert self.state is State.CONNECTING
         self.state = State.OPEN
+        logger.debug("%s - state = OPEN", self.side)
         # Start the task that receives incoming WebSocket messages.
         self.transfer_data_task = asyncio_ensure_future(
             self.transfer_data(), loop=self.loop)
@@ -671,6 +673,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # before yielding control to avoid sending more than one close frame.
         if opcode == OP_CLOSE:
             self.state = State.CLOSING
+            logger.debug("%s - state = CLOSING", self.side)
 
         frame = Frame(True, opcode, data)
         logger.debug("%s > %s", self.side, frame)
@@ -843,7 +846,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         which means it's the best point for configuring it.
 
         """
-        logger.debug("%s - connection_made(%s)", self.side, transport)
+        logger.debug("%s - event = connection_made(%s)", self.side, transport)
         transport.set_write_buffer_limits(self.write_limit)
         super().connection_made(transport)
 
@@ -870,7 +873,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         As a consequence we revert to the previous, more useful behavior.
 
         """
-        logger.debug("%s - eof_received()", self.side)
+        logger.debug("%s - event = eof_received()", self.side)
         super().eof_received()
         return
 
@@ -879,8 +882,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         7.1.4. The WebSocket Connection is Closed.
 
         """
-        logger.debug("%s - connection_lost(%s)", self.side, exc)
+        logger.debug("%s - event = connection_lost(%s)", self.side, exc)
         self.state = State.CLOSED
+        logger.debug("%s - state = CLOSED", self.side)
         if self.close_code is None:
             self.close_code = 1006
         # If self.connection_lost_waiter isn't pending, that's a bug, because:

@@ -595,20 +595,22 @@ class WebSocketServer:
 
 class Serve:
     """
-    This coroutine creates, starts, and return a :class:`WebSocketServer`.
+    Create, start, and return a :class:`WebSocketServer`.
 
-    :func:`serve` is a wrapper around the event loop's
-    :meth:`~asyncio.AbstractEventLoop.create_server` method. Internally, the
-    function creates and starts a :class:`~asyncio.Server` object by calling
-    :meth:`~asyncio.AbstractEventLoop.create_server`. The
-    :class:`WebSocketServer` keeps a reference to this object.
-
-    The returned :class:`WebSocketServer` and its resources can be cleaned up
-    by calling its :meth:`~websockets.server.WebSocketServer.close` and
-    :meth:`~websockets.server.WebSocketServer.wait_closed` methods.
+    :func:`serve` returns an awaitable. Awaiting it yields an instance of
+    :class:`WebSocketServer` which provides
+    :meth:`~websockets.server.WebSocketServer.close` and
+    :meth:`~websockets.server.WebSocketServer.wait_closed` methods for
+    terminating the server and cleaning up its resources.
 
     On Python ≥ 3.5, :func:`serve` can also be used as an asynchronous context
     manager. In this case, the server is shut down when exiting the context.
+
+    :func:`serve` is a wrapper around the event loop's
+    :meth:`~asyncio.AbstractEventLoop.create_server` method. Internally, it
+    creates and starts a :class:`~asyncio.Server` object by calling
+    :meth:`~asyncio.AbstractEventLoop.create_server`. The
+    :class:`WebSocketServer` it returns keeps a reference to this object.
 
     The ``ws_handler`` argument is the WebSocket handler. It must be a
     coroutine accepting two arguments: a :class:`WebSocketServerProtocol` and

@@ -278,10 +278,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
 class Connect:
     """
-    This coroutine connects to a WebSocket server at a given ``uri``.
+    Connect to the WebSocket server at the given ``uri``.
 
-    It yields a :class:`WebSocketClientProtocol` which can then be used to
-    send and receive messages.
+    :func:`connect` returns an awaitable. Awaiting it yields an instance of
+    :class:`WebSocketClientProtocol` which can then be used to send and
+    receive messages.
 
     On Python ≥ 3.5.1, :func:`connect` can be used as a asynchronous context
     manager. In that case, the connection is closed when exiting the context.

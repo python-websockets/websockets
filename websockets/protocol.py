@@ -774,8 +774,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # The try/finally ensures that the transport never remains open,
             # even if this coroutine is cancelled (for example).
 
-            # Closing a transport is idempotent. If the transport was already
-            # closed, for example from eof_received(), it's fine.
+            # If connection_lost() was called, the TCP connection is closed.
+            # However, if TLS is enabled, the transport still needs closing.
+            # Else asyncio complains: ResourceWarning: unclosed transport.
+            if self.connection_lost_waiter.done() and not self.secure:
+                return
 
             # Close the TCP connection. Buffers are flushed asynchronously.
             logger.debug(

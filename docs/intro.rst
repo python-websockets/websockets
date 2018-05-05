@@ -3,6 +3,23 @@ Getting started
 
 .. currentmodule:: websockets
 
+Requirements
+------------
+
+``websockets`` requires Python ≥ 3.4.
+
+You should use the latest version of Python if possible. If you're using an
+older version, be aware that for each minor version (3.x), only the latest
+bugfix release (3.x.y) is officially supported.
+
+For the best experience, you should start with Python ≥ 3.6. :mod:`asyncio`
+received interesting improvements between Python 3.4 and 3.6.
+
+.. warning::
+
+    This documentation is written for Python ≥ 3.5.1. If you're using an older
+    Python version, you need to :ref:`adapt the code samples <python-lt-351>`.
+
 Installation
 ------------
 
@@ -10,25 +27,14 @@ Install ``websockets`` with::
 
     pip install websockets
 
-``websockets`` requires Python ≥ 3.4. We recommend using the latest version.
-
-If you're using an older version, be aware that for each minor version (3.x),
-only the latest bugfix release (3.x.y) is officially supported.
-
-.. warning::
-
-    This documentation is written for Python ≥ 3.5.1. If you're using an older
-    Python version, you need to :ref:`adapt the code samples <python-lt-351>`.
-
 Basic example
 -------------
 
-*This section assumes Python ≥ 3.5.1. For older versions, read below.*
-
 .. _server-example:
 
-Here's a WebSocket server example. It reads a name from the client, sends a
-greeting, and closes the connection.
+Here's a WebSocket server example.
+
+It reads a name from the client, sends a greeting, and closes the connection.
 
 .. literalinclude:: ../example/server.py
 
@@ -36,17 +42,14 @@ greeting, and closes the connection.
 
 On the server side, the handler coroutine ``hello`` is executed once for each
 WebSocket connection. The connection is automatically closed when the handler
-returns.
+coroutine returns.
 
 Here's a corresponding client example.
 
 .. literalinclude:: ../example/client.py
 
-``async`` and ``await`` were introduced in Python 3.5. websockets supports
-+asynchronous context managers on Python ≥ 3.5.1. Here's how to adapt the
-client example for older Python versions.
-
-.. literalinclude:: ../example/oldclient.py
+Using :func:`connect` as an asynchronous context manager ensures the
+connection is closed before exiting the ``hello`` coroutine.
 
 Browser-based example
 ---------------------
@@ -190,4 +193,7 @@ websockets supports asynchronous context managers only on Python ≥ 3.5.1
 because :func:`~asyncio.ensure_future` was changed to accept arbitrary
 awaitables in that version.
 
-If you're using Python ≤ 3.5, you can't use this feature.
+If you're using Python < 3.5.1, you can't use this feature. Here's how to
+adapt the basic client example.
+
+.. literalinclude:: ../example/oldclient.py

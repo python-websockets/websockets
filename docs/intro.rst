@@ -37,6 +37,7 @@ Here's a WebSocket server example.
 It reads a name from the client, sends a greeting, and closes the connection.
 
 .. literalinclude:: ../example/server.py
+    :emphasize-lines: 6,14
 
 .. _client-example:
 
@@ -47,9 +48,39 @@ coroutine returns.
 Here's a corresponding client example.
 
 .. literalinclude:: ../example/client.py
+    :emphasize-lines: 7-8
 
 Using :func:`connect` as an asynchronous context manager ensures the
 connection is closed before exiting the ``hello`` coroutine.
+
+Secure example
+--------------
+
+Secure WebSocket connections improve confidentiality and also reliability
+because they reduce the risk of interference by bad proxies.
+
+The WSS protocol is to WS what HTTPS is to HTTP: the connection is encrypted
+with TLS. WSS requires TLS certificates like HTTPS.
+
+Here's how to adapt the server example to provide secure connections, using
+APIs available in Python ≥ 3.6.
+
+Refer to the documentation of the :mod:`ssl` module for configuring the
+context securely or adapting the code to older Python versions.
+
+.. literalinclude:: ../example/secure_server.py
+    :emphasize-lines: 18,22-23
+
+Here's how to adapt the client, also on Python ≥ 3.6.
+
+.. literalinclude:: ../example/secure_client.py
+    :emphasize-lines: 10,15-16
+
+This client needs a context because the server uses a self-signed certificate.
+
+A client connecting to a secure WebSocket server with a valid certificate
+(i.e. signed by a CA that your Python installation trusts) can simply pass
+``ssl=True`` to :func:`connect`` instead of building a context.
 
 Browser-based example
 ---------------------
@@ -197,3 +228,4 @@ If you're using Python < 3.5.1, you can't use this feature. Here's how to
 adapt the basic client example.
 
 .. literalinclude:: ../example/oldclient.py
+    :emphasize-lines: 8-9

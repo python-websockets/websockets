@@ -5,7 +5,8 @@ import websockets
 
 @asyncio.coroutine
 def hello():
-    websocket = yield from websockets.connect('ws://localhost:8765/')
+    websocket = yield from websockets.connect(
+        'ws://localhost:8765/')
 
     try:
         name = input("What's your name? ")

@@ -75,4 +75,7 @@ widely different operational characteristics of HTTP and WebSocket.
 
 ``websockets`` provide minimal support for responding to HTTP requests with
 the :meth:`~server.WebSocketServerProtocol.process_request()` hook. Typical
-use cases include health checks.
+use cases include health checks. Here's an example:
+
+.. literalinclude:: ../example/health_check_server.py
+    :emphasize-lines: 9-13,19-20

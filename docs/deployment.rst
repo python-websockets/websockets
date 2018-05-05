@@ -39,12 +39,14 @@ On Unix systems, shutdown is usually triggered by sending a signal.
 Here's a full example (Unix-only):
 
 .. literalinclude:: ../example/shutdown.py
+    :emphasize-lines: 13,17-19
 
 ``async`` and ``await`` were introduced in Python 3.5. websockets supports
-asynchronous context managers on Python ≥ 3.5.1. Here's the equivalent for
-older Python versions:
+asynchronous context managers on Python ≥ 3.5.1. ``async for`` was introduced
+in Python 3.6. Here's the equivalent for older Python versions:
 
 .. literalinclude:: ../example/oldshutdown.py
+    :emphasize-lines: 22-25
 
 It's more difficult to achieve the same effect on Windows. Some third-party
 projects try to help with this problem.

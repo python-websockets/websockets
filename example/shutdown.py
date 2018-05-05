@@ -5,13 +5,8 @@ import signal
 import websockets
 
 async def echo(websocket, path):
-    while True:
-        try:
-            msg = await websocket.recv()
-        except websockets.ConnectionClosed:
-            break
-        else:
-            await websocket.send(msg)
+    async for message in websocket:
+        await websocket.send(message)
 
 async def echo_server(stop):
     async with websockets.serve(echo, 'localhost', 8765):

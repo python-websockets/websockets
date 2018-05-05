@@ -30,6 +30,13 @@ from .test_protocol import MS
 # Avoid displaying stack traces at the ERROR logging level.
 logging.basicConfig(level=logging.CRITICAL)
 
+
+# Generate TLS certificate with:
+# $ openssl req -x509 -config test_localhost.cnf -days 15340 -newkey rsa:2048 \
+#       -out test_localhost.crt -keyout test_localhost.key
+# $ cat test_localhost.key test_localhost.crt > test_localhost.pem
+# $ rm test_localhost.key test_localhost.crt
+
 testcert = os.path.join(os.path.dirname(__file__), 'test_localhost.pem')
 
 
@@ -123,9 +130,8 @@ def get_server_uri(server, secure=False, resource_name='/', user_info=None):
     # needed, either use the first socket, or test separately IPv4 and IPv6.
     server_socket = random.choice(server.sockets)
 
-    # That case
     if server_socket.family == socket.AF_INET6:             # pragma: no cover
-        host, port = server_socket.getsockname()[:2]
+        host, port = server_socket.getsockname()[:2]        # (no IPv6 on CI)
         host = '[{}]'.format(host)
     elif server_socket.family == socket.AF_INET:
         host, port = server_socket.getsockname()
@@ -317,6 +323,7 @@ class ClientServerTests(unittest.TestCase):
 
             with self.temp_client(
                 sock=client_socket,
+                # "You must set server_hostname when using ssl without a host"
                 server_hostname='localhost' if self.secure else None,
             ):
                 self.loop.run_until_complete(self.client.send("Hello!"))
@@ -941,15 +948,19 @@ class SSLClientServerTests(ClientServerTests):
 
     @property
     def server_context(self):
+        # Change to ssl.PROTOCOL_TLS_SERVER when dropping Python < 3.6.
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         ssl_context.load_cert_chain(testcert)
         return ssl_context
 
     @property
     def client_context(self):
+        # Change to ssl.PROTOCOL_TLS_CLIENT when dropping Python < 3.6.
+        # Then remove verify_mode and check_hostname below.
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         ssl_context.load_verify_locations(testcert)
         ssl_context.verify_mode = ssl.CERT_REQUIRED
+        ssl_context.check_hostname = True
         return ssl_context
 
     def start_server(self, **kwds):

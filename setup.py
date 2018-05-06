@@ -4,13 +4,19 @@ import sys
 import setuptools
 
 
-root_dir = pathlib.Path(__file__).parent.resolve()
+root_dir = pathlib.Path(__file__).parent
 
 description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
 
-long_description = (root_dir / 'README.rst').read_text(encoding='utf-8')
+# When dropping Python < 3.5, change to:
+# long_description = (root_dir / 'README.rst').read_text(encoding='utf-8')
+with (root_dir / 'README.rst').open(encoding='utf-8') as f:
+    long_description = f.read()
 
-exec((root_dir / 'websockets' / 'version.py').read_text(encoding='utf-8'))
+# When dropping Python < 3.5, change to:
+# exec((root_dir / 'websockets' / 'version.py').read_text(encoding='utf-8'))
+with (root_dir / 'websockets' / 'version.py').open(encoding='utf-8') as f:
+    exec(f.read())
 
 py_version = sys.version_info[:2]
 

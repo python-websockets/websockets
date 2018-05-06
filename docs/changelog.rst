@@ -10,8 +10,8 @@ Changelog
 
 .. warning::
 
-    **Version 5.0 adds a ``user_info`` field to the return value of
-    :func:`~websockets.parse_uri`, :class:`~websockets.WebSocketURI`.**
+    **Version 5.0 adds a** ``user_info`` **field to the return value of**
+    :func:`~uri.parse_uri` **and** :class:`~uri.WebSocketURI` **.**
 
     If you're unpacking :class:`~websockets.WebSocketURI` into four variables,
     adjust your code to account for that fifth field.
@@ -45,7 +45,7 @@ Also:
 
 .. warning::
 
-    **Version 4.0 removes the ``state_name`` attribute of protocols.**
+    **Version 4.0 removes the** ``state_name`` **attribute of protocols.**
 
     Use ``protocol.state.name`` instead of ``protocol.state_name``.
 

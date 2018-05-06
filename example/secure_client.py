@@ -15,10 +15,11 @@ async def hello():
     async with websockets.connect(
             'wss://localhost:8765', ssl=ssl_context) as websocket:
         name = input("What's your name? ")
+
         await websocket.send(name)
-        print("> {}".format(name))
+        print(f"> {name}")
 
         greeting = await websocket.recv()
-        print("< {}".format(greeting))
+        print(f"< {greeting}")
 
 asyncio.get_event_loop().run_until_complete(hello())

@@ -17,8 +17,8 @@ received interesting improvements between Python 3.4 and 3.6.
 
 .. warning::
 
-    This documentation is written for Python ≥ 3.5.1. If you're using an older
-    Python version, you need to :ref:`adapt the code samples <python-lt-351>`.
+    This documentation is written for Python ≥ 3.6. If you're using an older
+    Python version, you need to :ref:`adapt the code samples <python-lt-36>`.
 
 Installation
 ------------
@@ -37,18 +37,18 @@ Here's a WebSocket server example.
 It reads a name from the client, sends a greeting, and closes the connection.
 
 .. literalinclude:: ../example/server.py
-    :emphasize-lines: 6,14
+    :emphasize-lines: 8,17
 
 .. _client-example:
 
-On the server side, the handler coroutine ``hello`` is executed once for each
-WebSocket connection. The connection is automatically closed when the handler
+On the server side, ``websockets`` executes the handler coroutine ``hello``
+once for each WebSocket connection. It closes the connection when the handler
 coroutine returns.
 
-Here's a corresponding client example.
+Here's a corresponding WebSocket client example.
 
 .. literalinclude:: ../example/client.py
-    :emphasize-lines: 7-8
+    :emphasize-lines: 8-10
 
 Using :func:`connect` as an asynchronous context manager ensures the
 connection is closed before exiting the ``hello`` coroutine.
@@ -69,7 +69,7 @@ Refer to the documentation of the :mod:`ssl` module for configuring the
 context securely or adapting the code to older Python versions.
 
 .. literalinclude:: ../example/secure_server.py
-    :emphasize-lines: 18,22-23
+    :emphasize-lines: 19,23-24
 
 Here's how to adapt the client, also on Python ≥ 3.6.
 
@@ -89,11 +89,11 @@ Here's an example of how to run a WebSocket server and connect from a browser.
 
 Run this script in a console:
 
-.. literalinclude:: ../example/sendtime.py
+.. literalinclude:: ../example/send_time.py
 
 Then open this HTML file in a browser.
 
-.. literalinclude:: ../example/showtime.html
+.. literalinclude:: ../example/show_time.html
    :language: html
 
 Common patterns
@@ -111,6 +111,9 @@ For receiving messages and passing them to a ``consumer`` coroutine::
     async def consumer_handler(websocket, path):
         async for message in websocket:
             await consumer(message)
+
+In this example, ``consumer`` represents your business logic for processing
+messages received on the WebSocket connection.
 
 Iteration terminates when the client disconnects.
 
@@ -136,6 +139,9 @@ For getting messages from a ``producer`` coroutine and sending them::
             message = await producer()
             await websocket.send(message)
 
+In this example, ``producer`` represents your business logic for generating
+messages to send on the WebSocket connection.
+
 :meth:`~protocol.WebSocketCommonProtocol.send` raises a
 :exc:`~exceptions.ConnectionClosed` exception when the client disconnects,
 which breaks out of the ``while True`` loop.
@@ -147,13 +153,14 @@ You can read and write messages on the same connection by combining the two
 patterns shown above and running the two tasks in parallel::
 
     async def handler(websocket, path):
-        consumer_task = asyncio.ensure_future(consumer_handler(websocket))
-        producer_task = asyncio.ensure_future(producer_handler(websocket))
+        consumer_task = asyncio.ensure_future(
+            consumer_handler(websocket, path))
+        producer_task = asyncio.ensure_future(
+            producer_handler(websocket, path))
         done, pending = await asyncio.wait(
             [consumer_task, producer_task],
             return_when=asyncio.FIRST_COMPLETED,
         )
-
         for task in pending:
             task.cancel()
 
@@ -193,13 +200,31 @@ answering pings, or any other behavior required by the specification.
 
 ``websockets`` handles all this under the hood so you don't have to.
 
-.. _python-lt-351:
+.. _python-lt-36:
 
-Python < 3.5.1
---------------
+Python < 3.6
+------------
 
-This documentation uses the ``await`` and ``async`` syntax introduced in
-Python 3.5.
+This documentation takes advantage of several features that aren't available
+in Python < 3.6:
+
+- ``await`` and ``async`` were added in Python 3.5;
+- Asynchronous context managers didn't work well until Python 3.5.1;
+- f-strings were introduced in Python 3.6 (unrelated to :mod:`asyncio`
+  :mod:`websockets`).
+
+Here's how to adapt the basic server example.
+
+.. literalinclude:: ../example/old_server.py
+    :emphasize-lines: 8-9,18
+
+And here's the basic client example.
+
+.. literalinclude:: ../example/old_client.py
+    :emphasize-lines: 8-11,13,22-23
+
+``await`` and ``async``
+.......................
 
 If you're using Python < 3.5, you must substitute::
 
@@ -220,12 +245,12 @@ with::
 
 Otherwise you will encounter a :exc:`SyntaxError`.
 
-websockets supports asynchronous context managers only on Python ≥ 3.5.1
-because :func:`~asyncio.ensure_future` was changed to accept arbitrary
-awaitables in that version.
+Asynchronous context managers
+.............................
 
-If you're using Python < 3.5.1, you can't use this feature. Here's how to
-adapt the basic client example.
+Asynchronous context managers were added in Python 3.5. However,
+``websockets`` only supports them on Python ≥ 3.5.1, where
+:func:`~asyncio.ensure_future` accepts any awaitable.
 
-.. literalinclude:: ../example/oldclient.py
-    :emphasize-lines: 8-9
+If you're using Python < 3.5.1, you must rely on ``try: ... finally: ...``
+instead.

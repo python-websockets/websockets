@@ -45,7 +45,7 @@ Here's a full example (Unix-only):
 asynchronous context managers on Python ≥ 3.5.1. ``async for`` was introduced
 in Python 3.6. Here's the equivalent for older Python versions:
 
-.. literalinclude:: ../example/oldshutdown.py
+.. literalinclude:: ../example/old_shutdown.py
     :emphasize-lines: 22-25
 
 It's more difficult to achieve the same effect on Windows. Some third-party

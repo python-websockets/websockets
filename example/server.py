@@ -1,15 +1,18 @@
 #!/usr/bin/env python
 
+# WS server example
+
 import asyncio
 import websockets
 
 async def hello(websocket, path):
     name = await websocket.recv()
-    print("< {}".format(name))
+    print(f"< {name}")
 
-    greeting = "Hello {}!".format(name)
+    greeting = f"Hello {name}!"
+
     await websocket.send(greeting)
-    print("> {}".format(greeting))
+    print(f"> {greeting}")
 
 start_server = websockets.serve(hello, 'localhost', 8765)
 

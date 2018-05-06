@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# WS client example for old Python versions
+
 import asyncio
 import websockets
 
@@ -10,6 +12,7 @@ def hello():
 
     try:
         name = input("What's your name? ")
+
         yield from websocket.send(name)
         print("> {}".format(name))
 

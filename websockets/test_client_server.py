@@ -2,7 +2,7 @@ import asyncio
 import contextlib
 import functools
 import logging
-import os.path
+import pathlib
 import random
 import socket
 import ssl
@@ -37,7 +37,7 @@ logging.basicConfig(level=logging.CRITICAL)
 # $ cat test_localhost.key test_localhost.crt > test_localhost.pem
 # $ rm test_localhost.key test_localhost.crt
 
-testcert = os.path.join(os.path.dirname(__file__), 'test_localhost.pem')
+testcert = bytes(pathlib.Path(__file__).with_name('test_localhost.pem'))
 
 
 @asyncio.coroutine
@@ -340,7 +340,7 @@ class ClientServerTests(unittest.TestCase):
         hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
     def test_unix_socket(self):
         with tempfile.TemporaryDirectory() as temp_dir:
-            path = os.path.join(temp_dir, 'websockets')
+            path = bytes(pathlib.Path(temp_dir) / 'websockets')
 
             # Like self.start_server() but with unix_serve().
             unix_server = unix_serve(handler, path)
@@ -941,7 +941,6 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(self.client.close_code, 1006)
 
 
-@unittest.skipUnless(os.path.exists(testcert), "test certificate is missing")
 class SSLClientServerTests(ClientServerTests):
 
     secure = True

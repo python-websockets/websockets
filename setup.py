@@ -1,19 +1,16 @@
-import os.path
+import pathlib
 import sys
 
 import setuptools
 
-root_dir = os.path.abspath(os.path.dirname(__file__))
+
+root_dir = pathlib.Path(__file__).parent.resolve()
 
 description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
 
-readme_file = os.path.join(root_dir, 'README.rst')
-with open(readme_file, encoding='utf-8') as f:
-    long_description = f.read()
+long_description = (root_dir / 'README.rst').read_text(encoding='utf-8')
 
-version_module = os.path.join(root_dir, 'websockets', 'version.py')
-with open(version_module, encoding='utf-8') as f:
-    exec(f.read())
+exec((root_dir / 'websockets' / 'version.py').read_text(encoding='utf-8'))
 
 py_version = sys.version_info[:2]
 
@@ -32,7 +29,7 @@ ext_modules = [
     setuptools.Extension(
         'websockets.speedups',
         sources=['websockets/speedups.c'],
-        optional=not os.path.exists(os.path.join(root_dir, '.cibuildwheel')),
+        optional=not (root_dir / '.cibuildwheel').exists(),
     )
 ]
 

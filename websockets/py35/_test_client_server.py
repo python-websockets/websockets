@@ -1,7 +1,7 @@
 # Tests containing Python 3.5+ syntax, extracted from test_client_server.py.
 
 import asyncio
-import os
+import pathlib
 import socket
 import sys
 import tempfile
@@ -70,5 +70,5 @@ class ContextManagerTests(unittest.TestCase):
             self.assertFalse(server.sockets)
 
         with tempfile.TemporaryDirectory() as temp_dir:
-            path = os.path.join(temp_dir, 'websockets')
+            path = bytes(pathlib.Path(temp_dir) / 'websockets')
             self.loop.run_until_complete(run_server(path))

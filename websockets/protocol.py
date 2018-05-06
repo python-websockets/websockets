@@ -273,6 +273,17 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         return self.state is State.OPEN
 
+    @property
+    def closed(self):
+        """
+        This property is ``True`` once the connection is closed.
+
+        Be aware that :attr:`open` and :attr`closed` are ``False`` when the
+        connection is in the OPENING or CLOSING state.
+
+        """
+        return self.state is State.CLOSED
+
     @asyncio.coroutine
     def recv(self):
         """

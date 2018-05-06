@@ -79,6 +79,7 @@ Shared
         .. autoattribute:: remote_address
 
         .. autoattribute:: open
+        .. autoattribute:: closed
 
 Exceptions
 ..........

@@ -349,6 +349,11 @@ class CommonTests:
         self.close_connection()
         self.assertFalse(self.protocol.open)
 
+    def test_closed(self):
+        self.assertFalse(self.protocol.closed)
+        self.close_connection()
+        self.assertTrue(self.protocol.closed)
+
     # Test the recv coroutine.
 
     def test_recv_text(self):

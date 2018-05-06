@@ -517,7 +517,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             pass
         except WebSocketProtocolError:
             yield from self.fail_connection(1002)
-        except asyncio.IncompleteReadError:
+        except (ConnectionError, EOFError):
+            # Reading data with self.reader.readexactly may raise:
+            # - most subclasses of ConnectionError if the TCP connection
+            #   breaks, is reset, or is aborted;
+            # - IncompleteReadError, a subclass of EOFError, if fewer
+            #   bytes are available than requested.
             yield from self.fail_connection(1006)
         except UnicodeDecodeError:
             yield from self.fail_connection(1007)

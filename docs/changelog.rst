@@ -33,6 +33,8 @@ Also:
 
 * Fixed missing close code, which caused :exc:`TypeError` on connection close.
 
+* Stopped logging stack traces when the TCP connection dies prematurely.
+
 4.0
 ...
 

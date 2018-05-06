@@ -6,9 +6,11 @@ machine:
 
 dependencies:
     override:
-        - pip install tox codecov
+        - pip install codecov tox
 
 test:
     override:
         - tox
-        - codecov
+        - make default.gcov nosse2.gcov
+        - codecov -X gcov --required
+

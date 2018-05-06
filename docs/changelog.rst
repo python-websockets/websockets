@@ -29,6 +29,8 @@ Also:
 * If a :meth:`~protocol.WebSocketCommonProtocol.ping` doesn't receive a pong,
   it's cancelled when the connection is closed.
 
+* Fixed missing close code, which caused :exc:`TypeError` on connection close.
+
 4.0
 ...
 

@@ -317,6 +317,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Wait for a message until the connection is closed.
         next_message = asyncio_ensure_future(
             self.messages.get(), loop=self.loop)
+        # See https://bugs.python.org/issue23859 for cancellation handling.
         try:
             done, pending = yield from asyncio.wait(
                 [next_message, self.transfer_data_task],
@@ -381,9 +382,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         except asyncio.TimeoutError:
             # If the close frame cannot be sent because the send buffers
             # are full, the closing handshake won't complete anyway.
-            # Cancel the data transfer task to shut down faster.
-            # Cancelling a task is idempotent.
-            self.transfer_data_task.cancel()
+            # Fail the connection to shut down faster.
+            self.fail_connection()
 
         # If no close frame is received within the timeout, wait_for() cancels
         # the data transfer task and raises TimeoutError. Then transfer_data()
@@ -400,7 +400,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             yield from asyncio.wait_for(
                 self.transfer_data_task,
                 self.timeout, loop=self.loop)
-        except asyncio.TimeoutError:
+        except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
 
         # Wait for the close connection task to close the TCP connection.
@@ -516,25 +516,35 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 if msg is None:
                     break
                 yield from self.messages.put(msg)
+
         except asyncio.CancelledError:
-            # This happens if self.close() cancels self.transfer_data_task.
-            pass
+            # If fail_connection() cancels this task, avoid logging the error
+            # twice and failing the connection again.
+            raise
+
         except WebSocketProtocolError:
-            yield from self.fail_connection(1002)
+            self.fail_connection(1002)
+
         except (ConnectionError, EOFError):
             # Reading data with self.reader.readexactly may raise:
             # - most subclasses of ConnectionError if the TCP connection
             #   breaks, is reset, or is aborted;
             # - IncompleteReadError, a subclass of EOFError, if fewer
             #   bytes are available than requested.
-            yield from self.fail_connection(1006)
+            self.fail_connection(1006)
+
         except UnicodeDecodeError:
-            yield from self.fail_connection(1007)
+            self.fail_connection(1007)
+
         except PayloadTooBig:
-            yield from self.fail_connection(1009)
+            self.fail_connection(1009)
+
         except Exception:
-            logger.warning("Error in data transfer", exc_info=True)
-            yield from self.fail_connection(1011)
+            # This shouldn't happen often because exceptions expected under
+            # regular circumstances are handled above. If it does, consider
+            # catching and handling more exceptions.
+            logger.error("Error in data transfer", exc_info=True)
+            self.fail_connection(1011)
 
     @asyncio.coroutine
     def read_message(self):
@@ -711,7 +721,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 yield from self.writer.drain()
         except ConnectionError:
             # Terminate the connection if the socket died.
-            yield from self.fail_connection(1006)
+            self.fail_connection()
             # And raise an exception, since the frame couldn't be sent.
             raise ConnectionClosed(self.close_code, self.close_reason)
 
@@ -769,7 +779,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         try:
             # Wait for the data transfer phase to complete.
             if after_handshake:
-                yield from self.transfer_data_task
+                try:
+                    yield from self.transfer_data_task
+                except asyncio.CancelledError:
+                    pass
 
             # Cancel all pending pings because they'll never receive a pong.
             for ping in self.pings.values():
@@ -784,7 +797,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     "%s - cancelled pending ping%s: %s",
                     self.side, plural, pings_hex)
 
-            # A client should wait for a TCP Close from the server.
+            # A client should wait for a TCP close from the server.
             if self.is_client and after_handshake:
                 if (yield from self.wait_for_connection_lost()):
                     return
@@ -850,19 +863,66 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # and the moment this coroutine resumes running.
         return self.connection_lost_waiter.done()
 
-    @asyncio.coroutine
-    def fail_connection(self, code=1011, reason=''):
+    def fail_connection(self, code=1006, reason=''):
         """
         7.1.7. Fail the WebSocket Connection
 
+        This requires:
+
+        1. Stopping all processing of incoming data, which means cancelling
+           :attr:`transfer_data_task`. The close code will be 1006 unless a
+           close frame was received earlier.
+
+        2. Sending a close frame with an appropriate code if the opening
+           handshake succeeded and the other side is likely to process it.
+
+        3. Closing the connection. :meth:`close_connection` takes care of
+           this once :attr:`transfer_data_task` exits after being cancelled.
+
+        (The specification describes these steps in the opposite order.)
+
         """
+        # fail_connection() only supports the case when the opening handshake
+        # succeeded. Before that, use close_connection(after_handshake=False).
+        assert self.state is not State.CONNECTING, (
+            "fail_connection() doesn't support the CONNECTING state")
+
         logger.debug(
             "%s ! failing WebSocket connection: %d %s",
             self.side, code, reason,
         )
+
+        # transfer_data_task was started when the opening handshake succeeded.
+        # cancel() is idempotent and ignored if the task is done already.
+        self.transfer_data_task.cancel()
+
+        # Send a close frame when the state is OPEN (a close frame was already
+        # sent if it's CLOSING), except when failing the connection because of
+        # an error reading from or writing to the network.
         # Don't send a close frame if the connection is broken.
-        if code != 1006:
-            yield from self.write_close_frame(serialize_close(code, reason))
+        if code != 1006 and self.state is State.OPEN:
+
+            frame_data = serialize_close(code, reason)
+
+            # Write the close frame without draining the write buffer.
+
+            # Keeping fail_connection() synchronous guarantees it can't
+            # get stuck and simplifies the implementation of the callers.
+            # Not drainig the write buffer is acceptable in this context.
+
+            # This duplicates a few lines of code from write_close_frame()
+            # and write_frame().
+
+            self.state = State.CLOSING
+            logger.debug("%s - state = CLOSING", self.side)
+
+            frame = Frame(True, OP_CLOSE, frame_data)
+            logger.debug("%s > %s", self.side, frame)
+            frame.write(
+                self.writer.write,
+                mask=self.is_client,
+                extensions=self.extensions,
+            )
 
     # asyncio.StreamReaderProtocol methods
 
@@ -902,7 +962,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
            returned to have the same behavior on TLS and plain connections.
 
         3. The websockets protocol has its own closing handshake. Endpoints
-           close the TCP connection after sending a Close frame.
+           close the TCP connection after sending a close frame.
 
         As a consequence we revert to the previous, more useful behavior.
 

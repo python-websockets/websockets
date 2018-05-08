@@ -32,16 +32,18 @@ WebSocket connections go through a trivial state machine:
 Transitions happen in the following places:
 
 - ``CONNECTING -> OPEN``: in
-  :meth:`~protocol.WebSocketCommonProtocol.connection_open()`, which runs
-  when the :ref:`opening handshake <opening-handshake>` completes and the
-  WebSocket connection is established — not to be confused with
-  :meth:`~asyncio.Protocol.connection_made` which runs earlier, when the TCP
-  connection is established;
+  :meth:`~protocol.WebSocketCommonProtocol.connection_open()` which runs when
+  the :ref:`opening handshake <opening-handshake>` completes and the WebSocket
+  connection is established — not to be confused with
+  :meth:`~asyncio.Protocol.connection_made` which runs when the TCP connection
+  is established;
 - ``OPEN -> CLOSING``: in
   :meth:`~protocol.WebSocketCommonProtocol.write_frame()` immediately before
   sending a close frame; since receiving a close frame triggers sending a
   close frame, this does the right thing regardless of which side started the
-  :ref:`closing handshake <closing-handshake>`;
+  :ref:`closing handshake <closing-handshake>`; also in
+  :meth:`~protocol.WebSocketCommonProtocol.fail_connection()` which duplicates
+  a few lines of code from `write_close_frame()` and `write_frame()`;
 - ``* -> CLOSED``: in
   :meth:`~protocol.WebSocketCommonProtocol.connection_lost()` which is always
   called exactly once when the TCP connection is closed.
@@ -68,13 +70,31 @@ two tasks:
 - :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` runs
   :meth:`~protocol.WebSocketCommonProtocol.transfer_data()` which handles
   incoming data and lets :meth:`~protocol.WebSocketCommonProtocol.recv()`
-  consume it. It never exits with an exception but it may be cancelled.
-  See :ref:`data transfer <data-transfer>` below.
+  consume it. It may be cancelled to terminate the connection. It never exits
+  with an exception other than :exc:`~asyncio.CancelledError`. See :ref:`data
+  transfer <data-transfer>` below.
+
 - :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` runs
   :meth:`~protocol.WebSocketCommonProtocol.close_connection()` which waits for
   the data transfer to terminate, then takes care of closing the TCP
-  connection. It never exits with an exception and it is never cancelled. See
+  connection. It must not be cancelled. It never exits with an exception. See
   :ref:`connection termination <connection-termination>` below.
+
+Splitting the responsibilities between two tasks makes it easier to guarantee
+that ``websockets`` can terminate connections:
+
+- within a fixed timeout,
+- without leaking pending tasks,
+- without leaking open TCP connections,
+
+regardless of whether the connection terminates normally or abnormally.
+
+:attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` completes when no
+more data will be received on the connection. Under normal circumstances, it
+exits after exchanging close frames.
+
+:attr:`~protocol.WebSocketCommonProtocol.close_connection_task` completes when
+the TCP connection is closed.
 
 
 .. _opening-handshake:
@@ -121,9 +141,8 @@ lies in the negociation of extensions and, to a lesser extent, of the
 subprotocol. The server knows everything about both sides and decides what the
 parameters should be for the connection. The client merely applies them.
 
-If anything goes wrong during the opening handshake, ``websockets`` closes the
-TCP connection. This is the proper way to fail the WebSocket connection before
-it's established.
+If anything goes wrong during the opening handshake, ``websockets``
+:ref:`fails the connection <connection-failure>`.
 
 
 .. _data-transfer:
@@ -213,8 +232,8 @@ The right side of the diagram shows how ``websockets`` sends data.
 containing the message. Fragmentation isn't supported at this time.
 
 :meth:`~protocol.WebSocketCommonProtocol.ping()` writes a ping frame and
-returns a :class:`~asyncio.Future` which will be completed when a matching
-pong frame is received.
+yields a :class:`~asyncio.Future` which will be completed when a matching pong
+frame is received.
 
 :meth:`~protocol.WebSocketCommonProtocol.pong()` writes a pong frame.
 
@@ -243,9 +262,7 @@ state and sends a close frame. When the other side sends a close frame,
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` to terminate.
 
 If the other side doesn't send a close frame within the connection's timeout,
-:meth:`~protocol.WebSocketCommonProtocol.close()` cancels
-:attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`, which has the
-same effect.
+``websockets`` :ref:`fails the connection <connection-failure>`.
 
 The closing handshake can take up to ``2 * timeout``: one ``timeout`` to write
 a close frame and one ``timeout`` to receive a close frame.
@@ -271,8 +288,8 @@ which may happen as a result of:
 - a timeout while waiting for the closing handshake to complete: this cancels
   :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`;
 - a protocol error, including connection errors: depending on the exception,
-  :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` fails the
-  WebSocket connection with a suitable code and exits.
+  :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` :ref:`fails the
+  connection <connection-failure>`_ with a suitable code and exits.
 
 :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` is separate
 from :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` to make it
@@ -288,6 +305,23 @@ go through the following steps until the TCP connection is lost: half-closing
 the connection (only for non-TLS connections), closing the connection,
 aborting the connection. At this point the connection drops regardless of what
 happens on the network.
+
+
+.. _connection-failure:
+
+Connection failure
+------------------
+
+If the opening handshake doesn't complete successfully, ``websockets`` fails
+the connection by closing the TCP connection.
+
+Once the opening handshake has completed, ``websockets`` fails the connection
+by cancelling :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` and
+sending a close frame if appropriate.
+
+:attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` exits, unblocking
+:attr:`~protocol.WebSocketCommonProtocol.close_connection_task`, which closes
+the TCP connection.
 
 
 .. _cancellation:

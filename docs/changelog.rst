@@ -43,6 +43,10 @@ Also:
 
 * Prevented writing to a closing TCP connection during unclean shutdowns.
 
+* Made connection termination more robust to network congestion.
+
+* Prevented processing of incoming frames after failing the connection.
+
 4.0
 ...
 

@@ -742,8 +742,8 @@ class CommonTests:
         # Ensure the test terminates quickly.
         self.loop.call_later(MS, self.receive_eof_if_client)
 
-        # Simulate the situation where sending a close frame times out.
-        self.protocol.transfer_data_task.cancel()
+        # Simulate the case when close() times out sending a close frame.
+        self.protocol.fail_connection()
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.ensure_open())

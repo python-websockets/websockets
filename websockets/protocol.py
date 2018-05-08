@@ -901,6 +901,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         logger.debug("%s - state = CLOSED", self.side)
         if self.close_code is None:
             self.close_code = 1006
+        logger.debug("%s x code = %d, reason = %s", self.side,
+                     self.close_code, self.close_reason or '[empty]')
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;
         # - it must never be cancelled.

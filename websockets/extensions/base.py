@@ -72,7 +72,7 @@ class Extension:
     """
     name = ...
 
-    def decode(self, frame):
+    def decode(self, frame, *, max_size=None):
         """
         Decode an incoming frame.
 

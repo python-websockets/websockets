@@ -119,7 +119,7 @@ class Frame(FrameData):
             length, = struct.unpack('!Q', data)
         if max_size is not None and length > max_size:
             raise PayloadTooBig(
-                "Payload length exceeds limit: {} > {} bytes"
+                "Payload length exceeds size limit ({} > {} bytes)"
                 .format(length, max_size))
         if mask:
             mask_bits = yield from reader(4)
@@ -134,7 +134,7 @@ class Frame(FrameData):
         if extensions is None:
             extensions = []
         for extension in reversed(extensions):
-            frame = extension.decode(frame)
+            frame = extension.decode(frame, max_size=max_size)
 
         frame.check()
 

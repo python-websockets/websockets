@@ -217,7 +217,9 @@ class FramingTests(unittest.TestCase):
                 return frame._replace(data=data)
 
             # This extensions is symmetrical.
-            decode = encode
+            @staticmethod
+            def decode(frame, *, max_size=None):
+                return Rot13.encode(frame)
 
         self.round_trip(
             b'\x81\x05uryyb',

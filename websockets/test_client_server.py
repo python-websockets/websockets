@@ -204,7 +204,7 @@ class NoOpExtension:
     def __repr__(self):
         return 'NoOpExtension()'
 
-    def decode(self, frame):
+    def decode(self, frame, *, max_size=None):
         return frame
 
     def encode(self, frame):

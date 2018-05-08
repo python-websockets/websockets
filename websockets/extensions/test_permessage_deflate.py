@@ -3,7 +3,7 @@ import zlib
 
 from ..exceptions import (
     DuplicateParameter, InvalidParameterName, InvalidParameterValue,
-    NegotiationError
+    NegotiationError, PayloadTooBig
 )
 from ..framing import (
     OP_BINARY, OP_CLOSE, OP_CONT, OP_PING, OP_PONG, OP_TEXT, Frame,
@@ -835,3 +835,15 @@ class PerMessageDeflateTests(unittest.TestCase):
             rsv1=True,
             data=b'\x00\x05\x00\xfa\xffcaf\xc3\xa9\x00',    # not compressed
         ))
+
+    # Frames aren't decoded beyond max_length.
+
+    def test_decompress_max_size(self):
+        frame = Frame(True, OP_TEXT, ('a' * 20).encode('utf-8'))
+
+        enc_frame = self.extension.encode(frame)
+
+        self.assertEqual(enc_frame.data, b'JL\xc4\x04\x00\x00')
+
+        with self.assertRaises(PayloadTooBig):
+            self.extension.decode(enc_frame, max_size=10)

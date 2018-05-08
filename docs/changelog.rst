@@ -8,6 +8,14 @@ Changelog
 
 *In development*
 
+.. note::
+
+    **Version 5.0 fixes a security issue introduced in version 4.0.**
+
+    websockets 4.0 was vulnerable to denial of service by memory exhaustion
+    because it didn't enforce ``max_size`` when decompressing compressed
+    messages.
+
 .. warning::
 
     **Version 5.0 adds a** ``user_info`` **field to the return value of**

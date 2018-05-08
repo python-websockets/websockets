@@ -8,7 +8,7 @@ import zlib
 
 from ..exceptions import (
     DuplicateParameter, InvalidParameterName, InvalidParameterValue,
-    NegotiationError
+    NegotiationError, PayloadTooBig
 )
 from ..framing import CTRL_OPCODES, OP_CONT
 
@@ -463,7 +463,7 @@ class PerMessageDeflate:
                 self.local_max_window_bits),
         ]))
 
-    def decode(self, frame):
+    def decode(self, frame, *, max_size=None):
         """
         Decode an incoming frame.
 
@@ -495,11 +495,18 @@ class PerMessageDeflate:
                 self.decoder = zlib.decompressobj(
                     wbits=-self.remote_max_window_bits)
 
-        # Uncompress compressed frames.
+        # Uncompress compressed frames. Protect against zip bombs by
+        # preventing zlib from decompressing more than max_length bytes
+        # (except when the limit is disabled with max_size = None).
         data = frame.data
         if frame.fin:
             data += _EMPTY_UNCOMPRESSED_BLOCK
-        data = self.decoder.decompress(data)
+        max_length = 0 if max_size is None else max_size
+        data = self.decoder.decompress(data, max_length)
+        if self.decoder.unconsumed_tail:
+            raise PayloadTooBig(
+                "Uncompressed payload length exceeds size limit (? > {} bytes)"
+                .format(max_size))
 
         # Allow garbage collection of the decoder if it won't be reused.
         if frame.fin and self.remote_no_context_takeover:

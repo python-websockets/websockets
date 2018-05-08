@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import functools
+import logging
 import os
 import time
 import unittest
@@ -10,6 +11,10 @@ from .compatibility import asyncio_ensure_future
 from .exceptions import ConnectionClosed, InvalidState
 from .framing import *
 from .protocol import State, WebSocketCommonProtocol
+
+
+# Avoid displaying stack traces at the ERROR logging level.
+logging.basicConfig(level=logging.CRITICAL)
 
 
 # Unit for timeouts. May be increased on slow machines by setting the

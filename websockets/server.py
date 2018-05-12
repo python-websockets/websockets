@@ -10,11 +10,11 @@ import sys
 
 from .compatibility import (
     BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE,
-    SWITCHING_PROTOCOLS, asyncio_ensure_future
+    SWITCHING_PROTOCOLS, UPGRADE_REQUIRED, asyncio_ensure_future
 )
 from .exceptions import (
     AbortHandshake, InvalidHandshake, InvalidMessage, InvalidOrigin,
-    NegotiationError
+    InvalidUpgrade, NegotiationError
 )
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from .handshake import build_response, check_request
@@ -109,6 +109,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     early_response = (
                         FORBIDDEN,
                         [],
+                        str(exc).encode(),
+                    )
+                elif isinstance(exc, InvalidUpgrade):
+                    logger.debug("Invalid upgrade", exc_info=True)
+                    early_response = (
+                        UPGRADE_REQUIRED,
+                        [('Upgrade', 'websocket')],
                         str(exc).encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):

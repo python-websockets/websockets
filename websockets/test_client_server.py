@@ -10,6 +10,7 @@ import sys
 import tempfile
 import unittest
 import unittest.mock
+import urllib.error
 import urllib.request
 
 from .client import *
@@ -472,14 +473,10 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(resp_headers.count("Server"), 1)
         self.assertIn("('Server', 'Eggs')", resp_headers)
 
-    @with_server(create_protocol=HealthCheckServerProtocol)
-    @with_client()
-    def test_custom_protocol_http_request(self):
-        # One URL returns an HTTP response.
-
-        # Set url to 'https?://<host>:<port>/__health__/'.
+    def make_http_request(self, path='/'):
+        # Set url to 'https?://<host>:<port><path>'.
         url = get_server_uri(
-            self.server, resource_name='/__health__/', secure=self.secure)
+            self.server, resource_name=path, secure=self.secure)
         url = url.replace('ws', 'http')
 
         if self.secure:
@@ -489,18 +486,42 @@ class ClientServerTests(unittest.TestCase):
             open_health_check = functools.partial(
                 urllib.request.urlopen, url)
 
+        return self.loop.run_in_executor(None, open_health_check)
+
+    @with_server(create_protocol=HealthCheckServerProtocol)
+    def test_http_request_http_endpoint(self):
+        # Making a HTTP request to a HTTP endpoint succeeds.
         response = self.loop.run_until_complete(
-            self.loop.run_in_executor(None, open_health_check))
+            self.make_http_request('/__health__/'))
 
         with contextlib.closing(response):
             self.assertEqual(response.code, 200)
             self.assertEqual(response.read(), b'status = green\n')
 
-        # Other URLs create a WebSocket connection.
+    @with_server(create_protocol=HealthCheckServerProtocol)
+    def test_http_request_ws_endpoint(self):
+        # Making a HTTP request to a WS endpoint fails.
+        with self.assertRaises(urllib.error.HTTPError) as raised:
+            self.loop.run_until_complete(self.make_http_request())
 
+        self.assertEqual(raised.exception.code, 426)
+        self.assertEqual(raised.exception.headers['Upgrade'], 'websocket')
+
+    @with_server(create_protocol=HealthCheckServerProtocol)
+    def test_ws_connection_http_endpoint(self):
+        # Making a WS connection to a HTTP endpoint fails.
+        with self.assertRaises(InvalidStatusCode) as raised:
+            self.start_client('/__health__/')
+
+        self.assertEqual(raised.exception.status_code, 200)
+
+    @with_server(create_protocol=HealthCheckServerProtocol)
+    def test_ws_connection_ws_endpoint(self):
+        # Making a WS connection to a WS endpoint succeeds.
+        self.start_client()
         self.loop.run_until_complete(self.client.send("Hello!"))
-        reply = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(reply, "Hello!")
+        self.loop.run_until_complete(self.client.recv())
+        self.stop_client()
 
     def assert_client_raises_code(self, status_code):
         with self.assertRaises(InvalidStatusCode) as raised:

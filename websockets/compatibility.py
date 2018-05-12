@@ -21,6 +21,7 @@ try:                                                # pragma: no cover
     BAD_REQUEST = http.HTTPStatus.BAD_REQUEST
     UNAUTHORIZED = http.HTTPStatus.UNAUTHORIZED
     FORBIDDEN = http.HTTPStatus.FORBIDDEN
+    UPGRADE_REQUIRED = http.HTTPStatus.UPGRADE_REQUIRED
     INTERNAL_SERVER_ERROR = http.HTTPStatus.INTERNAL_SERVER_ERROR
     SERVICE_UNAVAILABLE = http.HTTPStatus.SERVICE_UNAVAILABLE
 except AttributeError:                              # pragma: no cover
@@ -44,6 +45,10 @@ except AttributeError:                              # pragma: no cover
     class FORBIDDEN:
         value = 403
         phrase = "Forbidden"
+
+    class UPGRADE_REQUIRED:
+        value = 426
+        phrase = "Upgrade Required"
 
     class INTERNAL_SERVER_ERROR:
         value = 500

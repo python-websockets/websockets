@@ -198,6 +198,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Task running the data transfer.
         self.transfer_data_task = None
 
+        # Exception that occurred during data transfer, if any.
+        self.transfer_data_exc = None
+
         # Task closing the TCP connection.
         self.close_connection_task = None
 
@@ -485,7 +488,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 return
 
         if self.state is State.CLOSED:
-            raise ConnectionClosed(self.close_code, self.close_reason)
+            raise ConnectionClosed(
+                self.close_code, self.close_reason) from self.transfer_data_exc
 
         if self.state is State.CLOSING:
             # If we started the closing handshake, wait for its completion to
@@ -495,7 +499,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # that case self.close_connection_task will complete even faster.
             if self.close_code is None:
                 yield from asyncio.shield(self.close_connection_task)
-            raise ConnectionClosed(self.close_code, self.close_reason)
+            raise ConnectionClosed(
+                self.close_code, self.close_reason) from self.transfer_data_exc
 
         # Control may only reach this point in buggy third-party subclasses.
         assert self.state is State.CONNECTING
@@ -517,33 +522,40 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     break
                 yield from self.messages.put(msg)
 
-        except asyncio.CancelledError:
+        except asyncio.CancelledError as exc:
+            self.transfer_data_exc = exc
             # If fail_connection() cancels this task, avoid logging the error
             # twice and failing the connection again.
             raise
 
-        except WebSocketProtocolError:
+        except WebSocketProtocolError as exc:
+            self.transfer_data_exc = exc
             self.fail_connection(1002)
 
-        except (ConnectionError, EOFError):
+        except (ConnectionError, EOFError) as exc:
             # Reading data with self.reader.readexactly may raise:
             # - most subclasses of ConnectionError if the TCP connection
             #   breaks, is reset, or is aborted;
             # - IncompleteReadError, a subclass of EOFError, if fewer
             #   bytes are available than requested.
+            self.transfer_data_exc = exc
             self.fail_connection(1006)
 
-        except UnicodeDecodeError:
+        except UnicodeDecodeError as exc:
+            self.transfer_data_exc = exc
             self.fail_connection(1007)
 
-        except PayloadTooBig:
+        except PayloadTooBig as exc:
+            self.transfer_data_exc = exc
             self.fail_connection(1009)
 
-        except Exception:
+        except Exception as exc:
             # This shouldn't happen often because exceptions expected under
             # regular circumstances are handled above. If it does, consider
             # catching and handling more exceptions.
             logger.error("Error in data transfer", exc_info=True)
+
+            self.transfer_data_exc = exc
             self.fail_connection(1011)
 
     @asyncio.coroutine
@@ -722,8 +734,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         except ConnectionError:
             # Terminate the connection if the socket died.
             self.fail_connection()
-            # And raise an exception, since the frame couldn't be sent.
-            raise ConnectionClosed(self.close_code, self.close_reason)
+            # Wait until the connection is closed to raise ConnectionClosed
+            # with the correct code and reason.
+            yield from self.ensure_open()
 
     def writer_is_closing(self):
         """

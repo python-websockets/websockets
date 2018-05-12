@@ -32,6 +32,8 @@ Also:
 * If a :meth:`~protocol.WebSocketCommonProtocol.ping` doesn't receive a pong,
   it's cancelled when the connection is closed.
 
+* Reported the cause of :exc:`~exceptions.ConnectionClosed` exceptions.
+
 * Updated documentation with new features from Python 3.6.
 
 * Fixed missing close code, which caused :exc:`TypeError` on connection close.

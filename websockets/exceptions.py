@@ -1,9 +1,9 @@
 __all__ = [
-    'AbortHandshake', 'InvalidHandshake', 'InvalidHeader', 'InvalidMessage',
-    'InvalidOrigin', 'InvalidState', 'InvalidStatusCode', 'NegotiationError',
-    'InvalidParameterName', 'InvalidParameterValue', 'DuplicateParameter',
-    'InvalidURI', 'ConnectionClosed', 'PayloadTooBig',
-    'WebSocketProtocolError',
+    'AbortHandshake', 'InvalidHandshake', 'InvalidHeader',
+    'InvalidHeaderFormat', 'InvalidMessage', 'InvalidOrigin', 'InvalidState',
+    'InvalidStatusCode', 'NegotiationError', 'InvalidParameterName',
+    'InvalidParameterValue', 'DuplicateParameter', 'InvalidURI',
+    'ConnectionClosed', 'PayloadTooBig', 'WebSocketProtocolError',
 ]
 
 
@@ -37,21 +37,34 @@ class InvalidMessage(InvalidHandshake):
 
 class InvalidHeader(InvalidHandshake):
     """
-    Exception raised when a HTTP header doesn't have the expected format.
+    Exception raised when a HTTP header doesn't have a valid format or value.
 
     """
-    def __init__(self, message, string, pos):
-        self.string = string
-        self.pos = pos
-        message = "{} at {} in {}".format(message, pos, string)
+    def __init__(self, name, value):
+        if value:
+            message = "Invalid {} header: {}".format(name, value)
+        else:
+            message = "Missing or empty {} header".format(name)
         super().__init__(message)
 
 
-class InvalidOrigin(InvalidHandshake):
+class InvalidHeaderFormat(InvalidHeader):
     """
-    Exception raised when the origin in a handshake request is forbidden.
+    Exception raised when a Sec-WebSocket-* HTTP header cannot be parsed.
 
     """
+    def __init__(self, name, error, string, pos):
+        error = "{} at {} in {}".format(error, pos, string)
+        super().__init__(name, error)
+
+
+class InvalidOrigin(InvalidHeader):
+    """
+    Exception raised when the Origin header in a request isn't allowed.
+
+    """
+    def __init__(self, origin):
+        super().__init__('Origin', origin)
 
 
 class InvalidStatusCode(InvalidHandshake):

@@ -9,7 +9,7 @@ from :mod:`websockets.headers`.
 
 import re
 
-from .exceptions import InvalidHeader
+from .exceptions import InvalidHeaderFormat
 
 
 __all__ = [
@@ -54,18 +54,19 @@ def parse_OWS(string, pos):
 _token_re = re.compile(r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+')
 
 
-def parse_token(string, pos):
+def parse_token(string, pos, header_name):
     """
     Parse a token from ``string`` at the given position.
 
     Return the token value and the new position.
 
-    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
     match = _token_re.match(string, pos)
     if match is None:
-        raise InvalidHeader("Expected token", string=string, pos=pos)
+        raise InvalidHeaderFormat(
+            header_name, "expected token", string=string, pos=pos)
     return match.group(), match.end()
 
 
@@ -76,46 +77,48 @@ _quoted_string_re = re.compile(
 _unquote_re = re.compile(r'\\([\x09\x20-\x7e\x80-\xff])')
 
 
-def parse_quoted_string(string, pos):
+def parse_quoted_string(string, pos, header_name):
     """
     Parse a quoted string from ``string`` at the given position.
 
     Return the unquoted value and the new position.
 
-    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
     match = _quoted_string_re.match(string, pos)
     if match is None:
-        raise InvalidHeader("Expected quoted string", string=string, pos=pos)
+        raise InvalidHeaderFormat(
+            header_name, "expected quoted string", string=string, pos=pos)
     return _unquote_re.sub(r'\1', match.group()[1:-1]), match.end()
 
 
-def parse_extension_param(string, pos):
+def parse_extension_param(string, pos, header_name):
     """
     Parse a single extension parameter from ``string`` at the given position.
 
     Return a ``(name, value)`` pair and the new position.
 
-    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
     # Extract parameter name.
-    name, pos = parse_token(string, pos)
+    name, pos = parse_token(string, pos, header_name)
     pos = parse_OWS(string, pos)
     # Extract parameter string, if there is one.
     if peek_ahead(string, pos) == '=':
         pos = parse_OWS(string, pos + 1)
         if peek_ahead(string, pos) == '"':
             pos_before = pos    # for proper error reporting below
-            value, pos = parse_quoted_string(string, pos)
+            value, pos = parse_quoted_string(string, pos, header_name)
             # https://tools.ietf.org/html/rfc6455#section-9.1 says: the value
             # after quoted-string unescaping MUST conform to the 'token' ABNF.
             if _token_re.fullmatch(value) is None:
-                raise InvalidHeader("Invalid quoted string content",
-                                    string=string, pos=pos_before)
+                raise InvalidHeaderFormat(
+                    header_name, "invalid quoted string content",
+                    string=string, pos=pos_before)
         else:
-            value, pos = parse_token(string, pos)
+            value, pos = parse_token(string, pos, header_name)
         pos = parse_OWS(string, pos)
     else:
         value = None
@@ -123,29 +126,30 @@ def parse_extension_param(string, pos):
     return (name, value), pos
 
 
-def parse_extension(string, pos):
+def parse_extension(string, pos, header_name):
     """
     Parse an extension definition from ``string`` at the given position.
 
     Return an ``(extension name, parameters)`` pair, where ``parameters`` is a
     list of ``(name, value)`` pairs, and the new position.
 
-    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
     # Extract extension name.
-    name, pos = parse_token(string, pos)
+    name, pos = parse_token(string, pos, header_name)
     pos = parse_OWS(string, pos)
     # Extract all parameters.
     parameters = []
     while peek_ahead(string, pos) == ';':
         pos = parse_OWS(string, pos + 1)
-        parameter, pos = parse_extension_param(string, pos)
+        parameter, pos = parse_extension_param(string, pos, header_name)
         parameters.append(parameter)
     return (name, parameters), pos
 
 
-def parse_extension_list(string, pos=0):
+def parse_extension_list(
+        string, pos=0, header_name='Sec-WebSocket-Extensions'):
     """
     Parse a ``Sec-WebSocket-Extensions`` header.
 
@@ -166,7 +170,7 @@ def parse_extension_list(string, pos=0):
 
     Parameter values are ``None`` when no value is provided.
 
-    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
     # Per https://tools.ietf.org/html/rfc7230#section-7, "a recipient MUST
@@ -180,7 +184,7 @@ def parse_extension_list(string, pos=0):
     extensions = []
     while True:
         # Loop invariant: an extension starts at pos in string.
-        extension, pos = parse_extension(string, pos)
+        extension, pos = parse_extension(string, pos, header_name)
         extensions.append(extension)
 
         # We may have reached the end of the string.
@@ -191,7 +195,8 @@ def parse_extension_list(string, pos=0):
         if peek_ahead(string, pos) == ',':
             pos = parse_OWS(string, pos + 1)
         else:
-            raise InvalidHeader("Expected comma", string=string, pos=pos)
+            raise InvalidHeaderFormat(
+                header_name, "expected comma", string=string, pos=pos)
 
         # Remove extra delimiters before the next extension.
         while peek_ahead(string, pos) == ',':
@@ -235,21 +240,21 @@ def build_extension_list(extensions):
     )
 
 
-def parse_protocol(string, pos):
+def parse_protocol(string, pos, header_name):
     """
     Parse a protocol definition from ``string`` at the given position.
 
     Return the protocol and the new position.
 
-    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
-    name, pos = parse_token(string, pos)
+    name, pos = parse_token(string, pos, header_name)
     pos = parse_OWS(string, pos)
     return name, pos
 
 
-def parse_protocol_list(string, pos=0):
+def parse_protocol_list(string, pos=0, header_name='Sec-WebSocket-Protocol'):
     """
     Parse a ``Sec-WebSocket-Protocol`` header.
 
@@ -257,7 +262,7 @@ def parse_protocol_list(string, pos=0):
 
     Return a list of protocols.
 
-    Raise :exc:`~websockets.exceptions.InvalidHeader` on invalid inputs.
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
     # Per https://tools.ietf.org/html/rfc7230#section-7, "a recipient MUST
@@ -271,7 +276,7 @@ def parse_protocol_list(string, pos=0):
     protocols = []
     while True:
         # Loop invariant: a protocol starts at pos in string.
-        protocol, pos = parse_protocol(string, pos)
+        protocol, pos = parse_protocol(string, pos, header_name)
         protocols.append(protocol)
 
         # We may have reached the end of the string.
@@ -282,7 +287,8 @@ def parse_protocol_list(string, pos=0):
         if peek_ahead(string, pos) == ',':
             pos = parse_OWS(string, pos + 1)
         else:
-            raise InvalidHeader("Expected comma", string=string, pos=pos)
+            raise InvalidHeaderFormat(
+                header_name, "expected comma", string=string, pos=pos)
 
         # Remove extra delimiters before the next protocol.
         while peek_ahead(string, pos) == ',':

@@ -1,6 +1,6 @@
 import unittest
 
-from .exceptions import InvalidHeader
+from .exceptions import InvalidHeaderFormat
 from .headers import *
 
 
@@ -66,7 +66,7 @@ class HeadersTests(unittest.TestCase):
             'foo; bar=" "',
         ]:
             with self.subTest(header=header):
-                with self.assertRaises(InvalidHeader):
+                with self.assertRaises(InvalidHeaderFormat):
                     parse_extension_list(header)
 
     def test_parse_protocol_list(self):
@@ -101,5 +101,5 @@ class HeadersTests(unittest.TestCase):
             'foo; bar',
         ]:
             with self.subTest(header=header):
-                with self.assertRaises(InvalidHeader):
+                with self.assertRaises(InvalidHeaderFormat):
                     parse_protocol_list(header)

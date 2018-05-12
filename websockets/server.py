@@ -264,7 +264,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         origin = get_header('Origin')
         if origins is not None:
             if origin not in origins:
-                raise InvalidOrigin("Origin not allowed: {}".format(origin))
+                raise InvalidOrigin(origin)
         return origin
 
     @staticmethod

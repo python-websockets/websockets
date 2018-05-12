@@ -578,7 +578,8 @@ class WebSocketServer:
             yield from asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets] +
                 [websocket.close_connection_task
-                    for websocket in self.websockets],
+                    for websocket in self.websockets
+                    if websocket.close_connection_task],
                 loop=self.loop)
         yield from self.server.wait_closed()
 

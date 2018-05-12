@@ -96,7 +96,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     early_response = (
                         SERVICE_UNAVAILABLE,
                         [],
-                        b"Server is shutting down.",
+                        b"Server is shutting down.\n",
                     )
                 elif isinstance(exc, AbortHandshake):
                     early_response = (
@@ -109,28 +109,28 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     early_response = (
                         FORBIDDEN,
                         [],
-                        str(exc).encode(),
+                        (str(exc) + "\n").encode(),
                     )
                 elif isinstance(exc, InvalidUpgrade):
                     logger.debug("Invalid upgrade", exc_info=True)
                     early_response = (
                         UPGRADE_REQUIRED,
                         [('Upgrade', 'websocket')],
-                        str(exc).encode(),
+                        (str(exc) + "\n").encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):
                     logger.debug("Invalid handshake", exc_info=True)
                     early_response = (
                         BAD_REQUEST,
                         [],
-                        str(exc).encode(),
+                        (str(exc) + "\n").encode(),
                     )
                 else:
                     logger.warning("Error in opening handshake", exc_info=True)
                     early_response = (
                         INTERNAL_SERVER_ERROR,
                         [],
-                        b"See server log for more information.",
+                        b"See server log for more information.\n",
                     )
 
                 yield from self.write_http_response(*early_response)

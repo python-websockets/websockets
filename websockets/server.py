@@ -105,14 +105,14 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                         exc.body,
                     )
                 elif isinstance(exc, InvalidOrigin):
-                    logger.warning("Invalid origin", exc_info=True)
+                    logger.debug("Invalid origin", exc_info=True)
                     early_response = (
                         FORBIDDEN,
                         [],
                         str(exc).encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):
-                    logger.warning("Invalid handshake", exc_info=True)
+                    logger.debug("Invalid handshake", exc_info=True)
                     early_response = (
                         BAD_REQUEST,
                         [],

@@ -764,7 +764,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             yield from self.write_frame(OP_CLOSE, data, State.CLOSING)
 
     @asyncio.coroutine
-    def close_connection(self, after_handshake=True):
+    def close_connection(self):
         """
         7.1.1. Close the WebSocket Connection
 
@@ -772,13 +772,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         this coroutine in a task. It waits for the data transfer phase to
         complete then it closes the TCP connection cleanly.
 
-        When the opening handshake fails, the client or the server runs this
-        coroutine with ``after_handshake=False`` to close the TCP connection.
+        When the opening handshake fails, :meth:`fail_connection` does the
+        same. There's no data transfer phase in that case.
 
         """
         try:
             # Wait for the data transfer phase to complete.
-            if after_handshake:
+            if self.transfer_data_task is not None:
                 try:
                     yield from self.transfer_data_task
                 except asyncio.CancelledError:
@@ -798,7 +798,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     self.side, plural, pings_hex)
 
             # A client should wait for a TCP close from the server.
-            if self.is_client and after_handshake:
+            if self.is_client and self.transfer_data_task is not None:
                 if (yield from self.wait_for_connection_lost()):
                     return
                 logger.debug(
@@ -881,20 +881,19 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         (The specification describes these steps in the opposite order.)
 
-        """
-        # fail_connection() only supports the case when the opening handshake
-        # succeeded. Before that, use close_connection(after_handshake=False).
-        assert self.state is not State.CONNECTING, (
-            "fail_connection() doesn't support the CONNECTING state")
+        Return a :class:`~asyncio.Task` that completes when the TCP connection
+        is closed.
 
+        """
         logger.debug(
             "%s ! failing WebSocket connection: %d %s",
             self.side, code, reason,
         )
 
-        # transfer_data_task was started when the opening handshake succeeded.
+        # Cancel transfer_data_task if the opening handshake succeeded.
         # cancel() is idempotent and ignored if the task is done already.
-        self.transfer_data_task.cancel()
+        if self.transfer_data_task is not None:
+            self.transfer_data_task.cancel()
 
         # Send a close frame when the state is OPEN (a close frame was already
         # sent if it's CLOSING), except when failing the connection because of
@@ -923,6 +922,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 mask=self.is_client,
                 extensions=self.extensions,
             )
+
+        # Start close_connection_task if the opening handshake didn't succeed.
+        if self.close_connection_task is None:
+            self.close_connection_task = asyncio_ensure_future(
+                self.close_connection(), loop=self.loop)
+
+        return self.close_connection_task
 
     # asyncio.StreamReaderProtocol methods
 

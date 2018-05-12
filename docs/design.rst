@@ -80,6 +80,10 @@ two tasks:
   connection. It must not be cancelled. It never exits with an exception. See
   :ref:`connection termination <connection-termination>` below.
 
+Besides, :meth:`~protocol.WebSocketCommonProtocol.fail_connection()` starts
+the same :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` when
+the opening handshake fails, in order to close the TCP connection.
+
 Splitting the responsibilities between two tasks makes it easier to guarantee
 that ``websockets`` can terminate connections:
 

@@ -404,7 +404,7 @@ class Connect:
                 extra_headers=protocol.extra_headers,
             )
         except Exception:
-            yield from protocol.close_connection(after_handshake=False)
+            yield from protocol.fail_connection()
             raise
 
         self.ws_client = protocol

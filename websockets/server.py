@@ -134,7 +134,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     )
 
                 yield from self.write_http_response(*early_response)
-                yield from self.close_connection(after_handshake=False)
+                yield from self.fail_connection()
 
                 return
 
@@ -585,8 +585,7 @@ class WebSocketServer:
             yield from asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets] +
                 [websocket.close_connection_task
-                    for websocket in self.websockets
-                    if websocket.close_connection_task],
+                    for websocket in self.websockets],
                 loop=self.loop)
         yield from self.server.wait_closed()
 

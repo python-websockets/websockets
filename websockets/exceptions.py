@@ -1,9 +1,10 @@
 __all__ = [
-    'AbortHandshake', 'InvalidHandshake', 'InvalidHeader',
-    'InvalidHeaderFormat', 'InvalidMessage', 'InvalidOrigin', 'InvalidState',
-    'InvalidStatusCode', 'NegotiationError', 'InvalidParameterName',
-    'InvalidParameterValue', 'DuplicateParameter', 'InvalidURI',
-    'ConnectionClosed', 'PayloadTooBig', 'WebSocketProtocolError',
+    'AbortHandshake', 'ConnectionClosed', 'DuplicateParameter',
+    'InvalidHandshake', 'InvalidHeader', 'InvalidHeaderFormat',
+    'InvalidHeaderValue', 'InvalidMessage', 'InvalidOrigin',
+    'InvalidParameterName', 'InvalidParameterValue', 'InvalidState',
+    'InvalidStatusCode', 'InvalidUpgrade', 'InvalidURI', 'NegotiationError',
+    'PayloadTooBig', 'WebSocketProtocolError',
 ]
 
 
@@ -56,6 +57,20 @@ class InvalidHeaderFormat(InvalidHeader):
     def __init__(self, name, error, string, pos):
         error = "{} at {} in {}".format(error, pos, string)
         super().__init__(name, error)
+
+
+class InvalidHeaderValue(InvalidHeader):
+    """
+    Exception raised when a Sec-WebSocket-* HTTP header has a wrong value.
+
+    """
+
+
+class InvalidUpgrade(InvalidHeader):
+    """
+    Exception raised when a Upgrade or Connection header isn't correct.
+
+    """
 
 
 class InvalidOrigin(InvalidHeader):

@@ -20,18 +20,31 @@ class ExceptionsTests(unittest.TestCase):
                 "Malformed HTTP message",
             ),
             (
-                InvalidHeader('Upgrade', ''),
-                "Missing or empty Upgrade header",
+                InvalidHeader('Name', ''),
+                "Missing or empty Name header",
             ),
             (
-                InvalidHeader('Connection', 'websocket'),
-                "Invalid Connection header: websocket",
+                InvalidHeader('Name', 'Value'),
+                "Invalid Name header: Value",
             ),
             (
                 InvalidHeaderFormat(
                     'Sec-WebSocket-Protocol', "expected token", 'a=|', 3),
                 "Invalid Sec-WebSocket-Protocol header: "
                 "expected token at 3 in a=|",
+            ),
+            (
+                InvalidHeaderValue('Sec-WebSocket-Version', '42'),
+                "Invalid Sec-WebSocket-Version header: 42",
+            ),
+
+            (
+                InvalidUpgrade('Upgrade', ''),
+                "Missing or empty Upgrade header",
+            ),
+            (
+                InvalidUpgrade('Connection', 'websocket'),
+                "Invalid Connection header: websocket",
             ),
             (
                 InvalidOrigin('http://bad.origin'),

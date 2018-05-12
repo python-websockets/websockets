@@ -35,10 +35,11 @@ To open a connection, a client must:
 """
 
 import base64
+import binascii
 import hashlib
 import random
 
-from .exceptions import InvalidHandshake
+from .exceptions import InvalidHeaderValue, InvalidUpgrade
 
 
 __all__ = [
@@ -56,8 +57,8 @@ def build_request(set_header):
     Return the ``key`` which must be passed to :func:`check_response`.
 
     """
-    rand = bytes(random.getrandbits(8) for _ in range(16))
-    key = base64.b64encode(rand).decode()
+    raw_key = bytes(random.getrandbits(8) for _ in range(16))
+    key = base64.b64encode(raw_key).decode()
     set_header('Upgrade', 'websocket')
     set_header('Connection', 'Upgrade')
     set_header('Sec-WebSocket-Key', key)
@@ -81,16 +82,25 @@ def check_request(get_header):
     responsibility of the caller.
 
     """
+    if get_header('Upgrade').lower() != 'websocket':
+        raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
+
+    if get_header('Connection').lower() != 'upgrade':
+        raise InvalidUpgrade('Connection', get_header('Connection'))
+
+    key = get_header('Sec-WebSocket-Key')
     try:
-        assert get_header('Upgrade').lower() == 'websocket'
-        assert get_header('Connection').lower() == 'upgrade'
-        key = get_header('Sec-WebSocket-Key')
-        assert len(base64.b64decode(key.encode(), validate=True)) == 16
-        assert get_header('Sec-WebSocket-Version') == '13'
-    except Exception as exc:
-        raise InvalidHandshake("Invalid request") from exc
-    else:
-        return key
+        raw_key = base64.b64decode(key.encode(), validate=True)
+    except binascii.Error:
+        raise InvalidHeaderValue('Sec-WebSocket-Key', key)
+    if len(raw_key) != 16:
+        raise InvalidHeaderValue('Sec-WebSocket-Key', key)
+
+    version = get_header('Sec-WebSocket-Version')
+    if version != '13':
+        raise InvalidHeaderValue('Sec-WebSocket-Version', version)
+
+    return key
 
 
 def build_response(set_header, key):
@@ -121,12 +131,15 @@ def check_response(get_header, key):
     the caller.
 
     """
-    try:
-        assert get_header('Upgrade').lower() == 'websocket'
-        assert get_header('Connection').lower() == 'upgrade'
-        assert get_header('Sec-WebSocket-Accept') == accept(key)
-    except Exception as exc:
-        raise InvalidHandshake("Invalid response") from exc
+    if get_header('Upgrade').lower() != 'websocket':
+        raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
+
+    if get_header('Connection').lower() != 'upgrade':
+        raise InvalidUpgrade('Connection', get_header('Connection'))
+
+    if get_header('Sec-WebSocket-Accept') != accept(key):
+        raise InvalidHeaderValue(
+            'Sec-WebSocket-Accept', get_header('Sec-WebSocket-Accept'))
 
 
 def accept(key):

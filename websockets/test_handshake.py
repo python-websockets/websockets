@@ -1,3 +1,4 @@
+import collections
 import contextlib
 import unittest
 
@@ -31,7 +32,7 @@ class HandshakeTests(unittest.TestCase):
         Assert that the transformation made them invalid.
 
         """
-        headers = {}
+        headers = collections.defaultdict(lambda: '')
         build_request(headers.__setitem__)
         yield headers
         with self.assertRaises(InvalidHandshake):
@@ -85,7 +86,7 @@ class HandshakeTests(unittest.TestCase):
         Assert that the transformation made them invalid.
 
         """
-        headers = {}
+        headers = collections.defaultdict(lambda: '')
         build_response(headers.__setitem__, key)
         yield headers
         with self.assertRaises(InvalidHandshake):

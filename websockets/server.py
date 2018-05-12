@@ -142,10 +142,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 yield from self.ws_handler(self, path)
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
-                    self.fail_connection(1001)
+                    if not self.closed:
+                        self.fail_connection(1001)
                 else:
                     logger.error("Error in connection handler", exc_info=True)
-                    self.fail_connection(1011)
+                    if not self.closed:
+                        self.fail_connection(1011)
                 raise
 
             try:

@@ -659,6 +659,12 @@ class Serve:
     delegates to the WebSocket handler. Once the handler completes, the server
     performs the closing handshake and closes the connection.
 
+    When a server is closed with
+    :meth:`~websockets.server.WebSocketServer.close`, all running WebSocket
+    handlers are cancelled. They may intercept :exc:`~asyncio.CancelledError`
+    and perform cleanup actions before re-raising that exception. If a handler
+    started new tasks, it should cancel them as well in that case.
+
     Since there's no useful way to propagate exceptions triggered in handlers,
     they're sent to the ``'websockets.server'`` logger instead. Debugging is
     much easier if you configure logging to print them::

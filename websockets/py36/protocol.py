@@ -14,7 +14,7 @@ async def __aiter__(self):
         while True:
             yield await self.recv()
     except ConnectionClosed as exc:
-        if exc.code == 1000:
+        if exc.code == 1000 or exc.code == 1001:
             return
         else:
             raise

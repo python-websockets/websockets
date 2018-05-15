@@ -21,6 +21,9 @@ Also:
 * :func:`~client.connect()` performs HTTP Basic Auth when the URI contains
   credentials.
 
+* Iterating on incoming messages no longer raises an exception when the
+  connection terminates with code 1001 (going away).
+
 * :func:`~server.unix_serve` can be used as an asynchronous context manager on
   Python ≥ 3.5.1.
 

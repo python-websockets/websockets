@@ -55,12 +55,37 @@ class AsyncIteratorTests(unittest.TestCase):
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
-    def test_iterate_on_messages_exit_not_ok(self):
+    def test_iterate_on_messages_going_away_exit_ok(self):
 
         async def handler(ws, path):
             for message in MESSAGES:
                 await ws.send(message)
             await ws.close(1001)
+
+        start_server = serve(handler, 'localhost', 0)
+        server = self.loop.run_until_complete(start_server)
+
+        messages = []
+
+        async def run_client():
+            nonlocal messages
+            async with connect(get_server_uri(server)) as ws:
+                async for message in ws:
+                    messages.append(message)
+
+        self.loop.run_until_complete(run_client())
+
+        self.assertEqual(messages, MESSAGES)
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
+    def test_iterate_on_messages_internal_error_exit_not_ok(self):
+
+        async def handler(ws, path):
+            for message in MESSAGES:
+                await ws.send(message)
+            await ws.close(1011)
 
         start_server = serve(handler, 'localhost', 0)
         server = self.loop.run_until_complete(start_server)

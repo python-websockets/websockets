@@ -59,9 +59,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             await process(message)
 
     The iterator yields incoming messages. It exits normally when the
-    connection is closed with the status code 1000 OK. It raises a
-    :exc:`~websockets.exceptions.ConnectionClosed` exception when the
-    connection is closed with any other status code.
+    connection is closed with the status code 1000 (OK) or 1001 (going away).
+    It raises a :exc:`~websockets.exceptions.ConnectionClosed` exception when
+    the connection is closed with any other status code.
 
     The ``host``, ``port`` and ``secure`` parameters are simply stored as
     attributes for handlers that need them.

@@ -13,8 +13,9 @@ from .exceptions import InvalidHeaderFormat
 
 
 __all__ = [
+    'parse_connection', 'parse_upgrade',
     'parse_extension_list', 'build_extension_list',
-    'parse_protocol_list', 'build_protocol_list',
+    'parse_subprotocol_list', 'build_subprotocol_list',
 ]
 
 
@@ -154,6 +155,50 @@ def parse_list(parse_item, string, pos, header_name):
     return items
 
 
+def parse_connection(string):
+    """
+    Parse a ``Connection`` header.
+
+    Return a list of connection options.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
+
+    """
+    return parse_list(parse_token, string, 0, 'Connection')
+
+
+_protocol_re = re.compile(
+    r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+(?:/[-!#$%&\'*+.^_`|~0-9a-zA-Z]+)?')
+
+
+def parse_protocol(string, pos, header_name):
+    """
+    Parse a protocol from ``string`` at the given position.
+
+    Return the protocol value and the new position.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
+
+    """
+    match = _protocol_re.match(string, pos)
+    if match is None:
+        raise InvalidHeaderFormat(
+            header_name, "expected protocol", string=string, pos=pos)
+    return match.group(), match.end()
+
+
+def parse_upgrade(string):
+    """
+    Parse an ``Upgrade`` header.
+
+    Return a list of connection options.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
+
+    """
+    return parse_list(parse_protocol, string, 0, 'Upgrade')
+
+
 def parse_extension_param(string, pos, header_name):
     """
     Parse a single extension parameter from ``string`` at the given position.
@@ -261,7 +306,7 @@ def build_extension_list(extensions):
     )
 
 
-def parse_protocol_list(string):
+def parse_subprotocol_list(string):
     """
     Parse a ``Sec-WebSocket-Protocol`` header.
 
@@ -271,11 +316,11 @@ def parse_protocol_list(string):
     return parse_list(parse_token, string, 0, 'Sec-WebSocket-Protocol')
 
 
-def build_protocol_list(protocols):
+def build_subprotocol_list(protocols):
     """
     Unparse a ``Sec-WebSocket-Protocol`` header.
 
-    This is the reverse of :func:`parse_protocol_list`.
+    This is the reverse of :func:`parse_subprotocol_list`.
 
     """
     return ', '.join(protocols)

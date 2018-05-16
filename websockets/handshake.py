@@ -40,6 +40,7 @@ import hashlib
 import random
 
 from .exceptions import InvalidHeaderValue, InvalidUpgrade
+from .headers import parse_connection, parse_upgrade
 
 
 __all__ = [
@@ -82,11 +83,13 @@ def check_request(get_header):
     responsibility of the caller.
 
     """
-    if get_header('Upgrade').lower() != 'websocket':
-        raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
-
-    if get_header('Connection').lower() != 'upgrade':
+    connection = parse_connection(get_header('Connection'))
+    if not any(value.lower() == 'upgrade' for value in connection):
         raise InvalidUpgrade('Connection', get_header('Connection'))
+
+    upgrade = parse_upgrade(get_header('Upgrade'))
+    if not (len(upgrade) == 1 and upgrade[0] == 'websocket'):
+        raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
 
     key = get_header('Sec-WebSocket-Key')
     try:
@@ -131,11 +134,13 @@ def check_response(get_header, key):
     the caller.
 
     """
-    if get_header('Upgrade').lower() != 'websocket':
-        raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
-
-    if get_header('Connection').lower() != 'upgrade':
+    connection = parse_connection(get_header('Connection'))
+    if not any(value.lower() == 'upgrade' for value in connection):
         raise InvalidUpgrade('Connection', get_header('Connection'))
+
+    upgrade = parse_upgrade(get_header('Upgrade'))
+    if not (len(upgrade) == 1 and upgrade[0] == 'websocket'):
+        raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
 
     if get_header('Sec-WebSocket-Accept') != accept(key):
         raise InvalidHeaderValue(

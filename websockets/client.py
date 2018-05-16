@@ -13,8 +13,8 @@ from .exceptions import (
 from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from .handshake import build_request, check_response
 from .headers import (
-    build_extension_list, build_protocol_list, parse_extension_list,
-    parse_protocol_list
+    build_extension_list, build_subprotocol_list, parse_extension_list,
+    parse_subprotocol_list
 )
 from .http import USER_AGENT, basic_auth_header, build_headers, read_response
 from .protocol import WebSocketCommonProtocol
@@ -163,7 +163,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         Handle the Sec-WebSocket-Protocol HTTP response header.
 
-        Check that it contains a supported subprotocol.
+        Check that it contains exactly one supported subprotocol.
 
         Return the selected subprotocol.
 
@@ -178,7 +178,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                 raise InvalidHandshake("No subprotocols supported")
 
             parsed_header_values = sum([
-                parse_protocol_list(header_value)
+                parse_subprotocol_list(header_value)
                 for header_value in header_values
             ], [])
 
@@ -242,7 +242,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             set_header('Sec-WebSocket-Extensions', extensions_header)
 
         if available_subprotocols is not None:
-            protocol_header = build_protocol_list(available_subprotocols)
+            protocol_header = build_subprotocol_list(available_subprotocols)
             set_header('Sec-WebSocket-Protocol', protocol_header)
 
         if extra_headers is not None:

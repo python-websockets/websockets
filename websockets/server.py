@@ -19,7 +19,7 @@ from .exceptions import (
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from .handshake import build_response, check_request
 from .headers import (
-    build_extension_list, parse_extension_list, parse_protocol_list
+    build_extension_list, parse_extension_list, parse_subprotocol_list
 )
 from .http import USER_AGENT, build_headers, read_request
 from .protocol import WebSocketCommonProtocol
@@ -370,7 +370,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if header_values is not None and available_subprotocols is not None:
 
             parsed_header_values = sum([
-                parse_protocol_list(header_value)
+                parse_subprotocol_list(header_value)
                 for header_value in header_values
             ], [])
 

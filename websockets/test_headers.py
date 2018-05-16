@@ -6,6 +6,66 @@ from .headers import *
 
 class HeadersTests(unittest.TestCase):
 
+    def test_parse_connection(self):
+        for header, parsed in [
+            # Realistic use cases
+            (
+                'Upgrade',                  # Safari, Chrome
+                ['Upgrade'],
+            ),
+            (
+                'keep-alive, Upgrade',      # Firefox
+                ['keep-alive', 'Upgrade'],
+            ),
+            # Pathological example
+            (
+                ',,\t,  , ,Upgrade  ,,',
+                ['Upgrade'],
+            ),
+        ]:
+            with self.subTest(header=header):
+                self.assertEqual(parse_connection(header), parsed)
+
+    def test_parse_connection_invalid_header(self):
+        for header in [
+            '???',
+            'keep-alive; Upgrade',
+        ]:
+            with self.subTest(header=header):
+                with self.assertRaises(InvalidHeaderFormat):
+                    parse_connection(header)
+
+    def test_parse_upgrade(self):
+        for header, parsed in [
+            # Realistic use case
+            (
+                'websocket',
+                ['websocket'],
+            ),
+            # Synthetic example
+            (
+                'http/3.0, websocket',
+                ['http/3.0', 'websocket']
+            ),
+            # Pathological example
+            (
+                ',,  WebSocket,  \t,,',
+                ['WebSocket'],
+            ),
+        ]:
+            with self.subTest(header=header):
+                self.assertEqual(parse_upgrade(header), parsed)
+
+    def test_parse_upgrade_invalid_header(self):
+        for header in [
+            '???',
+            'websocket 2',
+            'http/3.0; websocket',
+        ]:
+            with self.subTest(header=header):
+                with self.assertRaises(InvalidHeaderFormat):
+                    parse_upgrade(header)
+
     def test_parse_extension_list(self):
         for header, parsed in [
             # Synthetic examples
@@ -26,7 +86,7 @@ class HeadersTests(unittest.TestCase):
                     ('bar', [('quux', None), ('quuux', None)]),
                 ],
             ),
-            # Pathological examples
+            # Pathological example
             (
                 ',\t, ,  ,foo  ;bar = 42,,   baz,,',
                 [('foo', [('bar', '42')]), ('baz', [])],
@@ -69,7 +129,7 @@ class HeadersTests(unittest.TestCase):
                 with self.assertRaises(InvalidHeaderFormat):
                     parse_extension_list(header)
 
-    def test_parse_protocol_list(self):
+    def test_parse_subprotocol_list(self):
         for header, parsed in [
             # Synthetic examples
             (
@@ -80,19 +140,19 @@ class HeadersTests(unittest.TestCase):
                 'foo, bar',
                 ['foo', 'bar'],
             ),
-            # Pathological examples
+            # Pathological example
             (
                 ',\t, ,  ,foo  ,,   bar,baz,,',
                 ['foo', 'bar', 'baz'],
             ),
         ]:
             with self.subTest(header=header):
-                self.assertEqual(parse_protocol_list(header), parsed)
-                # Also ensure that build_protocol_list round-trips cleanly.
-                unparsed = build_protocol_list(parsed)
-                self.assertEqual(parse_protocol_list(unparsed), parsed)
+                self.assertEqual(parse_subprotocol_list(header), parsed)
+                # Also ensure that build_subprotocol_list round-trips cleanly.
+                unparsed = build_subprotocol_list(parsed)
+                self.assertEqual(parse_subprotocol_list(unparsed), parsed)
 
-    def test_parse_protocol_list_invalid_header(self):
+    def test_parse_subprotocol_list_invalid_header(self):
         for header in [
             # Truncated examples
             '',
@@ -102,4 +162,4 @@ class HeadersTests(unittest.TestCase):
         ]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
-                    parse_protocol_list(header)
+                    parse_subprotocol_list(header)

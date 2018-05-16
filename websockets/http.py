@@ -127,7 +127,7 @@ def read_response(stream):
     # This may raise "ValueError: invalid literal for int() with base 10"
     status_code = int(status_code)
     if not 100 <= status_code < 1000:
-        raise ValueError("Unsupported HTTP status_code code: %d" % status_code)
+        raise ValueError("Unsupported HTTP status code: %d" % status_code)
     if not _value_re.fullmatch(reason):
         raise ValueError("Invalid HTTP reason phrase: %r" % reason)
 

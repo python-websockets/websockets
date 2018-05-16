@@ -89,7 +89,7 @@ Here's an example of how to run a WebSocket server and connect from a browser.
 
 Run this script in a console:
 
-.. literalinclude:: ../example/send_time.py
+.. literalinclude:: ../example/show_time.py
 
 Then open this HTML file in a browser.
 
@@ -197,7 +197,6 @@ unregister them when they disconnect.
     connected = set()
 
     async def handler(websocket, path):
-        global connected
         # Register.
         connected.add(websocket)
         try:

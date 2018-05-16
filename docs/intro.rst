@@ -96,6 +96,27 @@ Then open this HTML file in a browser.
 .. literalinclude:: ../example/show_time.html
    :language: html
 
+Synchronization example
+-----------------------
+
+A WebSocket server can receive events from clients, process them to update the
+application state, and synchronize the resulting state across clients.
+
+Here's an example where any client can increment or decrement a counter.
+Updates are propagated to all connected clients.
+
+The concurrency model of :mod:`asyncio` guarantees that updates are
+serialized.
+
+Run this script in a console:
+
+.. literalinclude:: ../example/counter.py
+
+Then open this HTML file in several browsers.
+
+.. literalinclude:: ../example/counter.html
+   :language: html
+
 Common patterns
 ---------------
 
@@ -167,8 +188,9 @@ patterns shown above and running the two tasks in parallel::
 Registration
 ............
 
-If you need to maintain a list of currently connected clients, you must
-register clients when they connect and unregister them when they disconnect.
+As shown in the synchronization example above, if you need to maintain a list
+of currently connected clients, you must register them when they connect and
+unregister them when they disconnect.
 
 ::
 

@@ -231,8 +231,9 @@ in Python < 3.6:
 
 - ``await`` and ``async`` were added in Python 3.5;
 - Asynchronous context managers didn't work well until Python 3.5.1;
-- f-strings were introduced in Python 3.6 (unrelated to :mod:`asyncio`
-  :mod:`websockets`).
+- Asynchronous iterators were added in Python 3.6;
+- f-strings were introduced in Python 3.6 (this is unrelated to :mod:`asyncio`
+  and :mod:`websockets`).
 
 Here's how to adapt the basic server example.
 
@@ -273,5 +274,33 @@ Asynchronous context managers were added in Python 3.5. However,
 ``websockets`` only supports them on Python ≥ 3.5.1, where
 :func:`~asyncio.ensure_future` accepts any awaitable.
 
-If you're using Python < 3.5.1, you must rely on ``try: ... finally: ...``
-instead.
+If you're using Python < 3.5.1, instead of::
+
+    with websockets.connect(...) as client:
+        ...
+
+you must write::
+
+    client = yield from websockets.connect(...)
+    try:
+        ...
+    finally:
+        yield from client.close()
+
+Asynchronous iterators
+......................
+
+If you're using Python < 3.6, you must replace::
+
+    async for message in websocket:
+        ...
+
+with::
+
+    while True:
+        message = yield from websocket.recv()
+        ...
+
+The latter will always raise a :exc:`~exceptions.ConnectionClosed` exception
+when the connection is closed, while the former will only raise that exception
+if the connection terminates with an error.

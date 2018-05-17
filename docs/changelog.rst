@@ -36,6 +36,9 @@ Also:
 
 * Fixed missing close code, which caused :exc:`TypeError` on connection close.
 
+* Fixed a race condition in the closing handshake that raised
+  :exc:`~exceptions.InvalidState`.
+
 * Stopped logging stack traces when the TCP connection dies prematurely.
 
 4.0

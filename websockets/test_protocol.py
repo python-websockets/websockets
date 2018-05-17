@@ -796,16 +796,19 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_simultaneous_close(self):
-        # Delay the incoming close frame until after we send the outgoing one.
-        self.loop.call_later(MS, self.receive_frame, self.remote_close)
-        self.loop.call_later(MS, self.receive_eof_if_client)
+        # Receive the incoming close frame right after self.protocol.close()
+        # starts executing. This reproduces the error described in:
+        # https://github.com/aaugustin/websockets/issues/339
+        self.loop.call_soon(self.receive_frame, self.remote_close)
+        self.loop.call_soon(self.receive_eof_if_client)
 
         self.loop.run_until_complete(self.protocol.close(reason='local'))
 
-        # The close code and reason are taken from the remote side because
-        # that's presumably more useful that the values from the local side.
         self.assertConnectionClosed(1000, 'remote')
-        self.assertOneFrameSent(*self.local_close)
+        # The current implementation sends a close frame in response to the
+        # close frame received from the remote end. It skips the close frame
+        # that should be sent as a result of calling close().
+        self.assertOneFrameSent(*self.remote_close)
 
     def test_close_preserves_incoming_frames(self):
         self.receive_frame(Frame(True, OP_TEXT, b'hello'))

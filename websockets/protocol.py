@@ -374,20 +374,16 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
 
         """
-        if self.state is State.OPEN:
-            # 7.1.2. Start the WebSocket Closing Handshake
-            # 7.1.3. The WebSocket Closing Handshake is Started
-            frame_data = serialize_close(code, reason)
-            try:
-                yield from asyncio.wait_for(
-                    self.write_frame(OP_CLOSE, frame_data),
-                    self.timeout, loop=self.loop)
-            except asyncio.TimeoutError:
-                # If the close frame cannot be sent because the send buffers
-                # are full, the closing handshake won't complete anyway.
-                # Cancel the data transfer task to shut down faster.
-                # Cancelling a task is idempotent.
-                self.transfer_data_task.cancel()
+        try:
+            yield from asyncio.wait_for(
+                self.write_close_frame(serialize_close(code, reason)),
+                self.timeout, loop=self.loop)
+        except asyncio.TimeoutError:
+            # If the close frame cannot be sent because the send buffers
+            # are full, the closing handshake won't complete anyway.
+            # Cancel the data transfer task to shut down faster.
+            # Cancelling a task is idempotent.
+            self.transfer_data_task.cancel()
 
         # If no close frame is received within the timeout, wait_for() cancels
         # the data transfer task and raises TimeoutError. Then transfer_data()
@@ -402,7 +398,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # is cancelled before the timeout elapses (on Python ≥ 3.4.3).
             # This helps closing connections when shutting down a server.
             yield from asyncio.wait_for(
-                self.transfer_data_task, self.timeout, loop=self.loop)
+                self.transfer_data_task,
+                self.timeout, loop=self.loop)
         except asyncio.TimeoutError:
             pass
 
@@ -611,14 +608,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:
-                # Make sure the close frame is valid before echoing it.
-                code, reason = parse_close(frame.data)
                 # 7.1.5.  The WebSocket Connection Close Code
                 # 7.1.6.  The WebSocket Connection Close Reason
-                self.close_code, self.close_reason = code, reason
-                if self.state is State.OPEN:
-                    # 7.1.3. The WebSocket Closing Handshake is Started
-                    yield from self.write_frame(OP_CLOSE, frame.data)
+                self.close_code, self.close_reason = parse_close(frame.data)
+                # Echo the original data instead of re-serializing it with
+                # serialize_close() because that fails when the close frame is
+                # empty and parse_close() synthetizes a 1005 close code.
+                yield from self.write_close_frame(frame.data)
                 return
 
             elif frame.opcode == OP_PING:
@@ -679,17 +675,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         return frame
 
     @asyncio.coroutine
-    def write_frame(self, opcode, data=b''):
+    def write_frame(self, opcode, data=b'', _expected_state=State.OPEN):
         # Defensive assertion for protocol compliance.
-        if self.state is not State.OPEN:                    # pragma: no cover
+        if self.state is not _expected_state:               # pragma: no cover
             raise InvalidState("Cannot write to a WebSocket "
                                "in the {} state".format(self.state.name))
-
-        # Make sure no other frame will be sent after a close frame. Do this
-        # before yielding control to avoid sending more than one close frame.
-        if opcode == OP_CLOSE:
-            self.state = State.CLOSING
-            logger.debug("%s - state = CLOSING", self.side)
 
         frame = Frame(True, opcode, data)
         logger.debug("%s > %s", self.side, frame)
@@ -736,6 +726,25 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 return transport._closing
             except AttributeError:
                 return transport._closed
+
+    @asyncio.coroutine
+    def write_close_frame(self, data=b''):
+        """
+        Write a close frame if and only if the connection state is OPEN.
+
+        This dedicated coroutine must be used for writing close frames to
+        ensure that at most one close frame is sent on a given connection.
+
+        """
+        # Test and set the connection state before sending the close frame to
+        # avoid sending two frames in case of concurrent calls.
+        if self.state is State.OPEN:
+            # 7.1.3. The WebSocket Closing Handshake is Started
+            self.state = State.CLOSING
+            logger.debug("%s - state = CLOSING", self.side)
+
+            # 7.1.2. Start the WebSocket Closing Handshake
+            yield from self.write_frame(OP_CLOSE, data, State.CLOSING)
 
     @asyncio.coroutine
     def close_connection(self, after_handshake=True):
@@ -845,9 +854,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.side, code, reason,
         )
         # Don't send a close frame if the connection is broken.
-        if self.state is State.OPEN and code != 1006:
-            frame_data = serialize_close(code, reason)
-            yield from self.write_frame(OP_CLOSE, frame_data)
+        if code != 1006:
+            yield from self.write_close_frame(serialize_close(code, reason))
 
     # asyncio.StreamReaderProtocol methods
 

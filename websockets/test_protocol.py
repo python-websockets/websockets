@@ -728,11 +728,24 @@ class CommonTests:
 
         self.assertConnectionFailed(1006, '')
 
-    def test_ensure_connection_before_opening_handshake(self):
+    def test_ensure_open_before_opening_handshake(self):
         # Simulate a bug by forcibly reverting the protocol state.
         self.protocol.state = State.CONNECTING
 
         with self.assertRaises(InvalidState):
+            self.loop.run_until_complete(self.protocol.ensure_open())
+
+    def test_ensure_open_during_unclean_close(self):
+        # Process connection_made in order to start transfer_data_task.
+        self.run_loop_once()
+
+        # Ensure the test terminates quickly.
+        self.loop.call_later(MS, self.receive_eof_if_client)
+
+        # Simulate the situation where sending a close frame times out.
+        self.protocol.transfer_data_task.cancel()
+
+        with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.ensure_open())
 
     def test_legacy_recv(self):

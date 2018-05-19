@@ -41,6 +41,8 @@ Also:
 
 * Stopped logging stack traces when the TCP connection dies prematurely.
 
+* Prevented writing to a closing TCP connection during unclean shutdowns.
+
 4.0
 ...
 

@@ -24,6 +24,9 @@ Also:
 * Iterating on incoming messages no longer raises an exception when the
   connection terminates with code 1001 (going away).
 
+* A plain HTTP request now receives a 426 Upgrade Required response and
+  doesn't log a stack trace.
+
 * :func:`~server.unix_serve` can be used as an asynchronous context manager on
   Python ≥ 3.5.1.
 
@@ -34,7 +37,11 @@ Also:
 
 * Reported the cause of :exc:`~exceptions.ConnectionClosed` exceptions.
 
+* Added new examples in the documentation.
+
 * Updated documentation with new features from Python 3.6.
+
+* Improved several other sections of the documentation.
 
 * Fixed missing close code, which caused :exc:`TypeError` on connection close.
 

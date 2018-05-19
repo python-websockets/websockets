@@ -393,6 +393,7 @@ class Connect:
     def __aexit__(self, exc_type, exc_value, traceback):
         yield from self.ws_client.close()
 
+    @asyncio.coroutine
     def __await__(self):
         transport, protocol = yield from self._creating_connection
 

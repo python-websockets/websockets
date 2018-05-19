@@ -271,15 +271,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         .. _EAFP: https://docs.python.org/3/glossary.html#term-eafp
 
         """
-        return self.state is State.OPEN
+        return self.state is State.OPEN and not self.transfer_data_task.done()
 
     @property
     def closed(self):
         """
         This property is ``True`` once the connection is closed.
 
-        Be aware that :attr:`open` and :attr`closed` are ``False`` when the
-        connection is in the OPENING or CLOSING state.
+        Be aware that both :attr:`open` and :attr`closed` are ``False`` during
+        the opening and closing sequences.
 
         """
         return self.state is State.CLOSED
@@ -475,7 +475,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         # Handle cases from most common to least common for performance.
         if self.state is State.OPEN:
-            return
+            # If self.transfer_data_task exited without a closing handshake,
+            # self.close_connection_task may be closing it, going straight
+            # from OPEN to CLOSED.
+            if self.transfer_data_task.done():
+                yield from asyncio.shield(self.close_connection_task)
+                raise ConnectionClosed(self.close_code, self.close_reason)
+            else:
+                return
 
         if self.state is State.CLOSED:
             raise ConnectionClosed(self.close_code, self.close_reason)

@@ -1,12 +1,11 @@
 export PYTHONASYNCIODEBUG=1
-export PYTHONWARNINGS=default
 
 test:
-	python -m unittest
+	python -W default -m unittest
 
 coverage:
 	python -m coverage erase
-	python -m coverage run --branch --source=websockets -m unittest
+	python -W default -m coverage run --branch --source=websockets -m unittest
 	python -m coverage html
 
 clean:

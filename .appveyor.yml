@@ -1,7 +1,7 @@
 environment:
 # websockets only works on Python >= 3.4.
   CIBW_SKIP: cp27-* cp33-*
-  CIBW_TEST_COMMAND: python -m unittest websockets
+  CIBW_TEST_COMMAND: python -W default -m unittest websockets
   WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
 
 install:

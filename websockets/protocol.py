@@ -15,6 +15,7 @@ import enum
 import logging
 import random
 import struct
+import warnings
 
 from .compatibility import asyncio_ensure_future
 from .exceptions import (
@@ -27,6 +28,16 @@ from .handshake import *
 __all__ = ['WebSocketCommonProtocol']
 
 logger = logging.getLogger(__name__)
+
+
+# On Python ≥ 3.7, silence a deprecation warning that we can't address before
+# dropping support for Python < 3.5.
+warnings.filterwarnings(
+    action='ignore',
+    message=r"'with \(yield from lock\)' is deprecated "
+            r"use 'async with lock' instead",
+    category=DeprecationWarning,
+)
 
 
 # A WebSocket connection goes through the following four states, in order:

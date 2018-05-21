@@ -88,7 +88,9 @@ def check_request(get_header):
         raise InvalidUpgrade('Connection', get_header('Connection'))
 
     upgrade = parse_upgrade(get_header('Upgrade'))
-    if not (len(upgrade) == 1 and upgrade[0] == 'websocket'):
+    # For compatibility with non-strict implementations, ignore case when
+    # checking the Upgrade header. It's supposed to be 'WebSocket'.
+    if not (len(upgrade) == 1 and upgrade[0].lower() == 'websocket'):
         raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
 
     key = get_header('Sec-WebSocket-Key')
@@ -139,7 +141,9 @@ def check_response(get_header, key):
         raise InvalidUpgrade('Connection', get_header('Connection'))
 
     upgrade = parse_upgrade(get_header('Upgrade'))
-    if not (len(upgrade) == 1 and upgrade[0] == 'websocket'):
+    # For compatibility with non-strict implementations, ignore case when
+    # checking the Upgrade header. It's supposed to be 'WebSocket'.
+    if not (len(upgrade) == 1 and upgrade[0].lower() == 'websocket'):
         raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
 
     if get_header('Sec-WebSocket-Accept') != accept(key):

@@ -2,7 +2,7 @@ Autobahn Testsuite
 ==================
 
 General information and installation instructions are available at
-http://autobahn.ws/testsuite.
+https://github.com/crossbario/autobahn-testsuite.
 
 To improve performance, you should compile the C extension first::
 
@@ -48,6 +48,3 @@ In 6.4.3 and 6.4.4, even though it uses an incremental decoder, ``websockets``
 doesn't notice the invalid utf-8 fast enough to get a "Strict" pass. These
 tests are more strict than the RFC.
 
-12.4.* are skipped: https://github.com/crossbario/autobahn-testsuite/issues/77
-
-12.5.* are skipped: https://github.com/crossbario/autobahn-testsuite/issues/77

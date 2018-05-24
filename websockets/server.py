@@ -738,7 +738,6 @@ class Serve:
         self.ws_server.close()
         yield from self.ws_server.wait_closed()
 
-    @asyncio.coroutine
     def __await__(self):
         server = yield from self._creating_server
         self.ws_server.wrap(server)

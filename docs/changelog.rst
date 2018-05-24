@@ -29,8 +29,6 @@ Changelog
 
 Also:
 
-* Added compatibility with Python 3.7.
-
 * :func:`~client.connect()` performs HTTP Basic Auth when the URI contains
   credentials.
 
@@ -138,8 +136,6 @@ Also:
 
 3.3
 ...
-
-* Ensured compatibility with Python 3.6.
 
 * Reduced noise in logs caused by connection resets.
 

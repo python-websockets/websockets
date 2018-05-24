@@ -1057,6 +1057,7 @@ class ClientServerOriginTests(unittest.TestCase):
 
 
 try:
+    from .py35._test_client_server import AsyncAwaitTests               # noqa
     from .py35._test_client_server import ContextManagerTests           # noqa
 except (SyntaxError, ImportError):                          # pragma: no cover
     pass

@@ -729,21 +729,10 @@ class Serve:
         self._creating_server = creating_server
         self.ws_server = ws_server
 
-    @asyncio.coroutine
-    def __aenter__(self):
-        return (yield from self)
-
-    @asyncio.coroutine
-    def __aexit__(self, exc_type, exc_value, traceback):
-        self.ws_server.close()
-        yield from self.ws_server.wait_closed()
-
-    def __await__(self):
+    def __iter__(self):                                     # pragma: no cover
         server = yield from self._creating_server
         self.ws_server.wrap(server)
         return self.ws_server
-
-    __iter__ = __await__
 
 
 def unix_serve(ws_handler, path, **kwargs):
@@ -761,14 +750,18 @@ def unix_serve(ws_handler, path, **kwargs):
     return serve(ws_handler, path=path, **kwargs)
 
 
-# Disable asynchronous context manager functionality only on Python < 3.5.1
-# because it doesn't exist on Python < 3.5 and asyncio.ensure_future didn't
-# accept arbitrary awaitables in Python 3.5; that was fixed in Python 3.5.1.
+# We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
+# didn't accept arbitrary awaitables until Python 3.5.1. We don't define
+# __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
 if sys.version_info[:3] <= (3, 5, 0):                       # pragma: no cover
     @asyncio.coroutine
     def serve(*args, **kwds):
-        return Serve(*args, **kwds).__await__()
+        return Serve(*args, **kwds).__iter__()
     serve.__doc__ = Serve.__doc__
 
 else:
+    from .py35.server import __aenter__, __aexit__, __await__
+    Serve.__aenter__ = __aenter__
+    Serve.__aexit__ = __aexit__
+    Serve.__await__ = __await__
     serve = Serve

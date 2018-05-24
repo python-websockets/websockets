@@ -13,6 +13,43 @@ from ..server import *
 from ..test_client_server import get_server_uri, handler
 
 
+class AsyncAwaitTests(unittest.TestCase):
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+
+    def test_client(self):
+        start_server = serve(handler, 'localhost', 0)
+        server = self.loop.run_until_complete(start_server)
+
+        async def run_client():
+            # Await connect.
+            client = await connect(get_server_uri(server))
+            self.assertEqual(client.state, State.OPEN)
+            await client.close()
+            self.assertEqual(client.state, State.CLOSED)
+
+        self.loop.run_until_complete(run_client())
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
+    def test_server(self):
+        async def run_server():
+            # Await serve.
+            server = await serve(handler, 'localhost', 0)
+            self.assertTrue(server.sockets)
+            server.close()
+            await server.wait_closed()
+            self.assertFalse(server.sockets)
+
+        self.loop.run_until_complete(run_server())
+
+
 class ContextManagerTests(unittest.TestCase):
 
     def setUp(self):

@@ -8,6 +8,8 @@ Changelog
 
 *In development*
 
+* Added compatibility with Python 3.7.
+
 5.0
 ...
 
@@ -136,6 +138,8 @@ Also:
 
 3.3
 ...
+
+* Ensured compatibility with Python 3.6.
 
 * Reduced noise in logs caused by connection resets.
 

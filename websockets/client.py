@@ -385,15 +385,7 @@ class Connect:
         self._creating_connection = loop.create_connection(
             factory, host, port, **kwds)
 
-    @asyncio.coroutine
-    def __aenter__(self):
-        return (yield from self)
-
-    @asyncio.coroutine
-    def __aexit__(self, exc_type, exc_value, traceback):
-        yield from self.ws_client.close()
-
-    def __await__(self):
+    def __iter__(self):                                     # pragma: no cover
         transport, protocol = yield from self._creating_connection
 
         try:
@@ -410,17 +402,19 @@ class Connect:
         self.ws_client = protocol
         return protocol
 
-    __iter__ = __await__
 
-
-# Disable asynchronous context manager functionality only on Python < 3.5.1
-# because it doesn't exist on Python < 3.5 and asyncio.ensure_future didn't
-# accept arbitrary awaitables in Python 3.5; that was fixed in Python 3.5.1.
+# We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
+# didn't accept arbitrary awaitables until Python 3.5.1. We don't define
+# __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
 if sys.version_info[:3] <= (3, 5, 0):                       # pragma: no cover
     @asyncio.coroutine
     def connect(*args, **kwds):
-        return Connect(*args, **kwds).__await__()
+        return Connect(*args, **kwds).__iter__()
     connect.__doc__ = Connect.__doc__
 
 else:
+    from .py35.client import __aenter__, __aexit__, __await__
+    Connect.__aenter__ = __aenter__
+    Connect.__aexit__ = __aexit__
+    Connect.__await__ = __await__
     connect = Connect

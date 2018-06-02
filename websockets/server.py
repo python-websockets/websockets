@@ -262,7 +262,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         """
 
-    def process_origin(self, get_header, origins=None):
+    def process_origin(self, origin, origins=None):
         """
         Handle the Origin HTTP request header.
 
@@ -270,7 +270,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         acceptable.
 
         """
-        origin = get_header('Origin')
         if origins is not None:
             if origin not in origins:
                 raise InvalidOrigin(origin)
@@ -441,11 +440,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if early_response is not None:
             raise AbortHandshake(*early_response)
 
-        get_header = lambda k: request_headers.get(k, '')
+        key = check_request(request_headers)
 
-        key = check_request(get_header)
-
-        self.origin = self.process_origin(get_header, origins)
+        origin = request_headers.get('Origin', '')
+        self.origin = self.process_origin(origin, origins)
 
         extensions_header, self.extensions = self.process_extensions(
             request_headers, available_extensions)
@@ -453,15 +451,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         protocol_header = self.subprotocol = self.process_subprotocol(
             request_headers, available_subprotocols)
 
-        response_headers = []
-        set_header = lambda k, v: response_headers.append((k, v))
-        is_header_set = lambda k: k in dict(response_headers).keys()
+        response_headers = {}
 
         if extensions_header is not None:
-            set_header('Sec-WebSocket-Extensions', extensions_header)
+            response_headers['Sec-WebSocket-Extensions'] = extensions_header
 
         if self.subprotocol is not None:
-            set_header('Sec-WebSocket-Protocol', protocol_header)
+            response_headers['Sec-WebSocket-Protocol'] = protocol_header
 
         if extra_headers is not None:
             if callable(extra_headers):
@@ -469,15 +465,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             if isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
-                set_header(name, value)
+                response_headers[name] = value
 
-        if not is_header_set('Server'):
-            set_header('Server', USER_AGENT)
+        if 'Server' not in response_headers:
+            response_headers['Server'] = USER_AGENT
 
-        build_response(set_header, key)
+        build_response(response_headers, key)
 
         yield from self.write_http_response(
-            SWITCHING_PROTOCOLS, response_headers)
+            SWITCHING_PROTOCOLS, list(response_headers.items()))
 
         self.connection_open()
 

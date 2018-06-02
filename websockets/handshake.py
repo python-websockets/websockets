@@ -51,7 +51,7 @@ __all__ = [
 GUID = '258EAFA5-E914-47DA-95CA-C5AB0DC85B11'
 
 
-def build_request(set_header):
+def build_request(headers):
     """
     Build a handshake request to send to the server.
 
@@ -60,14 +60,14 @@ def build_request(set_header):
     """
     raw_key = bytes(random.getrandbits(8) for _ in range(16))
     key = base64.b64encode(raw_key).decode()
-    set_header('Upgrade', 'websocket')
-    set_header('Connection', 'Upgrade')
-    set_header('Sec-WebSocket-Key', key)
-    set_header('Sec-WebSocket-Version', '13')
+    headers['Upgrade'] = 'websocket'
+    headers['Connection'] = 'Upgrade'
+    headers['Sec-WebSocket-Key'] = key
+    headers['Sec-WebSocket-Version'] = '13'
     return key
 
 
-def check_request(get_header):
+def check_request(headers):
     """
     Check a handshake request received from the client.
 
@@ -83,17 +83,17 @@ def check_request(get_header):
     responsibility of the caller.
 
     """
-    connection = parse_connection(get_header('Connection'))
+    connection = parse_connection(headers.get('Connection', ''))
     if not any(value.lower() == 'upgrade' for value in connection):
-        raise InvalidUpgrade('Connection', get_header('Connection'))
+        raise InvalidUpgrade('Connection', headers.get('Connection', ''))
 
-    upgrade = parse_upgrade(get_header('Upgrade'))
+    upgrade = parse_upgrade(headers.get('Upgrade', ''))
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
     if not (len(upgrade) == 1 and upgrade[0].lower() == 'websocket'):
-        raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
+        raise InvalidUpgrade('Upgrade', headers.get('Upgrade', ''))
 
-    key = get_header('Sec-WebSocket-Key')
+    key = headers.get('Sec-WebSocket-Key', '')
     try:
         raw_key = base64.b64decode(key.encode(), validate=True)
     except binascii.Error:
@@ -101,26 +101,26 @@ def check_request(get_header):
     if len(raw_key) != 16:
         raise InvalidHeaderValue('Sec-WebSocket-Key', key)
 
-    version = get_header('Sec-WebSocket-Version')
+    version = headers.get('Sec-WebSocket-Version', '')
     if version != '13':
         raise InvalidHeaderValue('Sec-WebSocket-Version', version)
 
     return key
 
 
-def build_response(set_header, key):
+def build_response(headers, key):
     """
     Build a handshake response to send to the client.
 
     ``key`` comes from :func:`check_request`.
 
     """
-    set_header('Upgrade', 'websocket')
-    set_header('Connection', 'Upgrade')
-    set_header('Sec-WebSocket-Accept', accept(key))
+    headers['Upgrade'] = 'websocket'
+    headers['Connection'] = 'Upgrade'
+    headers['Sec-WebSocket-Accept'] = accept(key)
 
 
-def check_response(get_header, key):
+def check_response(headers, key):
     """
     Check a handshake response received from the server.
 
@@ -136,19 +136,19 @@ def check_response(get_header, key):
     the caller.
 
     """
-    connection = parse_connection(get_header('Connection'))
+    connection = parse_connection(headers.get('Connection', ''))
     if not any(value.lower() == 'upgrade' for value in connection):
-        raise InvalidUpgrade('Connection', get_header('Connection'))
+        raise InvalidUpgrade('Connection', headers.get('Connection', ''))
 
-    upgrade = parse_upgrade(get_header('Upgrade'))
+    upgrade = parse_upgrade(headers.get('Upgrade', ''))
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
     if not (len(upgrade) == 1 and upgrade[0].lower() == 'websocket'):
-        raise InvalidUpgrade('Upgrade', get_header('Upgrade'))
+        raise InvalidUpgrade('Upgrade', headers.get('Upgrade', ''))
 
-    if get_header('Sec-WebSocket-Accept') != accept(key):
+    if headers.get('Sec-WebSocket-Accept', '') != accept(key):
         raise InvalidHeaderValue(
-            'Sec-WebSocket-Accept', get_header('Sec-WebSocket-Accept'))
+            'Sec-WebSocket-Accept', headers.get('Sec-WebSocket-Accept', ''))
 
 
 def accept(key):

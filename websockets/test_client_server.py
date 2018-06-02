@@ -809,7 +809,7 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     @unittest.mock.patch('websockets.client.build_request')
     def test_client_sends_invalid_handshake_request(self, _build_request):
-        def wrong_build_request(set_header):
+        def wrong_build_request(headers):
             return '42'
         _build_request.side_effect = wrong_build_request
 
@@ -819,8 +819,8 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     @unittest.mock.patch('websockets.server.build_response')
     def test_server_sends_invalid_handshake_response(self, _build_response):
-        def wrong_build_response(set_header, key):
-            return build_response(set_header, '42')
+        def wrong_build_response(headers, key):
+            return build_response(headers, '42')
         _build_response.side_effect = wrong_build_response
 
         with self.assertRaises(InvalidHandshake):

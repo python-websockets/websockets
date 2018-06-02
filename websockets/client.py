@@ -216,20 +216,19 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         fails.
 
         """
-        request_headers = []
-        set_header = lambda k, v: request_headers.append((k, v))
-        is_header_set = lambda k: k in dict(request_headers).keys()
+        request_headers = {}
 
         if wsuri.port == (443 if wsuri.secure else 80):     # pragma: no cover
-            set_header('Host', wsuri.host)
+            request_headers['Host'] = wsuri.host
         else:
-            set_header('Host', '{}:{}'.format(wsuri.host, wsuri.port))
+            request_headers['Host'] = '{}:{}'.format(wsuri.host, wsuri.port)
 
         if wsuri.user_info:
-            set_header(*basic_auth_header(*wsuri.user_info))
+            request_headers['Authorization'] = basic_auth_header(
+                *wsuri.user_info)
 
         if origin is not None:
-            set_header('Origin', origin)
+            request_headers['Origin'] = origin
 
         if available_extensions is not None:
             extensions_header = build_extension_list([
@@ -239,33 +238,32 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                 )
                 for extension_factory in available_extensions
             ])
-            set_header('Sec-WebSocket-Extensions', extensions_header)
+            request_headers['Sec-WebSocket-Extensions'] = extensions_header
 
         if available_subprotocols is not None:
             protocol_header = build_subprotocol_list(available_subprotocols)
-            set_header('Sec-WebSocket-Protocol', protocol_header)
+            request_headers['Sec-WebSocket-Protocol'] = protocol_header
 
         if extra_headers is not None:
             if isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
-                set_header(name, value)
+                request_headers[name] = value
 
-        if not is_header_set('User-Agent'):
-            set_header('User-Agent', USER_AGENT)
+        if 'User-Agent' not in request_headers:
+            request_headers['User-Agent'] = USER_AGENT
 
-        key = build_request(set_header)
+        key = build_request(request_headers)
 
         yield from self.write_http_request(
-            wsuri.resource_name, request_headers)
+            wsuri.resource_name, list(request_headers.items()))
 
         status_code, response_headers = yield from self.read_http_response()
-        get_header = lambda k: response_headers.get(k, '')
 
         if status_code != 101:
             raise InvalidStatusCode(status_code)
 
-        check_response(get_header, key)
+        check_response(response_headers, key)
 
         self.extensions = self.process_extensions(
             response_headers, available_extensions)

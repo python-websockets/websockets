@@ -1,4 +1,3 @@
-import collections
 import contextlib
 import unittest
 
@@ -17,12 +16,12 @@ class HandshakeTests(unittest.TestCase):
 
     def test_round_trip(self):
         request_headers = {}
-        request_key = build_request(request_headers.__setitem__)
-        response_key = check_request(request_headers.__getitem__)
+        request_key = build_request(request_headers)
+        response_key = check_request(request_headers)
         self.assertEqual(request_key, response_key)
         response_headers = {}
-        build_response(response_headers.__setitem__, response_key)
-        check_response(response_headers.__getitem__, request_key)
+        build_response(response_headers, response_key)
+        check_response(response_headers, request_key)
 
     @contextlib.contextmanager
     def assertInvalidRequestHeaders(self):
@@ -32,11 +31,11 @@ class HandshakeTests(unittest.TestCase):
         Assert that the transformation made them invalid.
 
         """
-        headers = collections.defaultdict(lambda: '')
-        build_request(headers.__setitem__)
+        headers = {}
+        build_request(headers)
         yield headers
         with self.assertRaises(InvalidHandshake):
-            check_request(headers.__getitem__)
+            check_request(headers)
 
     def test_request_invalid_upgrade(self):
         with self.assertInvalidRequestHeaders() as headers:
@@ -86,11 +85,11 @@ class HandshakeTests(unittest.TestCase):
         Assert that the transformation made them invalid.
 
         """
-        headers = collections.defaultdict(lambda: '')
-        build_response(headers.__setitem__, key)
+        headers = {}
+        build_response(headers, key)
         yield headers
         with self.assertRaises(InvalidHandshake):
-            check_response(headers.__getitem__, key)
+            check_response(headers, key)
 
     def test_response_invalid_upgrade(self):
         with self.assertInvalidResponseHeaders() as headers:

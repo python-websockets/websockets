@@ -19,15 +19,38 @@ INVALID_URIS = [
     "ws://user@localhost/",
 ]
 
+VALID_PROXY_URIS = [
+    ("http://localhost", (False, "localhost", 80, None)),
+    ("http://localhost/", (False, "localhost", 80, None)),
+    ("https://localhost", (True, "localhost", 443, None)),
+    ("http://user:pass@localhost", (False, "localhost", 80, ("user", "pass"))),
+]
+
+INVALID_PROXY_URIS = [
+    "http://localhost/path",
+    "ws://localhost/",
+    "wss://localhost/",
+]
 
 class URITests(unittest.TestCase):
-    def test_success(self):
+    def test_parse_uri_success(self):
         for uri, parsed in VALID_URIS:
             with self.subTest(uri=uri):
                 self.assertEqual(parse_uri(uri), parsed)
 
-    def test_error(self):
+    def test_parse_uri_error(self):
         for uri in INVALID_URIS:
             with self.subTest(uri=uri):
                 with self.assertRaises(InvalidURI):
                     parse_uri(uri)
+
+    def test_parse_proxy_uri_success(self):
+        for uri, parsed in VALID_PROXY_URIS:
+            with self.subTest(uri=uri):
+                self.assertEqual(parse_proxy_uri(uri), parsed)
+
+    def test_parse_proxy_uri_error(self):
+        for uri in INVALID_PROXY_URIS:
+            with self.subTest(uri=uri):
+                with self.assertRaises(InvalidURI):
+                    parse_proxy_uri(uri)

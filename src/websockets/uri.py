@@ -13,7 +13,10 @@ from typing import NamedTuple, Optional, Tuple
 from .exceptions import InvalidURI
 
 
-__all__ = ["parse_uri", "WebSocketURI"]
+__all__ = [
+    "parse_uri", "WebSocketURI",
+    "parse_proxy_uri", "ProxyURI",
+]
 
 
 # Consider converting to a dataclass when dropping support for Python < 3.7.
@@ -79,3 +82,60 @@ def parse_uri(uri: str) -> WebSocketURI:
             raise InvalidURI(uri)
         user_info = (parsed.username, parsed.password)
     return WebSocketURI(secure, host, port, resource_name, user_info)
+
+class ProxyURI(NamedTuple):
+    """
+    Proxy URI.
+
+    :param bool secure: tells whether to connect to the proxy with TLS
+    :param str host: lower-case host
+    :param int port: port, always set even if it's the default
+    :param str user_info: ``(username, password)`` tuple when the URI contains
+      `User Information`_, else ``None``.
+
+    .. _User Information: https://tools.ietf.org/html/rfc3986#section-3.2.1
+    """
+
+    secure: bool
+    host: str
+    port: int
+    user_info: Optional[Tuple[str, str]]
+
+# Work around https://bugs.python.org/issue19931
+
+ProxyURI.secure.__doc__ = ""
+ProxyURI.host.__doc__ = ""
+ProxyURI.port.__doc__ = ""
+ProxyURI.user_info.__doc__ = ""
+
+def parse_proxy_uri(uri: str) -> ProxyURI:
+    """
+    Parse and validate an HTTP proxy URI.
+
+    :raises ValueError: if ``uri`` isn't a valid HTTP proxy URI.
+
+    """
+    parsed = urllib.parse.urlparse(uri)
+    try:
+        assert parsed.scheme in ['http', 'https']
+        assert parsed.hostname is not None
+        assert parsed.path == '' or parsed.path == '/'
+        assert parsed.params == ''
+        assert parsed.query == ''
+        assert parsed.fragment == ''
+    except AssertionError as exc:
+        raise InvalidURI(uri) from exc
+
+    secure = parsed.scheme == 'https'
+    host = parsed.hostname
+    port = parsed.port or (443 if secure else 80)
+    user_info = None
+    if parsed.username is not None:
+        # urllib.parse.urlparse accepts URLs with a username but without a
+        # password. This doesn't make sense for HTTP Basic Auth credentials.
+        if parsed.password is None:
+            raise InvalidURI(uri)
+        user_info = (parsed.username, parsed.password)
+    return ProxyURI(secure, host, port, user_info)
+
+

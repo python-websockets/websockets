@@ -2,7 +2,7 @@ import asyncio
 import unittest
 
 from .http import *
-from .http import basic_auth_header, build_headers, read_headers
+from .http import build_headers, read_headers
 
 
 class HTTPAsyncTests(unittest.TestCase):
@@ -128,10 +128,3 @@ class HTTPSyncTests(unittest.TestCase):
 
         # Ordering is deterministic when getting all values.
         self.assertEqual(headers.get_all('X-Foo'), ['Bar', 'Baz'])
-
-    def test_basic_auth_header(self):
-        # Test vector from RFC 7617.
-        self.assertEqual(
-            basic_auth_header("Aladdin", "open sesame"),
-            'Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==',
-        )

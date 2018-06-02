@@ -13,10 +13,10 @@ from .exceptions import (
 from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from .handshake import build_request, check_response
 from .headers import (
-    build_extension_list, build_subprotocol_list, parse_extension_list,
-    parse_subprotocol_list
+    build_basic_auth, build_extension_list, build_subprotocol_list,
+    parse_extension_list, parse_subprotocol_list
 )
-from .http import USER_AGENT, basic_auth_header, build_headers, read_response
+from .http import USER_AGENT, build_headers, read_response
 from .protocol import WebSocketCommonProtocol
 from .uri import parse_uri
 
@@ -224,7 +224,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             request_headers['Host'] = '{}:{}'.format(wsuri.host, wsuri.port)
 
         if wsuri.user_info:
-            request_headers['Authorization'] = basic_auth_header(
+            request_headers['Authorization'] = build_basic_auth(
                 *wsuri.user_info)
 
         if origin is not None:

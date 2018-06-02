@@ -7,6 +7,7 @@ from :mod:`websockets.headers`.
 
 """
 
+import base64
 import re
 
 from .exceptions import InvalidHeaderFormat
@@ -324,3 +325,15 @@ def build_subprotocol_list(protocols):
 
     """
     return ', '.join(protocols)
+
+
+def build_basic_auth(username, password):
+    """
+    Build an Authorization header for HTTP Basic Auth.
+
+    """
+    # https://tools.ietf.org/html/rfc7617#section-2
+    assert ':' not in username
+    user_pass = '{}:{}'.format(username, password)
+    basic_credentials = base64.b64encode(user_pass.encode()).decode()
+    return 'Basic ' + basic_credentials

@@ -2,6 +2,7 @@ import unittest
 
 from .exceptions import InvalidHeaderFormat
 from .headers import *
+from .headers import build_basic_auth
 
 
 class HeadersTests(unittest.TestCase):
@@ -163,3 +164,10 @@ class HeadersTests(unittest.TestCase):
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
                     parse_subprotocol_list(header)
+
+    def test_build_basic_auth(self):
+        # Test vector from RFC 7617.
+        self.assertEqual(
+            build_basic_auth("Aladdin", "open sesame"),
+            'Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==',
+        )

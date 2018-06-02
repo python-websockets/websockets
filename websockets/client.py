@@ -199,9 +199,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         return subprotocol
 
     @asyncio.coroutine
-    def proxy_connect(self, proxy_uri, uri, ssl=None):
-        assert ssl is None, "proxying TLS/SSL connections isn't supported yet"
-
+    def proxy_connect(self, proxy_uri, uri, ssl=None, server_hostname=None):
         request = ['CONNECT {uri.host}:{uri.port} HTTP/1.1'.format(uri=uri)]
 
         headers = []
@@ -228,6 +226,37 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if not 200 <= status_code < 300:
             # TODO improve error handling
             raise ValueError("proxy error: HTTP {}".format(status_code))
+
+        if ssl is not None:
+            # Wrap socket with TLS. This ugly hack will be necessary until
+            # https://bugs.python.org/issue23749 is resolved and websockets
+            # drops support for all early Python versions.
+            if not asyncio.sslproto._is_sslproto_available():
+                raise ValueError(
+                    "connecting to a wss:// server through a proxy isn't "
+                    "supported on Python < 3.5")
+            old_protocol = self
+            old_transport = self.writer.transport
+            ssl_connected = asyncio.Future()
+            new_protocol = asyncio.sslproto.SSLProtocol(
+                loop=self.loop,
+                app_protocol=old_protocol,
+                # taken from _create_connection_transport
+                sslcontext=None if isinstance(ssl, bool) else ssl,
+                waiter=ssl_connected,
+                server_side=False,
+                server_hostname=server_hostname,
+                call_connection_made=False,
+            )
+            new_transport = new_protocol._app_transport
+
+            # Surgery without anesthesia.
+            old_transport._protocol = new_protocol
+            self.reader._transport = new_transport
+            self.writer._transport = new_transport
+
+            new_protocol.connection_made(old_transport)
+            yield from ssl_connected
 
     @asyncio.coroutine
     def handshake(self, uri, origin=None, available_extensions=None,
@@ -425,7 +454,9 @@ class Connect:
             else:
                 # RFC 6455 recommends to prefer the proxy configured for HTTPS
                 # connections over the proxy configured for HTTP connections.
-                proxy_uri = proxies.get('https', proxies.get('http'))
+                proxy_uri = proxies.get('https')
+                if proxy_uri is None and not uri.secure:
+                    proxy_uri = proxies.get('http')
 
         if proxy_uri is not None:
             proxy_uri = parse_proxy_uri(proxy_uri)
@@ -449,7 +480,9 @@ class Connect:
 
         self._proxy_uri = proxy_uri
         self._uri = uri
-        self._ssl = ssl
+        if proxy_uri is not None:
+            self._ssl = ssl
+            self._server_hostname = kwds.pop('server_hostname', None)
 
         # This is a coroutine object.
         self._creating_connection = loop.create_connection(
@@ -469,7 +502,9 @@ class Connect:
         try:
             if self._proxy_uri is not None:
                 yield from protocol.proxy_connect(
-                    self._proxy_uri, self._uri, self._ssl)
+                    self._proxy_uri, self._uri,
+                    self._ssl, self._server_hostname,
+                )
             yield from protocol.handshake(
                 self._uri,
                 origin=protocol.origin,

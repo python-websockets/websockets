@@ -196,7 +196,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         return subprotocol
 
     @asyncio.coroutine
-    def handshake(self, wsuri, origin=None, available_extensions=None,
+    def handshake(self, uri, origin=None, available_extensions=None,
                   available_subprotocols=None, extra_headers=None):
         """
         Perform the client side of the opening handshake.
@@ -220,13 +220,13 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         set_header = lambda k, v: request_headers.append((k, v))
         is_header_set = lambda k: k in dict(request_headers).keys()
 
-        if wsuri.port == (443 if wsuri.secure else 80):     # pragma: no cover
-            set_header('Host', wsuri.host)
+        if uri.port == (443 if uri.secure else 80):     # pragma: no cover
+            set_header('Host', uri.host)
         else:
-            set_header('Host', '{}:{}'.format(wsuri.host, wsuri.port))
+            set_header('Host', '{}:{}'.format(uri.host, uri.port))
 
-        if wsuri.user_info:
-            set_header(*basic_auth_header(*wsuri.user_info))
+        if uri.user_info:
+            set_header(*basic_auth_header(*uri.user_info))
 
         if origin is not None:
             set_header('Origin', origin)
@@ -257,7 +257,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         key = build_request(set_header)
 
         yield from self.write_http_request(
-            wsuri.resource_name, request_headers)
+            uri.resource_name, request_headers)
 
         status_code, response_headers = yield from self.read_http_response()
         get_header = lambda k: response_headers.get(k, '')
@@ -343,8 +343,8 @@ class Connect:
         if create_protocol is None:
             create_protocol = WebSocketClientProtocol
 
-        wsuri = parse_uri(uri)
-        if wsuri.secure:
+        uri = parse_uri(uri)
+        if uri.secure:
             kwds.setdefault('ssl', True)
         elif kwds.get('ssl') is not None:
             raise ValueError("connect() received a SSL context for a ws:// "
@@ -364,7 +364,7 @@ class Connect:
             raise ValueError("Unsupported compression: {}".format(compression))
 
         factory = lambda: create_protocol(
-            host=wsuri.host, port=wsuri.port, secure=wsuri.secure,
+            host=uri.host, port=uri.port, secure=uri.secure,
             timeout=timeout, max_size=max_size, max_queue=max_queue,
             read_limit=read_limit, write_limit=write_limit,
             loop=loop, legacy_recv=legacy_recv,
@@ -373,12 +373,12 @@ class Connect:
         )
 
         if kwds.get('sock') is None:
-            host, port = wsuri.host, wsuri.port
+            host, port = uri.host, uri.port
         else:
             # If sock is given, host and port mustn't be specified.
             host, port = None, None
 
-        self._wsuri = wsuri
+        self._uri = uri
         self._origin = origin
 
         # This is a coroutine object.
@@ -398,7 +398,7 @@ class Connect:
 
         try:
             yield from protocol.handshake(
-                self._wsuri, origin=self._origin,
+                self._uri, origin=self._origin,
                 available_extensions=protocol.available_extensions,
                 available_subprotocols=protocol.available_subprotocols,
                 extra_headers=protocol.extra_headers,

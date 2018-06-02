@@ -218,4 +218,4 @@ def basic_auth_header(username, password):
     assert ':' not in username
     user_pass = '{}:{}'.format(username, password)
     basic_credentials = base64.b64encode(user_pass.encode()).decode()
-    return ('Authorization', 'Basic ' + basic_credentials)
+    return 'Basic ' + basic_credentials

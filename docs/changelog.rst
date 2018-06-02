@@ -3,10 +3,18 @@ Changelog
 
 .. currentmodule:: websockets
 
-5.1
+6.0
 ...
 
 *In development*
+
+.. warning::
+
+    **Version 6.0 changes public APIs in the** :mod:`~websockets.handshake`
+    **module. If you're calling these APIs, you must update your code. This
+    affects mostly libraries that use low-level APIs.**
+
+Also:
 
 * Added compatibility with Python 3.7.
 

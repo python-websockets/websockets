@@ -4,15 +4,12 @@ handshake according to `section 4 of RFC 6455`_.
 
 .. _section 4 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
 
-It provides functions to implement the handshake with any existing HTTP
-library. You must pass to these functions:
+Functions defined in this module manipulate HTTP headers. The ``headers``
+argument must implement ``get`` and ``__setitem__`` and ``get`` —  a small
+subset of the :class:`~collections.abc.MutableMapping` abstract base class.
 
-- A ``set_header`` function accepting a header name and a header value,
-- A ``get_header`` function accepting a header name and returning the header
-  value.
-
-The inputs and outputs of ``get_header`` and ``set_header`` are :class:`str`
-objects containing only ASCII characters.
+Headers names and values are :class:`str` objects containing only ASCII
+characters.
 
 Some checks cannot be performed because they depend too much on the
 context; instead, they're documented below.

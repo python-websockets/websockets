@@ -8,6 +8,7 @@ from :mod:`websockets.http`.
 """
 
 import asyncio
+import collections.abc
 import http.client
 import re
 import sys
@@ -15,7 +16,11 @@ import sys
 from .version import version as websockets_version
 
 
-__all__ = ['read_request', 'read_response', 'USER_AGENT']
+__all__ = [
+    'Headers', 'MultipleValuesError',
+    'read_request', 'read_response',
+    'USER_AGENT',
+]
 
 MAX_HEADERS = 256
 MAX_LINE = 4096
@@ -194,6 +199,135 @@ def read_line(stream):
     if not line.endswith(b'\r\n'):
         raise ValueError("Line without CRLF")
     return line
+
+
+class MultipleValuesError(LookupError):
+    """
+    Exception raised when :class:`Headers` has more than one value for a key.
+
+    """
+
+    def __str__(self):
+        # Implement the same logic as KeyError_str in Objects/exceptions.c.
+        if len(self.args) == 1:
+            return repr(self.args[0])
+        return super().__str__()
+
+
+class Headers(collections.abc.MutableMapping):
+    """
+    Data structure for working with HTTP headers efficiently.
+
+    A :class:`list` of ``(name, values)`` is inefficient for lookups.
+
+    A :class:`dict` doesn't suffice because header names are case-insensitive
+    and multiple occurrences of headers with the same name are possible.
+
+    :class:`Headers` stores HTTP headers in a hybrid data structure to provide
+    efficient insertions and lookups while preserving the original data.
+
+    In order to account for multiple values with minimal hassle,
+    :class:`Headers` follows this logic:
+
+    - When getting a header with ``headers[name]``:
+        - if there's no value, :exc:`KeyError` is raised;
+        - if there's exactly one value, it's returned;
+        - if there's more than one value, :exc:`MultipleValuesError` is raised.
+
+    - When setting a header with ``headers[name] = value``, the value is
+      appended to the list of values for that header.
+
+    - When deleting a header with ``del headers[name]``, all values for that
+      header are removed (this is slow).
+
+    Other methods for manipulating headers are consistent with this logic.
+
+    As long as no header occurs multiple times, :class:`Headers` behaves like
+    :class:`dict`, except keys are lower-cased to provide case-insensitivity.
+
+    :meth:`get_all()` returns a list of all values for a header and
+    :meth:`raw_items()` returns an iterator of ``(name, values)`` pairs,
+    similar to :meth:`http.client.HTTPMessage`.
+
+    """
+
+    __slots__ = ['_dict', '_list']
+
+    def __init__(self, *args, **kwargs):
+        self._dict = {}
+        self._list = []
+        # MutableMapping.update calls __setitem__ for each (name, value) pair.
+        self.update(*args, **kwargs)
+
+    def __str__(self):
+        return ''.join(
+            '{}: {}\r\n'.format(key, value)
+            for key, value in self._list
+        ) + '\r\n'
+
+    def __repr__(self):
+        return '{}({})'.format(self.__class__.__name__, repr(self._list))
+
+    def copy(self):
+        copy = self.__class__()
+        copy._dict = self._dict.copy()
+        copy._list = self._list.copy()
+        return copy
+
+    # Collection methods
+
+    def __contains__(self, key):
+        return key.lower() in self._dict
+
+    def __iter__(self):
+        return iter(self._dict)
+
+    def __len__(self):
+        return len(self._dict)
+
+    # MutableMapping methods
+
+    def __getitem__(self, key):
+        value = self._dict[key.lower()]
+        if len(value) == 1:
+            return value[0]
+        else:
+            raise MultipleValuesError(key)
+
+    def __setitem__(self, key, value):
+        self._dict.setdefault(key.lower(), []).append(value)
+        self._list.append((key, value))
+
+    def __delitem__(self, key):
+        key_lower = key.lower()
+        self._dict.__delitem__(key_lower)
+        # This is inefficent. Fortunately deleting HTTP headers is uncommon.
+        self._list = [(k, v) for k, v in self._list if k.lower() != key_lower]
+
+    def __eq__(self, other):
+        if not isinstance(other, Headers):
+            return NotImplemented
+        return self._list == other._list
+
+    def clear(self):
+        self._dict = {}
+        self._list = []
+
+    # Methods for handling multiple values
+
+    def get_all(self, key):
+        """
+        Return the (possibly empty) list of all values for a header.
+
+        """
+        return self._dict.get(key.lower(), [])
+
+    def raw_items(self):
+        """
+        Return an iterator of (header name, header value).
+
+        """
+        return iter(self._list)
 
 
 def build_headers(raw_headers):

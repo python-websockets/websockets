@@ -1,6 +1,7 @@
 import unittest
 
 from .exceptions import *
+from .http import Headers
 
 
 class ExceptionsTests(unittest.TestCase):
@@ -12,7 +13,7 @@ class ExceptionsTests(unittest.TestCase):
                 "Invalid request",
             ),
             (
-                AbortHandshake(200, [], b'OK\n'),
+                AbortHandshake(200, Headers(), b'OK\n'),
                 "HTTP 200, 0 headers, 3 bytes",
             ),
             (

@@ -9,7 +9,6 @@ from :mod:`websockets.http`.
 
 import asyncio
 import collections.abc
-import http.client
 import re
 import sys
 
@@ -59,7 +58,7 @@ def read_request(stream):
     ``stream`` is an :class:`~asyncio.StreamReader`.
 
     Return ``(path, headers)`` where ``path`` is a :class:`str` and
-    ``headers`` is a list of ``(name, value)`` tuples.
+    ``headers`` is a :class:`Headers` instance.
 
     ``path`` isn't URL-decoded or validated in any way.
 
@@ -104,7 +103,7 @@ def read_response(stream):
     ``stream`` is an :class:`~asyncio.StreamReader`.
 
     Return ``(status_code, headers)`` where ``status_code`` is a :class:`int`
-    and ``headers`` is a list of ``(name, value)`` tuples.
+    and ``headers`` is a :class:`Headers` instance.
 
     Non-ASCII characters are represented with surrogate escapes.
 
@@ -147,8 +146,7 @@ def read_headers(stream):
 
     ``stream`` is an :class:`~asyncio.StreamReader`.
 
-    Return ``(start_line, headers)`` where ``start_line`` is :class:`bytes`
-    and ``headers`` is a list of ``(name, value)`` tuples.
+    Return a :class:`Headers` instance
 
     Non-ASCII characters are represented with surrogate escapes.
 
@@ -157,7 +155,7 @@ def read_headers(stream):
 
     # We don't attempt to support obsolete line folding.
 
-    headers = []
+    headers = Headers()
     for _ in range(MAX_HEADERS + 1):
         line = yield from read_line(stream)
         if line == b'\r\n':
@@ -171,10 +169,9 @@ def read_headers(stream):
         if not _value_re.fullmatch(value):
             raise ValueError("Invalid HTTP header value: %r" % value)
 
-        headers.append((
-            name.decode('ascii'),   # guaranteed to be ASCII at this point
-            value.decode('ascii', 'surrogateescape'),
-        ))
+        name = name.decode('ascii')     # guaranteed to be ASCII at this point
+        value = value.decode('ascii', 'surrogateescape')
+        headers[name] = value
 
     else:
         raise ValueError("Too many HTTP headers")
@@ -310,6 +307,10 @@ class Headers(collections.abc.MutableMapping):
         return self._list == other._list
 
     def clear(self):
+        """
+        Remove all headers.
+
+        """
         self._dict = {}
         self._list = []
 
@@ -328,15 +329,3 @@ class Headers(collections.abc.MutableMapping):
 
         """
         return iter(self._list)
-
-
-def build_headers(raw_headers):
-    """
-    Build a date structure for HTTP headers from a list of name - value pairs.
-
-    See also https://github.com/aaugustin/websockets/issues/210.
-
-    """
-    headers = http.client.HTTPMessage()
-    headers._headers = raw_headers  # HACK
-    return headers

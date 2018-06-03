@@ -23,7 +23,7 @@ from .extensions.permessage_deflate import (
     ServerPerMessageDeflateFactory
 )
 from .handshake import build_response
-from .http import USER_AGENT, read_response
+from .http import USER_AGENT, Headers, read_response
 from .server import *
 from .test_protocol import MS
 
@@ -48,11 +48,8 @@ def handler(ws, path):
     elif path == '/path':
         yield from ws.send(str(ws.path))
     elif path == '/headers':
-        yield from ws.send(str(ws.request_headers))
-        yield from ws.send(str(ws.response_headers))
-    elif path == '/raw_headers':
-        yield from ws.send(repr(ws.raw_request_headers))
-        yield from ws.send(repr(ws.raw_response_headers))
+        yield from ws.send(repr(ws.request_headers))
+        yield from ws.send(repr(ws.response_headers))
     elif path == '/extensions':
         yield from ws.send(repr(ws.extensions))
     elif path == '/subprotocol':
@@ -149,14 +146,16 @@ class UnauthorizedServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
     def process_request(self, path, request_headers):
-        return UNAUTHORIZED, []
+        # Use [...] here rather than Headers(...) to ensure that both work.
+        return UNAUTHORIZED, [('X-Access', 'denied')]
 
 
 class ForbiddenServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
     def process_request(self, path, request_headers):
-        return FORBIDDEN, []
+        # Use Headers(...) here rather than [...] to ensure that both work.
+        return FORBIDDEN, Headers({'X-Access': 'Denied'})
 
 
 class HealthCheckServerProtocol(WebSocketServerProtocol):
@@ -400,73 +399,82 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(client_resp['Server'], USER_AGENT)
         server_req = self.loop.run_until_complete(self.client.recv())
         server_resp = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_req, str(client_req))
-        self.assertEqual(server_resp, str(client_resp))
-
-    @with_server()
-    @with_client('/raw_headers')
-    def test_protocol_raw_headers(self):
-        client_req = self.client.raw_request_headers
-        client_resp = self.client.raw_response_headers
-        self.assertEqual(dict(client_req)['User-Agent'], USER_AGENT)
-        self.assertEqual(dict(client_resp)['Server'], USER_AGENT)
-        server_req = self.loop.run_until_complete(self.client.recv())
-        server_resp = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_req, repr(client_req))
         self.assertEqual(server_resp, repr(client_resp))
 
     @with_server()
-    @with_client('/raw_headers', extra_headers={'X-Spam': 'Eggs'})
+    @with_client('/headers', extra_headers=Headers({'X-Spam': 'Eggs'}))
+    def test_protocol_custom_request_headers(self):
+        req_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", req_headers)
+
+    @with_server()
+    @with_client('/headers', extra_headers={'X-Spam': 'Eggs'})
     def test_protocol_custom_request_headers_dict(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
     @with_server()
-    @with_client('/raw_headers', extra_headers=[('X-Spam', 'Eggs')])
+    @with_client('/headers', extra_headers=[('X-Spam', 'Eggs')])
     def test_protocol_custom_request_headers_list(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
     @with_server()
-    @with_client('/raw_headers', extra_headers=[('User-Agent', 'Eggs')])
+    @with_client('/headers', extra_headers=[('User-Agent', 'Eggs')])
     def test_protocol_custom_request_user_agent(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertEqual(req_headers.count("User-Agent"), 1)
         self.assertIn("('User-Agent', 'Eggs')", req_headers)
 
+    @with_server(extra_headers=lambda p, r: Headers({'X-Spam': 'Eggs'}))
+    @with_client('/headers')
+    def test_protocol_custom_response_headers_callable(self):
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+
     @with_server(extra_headers=lambda p, r: {'X-Spam': 'Eggs'})
-    @with_client('/raw_headers')
+    @with_client('/headers')
     def test_protocol_custom_response_headers_callable_dict(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
     @with_server(extra_headers=lambda p, r: [('X-Spam', 'Eggs')])
-    @with_client('/raw_headers')
+    @with_client('/headers')
     def test_protocol_custom_response_headers_callable_list(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
+    @with_server(extra_headers=Headers({'X-Spam': 'Eggs'}))
+    @with_client('/headers')
+    def test_protocol_custom_response_headers(self):
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
+
     @with_server(extra_headers={'X-Spam': 'Eggs'})
-    @with_client('/raw_headers')
+    @with_client('/headers')
     def test_protocol_custom_response_headers_dict(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
     @with_server(extra_headers=[('X-Spam', 'Eggs')])
-    @with_client('/raw_headers')
+    @with_client('/headers')
     def test_protocol_custom_response_headers_list(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
     @with_server(extra_headers=[('Server', 'Eggs')])
-    @with_client('/raw_headers')
+    @with_client('/headers')
     def test_protocol_custom_response_user_agent(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())

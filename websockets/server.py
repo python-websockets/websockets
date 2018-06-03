@@ -21,7 +21,7 @@ from .handshake import build_response, check_request
 from .headers import (
     build_extension_list, parse_extension_list, parse_subprotocol_list
 )
-from .http import USER_AGENT, build_headers, read_request
+from .http import USER_AGENT, Headers, read_request
 from .protocol import WebSocketCommonProtocol
 
 
@@ -93,47 +93,49 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
-                    early_response = (
+                    status, headers, body = (
                         SERVICE_UNAVAILABLE,
                         [],
                         b"Server is shutting down.\n",
                     )
                 elif isinstance(exc, AbortHandshake):
-                    early_response = (
+                    status, headers, body = (
                         exc.status,
                         exc.headers,
                         exc.body,
                     )
                 elif isinstance(exc, InvalidOrigin):
                     logger.debug("Invalid origin", exc_info=True)
-                    early_response = (
+                    status, headers, body = (
                         FORBIDDEN,
                         [],
                         (str(exc) + "\n").encode(),
                     )
                 elif isinstance(exc, InvalidUpgrade):
                     logger.debug("Invalid upgrade", exc_info=True)
-                    early_response = (
+                    status, headers, body = (
                         UPGRADE_REQUIRED,
                         [('Upgrade', 'websocket')],
                         (str(exc) + "\n").encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):
                     logger.debug("Invalid handshake", exc_info=True)
-                    early_response = (
+                    status, headers, body = (
                         BAD_REQUEST,
                         [],
                         (str(exc) + "\n").encode(),
                     )
                 else:
                     logger.warning("Error in opening handshake", exc_info=True)
-                    early_response = (
+                    status, headers, body = (
                         INTERNAL_SERVER_ERROR,
                         [],
                         b"See server log for more information.\n",
                     )
 
-                yield from self.write_http_response(*early_response)
+                if not isinstance(headers, Headers):
+                    headers = Headers(headers)
+                yield from self.write_http_response(status, headers, body)
                 yield from self.fail_connection()
 
                 return
@@ -204,8 +206,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             raise InvalidMessage("Malformed HTTP message") from exc
 
         self.path = path
-        self.request_headers = build_headers(headers)
-        self.raw_request_headers = headers
+        self.request_headers = headers
 
         return path, self.request_headers
 
@@ -217,19 +218,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         This coroutine is also able to write a response body.
 
         """
-        self.response_headers = build_headers(headers)
-        self.raw_response_headers = headers
+        self.response_headers = headers
 
         # Since the status line and headers only contain ASCII characters,
         # we can keep this simple.
-        response = [
-            'HTTP/1.1 {value} {phrase}'.format(
-                value=status.value, phrase=status.phrase)]
-        response.extend('{}: {}'.format(k, v) for k, v in headers)
-        response.append('\r\n')
-        response = '\r\n'.join(response).encode()
+        response = 'HTTP/1.1 {status.value} {status.phrase}\r\n'.format(
+            status=status)
+        response += str(headers)
 
-        self.writer.write(response)
+        self.writer.write(response.encode())
 
         if body is not None:
             self.writer.write(body)
@@ -239,19 +236,22 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         Intercept the HTTP request and return an HTTP response if needed.
 
-        ``request_headers`` are a :class:`~http.client.HTTPMessage`.
+        ``request_headers`` is a :class:`~websockets.http.Headers` instance.
 
         If this coroutine returns ``None``, the WebSocket handshake continues.
-        If it returns a status code, headers and a optionally a response body,
-        that HTTP response is sent and the connection is closed.
+        If it returns a status code, headers and a response body, that HTTP
+        response is sent and the connection is closed.
 
-        The HTTP status must be a :class:`~http.HTTPStatus`. HTTP headers must
-        be an iterable of ``(name, value)`` pairs. If provided, the HTTP
-        response body must be :class:`bytes`.
-
+        The HTTP status must be a :class:`~http.HTTPStatus`.
         (:class:`~http.HTTPStatus` was added in Python 3.5. Use a compatible
         object on earlier versions. Look at ``SWITCHING_PROTOCOLS`` in
         ``websockets.compatibility`` for an example.)
+
+        HTTP headers must be a :class:`~websockets.http.Headers` instance, a
+        :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
+        pairs.
+
+        The HTTP response body must be :class:`bytes`. It may be empty.
 
         This method may be overridden to check the request headers and set a
         different status, for example to authenticate the request and return
@@ -262,7 +262,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         """
 
-    def process_origin(self, origin, origins=None):
+    @staticmethod
+    def process_origin(headers, origins=None):
         """
         Handle the Origin HTTP request header.
 
@@ -270,6 +271,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         acceptable.
 
         """
+        origin = headers.get('Origin', '')
         if origins is not None:
             if origin not in origins:
                 raise InvalidOrigin(origin)
@@ -314,7 +316,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         header_values = headers.get_all('Sec-WebSocket-Extensions')
 
-        if header_values is not None and available_extensions is not None:
+        if header_values and available_extensions:
 
             parsed_header_values = sum([
                 parse_extension_list(header_value)
@@ -368,7 +370,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         header_values = headers.get_all('Sec-WebSocket-Protocol')
 
-        if header_values is not None and available_subprotocols is not None:
+        if header_values and available_subprotocols:
 
             parsed_header_values = sum([
                 parse_subprotocol_list(header_value)
@@ -422,8 +424,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         subprotocols in order of decreasing preference.
 
         If provided, ``extra_headers`` sets additional HTTP response headers.
-        It can be a mapping or an iterable of (name, value) pairs. It can also
-        be a callable taking the request path and headers in arguments.
+        It can be a :class:`~websockets.http.Headers` instance, a
+        :class:`~collections.abc.Mapping`, an iterable of ``(name, value)``
+        pairs, or a callable taking the request path and headers in arguments
+        and returning one of the above.
 
         Raise :exc:`~websockets.exceptions.InvalidHandshake` if the handshake
         fails.
@@ -442,8 +446,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         key = check_request(request_headers)
 
-        origin = request_headers.get('Origin', '')
-        self.origin = self.process_origin(origin, origins)
+        self.origin = self.process_origin(request_headers, origins)
 
         extensions_header, self.extensions = self.process_extensions(
             request_headers, available_extensions)
@@ -451,7 +454,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         protocol_header = self.subprotocol = self.process_subprotocol(
             request_headers, available_subprotocols)
 
-        response_headers = {}
+        response_headers = Headers()
 
         if extensions_header is not None:
             response_headers['Sec-WebSocket-Extensions'] = extensions_header
@@ -461,8 +464,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         if extra_headers is not None:
             if callable(extra_headers):
-                extra_headers = extra_headers(path, self.raw_request_headers)
-            if isinstance(extra_headers, collections.abc.Mapping):
+                extra_headers = extra_headers(path, self.request_headers)
+            if isinstance(extra_headers, Headers):
+                extra_headers = extra_headers.raw_items()
+            elif isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
                 response_headers[name] = value
@@ -473,7 +478,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         build_response(response_headers, key)
 
         yield from self.write_http_response(
-            SWITCHING_PROTOCOLS, list(response_headers.items()))
+            SWITCHING_PROTOCOLS, response_headers)
 
         self.connection_open()
 
@@ -645,8 +650,10 @@ class Serve:
     * ``subprotocols`` is a list of supported subprotocols in order of
       decreasing preference
     * ``extra_headers`` sets additional HTTP response headers — it can be a
-      mapping, an iterable of (name, value) pairs, or a callable taking the
-      request path and headers in arguments.
+      :class:`~websockets.http.Headers` instance, a
+      :class:`~collections.abc.Mapping`, an iterable of ``(name, value)``
+      pairs, or a callable taking the request path and headers in arguments
+      and returning one of the above.
     * ``compression`` is a shortcut to configure compression extensions;
       by default it enables the "permessage-deflate" extension; set it to
       ``None`` to disable compression

@@ -16,7 +16,7 @@ from .headers import (
     build_basic_auth, build_extension_list, build_subprotocol_list,
     parse_extension_list, parse_subprotocol_list
 )
-from .http import USER_AGENT, build_headers, read_response
+from .http import USER_AGENT, Headers, read_response
 from .protocol import WebSocketCommonProtocol
 from .uri import parse_uri
 
@@ -51,17 +51,14 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         self.path = path
-        self.request_headers = build_headers(headers)
-        self.raw_request_headers = headers
+        self.request_headers = headers
 
         # Since the path and headers only contain ASCII characters,
         # we can keep this simple.
-        request = ['GET {path} HTTP/1.1'.format(path=path)]
-        request.extend('{}: {}'.format(k, v) for k, v in headers)
-        request.append('\r\n')
-        request = '\r\n'.join(request).encode()
+        request = 'GET {path} HTTP/1.1\r\n'.format(path=path)
+        request += str(headers)
 
-        self.writer.write(request)
+        self.writer.write(request.encode())
 
     @asyncio.coroutine
     def read_http_response(self):
@@ -81,8 +78,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
-        self.response_headers = build_headers(headers)
-        self.raw_response_headers = headers
+        self.response_headers = headers
 
         return status_code, self.response_headers
 
@@ -118,7 +114,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         header_values = headers.get_all('Sec-WebSocket-Extensions')
 
-        if header_values is not None:
+        if header_values:
 
             if available_extensions is None:
                 raise InvalidHandshake("No extensions supported")
@@ -172,7 +168,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         header_values = headers.get_all('Sec-WebSocket-Protocol')
 
-        if header_values is not None:
+        if header_values:
 
             if available_subprotocols is None:
                 raise InvalidHandshake("No subprotocols supported")
@@ -210,13 +206,15 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         subprotocols in order of decreasing preference.
 
         If provided, ``extra_headers`` sets additional HTTP request headers.
-        It must be a mapping or an iterable of (name, value) pairs.
+        It must be a :class:`~websockets.http.Headers` instance, a
+        :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
+        pairs.
 
         Raise :exc:`~websockets.exceptions.InvalidHandshake` if the handshake
         fails.
 
         """
-        request_headers = {}
+        request_headers = Headers()
 
         if wsuri.port == (443 if wsuri.secure else 80):     # pragma: no cover
             request_headers['Host'] = wsuri.host
@@ -245,7 +243,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             request_headers['Sec-WebSocket-Protocol'] = protocol_header
 
         if extra_headers is not None:
-            if isinstance(extra_headers, collections.abc.Mapping):
+            if isinstance(extra_headers, Headers):
+                extra_headers = extra_headers.raw_items()
+            elif isinstance(extra_headers, collections.abc.Mapping):
                 extra_headers = extra_headers.items()
             for name, value in extra_headers:
                 request_headers[name] = value
@@ -256,7 +256,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         key = build_request(request_headers)
 
         yield from self.write_http_request(
-            wsuri.resource_name, list(request_headers.items()))
+            wsuri.resource_name, request_headers)
 
         status_code, response_headers = yield from self.read_http_response()
 
@@ -312,7 +312,9 @@ class Connect:
     * ``subprotocols`` is a list of supported subprotocols in order of
       decreasing preference
     * ``extra_headers`` sets additional HTTP request headers – it can be a
-      mapping or an iterable of (name, value) pairs
+      :class:`~websockets.http.Headers` instance, a
+      :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
+      pairs
     * ``compression`` is a shortcut to configure compression extensions;
       by default it enables the "permessage-deflate" extension; set it to
       ``None`` to disable compression

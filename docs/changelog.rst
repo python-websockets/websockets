@@ -10,9 +10,33 @@ Changelog
 
 .. warning::
 
-    **Version 6.0 changes public APIs in the** :mod:`~websockets.handshake`
-    **module. If you're calling these APIs, you must update your code. This
-    affects mostly libraries that use low-level APIs.**
+    **Version 6.0 introduces the** :class:`~http.Headers` **class for managing
+    HTTP headers and changes several public APIs:**
+
+    * :meth:`~server.WebSocketServerProtocol.process_request` now receives a
+      :class:`~http.Headers` instead of a :class:`~http.client.HTTPMessage` in
+      the ``request_headers`` argument.
+
+    * The :attr:`~protocol.WebSocketCommonProtocol.request_headers` and
+      :attr:`~protocol.WebSocketCommonProtocol.response_headers` attributes of
+      :class:`~protocol.WebSocketCommonProtocol` are :class:`~http.Headers`
+      instead of :class:`~http.client.HTTPMessage`.
+
+    * The :attr:`~protocol.WebSocketCommonProtocol.raw_request_headers` and
+      :attr:`~protocol.WebSocketCommonProtocol.raw_response_headers`
+      attributes of :class:`~protocol.WebSocketCommonProtocol` are removed.
+      Use :meth:`~http.Headers.raw_items` instead.
+
+    * Functions defined in the :mod:`~handshake` module now receive
+      :class:`~http.Headers` in argument instead of ``get_header`` or
+      ``set_header`` fucntions. This affects libraries that rely on
+      low-level APIs.
+
+    * Functions defined in the :mod:`~http` module now return HTTP headers as
+      :class:`~http.Headers` instead of lists of ``(name, value)`` pairs.
+
+    Note that :class:`~http.Headers` and :class:`~http.client.HTTPMessage`
+    provide similar APIs.
 
 Also:
 

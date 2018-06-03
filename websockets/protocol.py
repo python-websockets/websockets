@@ -116,13 +116,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     current implementation of ``FlowControlMixin``).
 
     As soon as the HTTP request and response in the opening handshake are
-    processed, the request path is available in the :attr:`path` attribute,
-    and the request and response HTTP headers are available:
+    processed:
 
-    * as a :class:`~http.client.HTTPMessage` in the :attr:`request_headers`
-      and :attr:`response_headers` attributes
-    * as an iterable of (name, value) pairs in the :attr:`raw_request_headers`
-      and :attr:`raw_response_headers` attributes
+    * the request path is available in the :attr:`path` attribute;
+    * the request and response HTTP headers are available in the
+      :attr:`request_headers` and :attr:`response_headers` attributes,
+      which are :class:`~websockets.http.Headers` instances.
 
     These attributes must be treated as immutable.
 
@@ -182,9 +181,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # HTTP protocol parameters.
         self.path = None
         self.request_headers = None
-        self.raw_request_headers = None
         self.response_headers = None
-        self.raw_response_headers = None
 
         # WebSocket protocol parameters.
         self.extensions = []

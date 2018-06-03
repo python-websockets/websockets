@@ -2,7 +2,7 @@ import asyncio
 import unittest
 
 from .http import *
-from .http import build_headers, read_headers
+from .http import read_headers
 
 
 class HTTPAsyncTests(unittest.TestCase):
@@ -33,7 +33,7 @@ class HTTPAsyncTests(unittest.TestCase):
         path, headers = self.loop.run_until_complete(
             read_request(self.stream))
         self.assertEqual(path, '/chat')
-        self.assertEqual(dict(headers)['Upgrade'], 'websocket')
+        self.assertEqual(headers['Upgrade'], 'websocket')
 
     def test_read_response(self):
         # Example from the protocol overview in RFC 6455
@@ -48,7 +48,7 @@ class HTTPAsyncTests(unittest.TestCase):
         status_code, headers = self.loop.run_until_complete(
             read_response(self.stream))
         self.assertEqual(status_code, 101)
-        self.assertEqual(dict(headers)['Upgrade'], 'websocket')
+        self.assertEqual(headers['Upgrade'], 'websocket')
 
     def test_request_method(self):
         self.stream.feed_data(b'OPTIONS * HTTP/1.1\r\n\r\n')
@@ -100,34 +100,6 @@ class HTTPAsyncTests(unittest.TestCase):
         self.stream.feed_data(b'foo: bar\n\n')
         with self.assertRaises(ValueError):
             self.loop.run_until_complete(read_headers(self.stream))
-
-
-class HTTPSyncTests(unittest.TestCase):
-
-    def test_build_headers(self):
-        headers = build_headers([
-            ('X-Foo', 'Bar'),
-            ('X-Baz', 'Quux Quux'),
-        ])
-
-        self.assertEqual(headers['X-Foo'], 'Bar')
-        self.assertEqual(headers['X-Bar'], None)
-
-        self.assertEqual(headers.get('X-Bar', ''), '')
-        self.assertEqual(headers.get('X-Baz', ''), 'Quux Quux')
-
-    def test_build_headers_multi_value(self):
-        headers = build_headers([
-            ('X-Foo', 'Bar'),
-            ('X-Foo', 'Baz'),
-        ])
-
-        # Getting a single value is non-deterministic.
-        self.assertIn(headers['X-Foo'], ['Bar', 'Baz'])
-        self.assertIn(headers.get('X-Foo'), ['Bar', 'Baz'])
-
-        # Ordering is deterministic when getting all values.
-        self.assertEqual(headers.get_all('X-Foo'), ['Bar', 'Baz'])
 
 
 class HeadersTests(unittest.TestCase):

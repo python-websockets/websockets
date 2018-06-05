@@ -1056,14 +1056,10 @@ class ClientServerOriginTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
 
-try:
+if sys.version_info[:2] >= (3, 5):                          # pragma: no cover
     from .py35._test_client_server import AsyncAwaitTests               # noqa
     from .py35._test_client_server import ContextManagerTests           # noqa
-except (SyntaxError, ImportError):                          # pragma: no cover
-    pass
 
 
-try:
+if sys.version_info[:2] >= (3, 6):                          # pragma: no cover
     from .py36._test_client_server import AsyncIteratorTests            # noqa
-except (SyntaxError, ImportError):                          # pragma: no cover
-    pass

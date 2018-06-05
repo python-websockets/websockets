@@ -15,6 +15,7 @@ import enum
 import logging
 import random
 import struct
+import sys
 import warnings
 
 from .compatibility import asyncio_ensure_future
@@ -1020,9 +1021,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         super().connection_lost(exc)
 
 
-try:
+if sys.version_info[:2] >= (3, 6):                          # pragma: no cover
     from .py36.protocol import __aiter__
-except (SyntaxError, ImportError):                          # pragma: no cover
-    pass
-else:
     WebSocketCommonProtocol.__aiter__ = __aiter__

@@ -133,5 +133,5 @@ class HTTPSyncTests(unittest.TestCase):
         # Test vector from RFC 7617.
         self.assertEqual(
             basic_auth_header("Aladdin", "open sesame"),
-            ('Authorization', 'Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ=='),
+            'Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==',
         )

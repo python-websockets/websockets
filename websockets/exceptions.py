@@ -20,12 +20,12 @@ class AbortHandshake(InvalidHandshake):
     Exception raised to abort a handshake and return a HTTP response.
 
     """
-    def __init__(self, status, headers, body=None):
+    def __init__(self, status, headers, body=b''):
         self.status = status
         self.headers = headers
         self.body = body
         message = "HTTP {}, {} headers, {} bytes".format(
-            status, len(headers), 0 if body is None else len(body))
+            status, len(headers), len(body))
         super().__init__(message)
 
 

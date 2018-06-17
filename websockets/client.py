@@ -228,6 +228,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if origin is not None:
             request_headers['Origin'] = origin
 
+        key = build_request(request_headers)
+
         if available_extensions is not None:
             extensions_header = build_extension_list([
                 (
@@ -250,10 +252,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             for name, value in extra_headers:
                 request_headers[name] = value
 
-        if 'User-Agent' not in request_headers:
-            request_headers['User-Agent'] = USER_AGENT
-
-        key = build_request(request_headers)
+        request_headers.setdefault('User-Agent', USER_AGENT)
 
         yield from self.write_http_request(
             wsuri.resource_name, request_headers)

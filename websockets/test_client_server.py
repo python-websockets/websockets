@@ -146,25 +146,25 @@ class UnauthorizedServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
     def process_request(self, path, request_headers):
-        # Use [...] here rather than Headers(...) to ensure that both work.
-        return UNAUTHORIZED, [('X-Access', 'denied')]
+        # Test returning headers as a Headers instance (1/3)
+        return UNAUTHORIZED, Headers([('X-Access', 'denied')]), b''
 
 
 class ForbiddenServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
     def process_request(self, path, request_headers):
-        # Use Headers(...) here rather than [...] to ensure that both work.
-        return FORBIDDEN, Headers({'X-Access': 'Denied'})
+        # Test returning headers as a dict (2/3)
+        return FORBIDDEN, {'X-Access': 'denied'}, b''
 
 
 class HealthCheckServerProtocol(WebSocketServerProtocol):
 
     @asyncio.coroutine
     def process_request(self, path, request_headers):
+        # Test returning headers as a list of pairs (3/3)
         if path == '/__health__/':
-            body = b'status = green\n'
-            return OK, [('Content-Length', str(len(body)))], body
+            return OK, [('X-Access', 'OK')], b'status = green\n'
 
 
 class FooClientProtocol(WebSocketClientProtocol):

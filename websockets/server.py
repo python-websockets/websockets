@@ -5,6 +5,7 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 
 import asyncio
 import collections.abc
+import email.utils
 import logging
 import sys
 
@@ -135,6 +136,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
                 if not isinstance(headers, Headers):
                     headers = Headers(headers)
+
+                headers.setdefault('Date', email.utils.formatdate(usegmt=True))
+                headers.setdefault('Server', USER_AGENT)
+                headers.setdefault('Content-Length', str(len(body)))
+                headers.setdefault('Content-Type', 'text/plain')
+                headers.setdefault('Connection', 'close')
+
                 yield from self.write_http_response(status, headers, body)
                 yield from self.fail_connection()
 
@@ -455,6 +463,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             request_headers, available_subprotocols)
 
         response_headers = Headers()
+        response_headers['Date'] = email.utils.formatdate(usegmt=True)
+
+        build_response(response_headers, key)
 
         if extensions_header is not None:
             response_headers['Sec-WebSocket-Extensions'] = extensions_header
@@ -472,10 +483,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             for name, value in extra_headers:
                 response_headers[name] = value
 
-        if 'Server' not in response_headers:
-            response_headers['Server'] = USER_AGENT
-
-        build_response(response_headers, key)
+        response_headers.setdefault('Server', USER_AGENT)
 
         yield from self.write_http_response(
             SWITCHING_PROTOCOLS, response_headers)

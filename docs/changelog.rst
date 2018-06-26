@@ -51,7 +51,7 @@ Also:
 
     websockets 4.0 was vulnerable to denial of service by memory exhaustion
     because it didn't enforce ``max_size`` when decompressing compressed
-    messages.
+    messages (CVE-2018-1000518).
 
 .. warning::
 

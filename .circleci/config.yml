@@ -5,6 +5,8 @@ jobs:
     docker:
       - image: circleci/python:3.7
     steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
       - checkout
       - run: sudo pip install tox
       - run: tox -e flake8,isort
@@ -12,6 +14,8 @@ jobs:
     docker:
       - image: circleci/python:3.4
     steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
       - checkout
       - run: sudo pip install tox
       - run: tox -e py34,py34-speedups
@@ -19,6 +23,8 @@ jobs:
     docker:
       - image: circleci/python:3.5
     steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
       - checkout
       - run: sudo pip install tox
       - run: tox -e py35,py35-speedups
@@ -26,6 +32,8 @@ jobs:
     docker:
       - image: circleci/python:3.6
     steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
       - checkout
       - run: sudo pip install tox
       - run: tox -e py36,py36-speedups
@@ -33,6 +41,8 @@ jobs:
     docker:
       - image: circleci/python:3.7
     steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
       - checkout
       - run: sudo pip install tox
       - run: tox -e py37,py37-speedups
@@ -40,6 +50,8 @@ jobs:
     docker:
       - image: circleci/python:3.7
     steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
       - checkout
       - run: sudo pip install tox codecov
       - run: tox -e coverage

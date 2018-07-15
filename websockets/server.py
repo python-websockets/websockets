@@ -740,6 +740,7 @@ class Serve:
         self._creating_server = creating_server
         self.ws_server = ws_server
 
+    @asyncio.coroutine
     def __iter__(self):                                     # pragma: no cover
         server = yield from self._creating_server
         self.ws_server.wrap(server)

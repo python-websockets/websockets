@@ -384,6 +384,7 @@ class Connect:
         self._creating_connection = loop.create_connection(
             factory, host, port, **kwds)
 
+    @asyncio.coroutine
     def __iter__(self):                                     # pragma: no cover
         transport, protocol = yield from self._creating_connection
 

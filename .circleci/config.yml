@@ -1,0 +1,70 @@
+version: 2
+
+jobs:
+  quality:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e flake8,isort
+  py34:
+    docker:
+      - image: circleci/python:3.4
+    steps:
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e py34,py34-speedups
+  py35:
+    docker:
+      - image: circleci/python:3.5
+    steps:
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e py35,py35-speedups
+  py36:
+    docker:
+      - image: circleci/python:3.6
+    steps:
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e py36,py36-speedups
+  py37:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e py37,py37-speedups
+  coverage:
+    docker:
+      - image: circleci/python:3.7
+    steps:
+      - checkout
+      - run: sudo pip install tox codecov
+      - run: tox -e coverage
+      - run: codecov
+
+workflows:
+  version: 2
+  build:
+    jobs:
+      - quality
+      - py34:
+          requires:
+            - quality
+      - py35:
+          requires:
+            - quality
+      - py36:
+          requires:
+            - quality
+      - py37:
+          requires:
+            - quality
+      - coverage:
+          requires:
+            - py34
+            - py35
+            - py36
+            - py37

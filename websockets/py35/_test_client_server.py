@@ -39,6 +39,7 @@ class AsyncAwaitTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
     def test_server(self):
+
         async def run_server():
             # Await serve.
             server = await serve(handler, 'localhost', 0)
@@ -83,6 +84,7 @@ class ContextManagerTests(unittest.TestCase):
     @unittest.skipIf(
         sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+')
     def test_server(self):
+
         async def run_server():
             # Use serve as an asynchronous context manager.
             async with serve(handler, 'localhost', 0) as server:
@@ -99,6 +101,7 @@ class ContextManagerTests(unittest.TestCase):
     @unittest.skipUnless(
         hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
     def test_unix_server(self):
+
         async def run_server(path):
             async with unix_serve(handler, path) as server:
                 self.assertTrue(server.sockets)

@@ -24,6 +24,7 @@ from .extensions.permessage_deflate import (
 )
 from .handshake import build_response
 from .http import USER_AGENT, Headers, read_response
+from .protocol import State
 from .server import *
 from .test_protocol import MS
 
@@ -1062,6 +1063,46 @@ class ClientServerOriginTests(unittest.TestCase):
         self.loop.run_until_complete(client.close())
         server.close()
         self.loop.run_until_complete(server.wait_closed())
+
+
+class YieldFromTests(unittest.TestCase):
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+
+    def test_client(self):
+        start_server = serve(handler, 'localhost', 0)
+        server = self.loop.run_until_complete(start_server)
+
+        @asyncio.coroutine
+        def run_client():
+            # Yield from connect.
+            client = yield from connect(get_server_uri(server))
+            self.assertEqual(client.state, State.OPEN)
+            yield from client.close()
+            self.assertEqual(client.state, State.CLOSED)
+
+        self.loop.run_until_complete(run_client())
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
+    def test_server(self):
+
+        @asyncio.coroutine
+        def run_server():
+            # Yield from serve.
+            server = yield from serve(handler, 'localhost', 0)
+            self.assertTrue(server.sockets)
+            server.close()
+            yield from server.wait_closed()
+            self.assertFalse(server.sockets)
+
+        self.loop.run_until_complete(run_server())
 
 
 if sys.version_info[:2] >= (3, 5):                          # pragma: no cover

@@ -160,6 +160,28 @@ CLOSE_CODES = {
 }
 
 
+def format_close(code, reason):
+    """
+    Display a human-readable version of the close code and reason.
+
+
+    """
+    if 3000 <= code < 4000:
+        explanation = "registered"
+    elif 4000 <= code < 5000:
+        explanation = "private use"
+    else:
+        explanation = CLOSE_CODES.get(code, "unknown")
+    result = "code = {} ({}), ".format(code, explanation)
+
+    if reason:
+        result += "reason = {}".format(reason)
+    else:
+        result += "no reason"
+
+    return result
+
+
 class ConnectionClosed(InvalidState):
     """
     Exception raised when trying to read or write on a closed connection.
@@ -172,17 +194,7 @@ class ConnectionClosed(InvalidState):
         self.code = code
         self.reason = reason
         message = "WebSocket connection is closed: "
-        if 3000 <= code < 4000:
-            explanation = "registered"
-        elif 4000 <= code < 5000:
-            explanation = "private use"
-        else:
-            explanation = CLOSE_CODES.get(code, "unknown")
-        message += "code = {} ({}), ".format(code, explanation)
-        if reason:
-            message += "reason = {}".format(reason)
-        else:
-            message += "no reason"
+        message += format_close(code, reason)
         super().__init__(message)
 
 

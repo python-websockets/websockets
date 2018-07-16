@@ -8,6 +8,8 @@ Changelog
 
 *In development*
 
+* Added an interactive client: `python -m websockets <uri>`
+
 6.0
 ...
 

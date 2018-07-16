@@ -221,6 +221,13 @@ answering pings, or any other behavior required by the specification.
 
 ``websockets`` handles all this under the hood so you don't have to.
 
+One more thing...
+-----------------
+
+``websockets`` provides an interactive client::
+
+    $ python -m websockets wss://echo.websocket.org/
+
 .. _python-lt-36:
 
 Python < 3.6

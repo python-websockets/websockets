@@ -313,6 +313,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             :meth:`recv` used to return ``None`` instead. Refer to the
             changelog for details.
 
+        Canceling :meth:`recv` is safe. There's no risk of losing the next
+        message. The next invocation of :meth:`recv` will return it. This
+        makes it possible to enforce a timeout by wrapping :meth:`recv` in
+        :func:`~asyncio.wait_for`.
+
         """
         # Don't yield from self.ensure_open() here because messages could be
         # available in the queue even if the connection is closed.

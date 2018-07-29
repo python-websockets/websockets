@@ -27,6 +27,11 @@ sys.path.insert(0, os.path.abspath('..'))
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = ['sphinx.ext.autodoc', 'sphinx.ext.intersphinx', 'sphinx.ext.viewcode']
 
+# Spelling check needs an additional module that is not installed by default.
+# Add it only if spelling check is requested so docs can be generated without it.
+if 'spelling' in sys.argv:
+    extensions.append('sphinxcontrib.spelling')
+
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
 

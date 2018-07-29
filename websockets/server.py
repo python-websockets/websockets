@@ -673,7 +673,7 @@ class Serve:
 
     When a server is closed with
     :meth:`~websockets.server.WebSocketServer.close`, all running WebSocket
-    handlers are cancelled. They may intercept :exc:`~asyncio.CancelledError`
+    handlers are canceled. They may intercept :exc:`~asyncio.CancelledError`
     and perform cleanup actions before re-raising that exception. If a handler
     started new tasks, it should cancel them as well in that case.
 

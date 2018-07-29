@@ -189,7 +189,7 @@ class CommonTests:
         left in the CLOSING state until the event loop runs again.
 
         The current implementation returns a task that must be awaited or
-        cancelled, else asyncio complains about destroying a pending task.
+        canceled, else asyncio complains about destroying a pending task.
 
         """
         close_frame_data = serialize_close(code, reason)
@@ -208,7 +208,7 @@ class CommonTests:
             MS, self.receive_frame, Frame(True, OP_CLOSE, close_frame_data))
         self.loop.call_later(2 * MS, self.receive_eof_if_client)
 
-        # This task must be awaited or cancelled by the caller.
+        # This task must be awaited or canceled by the caller.
         return close_task
 
     def half_close_connection_remote(self, code=1000, reason='close'):
@@ -433,7 +433,7 @@ class CommonTests:
         self.process_invalid_frames()
         self.assertConnectionFailed(1011, '')
 
-    def test_recv_cancelled(self):
+    def test_recv_canceled(self):
         recv = self.ensure_future(self.protocol.recv())
         self.loop.call_soon(recv.cancel)
         with self.assertRaises(asyncio.CancelledError):
@@ -630,7 +630,7 @@ class CommonTests:
         self.assertTrue(pings[1][0].done())
         self.assertFalse(pings[2][0].done())
 
-    def test_cancelled_ping(self):
+    def test_canceled_ping(self):
         ping = self.loop.run_until_complete(self.protocol.ping())
         ping_frame = self.last_sent_frame()
         ping.cancel()

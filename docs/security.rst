@@ -36,9 +36,9 @@ Other limits
 ------------
 
 ``websockets`` implements additional limits on the amount of data it accepts
-in order to mimimize exposure to security vulnerabilities.
+in order to minimize exposure to security vulnerabilities.
 
 In the opening handshake, ``websockets`` limits the number of HTTP headers to
 256 and the size of an individual header to 4096 bytes. These limits are 10 to
-20 times larger than what's expected in standard use cases. They're hardcoded.
+20 times larger than what's expected in standard use cases. They're hard-coded.
 If you need to change them, monkey-patch the constants in ``websockets.http``.

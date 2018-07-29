@@ -97,7 +97,7 @@ class InvalidStatusCode(InvalidHandshake):
 
 class NegotiationError(InvalidHandshake):
     """
-    Exception raised when negociating an extension fails.
+    Exception raised when negotiating an extension fails.
 
     """
 

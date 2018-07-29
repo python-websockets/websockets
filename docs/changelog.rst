@@ -32,7 +32,7 @@ Changelog
 
     * Functions defined in the :mod:`~handshake` module now receive
       :class:`~http.Headers` in argument instead of ``get_header`` or
-      ``set_header`` fucntions. This affects libraries that rely on
+      ``set_header`` functions. This affects libraries that rely on
       low-level APIs.
 
     * Functions defined in the :mod:`~http` module now return HTTP headers as
@@ -81,7 +81,7 @@ Also:
 * Added :meth:`~protocol.WebSocketCommonProtocol.closed` property.
 
 * If a :meth:`~protocol.WebSocketCommonProtocol.ping` doesn't receive a pong,
-  it's cancelled when the connection is closed.
+  it's canceled when the connection is closed.
 
 * Reported the cause of :exc:`~exceptions.ConnectionClosed` exceptions.
 
@@ -242,7 +242,7 @@ Also:
 
 * Worked around an asyncio bug affecting connection termination under load.
 
-* Made ``state_name`` atttribute on protocols a public API.
+* Made ``state_name`` attribute on protocols a public API.
 
 * Improved documentation.
 

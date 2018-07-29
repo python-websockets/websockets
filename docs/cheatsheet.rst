@@ -6,7 +6,7 @@ Cheat sheet
 Server
 ------
 
-* Write a coroutine that handles a single connection. It receives a websocket
+* Write a coroutine that handles a single connection. It receives a WebSocket
   protocol instance and the URI path in argument.
 
   * Call :meth:`~protocol.WebSocketCommonProtocol.recv` and
@@ -117,6 +117,6 @@ connection handler, you can bind them with :func:`functools.partial`::
     asyncio.get_event_loop().run_until_complete(start_server)
     asyncio.get_event_loop().run_forever()
 
-Another way to achieve this result is to define the ``handler`` corountine in
+Another way to achieve this result is to define the ``handler`` coroutine in
 a scope where the ``extra_argument`` variable exists instead of injecting it
 through an argument.

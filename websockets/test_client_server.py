@@ -277,7 +277,7 @@ class ClientServerTests(unittest.TestCase):
 
     def test_server_close_while_client_connected(self):
         with self.temp_server(loop=self.loop):
-            # This endpoint waits just a bit when the connection is cancelled
+            # This endpoint waits just a bit when the connection is canceled
             # in order to test that wait_closed() really waits for completion.
             self.start_client('/slow_stop')
         with self.assertRaises(ConnectionClosed):

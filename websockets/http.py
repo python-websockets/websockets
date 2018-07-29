@@ -189,7 +189,7 @@ def read_line(stream):
     """
     # Security: this is bounded by the StreamReader's limit (default = 32kB).
     line = yield from stream.readline()
-    # Security: this guarantees header values are small (hardcoded = 4kB)
+    # Security: this guarantees header values are small (hard-coded = 4kB)
     if len(line) > MAX_LINE:
         raise ValueError("Line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5

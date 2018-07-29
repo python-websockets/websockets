@@ -70,14 +70,14 @@ two tasks:
 - :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` runs
   :meth:`~protocol.WebSocketCommonProtocol.transfer_data()` which handles
   incoming data and lets :meth:`~protocol.WebSocketCommonProtocol.recv()`
-  consume it. It may be cancelled to terminate the connection. It never exits
+  consume it. It may be canceled to terminate the connection. It never exits
   with an exception other than :exc:`~asyncio.CancelledError`. See :ref:`data
   transfer <data-transfer>` below.
 
 - :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` runs
   :meth:`~protocol.WebSocketCommonProtocol.close_connection()` which waits for
   the data transfer to terminate, then takes care of closing the TCP
-  connection. It must not be cancelled. It never exits with an exception. See
+  connection. It must not be canceled. It never exits with an exception. See
   :ref:`connection termination <connection-termination>` below.
 
 Besides, :meth:`~protocol.WebSocketCommonProtocol.fail_connection()` starts
@@ -113,7 +113,7 @@ passing the protocol to the ``ws_handler`` coroutine handling the connection.
 
 While the opening handshake is asymmetrical — the client sends an HTTP Upgrade
 request and the server replies with an HTTP Switching Protocols response —
-``websockets`` aims at keepping the implementation of both sides consistent
+``websockets`` aims at keeping the implementation of both sides consistent
 with one another.
 
 On the client side, :meth:`~client.WebSocketClientProtocol.handshake()`:
@@ -132,7 +132,7 @@ On the server side, :meth:`~server.WebSocketServerProtocol.handshake()`:
 - calls :meth:`~server.WebSocketServerProtocol.process_request()` which may
   abort the WebSocket handshake and return a HTTP response instead; this
   hook only makes sense on the server side;
-- checks the HTTP request, negociates ``extensions`` and ``subprotocol``, and
+- checks the HTTP request, negotiates ``extensions`` and ``subprotocol``, and
   configures the protocol accordingly;
 - builds a HTTP response based on the above and parameters passed to
   :meth:`~server.serve()`;
@@ -140,8 +140,8 @@ On the server side, :meth:`~server.WebSocketServerProtocol.handshake()`:
 - moves to the ``OPEN`` state;
 - returns the ``path`` part of the ``uri``.
 
-The most significant assymetry between the two sides of the opening handshake
-lies in the negociation of extensions and, to a lesser extent, of the
+The most significant asymmetry between the two sides of the opening handshake
+lies in the negotiation of extensions and, to a lesser extent, of the
 subprotocol. The server knows everything about both sides and decides what the
 parameters should be for the connection. The client merely applies them.
 
@@ -213,7 +213,7 @@ messages in the :attr:`~protocol.WebSocketCommonProtocol.messages` queue.
 When it encounters a control frame:
 
 - if it's a close frame, it starts the closing handshake;
-- if it's a ping frame, it anwsers with a pong frame;
+- if it's a ping frame, it answers with a pong frame;
 - if it's a pong frame, it acknowledges the corresponding ping (unless it's an
   unsolicited pong).
 
@@ -334,7 +334,7 @@ Cancellation
 ------------
 
 Most :doc:`public APIs <api>` of ``websockets`` are coroutines. They may be
-cancelled. ``websockets`` must handle this situation.
+canceled. ``websockets`` must handle this situation.
 
 Cancellation during the opening handshake is handled like any other exception:
 the TCP connection is closed and the exception is re-raised or logged.
@@ -342,7 +342,7 @@ the TCP connection is closed and the exception is re-raised or logged.
 Once the WebSocket connection is established,
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` and
 :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` mustn't get
-accidentally cancelled if a coroutine that awaits them is cancelled. They must
+accidentally canceled if a coroutine that awaits them is canceled. They must
 be shielded from cancellation.
 
 :meth:`~protocol.WebSocketCommonProtocol.recv()` waits for the next message in
@@ -360,11 +360,11 @@ on the transfer data task, it doesn't propagate cancellation to that task.
 prevent cancellation.
 
 :meth:`~protocol.WebSocketCommonProtocol.close()` waits for the data transfer
-task to terminate with :func:`~asyncio.wait_for`. If it's cancelled or if the
-timout elapses, :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`
-is cancelled. :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` is
+task to terminate with :func:`~asyncio.wait_for`. If it's canceled or if the
+timeout elapses, :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`
+is canceled. :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` is
 expected to catch the cancellation and terminate properly. This is the only
-point where it may be cancelled.
+point where it may be canceled.
 
 :meth:`~protocol.WebSocketCommonProtocol.close()` then waits for
 :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` but shields it

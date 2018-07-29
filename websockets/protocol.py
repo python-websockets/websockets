@@ -384,7 +384,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         connection to terminate.
 
         It doesn't do anything once the connection is closed. In other words
-        it's idemptotent.
+        it's idempotent.
 
         It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
         since errors during connection termination aren't particularly useful.
@@ -411,8 +411,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # exception, so there's no need to catch CancelledError here.
 
         try:
-            # If close() is cancelled during the wait, self.transfer_data_task
-            # is cancelled before the timeout elapses (on Python ≥ 3.4.3).
+            # If close() is canceled during the wait, self.transfer_data_task
+            # is canceled before the timeout elapses (on Python ≥ 3.4.3).
             # This helps closing connections when shutting down a server.
             yield from asyncio.wait_for(
                 self.transfer_data_task,
@@ -821,7 +821,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 )
                 plural = 's' if len(self.pings) > 1 else ''
                 logger.debug(
-                    "%s - cancelled pending ping%s: %s",
+                    "%s - canceled pending ping%s: %s",
                     self.side, plural, pings_hex)
 
             # A client should wait for a TCP close from the server.
@@ -844,7 +844,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         finally:
             # The try/finally ensures that the transport never remains open,
-            # even if this coroutine is cancelled (for example).
+            # even if this coroutine is canceled (for example).
 
             # If connection_lost() was called, the TCP connection is closed.
             # However, if TLS is enabled, the transport still needs closing.
@@ -904,7 +904,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
            handshake succeeded and the other side is likely to process it.
 
         3. Closing the connection. :meth:`close_connection` takes care of
-           this once :attr:`transfer_data_task` exits after being cancelled.
+           this once :attr:`transfer_data_task` exits after being canceled.
 
         (The specification describes these steps in the opposite order.)
 
@@ -1018,7 +1018,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                      self.close_code, self.close_reason or '[empty]')
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;
-        # - it must never be cancelled.
+        # - it must never be canceled.
         self.connection_lost_waiter.set_result(None)
         super().connection_lost(exc)
 

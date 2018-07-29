@@ -30,7 +30,7 @@ with the object returned by :func:`~server.serve`:
 - calling its ``close()`` method, then waiting for its ``wait_closed()``
   method to complete.
 
-Tasks that handle connections will be cancelled. For example, if the handler
+Tasks that handle connections will be canceled. For example, if the handler
 is awaiting :meth:`~protocol.WebSocketCommonProtocol.recv`, that call will
 raise :exc:`~asyncio.CancelledError`.
 

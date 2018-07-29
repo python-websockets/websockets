@@ -76,28 +76,6 @@ in particular. Fortunately Python's official documentation provides advice to
 
 .. _develop with asyncio: https://docs.python.org/3/library/asyncio-dev.html
 
-Keeping connections open
-------------------------
-
-Pinging the other side once in a while is a good way to check whether the
-connection is still working, and also to keep it open in case something kills
-idle connections after some time::
-
-    while True:
-        try:
-            msg = await asyncio.wait_for(ws.recv(), timeout=20)
-        except asyncio.TimeoutError:
-            # No data in 20 seconds, check the connection.
-            try:
-                pong_waiter = await ws.ping()
-                await asyncio.wait_for(pong_waiter, timeout=10)
-            except asyncio.TimeoutError:
-                # No response to ping in 10 seconds, disconnect.
-                break
-        else:
-            # do something with msg
-            ...
-
 Passing additional arguments to the connection handler
 ------------------------------------------------------
 

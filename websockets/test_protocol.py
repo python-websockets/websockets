@@ -92,7 +92,8 @@ class CommonTests:
         super().setUp()
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
-        self.protocol = WebSocketCommonProtocol()
+        # Disable pings to make it easier to test what frames are sent exactly.
+        self.protocol = WebSocketCommonProtocol(ping_interval=None)
         self.transport = TransportMock()
         self.transport.setup_mock(self.loop, self.protocol)
 
@@ -769,6 +770,113 @@ class CommonTests:
         connection_closed_exc = context.exception
         self.assertEqual(connection_closed_exc.code, 1000)
         self.assertEqual(connection_closed_exc.reason, 'close')
+
+    # Test the protocol logic for sending keepalive pings.
+
+    def restart_protocol_with_keepalive_ping(
+            self, ping_interval=3 * MS, ping_timeout=3 * MS):
+        initial_protocol = self.protocol
+        # copied from tearDown
+        self.transport.close()
+        self.loop.run_until_complete(self.protocol.close())
+        # copied from setUp, but enables keepalive pings
+        self.protocol = WebSocketCommonProtocol(
+            ping_interval=ping_interval, ping_timeout=ping_timeout)
+        self.transport = TransportMock()
+        self.transport.setup_mock(self.loop, self.protocol)
+        self.protocol.is_client = initial_protocol.is_client
+        self.protocol.side = initial_protocol.side
+
+    def test_keepalive_ping(self):
+        self.restart_protocol_with_keepalive_ping()
+
+        # Ping is sent at 3ms and acknowledged at 4ms.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        ping_1, = tuple(self.protocol.pings)
+        self.assertOneFrameSent(True, OP_PING, ping_1)
+        self.receive_frame(Frame(True, OP_PONG, ping_1))
+
+        # Next ping is sent at 7ms.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        ping_2, = tuple(self.protocol.pings)
+        self.assertOneFrameSent(True, OP_PING, ping_2)
+
+        # The keepalive ping task goes on.
+        self.assertFalse(self.protocol.keepalive_ping_task.done())
+
+    def test_keepalive_ping_not_acknowledged_closes_connection(self):
+        self.restart_protocol_with_keepalive_ping()
+
+        # Ping is sent at 3ms and not acknowleged.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        ping_1, = tuple(self.protocol.pings)
+        self.assertOneFrameSent(True, OP_PING, ping_1)
+
+        # Connection is closed at 6ms.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        self.assertOneFrameSent(True, OP_CLOSE, serialize_close(1011, ''))
+
+        # The keepalive ping task is complete.
+        self.assertEqual(self.protocol.keepalive_ping_task.result(), None)
+
+    def test_keepalive_ping_stops_when_connection_closing(self):
+        self.restart_protocol_with_keepalive_ping()
+        close_task = self.half_close_connection_local()
+
+        # No ping sent at 3ms because the closing handshake is in progress.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        self.assertNoFrameSent()
+
+        # The keepalive ping task terminated.
+        self.assertTrue(self.protocol.keepalive_ping_task.cancelled())
+
+        self.loop.run_until_complete(close_task)    # cleanup
+
+    def test_keepalive_ping_stops_when_connection_closed(self):
+        self.restart_protocol_with_keepalive_ping()
+        self.close_connection()
+
+        # The keepalive ping task terminated.
+        self.assertTrue(self.protocol.keepalive_ping_task.cancelled())
+
+    def test_keepalive_ping_with_no_ping_interval(self):
+        self.restart_protocol_with_keepalive_ping(ping_interval=None)
+
+        # No ping is sent at 3ms.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        self.assertNoFrameSent()
+
+    def test_keepalive_ping_with_no_ping_timeout(self):
+        self.restart_protocol_with_keepalive_ping(ping_timeout=None)
+
+        # Ping is sent at 3ms and not acknowleged.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        ping_1, = tuple(self.protocol.pings)
+        self.assertOneFrameSent(True, OP_PING, ping_1)
+
+        # Next ping is sent at 7ms anyway.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        ping_1_again, ping_2 = tuple(self.protocol.pings)
+        self.assertEqual(ping_1, ping_1_again)
+        self.assertOneFrameSent(True, OP_PING, ping_2)
+
+        # The keepalive ping task goes on.
+        self.assertFalse(self.protocol.keepalive_ping_task.done())
+
+    def test_keepalive_ping_unexpected_error(self):
+        self.restart_protocol_with_keepalive_ping()
+
+        @asyncio.coroutine
+        def ping():
+            raise Exception("BOOM")
+        self.protocol.ping = ping
+
+        # The keepalive ping task fails when sending a ping at 3ms.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+
+        # The keepalive ping task is complete.
+        # It logs and swallows the exception.
+        self.assertEqual(self.protocol.keepalive_ping_task.result(), None)
 
     # Test the protocol logic for closing the connection.
 

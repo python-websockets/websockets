@@ -74,6 +74,12 @@ two tasks:
   with an exception other than :exc:`~asyncio.CancelledError`. See :ref:`data
   transfer <data-transfer>` below.
 
+- :attr:`~protocol.WebSocketCommonProtocol.keepalive_ping_task` runs
+  :meth:`~protocol.WebSocketCommonProtocol.keepalive_ping()` which sends Ping
+  frames at regular intervals and ensures that corresponding Pong frames are
+  received. It is cancelled when the connection terminates. It never exits
+  with an exception other than :exc:`~asyncio.CancelledError`.
+
 - :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` runs
   :meth:`~protocol.WebSocketCommonProtocol.close_connection()` which waits for
   the data transfer to terminate, then takes care of closing the TCP
@@ -301,6 +307,11 @@ easier to implement the timeout on the closing handshake. Canceling
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` creates no risk
 of canceling :attr:`~protocol.WebSocketCommonProtocol.close_connection_task`
 and failing to close the TCP connection, thus leaking resources.
+
+Then :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` cancels
+:attr:`~protocol.WebSocketCommonProtocol.keepalive_ping`. This task has no
+protocol compliance responsibilities. Terminating it to avoid leaking it is
+the only concern.
 
 Terminating the TCP connection can take up to ``2 * timeout`` on the server
 side and ``3 * timeout`` on the client side. Clients start by waiting for the

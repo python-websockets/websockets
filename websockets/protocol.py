@@ -78,13 +78,27 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     The ``host``, ``port`` and ``secure`` parameters are simply stored as
     attributes for handlers that need them.
 
+    Once the connection is open, a `Ping frame`_ is sent every
+    ``ping_interval`` seconds. This serves as a keepalive. It helps keeping
+    the connection open, especially in the presence of proxies with short
+    timeouts. Set ``ping_interval`` to ``None`` to disable this behavior.
+
+    .. _Ping frame: https://tools.ietf.org/html/rfc6455#section-5.5.2
+
+    If the corresponding `Pong frame`_ isn't received within ``ping_timeout``
+    seconds, the connection is considered unusable and is closed with status
+    code 1011. This ensures that the remote endpoint remains responsive. Set
+    ``ping_timeout`` to ``None`` to disable this behavior.
+
+    .. _Pong frame: https://tools.ietf.org/html/rfc6455#section-5.5.3
+
     The ``timeout`` parameter defines a maximum wait time in seconds for
     completing the closing handshake and terminating the TCP connection.
     :meth:`close()` completes in at most ``4 * timeout`` on the server side
     and ``5 * timeout`` on the client side.
 
-    ``timeout`` is a parameter of the protocol because websockets usually
-    calls :meth:`close()` implicitly:
+    ``timeout`` needs to be a parameter of the protocol because websockets
+    usually calls :meth:`close()` implicitly:
 
     - on the server side, when the connection handler terminates,
     - on the client side, when exiting the context manager for the connection.
@@ -148,12 +162,16 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     def __init__(self, *,
                  host=None, port=None, secure=None,
-                 timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+                 ping_interval=20, ping_timeout=20,
+                 timeout=10,
+                 max_size=2 ** 20, max_queue=2 ** 5,
                  read_limit=2 ** 16, write_limit=2 ** 16,
                  loop=None, legacy_recv=False):
         self.host = host
         self.port = port
         self.secure = secure
+        self.ping_interval = ping_interval
+        self.ping_timeout = ping_timeout
         self.timeout = timeout
         self.max_size = max_size
         self.max_queue = max_queue
@@ -218,6 +236,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Exception that occurred during data transfer, if any.
         self.transfer_data_exc = None
 
+        # Task sending keepalive pings.
+        self.keepalive_ping_task = None
+
         # Task closing the TCP connection.
         self.close_connection_task = None
 
@@ -247,6 +268,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Start the task that receives incoming WebSocket messages.
         self.transfer_data_task = asyncio_ensure_future(
             self.transfer_data(), loop=self.loop)
+        # Start the task that sends pings at regular intervals.
+        self.keepalive_ping_task = asyncio_ensure_future(
+            self.keepalive_ping(), loop=self.loop)
         # Start the task that eventually closes the TCP connection.
         self.close_connection_task = asyncio_ensure_future(
             self.close_connection(), loop=self.loop)
@@ -799,6 +823,48 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             yield from self.write_frame(OP_CLOSE, data, State.CLOSING)
 
     @asyncio.coroutine
+    def keepalive_ping(self):
+        """
+        Send a Ping frame and wait for a Pong frame at regular intervals.
+
+        This coroutine exits when the connection terminates and one of the
+        following happens:
+        - :meth:`ping` raises :exc:`ConnectionClosed`, or
+        - :meth:`close_connection` cancels :attr:`keepalive_ping_task`.
+
+        """
+        if self.ping_interval is None:
+            return
+
+        try:
+            while True:
+                yield from asyncio.sleep(self.ping_interval, loop=self.loop)
+
+                # ping() cannot raise ConnectionClosed, only CancelledError:
+                # - If the connection is CLOSING, keepalive_ping_task will be
+                #   cancelled by close_connection() before ping() returns.
+                # - If the connection is CLOSED, keepalive_ping_task must be
+                #   cancelled already.
+                ping_waiter = yield from self.ping()
+
+                if self.ping_timeout is not None:
+                    try:
+                        yield from asyncio.wait_for(
+                            ping_waiter, self.ping_timeout, loop=self.loop)
+                    except asyncio.TimeoutError:
+                        logger.debug(
+                            "%s ! timed out waiting for pong", self.side)
+                        self.fail_connection(1011)
+                        break
+
+        except asyncio.CancelledError:
+            raise
+
+        except Exception as exc:
+            logger.warning(
+                "Unexpected exception in keepalive ping task", exc_info=True)
+
+    @asyncio.coroutine
     def close_connection(self):
         """
         7.1.1. Close the WebSocket Connection
@@ -818,6 +884,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     yield from self.transfer_data_task
                 except asyncio.CancelledError:
                     pass
+
+            # Cancel the keepalive ping task.
+            if self.keepalive_ping_task is not None:
+                self.keepalive_ping_task.cancel()
 
             # Cancel all pending pings because they'll never receive a pong.
             for ping in self.pings.values():

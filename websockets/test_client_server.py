@@ -230,14 +230,18 @@ class ClientServerTests(unittest.TestCase):
         self.loop.run_forever()
 
     def start_server(self, **kwds):
-        # Don't enable compression by default in tests.
+        # Disable compression by default in tests.
         kwds.setdefault('compression', None)
+        # Disable pings by default in tests.
+        kwds.setdefault('ping_interval', None)
         start_server = serve(handler, 'localhost', 0, **kwds)
         self.server = self.loop.run_until_complete(start_server)
 
     def start_client(self, resource_name='/', user_info=None, **kwds):
-        # Don't enable compression by default in tests.
+        # Disable compression by default in tests.
         kwds.setdefault('compression', None)
+        # Disable pings by default in tests.
+        kwds.setdefault('ping_interval', None)
         secure = kwds.get('ssl') is not None
         server_uri = get_server_uri(
             self.server, secure, resource_name, user_info)

@@ -656,9 +656,10 @@ class Serve:
     :class:`WebSocketServerProtocol` instance. It defaults to
     :class:`WebSocketServerProtocol`.
 
-    The behavior of the ``timeout``, ``max_size``, and ``max_queue``,
-    ``read_limit``, and ``write_limit`` optional arguments is described in the
-    documentation of :class:`~websockets.protocol.WebSocketCommonProtocol`.
+    The behavior of the ``ping_interval``, ``ping_timeout``, ``timeout``,
+    ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit`` optional
+    arguments is described in the documentation of
+    :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
     :func:`serve` also accepts the following optional arguments:
 
@@ -701,7 +702,9 @@ class Serve:
 
     def __init__(self, ws_handler, host=None, port=None, *,
                  path=None, create_protocol=None,
-                 timeout=10, max_size=2 ** 20, max_queue=2 ** 5,
+                 ping_interval=20, ping_timeout=20,
+                 timeout=10,
+                 max_size=2 ** 20, max_queue=2 ** 5,
                  read_limit=2 ** 16, write_limit=2 ** 16,
                  loop=None, legacy_recv=False, klass=None,
                  origins=None, extensions=None, subprotocols=None,
@@ -735,7 +738,9 @@ class Serve:
         factory = lambda: create_protocol(
             ws_handler, ws_server,
             host=host, port=port, secure=secure,
-            timeout=timeout, max_size=max_size, max_queue=max_queue,
+            ping_interval=ping_interval, ping_timeout=ping_timeout,
+            timeout=timeout,
+            max_size=max_size, max_queue=max_queue,
             read_limit=read_limit, write_limit=write_limit,
             loop=loop, legacy_recv=legacy_recv,
             origins=origins, extensions=extensions, subprotocols=subprotocols,

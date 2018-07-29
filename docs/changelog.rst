@@ -276,7 +276,7 @@ Also:
 * Returned a 403 status code instead of 400 when the request Origin isn't
   allowed.
 
-* Cancelling :meth:`~protocol.WebSocketCommonProtocol.recv` no longer drops
+* Canceling :meth:`~protocol.WebSocketCommonProtocol.recv` no longer drops
   the next message.
 
 * Clarified that the closing handshake can be initiated by the client.

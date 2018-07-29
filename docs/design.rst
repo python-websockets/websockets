@@ -293,13 +293,13 @@ which may happen as a result of:
   :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`;
 - a protocol error, including connection errors: depending on the exception,
   :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` :ref:`fails the
-  connection <connection-failure>`_ with a suitable code and exits.
+  connection <connection-failure>` with a suitable code and exits.
 
 :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` is separate
 from :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` to make it
-easier to implement the timeout on the closing handshake. Cancelling
+easier to implement the timeout on the closing handshake. Canceling
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` creates no risk
-of cancelling :attr:`~protocol.WebSocketCommonProtocol.close_connection_task`
+of canceling :attr:`~protocol.WebSocketCommonProtocol.close_connection_task`
 and failing to close the TCP connection, thus leaking resources.
 
 Terminating the TCP connection can take up to ``2 * timeout`` on the server
@@ -320,7 +320,7 @@ If the opening handshake doesn't complete successfully, ``websockets`` fails
 the connection by closing the TCP connection.
 
 Once the opening handshake has completed, ``websockets`` fails the connection
-by cancelling :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` and
+by canceling :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` and
 sending a close frame if appropriate.
 
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` exits, unblocking

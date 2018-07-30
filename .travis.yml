@@ -1,3 +1,4 @@
+language: python
 env:
   global:
   # websockets only works on Python >= 3.4.
@@ -7,10 +8,9 @@ env:
 
 matrix:
   include:
-    - dist: trusty
+    - dist: xenial    # required for Python 3.7 (travis-ci/travis-ci#9069)
       sudo: required
-      language: python
-      python: "3.6"
+      python: "3.7"
       services:
         - docker
     - os: osx

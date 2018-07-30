@@ -8,6 +8,8 @@ Changelog
 
 *In development*
 
+* Added an interactive client: `python -m websockets <uri>`
+
 6.0
 ...
 
@@ -44,8 +46,6 @@ Changelog
 Also:
 
 * Added compatibility with Python 3.7.
-
-* Added an interactive client: `python -m websockets <uri>`
 
 5.0
 ...

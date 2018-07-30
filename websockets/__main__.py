@@ -1,28 +1,61 @@
 import argparse
 import asyncio
-import readline
+import os
+import signal
 import sys
 import threading
 
 import websockets
 from websockets.compatibility import asyncio_ensure_future
+from websockets.exceptions import format_close
 
 
-def print_during_input(string, redisplay_input=True):
+def exit_from_event_loop_thread(loop, stop):
+    loop.stop()
+    if not stop.done():
+        # When exiting the thread that runs the event loop, raise
+        # KeyboardInterrupt in the main thead to exit the program.
+        try:
+            ctrl_c = signal.CTRL_C_EVENT    # Windows
+        except AttributeError:
+            ctrl_c = signal.SIGINT          # POSIX
+        os.kill(os.getpid(), ctrl_c)
+
+
+def print_during_input(string):
     sys.stdout.write(
-        '\r'                # Move to beginning of line
-        '\u001B[2K'         # Erase entire current line (VT100)
-        + string + '\n'     # Display string on its own line
+        '\N{ESC}7'                  # Save cursor position
+        '\N{LINE FEED}'             # Add a new line
+        '\N{ESC}[A'                 # Move cursor up
+        '\N{ESC}[L'                 # Insert blank line, scroll last line down
+        '{string}\N{LINE FEED}'     # Print string in the inserted blank line
+        '\N{ESC}8'                  # Restore cursor position
+        '\N{ESC}[B'                 # Move cursor down
+        .format(string=string)
     )
-    if redisplay_input:
-        sys.stdout.write('> ' + readline.get_line_buffer())
-        sys.stdout.flush()
+    sys.stdout.flush()
+
+
+def print_over_input(string):
+    sys.stdout.write(
+        '\N{CARRIAGE RETURN}'       # Move cursor to beginning of line
+        '\N{ESC}[K'                 # Delete current line
+        '{string}\N{LINE FEED}'
+        .format(string=string)
+    )
+    sys.stdout.flush()
 
 
 @asyncio.coroutine
 def run_client(uri, loop, inputs, stop):
-    websocket = yield from websockets.connect(uri)
-    print_during_input("Connected to {}".format(uri))
+    try:
+        websocket = yield from websockets.connect(uri)
+    except Exception as exc:
+        print_over_input("Failed to connect to {}: {}.".format(uri, exc))
+        exit_from_event_loop_thread(loop, stop)
+        return
+    else:
+        print_during_input("Connected to {}.".format(uri))
 
     try:
         while True:
@@ -32,24 +65,39 @@ def run_client(uri, loop, inputs, stop):
                 [incoming, outgoing, stop],
                 return_when=asyncio.FIRST_COMPLETED,
             )
-            if incoming in done:
-                print_during_input('< ' + incoming.result())
-            else:
+
+            # Cancel pending tasks to avoid leaking them.
+            if incoming in pending:
                 incoming.cancel()
+            if outgoing in pending:
+                outgoing.cancel()
+
+            if incoming in done:
+                try:
+                    message = incoming.result()
+                except websockets.ConnectionClosed:
+                    break
+                else:
+                    print_during_input('< ' + message)
 
             if outgoing in done:
-                yield from websocket.send(outgoing.result())
-            else:
-                outgoing.cancel()
+                message = outgoing.result()
+                yield from websocket.send(message)
 
             if stop in done:
                 break
 
     finally:
         yield from websocket.close()
-        print_during_input("Connection closed.", redisplay_input=False)
+        close_status = format_close(
+            websocket.close_code, websocket.close_reason)
 
-        loop.stop()
+        print_over_input(
+            "Connection closed: {close_status}."
+            .format(close_status=close_status)
+        )
+
+        exit_from_event_loop_thread(loop, stop)
 
 
 def main():
@@ -82,7 +130,8 @@ def main():
     try:
         while True:
             # Since there's no size limit, put_nowait is identical to put.
-            loop.call_soon_threadsafe(inputs.put_nowait, input('> '))
+            message = input('> ')
+            loop.call_soon_threadsafe(inputs.put_nowait, message)
     except (KeyboardInterrupt, EOFError):   # ^C, ^D
         loop.call_soon_threadsafe(stop.set_result, None)
 

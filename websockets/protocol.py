@@ -78,10 +78,18 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     The ``host``, ``port`` and ``secure`` parameters are simply stored as
     attributes for handlers that need them.
 
-    The ``timeout`` parameter defines the maximum wait time in seconds for
-    completing the closing handshake and, only on the client side, for
-    terminating the TCP connection. :meth:`close()` will complete in at most
-    ``4 * timeout`` on the server side and ``5 * timeout`` on the client side.
+    The ``timeout`` parameter defines a maximum wait time in seconds for
+    completing the closing handshake and terminating the TCP connection.
+    :meth:`close()` completes in at most ``4 * timeout`` on the server side
+    and ``5 * timeout`` on the client side.
+
+    ``timeout`` is a parameter of the protocol because websockets usually
+    calls :meth:`close()` implicitly:
+
+    - on the server side, when the connection handler terminates,
+    - on the client side, when exiting the context manager for the connection.
+
+    To apply a timeout to any other API, wrap it in :func:`~asyncio.wait_for`.
 
     The ``max_size`` parameter enforces the maximum size for incoming messages
     in bytes. The default value is 1MB. ``None`` disables the limit. If a

@@ -15,7 +15,7 @@ def win_enable_vt100():
 
     STD_OUTPUT_HANDLE = ctypes.c_uint(-11)
     INVALID_HANDLE_VALUE = ctypes.c_uint(-1)
-    ENABLE_VIRTUAL_TERMINAL_INPUT = 0x004
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x004
 
     handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
     if handle == INVALID_HANDLE_VALUE:
@@ -27,8 +27,10 @@ def win_enable_vt100():
     ) == 0:
         raise RuntimeError("Unable to query current console mode")
 
+    # ctypes ints lack support for the required bit-OR operation.
+    # Temporarily convert to Py int, do the OR and convert back.
     py_int_mode = int.from_bytes(cur_mode, sys.byteorder)
-    new_mode = ctypes.c_uint(py_int_mode | ENABLE_VIRTUAL_TERMINAL_INPUT)
+    new_mode = ctypes.c_uint(py_int_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
 
     if ctypes.windll.kernel32.SetConsoleMode(handle, new_mode) == 0:
         raise RuntimeError("Unable to set console mode")

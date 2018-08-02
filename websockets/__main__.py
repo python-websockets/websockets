@@ -10,6 +10,38 @@ from websockets.compatibility import asyncio_ensure_future
 from websockets.exceptions import format_close
 
 
+def win_enable_vt100():
+    """
+    Enable VT-100 for console output on Windows.
+
+    See also https://bugs.python.org/issue29059.
+
+    """
+    import ctypes
+
+    STD_OUTPUT_HANDLE = ctypes.c_uint(-11)
+    INVALID_HANDLE_VALUE = ctypes.c_uint(-1)
+    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x004
+
+    handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+    if handle == INVALID_HANDLE_VALUE:
+        raise RuntimeError("Unable to obtain stdout handle")
+
+    cur_mode = ctypes.c_uint()
+    if ctypes.windll.kernel32.GetConsoleMode(
+        handle, ctypes.byref(cur_mode)
+    ) == 0:
+        raise RuntimeError("Unable to query current console mode")
+
+    # ctypes ints lack support for the required bit-OR operation.
+    # Temporarily convert to Py int, do the OR and convert back.
+    py_int_mode = int.from_bytes(cur_mode, sys.byteorder)
+    new_mode = ctypes.c_uint(py_int_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+
+    if ctypes.windll.kernel32.SetConsoleMode(handle, new_mode) == 0:
+        raise RuntimeError("Unable to set console mode")
+
+
 def exit_from_event_loop_thread(loop, stop):
     loop.stop()
     if not stop.done():
@@ -101,6 +133,20 @@ def run_client(uri, loop, inputs, stop):
 
 
 def main():
+    # If we're on Windows, enable VT100 terminal support.
+    if os.name == 'nt':
+        try:
+            win_enable_vt100()
+        except RuntimeError as exc:
+            sys.stderr.write(
+                "Unable to set terminal to VT100 mode. This is only "
+                "supported since Win10 anniversary update. Expect "
+                "weird symbols on the terminal. Error: {exc!s}"
+                "\N{LINE FEED}"
+                .format(exc=exc)
+            )
+            sys.stderr.flush()
+
     # Parse command line arguments.
     parser = argparse.ArgumentParser(
         prog="python -m websockets",

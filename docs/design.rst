@@ -393,7 +393,7 @@ accumulates in buffers, eventually causing the server to run out of memory and
 crash.
 
 The solution to this problem is backpressure. Any part of the server that
-receives inputs faster than it can it can process them and send the outputs
+receives inputs faster than it can process them and send the outputs
 must propagate that information back to the previous part in the chain.
 
 ``websockets`` is designed to make it easy to get backpressure right.

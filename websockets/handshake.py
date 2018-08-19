@@ -38,6 +38,7 @@ import random
 
 from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
 from .headers import parse_connection, parse_upgrade
+from .http import MultipleValuesError
 
 
 __all__ = [
@@ -80,21 +81,19 @@ def check_request(headers):
     responsibility of the caller.
 
     """
-    try:
-        connection = headers['Connection']
-    except KeyError:
-        raise InvalidUpgrade('Connection')
+    connection = sum([
+        parse_connection(value)
+        for value in headers.get_all('Connection')
+    ], [])
 
-    connection = parse_connection(connection)
     if not any(value.lower() == 'upgrade' for value in connection):
         raise InvalidUpgrade('Connection', connection)
 
-    try:
-        upgrade = headers['Upgrade']
-    except KeyError:
-        raise InvalidUpgrade('Upgrade')
+    upgrade = sum([
+        parse_upgrade(value)
+        for value in headers.get_all('Upgrade')
+    ], [])
 
-    upgrade = parse_upgrade(upgrade)
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
     if not (len(upgrade) == 1 and upgrade[0].lower() == 'websocket'):
@@ -104,6 +103,10 @@ def check_request(headers):
         s_w_key = headers['Sec-WebSocket-Key']
     except KeyError:
         raise InvalidHeader('Sec-WebSocket-Key')
+    except MultipleValuesError:
+        raise InvalidHeader(
+            'Sec-WebSocket-Key',
+            "more than one Sec-WebSocket-Key header found")
 
     try:
         raw_key = base64.b64decode(s_w_key.encode(), validate=True)
@@ -116,6 +119,10 @@ def check_request(headers):
         s_w_version = headers['Sec-WebSocket-Version']
     except KeyError:
         raise InvalidHeader('Sec-WebSocket-Version')
+    except MultipleValuesError:
+        raise InvalidHeader(
+            'Sec-WebSocket-Version',
+            "more than one Sec-WebSocket-Version header found")
 
     if s_w_version != '13':
         raise InvalidHeaderValue('Sec-WebSocket-Version', s_w_version)
@@ -151,21 +158,19 @@ def check_response(headers, key):
     the caller.
 
     """
-    try:
-        connection = headers['Connection']
-    except KeyError:
-        raise InvalidUpgrade('Connection')
+    connection = sum([
+        parse_connection(value)
+        for value in headers.get_all('Connection')
+    ], [])
 
-    connection = parse_connection(connection)
     if not any(value.lower() == 'upgrade' for value in connection):
         raise InvalidUpgrade('Connection', connection)
 
-    try:
-        upgrade = headers['Upgrade']
-    except KeyError:
-        raise InvalidUpgrade('Upgrade')
+    upgrade = sum([
+        parse_upgrade(value)
+        for value in headers.get_all('Upgrade')
+    ], [])
 
-    upgrade = parse_upgrade(upgrade)
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
     if not (len(upgrade) == 1 and upgrade[0].lower() == 'websocket'):
@@ -175,6 +180,10 @@ def check_response(headers, key):
         s_w_accept = headers['Sec-WebSocket-Accept']
     except KeyError:
         raise InvalidHeader('Sec-WebSocket-Accept')
+    except MultipleValuesError:
+        raise InvalidHeader(
+            'Sec-WebSocket-Accept',
+            "more than one Sec-WebSocket-Accept header found")
 
     if s_w_accept != accept(key):
         raise InvalidHeaderValue('Sec-WebSocket-Accept', s_w_accept)

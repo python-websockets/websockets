@@ -13,6 +13,8 @@ Changelog
 * Changed the ``origins`` argument to represent the lack of an origin with
   ``None`` rather than ``''``.
 
+* Improved handling of multiple HTTP headers with the same name.
+
 * Improved error messages when a required HTTP header is missing.
 
 6.0

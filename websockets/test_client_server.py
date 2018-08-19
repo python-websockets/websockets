@@ -12,6 +12,7 @@ import unittest
 import unittest.mock
 import urllib.error
 import urllib.request
+import warnings
 
 from .client import *
 from .compatibility import FORBIDDEN, OK, UNAUTHORIZED
@@ -1052,10 +1053,41 @@ class ClientServerOriginTests(unittest.TestCase):
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
+    def test_checking_origins_fails_with_multiple_headers(self):
+        server = self.loop.run_until_complete(
+            serve(handler, 'localhost', 0, origins=['http://localhost']))
+        with self.assertRaisesRegex(InvalidHandshake,
+                                    "Status code not 101: 400"):
+            self.loop.run_until_complete(
+                connect(get_server_uri(server), origin='http://localhost',
+                        extra_headers=[('Origin', 'http://otherhost')]))
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
     def test_checking_lack_of_origin_succeeds(self):
         server = self.loop.run_until_complete(
-            serve(handler, 'localhost', 0, origins=['']))
+            serve(handler, 'localhost', 0, origins=[None]))
         client = self.loop.run_until_complete(connect(get_server_uri(server)))
+
+        self.loop.run_until_complete(client.send("Hello!"))
+        self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")
+
+        self.loop.run_until_complete(client.close())
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
+    def test_checking_lack_of_origin_succeeds_backwards_compatibility(self):
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            server = self.loop.run_until_complete(
+                serve(handler, 'localhost', 0, origins=['']))
+            client = self.loop.run_until_complete(
+                connect(get_server_uri(server)))
+
+        self.assertEqual(len(recorded_warnings), 1)
+        warning = recorded_warnings[0].message
+        self.assertEqual(str(warning), "use None instead of '' in origins")
+        self.assertEqual(type(warning), DeprecationWarning)
 
         self.loop.run_until_complete(client.send("Hello!"))
         self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")

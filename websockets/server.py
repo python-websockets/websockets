@@ -8,21 +8,22 @@ import collections.abc
 import email.utils
 import logging
 import sys
+import warnings
 
 from .compatibility import (
     BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE,
     SWITCHING_PROTOCOLS, UPGRADE_REQUIRED, asyncio_ensure_future
 )
 from .exceptions import (
-    AbortHandshake, InvalidHandshake, InvalidMessage, InvalidOrigin,
-    InvalidUpgrade, NegotiationError
+    AbortHandshake, InvalidHandshake, InvalidHeader, InvalidMessage,
+    InvalidOrigin, InvalidUpgrade, NegotiationError
 )
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from .handshake import build_response, check_request
 from .headers import (
     build_extension_list, parse_extension_list, parse_subprotocol_list
 )
-from .http import USER_AGENT, Headers, read_request
+from .http import USER_AGENT, Headers, MultipleValuesError, read_request
 from .protocol import WebSocketCommonProtocol
 
 
@@ -48,6 +49,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     def __init__(self, ws_handler, ws_server, *,
                  origins=None, extensions=None, subprotocols=None,
                  extra_headers=None, **kwds):
+        # For backwards-compatibility with 6.0 or earlier.
+        if origins is not None and '' in origins:
+            warnings.warn(
+                "use None instead of '' in origins", DeprecationWarning)
+            origins = [None if origin == '' else origin for origin in origins]
         self.ws_handler = ws_handler
         self.ws_server = ws_server
         self.origins = origins
@@ -279,7 +285,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         acceptable.
 
         """
-        origin = headers.get('Origin', '')
+        # "The user agent MUST NOT include more than one Origin header field"
+        # per https://tools.ietf.org/html/rfc6454#section-7.3.
+        try:
+            origin = headers.get('Origin')
+        except MultipleValuesError:
+            raise InvalidHeader('Origin', "more than one Origin header found")
         if origins is not None:
             if origin not in origins:
                 raise InvalidOrigin(origin)
@@ -423,7 +434,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Perform the server side of the opening handshake.
 
         If provided, ``origins`` is a list of acceptable HTTP Origin values.
-        Include ``''`` if the lack of an origin is acceptable.
+        Include ``None`` if the lack of an origin is acceptable.
 
         If provided, ``available_extensions`` is a list of supported
         extensions in the order in which they should be used.
@@ -651,7 +662,7 @@ class Serve:
 
     :func:`serve` also accepts the following optional arguments:
 
-    * ``origins`` defines acceptable Origin HTTP headers — include ``''`` if
+    * ``origins`` defines acceptable Origin HTTP headers — include ``None`` if
       the lack of an origin is acceptable
     * ``extensions`` is a list of supported extensions in order of
       decreasing preference

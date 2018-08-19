@@ -624,7 +624,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
                 [], [PerMessageDeflate(False, False, 15, 15)])
 
 
-class PerMessageDeflateTests(unittest.TestCase):
+class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
     def setUp(self):
         # Set up an instance of the permessage-deflate extension with the most
@@ -634,6 +634,9 @@ class PerMessageDeflateTests(unittest.TestCase):
 
     def test_name(self):
         assert self.extension.name == 'permessage-deflate'
+
+    def test_repr(self):
+        self.assertExtensionEqual(eval(repr(self.extension)), self.extension)
 
     # Control frames aren't encoded or decoded.
 

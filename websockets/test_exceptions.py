@@ -21,8 +21,16 @@ class ExceptionsTests(unittest.TestCase):
                 "Malformed HTTP message",
             ),
             (
+                InvalidHeader('Name'),
+                "Missing Name header",
+            ),
+            (
+                InvalidHeader('Name', None),
+                "Missing Name header",
+            ),
+            (
                 InvalidHeader('Name', ''),
-                "Missing or empty Name header",
+                "Empty Name header",
             ),
             (
                 InvalidHeader('Name', 'Value'),
@@ -40,8 +48,8 @@ class ExceptionsTests(unittest.TestCase):
             ),
 
             (
-                InvalidUpgrade('Upgrade', ''),
-                "Missing or empty Upgrade header",
+                InvalidUpgrade('Upgrade'),
+                "Missing Upgrade header",
             ),
             (
                 InvalidUpgrade('Connection', 'websocket'),

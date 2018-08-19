@@ -41,11 +41,13 @@ class InvalidHeader(InvalidHandshake):
     Exception raised when a HTTP header doesn't have a valid format or value.
 
     """
-    def __init__(self, name, value):
-        if value:
-            message = "Invalid {} header: {}".format(name, value)
+    def __init__(self, name, value=None):
+        if value is None:
+            message = "Missing {} header".format(name)
+        elif value == '':
+            message = "Empty {} header".format(name)
         else:
-            message = "Missing or empty {} header".format(name)
+            message = "Invalid {} header: {}".format(name, value)
         super().__init__(message)
 
 

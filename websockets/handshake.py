@@ -36,7 +36,7 @@ import binascii
 import hashlib
 import random
 
-from .exceptions import InvalidHeaderValue, InvalidUpgrade
+from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
 from .headers import parse_connection, parse_upgrade
 
 
@@ -80,29 +80,47 @@ def check_request(headers):
     responsibility of the caller.
 
     """
-    connection = parse_connection(headers.get('Connection', ''))
-    if not any(value.lower() == 'upgrade' for value in connection):
-        raise InvalidUpgrade('Connection', headers.get('Connection', ''))
+    try:
+        connection = headers['Connection']
+    except KeyError:
+        raise InvalidUpgrade('Connection')
 
-    upgrade = parse_upgrade(headers.get('Upgrade', ''))
+    connection = parse_connection(connection)
+    if not any(value.lower() == 'upgrade' for value in connection):
+        raise InvalidUpgrade('Connection', connection)
+
+    try:
+        upgrade = headers['Upgrade']
+    except KeyError:
+        raise InvalidUpgrade('Upgrade')
+
+    upgrade = parse_upgrade(upgrade)
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
     if not (len(upgrade) == 1 and upgrade[0].lower() == 'websocket'):
-        raise InvalidUpgrade('Upgrade', headers.get('Upgrade', ''))
+        raise InvalidUpgrade('Upgrade', upgrade)
 
-    key = headers.get('Sec-WebSocket-Key', '')
     try:
-        raw_key = base64.b64decode(key.encode(), validate=True)
+        s_w_key = headers['Sec-WebSocket-Key']
+    except KeyError:
+        raise InvalidHeader('Sec-WebSocket-Key')
+
+    try:
+        raw_key = base64.b64decode(s_w_key.encode(), validate=True)
     except binascii.Error:
-        raise InvalidHeaderValue('Sec-WebSocket-Key', key)
+        raise InvalidHeaderValue('Sec-WebSocket-Key', s_w_key)
     if len(raw_key) != 16:
-        raise InvalidHeaderValue('Sec-WebSocket-Key', key)
+        raise InvalidHeaderValue('Sec-WebSocket-Key', s_w_key)
 
-    version = headers.get('Sec-WebSocket-Version', '')
-    if version != '13':
-        raise InvalidHeaderValue('Sec-WebSocket-Version', version)
+    try:
+        s_w_version = headers['Sec-WebSocket-Version']
+    except KeyError:
+        raise InvalidHeader('Sec-WebSocket-Version')
 
-    return key
+    if s_w_version != '13':
+        raise InvalidHeaderValue('Sec-WebSocket-Version', s_w_version)
+
+    return s_w_key
 
 
 def build_response(headers, key):
@@ -133,19 +151,33 @@ def check_response(headers, key):
     the caller.
 
     """
-    connection = parse_connection(headers.get('Connection', ''))
-    if not any(value.lower() == 'upgrade' for value in connection):
-        raise InvalidUpgrade('Connection', headers.get('Connection', ''))
+    try:
+        connection = headers['Connection']
+    except KeyError:
+        raise InvalidUpgrade('Connection')
 
-    upgrade = parse_upgrade(headers.get('Upgrade', ''))
+    connection = parse_connection(connection)
+    if not any(value.lower() == 'upgrade' for value in connection):
+        raise InvalidUpgrade('Connection', connection)
+
+    try:
+        upgrade = headers['Upgrade']
+    except KeyError:
+        raise InvalidUpgrade('Upgrade')
+
+    upgrade = parse_upgrade(upgrade)
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
     if not (len(upgrade) == 1 and upgrade[0].lower() == 'websocket'):
-        raise InvalidUpgrade('Upgrade', headers.get('Upgrade', ''))
+        raise InvalidUpgrade('Upgrade', upgrade)
 
-    if headers.get('Sec-WebSocket-Accept', '') != accept(key):
-        raise InvalidHeaderValue(
-            'Sec-WebSocket-Accept', headers.get('Sec-WebSocket-Accept', ''))
+    try:
+        s_w_accept = headers['Sec-WebSocket-Accept']
+    except KeyError:
+        raise InvalidHeader('Sec-WebSocket-Accept')
+
+    if s_w_accept != accept(key):
+        raise InvalidHeaderValue('Sec-WebSocket-Accept', s_w_accept)
 
 
 def accept(key):

@@ -10,6 +10,8 @@ Changelog
 
 * Added an interactive client: `python -m websockets <uri>`
 
+* Improved error messages when a required HTTP header is missing.
+
 6.0
 ...
 

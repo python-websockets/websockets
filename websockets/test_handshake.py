@@ -1,7 +1,9 @@
 import contextlib
 import unittest
 
-from .exceptions import InvalidHandshake
+from .exceptions import (
+    InvalidHandshake, InvalidHeader, InvalidHeaderValue, InvalidUpgrade
+)
 from .handshake import *
 from .handshake import accept  # private API
 
@@ -24,94 +26,97 @@ class HandshakeTests(unittest.TestCase):
         check_response(response_headers, request_key)
 
     @contextlib.contextmanager
-    def assertInvalidRequestHeaders(self):
+    def assertInvalidRequestHeaders(self, exc_type=InvalidHandshake):
         """
         Provide request headers for corruption.
 
         Assert that the transformation made them invalid.
 
         """
+        assert issubclass(exc_type, InvalidHandshake)
         headers = {}
         build_request(headers)
         yield headers
-        with self.assertRaises(InvalidHandshake):
+        with self.assertRaises(exc_type):
             check_request(headers)
 
     def test_request_invalid_upgrade(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidUpgrade) as headers:
             headers['Upgrade'] = 'socketweb'
 
     def test_request_missing_upgrade(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidUpgrade) as headers:
             del headers['Upgrade']
 
     def test_request_invalid_connection(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidUpgrade) as headers:
             headers['Connection'] = 'Downgrade'
 
     def test_request_missing_connection(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidUpgrade) as headers:
             del headers['Connection']
 
     def test_request_invalid_key_not_base64(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidHeaderValue) as headers:
             headers['Sec-WebSocket-Key'] = "!@#$%^&*()"
 
     def test_request_invalid_key_not_well_padded(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidHeaderValue) as headers:
             headers['Sec-WebSocket-Key'] = "CSIRmL8dWYxeAdr/XpEHRw"
 
     def test_request_invalid_key_not_16_bytes_long(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidHeaderValue) as headers:
             headers['Sec-WebSocket-Key'] = "ZLpprpvK4PE="
 
     def test_request_missing_key(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidHeader) as headers:
             del headers['Sec-WebSocket-Key']
 
     def test_request_invalid_version(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidHeaderValue) as headers:
             headers['Sec-WebSocket-Version'] = '42'
 
     def test_request_missing_version(self):
-        with self.assertInvalidRequestHeaders() as headers:
+        with self.assertInvalidRequestHeaders(InvalidHeader) as headers:
             del headers['Sec-WebSocket-Version']
 
     @contextlib.contextmanager
-    def assertInvalidResponseHeaders(self, key='CSIRmL8dWYxeAdr/XpEHRw=='):
+    def assertInvalidResponseHeaders(
+            self, exc_type=InvalidHandshake, key='CSIRmL8dWYxeAdr/XpEHRw=='):
         """
         Provide response headers for corruption.
 
         Assert that the transformation made them invalid.
 
         """
+        assert issubclass(exc_type, InvalidHandshake)
         headers = {}
         build_response(headers, key)
         yield headers
-        with self.assertRaises(InvalidHandshake):
+        with self.assertRaises(exc_type):
             check_response(headers, key)
 
     def test_response_invalid_upgrade(self):
-        with self.assertInvalidResponseHeaders() as headers:
+        with self.assertInvalidResponseHeaders(InvalidUpgrade) as headers:
             headers['Upgrade'] = 'socketweb'
 
     def test_response_missing_upgrade(self):
-        with self.assertInvalidResponseHeaders() as headers:
+        with self.assertInvalidResponseHeaders(InvalidUpgrade) as headers:
             del headers['Upgrade']
 
     def test_response_invalid_connection(self):
-        with self.assertInvalidResponseHeaders() as headers:
+        with self.assertInvalidResponseHeaders(InvalidUpgrade) as headers:
             headers['Connection'] = 'Downgrade'
 
     def test_response_missing_connection(self):
-        with self.assertInvalidResponseHeaders() as headers:
+        with self.assertInvalidResponseHeaders(InvalidUpgrade) as headers:
             del headers['Connection']
 
     def test_response_invalid_accept(self):
-        with self.assertInvalidResponseHeaders() as headers:
+        with self.assertInvalidResponseHeaders(InvalidHeaderValue) as headers:
             other_key = "1Eq4UDEFQYg3YspNgqxv5g=="
             headers['Sec-WebSocket-Accept'] = accept(other_key)
 
     def test_response_missing_accept(self):
-        with self.assertInvalidResponseHeaders() as headers:
+        with self.assertInvalidResponseHeaders(InvalidHeader) as headers:
             del headers['Sec-WebSocket-Accept']

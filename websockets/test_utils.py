@@ -4,7 +4,6 @@ from .utils import apply_mask as py_apply_mask
 
 
 class UtilsTests(unittest.TestCase):
-
     @staticmethod
     def apply_mask(*args, **kwargs):
         return py_apply_mask(*args, **kwargs)
@@ -20,11 +19,7 @@ class UtilsTests(unittest.TestCase):
                 self.assertEqual(self.apply_mask(data_in, mask), data_out)
 
     def test_apply_mask_check_input_types(self):
-        for data_in, mask in [
-            (None, None),
-            (b'abcd', None),
-            (None, b'abcd'),
-        ]:
+        for data_in, mask in [(None, None), (b'abcd', None), (None, b'abcd')]:
             with self.subTest(data_in=data_in, mask=mask):
                 with self.assertRaises(TypeError):
                     self.apply_mask(data_in, mask)
@@ -43,11 +38,11 @@ class UtilsTests(unittest.TestCase):
 
 try:
     from .speedups import apply_mask as c_apply_mask
-except ImportError:                                         # pragma: no cover
+except ImportError:  # pragma: no cover
     pass
 else:
-    class SpeedupsTests(UtilsTests):
 
+    class SpeedupsTests(UtilsTests):
         @staticmethod
         def apply_mask(*args, **kwargs):
             return c_apply_mask(*args, **kwargs)

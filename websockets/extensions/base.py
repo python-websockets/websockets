@@ -13,6 +13,7 @@ class ClientExtensionFactory:
     Extension factories handle configuration and negotiation.
 
     """
+
     name = ...
 
     def get_request_params(self):
@@ -47,6 +48,7 @@ class ServerExtensionFactory:
     Extension factories handle configuration and negotiation.
 
     """
+
     name = ...
 
     def process_request_params(self, params, accepted_extensions):
@@ -70,6 +72,7 @@ class Extension:
     Abstract class for extensions.
 
     """
+
     name = ...
 
     def decode(self, frame, *, max_size=None):

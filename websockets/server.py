@@ -11,18 +11,26 @@ import sys
 import warnings
 
 from .compatibility import (
-    BAD_REQUEST, FORBIDDEN, INTERNAL_SERVER_ERROR, SERVICE_UNAVAILABLE,
-    SWITCHING_PROTOCOLS, UPGRADE_REQUIRED, asyncio_ensure_future
+    BAD_REQUEST,
+    FORBIDDEN,
+    INTERNAL_SERVER_ERROR,
+    SERVICE_UNAVAILABLE,
+    SWITCHING_PROTOCOLS,
+    UPGRADE_REQUIRED,
+    asyncio_ensure_future,
 )
 from .exceptions import (
-    AbortHandshake, InvalidHandshake, InvalidHeader, InvalidMessage,
-    InvalidOrigin, InvalidUpgrade, NegotiationError
+    AbortHandshake,
+    InvalidHandshake,
+    InvalidHeader,
+    InvalidMessage,
+    InvalidOrigin,
+    InvalidUpgrade,
+    NegotiationError,
 )
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from .handshake import build_response, check_request
-from .headers import (
-    build_extension_list, parse_extension_list, parse_subprotocol_list
-)
+from .headers import build_extension_list, parse_extension_list, parse_subprotocol_list
 from .http import USER_AGENT, Headers, MultipleValuesError, read_request
 from .protocol import WebSocketCommonProtocol
 
@@ -43,16 +51,24 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     Its support for HTTP responses is very limited.
 
     """
+
     is_client = False
     side = 'server'
 
-    def __init__(self, ws_handler, ws_server, *,
-                 origins=None, extensions=None, subprotocols=None,
-                 extra_headers=None, **kwds):
+    def __init__(
+        self,
+        ws_handler,
+        ws_server,
+        *,
+        origins=None,
+        extensions=None,
+        subprotocols=None,
+        extra_headers=None,
+        **kwds
+    ):
         # For backwards-compatibility with 6.0 or earlier.
         if origins is not None and '' in origins:
-            warnings.warn(
-                "use None instead of '' in origins", DeprecationWarning)
+            warnings.warn("use None instead of '' in origins", DeprecationWarning)
             origins = [None if origin == '' else origin for origin in origins]
         self.ws_handler = ws_handler
         self.ws_server = ws_server
@@ -73,8 +89,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # create a race condition between the creation of the task, which
         # schedules its execution, and the moment the handler starts running.
         self.ws_server.register(self)
-        self.handler_task = asyncio_ensure_future(
-            self.handler(), loop=self.loop)
+        self.handler_task = asyncio_ensure_future(self.handler(), loop=self.loop)
 
     @asyncio.coroutine
     def handler(self):
@@ -95,8 +110,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     extra_headers=self.extra_headers,
                 )
             except ConnectionError as exc:
-                logger.debug(
-                    "Connection error in opening handshake", exc_info=True)
+                logger.debug("Connection error in opening handshake", exc_info=True)
                 raise
             except Exception as exc:
                 if self._is_server_shutting_down(exc):
@@ -106,18 +120,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                         b"Server is shutting down.\n",
                     )
                 elif isinstance(exc, AbortHandshake):
-                    status, headers, body = (
-                        exc.status,
-                        exc.headers,
-                        exc.body,
-                    )
+                    status, headers, body = exc.status, exc.headers, exc.body
                 elif isinstance(exc, InvalidOrigin):
                     logger.debug("Invalid origin", exc_info=True)
-                    status, headers, body = (
-                        FORBIDDEN,
-                        [],
-                        (str(exc) + "\n").encode(),
-                    )
+                    status, headers, body = FORBIDDEN, [], (str(exc) + "\n").encode()
                 elif isinstance(exc, InvalidUpgrade):
                     logger.debug("Invalid upgrade", exc_info=True)
                     status, headers, body = (
@@ -169,8 +175,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             try:
                 yield from self.close()
             except ConnectionError as exc:
-                logger.debug(
-                    "Connection error in closing handshake", exc_info=True)
+                logger.debug("Connection error in closing handshake", exc_info=True)
                 raise
             except Exception as exc:
                 if not self._is_server_shutting_down(exc):
@@ -181,7 +186,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             # Last-ditch attempt to avoid leaking connections on errors.
             try:
                 self.writer.close()
-            except Exception:                               # pragma: no cover
+            except Exception:  # pragma: no cover
                 pass
 
         finally:
@@ -196,10 +201,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Decide whether an exception means that the server is shutting down.
 
         """
-        return (
-            isinstance(exc, asyncio.CancelledError) and
-            self.ws_server.closing
-        )
+        return isinstance(exc, asyncio.CancelledError) and self.ws_server.closing
 
     @asyncio.coroutine
     def read_http_request(self):
@@ -236,8 +238,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         # Since the status line and headers only contain ASCII characters,
         # we can keep this simple.
-        response = 'HTTP/1.1 {status.value} {status.phrase}\r\n'.format(
-            status=status)
+        response = 'HTTP/1.1 {status.value} {status.phrase}\r\n'.format(status=status)
         response += str(headers)
 
         self.writer.write(response.encode())
@@ -337,24 +338,24 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         if header_values and available_extensions:
 
-            parsed_header_values = sum([
-                parse_extension_list(header_value)
-                for header_value in header_values
-            ], [])
+            parsed_header_values = sum(
+                [parse_extension_list(header_value) for header_value in header_values],
+                [],
+            )
 
             for name, request_params in parsed_header_values:
 
-                for extension_factory in available_extensions:
+                for ext_factory in available_extensions:
 
                     # Skip non-matching extensions based on their name.
-                    if extension_factory.name != name:
+                    if ext_factory.name != name:
                         continue
 
                     # Skip non-matching extensions based on their params.
                     try:
-                        response_params, extension = (
-                            extension_factory.process_request_params(
-                                request_params, accepted_extensions))
+                        response_params, extension = ext_factory.process_request_params(
+                            request_params, accepted_extensions
+                        )
                     except NegotiationError:
                         continue
 
@@ -391,14 +392,16 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         if header_values and available_subprotocols:
 
-            parsed_header_values = sum([
-                parse_subprotocol_list(header_value)
-                for header_value in header_values
-            ], [])
+            parsed_header_values = sum(
+                [
+                    parse_subprotocol_list(header_value)
+                    for header_value in header_values
+                ],
+                [],
+            )
 
             subprotocol = self.select_subprotocol(
-                parsed_header_values,
-                available_subprotocols,
+                parsed_header_values, available_subprotocols
             )
 
         return subprotocol
@@ -424,12 +427,18 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if not subprotocols:
             return None
         priority = lambda p: (
-            client_subprotocols.index(p) + server_subprotocols.index(p))
+            client_subprotocols.index(p) + server_subprotocols.index(p)
+        )
         return sorted(subprotocols, key=priority)[0]
 
     @asyncio.coroutine
-    def handshake(self, origins=None, available_extensions=None,
-                  available_subprotocols=None, extra_headers=None):
+    def handshake(
+        self,
+        origins=None,
+        available_extensions=None,
+        available_subprotocols=None,
+        extra_headers=None,
+    ):
         """
         Perform the server side of the opening handshake.
 
@@ -468,10 +477,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.origin = self.process_origin(request_headers, origins)
 
         extensions_header, self.extensions = self.process_extensions(
-            request_headers, available_extensions)
+            request_headers, available_extensions
+        )
 
         protocol_header = self.subprotocol = self.process_subprotocol(
-            request_headers, available_subprotocols)
+            request_headers, available_subprotocols
+        )
 
         response_headers = Headers()
         response_headers['Date'] = email.utils.formatdate(usegmt=True)
@@ -496,8 +507,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         response_headers.setdefault('Server', USER_AGENT)
 
-        yield from self.write_http_response(
-            SWITCHING_PROTOCOLS, response_headers)
+        yield from self.write_http_response(SWITCHING_PROTOCOLS, response_headers)
 
         self.connection_open()
 
@@ -523,6 +533,7 @@ class WebSocketServer:
     custom :class:`~asyncio.Server` class.
 
     """
+
     def __init__(self, loop):
         # Store a reference to loop to avoid relying on self.server._loop.
         self.loop = loop
@@ -605,10 +616,10 @@ class WebSocketServer:
             # depending on how the client behaves and the server is
             # implemented.
             yield from asyncio.wait(
-                [websocket.handler_task for websocket in self.websockets] +
-                [websocket.close_connection_task
-                    for websocket in self.websockets],
-                loop=self.loop)
+                [websocket.handler_task for websocket in self.websockets]
+                + [websocket.close_connection_task for websocket in self.websockets],
+                loop=self.loop,
+            )
         yield from self.server.wait_closed()
 
     @property
@@ -700,15 +711,31 @@ class Serve:
 
     """
 
-    def __init__(self, ws_handler, host=None, port=None, *,
-                 path=None, create_protocol=None,
-                 ping_interval=20, ping_timeout=20,
-                 timeout=10,
-                 max_size=2 ** 20, max_queue=2 ** 5,
-                 read_limit=2 ** 16, write_limit=2 ** 16,
-                 loop=None, legacy_recv=False, klass=None,
-                 origins=None, extensions=None, subprotocols=None,
-                 extra_headers=None, compression='deflate', **kwds):
+    def __init__(
+        self,
+        ws_handler,
+        host=None,
+        port=None,
+        *,
+        path=None,
+        create_protocol=None,
+        ping_interval=20,
+        ping_timeout=20,
+        timeout=10,
+        max_size=2 ** 20,
+        max_queue=2 ** 5,
+        read_limit=2 ** 16,
+        write_limit=2 ** 16,
+        loop=None,
+        legacy_recv=False,
+        klass=None,
+        origins=None,
+        extensions=None,
+        subprotocols=None,
+        extra_headers=None,
+        compression='deflate',
+        **kwds
+    ):
         # Backwards-compatibility: create_protocol used to be called klass.
         # In the unlikely event that both are specified, klass is ignored.
         if create_protocol is None:
@@ -728,22 +755,31 @@ class Serve:
             if extensions is None:
                 extensions = []
             if not any(
-                extension_factory.name == ServerPerMessageDeflateFactory.name
-                for extension_factory in extensions
+                ext_factory.name == ServerPerMessageDeflateFactory.name
+                for ext_factory in extensions
             ):
                 extensions.append(ServerPerMessageDeflateFactory())
         elif compression is not None:
             raise ValueError("Unsupported compression: {}".format(compression))
 
         factory = lambda: create_protocol(
-            ws_handler, ws_server,
-            host=host, port=port, secure=secure,
-            ping_interval=ping_interval, ping_timeout=ping_timeout,
+            ws_handler,
+            ws_server,
+            host=host,
+            port=port,
+            secure=secure,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
             timeout=timeout,
-            max_size=max_size, max_queue=max_queue,
-            read_limit=read_limit, write_limit=write_limit,
-            loop=loop, legacy_recv=legacy_recv,
-            origins=origins, extensions=extensions, subprotocols=subprotocols,
+            max_size=max_size,
+            max_queue=max_queue,
+            read_limit=read_limit,
+            write_limit=write_limit,
+            loop=loop,
+            legacy_recv=legacy_recv,
+            origins=origins,
+            extensions=extensions,
+            subprotocols=subprotocols,
             extra_headers=extra_headers,
         )
 
@@ -757,7 +793,7 @@ class Serve:
         self.ws_server = ws_server
 
     @asyncio.coroutine
-    def __iter__(self):                                     # pragma: no cover
+    def __iter__(self):  # pragma: no cover
         server = yield from self._creating_server
         self.ws_server.wrap(server)
         return self.ws_server
@@ -781,14 +817,17 @@ def unix_serve(ws_handler, path, **kwargs):
 # We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
 # didn't accept arbitrary awaitables until Python 3.5.1. We don't define
 # __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
-if sys.version_info[:3] <= (3, 5, 0):                       # pragma: no cover
+if sys.version_info[:3] <= (3, 5, 0):  # pragma: no cover
+
     @asyncio.coroutine
     def serve(*args, **kwds):
         return Serve(*args, **kwds).__iter__()
+
     serve.__doc__ = Serve.__doc__
 
 else:
     from .py35.server import __aenter__, __aexit__, __await__
+
     Serve.__aenter__ = __aenter__
     Serve.__aexit__ = __aexit__
     Serve.__await__ = __await__

@@ -28,9 +28,7 @@ def win_enable_vt100():
         raise RuntimeError("Unable to obtain stdout handle")
 
     cur_mode = ctypes.c_uint()
-    if ctypes.windll.kernel32.GetConsoleMode(
-        handle, ctypes.byref(cur_mode)
-    ) == 0:
+    if ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(cur_mode)) == 0:
         raise RuntimeError("Unable to query current console mode")
 
     # ctypes ints lack support for the required bit-OR operation.
@@ -48,32 +46,44 @@ def exit_from_event_loop_thread(loop, stop):
         # When exiting the thread that runs the event loop, raise
         # KeyboardInterrupt in the main thead to exit the program.
         try:
-            ctrl_c = signal.CTRL_C_EVENT    # Windows
+            ctrl_c = signal.CTRL_C_EVENT  # Windows
         except AttributeError:
-            ctrl_c = signal.SIGINT          # POSIX
+            ctrl_c = signal.SIGINT  # POSIX
         os.kill(os.getpid(), ctrl_c)
 
 
 def print_during_input(string):
     sys.stdout.write(
-        '\N{ESC}7'                  # Save cursor position
-        '\N{LINE FEED}'             # Add a new line
-        '\N{ESC}[A'                 # Move cursor up
-        '\N{ESC}[L'                 # Insert blank line, scroll last line down
-        '{string}\N{LINE FEED}'     # Print string in the inserted blank line
-        '\N{ESC}8'                  # Restore cursor position
-        '\N{ESC}[B'                 # Move cursor down
-        .format(string=string)
+        (
+            # Save cursor position
+            '\N{ESC}7'
+            # Add a new line
+            '\N{LINE FEED}'
+            # Move cursor up
+            '\N{ESC}[A'
+            # Insert blank line, scroll last line down
+            '\N{ESC}[L'
+            # Print string in the inserted blank line
+            '{string}\N{LINE FEED}'
+            # Restore cursor position
+            '\N{ESC}8'
+            # Move cursor down
+            '\N{ESC}[B'
+        ).format(string=string)
     )
     sys.stdout.flush()
 
 
 def print_over_input(string):
     sys.stdout.write(
-        '\N{CARRIAGE RETURN}'       # Move cursor to beginning of line
-        '\N{ESC}[K'                 # Delete current line
-        '{string}\N{LINE FEED}'
-        .format(string=string)
+        (
+            # Move cursor to beginning of line
+            '\N{CARRIAGE RETURN}'
+            # Delete current line
+            '\N{ESC}[K'
+            # Print string
+            '{string}\N{LINE FEED}'
+        ).format(string=string)
     )
     sys.stdout.flush()
 
@@ -94,8 +104,7 @@ def run_client(uri, loop, inputs, stop):
             incoming = asyncio_ensure_future(websocket.recv())
             outgoing = asyncio_ensure_future(inputs.get())
             done, pending = yield from asyncio.wait(
-                [incoming, outgoing, stop],
-                return_when=asyncio.FIRST_COMPLETED,
+                [incoming, outgoing, stop], return_when=asyncio.FIRST_COMPLETED
             )
 
             # Cancel pending tasks to avoid leaking them.
@@ -121,12 +130,10 @@ def run_client(uri, loop, inputs, stop):
 
     finally:
         yield from websocket.close()
-        close_status = format_close(
-            websocket.close_code, websocket.close_reason)
+        close_status = format_close(websocket.close_code, websocket.close_reason)
 
         print_over_input(
-            "Connection closed: {close_status}."
-            .format(close_status=close_status)
+            "Connection closed: {close_status}.".format(close_status=close_status)
         )
 
         exit_from_event_loop_thread(loop, stop)
@@ -139,11 +146,11 @@ def main():
             win_enable_vt100()
         except RuntimeError as exc:
             sys.stderr.write(
-                "Unable to set terminal to VT100 mode. This is only "
-                "supported since Win10 anniversary update. Expect "
-                "weird symbols on the terminal. Error: {exc!s}"
-                "\N{LINE FEED}"
-                .format(exc=exc)
+                (
+                    "Unable to set terminal to VT100 mode. This is only "
+                    "supported since Win10 anniversary update. Expect "
+                    "weird symbols on the terminal.\nError: {exc!s}\n"
+                ).format(exc=exc)
             )
             sys.stderr.flush()
 
@@ -178,7 +185,7 @@ def main():
             # Since there's no size limit, put_nowait is identical to put.
             message = input('> ')
             loop.call_soon_threadsafe(inputs.put_nowait, message)
-    except (KeyboardInterrupt, EOFError):   # ^C, ^D
+    except (KeyboardInterrupt, EOFError):  # ^C, ^D
         loop.call_soon_threadsafe(stop.set_result, None)
 
     # Wait for the event loop to terminate.

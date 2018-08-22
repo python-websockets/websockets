@@ -2,42 +2,52 @@ import unittest
 import zlib
 
 from ..exceptions import (
-    DuplicateParameter, InvalidParameterName, InvalidParameterValue,
-    NegotiationError, PayloadTooBig
+    DuplicateParameter,
+    InvalidParameterName,
+    InvalidParameterValue,
+    NegotiationError,
+    PayloadTooBig,
 )
 from ..framing import (
-    OP_BINARY, OP_CLOSE, OP_CONT, OP_PING, OP_PONG, OP_TEXT, Frame,
-    serialize_close
+    OP_BINARY,
+    OP_CLOSE,
+    OP_CONT,
+    OP_PING,
+    OP_PONG,
+    OP_TEXT,
+    Frame,
+    serialize_close,
 )
 from .permessage_deflate import *
 
 
 class ExtensionTestsMixin:
-
     def assertExtensionEqual(self, extension1, extension2):
-        self.assertEqual(extension1.remote_no_context_takeover,
-                         extension2.remote_no_context_takeover)
-        self.assertEqual(extension1.local_no_context_takeover,
-                         extension2.local_no_context_takeover)
-        self.assertEqual(extension1.remote_max_window_bits,
-                         extension2.remote_max_window_bits)
-        self.assertEqual(extension1.local_max_window_bits,
-                         extension2.local_max_window_bits)
+        self.assertEqual(
+            extension1.remote_no_context_takeover, extension2.remote_no_context_takeover
+        )
+        self.assertEqual(
+            extension1.local_no_context_takeover, extension2.local_no_context_takeover
+        )
+        self.assertEqual(
+            extension1.remote_max_window_bits, extension2.remote_max_window_bits
+        )
+        self.assertEqual(
+            extension1.local_max_window_bits, extension2.local_max_window_bits
+        )
 
 
-class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
-                                          ExtensionTestsMixin):
-
+class ClientPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin):
     def test_name(self):
         assert ClientPerMessageDeflateFactory.name == 'permessage-deflate'
 
     def test_init(self):
         for config in [
-            (False, False, 8, None),        # server_max_window_bits ≥ 8
-            (False, True, 15, None),        # server_max_window_bits ≤ 15
-            (True, False, None, 8),         # client_max_window_bits ≥ 8
-            (True, True, None, 15),         # client_max_window_bits ≤ 15
-            (False, False, None, True),     # client_max_window_bits
+            (False, False, 8, None),  # server_max_window_bits ≥ 8
+            (False, True, 15, None),  # server_max_window_bits ≤ 15
+            (True, False, None, 8),  # client_max_window_bits ≥ 8
+            (True, True, None, 15),  # client_max_window_bits ≤ 15
+            (False, False, None, True),  # client_max_window_bits
             (False, False, None, None, {'memLevel': 4}),
         ]:
             with self.subTest(config=config):
@@ -46,11 +56,11 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
 
     def test_init_error(self):
         for config in [
-            (False, False, 7, 8),           # server_max_window_bits < 8
-            (False, True, 8, 7),            # client_max_window_bits < 8
-            (True, False, 16, 15),          # server_max_window_bits > 15
-            (True, True, 15, 16),           # client_max_window_bits > 15
-            (False, False, True, None),     # server_max_window_bits
+            (False, False, 7, 8),  # server_max_window_bits < 8
+            (False, True, 8, 7),  # client_max_window_bits < 8
+            (True, False, 16, 15),  # server_max_window_bits > 15
+            (True, True, 15, 16),  # client_max_window_bits > 15
+            (False, False, True, None),  # server_max_window_bits
             (False, False, None, None, {'wbits': 11}),
         ]:
             with self.subTest(config=config):
@@ -60,34 +70,16 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
     def test_get_request_params(self):
         for config, result in [
             # Test without any parameter
-            (
-                (False, False, None, None),
-                [],
-            ),
+            ((False, False, None, None), []),
             # Test server_no_context_takeover
-            (
-                (True, False, None, None),
-                [('server_no_context_takeover', None)],
-            ),
+            ((True, False, None, None), [('server_no_context_takeover', None)]),
             # Test client_no_context_takeover
-            (
-                (False, True, None, None),
-                [('client_no_context_takeover', None)],
-            ),
+            ((False, True, None, None), [('client_no_context_takeover', None)]),
             # Test server_max_window_bits
-            (
-                (False, False, 10, None),
-                [('server_max_window_bits', '10')],
-            ),
+            ((False, False, 10, None), [('server_max_window_bits', '10')]),
             # Test client_max_window_bits
-            (
-                (False, False, None, 10),
-                [('client_max_window_bits', '10')],
-            ),
-            (
-                (False, False, None, True),
-                [('client_max_window_bits', None)],
-            ),
+            ((False, False, None, 10), [('client_max_window_bits', '10')]),
+            ((False, False, None, True), [('client_max_window_bits', None)]),
             # Test all parameters together
             (
                 (True, True, 12, 12),
@@ -106,27 +98,15 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
     def test_process_response_params(self):
         for config, response_params, result in [
             # Test without any parameter
-            (
-                (False, False, None, None),
-                [],
-                (False, False, 15, 15),
-            ),
-            (
-                (False, False, None, None),
-                [('unknown', None)],
-                InvalidParameterName,
-            ),
+            ((False, False, None, None), [], (False, False, 15, 15)),
+            ((False, False, None, None), [('unknown', None)], InvalidParameterName),
             # Test server_no_context_takeover
             (
                 (False, False, None, None),
                 [('server_no_context_takeover', None)],
                 (True, False, 15, 15),
             ),
-            (
-                (True, False, None, None),
-                [],
-                NegotiationError,
-            ),
+            ((True, False, None, None), [], NegotiationError),
             (
                 (True, False, None, None),
                 [('server_no_context_takeover', None)],
@@ -148,11 +128,7 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 [('client_no_context_takeover', None)],
                 (False, True, 15, 15),
             ),
-            (
-                (False, True, None, None),
-                [],
-                (False, True, 15, 15),
-            ),
+            ((False, True, None, None), [], (False, True, 15, 15)),
             (
                 (False, True, None, None),
                 [('client_no_context_takeover', None)],
@@ -184,11 +160,7 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 [('server_max_window_bits', '16')],
                 NegotiationError,
             ),
-            (
-                (False, False, 12, None),
-                [],
-                NegotiationError,
-            ),
+            ((False, False, 12, None), [], NegotiationError),
             (
                 (False, False, 12, None),
                 [('server_max_window_bits', '10')],
@@ -220,11 +192,7 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 [('client_max_window_bits', '10')],
                 NegotiationError,
             ),
-            (
-                (False, False, None, True),
-                [],
-                (False, False, 15, 15),
-            ),
+            ((False, False, None, True), [], (False, False, 15, 15)),
             (
                 (False, False, None, True),
                 [('client_max_window_bits', '7')],
@@ -240,11 +208,7 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 [('client_max_window_bits', '16')],
                 NegotiationError,
             ),
-            (
-                (False, False, None, 12),
-                [],
-                (False, False, 15, 12),
-            ),
+            ((False, False, None, 12), [], (False, False, 15, 12)),
             (
                 (False, False, None, 12),
                 [('client_max_window_bits', '10')],
@@ -300,17 +264,13 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
                 (True, True, 12, 12),
             ),
         ]:
-            with self.subTest(
-                config=config,
-                response_params=response_params,
-            ):
+            with self.subTest(config=config, response_params=response_params):
                 factory = ClientPerMessageDeflateFactory(*config)
                 if isinstance(result, type) and issubclass(result, Exception):
                     with self.assertRaises(result):
                         factory.process_response_params(response_params, [])
                 else:
-                    extension = factory.process_response_params(
-                        response_params, [])
+                    extension = factory.process_response_params(response_params, [])
                     expected = PerMessageDeflate(*result)
                     self.assertExtensionEqual(extension, expected)
 
@@ -318,21 +278,20 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase,
         factory = ClientPerMessageDeflateFactory(False, False, None, None)
         with self.assertRaises(NegotiationError):
             factory.process_response_params(
-                [], [PerMessageDeflate(False, False, 15, 15)])
+                [], [PerMessageDeflate(False, False, 15, 15)]
+            )
 
 
-class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
-                                          ExtensionTestsMixin):
-
+class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin):
     def test_name(self):
         assert ServerPerMessageDeflateFactory.name == 'permessage-deflate'
 
     def test_init(self):
         for config in [
-            (False, False, 8, None),        # server_max_window_bits ≥ 8
-            (False, True, 15, None),        # server_max_window_bits ≤ 15
-            (True, False, None, 8),         # client_max_window_bits ≥ 8
-            (True, True, None, 15),         # client_max_window_bits ≤ 15
+            (False, False, 8, None),  # server_max_window_bits ≥ 8
+            (False, True, 15, None),  # server_max_window_bits ≤ 15
+            (True, False, None, 8),  # client_max_window_bits ≥ 8
+            (True, True, None, 15),  # client_max_window_bits ≤ 15
             (False, False, None, None, {'memLevel': 4}),
         ]:
             with self.subTest(config=config):
@@ -341,12 +300,12 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
 
     def test_init_error(self):
         for config in [
-            (False, False, 7, 8),           # server_max_window_bits < 8
-            (False, True, 8, 7),            # client_max_window_bits < 8
-            (True, False, 16, 15),          # server_max_window_bits > 15
-            (True, True, 15, 16),           # client_max_window_bits > 15
-            (False, False, None, True),     # client_max_window_bits
-            (False, False, True, None),     # server_max_window_bits
+            (False, False, 7, 8),  # server_max_window_bits < 8
+            (False, True, 8, 7),  # client_max_window_bits < 8
+            (True, False, 16, 15),  # server_max_window_bits > 15
+            (True, True, 15, 16),  # client_max_window_bits > 15
+            (False, False, None, True),  # client_max_window_bits
+            (False, False, True, None),  # server_max_window_bits
             (False, False, None, None, {'wbits': 11}),
         ]:
             with self.subTest(config=config):
@@ -358,12 +317,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
         # (remote, local) vs. (server, client).
         for config, request_params, response_params, result in [
             # Test without any parameter
-            (
-                (False, False, None, None),
-                [],
-                [],
-                (False, False, 15, 15),
-            ),
+            ((False, False, None, None), [], [], (False, False, 15, 15)),
             (
                 (False, False, None, None),
                 [('unknown', None)],
@@ -405,7 +359,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             (
                 (False, False, None, None),
                 [('client_no_context_takeover', None)],
-                [('client_no_context_takeover', None)],     # doesn't matter
+                [('client_no_context_takeover', None)],  # doesn't matter
                 (True, False, 15, 15),
             ),
             (
@@ -417,7 +371,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             (
                 (False, True, None, None),
                 [('client_no_context_takeover', None)],
-                [('client_no_context_takeover', None)],     # doesn't matter
+                [('client_no_context_takeover', None)],  # doesn't matter
                 (True, False, 15, 15),
             ),
             (
@@ -503,7 +457,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             (
                 (False, False, None, None),
                 [('client_max_window_bits', '10')],
-                [('client_max_window_bits', '10')],     # doesn't matter
+                [('client_max_window_bits', '10')],  # doesn't matter
                 (False, False, 10, 15),
             ),
             (
@@ -512,12 +466,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
                 None,
                 InvalidParameterValue,
             ),
-            (
-                (False, False, None, 12),
-                [],
-                None,
-                NegotiationError,
-            ),
+            ((False, False, None, 12), [], None, NegotiationError),
             (
                 (False, False, None, 12),
                 [('client_max_window_bits', None)],
@@ -533,13 +482,13 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             (
                 (False, False, None, 12),
                 [('client_max_window_bits', '12')],
-                [('client_max_window_bits', '12')],     # doesn't matter
+                [('client_max_window_bits', '12')],  # doesn't matter
                 (False, False, 12, 15),
             ),
             (
                 (False, False, None, 12),
                 [('client_max_window_bits', '13')],
-                [('client_max_window_bits', '12')],     # doesn't matter
+                [('client_max_window_bits', '12')],  # doesn't matter
                 (False, False, 12, 15),
             ),
             (
@@ -589,9 +538,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
             ),
             (
                 (True, True, 12, 12),
-                [
-                    ('client_max_window_bits', None),
-                ],
+                [('client_max_window_bits', None)],
                 [
                     ('server_no_context_takeover', None),
                     ('client_no_context_takeover', None),
@@ -612,7 +559,8 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
                         factory.process_request_params(request_params, [])
                 else:
                     params, extension = factory.process_request_params(
-                        request_params, [])
+                        request_params, []
+                    )
                     self.assertEqual(params, response_params)
                     expected = PerMessageDeflate(*result)
                     self.assertExtensionEqual(extension, expected)
@@ -621,11 +569,11 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase,
         factory = ServerPerMessageDeflateFactory(False, False, None, None)
         with self.assertRaises(NegotiationError):
             factory.process_request_params(
-                [], [PerMessageDeflate(False, False, 15, 15)])
+                [], [PerMessageDeflate(False, False, 15, 15)]
+            )
 
 
 class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
-
     def setUp(self):
         # Set up an instance of the permessage-deflate extension with the most
         # common settings. Since the extension is symmetrical, this instance
@@ -668,10 +616,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
         enc_frame = self.extension.encode(frame)
 
-        self.assertEqual(enc_frame, frame._replace(
-            rsv1=True,
-            data=b'JNL;\xbc\x12\x00',
-        ))
+        self.assertEqual(enc_frame, frame._replace(rsv1=True, data=b'JNL;\xbc\x12\x00'))
 
         dec_frame = self.extension.decode(enc_frame)
 
@@ -682,10 +627,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
         enc_frame = self.extension.encode(frame)
 
-        self.assertEqual(enc_frame, frame._replace(
-            rsv1=True,
-            data=b'*IM\x04\x00',
-        ))
+        self.assertEqual(enc_frame, frame._replace(rsv1=True, data=b'*IM\x04\x00'))
 
         dec_frame = self.extension.decode(enc_frame)
 
@@ -700,18 +642,16 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         enc_frame2 = self.extension.encode(frame2)
         enc_frame3 = self.extension.encode(frame3)
 
-        self.assertEqual(enc_frame1, frame1._replace(
-            rsv1=True,
-            data=b'JNL;\xbc\x12\x00\x00\x00\xff\xff',
-        ))
-        self.assertEqual(enc_frame2, frame2._replace(
-            rsv1=True,
-            data=b'RPS\x00\x00\x00\x00\xff\xff',
-        ))
-        self.assertEqual(enc_frame3, frame3._replace(
-            rsv1=True,
-            data=b'J.\xca\xcf,.N\xcc+)\x06\x00',
-        ))
+        self.assertEqual(
+            enc_frame1,
+            frame1._replace(rsv1=True, data=b'JNL;\xbc\x12\x00\x00\x00\xff\xff'),
+        )
+        self.assertEqual(
+            enc_frame2, frame2._replace(rsv1=True, data=b'RPS\x00\x00\x00\x00\xff\xff')
+        )
+        self.assertEqual(
+            enc_frame3, frame3._replace(rsv1=True, data=b'J.\xca\xcf,.N\xcc+)\x06\x00')
+        )
 
         dec_frame1 = self.extension.decode(enc_frame1)
         dec_frame2 = self.extension.decode(enc_frame2)
@@ -728,14 +668,12 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         enc_frame1 = self.extension.encode(frame1)
         enc_frame2 = self.extension.encode(frame2)
 
-        self.assertEqual(enc_frame1, frame1._replace(
-            rsv1=True,
-            data=b'*IMT\x00\x00\x00\x00\xff\xff',
-        ))
-        self.assertEqual(enc_frame2, frame2._replace(
-            rsv1=True,
-            data=b'*\xc9\xccM\x05\x00',
-        ))
+        self.assertEqual(
+            enc_frame1, frame1._replace(rsv1=True, data=b'*IMT\x00\x00\x00\x00\xff\xff')
+        )
+        self.assertEqual(
+            enc_frame2, frame2._replace(rsv1=True, data=b'*\xc9\xccM\x05\x00')
+        )
 
         dec_frame1 = self.extension.decode(enc_frame1)
         dec_frame2 = self.extension.decode(enc_frame2)
@@ -834,10 +772,12 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
         enc_frame = extension.encode(frame)
 
-        self.assertEqual(enc_frame, frame._replace(
-            rsv1=True,
-            data=b'\x00\x05\x00\xfa\xffcaf\xc3\xa9\x00',    # not compressed
-        ))
+        self.assertEqual(
+            enc_frame,
+            frame._replace(
+                rsv1=True, data=b'\x00\x05\x00\xfa\xffcaf\xc3\xa9\x00'  # not compressed
+            ),
+        )
 
     # Frames aren't decoded beyond max_length.
 

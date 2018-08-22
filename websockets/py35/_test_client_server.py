@@ -14,7 +14,6 @@ from ..test_client_server import get_server_uri, handler
 
 
 class AsyncAwaitTests(unittest.TestCase):
-
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
@@ -39,7 +38,6 @@ class AsyncAwaitTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
     def test_server(self):
-
         async def run_server():
             # Await serve.
             server = await serve(handler, 'localhost', 0)
@@ -52,7 +50,6 @@ class AsyncAwaitTests(unittest.TestCase):
 
 
 class ContextManagerTests(unittest.TestCase):
-
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
@@ -62,7 +59,8 @@ class ContextManagerTests(unittest.TestCase):
 
     # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
     @unittest.skipIf(
-        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+')
+        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+'
+    )
     def test_client(self):
         start_server = serve(handler, 'localhost', 0)
         server = self.loop.run_until_complete(start_server)
@@ -82,9 +80,9 @@ class ContextManagerTests(unittest.TestCase):
 
     # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
     @unittest.skipIf(
-        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+')
+        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+'
+    )
     def test_server(self):
-
         async def run_server():
             # Use serve as an asynchronous context manager.
             async with serve(handler, 'localhost', 0) as server:
@@ -97,11 +95,10 @@ class ContextManagerTests(unittest.TestCase):
 
     # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
     @unittest.skipIf(
-        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+')
-    @unittest.skipUnless(
-        hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
+        sys.version_info[:3] <= (3, 5, 0), 'this test requires Python 3.5.1+'
+    )
+    @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
     def test_unix_server(self):
-
         async def run_server(path):
             async with unix_serve(handler, path) as server:
                 self.assertTrue(server.sockets)

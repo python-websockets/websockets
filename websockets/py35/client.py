@@ -13,7 +13,8 @@ async def __await_impl__(self):
 
     try:
         await protocol.handshake(
-            self._wsuri, origin=self._origin,
+            self._wsuri,
+            origin=self._origin,
             available_extensions=protocol.available_extensions,
             available_subprotocols=protocol.available_subprotocols,
             extra_headers=protocol.extra_headers,

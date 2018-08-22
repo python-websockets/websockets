@@ -16,18 +16,17 @@ from .version import version as websockets_version
 
 
 __all__ = [
-    'Headers', 'MultipleValuesError',
-    'read_request', 'read_response',
+    'Headers',
+    'MultipleValuesError',
+    'read_request',
+    'read_response',
     'USER_AGENT',
 ]
 
 MAX_HEADERS = 256
 MAX_LINE = 4096
 
-USER_AGENT = ' '.join((
-    'Python/{}'.format(sys.version[:3]),
-    'websockets/{}'.format(websockets_version),
-))
+USER_AGENT = 'Python/{} websockets/{}'.format(sys.version[:3], websockets_version)
 
 
 # See https://tools.ietf.org/html/rfc7230#appendix-B.
@@ -169,7 +168,7 @@ def read_headers(stream):
         if not _value_re.fullmatch(value):
             raise ValueError("Invalid HTTP header value: %r" % value)
 
-        name = name.decode('ascii')     # guaranteed to be ASCII at this point
+        name = name.decode('ascii')  # guaranteed to be ASCII at this point
         value = value.decode('ascii', 'surrogateescape')
         headers[name] = value
 
@@ -257,10 +256,10 @@ class Headers(collections.abc.MutableMapping):
         self.update(*args, **kwargs)
 
     def __str__(self):
-        return ''.join(
-            '{}: {}\r\n'.format(key, value)
-            for key, value in self._list
-        ) + '\r\n'
+        return (
+            ''.join('{}: {}\r\n'.format(key, value) for key, value in self._list)
+            + '\r\n'
+        )
 
     def __repr__(self):
         return '{}({})'.format(self.__class__.__name__, repr(self._list))

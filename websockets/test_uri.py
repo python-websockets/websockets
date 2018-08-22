@@ -5,26 +5,11 @@ from .uri import *
 
 
 VALID_URIS = [
-    (
-        'ws://localhost/',
-        (False, 'localhost', 80, '/', None),
-    ),
-    (
-        'wss://localhost/',
-        (True, 'localhost', 443, '/', None),
-    ),
-    (
-        'ws://localhost/path?query',
-        (False, 'localhost', 80, '/path?query', None),
-    ),
-    (
-        'WS://LOCALHOST/PATH?QUERY',
-        (False, 'localhost', 80, '/PATH?QUERY', None),
-    ),
-    (
-        'ws://user:pass@localhost/',
-        (False, 'localhost', 80, '/', ('user', 'pass')),
-    ),
+    ('ws://localhost/', (False, 'localhost', 80, '/', None)),
+    ('wss://localhost/', (True, 'localhost', 443, '/', None)),
+    ('ws://localhost/path?query', (False, 'localhost', 80, '/path?query', None)),
+    ('WS://LOCALHOST/PATH?QUERY', (False, 'localhost', 80, '/PATH?QUERY', None)),
+    ('ws://user:pass@localhost/', (False, 'localhost', 80, '/', ('user', 'pass'))),
 ]
 
 INVALID_URIS = [
@@ -35,7 +20,6 @@ INVALID_URIS = [
 
 
 class URITests(unittest.TestCase):
-
     def test_success(self):
         for uri, parsed in VALID_URIS:
             with self.subTest(uri=uri):

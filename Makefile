@@ -1,5 +1,8 @@
 export PYTHONASYNCIODEBUG=1
 
+style:
+	black --skip-string-normalization websockets
+
 test:
 	python -W default -m unittest
 

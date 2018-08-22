@@ -5,9 +5,9 @@ from .http import Headers
 
 
 class ExceptionsTests(unittest.TestCase):
-
     def test_str(self):
         for exception, exception_str in [
+            # fmt: off
             (
                 InvalidHandshake("Invalid request"),
                 "Invalid request",
@@ -38,7 +38,8 @@ class ExceptionsTests(unittest.TestCase):
             ),
             (
                 InvalidHeaderFormat(
-                    'Sec-WebSocket-Protocol', "expected token", 'a=|', 3),
+                    'Sec-WebSocket-Protocol', "expected token", 'a=|', 3
+                ),
                 "Invalid Sec-WebSocket-Protocol header: "
                 "expected token at 3 in a=|",
             ),
@@ -125,6 +126,7 @@ class ExceptionsTests(unittest.TestCase):
                 WebSocketProtocolError("Invalid opcode: 7"),
                 "Invalid opcode: 7",
             ),
+            # fmt: on
         ]:
             with self.subTest(exception=exception):
                 self.assertEqual(str(exception), exception_str)

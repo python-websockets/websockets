@@ -14,15 +14,19 @@ from .exceptions import InvalidHeaderFormat
 
 
 __all__ = [
-    'parse_connection', 'parse_upgrade',
-    'parse_extension_list', 'build_extension_list',
-    'parse_subprotocol_list', 'build_subprotocol_list',
+    'parse_connection',
+    'parse_upgrade',
+    'parse_extension_list',
+    'build_extension_list',
+    'parse_subprotocol_list',
+    'build_subprotocol_list',
 ]
 
 
 # To avoid a dependency on a parsing library, we implement manually the ABNF
 # described in https://tools.ietf.org/html/rfc6455#section-9.1 with the
 # definitions from https://tools.ietf.org/html/rfc7230#appendix-B.
+
 
 def peek_ahead(string, pos):
     """
@@ -67,13 +71,13 @@ def parse_token(string, pos, header_name):
     """
     match = _token_re.match(string, pos)
     if match is None:
-        raise InvalidHeaderFormat(
-            header_name, "expected token", string=string, pos=pos)
+        raise InvalidHeaderFormat(header_name, "expected token", string=string, pos=pos)
     return match.group(), match.end()
 
 
 _quoted_string_re = re.compile(
-    r'"(?:[\x09\x20-\x21\x23-\x5b\x5d-\x7e]|\\[\x09\x20-\x7e\x80-\xff])*"')
+    r'"(?:[\x09\x20-\x21\x23-\x5b\x5d-\x7e]|\\[\x09\x20-\x7e\x80-\xff])*"'
+)
 
 
 _unquote_re = re.compile(r'\\([\x09\x20-\x7e\x80-\xff])')
@@ -91,7 +95,8 @@ def parse_quoted_string(string, pos, header_name):
     match = _quoted_string_re.match(string, pos)
     if match is None:
         raise InvalidHeaderFormat(
-            header_name, "expected quoted string", string=string, pos=pos)
+            header_name, "expected quoted string", string=string, pos=pos
+        )
     return _unquote_re.sub(r'\1', match.group()[1:-1]), match.end()
 
 
@@ -139,7 +144,8 @@ def parse_list(parse_item, string, pos, header_name):
             pos = parse_OWS(string, pos + 1)
         else:
             raise InvalidHeaderFormat(
-                header_name, "expected comma", string=string, pos=pos)
+                header_name, "expected comma", string=string, pos=pos
+            )
 
         # Remove extra delimiters before the next item.
         while peek_ahead(string, pos) == ',':
@@ -169,7 +175,8 @@ def parse_connection(string):
 
 
 _protocol_re = re.compile(
-    r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+(?:/[-!#$%&\'*+.^_`|~0-9a-zA-Z]+)?')
+    r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+(?:/[-!#$%&\'*+.^_`|~0-9a-zA-Z]+)?'
+)
 
 
 def parse_protocol(string, pos, header_name):
@@ -184,7 +191,8 @@ def parse_protocol(string, pos, header_name):
     match = _protocol_re.match(string, pos)
     if match is None:
         raise InvalidHeaderFormat(
-            header_name, "expected protocol", string=string, pos=pos)
+            header_name, "expected protocol", string=string, pos=pos
+        )
     return match.group(), match.end()
 
 
@@ -216,14 +224,17 @@ def parse_extension_param(string, pos, header_name):
     if peek_ahead(string, pos) == '=':
         pos = parse_OWS(string, pos + 1)
         if peek_ahead(string, pos) == '"':
-            pos_before = pos    # for proper error reporting below
+            pos_before = pos  # for proper error reporting below
             value, pos = parse_quoted_string(string, pos, header_name)
             # https://tools.ietf.org/html/rfc6455#section-9.1 says: the value
             # after quoted-string unescaping MUST conform to the 'token' ABNF.
             if _token_re.fullmatch(value) is None:
                 raise InvalidHeaderFormat(
-                    header_name, "invalid quoted string content",
-                    string=string, pos=pos_before)
+                    header_name,
+                    "invalid quoted string content",
+                    string=string,
+                    pos=pos_before,
+                )
         else:
             value, pos = parse_token(string, pos, header_name)
         pos = parse_OWS(string, pos)
@@ -287,11 +298,14 @@ def build_extension(name, parameters):
     This is the reverse of :func:`parse_extension`.
 
     """
-    return '; '.join([name] + [
-        # Quoted strings aren't necessary because values are always tokens.
-        name if value is None else '{}={}'.format(name, value)
-        for name, value in parameters
-    ])
+    return '; '.join(
+        [name]
+        + [
+            # Quoted strings aren't necessary because values are always tokens.
+            name if value is None else '{}={}'.format(name, value)
+            for name, value in parameters
+        ]
+    )
 
 
 def build_extension_list(extensions):
@@ -302,8 +316,7 @@ def build_extension_list(extensions):
 
     """
     return ', '.join(
-        build_extension(name, parameters)
-        for name, parameters in extensions
+        build_extension(name, parameters) for name, parameters in extensions
     )
 
 

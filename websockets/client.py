@@ -8,13 +8,19 @@ import collections.abc
 import sys
 
 from .exceptions import (
-    InvalidHandshake, InvalidMessage, InvalidStatusCode, NegotiationError
+    InvalidHandshake,
+    InvalidMessage,
+    InvalidStatusCode,
+    NegotiationError,
 )
 from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from .handshake import build_request, check_response
 from .headers import (
-    build_basic_auth, build_extension_list, build_subprotocol_list,
-    parse_extension_list, parse_subprotocol_list
+    build_basic_auth,
+    build_extension_list,
+    build_subprotocol_list,
+    parse_extension_list,
+    parse_subprotocol_list,
 )
 from .http import USER_AGENT, Headers, read_response
 from .protocol import WebSocketCommonProtocol
@@ -32,12 +38,19 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
     """
+
     is_client = True
     side = 'client'
 
-    def __init__(self, *,
-                 origin=None, extensions=None, subprotocols=None,
-                 extra_headers=None, **kwds):
+    def __init__(
+        self,
+        *,
+        origin=None,
+        extensions=None,
+        subprotocols=None,
+        extra_headers=None,
+        **kwds
+    ):
         self.origin = origin
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
@@ -119,10 +132,10 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if available_extensions is None:
                 raise InvalidHandshake("No extensions supported")
 
-            parsed_header_values = sum([
-                parse_extension_list(header_value)
-                for header_value in header_values
-            ], [])
+            parsed_header_values = sum(
+                [parse_extension_list(header_value) for header_value in header_values],
+                [],
+            )
 
             for name, response_params in parsed_header_values:
 
@@ -135,7 +148,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                     # Skip non-matching extensions based on their params.
                     try:
                         extension = extension_factory.process_response_params(
-                            response_params, accepted_extensions)
+                            response_params, accepted_extensions
+                        )
                     except NegotiationError:
                         continue
 
@@ -150,7 +164,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                 else:
                     raise NegotiationError(
                         "Unsupported extension: name = {}, params = {}".format(
-                            name, response_params))
+                            name, response_params
+                        )
+                    )
 
         return accepted_extensions
 
@@ -173,27 +189,37 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if available_subprotocols is None:
                 raise InvalidHandshake("No subprotocols supported")
 
-            parsed_header_values = sum([
-                parse_subprotocol_list(header_value)
-                for header_value in header_values
-            ], [])
+            parsed_header_values = sum(
+                [
+                    parse_subprotocol_list(header_value)
+                    for header_value in header_values
+                ],
+                [],
+            )
 
             if len(parsed_header_values) > 1:
                 raise InvalidHandshake(
-                    "Multiple subprotocols: {}".format(
-                        ', '.join(parsed_header_values)))
+                    "Multiple subprotocols: {}".format(', '.join(parsed_header_values))
+                )
 
             subprotocol = parsed_header_values[0]
 
             if subprotocol not in available_subprotocols:
                 raise NegotiationError(
-                    "Unsupported subprotocol: {}".format(subprotocol))
+                    "Unsupported subprotocol: {}".format(subprotocol)
+                )
 
         return subprotocol
 
     @asyncio.coroutine
-    def handshake(self, wsuri, origin=None, available_extensions=None,
-                  available_subprotocols=None, extra_headers=None):
+    def handshake(
+        self,
+        wsuri,
+        origin=None,
+        available_extensions=None,
+        available_subprotocols=None,
+        extra_headers=None,
+    ):
         """
         Perform the client side of the opening handshake.
 
@@ -216,14 +242,13 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         request_headers = Headers()
 
-        if wsuri.port == (443 if wsuri.secure else 80):     # pragma: no cover
+        if wsuri.port == (443 if wsuri.secure else 80):  # pragma: no cover
             request_headers['Host'] = wsuri.host
         else:
             request_headers['Host'] = '{}:{}'.format(wsuri.host, wsuri.port)
 
         if wsuri.user_info:
-            request_headers['Authorization'] = build_basic_auth(
-                *wsuri.user_info)
+            request_headers['Authorization'] = build_basic_auth(*wsuri.user_info)
 
         if origin is not None:
             request_headers['Origin'] = origin
@@ -231,13 +256,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         key = build_request(request_headers)
 
         if available_extensions is not None:
-            extensions_header = build_extension_list([
-                (
-                    extension_factory.name,
-                    extension_factory.get_request_params(),
-                )
-                for extension_factory in available_extensions
-            ])
+            extensions_header = build_extension_list(
+                [
+                    (extension_factory.name, extension_factory.get_request_params())
+                    for extension_factory in available_extensions
+                ]
+            )
             request_headers['Sec-WebSocket-Extensions'] = extensions_header
 
         if available_subprotocols is not None:
@@ -254,8 +278,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         request_headers.setdefault('User-Agent', USER_AGENT)
 
-        yield from self.write_http_request(
-            wsuri.resource_name, request_headers)
+        yield from self.write_http_request(wsuri.resource_name, request_headers)
 
         status_code, response_headers = yield from self.read_http_response()
 
@@ -265,10 +288,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         check_response(response_headers, key)
 
         self.extensions = self.process_extensions(
-            response_headers, available_extensions)
+            response_headers, available_extensions
+        )
 
         self.subprotocol = self.process_subprotocol(
-            response_headers, available_subprotocols)
+            response_headers, available_subprotocols
+        )
 
         self.connection_open()
 
@@ -325,15 +350,28 @@ class Connect:
 
     """
 
-    def __init__(self, uri, *,
-                 create_protocol=None,
-                 ping_interval=20, ping_timeout=20,
-                 timeout=10,
-                 max_size=2 ** 20, max_queue=2 ** 5,
-                 read_limit=2 ** 16, write_limit=2 ** 16,
-                 loop=None, legacy_recv=False, klass=None,
-                 origin=None, extensions=None, subprotocols=None,
-                 extra_headers=None, compression='deflate', **kwds):
+    def __init__(
+        self,
+        uri,
+        *,
+        create_protocol=None,
+        ping_interval=20,
+        ping_timeout=20,
+        timeout=10,
+        max_size=2 ** 20,
+        max_queue=2 ** 5,
+        read_limit=2 ** 16,
+        write_limit=2 ** 16,
+        loop=None,
+        legacy_recv=False,
+        klass=None,
+        origin=None,
+        extensions=None,
+        subprotocols=None,
+        extra_headers=None,
+        compression='deflate',
+        **kwds
+    ):
         if loop is None:
             loop = asyncio.get_event_loop()
 
@@ -349,8 +387,10 @@ class Connect:
         if wsuri.secure:
             kwds.setdefault('ssl', True)
         elif kwds.get('ssl') is not None:
-            raise ValueError("connect() received a SSL context for a ws:// "
-                             "URI, use a wss:// URI to enable TLS")
+            raise ValueError(
+                "connect() received a SSL context for a ws:// URI, "
+                "use a wss:// URI to enable TLS"
+            )
 
         if compression == 'deflate':
             if extensions is None:
@@ -359,20 +399,28 @@ class Connect:
                 extension_factory.name == ClientPerMessageDeflateFactory.name
                 for extension_factory in extensions
             ):
-                extensions.append(ClientPerMessageDeflateFactory(
-                    client_max_window_bits=True,
-                ))
+                extensions.append(
+                    ClientPerMessageDeflateFactory(client_max_window_bits=True)
+                )
         elif compression is not None:
             raise ValueError("Unsupported compression: {}".format(compression))
 
         factory = lambda: create_protocol(
-            host=wsuri.host, port=wsuri.port, secure=wsuri.secure,
-            ping_interval=ping_interval, ping_timeout=ping_timeout,
+            host=wsuri.host,
+            port=wsuri.port,
+            secure=wsuri.secure,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
             timeout=timeout,
-            max_size=max_size, max_queue=max_queue,
-            read_limit=read_limit, write_limit=write_limit,
-            loop=loop, legacy_recv=legacy_recv,
-            origin=origin, extensions=extensions, subprotocols=subprotocols,
+            max_size=max_size,
+            max_queue=max_queue,
+            read_limit=read_limit,
+            write_limit=write_limit,
+            loop=loop,
+            legacy_recv=legacy_recv,
+            origin=origin,
+            extensions=extensions,
+            subprotocols=subprotocols,
             extra_headers=extra_headers,
         )
 
@@ -386,16 +434,16 @@ class Connect:
         self._origin = origin
 
         # This is a coroutine object.
-        self._creating_connection = loop.create_connection(
-            factory, host, port, **kwds)
+        self._creating_connection = loop.create_connection(factory, host, port, **kwds)
 
     @asyncio.coroutine
-    def __iter__(self):                                     # pragma: no cover
+    def __iter__(self):  # pragma: no cover
         transport, protocol = yield from self._creating_connection
 
         try:
             yield from protocol.handshake(
-                self._wsuri, origin=self._origin,
+                self._wsuri,
+                origin=self._origin,
                 available_extensions=protocol.available_extensions,
                 available_subprotocols=protocol.available_subprotocols,
                 extra_headers=protocol.extra_headers,
@@ -411,14 +459,17 @@ class Connect:
 # We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
 # didn't accept arbitrary awaitables until Python 3.5.1. We don't define
 # __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
-if sys.version_info[:3] <= (3, 5, 0):                       # pragma: no cover
+if sys.version_info[:3] <= (3, 5, 0):  # pragma: no cover
+
     @asyncio.coroutine
     def connect(*args, **kwds):
         return Connect(*args, **kwds).__iter__()
+
     connect.__doc__ = Connect.__doc__
 
 else:
     from .py35.client import __aenter__, __aexit__, __await__
+
     Connect.__aenter__ = __aenter__
     Connect.__aexit__ = __aexit__
     Connect.__await__ = __await__

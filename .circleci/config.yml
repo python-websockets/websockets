@@ -9,7 +9,7 @@ jobs:
       - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
       - checkout
       - run: sudo pip install tox codecov
-      - run: tox -e coverage,flake8,isort
+      - run: tox -e coverage,black,flake8,isort
       - run: codecov
   py34:
     docker:

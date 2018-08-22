@@ -22,7 +22,7 @@ logging.basicConfig(level=logging.CRITICAL)
 MS = 0.001 * int(os.environ.get('WEBSOCKETS_TESTS_TIMEOUT_FACTOR', 1))
 
 # asyncio's debug mode has a 10x performance penalty for this test suite.
-if os.environ.get('PYTHONASYNCIODEBUG'):                    # pragma: no cover
+if os.environ.get('PYTHONASYNCIODEBUG'):  # pragma: no cover
     MS *= 10
 
 # Ensure that timeouts are larger than the clock's resolution (for Windows).
@@ -45,6 +45,7 @@ class TransportMock(unittest.mock.Mock):
     They could also pause_writing and resume_writing to test flow control.
 
     """
+
     # This should happen in __init__ but overriding Mock.__init__ is hard.
     def setup_mock(self, loop, protocol):
         self.loop = loop
@@ -88,6 +89,7 @@ class CommonTests:
     Tests are run by the ServerTests and ClientTests subclasses.
 
     """
+
     def setUp(self):
         super().setUp()
         self.loop = asyncio.new_event_loop()
@@ -196,8 +198,8 @@ class CommonTests:
         close_frame_data = serialize_close(code, reason)
         # Trigger the closing handshake from the local endpoint.
         close_task = self.ensure_future(self.protocol.close(code, reason))
-        self.run_loop_once()    # wait_for executes
-        self.run_loop_once()    # write_frame executes
+        self.run_loop_once()  # wait_for executes
+        self.run_loop_once()  # write_frame executes
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
 
@@ -206,7 +208,8 @@ class CommonTests:
         # Complete the closing sequence at 1ms intervals so the test can run
         # at each point even it goes back to the event loop several times.
         self.loop.call_later(
-            MS, self.receive_frame, Frame(True, OP_CLOSE, close_frame_data))
+            MS, self.receive_frame, Frame(True, OP_CLOSE, close_frame_data)
+        )
         self.loop.call_later(2 * MS, self.receive_eof_if_client)
 
         # This task must be awaited or canceled by the caller.
@@ -230,7 +233,7 @@ class CommonTests:
         close_frame_data = serialize_close(code, reason)
         # Trigger the closing handshake from the remote endpoint.
         self.receive_frame(Frame(True, OP_CLOSE, close_frame_data))
-        self.run_loop_once()    # read_frame executes
+        self.run_loop_once()  # read_frame executes
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
 
@@ -270,10 +273,11 @@ class CommonTests:
         if stream.at_eof():
             frame = None
         else:
-            frame = self.loop.run_until_complete(Frame.read(
-                stream.readexactly, mask=self.protocol.is_client))
+            frame = self.loop.run_until_complete(
+                Frame.read(stream.readexactly, mask=self.protocol.is_client)
+            )
 
-        if not stream.at_eof():                             # pragma: no cover
+        if not stream.at_eof():  # pragma: no cover
             data = self.loop.run_until_complete(stream.read())
             raise AssertionError("Trailing data found: {!r}".format(data))
 
@@ -302,8 +306,7 @@ class CommonTests:
         if code == 1006:
             self.assertNoFrameSent()
         else:
-            self.assertOneFrameSent(
-                True, OP_CLOSE, serialize_close(code, message))
+            self.assertOneFrameSent(True, OP_CLOSE, serialize_close(code, message))
 
     @contextlib.contextmanager
     def assertCompletesWithin(self, min_time, max_time):
@@ -311,10 +314,8 @@ class CommonTests:
         yield
         t1 = self.loop.time()
         dt = t1 - t0
-        self.assertGreaterEqual(
-            dt, min_time, "Too fast: {} < {}".format(dt, min_time))
-        self.assertLess(
-            dt, max_time, "Too slow: {} >= {}".format(dt, max_time))
+        self.assertGreaterEqual(dt, min_time, "Too fast: {} < {}".format(dt, min_time))
+        self.assertLess(dt, max_time, "Too slow: {} >= {}".format(dt, max_time))
 
     # Test public attributes.
 
@@ -378,7 +379,7 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.recv())
 
-        self.loop.run_until_complete(close_task)    # cleanup
+        self.loop.run_until_complete(close_task)  # cleanup
 
     def test_recv_on_closing_connection_remote(self):
         self.half_close_connection_remote()
@@ -415,13 +416,13 @@ class CommonTests:
         self.assertConnectionFailed(1009, '')
 
     def test_recv_text_no_max_size(self):
-        self.protocol.max_size = None       # for test coverage
+        self.protocol.max_size = None  # for test coverage
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café' * 205)
 
     def test_recv_binary_no_max_size(self):
-        self.protocol.max_size = None       # for test coverage
+        self.protocol.max_size = None  # for test coverage
         self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea' * 342)
@@ -430,6 +431,7 @@ class CommonTests:
         @asyncio.coroutine
         def read_message():
             raise Exception("BOOM")
+
         self.protocol.read_message = read_message
         self.process_invalid_frames()
         self.assertConnectionFailed(1011, '')
@@ -468,7 +470,7 @@ class CommonTests:
 
         self.assertNoFrameSent()
 
-        self.loop.run_until_complete(close_task)    # cleanup
+        self.loop.run_until_complete(close_task)  # cleanup
 
     def test_send_on_closing_connection_remote(self):
         self.half_close_connection_remote()
@@ -518,7 +520,7 @@ class CommonTests:
 
         self.assertNoFrameSent()
 
-        self.loop.run_until_complete(close_task)    # cleanup
+        self.loop.run_until_complete(close_task)  # cleanup
 
     def test_ping_on_closing_connection_remote(self):
         self.half_close_connection_remote()
@@ -563,7 +565,7 @@ class CommonTests:
 
         self.assertNoFrameSent()
 
-        self.loop.run_until_complete(close_task)    # cleanup
+        self.loop.run_until_complete(close_task)  # cleanup
 
     def test_pong_on_closing_connection_remote(self):
         self.half_close_connection_remote()
@@ -612,10 +614,10 @@ class CommonTests:
         self.assertTrue(ping.cancelled())
 
     def test_acknowledge_previous_pings(self):
-        pings = [(
-            self.loop.run_until_complete(self.protocol.ping()),
-            self.last_sent_frame(),
-        ) for i in range(3)]
+        pings = [
+            (self.loop.run_until_complete(self.protocol.ping()), self.last_sent_frame())
+            for i in range(3)
+        ]
         # Unsolicited pong doesn't acknowledge pings
         self.receive_frame(Frame(True, OP_PONG, b''))
         self.run_loop_once()
@@ -678,14 +680,14 @@ class CommonTests:
         self.assertConnectionFailed(1009, '')
 
     def test_fragmented_text_no_max_size(self):
-        self.protocol.max_size = None       # for test coverage
+        self.protocol.max_size = None  # for test coverage
         self.receive_frame(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
         self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café' * 205)
 
     def test_fragmented_binary_no_max_size(self):
-        self.protocol.max_size = None       # for test coverage
+        self.protocol.max_size = None  # for test coverage
         self.receive_frame(Frame(False, OP_BINARY, b'tea' * 171))
         self.receive_frame(Frame(True, OP_CONT, b'tea' * 171))
         data = self.loop.run_until_complete(self.protocol.recv())
@@ -774,14 +776,16 @@ class CommonTests:
     # Test the protocol logic for sending keepalive pings.
 
     def restart_protocol_with_keepalive_ping(
-            self, ping_interval=3 * MS, ping_timeout=3 * MS):
+        self, ping_interval=3 * MS, ping_timeout=3 * MS
+    ):
         initial_protocol = self.protocol
         # copied from tearDown
         self.transport.close()
         self.loop.run_until_complete(self.protocol.close())
         # copied from setUp, but enables keepalive pings
         self.protocol = WebSocketCommonProtocol(
-            ping_interval=ping_interval, ping_timeout=ping_timeout)
+            ping_interval=ping_interval, ping_timeout=ping_timeout
+        )
         self.transport = TransportMock()
         self.transport.setup_mock(self.loop, self.protocol)
         self.protocol.is_client = initial_protocol.is_client
@@ -830,7 +834,7 @@ class CommonTests:
         # The keepalive ping task terminated.
         self.assertTrue(self.protocol.keepalive_ping_task.cancelled())
 
-        self.loop.run_until_complete(close_task)    # cleanup
+        self.loop.run_until_complete(close_task)  # cleanup
 
     def test_keepalive_ping_stops_when_connection_closed(self):
         self.restart_protocol_with_keepalive_ping()
@@ -869,6 +873,7 @@ class CommonTests:
         @asyncio.coroutine
         def ping():
             raise Exception("BOOM")
+
         self.protocol.ping = ping
 
         # The keepalive ping task fails when sending a ping at 3ms.
@@ -993,7 +998,6 @@ class CommonTests:
 
 
 class ServerTests(CommonTests, unittest.TestCase):
-
     def setUp(self):
         super().setUp()
         self.protocol.is_client = False
@@ -1045,7 +1049,6 @@ class ServerTests(CommonTests, unittest.TestCase):
 
 
 class ClientTests(CommonTests, unittest.TestCase):
-
     def setUp(self):
         super().setUp()
         self.protocol.is_client = True

@@ -17,11 +17,15 @@ import warnings
 from .client import *
 from .compatibility import FORBIDDEN, OK, UNAUTHORIZED
 from .exceptions import (
-    ConnectionClosed, InvalidHandshake, InvalidStatusCode, NegotiationError
+    ConnectionClosed,
+    InvalidHandshake,
+    InvalidStatusCode,
+    NegotiationError,
 )
 from .extensions.permessage_deflate import (
-    ClientPerMessageDeflateFactory, PerMessageDeflate,
-    ServerPerMessageDeflateFactory
+    ClientPerMessageDeflateFactory,
+    PerMessageDeflate,
+    ServerPerMessageDeflateFactory,
 )
 from .handshake import build_response
 from .http import USER_AGENT, Headers, read_response
@@ -89,6 +93,7 @@ def with_manager(manager, *args, **kwds):
     Return a decorator that wraps a function with a context manager.
 
     """
+
     def decorate(func):
         @functools.wraps(func)
         def _decorate(self, *_args, **_kwds):
@@ -130,22 +135,21 @@ def get_server_uri(server, secure=False, resource_name='/', user_info=None):
     # needed, either use the first socket, or test separately IPv4 and IPv6.
     server_socket = random.choice(server.sockets)
 
-    if server_socket.family == socket.AF_INET6:             # pragma: no cover
-        host, port = server_socket.getsockname()[:2]        # (no IPv6 on CI)
+    if server_socket.family == socket.AF_INET6:  # pragma: no cover
+        host, port = server_socket.getsockname()[:2]  # (no IPv6 on CI)
         host = '[{}]'.format(host)
     elif server_socket.family == socket.AF_INET:
         host, port = server_socket.getsockname()
     elif server_socket.family == socket.AF_UNIX:
         # The host and port are ignored when connecting to a Unix socket.
         host, port = 'localhost', 0
-    else:                                                   # pragma: no cover
+    else:  # pragma: no cover
         raise ValueError("Expected an IPv6, IPv4, or Unix socket")
 
     return '{}://{}{}:{}{}'.format(proto, user_info, host, port, resource_name)
 
 
 class UnauthorizedServerProtocol(WebSocketServerProtocol):
-
     @asyncio.coroutine
     def process_request(self, path, request_headers):
         # Test returning headers as a Headers instance (1/3)
@@ -153,7 +157,6 @@ class UnauthorizedServerProtocol(WebSocketServerProtocol):
 
 
 class ForbiddenServerProtocol(WebSocketServerProtocol):
-
     @asyncio.coroutine
     def process_request(self, path, request_headers):
         # Test returning headers as a dict (2/3)
@@ -161,7 +164,6 @@ class ForbiddenServerProtocol(WebSocketServerProtocol):
 
 
 class HealthCheckServerProtocol(WebSocketServerProtocol):
-
     @asyncio.coroutine
     def process_request(self, path, request_headers):
         # Test returning headers as a list of pairs (3/3)
@@ -243,24 +245,25 @@ class ClientServerTests(unittest.TestCase):
         # Disable pings by default in tests.
         kwds.setdefault('ping_interval', None)
         secure = kwds.get('ssl') is not None
-        server_uri = get_server_uri(
-            self.server, secure, resource_name, user_info)
+        server_uri = get_server_uri(self.server, secure, resource_name, user_info)
         start_client = connect(server_uri, **kwds)
         self.client = self.loop.run_until_complete(start_client)
 
     def stop_client(self):
         try:
             self.loop.run_until_complete(
-                asyncio.wait_for(self.client.close_connection_task, timeout=1))
-        except asyncio.TimeoutError:                # pragma: no cover
+                asyncio.wait_for(self.client.close_connection_task, timeout=1)
+            )
+        except asyncio.TimeoutError:  # pragma: no cover
             self.fail("Client failed to stop")
 
     def stop_server(self):
         self.server.close()
         try:
             self.loop.run_until_complete(
-                asyncio.wait_for(self.server.wait_closed(), timeout=1))
-        except asyncio.TimeoutError:                # pragma: no cover
+                asyncio.wait_for(self.server.wait_closed(), timeout=1)
+            )
+        except asyncio.TimeoutError:  # pragma: no cover
             self.fail("Server failed to stop")
 
     @contextlib.contextmanager
@@ -299,11 +302,9 @@ class ClientServerTests(unittest.TestCase):
 
     # The way the legacy SSL implementation wraps sockets makes it extremely
     # hard to write a test for Python 3.4.
-    @unittest.skipIf(
-        sys.version_info[:2] <= (3, 4), 'this test requires Python 3.5+')
+    @unittest.skipIf(sys.version_info[:2] <= (3, 4), 'this test requires Python 3.5+')
     @with_server()
     def test_explicit_socket(self):
-
         class TrackedSocket(socket.socket):
             def __init__(self, *args, **kwargs):
                 self.used_for_read = False
@@ -319,7 +320,8 @@ class ClientServerTests(unittest.TestCase):
                 return super().send(*args, **kwargs)
 
         server_socket = [
-            s for s in self.server.sockets if s.family == socket.AF_INET][0]
+            sock for sock in self.server.sockets if sock.family == socket.AF_INET
+        ][0]
         client_socket = TrackedSocket(socket.AF_INET, socket.SOCK_STREAM)
         client_socket.connect(server_socket.getsockname())
 
@@ -342,8 +344,7 @@ class ClientServerTests(unittest.TestCase):
         finally:
             client_socket.close()
 
-    @unittest.skipUnless(
-        hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
+    @unittest.skipUnless(hasattr(socket, 'AF_UNIX'), 'this test requires Unix sockets')
     def test_unix_socket(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             path = bytes(pathlib.Path(temp_dir) / 'websockets')
@@ -392,8 +393,7 @@ class ClientServerTests(unittest.TestCase):
     @with_client('/headers', user_info=('user', 'pass'))
     def test_protocol_basic_auth(self):
         self.assertEqual(
-            self.client.request_headers['Authorization'],
-            'Basic dXNlcjpwYXNz',
+            self.client.request_headers['Authorization'], 'Basic dXNlcjpwYXNz'
         )
 
     @with_server()
@@ -489,24 +489,22 @@ class ClientServerTests(unittest.TestCase):
 
     def make_http_request(self, path='/'):
         # Set url to 'https?://<host>:<port><path>'.
-        url = get_server_uri(
-            self.server, resource_name=path, secure=self.secure)
+        url = get_server_uri(self.server, resource_name=path, secure=self.secure)
         url = url.replace('ws', 'http')
 
         if self.secure:
             open_health_check = functools.partial(
-                urllib.request.urlopen, url, context=self.client_context)
+                urllib.request.urlopen, url, context=self.client_context
+            )
         else:
-            open_health_check = functools.partial(
-                urllib.request.urlopen, url)
+            open_health_check = functools.partial(urllib.request.urlopen, url)
 
         return self.loop.run_in_executor(None, open_health_check)
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_http_request_http_endpoint(self):
         # Making a HTTP request to a HTTP endpoint succeeds.
-        response = self.loop.run_until_complete(
-            self.make_http_request('/__health__/'))
+        response = self.loop.run_until_complete(self.make_http_request('/__health__/'))
 
         with contextlib.closing(response):
             self.assertEqual(response.code, 200)
@@ -546,8 +544,11 @@ class ClientServerTests(unittest.TestCase):
     def test_server_create_protocol(self):
         self.assert_client_raises_code(401)
 
-    @with_server(create_protocol=(lambda *args, **kwargs:
-                 UnauthorizedServerProtocol(*args, **kwargs)))
+    @with_server(
+        create_protocol=(
+            lambda *args, **kwargs: UnauthorizedServerProtocol(*args, **kwargs)
+        )
+    )
     def test_server_create_protocol_function(self):
         self.assert_client_raises_code(401)
 
@@ -555,8 +556,9 @@ class ClientServerTests(unittest.TestCase):
     def test_server_klass(self):
         self.assert_client_raises_code(401)
 
-    @with_server(create_protocol=ForbiddenServerProtocol,
-                 klass=UnauthorizedServerProtocol)
+    @with_server(
+        create_protocol=ForbiddenServerProtocol, klass=UnauthorizedServerProtocol
+    )
     def test_server_create_protocol_over_klass(self):
         self.assert_client_raises_code(403)
 
@@ -566,8 +568,10 @@ class ClientServerTests(unittest.TestCase):
         self.assertIsInstance(self.client, FooClientProtocol)
 
     @with_server()
-    @with_client('/path', create_protocol=(
-                 lambda *args, **kwargs: FooClientProtocol(*args, **kwargs)))
+    @with_client(
+        '/path',
+        create_protocol=(lambda *args, **kwargs: FooClientProtocol(*args, **kwargs)),
+    )
     def test_client_create_protocol_function(self):
         self.assertIsInstance(self.client, FooClientProtocol)
 
@@ -577,8 +581,7 @@ class ClientServerTests(unittest.TestCase):
         self.assertIsInstance(self.client, FooClientProtocol)
 
     @with_server()
-    @with_client('/path', create_protocol=BarClientProtocol,
-                 klass=FooClientProtocol)
+    @with_client('/path', create_protocol=BarClientProtocol, klass=FooClientProtocol)
     def test_client_create_protocol_over_klass(self):
         self.assertIsInstance(self.client, BarClientProtocol)
 
@@ -613,33 +616,26 @@ class ClientServerTests(unittest.TestCase):
     @with_server(extensions=[ServerNoOpExtensionFactory([('foo', None)])])
     def test_extension_client_rejection(self):
         with self.assertRaises(NegotiationError):
-            self.start_client(
-                '/extensions',
-                extensions=[ClientNoOpExtensionFactory()],
-            )
+            self.start_client('/extensions', extensions=[ClientNoOpExtensionFactory()])
 
     @with_server(
         extensions=[
             # No match because the client doesn't send client_max_window_bits.
             ServerPerMessageDeflateFactory(client_max_window_bits=10),
             ServerPerMessageDeflateFactory(),
-        ],
+        ]
     )
-    @with_client(
-        '/extensions',
-        extensions=[
-            ClientPerMessageDeflateFactory(),
-        ],
-    )
+    @with_client('/extensions', extensions=[ClientPerMessageDeflateFactory()])
     def test_extension_no_match_then_match(self):
         # The order requested by the client has priority.
         server_extensions = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_extensions, repr([
-            PerMessageDeflate(False, False, 15, 15),
-        ]))
-        self.assertEqual(repr(self.client.extensions), repr([
-            PerMessageDeflate(False, False, 15, 15),
-        ]))
+        self.assertEqual(
+            server_extensions, repr([PerMessageDeflate(False, False, 15, 15)])
+        )
+        self.assertEqual(
+            repr(self.client.extensions),
+            repr([PerMessageDeflate(False, False, 15, 15)]),
+        )
 
     @with_server(extensions=[ServerPerMessageDeflateFactory()])
     @with_client('/extensions', extensions=[ClientNoOpExtensionFactory()])
@@ -649,29 +645,23 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(repr(self.client.extensions), repr([]))
 
     @with_server(
-        extensions=[
-            ServerNoOpExtensionFactory(),
-            ServerPerMessageDeflateFactory(),
-        ],
+        extensions=[ServerNoOpExtensionFactory(), ServerPerMessageDeflateFactory()]
     )
     @with_client(
         '/extensions',
-        extensions=[
-            ClientPerMessageDeflateFactory(),
-            ClientNoOpExtensionFactory(),
-        ],
+        extensions=[ClientPerMessageDeflateFactory(), ClientNoOpExtensionFactory()],
     )
     def test_extension_order(self):
         # The order requested by the client has priority.
         server_extensions = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_extensions, repr([
-            PerMessageDeflate(False, False, 15, 15),
-            NoOpExtension(),
-        ]))
-        self.assertEqual(repr(self.client.extensions), repr([
-            PerMessageDeflate(False, False, 15, 15),
-            NoOpExtension(),
-        ]))
+        self.assertEqual(
+            server_extensions,
+            repr([PerMessageDeflate(False, False, 15, 15), NoOpExtension()]),
+        )
+        self.assertEqual(
+            repr(self.client.extensions),
+            repr([PerMessageDeflate(False, False, 15, 15), NoOpExtension()]),
+        )
 
     @with_server(extensions=[ServerNoOpExtensionFactory()])
     @unittest.mock.patch.object(WebSocketServerProtocol, 'process_extensions')
@@ -680,8 +670,7 @@ class ClientServerTests(unittest.TestCase):
 
         with self.assertRaises(NegotiationError):
             self.start_client(
-                '/extensions',
-                extensions=[ClientPerMessageDeflateFactory()],
+                '/extensions', extensions=[ClientPerMessageDeflateFactory()]
             )
 
     @with_server(extensions=[ServerNoOpExtensionFactory()])
@@ -696,19 +685,19 @@ class ClientServerTests(unittest.TestCase):
     @with_client('/extensions', compression='deflate')
     def test_compression_deflate(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_extensions, repr([
-            PerMessageDeflate(False, False, 15, 15),
-        ]))
-        self.assertEqual(repr(self.client.extensions), repr([
-            PerMessageDeflate(False, False, 15, 15),
-        ]))
+        self.assertEqual(
+            server_extensions, repr([PerMessageDeflate(False, False, 15, 15)])
+        )
+        self.assertEqual(
+            repr(self.client.extensions),
+            repr([PerMessageDeflate(False, False, 15, 15)]),
+        )
 
     @with_server(
         extensions=[
             ServerPerMessageDeflateFactory(
-                client_no_context_takeover=True,
-                server_max_window_bits=10,
-            ),
+                client_no_context_takeover=True, server_max_window_bits=10
+            )
         ],
         compression='deflate',  # overridden by explicit config
     )
@@ -716,20 +705,19 @@ class ClientServerTests(unittest.TestCase):
         '/extensions',
         extensions=[
             ClientPerMessageDeflateFactory(
-                server_no_context_takeover=True,
-                client_max_window_bits=12,
-            ),
+                server_no_context_takeover=True, client_max_window_bits=12
+            )
         ],
         compression='deflate',  # overridden by explicit config
     )
     def test_compression_deflate_and_explicit_config(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(server_extensions, repr([
-            PerMessageDeflate(True, True, 12, 10),
-        ]))
-        self.assertEqual(repr(self.client.extensions), repr([
-            PerMessageDeflate(True, True, 10, 12),
-        ]))
+        self.assertEqual(
+            server_extensions, repr([PerMessageDeflate(True, True, 12, 10)])
+        )
+        self.assertEqual(
+            repr(self.client.extensions), repr([PerMessageDeflate(True, True, 10, 12)])
+        )
 
     def test_compression_unsupported_server(self):
         with self.assertRaises(ValueError):
@@ -799,8 +787,7 @@ class ClientServerTests(unittest.TestCase):
         _process_subprotocol.return_value = 'superchat, chat'
 
         with self.assertRaises(InvalidHandshake):
-            self.start_client(
-                '/subprotocol', subprotocols=['superchat', 'chat'])
+            self.start_client('/subprotocol', subprotocols=['superchat', 'chat'])
         self.run_loop_once()
 
     @with_server()
@@ -825,6 +812,7 @@ class ClientServerTests(unittest.TestCase):
     def test_client_sends_invalid_handshake_request(self, _build_request):
         def wrong_build_request(headers):
             return '42'
+
         _build_request.side_effect = wrong_build_request
 
         with self.assertRaises(InvalidHandshake):
@@ -835,6 +823,7 @@ class ClientServerTests(unittest.TestCase):
     def test_server_sends_invalid_handshake_response(self, _build_response):
         def wrong_build_response(headers, key):
             return build_response(headers, '42')
+
         _build_response.side_effect = wrong_build_response
 
         with self.assertRaises(InvalidHandshake):
@@ -847,6 +836,7 @@ class ClientServerTests(unittest.TestCase):
         def wrong_read_response(stream):
             status_code, headers = yield from read_response(stream)
             return 400, headers
+
         _read_response.side_effect = wrong_read_response
 
         with self.assertRaises(InvalidStatusCode):
@@ -854,8 +844,7 @@ class ClientServerTests(unittest.TestCase):
         self.run_loop_once()
 
     @with_server()
-    @unittest.mock.patch(
-        'websockets.server.WebSocketServerProtocol.process_request')
+    @unittest.mock.patch('websockets.server.WebSocketServerProtocol.process_request')
     def test_server_error_in_handshake(self, _process_request):
         _process_request.side_effect = Exception("process_request crashed")
 
@@ -944,11 +933,12 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server()
     @unittest.mock.patch(
-        'websockets.server.WebSocketServerProtocol.write_http_response')
-    @unittest.mock.patch(
-        'websockets.server.WebSocketServerProtocol.read_http_request')
+        'websockets.server.WebSocketServerProtocol.write_http_response'
+    )
+    @unittest.mock.patch('websockets.server.WebSocketServerProtocol.read_http_request')
     def test_connection_error_during_opening_handshake(
-            self, _read_http_request, _write_http_response):
+        self, _read_http_request, _write_http_response
+    ):
         _read_http_request.side_effect = ConnectionError
 
         # This exception is currently platform-dependent. It was observed to
@@ -996,7 +986,7 @@ class SSLClientServerTests(ClientServerTests):
         ssl_context.verify_mode = ssl.CERT_REQUIRED
         # ssl.match_hostname can't match IP addresses on Python < 3.5.
         # We're using IP addresses to enforce testing of IPv4 and IPv6.
-        if sys.version_info[:2] >= (3, 5):                  # pragma: no cover
+        if sys.version_info[:2] >= (3, 5):  # pragma: no cover
             ssl_context.check_hostname = True
         return ssl_context
 
@@ -1015,17 +1005,15 @@ class SSLClientServerTests(ClientServerTests):
     def test_ws_uri_is_rejected(self):
         with self.assertRaises(ValueError):
             client = connect(
-                get_server_uri(self.server, secure=False),
-                ssl=self.client_context,
+                get_server_uri(self.server, secure=False), ssl=self.client_context
             )
             # With Python ≥ 3.5, the exception is raised by connect() even
             # before awaiting.  However, with Python 3.4 the exception is
             # raised only when awaiting.
-            self.loop.run_until_complete(client)          # pragma: no cover
+            self.loop.run_until_complete(client)  # pragma: no cover
 
 
 class ClientServerOriginTests(unittest.TestCase):
-
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
@@ -1035,9 +1023,11 @@ class ClientServerOriginTests(unittest.TestCase):
 
     def test_checking_origin_succeeds(self):
         server = self.loop.run_until_complete(
-            serve(handler, 'localhost', 0, origins=['http://localhost']))
+            serve(handler, 'localhost', 0, origins=['http://localhost'])
+        )
         client = self.loop.run_until_complete(
-            connect(get_server_uri(server), origin='http://localhost'))
+            connect(get_server_uri(server), origin='http://localhost')
+        )
 
         self.loop.run_until_complete(client.send("Hello!"))
         self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")
@@ -1048,30 +1038,36 @@ class ClientServerOriginTests(unittest.TestCase):
 
     def test_checking_origin_fails(self):
         server = self.loop.run_until_complete(
-            serve(handler, 'localhost', 0, origins=['http://localhost']))
-        with self.assertRaisesRegex(InvalidHandshake,
-                                    "Status code not 101: 403"):
+            serve(handler, 'localhost', 0, origins=['http://localhost'])
+        )
+        with self.assertRaisesRegex(InvalidHandshake, "Status code not 101: 403"):
             self.loop.run_until_complete(
-                connect(get_server_uri(server), origin='http://otherhost'))
+                connect(get_server_uri(server), origin='http://otherhost')
+            )
 
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
     def test_checking_origins_fails_with_multiple_headers(self):
         server = self.loop.run_until_complete(
-            serve(handler, 'localhost', 0, origins=['http://localhost']))
-        with self.assertRaisesRegex(InvalidHandshake,
-                                    "Status code not 101: 400"):
+            serve(handler, 'localhost', 0, origins=['http://localhost'])
+        )
+        with self.assertRaisesRegex(InvalidHandshake, "Status code not 101: 400"):
             self.loop.run_until_complete(
-                connect(get_server_uri(server), origin='http://localhost',
-                        extra_headers=[('Origin', 'http://otherhost')]))
+                connect(
+                    get_server_uri(server),
+                    origin='http://localhost',
+                    extra_headers=[('Origin', 'http://otherhost')],
+                )
+            )
 
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
     def test_checking_lack_of_origin_succeeds(self):
         server = self.loop.run_until_complete(
-            serve(handler, 'localhost', 0, origins=[None]))
+            serve(handler, 'localhost', 0, origins=[None])
+        )
         client = self.loop.run_until_complete(connect(get_server_uri(server)))
 
         self.loop.run_until_complete(client.send("Hello!"))
@@ -1084,9 +1080,9 @@ class ClientServerOriginTests(unittest.TestCase):
     def test_checking_lack_of_origin_succeeds_backwards_compatibility(self):
         with warnings.catch_warnings(record=True) as recorded_warnings:
             server = self.loop.run_until_complete(
-                serve(handler, 'localhost', 0, origins=['']))
-            client = self.loop.run_until_complete(
-                connect(get_server_uri(server)))
+                serve(handler, 'localhost', 0, origins=[''])
+            )
+            client = self.loop.run_until_complete(connect(get_server_uri(server)))
 
         self.assertEqual(len(recorded_warnings), 1)
         warning = recorded_warnings[0].message
@@ -1102,7 +1098,6 @@ class ClientServerOriginTests(unittest.TestCase):
 
 
 class YieldFromTests(unittest.TestCase):
-
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
@@ -1128,7 +1123,6 @@ class YieldFromTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
     def test_server(self):
-
         @asyncio.coroutine
         def run_server():
             # Yield from serve.
@@ -1141,10 +1135,10 @@ class YieldFromTests(unittest.TestCase):
         self.loop.run_until_complete(run_server())
 
 
-if sys.version_info[:2] >= (3, 5):                          # pragma: no cover
-    from .py35._test_client_server import AsyncAwaitTests               # noqa
-    from .py35._test_client_server import ContextManagerTests           # noqa
+if sys.version_info[:2] >= (3, 5):  # pragma: no cover
+    from .py35._test_client_server import AsyncAwaitTests  # noqa
+    from .py35._test_client_server import ContextManagerTests  # noqa
 
 
-if sys.version_info[:2] >= (3, 6):                          # pragma: no cover
-    from .py36._test_client_server import AsyncIteratorTests            # noqa
+if sys.version_info[:2] >= (3, 6):  # pragma: no cover
+    from .py36._test_client_server import AsyncIteratorTests  # noqa

@@ -15,7 +15,8 @@ from .exceptions import InvalidURI
 __all__ = ['parse_uri', 'WebSocketURI']
 
 WebSocketURI = collections.namedtuple(
-    'WebSocketURI', ['secure', 'host', 'port', 'resource_name', 'user_info'])
+    'WebSocketURI', ['secure', 'host', 'port', 'resource_name', 'user_info']
+)
 WebSocketURI.__doc__ = """WebSocket URI.
 
 * ``secure`` is the secure flag

@@ -1,10 +1,22 @@
 __all__ = [
-    'AbortHandshake', 'ConnectionClosed', 'DuplicateParameter',
-    'InvalidHandshake', 'InvalidHeader', 'InvalidHeaderFormat',
-    'InvalidHeaderValue', 'InvalidMessage', 'InvalidOrigin',
-    'InvalidParameterName', 'InvalidParameterValue', 'InvalidState',
-    'InvalidStatusCode', 'InvalidUpgrade', 'InvalidURI', 'NegotiationError',
-    'PayloadTooBig', 'WebSocketProtocolError',
+    'AbortHandshake',
+    'ConnectionClosed',
+    'DuplicateParameter',
+    'InvalidHandshake',
+    'InvalidHeader',
+    'InvalidHeaderFormat',
+    'InvalidHeaderValue',
+    'InvalidMessage',
+    'InvalidOrigin',
+    'InvalidParameterName',
+    'InvalidParameterValue',
+    'InvalidState',
+    'InvalidStatusCode',
+    'InvalidUpgrade',
+    'InvalidURI',
+    'NegotiationError',
+    'PayloadTooBig',
+    'WebSocketProtocolError',
 ]
 
 
@@ -20,12 +32,14 @@ class AbortHandshake(InvalidHandshake):
     Exception raised to abort a handshake and return a HTTP response.
 
     """
+
     def __init__(self, status, headers, body=b''):
         self.status = status
         self.headers = headers
         self.body = body
         message = "HTTP {}, {} headers, {} bytes".format(
-            status, len(headers), len(body))
+            status, len(headers), len(body)
+        )
         super().__init__(message)
 
 
@@ -41,6 +55,7 @@ class InvalidHeader(InvalidHandshake):
     Exception raised when a HTTP header doesn't have a valid format or value.
 
     """
+
     def __init__(self, name, value=None):
         if value is None:
             message = "Missing {} header".format(name)
@@ -56,6 +71,7 @@ class InvalidHeaderFormat(InvalidHeader):
     Exception raised when a Sec-WebSocket-* HTTP header cannot be parsed.
 
     """
+
     def __init__(self, name, error, string, pos):
         error = "{} at {} in {}".format(error, pos, string)
         super().__init__(name, error)
@@ -80,6 +96,7 @@ class InvalidOrigin(InvalidHeader):
     Exception raised when the Origin header in a request isn't allowed.
 
     """
+
     def __init__(self, origin):
         super().__init__('Origin', origin)
 
@@ -91,6 +108,7 @@ class InvalidStatusCode(InvalidHandshake):
     Provides the integer status code in its ``status_code`` attribute.
 
     """
+
     def __init__(self, status_code):
         self.status_code = status_code
         message = "Status code not 101: {}".format(status_code)
@@ -109,6 +127,7 @@ class InvalidParameterName(NegotiationError):
     Exception raised when a parameter name in an extension header is invalid.
 
     """
+
     def __init__(self, name):
         self.name = name
         message = "Invalid parameter name: {}".format(name)
@@ -120,6 +139,7 @@ class InvalidParameterValue(NegotiationError):
     Exception raised when a parameter value in an extension header is invalid.
 
     """
+
     def __init__(self, name, value):
         self.name = name
         self.value = value
@@ -132,6 +152,7 @@ class DuplicateParameter(NegotiationError):
     Exception raised when a parameter name is repeated in an extension header.
 
     """
+
     def __init__(self, name):
         self.name = name
         message = "Duplicate parameter: {}".format(name)
@@ -192,6 +213,7 @@ class ConnectionClosed(InvalidState):
     ``reason`` attributes respectively.
 
     """
+
     def __init__(self, code, reason):
         self.code = code
         self.reason = reason

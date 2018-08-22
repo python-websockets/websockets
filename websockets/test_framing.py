@@ -8,7 +8,6 @@ from .framing import *
 
 
 class FramingTests(unittest.TestCase):
-
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
@@ -20,10 +19,14 @@ class FramingTests(unittest.TestCase):
         self.stream = asyncio.StreamReader(loop=self.loop)
         self.stream.feed_data(message)
         self.stream.feed_eof()
-        frame = self.loop.run_until_complete(Frame.read(
-            self.stream.readexactly, mask=mask,
-            max_size=max_size, extensions=extensions,
-        ))
+        frame = self.loop.run_until_complete(
+            Frame.read(
+                self.stream.readexactly,
+                mask=mask,
+                max_size=max_size,
+                extensions=extensions,
+            )
+        )
         # Make sure all the data was consumed.
         self.assertTrue(self.stream.at_eof())
         return frame
@@ -43,10 +46,10 @@ class FramingTests(unittest.TestCase):
         decoded = self.decode(message, mask, extensions=extensions)
         self.assertEqual(decoded, expected)
         encoded = self.encode(decoded, mask, extensions=extensions)
-        if mask:    # non-deterministic encoding
+        if mask:  # non-deterministic encoding
             decoded = self.decode(encoded, mask, extensions=extensions)
             self.assertEqual(decoded, expected)
-        else:       # deterministic encoding
+        else:  # deterministic encoding
             self.assertEqual(encoded, message)
 
     def round_trip_close(self, data, code, reason):
@@ -56,10 +59,7 @@ class FramingTests(unittest.TestCase):
         self.assertEqual(serialized, data)
 
     def test_text(self):
-        self.round_trip(
-            b'\x81\x04Spam',
-            Frame(True, OP_TEXT, b'Spam'),
-        )
+        self.round_trip(b'\x81\x04Spam', Frame(True, OP_TEXT, b'Spam'))
 
     def test_text_masked(self):
         self.round_trip(
@@ -69,10 +69,7 @@ class FramingTests(unittest.TestCase):
         )
 
     def test_binary(self):
-        self.round_trip(
-            b'\x82\x04Eggs',
-            Frame(True, OP_BINARY, b'Eggs'),
-        )
+        self.round_trip(b'\x82\x04Eggs', Frame(True, OP_BINARY, b'Eggs'))
 
     def test_binary_masked(self):
         self.round_trip(
@@ -83,8 +80,7 @@ class FramingTests(unittest.TestCase):
 
     def test_non_ascii_text(self):
         self.round_trip(
-            b'\x81\x05caf\xc3\xa9',
-            Frame(True, OP_TEXT, 'café'.encode('utf-8')),
+            b'\x81\x05caf\xc3\xa9', Frame(True, OP_TEXT, 'café'.encode('utf-8'))
         )
 
     def test_non_ascii_text_masked(self):
@@ -95,27 +91,17 @@ class FramingTests(unittest.TestCase):
         )
 
     def test_close(self):
-        self.round_trip(
-            b'\x88\x00',
-            Frame(True, OP_CLOSE, b''),
-        )
+        self.round_trip(b'\x88\x00', Frame(True, OP_CLOSE, b''))
 
     def test_ping(self):
-        self.round_trip(
-            b'\x89\x04ping',
-            Frame(True, OP_PING, b'ping'),
-        )
+        self.round_trip(b'\x89\x04ping', Frame(True, OP_PING, b'ping'))
 
     def test_pong(self):
-        self.round_trip(
-            b'\x8a\x04pong',
-            Frame(True, OP_PONG, b'pong'),
-        )
+        self.round_trip(b'\x8a\x04pong', Frame(True, OP_PONG, b'pong'))
 
     def test_long(self):
         self.round_trip(
-            b'\x82\x7e\x00\x7e' + 126 * b'a',
-            Frame(True, OP_BINARY, 126 * b'a'),
+            b'\x82\x7e\x00\x7e' + 126 * b'a', Frame(True, OP_BINARY, 126 * b'a')
         )
 
     def test_very_long(self):
@@ -126,10 +112,7 @@ class FramingTests(unittest.TestCase):
 
     def test_payload_too_big(self):
         with self.assertRaises(PayloadTooBig):
-            self.decode(
-                b'\x82\x7e\x04\x01' + 1025 * b'a',
-                max_size=1024,
-            )
+            self.decode(b'\x82\x7e\x04\x01' + 1025 * b'a', max_size=1024)
 
     def test_bad_reserved_bits(self):
         for encoded in [b'\xc0\x00', b'\xa0\x00', b'\x90\x00']:
@@ -141,7 +124,7 @@ class FramingTests(unittest.TestCase):
         for opcode in list(range(0x00, 0x03)) + list(range(0x08, 0x0b)):
             encoded = bytes([0x80 | opcode, 0])
             with self.subTest(encoded=encoded):
-                self.decode(encoded)            # does not raise an exception
+                self.decode(encoded)  # does not raise an exception
 
     def test_bad_opcode(self):
         for opcode in list(range(0x03, 0x08)) + list(range(0x0b, 0x10)):
@@ -206,9 +189,7 @@ class FramingTests(unittest.TestCase):
             serialize_close(999, '')
 
     def test_extensions(self):
-
         class Rot13:
-
             @staticmethod
             def encode(frame):
                 assert frame.opcode == OP_TEXT
@@ -222,7 +203,5 @@ class FramingTests(unittest.TestCase):
                 return Rot13.encode(frame)
 
         self.round_trip(
-            b'\x81\x05uryyb',
-            Frame(True, OP_TEXT, b'hello'),
-            extensions=[Rot13()],
+            b'\x81\x05uryyb', Frame(True, OP_TEXT, b'hello'), extensions=[Rot13()]
         )

@@ -12,7 +12,7 @@ from ..test_client_server import get_server_uri
 
 # Fail at import time, not just at run time, to prevent test
 # discovery.
-if sys.version_info[:2] < (3, 6):                           # pragma: no cover
+if sys.version_info[:2] < (3, 6):  # pragma: no cover
     raise ImportError("Python 3.6+ only")
 
 
@@ -32,7 +32,6 @@ class AsyncIteratorTests(unittest.TestCase):
         self.loop.close()
 
     def test_iterate_on_messages(self):
-
         async def handler(ws, path):
             for message in MESSAGES:
                 await ws.send(message)
@@ -56,7 +55,6 @@ class AsyncIteratorTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
     def test_iterate_on_messages_going_away_exit_ok(self):
-
         async def handler(ws, path):
             for message in MESSAGES:
                 await ws.send(message)
@@ -81,7 +79,6 @@ class AsyncIteratorTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
     def test_iterate_on_messages_internal_error_exit_not_ok(self):
-
         async def handler(ws, path):
             for message in MESSAGES:
                 await ws.send(message)

@@ -6,7 +6,6 @@ from .http import read_headers
 
 
 class HTTPAsyncTests(unittest.TestCase):
-
     def setUp(self):
         super().setUp()
         self.loop = asyncio.new_event_loop()
@@ -30,8 +29,7 @@ class HTTPAsyncTests(unittest.TestCase):
             b'Sec-WebSocket-Version: 13\r\n'
             b'\r\n'
         )
-        path, headers = self.loop.run_until_complete(
-            read_request(self.stream))
+        path, headers = self.loop.run_until_complete(read_request(self.stream))
         self.assertEqual(path, '/chat')
         self.assertEqual(headers['Upgrade'], 'websocket')
 
@@ -45,8 +43,7 @@ class HTTPAsyncTests(unittest.TestCase):
             b'Sec-WebSocket-Protocol: chat\r\n'
             b'\r\n'
         )
-        status_code, headers = self.loop.run_until_complete(
-            read_response(self.stream))
+        status_code, headers = self.loop.run_until_complete(read_response(self.stream))
         self.assertEqual(status_code, 101)
         self.assertEqual(headers['Upgrade'], 'websocket')
 
@@ -103,12 +100,8 @@ class HTTPAsyncTests(unittest.TestCase):
 
 
 class HeadersTests(unittest.TestCase):
-
     def setUp(self):
-        self.headers = Headers([
-            ('Connection', 'Upgrade'),
-            ('Server', USER_AGENT),
-        ])
+        self.headers = Headers([('Connection', 'Upgrade'), ('Server', USER_AGENT)])
 
     def test_str(self):
         self.assertEqual(
@@ -124,14 +117,8 @@ class HeadersTests(unittest.TestCase):
         )
 
     def test_multiple_values_error_str(self):
-        self.assertEqual(
-            str(MultipleValuesError('Connection')),
-            "'Connection'",
-        )
-        self.assertEqual(
-            str(MultipleValuesError()),
-            "",
-        )
+        self.assertEqual(str(MultipleValuesError('Connection')), "'Connection'")
+        self.assertEqual(str(MultipleValuesError()), "")
 
     def test_contains(self):
         self.assertIn('Server', self.headers)
@@ -215,14 +202,10 @@ class HeadersTests(unittest.TestCase):
 
     def test_get_all_multiple_values(self):
         self.headers['Connection'] = 'close'
-        self.assertEqual(
-            self.headers.get_all('Connection'), ['Upgrade', 'close'])
+        self.assertEqual(self.headers.get_all('Connection'), ['Upgrade', 'close'])
 
     def test_raw_items(self):
         self.assertEqual(
             list(self.headers.raw_items()),
-            [
-                ('Connection', 'Upgrade'),
-                ('Server', USER_AGENT),
-            ],
+            [('Connection', 'Upgrade'), ('Server', USER_AGENT)],
         )

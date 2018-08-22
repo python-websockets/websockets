@@ -2,7 +2,10 @@ import contextlib
 import unittest
 
 from .exceptions import (
-    InvalidHandshake, InvalidHeader, InvalidHeaderValue, InvalidUpgrade
+    InvalidHandshake,
+    InvalidHeader,
+    InvalidHeaderValue,
+    InvalidUpgrade,
 )
 from .handshake import *
 from .handshake import accept  # private API
@@ -10,7 +13,6 @@ from .http import Headers
 
 
 class HandshakeTests(unittest.TestCase):
-
     def test_accept(self):
         # Test vector from RFC 6455
         key = "dGhlIHNhbXBsZSBub25jZQ=="
@@ -132,8 +134,7 @@ class HandshakeTests(unittest.TestCase):
         check_response(headers, key)
 
     @contextlib.contextmanager
-    def assertInvalidResponseHeaders(
-            self, exc_type, key='CSIRmL8dWYxeAdr/XpEHRw=='):
+    def assertInvalidResponseHeaders(self, exc_type, key='CSIRmL8dWYxeAdr/XpEHRw=='):
         """
         Provide response headers for modification.
 

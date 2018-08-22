@@ -7,8 +7,11 @@ Compression Extensions for WebSocket as specified in :rfc:`7692`.
 import zlib
 
 from ..exceptions import (
-    DuplicateParameter, InvalidParameterName, InvalidParameterValue,
-    NegotiationError, PayloadTooBig
+    DuplicateParameter,
+    InvalidParameterName,
+    InvalidParameterValue,
+    NegotiationError,
+    PayloadTooBig,
 )
 from ..framing import CTRL_OPCODES, OP_CONT
 
@@ -41,7 +44,7 @@ def _build_parameters(
         params.append(('client_no_context_takeover', None))
     if server_max_window_bits:
         params.append(('server_max_window_bits', str(server_max_window_bits)))
-    if client_max_window_bits is True:          # only in handshake requests
+    if client_max_window_bits is True:  # only in handshake requests
         params.append(('client_max_window_bits', None))
     elif client_max_window_bits:
         params.append(('client_max_window_bits', str(client_max_window_bits)))
@@ -90,7 +93,7 @@ def _extract_parameters(params, *, is_server):
         elif name == 'client_max_window_bits':
             if client_max_window_bits is not None:
                 raise DuplicateParameter(name)
-            if is_server and value is None:     # only in handshake requests
+            if is_server and value is None:  # only in handshake requests
                 client_max_window_bits = True
             elif value in _MAX_WINDOW_BITS_VALUES:
                 client_max_window_bits = int(value)
@@ -113,6 +116,7 @@ class ClientPerMessageDeflateFactory:
     Client-side extension factory for permessage-deflate extension.
 
     """
+
     name = 'permessage-deflate'
 
     def __init__(
@@ -129,16 +133,19 @@ class ClientPerMessageDeflateFactory:
         See https://tools.ietf.org/html/rfc7692#section-7.1.
 
         """
-        if not (server_max_window_bits is None or
-                8 <= server_max_window_bits <= 15):
+        if not (server_max_window_bits is None or 8 <= server_max_window_bits <= 15):
             raise ValueError("server_max_window_bits must be between 8 and 15")
-        if not (client_max_window_bits is None or
-                client_max_window_bits is True or
-                8 <= client_max_window_bits <= 15):
+        if not (
+            client_max_window_bits is None
+            or client_max_window_bits is True
+            or 8 <= client_max_window_bits <= 15
+        ):
             raise ValueError("client_max_window_bits must be between 8 and 15")
         if compress_settings is not None and 'wbits' in compress_settings:
-            raise ValueError("compress_settings must not include wbits, "
-                             "set client_max_window_bits instead")
+            raise ValueError(
+                "compress_settings must not include wbits, "
+                "set client_max_window_bits instead"
+            )
 
         self.server_no_context_takeover = server_no_context_takeover
         self.client_no_context_takeover = client_no_context_takeover
@@ -152,8 +159,10 @@ class ClientPerMessageDeflateFactory:
 
         """
         return _build_parameters(
-            self.server_no_context_takeover, self.client_no_context_takeover,
-            self.server_max_window_bits, self.client_max_window_bits,
+            self.server_no_context_takeover,
+            self.client_no_context_takeover,
+            self.server_max_window_bits,
+            self.client_max_window_bits,
         )
 
     def process_response_params(self, params, accepted_extensions):
@@ -250,10 +259,10 @@ class ClientPerMessageDeflateFactory:
                 raise NegotiationError("Unsupported client_max_window_bits")
 
         return PerMessageDeflate(
-            server_no_context_takeover,     # remote_no_context_takeover
-            client_no_context_takeover,     # local_no_context_takeover
-            server_max_window_bits or 15,   # remote_max_window_bits
-            client_max_window_bits or 15,   # local_max_window_bits
+            server_no_context_takeover,  # remote_no_context_takeover
+            client_no_context_takeover,  # local_no_context_takeover
+            server_max_window_bits or 15,  # remote_max_window_bits
+            client_max_window_bits or 15,  # local_max_window_bits
             self.compress_settings,
         )
 
@@ -263,6 +272,7 @@ class ServerPerMessageDeflateFactory:
     Server-side extension factory for permessage-deflate extension.
 
     """
+
     name = 'permessage-deflate'
 
     def __init__(
@@ -279,15 +289,15 @@ class ServerPerMessageDeflateFactory:
         See https://tools.ietf.org/html/rfc7692#section-7.1.
 
         """
-        if not (server_max_window_bits is None or
-                8 <= server_max_window_bits <= 15):
+        if not (server_max_window_bits is None or 8 <= server_max_window_bits <= 15):
             raise ValueError("server_max_window_bits must be between 8 and 15")
-        if not (client_max_window_bits is None or
-                8 <= client_max_window_bits <= 15):
+        if not (client_max_window_bits is None or 8 <= client_max_window_bits <= 15):
             raise ValueError("client_max_window_bits must be between 8 and 15")
         if compress_settings is not None and 'wbits' in compress_settings:
-            raise ValueError("compress_settings must not include wbits, "
-                             "set server_max_window_bits instead")
+            raise ValueError(
+                "compress_settings must not include wbits, "
+                "set server_max_window_bits instead"
+            )
 
         self.server_no_context_takeover = server_no_context_takeover
         self.client_no_context_takeover = client_no_context_takeover
@@ -389,16 +399,18 @@ class ServerPerMessageDeflateFactory:
 
         return (
             _build_parameters(
-                server_no_context_takeover, client_no_context_takeover,
-                server_max_window_bits, client_max_window_bits,
+                server_no_context_takeover,
+                client_no_context_takeover,
+                server_max_window_bits,
+                client_max_window_bits,
             ),
             PerMessageDeflate(
-                client_no_context_takeover,     # remote_no_context_takeover
-                server_no_context_takeover,     # local_no_context_takeover
-                client_max_window_bits or 15,   # remote_max_window_bits
-                server_max_window_bits or 15,   # local_max_window_bits
+                client_no_context_takeover,  # remote_no_context_takeover
+                server_no_context_takeover,  # local_no_context_takeover
+                client_max_window_bits or 15,  # remote_max_window_bits
+                server_max_window_bits or 15,  # local_max_window_bits
                 self.compress_settings,
-            )
+            ),
         )
 
 
@@ -407,6 +419,7 @@ class PerMessageDeflate:
     permessage-deflate extension.
 
     """
+
     name = 'permessage-deflate'
 
     def __init__(
@@ -437,13 +450,12 @@ class PerMessageDeflate:
         self.compress_settings = compress_settings
 
         if not self.remote_no_context_takeover:
-            self.decoder = zlib.decompressobj(
-                wbits=-self.remote_max_window_bits)
+            self.decoder = zlib.decompressobj(wbits=-self.remote_max_window_bits)
 
         if not self.local_no_context_takeover:
             self.encoder = zlib.compressobj(
-                wbits=-self.local_max_window_bits,
-                **self.compress_settings)
+                wbits=-self.local_max_window_bits, **self.compress_settings
+            )
 
         # To handle continuation frames properly, we must keep track of
         # whether that initial frame was encoded.
@@ -452,16 +464,18 @@ class PerMessageDeflate:
         # outgoing frames, so it would always be True.
 
     def __repr__(self):
-        return 'PerMessageDeflate({})'.format(', '.join([
-            'remote_no_context_takeover={}'.format(
-                self.remote_no_context_takeover),
-            'local_no_context_takeover={}'.format(
-                self.local_no_context_takeover),
-            'remote_max_window_bits={}'.format(
-                self.remote_max_window_bits),
-            'local_max_window_bits={}'.format(
-                self.local_max_window_bits),
-        ]))
+        return (
+            'PerMessageDeflate('
+            'remote_no_context_takeover={}, '
+            'local_no_context_takeover={}, '
+            'remote_max_window_bits={}, '
+            'local_max_window_bits={})'
+        ).format(
+            self.remote_no_context_takeover,
+            self.local_no_context_takeover,
+            self.remote_max_window_bits,
+            self.local_max_window_bits,
+        )
 
     def decode(self, frame, *, max_size=None):
         """
@@ -492,8 +506,7 @@ class PerMessageDeflate:
 
             # Re-initialize per-message decoder.
             if self.remote_no_context_takeover:
-                self.decoder = zlib.decompressobj(
-                    wbits=-self.remote_max_window_bits)
+                self.decoder = zlib.decompressobj(wbits=-self.remote_max_window_bits)
 
         # Uncompress compressed frames. Protect against zip bombs by
         # preventing zlib from decompressing more than max_length bytes
@@ -505,8 +518,10 @@ class PerMessageDeflate:
         data = self.decoder.decompress(data, max_length)
         if self.decoder.unconsumed_tail:
             raise PayloadTooBig(
-                "Uncompressed payload length exceeds size limit (? > {} bytes)"
-                .format(max_size))
+                "Uncompressed payload length exceeds size limit (? > {} bytes)".format(
+                    max_size
+                )
+            )
 
         # Allow garbage collection of the decoder if it won't be reused.
         if frame.fin and self.remote_no_context_takeover:
@@ -530,14 +545,11 @@ class PerMessageDeflate:
             # Re-initialize per-message decoder.
             if self.local_no_context_takeover:
                 self.encoder = zlib.compressobj(
-                    wbits=-self.local_max_window_bits,
-                    **self.compress_settings)
+                    wbits=-self.local_max_window_bits, **self.compress_settings
+                )
 
         # Compress data frames.
-        data = (
-            self.encoder.compress(frame.data) +
-            self.encoder.flush(zlib.Z_SYNC_FLUSH)
-        )
+        data = self.encoder.compress(frame.data) + self.encoder.flush(zlib.Z_SYNC_FLUSH)
         if frame.fin and data.endswith(_EMPTY_UNCOMPRESSED_BLOCK):
             data = data[:-4]
 

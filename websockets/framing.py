@@ -20,14 +20,23 @@ from .exceptions import PayloadTooBig, WebSocketProtocolError
 
 try:
     from .speedups import apply_mask
-except ImportError:                                         # pragma: no cover
+except ImportError:  # pragma: no cover
     from .utils import apply_mask
 
 
 __all__ = [
-    'DATA_OPCODES', 'CTRL_OPCODES',
-    'OP_CONT', 'OP_TEXT', 'OP_BINARY', 'OP_CLOSE', 'OP_PING', 'OP_PONG',
-    'Frame', 'encode_data', 'parse_close', 'serialize_close'
+    'DATA_OPCODES',
+    'CTRL_OPCODES',
+    'OP_CONT',
+    'OP_TEXT',
+    'OP_BINARY',
+    'OP_CLOSE',
+    'OP_PING',
+    'OP_PONG',
+    'Frame',
+    'encode_data',
+    'parse_close',
+    'serialize_close',
 ]
 
 DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY = 0x00, 0x01, 0x02
@@ -35,21 +44,10 @@ CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0a
 
 # Close code that are allowed in a close frame.
 # Using a list optimizes `code in EXTERNAL_CLOSE_CODES`.
-EXTERNAL_CLOSE_CODES = [
-    1000,
-    1001,
-    1002,
-    1003,
-    1007,
-    1008,
-    1009,
-    1010,
-    1011,
-]
+EXTERNAL_CLOSE_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
 FrameData = collections.namedtuple(
-    'FrameData',
-    ['fin', 'opcode', 'data', 'rsv1', 'rsv2', 'rsv3'],
+    'FrameData', ['fin', 'opcode', 'data', 'rsv1', 'rsv2', 'rsv3']
 )
 
 
@@ -69,6 +67,7 @@ class Frame(FrameData):
     :meth:`write`.
 
     """
+
     def __new__(cls, fin, opcode, data, rsv1=False, rsv2=False, rsv3=False):
         return FrameData.__new__(cls, fin, opcode, data, rsv1, rsv2, rsv3)
 
@@ -119,8 +118,10 @@ class Frame(FrameData):
             length, = struct.unpack('!Q', data)
         if max_size is not None and length > max_size:
             raise PayloadTooBig(
-                "Payload length exceeds size limit ({} > {} bytes)"
-                .format(length, max_size))
+                "Payload length exceeds size limit ({} > {} bytes)".format(
+                    length, max_size
+                )
+            )
         if mask:
             mask_bits = yield from reader(4)
 
@@ -174,11 +175,11 @@ class Frame(FrameData):
 
         # Prepare the header.
         head1 = (
-            (0b10000000 if frame.fin else 0) |
-            (0b01000000 if frame.rsv1 else 0) |
-            (0b00100000 if frame.rsv2 else 0) |
-            (0b00010000 if frame.rsv3 else 0) |
-            frame.opcode
+            (0b10000000 if frame.fin else 0)
+            | (0b01000000 if frame.rsv1 else 0)
+            | (0b00100000 if frame.rsv2 else 0)
+            | (0b00010000 if frame.rsv3 else 0)
+            | frame.opcode
         )
 
         head2 = 0b10000000 if mask else 0
@@ -231,8 +232,7 @@ class Frame(FrameData):
             if not frame.fin:
                 raise WebSocketProtocolError("Fragmented control frame")
         else:
-            raise WebSocketProtocolError(
-                "Invalid opcode: {}".format(frame.opcode))
+            raise WebSocketProtocolError("Invalid opcode: {}".format(frame.opcode))
 
 
 def encode_data(data):

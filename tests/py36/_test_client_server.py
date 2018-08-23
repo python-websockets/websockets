@@ -4,9 +4,10 @@ import asyncio
 import sys
 import unittest
 
-from ..client import *
-from ..exceptions import ConnectionClosed
-from ..server import *
+from websockets.client import *
+from websockets.exceptions import ConnectionClosed
+from websockets.server import *
+
 from ..test_client_server import get_server_uri
 
 

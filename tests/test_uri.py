@@ -1,7 +1,7 @@
 import unittest
 
-from .exceptions import InvalidURI
-from .uri import *
+from websockets.exceptions import InvalidURI
+from websockets.uri import *
 
 
 VALID_URIS = [

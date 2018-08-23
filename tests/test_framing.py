@@ -3,8 +3,8 @@ import codecs
 import unittest
 import unittest.mock
 
-from .exceptions import PayloadTooBig, WebSocketProtocolError
-from .framing import *
+from websockets.exceptions import PayloadTooBig, WebSocketProtocolError
+from websockets.framing import *
 
 
 class FramingTests(unittest.TestCase):

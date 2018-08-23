@@ -7,9 +7,10 @@ import sys
 import tempfile
 import unittest
 
-from ..client import *
-from ..protocol import State
-from ..server import *
+from websockets.client import *
+from websockets.protocol import State
+from websockets.server import *
+
 from ..test_client_server import get_server_uri, handler
 
 

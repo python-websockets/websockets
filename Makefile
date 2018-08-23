@@ -1,14 +1,16 @@
 export PYTHONASYNCIODEBUG=1
+export PYTHONPATH=src
 
 style:
-	black --skip-string-normalization websockets
+	isort --recursive src tests
+	black --skip-string-normalization src tests
 
 test:
 	python -W default -m unittest
 
 coverage:
 	python -m coverage erase
-	python -W default -m coverage run --branch --omit=websockets/__main__.py --source=websockets -m unittest
+	python -W default -m coverage run -m unittest
 	python -m coverage html
 
 clean:

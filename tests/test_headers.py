@@ -1,8 +1,8 @@
 import unittest
 
-from .exceptions import InvalidHeaderFormat
-from .headers import *
-from .headers import build_basic_auth
+from websockets.exceptions import InvalidHeaderFormat
+from websockets.headers import *
+from websockets.headers import build_basic_auth
 
 
 class HeadersTests(unittest.TestCase):

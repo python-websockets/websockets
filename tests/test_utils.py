@@ -1,6 +1,6 @@
 import unittest
 
-from .utils import apply_mask as py_apply_mask
+from websockets.utils import apply_mask as py_apply_mask
 
 
 class UtilsTests(unittest.TestCase):
@@ -37,7 +37,7 @@ class UtilsTests(unittest.TestCase):
 
 
 try:
-    from .speedups import apply_mask as c_apply_mask
+    from websockets.speedups import apply_mask as c_apply_mask
 except ImportError:  # pragma: no cover
     pass
 else:

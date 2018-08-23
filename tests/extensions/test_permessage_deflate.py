@@ -1,14 +1,15 @@
 import unittest
 import zlib
 
-from ..exceptions import (
+from websockets.exceptions import (
     DuplicateParameter,
     InvalidParameterName,
     InvalidParameterValue,
     NegotiationError,
     PayloadTooBig,
 )
-from ..framing import (
+from websockets.extensions.permessage_deflate import *
+from websockets.framing import (
     OP_BINARY,
     OP_CLOSE,
     OP_CONT,
@@ -18,7 +19,6 @@ from ..framing import (
     Frame,
     serialize_close,
 )
-from .permessage_deflate import *
 
 
 class ExtensionTestsMixin:

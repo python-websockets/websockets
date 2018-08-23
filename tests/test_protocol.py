@@ -7,10 +7,10 @@ import time
 import unittest
 import unittest.mock
 
-from .compatibility import asyncio_ensure_future
-from .exceptions import ConnectionClosed, InvalidState
-from .framing import *
-from .protocol import State, WebSocketCommonProtocol
+from websockets.compatibility import asyncio_ensure_future
+from websockets.exceptions import ConnectionClosed, InvalidState
+from websockets.framing import *
+from websockets.protocol import State, WebSocketCommonProtocol
 
 
 # Avoid displaying stack traces at the ERROR logging level.

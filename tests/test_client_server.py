@@ -14,23 +14,24 @@ import urllib.error
 import urllib.request
 import warnings
 
-from .client import *
-from .compatibility import FORBIDDEN, OK, UNAUTHORIZED
-from .exceptions import (
+from websockets.client import *
+from websockets.compatibility import FORBIDDEN, OK, UNAUTHORIZED
+from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
     InvalidStatusCode,
     NegotiationError,
 )
-from .extensions.permessage_deflate import (
+from websockets.extensions.permessage_deflate import (
     ClientPerMessageDeflateFactory,
     PerMessageDeflate,
     ServerPerMessageDeflateFactory,
 )
-from .handshake import build_response
-from .http import USER_AGENT, Headers, read_response
-from .protocol import State
-from .server import *
+from websockets.handshake import build_response
+from websockets.http import USER_AGENT, Headers, read_response
+from websockets.protocol import State
+from websockets.server import *
+
 from .test_protocol import MS
 
 

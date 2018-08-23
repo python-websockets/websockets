@@ -1,15 +1,15 @@
 import contextlib
 import unittest
 
-from .exceptions import (
+from websockets.exceptions import (
     InvalidHandshake,
     InvalidHeader,
     InvalidHeaderValue,
     InvalidUpgrade,
 )
-from .handshake import *
-from .handshake import accept  # private API
-from .http import Headers
+from websockets.handshake import *
+from websockets.handshake import accept  # private API
+from websockets.http import Headers
 
 
 class HandshakeTests(unittest.TestCase):

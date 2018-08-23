@@ -14,8 +14,8 @@ with (root_dir / 'README.rst').open(encoding='utf-8') as f:
     long_description = f.read()
 
 # When dropping Python < 3.5, change to:
-# exec((root_dir / 'websockets' / 'version.py').read_text(encoding='utf-8'))
-with (root_dir / 'websockets' / 'version.py').open(encoding='utf-8') as f:
+# exec((root_dir / 'src' / 'websockets' / 'version.py').read_text(encoding='utf-8'))
+with (root_dir / 'src' / 'websockets' / 'version.py').open(encoding='utf-8') as f:
     exec(f.read())
 
 py_version = sys.version_info[:2]
@@ -34,7 +34,7 @@ if py_version >= (3, 6):
 ext_modules = [
     setuptools.Extension(
         'websockets.speedups',
-        sources=['websockets/speedups.c'],
+        sources=['src/websockets/speedups.c'],
         optional=not (root_dir / '.cibuildwheel').exists(),
     )
 ]
@@ -61,6 +61,7 @@ setuptools.setup(
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
+    package_dir = {'': 'src'},
     packages=packages,
     ext_modules=ext_modules,
     include_package_data=True,

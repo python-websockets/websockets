@@ -605,13 +605,14 @@ class CommonTests:
         self.run_loop_once()
         self.assertTrue(ping.done())
 
-    def test_cancel_ping(self):
+    def test_abort_ping(self):
         ping = self.loop.run_until_complete(self.protocol.ping())
         # Remove the frame from the buffer, else close_connection() complains.
         self.last_sent_frame()
-        self.assertFalse(ping.cancelled())
+        self.assertFalse(ping.done())
         self.close_connection()
-        self.assertTrue(ping.cancelled())
+        self.assertTrue(ping.done())
+        self.assertIsInstance(ping.exception(), ConnectionClosed)
 
     def test_acknowledge_previous_pings(self):
         pings = [

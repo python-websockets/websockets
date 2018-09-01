@@ -919,19 +919,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             if self.keepalive_ping_task is not None:
                 self.keepalive_ping_task.cancel()
 
-            # Cancel all pending pings because they'll never receive a pong.
-            for ping in self.pings.values():
-                ping.cancel()
-            if self.pings:
-                pings_hex = ', '.join(
-                    binascii.hexlify(ping_id).decode() or '[empty]'
-                    for ping_id in self.pings
-                )
-                plural = 's' if len(self.pings) > 1 else ''
-                logger.debug(
-                    "%s - canceled pending ping%s: %s", self.side, plural, pings_hex
-                )
-
             # A client should wait for a TCP close from the server.
             if self.is_client and self.transfer_data_task is not None:
                 if (yield from self.wait_for_connection_lost()):
@@ -1059,6 +1046,30 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         return self.close_connection_task
 
+    def abort_keepalive_pings(self):
+        """
+        Raise ConnectionClosed in pending keepalive pings.
+
+        They'll never receive a pong once the connection is closed.
+
+        """
+        assert self.state is State.CLOSED
+        exc = ConnectionClosed(self.close_code, self.close_reason)
+        exc.__cause__ = self.transfer_data_exc  # emulate raise ... from ...
+
+        for ping in self.pings.values():
+            ping.set_exception(exc)
+
+        if self.pings:
+            pings_hex = ', '.join(
+                binascii.hexlify(ping_id).decode() or '[empty]'
+                for ping_id in self.pings
+            )
+            plural = 's' if len(self.pings) > 1 else ''
+            logger.debug(
+                "%s - aborted pending ping%s: %s", self.side, plural, pings_hex
+            )
+
     # asyncio.StreamReaderProtocol methods
 
     def connection_made(self, transport):
@@ -1122,6 +1133,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.close_code,
             self.close_reason or '[empty]',
         )
+        self.abort_keepalive_pings()
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;
         # - it must never be canceled.

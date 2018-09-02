@@ -31,6 +31,8 @@ Changelog
 * websockets sends Ping frames at regular intervals and closes the connection
   if it doesn't receive a matching Pong frame. See :class:`~protocol.WebSocketCommonProtocol` for details.
 
+* Added support for sending fragmented messages.
+
 * Added the :meth:`~protocol.WebSocketCommonProtocol.wait_closed` method to
   protocols.
 

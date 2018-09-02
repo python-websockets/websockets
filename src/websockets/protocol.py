@@ -11,6 +11,7 @@ import asyncio.queues
 import binascii
 import codecs
 import collections
+import collections.abc
 import enum
 import logging
 import random
@@ -428,20 +429,66 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         This coroutine sends a message.
 
         It sends :class:`str` as a text frame and :class:`bytes` as a binary
-        frame. It raises a :exc:`TypeError` for other inputs.
+        frame.
+
+        It also accepts an iterable of :class:`str` or :class:`bytes`. Each
+        item is treated as a message fragment and sent in its own frame. All
+        items must be of the same type, or else :meth:`send` will raise a
+        :exc:`TypeError` and the connection will be closed.
+
+        It raises a :exc:`TypeError` for other inputs.
 
         """
         yield from self.ensure_open()
 
-        if isinstance(data, str):
-            opcode = 1
-            data = data.encode('utf-8')
-        elif isinstance(data, bytes):
-            opcode = 2
-        else:
-            raise TypeError("data must be bytes or str")
+        # Unfragmented message (first because str and bytes are iterable).
 
-        yield from self.write_frame(opcode, data)
+        if isinstance(data, str):
+            yield from self.write_frame(True, OP_TEXT, data.encode('utf-8'))
+
+        elif isinstance(data, bytes):
+            yield from self.write_frame(True, OP_BINARY, data)
+
+        # Fragmented message -- regular iterator.
+
+        elif isinstance(data, collections.abc.Iterable):
+            iter_data = iter(data)
+
+            # First fragment.
+            try:
+                data = next(iter_data)
+            except StopIteration:
+                return
+            data_type = type(data)
+            if isinstance(data, str):
+                yield from self.write_frame(False, OP_TEXT, data.encode('utf-8'))
+                encode_data = True
+            elif isinstance(data, bytes):
+                yield from self.write_frame(False, OP_BINARY, data)
+                encode_data = False
+            else:
+                raise TypeError("data must be an iterable of bytes or str")
+
+            # Other fragments.
+            for data in iter_data:
+                if type(data) != data_type:
+                    # We're half-way through a fragmented message and we can't
+                    # complete it. This makes the connection unusable.
+                    self.fail_connection(1011)
+                    raise TypeError("data contains inconsistent types")
+                if encode_data:
+                    data = data.encode('utf-8')
+                yield from self.write_frame(False, OP_CONT, data)
+
+            # Final fragment.
+            yield from self.write_frame(True, OP_CONT, type(data)())
+
+        # Fragmented message -- asynchronous iterator
+
+        # To be implemented after dropping support for Python 3.4.
+
+        else:
+            raise TypeError("data must be bytes, str, or iterable")
 
     @asyncio.coroutine
     def close(self, code=1000, reason=''):
@@ -529,7 +576,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.pings[data] = asyncio.Future(loop=self.loop)
 
-        yield from self.write_frame(OP_PING, data)
+        yield from self.write_frame(True, OP_PING, data)
 
         return asyncio.shield(self.pings[data])
 
@@ -549,7 +596,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         data = encode_data(data)
 
-        yield from self.write_frame(OP_PONG, data)
+        yield from self.write_frame(True, OP_PONG, data)
 
     # Private methods - no guarantees.
 
@@ -803,14 +850,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         return frame
 
     @asyncio.coroutine
-    def write_frame(self, opcode, data=b'', _expected_state=State.OPEN):
+    def write_frame(self, fin, opcode, data, *, _expected_state=State.OPEN):
         # Defensive assertion for protocol compliance.
         if self.state is not _expected_state:  # pragma: no cover
             raise InvalidState(
                 "Cannot write to a WebSocket " "in the {} state".format(self.state.name)
             )
 
-        frame = Frame(True, opcode, data)
+        frame = Frame(fin, opcode, data)
         logger.debug("%s > %s", self.side, frame)
         frame.write(self.writer.write, mask=self.is_client, extensions=self.extensions)
 
@@ -870,7 +917,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             logger.debug("%s - state = CLOSING", self.side)
 
             # 7.1.2. Start the WebSocket Closing Handshake
-            yield from self.write_frame(OP_CLOSE, data, State.CLOSING)
+            yield from self.write_frame(
+                True, OP_CLOSE, data, _expected_state=State.CLOSING
+            )
 
     @asyncio.coroutine
     def keepalive_ping(self):

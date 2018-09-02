@@ -255,12 +255,9 @@ class CommonTests:
         self.receive_eof()
         self.loop.run_until_complete(self.protocol.close_connection_task)
 
-    def last_sent_frame(self):
+    def sent_frames(self):
         """
-        Read the last frame sent to the transport.
-
-        This method assumes that at most one frame was sent. It raises an
-        AssertionError otherwise.
+        Read all frames sent to the transport.
 
         """
         stream = asyncio.StreamReader(loop=self.loop)
@@ -270,18 +267,30 @@ class CommonTests:
         self.transport.write.call_args_list = []
         stream.feed_eof()
 
-        if stream.at_eof():
-            frame = None
-        else:
-            frame = self.loop.run_until_complete(
-                Frame.read(stream.readexactly, mask=self.protocol.is_client)
+        frames = []
+        while not stream.at_eof():
+            frames.append(
+                self.loop.run_until_complete(
+                    Frame.read(stream.readexactly, mask=self.protocol.is_client)
+                )
             )
+        return frames
 
-        if not stream.at_eof():  # pragma: no cover
-            data = self.loop.run_until_complete(stream.read())
-            raise AssertionError("Trailing data found: {!r}".format(data))
+    def last_sent_frame(self):
+        """
+        Read the last frame sent to the transport.
 
-        return frame
+        This method assumes that at most one frame was sent. It raises an
+        AssertionError otherwise.
+
+        """
+        frames = self.sent_frames()
+        if frames:
+            assert len(frames) == 1
+            return frames[0]
+
+    def assertFramesSent(self, *frames):
+        self.assertEqual(self.sent_frames(), [Frame(*args) for args in frames])
 
     def assertOneFrameSent(self, *args):
         self.assertEqual(self.last_sent_frame(), Frame(*args))
@@ -466,6 +475,37 @@ class CommonTests:
         with self.assertRaises(TypeError):
             self.loop.run_until_complete(self.protocol.send(42))
         self.assertNoFrameSent()
+
+    def test_send_iterable_text(self):
+        self.loop.run_until_complete(self.protocol.send(['ca', 'fé']))
+        self.assertFramesSent(
+            (False, OP_TEXT, 'ca'.encode('utf-8')),
+            (False, OP_CONT, 'fé'.encode('utf-8')),
+            (True, OP_CONT, ''.encode('utf-8')),
+        )
+
+    def test_send_iterable_binary(self):
+        self.loop.run_until_complete(self.protocol.send([b'te', b'a']))
+        self.assertFramesSent(
+            (False, OP_BINARY, b'te'), (False, OP_CONT, b'a'), (True, OP_CONT, b'')
+        )
+
+    def test_send_empty_iterable(self):
+        self.loop.run_until_complete(self.protocol.send([]))
+        self.assertNoFrameSent()
+
+    def test_send_iterable_type_error(self):
+        with self.assertRaises(TypeError):
+            self.loop.run_until_complete(self.protocol.send([42]))
+        self.assertNoFrameSent()
+
+    def test_send_iterable_mixed_type_error(self):
+        with self.assertRaises(TypeError):
+            self.loop.run_until_complete(self.protocol.send(['café', b'tea']))
+        self.assertFramesSent(
+            (False, OP_TEXT, 'café'.encode('utf-8')),
+            (True, OP_CLOSE, serialize_close(1011, '')),
+        )
 
     def test_send_on_closing_connection_local(self):
         close_task = self.half_close_connection_local()

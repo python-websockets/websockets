@@ -412,7 +412,7 @@ must propagate that information back to the previous part in the chain.
 For incoming data, ``websockets`` builds upon :class:`~asyncio.StreamReader`
 which propagates backpressure to its own buffer and to the TCP stream. Frames
 are parsed from the input stream and added to a bounded queue. If the queue
-fills up, parsing halts until some the application reads a frame.
+fills up, parsing halts until the application reads a frame.
 
 For outgoing data, ``websockets`` builds upon :class:`~asyncio.StreamWriter`
 which implements flow control. If the output buffers grow too large, it waits

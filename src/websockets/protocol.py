@@ -345,6 +345,18 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         return self.state is State.CLOSED
 
+    def wait_closed(self):
+        """
+        Return a :class:`asyncio.Future` that completes when the connection is closed.
+
+        This is identical to :attr:`closed`, except it can be awaited.
+
+        This can make it easier to handle connection termination, regardless
+        of its cause, in tasks that interact with the WebSocket connection.
+
+        """
+        return asyncio.shield(self.connection_lost_waiter)
+
     @asyncio.coroutine
     def recv(self):
         """
@@ -431,10 +443,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         This coroutine performs the closing handshake.
 
         It waits for the other end to complete the handshake and for the TCP
-        connection to terminate.
+        connection to terminate. As a consequence, there's no need to await
+        :meth:`wait_closed`; :meth:`close` already does it.
 
-        It doesn't do anything once the connection is closed. In other words
-        it's idempotent.
+        :meth:`close` is idempotent: it doesn't do anything once the
+        connection is closed.
 
         It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
         since errors during connection termination aren't particularly useful.

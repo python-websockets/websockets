@@ -361,6 +361,11 @@ class CommonTests:
         self.close_connection()
         self.assertTrue(self.protocol.closed)
 
+    def test_wait_closed(self):
+        self.assertFalse(self.protocol.wait_closed().done())
+        self.close_connection()
+        self.assertTrue(self.protocol.wait_closed().done())
+
     # Test the recv coroutine.
 
     def test_recv_text(self):

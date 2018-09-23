@@ -21,6 +21,9 @@ Changelog
 * websockets sends Ping frames at regular intervals and closes the connection
   if it doesn't receive a matching Pong frame. See :class:`~protocol.WebSocketCommonProtocol` for details.
 
+* Added the :meth:`~protocol.WebSocketCommonProtocol.wait_closed` method to
+  protocols.
+
 * Added an interactive client: ``python -m websockets <uri>``.
 
 * Changed the ``origins`` argument to represent the lack of an origin with

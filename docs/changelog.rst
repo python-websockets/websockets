@@ -10,8 +10,18 @@ Changelog
 
 .. warning::
 
-  **Version 7.0 changes how a :meth:`~protocol.WebSocketCommonProtocol.ping`
-  that hasn't received a pong yet behaves when the connection is closed.**
+  **Version 7.0 renames the** ``timeout`` **argument of**
+  :func:`~server.serve()` **and** :func:`~client.connect()` **to**
+  ``close_timeout`` **.**
+
+  This prevents confusion with ``ping_timeout``.
+
+  For backwards compatibility, ``timeout`` is still supported.
+
+.. warning::
+
+  **Version 7.0 changes how a** :meth:`~protocol.WebSocketCommonProtocol.ping`
+  **that hasn't received a pong yet behaves when the connection is closed.**
 
   The ping — as in ``ping = await websocket.ping()`` — used to be canceled
   when the connection is closed, so that ``await ping`` raised

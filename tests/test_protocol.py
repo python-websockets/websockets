@@ -1010,7 +1010,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.protocol.side = 'server'
 
     def test_local_close_send_close_frame_timeout(self):
-        self.protocol.timeout = 10 * MS
+        self.protocol.close_timeout = 10 * MS
         self.make_drain_slow(50 * MS)
         # If we can't send a close frame, time out in 10ms.
         # Check the timing within -1/+9ms for robustness.
@@ -1019,7 +1019,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1006, '')
 
     def test_local_close_receive_close_frame_timeout(self):
-        self.protocol.timeout = 10 * MS
+        self.protocol.close_timeout = 10 * MS
         # If the client doesn't send a close frame, time out in 10ms.
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(9 * MS, 19 * MS):
@@ -1027,7 +1027,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1006, '')
 
     def test_local_close_connection_lost_timeout_after_write_eof(self):
-        self.protocol.timeout = 10 * MS
+        self.protocol.close_timeout = 10 * MS
         # If the client doesn't close its side of the TCP connection after we
         # half-close our side with write_eof(), time out in 10ms.
         # Check the timing within -1/+9ms for robustness.
@@ -1039,7 +1039,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1000, 'close')
 
     def test_local_close_connection_lost_timeout_after_close(self):
-        self.protocol.timeout = 10 * MS
+        self.protocol.close_timeout = 10 * MS
         # If the client doesn't close its side of the TCP connection after we
         # half-close our side with write_eof() and close it with close(), time
         # out in 20ms.
@@ -1061,7 +1061,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.protocol.side = 'client'
 
     def test_local_close_send_close_frame_timeout(self):
-        self.protocol.timeout = 10 * MS
+        self.protocol.close_timeout = 10 * MS
         self.make_drain_slow(50 * MS)
         # If we can't send a close frame, time out in 20ms.
         # - 10ms waiting for sending a close frame
@@ -1072,7 +1072,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1006, '')
 
     def test_local_close_receive_close_frame_timeout(self):
-        self.protocol.timeout = 10 * MS
+        self.protocol.close_timeout = 10 * MS
         # If the server doesn't send a close frame, time out in 20ms:
         # - 10ms waiting for receiving a close frame
         # - 10ms waiting for receiving a half-close
@@ -1082,7 +1082,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1006, '')
 
     def test_local_close_connection_lost_timeout_after_write_eof(self):
-        self.protocol.timeout = 10 * MS
+        self.protocol.close_timeout = 10 * MS
         # If the server doesn't half-close its side of the TCP connection
         # after we send a close frame, time out in 20ms:
         # - 10ms waiting for receiving a half-close
@@ -1096,7 +1096,7 @@ class ClientTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1000, 'close')
 
     def test_local_close_connection_lost_timeout_after_close(self):
-        self.protocol.timeout = 10 * MS
+        self.protocol.close_timeout = 10 * MS
         # If the client doesn't close its side of the TCP connection after we
         # half-close our side with write_eof() and close it with close(), time
         # out in 20ms.

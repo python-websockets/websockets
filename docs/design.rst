@@ -271,11 +271,12 @@ state and sends a close frame. When the other side sends a close frame,
 ``CLOSING`` state and returns ``None``, also causing
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` to terminate.
 
-If the other side doesn't send a close frame within the connection's timeout,
-``websockets`` :ref:`fails the connection <connection-failure>`.
+If the other side doesn't send a close frame within the connection's close
+timeout, ``websockets`` :ref:`fails the connection <connection-failure>`.
 
-The closing handshake can take up to ``2 * timeout``: one ``timeout`` to write
-a close frame and one ``timeout`` to receive a close frame.
+The closing handshake can take up to ``2 * close_timeout``: one
+``close_timeout`` to write a close frame and one ``close_timeout`` to receive
+a close frame.
 
 Then ``websockets`` terminates the TCP connection.
 
@@ -313,13 +314,13 @@ Then :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` cancels
 protocol compliance responsibilities. Terminating it to avoid leaking it is
 the only concern.
 
-Terminating the TCP connection can take up to ``2 * timeout`` on the server
-side and ``3 * timeout`` on the client side. Clients start by waiting for the
-server to close the connection, hence the extra ``timeout``. Then both sides
-go through the following steps until the TCP connection is lost: half-closing
-the connection (only for non-TLS connections), closing the connection,
-aborting the connection. At this point the connection drops regardless of what
-happens on the network.
+Terminating the TCP connection can take up to ``2 * close_timeout`` on the
+server side and ``3 * close_timeout`` on the client side. Clients start by
+waiting for the server to close the connection, hence the extra
+``close_timeout``. Then both sides go through the following steps until the
+TCP connection is lost: half-closing the connection (only for non-TLS
+connections), closing the connection, aborting the connection. At this point
+the connection drops regardless of what happens on the network.
 
 
 .. _connection-failure:

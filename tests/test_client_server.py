@@ -52,6 +52,8 @@ testcert = bytes(pathlib.Path(__file__).with_name('test_localhost.pem'))
 def handler(ws, path):
     if path == '/attributes':
         yield from ws.send(repr((ws.host, ws.port, ws.secure)))
+    elif path == '/close_timeout':
+        yield from ws.send(repr(ws.close_timeout))
     elif path == '/path':
         yield from ws.send(str(ws.path))
     elif path == '/headers':
@@ -554,7 +556,7 @@ class ClientServerTests(unittest.TestCase):
         self.assert_client_raises_code(401)
 
     @with_server(klass=UnauthorizedServerProtocol)
-    def test_server_klass(self):
+    def test_server_klass_backwards_compatibility(self):
         self.assert_client_raises_code(401)
 
     @with_server(
@@ -585,6 +587,39 @@ class ClientServerTests(unittest.TestCase):
     @with_client('/path', create_protocol=BarClientProtocol, klass=FooClientProtocol)
     def test_client_create_protocol_over_klass(self):
         self.assertIsInstance(self.client, BarClientProtocol)
+
+    @with_server(close_timeout=7)
+    @with_client('/close_timeout')
+    def test_server_close_timeout(self):
+        close_timeout = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(eval(close_timeout), 7)
+
+    @with_server(timeout=6)
+    @with_client('/close_timeout')
+    def test_server_timeout_backwards_compatibility(self):
+        close_timeout = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(eval(close_timeout), 6)
+
+    @with_server(close_timeout=7, timeout=6)
+    @with_client('/close_timeout')
+    def test_server_close_timeout_over_timeout(self):
+        close_timeout = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(eval(close_timeout), 7)
+
+    @with_server()
+    @with_client('/close_timeout', close_timeout=7)
+    def test_client_close_timeout(self):
+        self.assertEqual(self.client.close_timeout, 7)
+
+    @with_server()
+    @with_client('/close_timeout', timeout=6)
+    def test_client_timeout_backwards_compatibility(self):
+        self.assertEqual(self.client.close_timeout, 6)
+
+    @with_server()
+    @with_client('/close_timeout', close_timeout=7, timeout=6)
+    def test_client_close_timeout_over_timeout(self):
+        self.assertEqual(self.client.close_timeout, 7)
 
     @with_server()
     @with_client('/extensions')

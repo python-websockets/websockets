@@ -318,7 +318,7 @@ class Connect:
     a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
     ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
 
-    The behavior of the ``ping_interval``, ``ping_timeout``, ``timeout``,
+    The behavior of the ``ping_interval``, ``ping_timeout``, ``close_timeout``,
     ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit`` optional
     arguments is described in the documentation of
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -357,14 +357,15 @@ class Connect:
         create_protocol=None,
         ping_interval=20,
         ping_timeout=20,
-        timeout=10,
+        close_timeout=None,
         max_size=2 ** 20,
         max_queue=2 ** 5,
         read_limit=2 ** 16,
         write_limit=2 ** 16,
         loop=None,
         legacy_recv=False,
-        klass=None,
+        klass=WebSocketClientProtocol,
+        timeout=10,
         origin=None,
         extensions=None,
         subprotocols=None,
@@ -375,13 +376,15 @@ class Connect:
         if loop is None:
             loop = asyncio.get_event_loop()
 
+        # Backwards-compatibility: close_timeout used to be called timeout.
+        # If both are specified, timeout is ignored.
+        if close_timeout is None:
+            close_timeout = timeout
+
         # Backwards-compatibility: create_protocol used to be called klass.
-        # In the unlikely event that both are specified, klass is ignored.
+        # If both are specified, klass is ignored.
         if create_protocol is None:
             create_protocol = klass
-
-        if create_protocol is None:
-            create_protocol = WebSocketClientProtocol
 
         wsuri = parse_uri(uri)
         if wsuri.secure:
@@ -411,7 +414,7 @@ class Connect:
             secure=wsuri.secure,
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,
-            timeout=timeout,
+            close_timeout=close_timeout,
             max_size=max_size,
             max_queue=max_queue,
             read_limit=read_limit,

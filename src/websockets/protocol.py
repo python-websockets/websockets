@@ -96,13 +96,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     .. _Pong frame: https://tools.ietf.org/html/rfc6455#section-5.5.3
 
-    The ``timeout`` parameter defines a maximum wait time in seconds for
+    The ``close_timeout`` parameter defines a maximum wait time in seconds for
     completing the closing handshake and terminating the TCP connection.
-    :meth:`close()` completes in at most ``4 * timeout`` on the server side
-    and ``5 * timeout`` on the client side.
+    :meth:`close()` completes in at most ``4 * close_timeout`` on the server
+    side and ``5 * close_timeout`` on the client side.
 
-    ``timeout`` needs to be a parameter of the protocol because websockets
-    usually calls :meth:`close()` implicitly:
+    ``close_timeout`` needs to be a parameter of the protocol because
+    websockets usually calls :meth:`close()` implicitly:
 
     - on the server side, when the connection handler terminates,
     - on the client side, when exiting the context manager for the connection.
@@ -173,20 +173,26 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         secure=None,
         ping_interval=20,
         ping_timeout=20,
-        timeout=10,
+        close_timeout=None,
         max_size=2 ** 20,
         max_queue=2 ** 5,
         read_limit=2 ** 16,
         write_limit=2 ** 16,
         loop=None,
-        legacy_recv=False
+        legacy_recv=False,
+        timeout=10
     ):
+        # Backwards-compatibility: close_timeout used to be called timeout.
+        # If both are specified, timeout is ignored.
+        if close_timeout is None:
+            close_timeout = timeout
+
         self.host = host
         self.port = port
         self.secure = secure
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
-        self.timeout = timeout
+        self.close_timeout = close_timeout
         self.max_size = max_size
         self.max_queue = max_queue
         self.read_limit = read_limit
@@ -458,7 +464,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         try:
             yield from asyncio.wait_for(
                 self.write_close_frame(serialize_close(code, reason)),
-                self.timeout,
+                self.close_timeout,
                 loop=self.loop,
             )
         except asyncio.TimeoutError:
@@ -480,7 +486,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # is canceled before the timeout elapses (on Python ≥ 3.4.3).
             # This helps closing connections when shutting down a server.
             yield from asyncio.wait_for(
-                self.transfer_data_task, self.timeout, loop=self.loop
+                self.transfer_data_task, self.close_timeout, loop=self.loop
             )
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
@@ -574,9 +580,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if self.state is State.CLOSING:
             # If we started the closing handshake, wait for its completion to
             # get the proper close code and status. self.close_connection_task
-            # will complete within 4 or 5 * timeout after calling close().
-            # The CLOSING state also occurs when failing the connection. In
-            # that case self.close_connection_task will complete even faster.
+            # will complete within 4 or 5 * close_timeout after close(). The
+            # CLOSING state also occurs when failing the connection. In that
+            # case self.close_connection_task will complete even faster.
             if self.close_code is None:
                 yield from asyncio.shield(self.close_connection_task)
             raise ConnectionClosed(
@@ -975,7 +981,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @asyncio.coroutine
     def wait_for_connection_lost(self):
         """
-        Wait until the TCP connection is closed or ``self.timeout`` elapses.
+        Wait until the TCP connection is closed or ``self.close_timeout`` elapses.
 
         Return ``True`` if the connection is closed and ``False`` otherwise.
 
@@ -984,7 +990,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             try:
                 yield from asyncio.wait_for(
                     asyncio.shield(self.connection_lost_waiter),
-                    self.timeout,
+                    self.close_timeout,
                     loop=self.loop,
                 )
             except asyncio.TimeoutError:

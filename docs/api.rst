@@ -32,9 +32,9 @@ Server
 
 .. automodule:: websockets.server
 
-   .. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, ping_interval=20, ping_timeout=20, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, compression='deflate', **kwds)
+   .. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, compression='deflate', **kwds)
 
-   .. autofunction:: unix_serve(ws_handler, path, *, create_protocol=None, ping_interval=20, ping_timeout=20, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, compression='deflate', **kwds)
+   .. autofunction:: unix_serve(ws_handler, path, *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, compression='deflate', **kwds)
 
 
    .. autoclass:: WebSocketServer
@@ -43,7 +43,7 @@ Server
         .. automethod:: wait_closed()
         .. autoattribute:: sockets
 
-   .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, extensions=None, subprotocols=None, extra_headers=None)
+   .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, extensions=None, subprotocols=None, extra_headers=None)
 
         .. automethod:: handshake(origins=None, available_extensions=None, available_subprotocols=None, extra_headers=None)
         .. automethod:: process_request(path, request_headers)
@@ -54,9 +54,9 @@ Client
 
 .. automodule:: websockets.client
 
-   .. autofunction:: connect(uri, *, create_protocol=None, ping_interval=20, ping_timeout=20, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origin=None, extensions=None, subprotocols=None, extra_headers=None, compression='deflate', **kwds)
+   .. autofunction:: connect(uri, *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origin=None, extensions=None, subprotocols=None, extra_headers=None, compression='deflate', **kwds)
 
-   .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origin=None, extensions=None, subprotocols=None, extra_headers=None)
+   .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origin=None, extensions=None, subprotocols=None, extra_headers=None)
 
         .. automethod:: handshake(wsuri, origin=None, available_extensions=None, available_subprotocols=None, extra_headers=None)
 
@@ -65,7 +65,7 @@ Shared
 
 .. automodule:: websockets.protocol
 
-   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None)
+   .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None)
 
         .. automethod:: close(code=1000, reason='')
         .. automethod:: wait_closed(code=1000, reason='')

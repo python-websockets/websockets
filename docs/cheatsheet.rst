@@ -13,6 +13,15 @@ Server
     :meth:`~protocol.WebSocketCommonProtocol.send` to receive and send
     messages at any time.
 
+  * When :meth:`~protocol.WebSocketCommonProtocol.recv` or
+    :meth:`~protocol.WebSocketCommonProtocol.send` raises
+    :exc:`~exceptions.ConnectionClosed`, clean up and exit. If you started
+    other :class:`asyncio.Task`, terminate them before exiting.
+
+  * If you aren't awaiting :meth:`~protocol.WebSocketCommonProtocol.recv`,
+    consider awaiting :meth:`~protocol.WebSocketCommonProtocol.wait_closed`
+    to detect quickly when the connection is closed.
+
   * You may :meth:`~protocol.WebSocketCommonProtocol.ping` or
     :meth:`~protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
     needed in general.

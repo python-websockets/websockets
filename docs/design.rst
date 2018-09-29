@@ -340,22 +340,44 @@ sending a close frame if appropriate.
 the TCP connection.
 
 
+.. _server-shutdown:
+
+Server shutdown
+---------------
+
+:class:`~websockets.server.WebSocketServer` closes asynchronously like
+:class:`asyncio.Server`. The shutdown happen in two steps:
+
+1. Stop listening and accepting new connections;
+2. Close established connections with close code 1001 (going away) or, if
+   the opening handshake is still in progress, with HTTP status code 503
+   (Service Unavailable).
+
+The first call to :class:`~websockets.server.WebSocketServer.close` starts a
+task that performs this sequence. Further calls are ignored. This is the
+easiest way to make :class:`~websockets.server.WebSocketServer.close` and
+:class:`~websockets.server.WebSocketServer.wait_closed` idempotent.
+
+
 .. _cancellation:
 
 Cancellation
 ------------
 
 Most :doc:`public APIs <api>` of ``websockets`` are coroutines. They may be
-canceled. ``websockets`` must handle this situation.
+canceled, for example if the user starts a task that calls these coroutines
+and cancels the task later. ``websockets`` must handle this situation.
 
 Cancellation during the opening handshake is handled like any other exception:
-the TCP connection is closed and the exception is re-raised or logged.
+the TCP connection is closed and the exception is re-raised. This can only
+happen on the client side. On the server side, the opening handshake is
+managed by ``websockets`` and nothing results in a cancellation.
 
 Once the WebSocket connection is established,
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` and
 :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` mustn't get
-accidentally canceled if a coroutine that awaits them is canceled. They must
-be shielded from cancellation.
+accidentally canceled if a coroutine that awaits them is canceled. In other
+words, they must be shielded from cancellation.
 
 :meth:`~protocol.WebSocketCommonProtocol.recv()` waits for the next message in
 the queue or for :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`
@@ -387,6 +409,10 @@ waiting for :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`.
 Since :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` handles
 :exc:`~asyncio.CancelledError`, cancellation doesn't propagate to
 :attr:`~protocol.WebSocketCommonProtocol.close_connnection_task`.
+
+Conversely, ``websockets`` never injects :exc:`~asyncio.CancelledError` into
+user code. It doesn't cancel connection handler coroutines. Instead it expects
+them to detect when the connection is closed and to exit.
 
 
 .. _backpressure:

@@ -1,5 +1,6 @@
 __all__ = [
     'AbortHandshake',
+    'CancelHandshake',
     'ConnectionClosed',
     'DuplicateParameter',
     'InvalidHandshake',
@@ -41,6 +42,13 @@ class AbortHandshake(InvalidHandshake):
             status, len(headers), len(body)
         )
         super().__init__(message)
+
+
+class CancelHandshake(InvalidHandshake):
+    """
+    Exception raised to cancel a handshake when the connection is closed.
+
+    """
 
 
 class InvalidMessage(InvalidHandshake):

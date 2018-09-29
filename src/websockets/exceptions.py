@@ -1,5 +1,5 @@
 __all__ = [
-    'WebsocketError'
+    'WebsocketError',
     'AbortHandshake',
     'ConnectionClosed',
     'DuplicateParameter',

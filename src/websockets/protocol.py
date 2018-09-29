@@ -960,7 +960,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         except asyncio.CancelledError:
             raise
 
-        except Exception as exc:
+        except Exception:
             logger.warning("Unexpected exception in keepalive ping task", exc_info=True)
 
     @asyncio.coroutine

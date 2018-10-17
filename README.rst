@@ -36,6 +36,10 @@ Python with a focus on correctness and simplicity.
 Built on top of ``asyncio``, Python's standard asynchronous I/O framework, it
 provides an elegant coroutine-based API.
 
+You will need a basic understanding of how to use WebSockets (the `Socket.IO Tutorial`_ is an excellent starting point).
+
+.. _Socket.IO Tutorial: https://socket.io/get-started/chat/
+
 Here's a client that says "Hello world!":
 
 .. copy-pasted because GitHub doesn't support the include directive

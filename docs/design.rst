@@ -77,7 +77,7 @@ two tasks:
 - :attr:`~protocol.WebSocketCommonProtocol.keepalive_ping_task` runs
   :meth:`~protocol.WebSocketCommonProtocol.keepalive_ping()` which sends Ping
   frames at regular intervals and ensures that corresponding Pong frames are
-  received. It is cancelled when the connection terminates. It never exits
+  received. It is canceled when the connection terminates. It never exits
   with an exception other than :exc:`~asyncio.CancelledError`.
 
 - :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` runs

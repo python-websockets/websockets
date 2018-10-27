@@ -371,9 +371,10 @@ class CommonTests:
         self.assertTrue(self.protocol.closed)
 
     def test_wait_closed(self):
-        self.assertFalse(self.protocol.wait_closed().done())
+        wait_closed = asyncio_ensure_future(self.protocol.wait_closed())
+        self.assertFalse(wait_closed.done())
         self.close_connection()
-        self.assertTrue(self.protocol.wait_closed().done())
+        self.assertTrue(wait_closed.done())
 
     # Test the recv coroutine.
 

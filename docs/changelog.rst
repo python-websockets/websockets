@@ -108,7 +108,7 @@ Also:
   credentials.
 
 * Iterating on incoming messages no longer raises an exception when the
-  connection terminates with code 1001 (going away).
+  connection terminates with close code 1001 (going away).
 
 * A plain HTTP request now receives a 426 Upgrade Required response and
   doesn't log a stack trace.

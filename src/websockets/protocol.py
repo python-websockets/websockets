@@ -352,9 +352,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         return self.state is State.CLOSED
 
+    @asyncio.coroutine
     def wait_closed(self):
         """
-        Return a :class:`asyncio.Future` that completes when the connection is closed.
+        Wait until the connection is closed.
 
         This is identical to :attr:`closed`, except it can be awaited.
 
@@ -362,7 +363,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         of its cause, in tasks that interact with the WebSocket connection.
 
         """
-        return asyncio.shield(self.connection_lost_waiter)
+        yield from asyncio.shield(self.connection_lost_waiter)
 
     @asyncio.coroutine
     def recv(self):

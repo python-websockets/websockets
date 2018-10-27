@@ -941,9 +941,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
                 # ping() cannot raise ConnectionClosed, only CancelledError:
                 # - If the connection is CLOSING, keepalive_ping_task will be
-                #   cancelled by close_connection() before ping() returns.
+                #   canceled by close_connection() before ping() returns.
                 # - If the connection is CLOSED, keepalive_ping_task must be
-                #   cancelled already.
+                #   canceled already.
                 ping_waiter = yield from self.ping()
 
                 if self.ping_timeout is not None:

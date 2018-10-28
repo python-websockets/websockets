@@ -491,7 +491,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if extensions_header is not None:
             response_headers['Sec-WebSocket-Extensions'] = extensions_header
 
-        if self.subprotocol is not None:
+        if protocol_header is not None:
             response_headers['Sec-WebSocket-Protocol'] = protocol_header
 
         if extra_headers is not None:

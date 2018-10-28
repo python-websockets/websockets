@@ -362,6 +362,22 @@ class ClientServerTests(unittest.TestCase):
                 client_socket.close()
                 self.stop_server()
 
+    @with_server(process_request=lambda p, rh: (OK, [], b'OK\n'))
+    def test_process_request_argument(self):
+        response = self.loop.run_until_complete(self.make_http_request('/'))
+
+        with contextlib.closing(response):
+            self.assertEqual(response.code, 200)
+
+    @with_server(
+        subprotocols=['superchat', 'chat'], select_subprotocol=lambda cs, ss: 'chat'
+    )
+    @with_client('/subprotocol', subprotocols=['superchat', 'chat'])
+    def test_select_subprotocol_argument(self):
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_subprotocol, repr('chat'))
+        self.assertEqual(self.client.subprotocol, 'chat')
+
     @with_server()
     @with_client('/attributes')
     def test_protocol_attributes(self):

@@ -50,6 +50,12 @@ Changelog
   if it doesn't receive a matching Pong frame. See
   :class:`~protocol.WebSocketCommonProtocol` for details.
 
+* Added ``process_request`` and ``select_subprotocol`` arguments to
+  :func:`~server.serve()` and :class:`~server.WebSocketServerProtocol` to
+  customize :meth:`~server.WebSocketServerProtocol.process_request` and
+  :meth:`~server.WebSocketServerProtocol.select_subprotocol` without
+  subclassing :class:`~server.WebSocketServerProtocol`
+
 * Added support for sending fragmented messages.
 
 * Added the :meth:`~protocol.WebSocketCommonProtocol.wait_closed` method to

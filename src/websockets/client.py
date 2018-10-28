@@ -331,6 +331,9 @@ class Connect:
 
     :func:`connect` also accepts the following optional arguments:
 
+    * ``compression`` is a shortcut to configure compression extensions;
+      by default it enables the "permessage-deflate" extension; set it to
+      ``None`` to disable compression
     * ``origin`` sets the Origin HTTP header
     * ``extensions`` is a list of supported extensions in order of
       decreasing preference
@@ -340,9 +343,6 @@ class Connect:
       :class:`~websockets.http.Headers` instance, a
       :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
       pairs
-    * ``compression`` is a shortcut to configure compression extensions;
-      by default it enables the "permessage-deflate" extension; set it to
-      ``None`` to disable compression
 
     :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
     invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
@@ -366,11 +366,11 @@ class Connect:
         legacy_recv=False,
         klass=WebSocketClientProtocol,
         timeout=10,
+        compression='deflate',
         origin=None,
         extensions=None,
         subprotocols=None,
         extra_headers=None,
-        compression='deflate',
         **kwds
     ):
         if loop is None:

@@ -64,6 +64,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         extensions=None,
         subprotocols=None,
         extra_headers=None,
+        process_request=None,
+        select_subprotocol=None,
         **kwds
     ):
         # For backwards-compatibility with 6.0 or earlier.
@@ -76,6 +78,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
+        if process_request is not None:
+            self.process_request = process_request
+        if select_subprotocol is not None:
+            self.select_subprotocol = select_subprotocol
         super().__init__(**kwds)
 
     def connection_made(self, transport):
@@ -260,6 +266,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         It is declared as a coroutine because such authentication checks are
         likely to require network requests.
 
+        This coroutine may be overridden by passing a ``process_request``
+        argument to the :class:`WebSocketServerProtocol` contstructor or the
+        :func:`serve` function.
+
         """
 
     @staticmethod
@@ -407,6 +417,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         many servers providing a subprotocol will require that the client uses
         that subprotocol. Such rules can be implemented in a subclass.
 
+        This method may be overridden by passing a ``select_subprotocol``
+        argument to the :class:`WebSocketServerProtocol` contstructor or the
+        :func:`serve` function.
+
         """
         subprotocols = set(client_subprotocols) & set(server_subprotocols)
         if not subprotocols:
@@ -452,7 +466,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         # Hook for customizing request handling, for example checking
         # authentication or treating some paths as plain HTTP endpoints.
-        early_response = yield from self.process_request(path, request_headers)
+        if asyncio.iscoroutinefunction(self.process_request):
+            early_response = yield from self.process_request(path, request_headers)
+        else:
+            early_response = self.process_request(path, request_headers)
 
         # Give up immediately and don't attempt to write a HTTP response if
         # the TCP connection was closed while process_request() was running.
@@ -683,6 +700,9 @@ class Serve:
 
     :func:`serve` also accepts the following optional arguments:
 
+    * ``compression`` is a shortcut to configure compression extensions;
+      by default it enables the "permessage-deflate" extension; set it to
+      ``None`` to disable compression
     * ``origins`` defines acceptable Origin HTTP headers — include ``None`` if
       the lack of an origin is acceptable
     * ``extensions`` is a list of supported extensions in order of
@@ -693,10 +713,13 @@ class Serve:
       :class:`~websockets.http.Headers` instance, a
       :class:`~collections.abc.Mapping`, an iterable of ``(name, value)``
       pairs, or a callable taking the request path and headers in arguments
-      and returning one of the above.
-    * ``compression`` is a shortcut to configure compression extensions;
-      by default it enables the "permessage-deflate" extension; set it to
-      ``None`` to disable compression
+      and returning one of the above
+    * ``process_request`` is a callable or a coroutine taking the request path
+      and headers in argument, see
+      :meth:`~WebSocketServerProtocol.process_request` for details
+    * ``select_subprotocol`` is a callable taking the subprotocols offered by
+      the client and available on the server in argument, see
+      :meth:`~WebSocketServerProtocol.select_subprotocol` for details
 
     Whenever a client connects, the server accepts the connection, creates a
     :class:`WebSocketServerProtocol`, performs the opening handshake, and
@@ -739,11 +762,13 @@ class Serve:
         legacy_recv=False,
         klass=WebSocketServerProtocol,
         timeout=10,
+        compression='deflate',
         origins=None,
         extensions=None,
         subprotocols=None,
         extra_headers=None,
-        compression='deflate',
+        process_request=None,
+        select_subprotocol=None,
         **kwds
     ):
         # Backwards-compatibility: close_timeout used to be called timeout.
@@ -793,6 +818,8 @@ class Serve:
             extensions=extensions,
             subprotocols=subprotocols,
             extra_headers=extra_headers,
+            process_request=process_request,
+            select_subprotocol=select_subprotocol,
         )
 
         if path is None:

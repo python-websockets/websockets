@@ -1072,7 +1072,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         logger.debug(
-            "%s ! failing WebSocket connection: %d %s", self.side, code, reason
+            "%s ! failing WebSocket connection in the %s state: %d %s",
+            self.side,
+            self.state.name,
+            code,
+            reason or '[no reason]',
         )
 
         # Cancel transfer_data_task if the opening handshake succeeded.
@@ -1199,7 +1203,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             "%s x code = %d, reason = %s",
             self.side,
             self.close_code,
-            self.close_reason or '[empty]',
+            self.close_reason or '[no reason]',
         )
         self.abort_keepalive_pings()
         # If self.connection_lost_waiter isn't pending, that's a bug, because:

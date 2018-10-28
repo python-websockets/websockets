@@ -67,4 +67,5 @@ setuptools.setup(
     include_package_data=True,
     zip_safe=True,
     python_requires='>=3.4',
+    test_loader='unittest:TestLoader',
 )

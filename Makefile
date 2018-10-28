@@ -13,6 +13,7 @@ coverage:
 	python -m coverage erase
 	python -W default -m coverage run -m unittest
 	python -m coverage html
+	python -m coverage report --show-missing --fail-under=100
 
 clean:
 	find . -name '*.pyc' -o -name '*.so' -delete

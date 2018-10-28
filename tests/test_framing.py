@@ -121,13 +121,13 @@ class FramingTests(unittest.TestCase):
                     self.decode(encoded)
 
     def test_good_opcode(self):
-        for opcode in list(range(0x00, 0x03)) + list(range(0x08, 0x0b)):
+        for opcode in list(range(0x00, 0x03)) + list(range(0x08, 0x0B)):
             encoded = bytes([0x80 | opcode, 0])
             with self.subTest(encoded=encoded):
                 self.decode(encoded)  # does not raise an exception
 
     def test_bad_opcode(self):
-        for opcode in list(range(0x03, 0x08)) + list(range(0x0b, 0x10)):
+        for opcode in list(range(0x03, 0x08)) + list(range(0x0B, 0x10)):
             encoded = bytes([0x80 | opcode, 0])
             with self.subTest(encoded=encoded):
                 with self.assertRaises(WebSocketProtocolError):

@@ -40,7 +40,7 @@ __all__ = [
 ]
 
 DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY = 0x00, 0x01, 0x02
-CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0a
+CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0A
 
 # Close code that are allowed in a close frame.
 # Using a list optimizes `code in EXTERNAL_CLOSE_CODES`.

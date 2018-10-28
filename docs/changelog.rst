@@ -32,8 +32,9 @@ Changelog
     You can restore the previous behavior by adding the following line at the
     beginning of connection handlers::
 
-        def handler(ws, path):
-            ws.wait_closed().add_done_callback(asyncio.current_task().cancel)
+        def handler(websocket, path):
+            closed = asyncio.ensure_future(websocket.wait_closed())
+            closed.add_done_callback(lambda task: task.cancel())
 
 .. warning::
 

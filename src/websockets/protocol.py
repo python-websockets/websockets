@@ -1068,9 +1068,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         (The specification describes these steps in the opposite order.)
 
-        Return a :class:`~asyncio.Task` that completes when the TCP connection
-        is closed.
-
         """
         logger.debug(
             "%s ! failing WebSocket connection in the %s state: %d %s",
@@ -1116,8 +1113,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.close_connection_task = asyncio_ensure_future(
                 self.close_connection(), loop=self.loop
             )
-
-        return self.close_connection_task
 
     def abort_keepalive_pings(self):
         """

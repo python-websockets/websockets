@@ -120,7 +120,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 logger.debug("Connection error in opening handshake", exc_info=True)
                 raise
             except CancelHandshake:
-                yield from self.fail_connection()
+                self.fail_connection()
+                yield from self.wait_closed()
                 return
             except Exception as exc:
                 if isinstance(exc, AbortHandshake):
@@ -160,7 +161,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 headers.setdefault('Connection', 'close')
 
                 yield from self.write_http_response(status, headers, body)
-                yield from self.fail_connection()
+                self.fail_connection()
+                yield from self.wait_closed()
                 return
 
             try:

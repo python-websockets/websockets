@@ -452,7 +452,8 @@ class Connect:
                 extra_headers=protocol.extra_headers,
             )
         except Exception:
-            yield from protocol.fail_connection()
+            protocol.fail_connection()
+            yield from protocol.wait_closed()
             raise
 
         self.ws_client = protocol

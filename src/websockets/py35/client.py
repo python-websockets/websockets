@@ -20,7 +20,8 @@ async def __await_impl__(self):
             extra_headers=protocol.extra_headers,
         )
     except Exception:
-        await protocol.fail_connection()
+        protocol.fail_connection()
+        await protocol.wait_closed()
         raise
 
     self.ws_client = protocol

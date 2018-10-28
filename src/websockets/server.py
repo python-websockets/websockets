@@ -485,7 +485,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         )
 
         response_headers = Headers()
-        response_headers['Date'] = email.utils.formatdate(usegmt=True)
 
         build_response(response_headers, key)
 
@@ -505,6 +504,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             for name, value in extra_headers:
                 response_headers[name] = value
 
+        response_headers.setdefault('Date', email.utils.formatdate(usegmt=True))
         response_headers.setdefault('Server', USER_AGENT)
 
         yield from self.write_http_response(SWITCHING_PROTOCOLS, response_headers)

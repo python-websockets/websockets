@@ -442,6 +442,43 @@ class CommonTests:
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, b'tea' * 342)
 
+    def test_recv_queue_empty(self):
+        recv = self.ensure_future(self.protocol.recv())
+        with self.assertRaises(asyncio.TimeoutError):
+            self.loop.run_until_complete(
+                asyncio.wait_for(asyncio.shield(recv), timeout=MS)
+            )
+
+        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+        data = self.loop.run_until_complete(recv)
+        self.assertEqual(data, 'café')
+
+    def test_recv_queue_full(self):
+        self.protocol.max_queue = 2
+        # Test internals because it's hard to verify buffers from the outside.
+        self.assertEqual(list(self.protocol.messages), [])
+
+        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+        self.run_loop_once()
+        self.assertEqual(list(self.protocol.messages), ['café'])
+
+        self.receive_frame(Frame(True, OP_BINARY, b'tea'))
+        self.run_loop_once()
+        self.assertEqual(list(self.protocol.messages), ['café', b'tea'])
+
+        self.receive_frame(Frame(True, OP_BINARY, b'milk'))
+        self.run_loop_once()
+        self.assertEqual(list(self.protocol.messages), ['café', b'tea'])
+
+        self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(list(self.protocol.messages), [b'tea', b'milk'])
+
+        self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(list(self.protocol.messages), [b'milk'])
+
+        self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(list(self.protocol.messages), [])
+
     def test_recv_other_error(self):
         @asyncio.coroutine
         def read_message():
@@ -454,6 +491,7 @@ class CommonTests:
     def test_recv_canceled(self):
         recv = self.ensure_future(self.protocol.recv())
         self.loop.call_soon(recv.cancel)
+
         with self.assertRaises(asyncio.CancelledError):
             self.loop.run_until_complete(recv)
 
@@ -461,6 +499,31 @@ class CommonTests:
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, 'café')
+
+    def test_recv_canceled_race_condition(self):
+        recv = self.ensure_future(
+            asyncio.wait_for(self.protocol.recv(), timeout=0.000001)
+        )
+        self.loop.call_soon(
+            self.receive_frame, Frame(True, OP_TEXT, 'café'.encode('utf-8'))
+        )
+
+        with self.assertRaises(asyncio.TimeoutError):
+            self.loop.run_until_complete(recv)
+
+        # The previous frame doesn't disappear in a vacuum (it used to).
+        self.receive_frame(Frame(True, OP_TEXT, 'tea'.encode('utf-8')))
+        data = self.loop.run_until_complete(self.protocol.recv())
+        # If we're getting "tea" there, it means "café" was swallowed (ha, ha).
+        self.assertEqual(data, 'café')
+
+    def test_recv_prevents_concurrent_calls(self):
+        recv = self.ensure_future(self.protocol.recv())
+
+        with self.assertRaises(RuntimeError):
+            self.loop.run_until_complete(self.protocol.recv())
+
+        recv.cancel()
 
     # Test the send coroutine.
 

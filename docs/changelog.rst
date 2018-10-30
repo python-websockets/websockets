@@ -46,6 +46,14 @@ Changelog
     :exc:`~asyncio.CancelledError`. Now ``await ping`` raises
     :exc:`~exceptions.ConnectionClosed` like other public APIs.
 
+.. warning::
+
+    **Version 7.0 raises a** :exc:`RuntimeError` **exception if two coroutines
+    call** :meth:`~protocol.WebSocketCommonProtocol.recv` **concurrently.**
+
+    Concurrent calls lead to non-deterministic behavior because there are no
+    guarantees about which coroutine will receive which message.
+
 * websockets sends Ping frames at regular intervals and closes the connection
   if it doesn't receive a matching Pong frame. See
   :class:`~protocol.WebSocketCommonProtocol` for details.
@@ -65,6 +73,9 @@ Changelog
 
 * Changed the ``origins`` argument to represent the lack of an origin with
   ``None`` rather than ``''``.
+
+* Fixed a data loss bug in :meth:`~protocol.WebSocketCommonProtocol.recv`:
+  cancelling it at the wrong time could result in messages being dropped.
 
 * Improved handling of multiple HTTP headers with the same name.
 

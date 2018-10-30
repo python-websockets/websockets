@@ -7,7 +7,6 @@ frames as specified in `sections 4 to 8 of RFC 6455`_.
 """
 
 import asyncio
-import asyncio.queues
 import binascii
 import codecs
 import collections
@@ -246,7 +245,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.connection_lost_waiter = asyncio.Future(loop=loop)
 
         # Queue of received messages.
-        self.messages = asyncio.queues.Queue(max_queue, loop=loop)
+        self.messages = collections.deque()
+        self._pop_message_waiter = None
+        self._put_message_waiter = None
 
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings = collections.OrderedDict()
@@ -387,42 +388,57 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         makes it possible to enforce a timeout by wrapping :meth:`recv` in
         :func:`~asyncio.wait_for`.
 
+        .. versionchanged:: 7.0
+
+            Calling :meth:`recv` concurrently raises :exc:`RuntimeError`.
+
         """
-        # Don't yield from self.ensure_open() here because messages could be
-        # available in the queue even if the connection is closed.
-
-        # Return any available message
-        try:
-            return self.messages.get_nowait()
-        except asyncio.queues.QueueEmpty:
-            pass
-
-        # Don't yield from self.ensure_open() here because messages could be
-        # received before the closing frame even if the connection is closing.
-
-        # Wait for a message until the connection is closed.
-        next_message = asyncio_ensure_future(self.messages.get(), loop=self.loop)
-        # See https://bugs.python.org/issue23859 for cancellation handling.
-        try:
-            done, pending = yield from asyncio.wait(
-                [next_message, self.transfer_data_task],
-                loop=self.loop,
-                return_when=asyncio.FIRST_COMPLETED,
+        if self._pop_message_waiter is not None:
+            raise RuntimeError(
+                "cannot call recv() while another coroutine "
+                "is already waiting for the next message"
             )
-        except asyncio.CancelledError:
-            # Propagate cancellation to avoid leaking the next_message Task.
-            next_message.cancel()
-            raise
 
-        if next_message in done:
-            return next_message.result()
-        else:
-            next_message.cancel()
-            if not self.legacy_recv:
-                assert self.state in [State.CLOSING, State.CLOSED]
-                # Wait until the connection is closed to raise
-                # ConnectionClosed with the correct code and reason.
-                yield from self.ensure_open()
+        # Don't yield from self.ensure_open() here:
+        # - messages could be available in the queue even if the connection
+        #   is closed;
+        # - messages could be received before the closing frame even if the
+        #   connection is closing.
+
+        # Wait until there's a message in the queue (if necessary) or the
+        # connection is closed.
+        while len(self.messages) <= 0:
+            pop_message_waiter = asyncio.Future(loop=self.loop)
+            self._pop_message_waiter = pop_message_waiter
+            try:
+                # If asyncio.wait() is canceled, it doesn't cancel
+                # pop_message_waiter and self.transfer_data_task.
+                yield from asyncio.wait(
+                    [pop_message_waiter, self.transfer_data_task],
+                    loop=self.loop,
+                    return_when=asyncio.FIRST_COMPLETED,
+                )
+                if pop_message_waiter.done():
+                    pass
+                elif self.legacy_recv:
+                    return
+                else:
+                    assert self.state in [State.CLOSING, State.CLOSED]
+                    # Wait until the connection is closed to raise
+                    # ConnectionClosed with the correct code and reason.
+                    yield from self.ensure_open()
+            finally:
+                self._pop_message_waiter = None
+
+        # Pop a message from the queue.
+        message = self.messages.popleft()
+
+        # Notify transfer_data().
+        if self._put_message_waiter is not None:
+            self._put_message_waiter.set_result(None)
+            self._put_message_waiter = None
+
+        return message
 
     @asyncio.coroutine
     def send(self, data):
@@ -651,11 +667,27 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         try:
             while True:
-                msg = yield from self.read_message()
+                message = yield from self.read_message()
+
                 # Exit the loop when receiving a close frame.
-                if msg is None:
+                if message is None:
                     break
-                yield from self.messages.put(msg)
+
+                # Wait until there's room in the queue (if necessary).
+                while len(self.messages) >= self.max_queue:
+                    self._put_message_waiter = asyncio.Future(loop=self.loop)
+                    try:
+                        yield from self._put_message_waiter
+                    finally:
+                        self._put_message_waiter = None
+
+                # Put the message in the queue.
+                self.messages.append(message)
+
+                # Notify recv().
+                if self._pop_message_waiter is not None:
+                    self._pop_message_waiter.set_result(None)
+                    self._pop_message_waiter = None
 
         except asyncio.CancelledError as exc:
             self.transfer_data_exc = exc

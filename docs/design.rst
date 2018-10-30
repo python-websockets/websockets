@@ -481,7 +481,7 @@ For each connection, the receiving side contains these buffers:
 - :class:`~asyncio.StreamReader` bytes buffer: the default limit is 64kB.
   You can set another limit by passing a ``read_limit`` keyword argument to
   :func:`~client.connect()` or :func:`~server.serve()`.
-- Incoming messages :class:`~asyncio.queues.Queue`: its size depends both on
+- Incoming messages :class:`~collections.deque`: its size depends both on
   the size and the number of messages it contains. By default the maximum
   UTF-8 encoded size is 1MB and the maximum number is 32. In the worst case,
   after UTF-8 decoding, a single message could take up to 4MB of memory and
@@ -510,11 +510,6 @@ including multiple calls to the same method.
 As shown above, receiving frames is independent from sending frames. That
 isolates :meth:`~protocol.WebSocketCommonProtocol.recv()`, which receives
 frames, from the other methods, which send frames.
-
-While :meth:`~protocol.WebSocketCommonProtocol.recv()` supports being called
-multiple times concurrently, this is unlikely to be useful: when multiple
-callers are waiting for the next message, exactly one of them will get it, but
-there is no guarantee about which one.
 
 Methods that send frames also support concurrent calls. While the connection
 is open, each frame is sent with a single write. Combined with the concurrency

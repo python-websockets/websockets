@@ -632,7 +632,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # from OPEN to CLOSED.
             if self.transfer_data_task.done():
                 yield from asyncio.shield(self.close_connection_task)
-                raise ConnectionClosed(self.close_code, self.close_reason)
+                raise ConnectionClosed(
+                    self.close_code, self.close_reason
+                ) from self.transfer_data_exc
             else:
                 return
 

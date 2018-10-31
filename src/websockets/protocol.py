@@ -418,17 +418,20 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     loop=self.loop,
                     return_when=asyncio.FIRST_COMPLETED,
                 )
-                if pop_message_waiter.done():
-                    pass
-                elif self.legacy_recv:
+            finally:
+                self._pop_message_waiter = None
+
+            # If asyncio.wait(...) exited because self.transfer_data_task
+            # completed before receiving a new message, raise a suitable
+            # exception (or return None if legacy_recv is enabled).
+            if not pop_message_waiter.done():
+                if self.legacy_recv:
                     return
                 else:
                     assert self.state in [State.CLOSING, State.CLOSED]
                     # Wait until the connection is closed to raise
                     # ConnectionClosed with the correct code and reason.
                     yield from self.ensure_open()
-            finally:
-                self._pop_message_waiter = None
 
         # Pop a message from the queue.
         message = self.messages.popleft()

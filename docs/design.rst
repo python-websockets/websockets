@@ -411,7 +411,7 @@ the TCP connection is closed and the exception is re-raised. This can only
 happen on the client side. On the server side, the opening handshake is
 managed by ``websockets`` and nothing results in a cancellation.
 
-Once the WebSocket connection is established,
+Once the WebSocket connection is established, internal tasks
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` and
 :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` mustn't get
 accidentally canceled if a coroutine that awaits them is canceled. In other
@@ -434,20 +434,21 @@ prevent cancellation.
 :meth:`~protocol.WebSocketCommonProtocol.close()` waits for the data transfer
 task to terminate with :func:`~asyncio.wait_for`. If it's canceled or if the
 timeout elapses, :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`
-is canceled. :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` is
-expected to catch the cancellation and terminate properly. This is the only
-point where it may be canceled.
-
+is canceled, which is correct at this point.
 :meth:`~protocol.WebSocketCommonProtocol.close()` then waits for
 :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` but shields it
 to prevent cancellation.
 
-:attr:`~protocol.WebSocketCommonProtocol.close_connnection_task` starts by
-waiting for :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`.
-Since :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` handles
-:exc:`~asyncio.CancelledError`, cancellation doesn't propagate to
-:attr:`~protocol.WebSocketCommonProtocol.close_connnection_task`.
+:meth:`~protocol.WebSocketCommonProtocol.close()` and
+:func:`~protocol.WebSocketCommonProtocol.fail_connection()` are the only
+places where :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` may
+be canceled.
 
+:attr:`~protocol.WebSocketCommonProtocol.close_connnection_task` starts by
+waiting for :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`. It
+catches :exc:`~asyncio.CancelledError` to prevent a cancellation of
+:attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` from propagating
+to :attr:`~protocol.WebSocketCommonProtocol.close_connnection_task`.
 
 .. _backpressure:
 

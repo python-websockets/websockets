@@ -541,12 +541,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.fail_connection()
 
         # If no close frame is received within the timeout, wait_for() cancels
-        # the data transfer task and raises TimeoutError. Then transfer_data()
-        # catches CancelledError and exits without an exception.
+        # the data transfer task and raises TimeoutError.
 
         # If close() is called multiple times concurrently and one of these
-        # calls hits the timeout, other calls will resume executing without an
-        # exception, so there's no need to catch CancelledError here.
+        # calls hits the timeout, the data transfer task will be cancelled.
+        # Other calls will receive a CancelledError here.
 
         try:
             # If close() is canceled during the wait, self.transfer_data_task

@@ -364,6 +364,44 @@ easiest way to make :class:`~websockets.server.WebSocketServer.close` and
 Cancellation
 ------------
 
+User code
+.........
+
+``websockets`` provides a WebSocket application server. It manages connections
+and passes them to user-provided connection handlers. This is an *inversion of
+control* scenario: library code calls user code.
+
+If a connection drops, the corresponding handler should terminate. If the
+server shuts down, all connection handlers must terminate. Canceling
+connection handlers would terminate them.
+
+However, using cancellation for this purpose would require all connection
+handlers to handle it properly. For example, if a connection handler starts
+some tasks, it should catch :exc:`~asyncio.CancelledError`, terminate or
+cancel these tasks, and then re-raise the exception.
+
+Cancellation is tricky in :mod:`asyncio` applications, especially when it
+interacts with finalization logic. In the example above, what if a handler
+gets interrupted with :exc:`~asyncio.CancelledError` while it's finalizing
+the tasks it started, after detecting that the connection dropped?
+
+``websockets`` considers that cancellation may only be triggered by the caller
+of a coroutine when it doesn't care about the results of that coroutine
+anymore. (Source: `Guido van Rossum <https://groups.google.com/forum/#!msg
+/python-tulip/LZQe38CR3bg/7qZ1p_q5yycJ>`_). Since connection handlers run
+arbitrary user code, ``websockets`` has no way of deciding whether that code
+is still doing something worth caring about.
+
+For these reasons, ``websockets`` never cancels connection handlers. Instead
+it expects them to detect when the connection is closed, execute finalization
+logic if needed, and exit.
+
+Conversely, cancellation isn't a concern for WebSocket clients because they
+don't involve inversion of control.
+
+Library
+.......
+
 Most :doc:`public APIs <api>` of ``websockets`` are coroutines. They may be
 canceled, for example if the user starts a task that calls these coroutines
 and cancels the task later. ``websockets`` must handle this situation.
@@ -409,10 +447,6 @@ waiting for :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`.
 Since :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` handles
 :exc:`~asyncio.CancelledError`, cancellation doesn't propagate to
 :attr:`~protocol.WebSocketCommonProtocol.close_connnection_task`.
-
-Conversely, ``websockets`` never injects :exc:`~asyncio.CancelledError` into
-user code. It doesn't cancel connection handler coroutines. Instead it expects
-them to detect when the connection is closed and to exit.
 
 
 .. _backpressure:

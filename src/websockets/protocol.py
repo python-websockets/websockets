@@ -1106,11 +1106,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         logger.debug(
-            "%s ! failing WebSocket connection in the %s state: %d %s",
+            "%s ! failing %s WebSocket connection with code %d",
             self.side,
             self.state.name,
             code,
-            reason or '[no reason]',
         )
 
         # Cancel transfer_data_task if the opening handshake succeeded.

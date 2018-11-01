@@ -935,8 +935,11 @@ class ClientServerTests(unittest.TestCase):
     @with_server(create_protocol=SlowServerProtocol)
     def test_server_shuts_down_during_opening_handshake(self):
         self.loop.call_later(5 * MS, self.server.close)
-        with self.assertRaises(InvalidHandshake):
+        with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client()
+        exception = raised.exception
+        self.assertEqual(str(exception), "Status code not 101: 503")
+        self.assertEqual(exception.status_code, 503)
 
     @with_server()
     def test_server_shuts_down_during_connection_handling(self):

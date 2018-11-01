@@ -14,13 +14,13 @@ from .compatibility import (
     BAD_REQUEST,
     FORBIDDEN,
     INTERNAL_SERVER_ERROR,
+    SERVICE_UNAVAILABLE,
     SWITCHING_PROTOCOLS,
     UPGRADE_REQUIRED,
     asyncio_ensure_future,
 )
 from .exceptions import (
     AbortHandshake,
-    CancelHandshake,
     InvalidHandshake,
     InvalidHeader,
     InvalidMessage,
@@ -119,10 +119,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             except ConnectionError:
                 logger.debug("Connection error in opening handshake", exc_info=True)
                 raise
-            except CancelHandshake:
-                self.fail_connection()
-                yield from self.wait_closed()
-                return
             except Exception as exc:
                 if isinstance(exc, AbortHandshake):
                     status, headers, body = exc.status, exc.headers, exc.body
@@ -478,11 +474,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         else:
             early_response = self.process_request(path, request_headers)
 
-        # Give up immediately and don't attempt to write a HTTP response if
-        # the TCP connection was closed while process_request() was running.
-        # This happens if the server shuts down and calls fail_connection().
-        if self.state != State.CONNECTING:
-            raise CancelHandshake()
+        # Change the response to a 503 error if the server is shutting down.
+        if not self.ws_server.is_serving():
+            early_response = SERVICE_UNAVAILABLE, [], b"Server is shutting down.\n"
 
         if early_response is not None:
             raise AbortHandshake(*early_response)
@@ -593,6 +587,16 @@ class WebSocketServer:
         """
         self.websockets.remove(protocol)
 
+    def is_serving(self):
+        """
+        Tell whether the server is accepting new connections or shutting down.
+
+        """
+        try:
+            return self.server.is_serving()  # Python ≥ 3.7
+        except AttributeError:  # pragma: no cover
+            return self.server.sockets is not None  # Python < 3.7
+
     def close(self):
         """
         Close the server and terminate connections with close code 1001.
@@ -626,7 +630,8 @@ class WebSocketServer:
         # Close open connections. fail_connection() will cancel the transfer
         # data task, which is expected to cause the handler task to terminate.
         for websocket in self.websockets:
-            websocket.fail_connection(1001)
+            if websocket.state is State.OPEN:
+                websocket.fail_connection(1001)
 
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:
@@ -637,7 +642,11 @@ class WebSocketServer:
             # and let the handler wait for the connection to close.
             yield from asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets]
-                + [websocket.close_connection_task for websocket in self.websockets],
+                + [
+                    websocket.close_connection_task
+                    for websocket in self.websockets
+                    if websocket.state is State.OPEN
+                ],
                 loop=self.loop,
             )
 

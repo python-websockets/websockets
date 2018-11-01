@@ -142,4 +142,4 @@ Participants must uphold the `Contributor Covenant code of conduct`_.
 
 ``websockets`` is released under the `BSD license`_.
 
-.. _BSD license: https://websockets.readthedocs.io/en/stable/license.html
+.. _BSD license: https://github.com/aaugustin/websockets/blob/master/LICENSE

@@ -160,7 +160,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 headers.setdefault('Content-Type', 'text/plain')
                 headers.setdefault('Connection', 'close')
 
-                yield from self.write_http_response(status, headers, body)
+                self.write_http_response(status, headers, body)
                 self.fail_connection()
                 yield from self.wait_closed()
                 return
@@ -222,7 +222,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         return path, headers
 
-    @asyncio.coroutine
     def write_http_response(self, status, headers, body=None):
         """
         Write status line and headers to the HTTP response.
@@ -524,7 +523,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response_headers.setdefault('Date', email.utils.formatdate(usegmt=True))
         response_headers.setdefault('Server', USER_AGENT)
 
-        yield from self.write_http_response(SWITCHING_PROTOCOLS, response_headers)
+        self.write_http_response(SWITCHING_PROTOCOLS, response_headers)
 
         self.connection_open()
 

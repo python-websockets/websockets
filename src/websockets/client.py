@@ -60,7 +60,6 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.extra_headers = extra_headers
         super().__init__(**kwds)
 
-    @asyncio.coroutine
     def write_http_request(self, path, headers):
         """
         Write request line and headers to the HTTP request.
@@ -287,7 +286,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         request_headers.setdefault('User-Agent', USER_AGENT)
 
-        yield from self.write_http_request(wsuri.resource_name, request_headers)
+        self.write_http_request(wsuri.resource_name, request_headers)
 
         status_code, response_headers = yield from self.read_http_response()
 

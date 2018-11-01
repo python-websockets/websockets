@@ -23,6 +23,7 @@ permessage
 pong
 Pythonic
 serializers
+subclassing
 subprotocol
 subprotocols
 TLS

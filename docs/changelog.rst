@@ -75,7 +75,7 @@ Changelog
   ``None`` rather than ``''``.
 
 * Fixed a data loss bug in :meth:`~protocol.WebSocketCommonProtocol.recv`:
-  cancelling it at the wrong time could result in messages being dropped.
+  canceling it at the wrong time could result in messages being dropped.
 
 * Improved handling of multiple HTTP headers with the same name.
 

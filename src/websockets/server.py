@@ -269,7 +269,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         likely to require network requests.
 
         This coroutine may be overridden by passing a ``process_request``
-        argument to the :class:`WebSocketServerProtocol` contstructor or the
+        argument to the :class:`WebSocketServerProtocol` constructor or the
         :func:`serve` function.
 
         """
@@ -420,7 +420,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         that subprotocol. Such rules can be implemented in a subclass.
 
         This method may be overridden by passing a ``select_subprotocol``
-        argument to the :class:`WebSocketServerProtocol` contstructor or the
+        argument to the :class:`WebSocketServerProtocol` constructor or the
         :func:`serve` function.
 
         """

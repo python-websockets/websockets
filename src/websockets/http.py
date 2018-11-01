@@ -76,11 +76,10 @@ def read_request(stream):
     # version and because path isn't checked. Since WebSocket software tends
     # to implement HTTP/1.1 strictly, there's little need for lenient parsing.
 
-    # Given the implementation of read_line(), request_line ends with CRLF.
     request_line = yield from read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
-    method, path, version = request_line[:-2].split(b' ', 2)
+    method, path, version = request_line.split(b' ', 2)
 
     if method != b'GET':
         raise ValueError("Unsupported HTTP method: %r" % method)
@@ -118,11 +117,10 @@ def read_response(stream):
     # As in read_request, parsing is simple because a fixed value is expected
     # for version, status_code is a 3-digit number, and reason can be ignored.
 
-    # Given the implementation of read_line(), status_line ends with CRLF.
     status_line = yield from read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
-    version, status_code, reason = status_line[:-2].split(b' ', 2)
+    version, status_code, reason = status_line.split(b' ', 2)
 
     if version != b'HTTP/1.1':
         raise ValueError("Unsupported HTTP version: %r" % version)
@@ -157,11 +155,11 @@ def read_headers(stream):
     headers = Headers()
     for _ in range(MAX_HEADERS + 1):
         line = yield from read_line(stream)
-        if line == b'\r\n':
+        if line == b'':
             break
 
         # This may raise "ValueError: not enough values to unpack"
-        name, value = line[:-2].split(b':', 1)
+        name, value = line.split(b':', 1)
         if not _token_re.fullmatch(name):
             raise ValueError("Invalid HTTP header name: %r" % name)
         value = value.strip(b' \t')
@@ -185,6 +183,8 @@ def read_line(stream):
 
     ``stream`` is an :class:`~asyncio.StreamReader`.
 
+    Return :class:`bytes` without CRLF.
+
     """
     # Security: this is bounded by the StreamReader's limit (default = 32kB).
     line = yield from stream.readline()
@@ -194,7 +194,7 @@ def read_line(stream):
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
     if not line.endswith(b'\r\n'):
         raise ValueError("Line without CRLF")
-    return line
+    return line[:-2]
 
 
 class MultipleValuesError(LookupError):

@@ -72,9 +72,11 @@ And here's an echo server (Python ≥ 3.6):
         websockets.serve(echo, 'localhost', 8765))
     asyncio.get_event_loop().run_forever()
 
-Does that look good? `Start here`_.
+Does that look good?
 
-.. _Start here: https://websockets.readthedocs.io/en/stable/intro.html
+`Start here!`_
+
+.. _Start here!: https://websockets.readthedocs.io/en/stable/intro.html
 
 Why should I use ``websockets``?
 --------------------------------

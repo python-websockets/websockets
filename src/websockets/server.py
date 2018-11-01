@@ -245,14 +245,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             logger.debug("%s > Body (%d bytes)", self.side, len(body))
             self.writer.write(body)
 
-    @asyncio.coroutine
     def process_request(self, path, request_headers):
         """
         Intercept the HTTP request and return an HTTP response if needed.
 
         ``request_headers`` is a :class:`~websockets.http.Headers` instance.
 
-        If this coroutine returns ``None``, the WebSocket handshake continues.
+        If this method returns ``None``, the WebSocket handshake continues.
         If it returns a status code, headers and a response body, that HTTP
         response is sent and the connection is closed.
 
@@ -271,12 +270,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         different status, for example to authenticate the request and return
         ``HTTPStatus.UNAUTHORIZED`` or ``HTTPStatus.FORBIDDEN``.
 
-        It is declared as a coroutine because such authentication checks are
-        likely to require network requests.
+        It can be declared as a function or as a coroutine because such
+        authentication checks are likely to require network requests.
 
-        This coroutine may be overridden by passing a ``process_request``
-        argument to the :class:`WebSocketServerProtocol` constructor or the
-        :func:`serve` function.
+        It may also be overridden by passing a ``process_request`` argument to
+        the :class:`WebSocketServerProtocol` constructor or the :func:`serve`
+        function.
 
         """
 

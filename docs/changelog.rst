@@ -3,10 +3,13 @@ Changelog
 
 .. currentmodule:: websockets
 
-7.0
+7.1
 ...
 
 *In development*
+
+7.0
+...
 
 .. warning::
 
@@ -53,6 +56,8 @@ Changelog
 
     Concurrent calls lead to non-deterministic behavior because there are no
     guarantees about which coroutine will receive which message.
+
+Also:
 
 * websockets sends Ping frames at regular intervals and closes the connection
   if it doesn't receive a matching Pong frame. See

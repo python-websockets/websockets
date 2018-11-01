@@ -14,7 +14,7 @@ report inappropriate behavior to aymeric DOT augustin AT fractalideas DOT com.
 
 *(If I'm the person with the inappropriate behavior, please accept my
 apologies. I know I can mess up. I can't expect you to tell me, but if you
-chose to do so, I'll do my best to handle criticism constructively.
+choose to do so, I'll do my best to handle criticism constructively.
 -- Aymeric)*
 
 Contributions

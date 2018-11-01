@@ -129,11 +129,16 @@ Why shouldn't I use ``websockets``?
 What else?
 ----------
 
-Bug reports, patches and suggestions welcome! Just open an issue_ or send a
-`pull request`_.
+Bug reports, patches and suggestions are welcome!
+
+Please open an issue_ or send a `pull request`_.
 
 .. _issue: https://github.com/aaugustin/websockets/issues/new
 .. _pull request: https://github.com/aaugustin/websockets/compare/
+
+Participants must uphold the `Contributor Covenant code of conduct`_.
+
+.. _Contributor Covenant code of conduct: https://github.com/aaugustin/websockets/blob/master/CODE_OF_CONDUCT.md
 
 ``websockets`` is released under the `BSD license`_.
 

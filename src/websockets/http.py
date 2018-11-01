@@ -85,7 +85,6 @@ def read_request(stream):
         raise ValueError("Unsupported HTTP method: %r" % method)
     if version != b'HTTP/1.1':
         raise ValueError("Unsupported HTTP version: %r" % version)
-
     path = path.decode('ascii', 'surrogateescape')
 
     headers = yield from read_headers(stream)
@@ -100,8 +99,9 @@ def read_response(stream):
 
     ``stream`` is an :class:`~asyncio.StreamReader`.
 
-    Return ``(status_code, headers)`` where ``status_code`` is a :class:`int`
-    and ``headers`` is a :class:`Headers` instance.
+    Return ``(status_code, reason, headers)`` where ``status_code`` is an
+    :class:`int`, ``reason`` is a :class:`str`, and ``headers`` is a
+    :class:`Headers` instance.
 
     Non-ASCII characters are represented with surrogate escapes.
 
@@ -130,10 +130,11 @@ def read_response(stream):
         raise ValueError("Unsupported HTTP status code: %d" % status_code)
     if not _value_re.fullmatch(reason):
         raise ValueError("Invalid HTTP reason phrase: %r" % reason)
+    reason = reason.decode()
 
     headers = yield from read_headers(stream)
 
-    return status_code, headers
+    return status_code, reason, headers
 
 
 @asyncio.coroutine

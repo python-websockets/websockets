@@ -5,6 +5,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 import asyncio
 import collections.abc
+import logging
 import sys
 
 from .exceptions import (
@@ -28,6 +29,8 @@ from .uri import parse_uri
 
 
 __all__ = ['connect', 'WebSocketClientProtocol']
+
+logger = logging.getLogger(__name__)
 
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):
@@ -66,6 +69,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.path = path
         self.request_headers = headers
 
+        logger.debug("%s > GET %s HTTP/1.1", self.side, path)
+        logger.debug("%s > %r", self.side, headers)
+
         # Since the path and headers only contain ASCII characters,
         # we can keep this simple.
         request = 'GET {path} HTTP/1.1\r\n'.format(path=path)
@@ -87,9 +93,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         try:
-            status_code, headers = yield from read_response(self.reader)
+            status_code, reason, headers = yield from read_response(self.reader)
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
+
+        logger.debug("%s < HTTP/1.1 %d %s", self.side, status_code, reason)
+        logger.debug("%s < %r", self.side, headers)
 
         self.response_headers = headers
 

@@ -3,10 +3,15 @@ Changelog
 
 .. currentmodule:: websockets
 
-7.1
+8.0
 ...
 
 *In development*
+
+.. warning::
+
+    **Version 8.0 adds the reason phrase to the return type of the low-level
+    API** :func:`~http.read_response` **.**
 
 7.0
 ...

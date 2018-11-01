@@ -214,10 +214,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
+        logger.debug("%s < GET %s HTTP/1.1", self.side, path)
+        logger.debug("%s < %r", self.side, headers)
+
         self.path = path
         self.request_headers = headers
 
-        return path, self.request_headers
+        return path, headers
 
     @asyncio.coroutine
     def write_http_response(self, status, headers, body=None):
@@ -229,6 +232,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         self.response_headers = headers
 
+        logger.debug("%s > HTTP/1.1 %d %s", self.side, status.value, status.phrase)
+        logger.debug("%s > %r", self.side, headers)
+
         # Since the status line and headers only contain ASCII characters,
         # we can keep this simple.
         response = 'HTTP/1.1 {status.value} {status.phrase}\r\n'.format(status=status)
@@ -237,6 +243,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.writer.write(response.encode())
 
         if body is not None:
+            logger.debug("%s > Body (%d bytes)", self.side, len(body))
             self.writer.write(body)
 
     @asyncio.coroutine

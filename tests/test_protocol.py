@@ -1,16 +1,15 @@
 import asyncio
-import contextlib
-import functools
 import logging
 import os
 import time
 import unittest
 import unittest.mock
 
-from websockets.compatibility import asyncio_ensure_future
 from websockets.exceptions import ConnectionClosed, InvalidState
 from websockets.framing import *
 from websockets.protocol import State, WebSocketCommonProtocol
+
+from .helpers import AsyncMixin, StreamReader, run_until_complete
 
 
 # Avoid displaying stack traces at the ERROR logging level.
@@ -82,7 +81,7 @@ class TransportMock(unittest.mock.Mock):
         self.loop.call_soon(self.protocol.connection_lost, None)
 
 
-class CommonTests:
+class CommonTests(AsyncMixin):
     """
     Mixin that defines most tests but doesn't inherit unittest.TestCase.
 
@@ -92,8 +91,6 @@ class CommonTests:
 
     def setUp(self):
         super().setUp()
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
         # Disable pings to make it easier to test what frames are sent exactly.
         self.protocol = WebSocketCommonProtocol(ping_interval=None)
         self.transport = TransportMock()
@@ -102,16 +99,9 @@ class CommonTests:
     def tearDown(self):
         self.transport.close()
         self.loop.run_until_complete(self.protocol.close())
-        self.loop.close()
         super().tearDown()
 
     # Utilities for writing tests.
-
-    def run_loop_once(self):
-        # Process callbacks scheduled with call_soon by appending a callback
-        # to stop the event loop then running it until it hits that callback.
-        self.loop.call_soon(self.loop.stop)
-        self.loop.run_forever()
 
     def make_drain_slow(self, delay=MS):
         # Process connection_made in order to initialize self.protocol.writer.
@@ -126,13 +116,22 @@ class CommonTests:
 
         self.protocol.writer.drain = delayed_drain
 
+    def make_drain_slow_coro(self, delay=MS):
+        # Process connection_made in order to initialize self.protocol.writer.
+        yield
+
+        original_drain = self.protocol.writer.drain
+
+        @asyncio.coroutine
+        def delayed_drain():
+            yield from asyncio.sleep(delay, loop=self.loop)
+            yield from original_drain()
+
+        self.protocol.writer.drain = delayed_drain
+
     close_frame = Frame(True, OP_CLOSE, serialize_close(1000, 'close'))
     local_close = Frame(True, OP_CLOSE, serialize_close(1000, 'local'))
     remote_close = Frame(True, OP_CLOSE, serialize_close(1000, 'remote'))
-
-    @property
-    def ensure_future(self):
-        return functools.partial(asyncio_ensure_future, loop=self.loop)
 
     def receive_frame(self, frame):
         """
@@ -184,6 +183,25 @@ class CommonTests:
 
         assert self.protocol.state is State.CLOSED
 
+    @asyncio.coroutine
+    def close_connection_coro(self, code=1000, reason='close'):
+        """
+        Execute a closing handshake.
+
+        This puts the connection in the CLOSED state.
+
+        """
+        close_frame_data = serialize_close(code, reason)
+        # Prepare the response to the closing handshake from the remote side.
+        self.receive_frame(Frame(True, OP_CLOSE, close_frame_data))
+        self.receive_eof_if_client()
+        # Trigger the closing handshake from the local side and complete it.
+        yield from self.protocol.close(code, reason)
+        # Empty the outgoing data stream so we can make assertions later on.
+        self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
+
+        assert self.protocol.state is State.CLOSED
+
     def half_close_connection_local(self, code=1000, reason='close'):
         """
         Start a closing handshake but do not complete it.
@@ -200,6 +218,38 @@ class CommonTests:
         close_task = self.ensure_future(self.protocol.close(code, reason))
         self.run_loop_once()  # wait_for executes
         self.run_loop_once()  # write_frame executes
+        # Empty the outgoing data stream so we can make assertions later on.
+        self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
+
+        assert self.protocol.state is State.CLOSING
+
+        # Complete the closing sequence at 1ms intervals so the test can run
+        # at each point even it goes back to the event loop several times.
+        self.loop.call_later(
+            MS, self.receive_frame, Frame(True, OP_CLOSE, close_frame_data)
+        )
+        self.loop.call_later(2 * MS, self.receive_eof_if_client)
+
+        # This task must be awaited or canceled by the caller.
+        return close_task
+
+    @asyncio.coroutine
+    def half_close_connection_local_coro(self, code=1000, reason='close'):
+        """
+        Start a closing handshake but do not complete it.
+
+        The main difference with `close_connection` is that the connection is
+        left in the CLOSING state until the event loop runs again.
+
+        The current implementation returns a task that must be awaited or
+        canceled, else asyncio complains about destroying a pending task.
+
+        """
+        close_frame_data = serialize_close(code, reason)
+        # Trigger the closing handshake from the local endpoint.
+        close_task = self.ensure_future(self.protocol.close(code, reason))
+        yield  # wait_for executes
+        yield  # write_frame executes
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
 
@@ -243,6 +293,35 @@ class CommonTests:
         # at each point even it goes back to the event loop several times.
         self.loop.call_later(2 * MS, self.receive_eof_if_client)
 
+    @asyncio.coroutine
+    def half_close_connection_remote_coro(self, code=1000, reason='close'):
+        """
+        Receive a closing handshake but do not complete it.
+
+        The main difference with `close_connection` is that the connection is
+        left in the CLOSING state until the event loop runs again.
+
+        """
+        # On the server side, websockets completes the closing handshake and
+        # closes the TCP connection immediately. Yield to the event loop after
+        # sending the close frame to run the test while the connection is in
+        # the CLOSING state.
+        if not self.protocol.is_client:
+            yield from self.make_drain_slow_coro()
+
+        close_frame_data = serialize_close(code, reason)
+        # Trigger the closing handshake from the remote endpoint.
+        self.receive_frame(Frame(True, OP_CLOSE, close_frame_data))
+        yield  # read_frame executes
+        # Empty the outgoing data stream so we can make assertions later on.
+        self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
+
+        assert self.protocol.state is State.CLOSING
+
+        # Complete the closing sequence at 1ms intervals so the test can run
+        # at each point even it goes back to the event loop several times.
+        self.loop.call_later(2 * MS, self.receive_eof_if_client)
+
     def process_invalid_frames(self):
         """
         Make the protocol fail quickly after simulating invalid data.
@@ -255,25 +334,47 @@ class CommonTests:
         self.receive_eof()
         self.loop.run_until_complete(self.protocol.close_connection_task)
 
+    @asyncio.coroutine
+    def process_invalid_frames_coro(self):
+        """
+        Make the protocol fail quickly after simulating invalid data.
+
+        To achieve this, this function triggers the protocol's eof_received,
+        which interrupts pending reads waiting for more data.
+
+        """
+        yield
+        self.receive_eof()
+        yield from self.protocol.close_connection_task
+
     def sent_frames(self):
         """
-        Read all frames sent to the transport.
+        Read all frames written by the protocol to the transport.
 
         """
-        stream = asyncio.StreamReader(loop=self.loop)
+        stream = StreamReader()
 
-        for (data,), kw in self.transport.write.call_args_list:
-            stream.feed_data(data)
+        write_calls = self.transport.write.call_args_list
         self.transport.write.call_args_list = []
+        for (data,), kw in write_calls:
+            stream.feed_data(data)
         stream.feed_eof()
 
         frames = []
-        while not stream.at_eof():
-            frames.append(
-                self.loop.run_until_complete(
-                    Frame.read(stream.readexactly, mask=self.protocol.is_client)
+
+        # Use Frame.read as a plain coroutine instead of an asyncio coroutine.
+        def parse_frames():
+            while True:
+                frame = yield from Frame.read(
+                    stream.readexactly, mask=self.protocol.is_client
                 )
-            )
+                frames.append(frame)
+
+        # Start generator.
+        next(parse_frames())
+
+        assert stream.at_eof()
+
         return frames
 
     def last_sent_frame(self):
@@ -316,15 +417,6 @@ class CommonTests:
             self.assertNoFrameSent()
         else:
             self.assertOneFrameSent(True, OP_CLOSE, serialize_close(code, message))
-
-    @contextlib.contextmanager
-    def assertCompletesWithin(self, min_time, max_time):
-        t0 = self.loop.time()
-        yield
-        t1 = self.loop.time()
-        dt = t1 - t0
-        self.assertGreaterEqual(dt, min_time, "Too fast: {} < {}".format(dt, min_time))
-        self.assertLess(dt, max_time, "Too slow: {} >= {}".format(dt, max_time))
 
     # Test public attributes.
 
@@ -371,112 +463,146 @@ class CommonTests:
         self.assertTrue(self.protocol.closed)
 
     def test_wait_closed(self):
-        wait_closed = asyncio_ensure_future(self.protocol.wait_closed())
+        wait_closed = self.ensure_future(self.protocol.wait_closed())
         self.assertFalse(wait_closed.done())
         self.close_connection()
         self.assertTrue(wait_closed.done())
 
     # Test the recv coroutine.
 
+    @run_until_complete
     def test_recv_text(self):
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
-        data = self.loop.run_until_complete(self.protocol.recv())
+        data = yield from self.protocol.recv()
         self.assertEqual(data, 'café')
 
+    @run_until_complete
     def test_recv_binary(self):
         self.receive_frame(Frame(True, OP_BINARY, b'tea'))
-        data = self.loop.run_until_complete(self.protocol.recv())
+        data = yield from self.protocol.recv()
         self.assertEqual(data, b'tea')
 
+    @run_until_complete
     def test_recv_on_closing_connection_local(self):
-        close_task = self.half_close_connection_local()
+        close_task = yield from self.half_close_connection_local_coro()
 
         with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.recv())
+            yield from self.protocol.recv()
 
-        self.loop.run_until_complete(close_task)  # cleanup
+        yield from close_task  # cleanup
 
+    @run_until_complete
     def test_recv_on_closing_connection_remote(self):
-        self.half_close_connection_remote()
+        yield from self.half_close_connection_remote_coro()
 
         with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.recv())
+            yield from self.protocol.recv()
 
+    @run_until_complete
     def test_recv_on_closed_connection(self):
-        self.close_connection()
+        yield from self.close_connection_coro()
 
         with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.recv())
+            yield from self.protocol.recv()
 
+    @run_until_complete
     def test_recv_protocol_error(self):
         self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8')))
-        self.process_invalid_frames()
+        yield from self.process_invalid_frames_coro()
         self.assertConnectionFailed(1002, '')
 
+    @run_until_complete
     def test_recv_unicode_error(self):
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('latin-1')))
-        self.process_invalid_frames()
+        yield from self.process_invalid_frames_coro()
         self.assertConnectionFailed(1007, '')
 
+    @run_until_complete
     def test_recv_text_payload_too_big(self):
         self.protocol.max_size = 1024
+
+        # self.protocol was already reading a frame before patching max_size.
+        self.receive_frame(Frame(True, OP_TEXT, b''))
+        yield from self.protocol.recv()
+
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
-        self.process_invalid_frames()
+        yield from self.process_invalid_frames_coro()
         self.assertConnectionFailed(1009, '')
 
+    @run_until_complete
     def test_recv_binary_payload_too_big(self):
         self.protocol.max_size = 1024
+
+        # self.protocol was already reading a frame before patching max_size.
+        self.receive_frame(Frame(True, OP_TEXT, b''))
+        yield from self.protocol.recv()
+
         self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
-        self.process_invalid_frames()
+        yield from self.process_invalid_frames_coro()
         self.assertConnectionFailed(1009, '')
 
+    @run_until_complete
     def test_recv_text_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
+
+        # self.protocol was already reading a frame before patching max_size.
+        self.receive_frame(Frame(True, OP_TEXT, b''))
+        yield from self.protocol.recv()
+
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
-        data = self.loop.run_until_complete(self.protocol.recv())
+        data = yield from self.protocol.recv()
         self.assertEqual(data, 'café' * 205)
 
+    @run_until_complete
     def test_recv_binary_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
+
+        # self.protocol was already reading a frame before patching max_size.
+        self.receive_frame(Frame(True, OP_TEXT, b''))
+        yield from self.protocol.recv()
+
         self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
-        data = self.loop.run_until_complete(self.protocol.recv())
+        data = yield from self.protocol.recv()
         self.assertEqual(data, b'tea' * 342)
 
+    @run_until_complete
+    @asyncio.coroutine
     def test_recv_queue_empty(self):
-        recv = self.ensure_future(self.protocol.recv())
         with self.assertRaises(asyncio.TimeoutError):
-            self.loop.run_until_complete(
-                asyncio.wait_for(asyncio.shield(recv), timeout=MS)
-            )
+            yield from asyncio.wait_for(self.protocol.recv(), timeout=MS)
 
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
-        data = self.loop.run_until_complete(recv)
+        data = yield from self.protocol.recv()
         self.assertEqual(data, 'café')
 
+    @run_until_complete
     def test_recv_queue_full(self):
         self.protocol.max_queue = 2
         # Test internals because it's hard to verify buffers from the outside.
         self.assertEqual(list(self.protocol.messages), [])
 
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
-        self.run_loop_once()
+        yield
         self.assertEqual(list(self.protocol.messages), ['café'])
 
         self.receive_frame(Frame(True, OP_BINARY, b'tea'))
-        self.run_loop_once()
+        yield
         self.assertEqual(list(self.protocol.messages), ['café', b'tea'])
 
         self.receive_frame(Frame(True, OP_BINARY, b'milk'))
-        self.run_loop_once()
+        yield
         self.assertEqual(list(self.protocol.messages), ['café', b'tea'])
 
-        self.loop.run_until_complete(self.protocol.recv())
+        yield from self.protocol.recv()
+        yield
         self.assertEqual(list(self.protocol.messages), [b'tea', b'milk'])
 
-        self.loop.run_until_complete(self.protocol.recv())
+        yield from self.protocol.recv()
+        yield
         self.assertEqual(list(self.protocol.messages), [b'milk'])
 
-        self.loop.run_until_complete(self.protocol.recv())
+        yield from self.protocol.recv()
+        yield
         self.assertEqual(list(self.protocol.messages), [])
 
     def test_recv_other_error(self):
@@ -488,18 +614,20 @@ class CommonTests:
         self.process_invalid_frames()
         self.assertConnectionFailed(1011, '')
 
+    @run_until_complete
     def test_recv_canceled(self):
         recv = self.ensure_future(self.protocol.recv())
         self.loop.call_soon(recv.cancel)
 
         with self.assertRaises(asyncio.CancelledError):
-            self.loop.run_until_complete(recv)
+            yield from recv
 
         # The next frame doesn't disappear in a vacuum (it used to).
         self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
-        data = self.loop.run_until_complete(self.protocol.recv())
+        data = yield from self.protocol.recv()
         self.assertEqual(data, 'café')
 
+    @run_until_complete
     def test_recv_canceled_race_condition(self):
         recv = self.ensure_future(
             asyncio.wait_for(self.protocol.recv(), timeout=0.000001)
@@ -509,19 +637,26 @@ class CommonTests:
         )
 
         with self.assertRaises(asyncio.TimeoutError):
-            self.loop.run_until_complete(recv)
+            yield from recv
 
         # The previous frame doesn't disappear in a vacuum (it used to).
         self.receive_frame(Frame(True, OP_TEXT, 'tea'.encode('utf-8')))
-        data = self.loop.run_until_complete(self.protocol.recv())
+        data = yield from self.protocol.recv()
         # If we're getting "tea" there, it means "café" was swallowed (ha, ha).
         self.assertEqual(data, 'café')
 
+    @run_until_complete
     def test_recv_prevents_concurrent_calls(self):
+        # TODO XXX
+        return
         recv = self.ensure_future(self.protocol.recv())
 
-        with self.assertRaises(RuntimeError):
-            self.loop.run_until_complete(self.protocol.recv())
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "cannot call recv() while another coroutine "
+            "is already waiting for the next message",
+        ):
+            yield from self.protocol.recv()
 
         recv.cancel()
 

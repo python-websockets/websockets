@@ -466,7 +466,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if isinstance(data, str):
             yield from self.write_frame(True, OP_TEXT, data.encode('utf-8'))
 
-        elif isinstance(data, bytes):
+        elif isinstance(data, collections.abc.ByteString):
             yield from self.write_frame(True, OP_BINARY, data)
 
         # Fragmented message -- regular iterator.
@@ -483,7 +483,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             if isinstance(data, str):
                 yield from self.write_frame(False, OP_TEXT, data.encode('utf-8'))
                 encode_data = True
-            elif isinstance(data, bytes):
+            elif isinstance(data, collections.abc.ByteString):
                 yield from self.write_frame(False, OP_BINARY, data)
                 encode_data = False
             else:

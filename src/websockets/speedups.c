@@ -10,16 +10,50 @@
 
 static const Py_ssize_t MASK_LEN = 4;
 
+/* Similar to PyBytes_AsStringAndSize, but accepts more types */
+
+static int
+_PyBytesLike_AsStringAndSize(PyObject *obj, char **buffer, Py_ssize_t *length)
+{
+    if (PyBytes_Check(obj))
+    {
+        *buffer = PyBytes_AS_STRING(obj);
+        *length = PyBytes_GET_SIZE(obj);
+    }
+    else if (PyByteArray_Check(obj))
+    {
+        *buffer = PyByteArray_AS_STRING(obj);
+        *length = PyByteArray_GET_SIZE(obj);
+    }
+    else
+    {
+        PyErr_Format(
+            PyExc_TypeError,
+            "expected a bytes-like object, %.200s found",
+            Py_TYPE(obj)->tp_name);
+        return -1;
+    }
+
+    return 0;
+}
+
+/* C implementation of websockets.utils.apply_mask */
+
 static PyObject *
 apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
 {
 
-    // Inputs are treated as immutable, which causes an extra memory copy.
+    // In order to support bytes and bytearray, accept any Python object.
 
     static char *kwlist[] = {"data", "mask", NULL};
-    const char *input;
+    PyObject *input_obj;
+    PyObject *mask_obj;
+
+    // A pointer to the underlying char * will be extracted from these inputs.
+
+    char *input;
     Py_ssize_t input_len;
-    const char *mask;
+    char *mask;
     Py_ssize_t mask_len;
 
     // Initialize a PyBytesObject then get a pointer to the underlying char *
@@ -27,10 +61,25 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
 
     PyObject *result;
     char *output;
+
+    // Other variables.
+
     Py_ssize_t i = 0;
 
+    // Parse inputs.
+
     if (!PyArg_ParseTupleAndKeywords(
-            args, kwds, "y#y#", kwlist, &input, &input_len, &mask, &mask_len))
+            args, kwds, "OO", kwlist, &input_obj, &mask_obj))
+    {
+        return NULL;
+    }
+
+    if (_PyBytesLike_AsStringAndSize(input_obj, &input, &input_len) == -1)
+    {
+        return NULL;
+    }
+
+    if (_PyBytesLike_AsStringAndSize(mask_obj, &mask, &mask_len) == -1)
     {
         return NULL;
     }
@@ -41,6 +90,8 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
         return NULL;
     }
 
+    // Create output.
+
     result = PyBytes_FromStringAndSize(NULL, input_len);
     if (result == NULL)
     {
@@ -49,6 +100,8 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
 
     // Since we juste created result, we don't need error checks.
     output = PyBytes_AS_STRING(result);
+
+    // Perform the masking operation.
 
     // Apparently GCC cannot figure out the following optimizations by itself.
 

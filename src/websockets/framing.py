@@ -255,6 +255,11 @@ def prepare_data(data):
         return OP_TEXT, data.encode('utf-8')
     elif isinstance(data, collections.abc.ByteString):
         return OP_BINARY, data
+    elif isinstance(data, memoryview):
+        if data.c_contiguous:
+            return OP_BINARY, data
+        else:
+            return OP_BINARY, data.tobytes()
     else:
         raise TypeError("data must be bytes-like or str")
 
@@ -277,6 +282,8 @@ def encode_data(data):
         return data.encode('utf-8')
     elif isinstance(data, collections.abc.ByteString):
         return bytes(data)
+    elif isinstance(data, memoryview):
+        return data.tobytes()
     else:
         raise TypeError("data must be bytes-like or str")
 

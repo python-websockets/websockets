@@ -13,6 +13,13 @@ Changelog
     **Version 8.0 adds the reason phrase to the return type of the low-level
     API** :func:`~http.read_response` **.**
 
+Also:
+
+* :meth:`~protocol.WebSocketCommonProtocol.send`,
+  :meth:`~protocol.WebSocketCommonProtocol.ping`, and
+  :meth:`~protocol.WebSocketCommonProtocol.pong` support bytes-like types
+  :class:`bytearray` and :class:`memoryview` in addition to :class:`bytes`.
+
 7.0
 ...
 

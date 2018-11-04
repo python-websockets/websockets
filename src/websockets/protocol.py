@@ -448,10 +448,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         This coroutine sends a message.
 
-        It sends :class:`str` as a text frame and :class:`bytes` as a binary
-        frame.
+        It sends a string (:class:`str`) as a text frame and a bytes-like
+        object (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`)
+        as a binary frame.
 
-        It also accepts an iterable of :class:`str` or :class:`bytes`. Each
+        It also accepts an iterable of strings or bytes-like objects. Each
         item is treated as a message fragment and sent in its own frame. All
         items must be of the same type, or else :meth:`send` will raise a
         :exc:`TypeError` and the connection will be closed.
@@ -572,8 +573,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             await pong_waiter   # only if you want to wait for the pong
 
         By default, the ping contains four random bytes. The content may be
-        overridden with the optional ``data`` argument which must be of type
-        :class:`str` (which will be encoded to UTF-8) or :class:`bytes`.
+        overridden with the optional ``data`` argument which must be a string
+        (which will be encoded to UTF-8) or a bytes-like object.
 
         """
         yield from self.ensure_open()
@@ -603,8 +604,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         An unsolicited pong may serve as a unidirectional heartbeat.
 
         The content may be overridden with the optional ``data`` argument
-        which must be of type :class:`str` (which will be encoded to UTF-8) or
-        :class:`bytes`.
+        which must be a string (which will be encoded to UTF-8) or a
+        bytes-like object.
 
         """
         yield from self.ensure_open()

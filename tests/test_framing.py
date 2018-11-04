@@ -152,6 +152,25 @@ class FramingTests(unittest.TestCase):
         with self.assertRaises(WebSocketProtocolError):
             self.decode(b'\x88\x7e\x00\x7e' + 126 * b'a')
 
+    def test_prepare_data_str(self):
+        self.assertEqual(prepare_data('café'), (OP_TEXT, b'caf\xc3\xa9'))
+
+    def test_prepare_data_bytes(self):
+        self.assertEqual(prepare_data(b'tea'), (OP_BINARY, b'tea'))
+
+    def test_prepare_data_bytearray(self):
+        self.assertEqual(
+            prepare_data(bytearray(b'tea')), (OP_BINARY, bytearray(b'tea'))
+        )
+
+    def test_prepare_data_list(self):
+        with self.assertRaises(TypeError):
+            prepare_data([])
+
+    def test_prepare_data_none(self):
+        with self.assertRaises(TypeError):
+            prepare_data(None)
+
     def test_encode_data_str(self):
         self.assertEqual(encode_data('café'), b'caf\xc3\xa9')
 

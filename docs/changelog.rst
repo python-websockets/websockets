@@ -29,7 +29,7 @@ Changelog
 .. warning::
 
     **Version 7.0 changes how a server terminates connections when it's
-    closed with :meth:`~websockets.server.WebSocketServer.close`.**
+    closed with** :meth:`~websockets.server.WebSocketServer.close` **.**
 
     Previously, connections handlers were canceled. Now, connections are
     closed with close code 1001 (going away). From the perspective of the

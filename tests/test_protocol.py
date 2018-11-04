@@ -539,6 +539,14 @@ class CommonTests:
         self.loop.run_until_complete(self.protocol.send(bytearray(b'tea')))
         self.assertOneFrameSent(True, OP_BINARY, b'tea')
 
+    def test_send_binary_from_memoryview(self):
+        self.loop.run_until_complete(self.protocol.send(memoryview(b'tea')))
+        self.assertOneFrameSent(True, OP_BINARY, b'tea')
+
+    def test_send_binary_from_non_contiguous_memoryview(self):
+        self.loop.run_until_complete(self.protocol.send(memoryview(b'tteeaa')[::2]))
+        self.assertOneFrameSent(True, OP_BINARY, b'tea')
+
     def test_send_type_error(self):
         with self.assertRaises(TypeError):
             self.loop.run_until_complete(self.protocol.send(42))
@@ -561,6 +569,22 @@ class CommonTests:
     def test_send_iterable_binary_from_bytearray(self):
         self.loop.run_until_complete(
             self.protocol.send([bytearray(b'te'), bytearray(b'a')])
+        )
+        self.assertFramesSent(
+            (False, OP_BINARY, b'te'), (False, OP_CONT, b'a'), (True, OP_CONT, b'')
+        )
+
+    def test_send_iterable_binary_from_memoryview(self):
+        self.loop.run_until_complete(
+            self.protocol.send([memoryview(b'te'), memoryview(b'a')])
+        )
+        self.assertFramesSent(
+            (False, OP_BINARY, b'te'), (False, OP_CONT, b'a'), (True, OP_CONT, b'')
+        )
+
+    def test_send_iterable_binary_from_non_contiguous_memoryview(self):
+        self.loop.run_until_complete(
+            self.protocol.send([memoryview(b'ttee')[::2], memoryview(b'aa')[::2]])
         )
         self.assertFramesSent(
             (False, OP_BINARY, b'te'), (False, OP_CONT, b'a'), (True, OP_CONT, b'')
@@ -632,6 +656,14 @@ class CommonTests:
         self.loop.run_until_complete(self.protocol.ping(bytearray(b'tea')))
         self.assertOneFrameSent(True, OP_PING, b'tea')
 
+    def test_ping_binary_from_memoryview(self):
+        self.loop.run_until_complete(self.protocol.ping(memoryview(b'tea')))
+        self.assertOneFrameSent(True, OP_PING, b'tea')
+
+    def test_ping_binary_from_non_contiguous_memoryview(self):
+        self.loop.run_until_complete(self.protocol.ping(memoryview(b'tteeaa')[::2]))
+        self.assertOneFrameSent(True, OP_PING, b'tea')
+
     def test_ping_type_error(self):
         with self.assertRaises(TypeError):
             self.loop.run_until_complete(self.protocol.ping(42))
@@ -679,6 +711,14 @@ class CommonTests:
 
     def test_pong_binary_from_bytearray(self):
         self.loop.run_until_complete(self.protocol.pong(bytearray(b'tea')))
+        self.assertOneFrameSent(True, OP_PONG, b'tea')
+
+    def test_pong_binary_from_memoryview(self):
+        self.loop.run_until_complete(self.protocol.pong(memoryview(b'tea')))
+        self.assertOneFrameSent(True, OP_PONG, b'tea')
+
+    def test_pong_binary_from_non_contiguous_memoryview(self):
+        self.loop.run_until_complete(self.protocol.pong(memoryview(b'tteeaa')[::2]))
         self.assertOneFrameSent(True, OP_PONG, b'tea')
 
     def test_pong_type_error(self):

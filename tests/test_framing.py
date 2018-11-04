@@ -163,6 +163,14 @@ class FramingTests(unittest.TestCase):
             prepare_data(bytearray(b'tea')), (OP_BINARY, bytearray(b'tea'))
         )
 
+    def test_prepare_data_memoryview(self):
+        self.assertEqual(
+            prepare_data(memoryview(b'tea')), (OP_BINARY, memoryview(b'tea'))
+        )
+
+    def test_prepare_data_non_contiguous_memoryview(self):
+        self.assertEqual(prepare_data(memoryview(b'tteeaa')[::2]), (OP_BINARY, b'tea'))
+
     def test_prepare_data_list(self):
         with self.assertRaises(TypeError):
             prepare_data([])
@@ -179,6 +187,12 @@ class FramingTests(unittest.TestCase):
 
     def test_encode_data_bytearray(self):
         self.assertEqual(encode_data(bytearray(b'tea')), b'tea')
+
+    def test_encode_data_memoryview(self):
+        self.assertEqual(encode_data(memoryview(b'tea')), b'tea')
+
+    def test_encode_data_non_contiguous_memoryview(self):
+        self.assertEqual(encode_data(memoryview(b'tteeaa')[::2]), b'tea')
 
     def test_encode_data_list(self):
         with self.assertRaises(TypeError):

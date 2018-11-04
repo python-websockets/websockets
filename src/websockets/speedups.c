@@ -15,6 +15,11 @@ static const Py_ssize_t MASK_LEN = 4;
 static int
 _PyBytesLike_AsStringAndSize(PyObject *obj, char **buffer, Py_ssize_t *length)
 {
+    // This supports bytes, bytearrays, and C-contiguous memoryview objects,
+    // which are the most useful data structures for handling byte streams.
+    // websockets.framing.prepare_data() returns only values of these types.
+    // Any object implementing the buffer protocol could be supported, however
+    // that would require allocation or copying memory, which is expensive.
     if (PyBytes_Check(obj))
     {
         *buffer = PyBytes_AS_STRING(obj);
@@ -24,6 +29,23 @@ _PyBytesLike_AsStringAndSize(PyObject *obj, char **buffer, Py_ssize_t *length)
     {
         *buffer = PyByteArray_AS_STRING(obj);
         *length = PyByteArray_GET_SIZE(obj);
+    }
+    else if (PyMemoryView_Check(obj))
+    {
+        Py_buffer *mv_buf;
+        mv_buf = PyMemoryView_GET_BUFFER(obj);
+        if (PyBuffer_IsContiguous(mv_buf, 'C'))
+        {
+            *buffer = mv_buf->buf;
+            *length = mv_buf->len;
+        }
+        else
+        {
+            PyErr_Format(
+                PyExc_TypeError,
+                "expected a contiguous memoryview");
+            return -1;
+        }
     }
     else
     {
@@ -43,13 +65,14 @@ static PyObject *
 apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
 {
 
-    // In order to support bytes and bytearray, accept any Python object.
+    // In order to support various bytes-like types, accept any Python object.
 
     static char *kwlist[] = {"data", "mask", NULL};
     PyObject *input_obj;
     PyObject *mask_obj;
 
-    // A pointer to the underlying char * will be extracted from these inputs.
+    // A pointer to a char * + length will be extracted from the data and mask
+    // arguments, possibly via a Py_buffer.
 
     char *input;
     Py_ssize_t input_len;

@@ -237,18 +237,22 @@ class Frame(FrameData):
 
 def encode_data(data):
     """
-    Helper that converts :class:`str` or :class:`bytes` to :class:`bytes`.
+    Convert a string or byte-like object to bytes.
 
-    :class:`str` are encoded with UTF-8.
+    If ``data`` is a :class:`str`, return a :class:`bytes` object encoding
+    ``data`` in UTF-8.
+
+    If ``data`` is a bytes-like object, return a :class:`bytes` object.
+
+    Raise :exc:`TypeError` for other inputs.
 
     """
-    # Expect str or bytes, return bytes.
     if isinstance(data, str):
         return data.encode('utf-8')
-    elif isinstance(data, bytes):
-        return data
+    elif isinstance(data, collections.abc.ByteString):
+        return bytes(data)
     else:
-        raise TypeError("data must be bytes or str")
+        raise TypeError("data must be bytes-like or str")
 
 
 def parse_close(data):

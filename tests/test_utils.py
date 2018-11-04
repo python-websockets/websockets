@@ -1,3 +1,4 @@
+import itertools
 import unittest
 
 from websockets.utils import apply_mask as py_apply_mask
@@ -9,14 +10,16 @@ class UtilsTests(unittest.TestCase):
         return py_apply_mask(*args, **kwargs)
 
     def test_apply_mask(self):
-        for data_in, mask, data_out in [
-            (b'', b'1234', b''),
-            (b'aBcDe', b'\x00\x00\x00\x00', b'aBcDe'),
-            (b'abcdABCD', b'1234', b'PPPPpppp'),
-            (b'abcdABCD' * 10, b'1234', b'PPPPpppp' * 10),
-        ]:
-            with self.subTest(data_in=data_in, mask=mask):
-                self.assertEqual(self.apply_mask(data_in, mask), data_out)
+        for data_type, mask_type in itertools.product([bytes, bytearray], repeat=2):
+            for data_in, mask, data_out in [
+                (b'', b'1234', b''),
+                (b'aBcDe', b'\x00\x00\x00\x00', b'aBcDe'),
+                (b'abcdABCD', b'1234', b'PPPPpppp'),
+                (b'abcdABCD' * 10, b'1234', b'PPPPpppp' * 10),
+            ]:
+                data_in, mask = data_type(data_in), mask_type(mask)
+                with self.subTest(data_in=data_in, mask=mask):
+                    self.assertEqual(self.apply_mask(data_in, mask), data_out)
 
     def test_apply_mask_check_input_types(self):
         for data_in, mask in [(None, None), (b'abcd', None), (None, b'abcd')]:

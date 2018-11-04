@@ -158,7 +158,14 @@ class FramingTests(unittest.TestCase):
     def test_encode_data_bytes(self):
         self.assertEqual(encode_data(b'tea'), b'tea')
 
-    def test_encode_data_other(self):
+    def test_encode_data_bytearray(self):
+        self.assertEqual(encode_data(bytearray(b'tea')), b'tea')
+
+    def test_encode_data_list(self):
+        with self.assertRaises(TypeError):
+            encode_data([])
+
+    def test_encode_data_none(self):
         with self.assertRaises(TypeError):
             encode_data(None)
 

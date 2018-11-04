@@ -461,17 +461,21 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         yield from self.ensure_open()
 
-        # Unfragmented message (first because str and bytes are iterable).
+        # Unfragmented message -- this case must be handled first because
+        # strings and bytes-like objects are iterable.
 
-        if isinstance(data, str):
-            yield from self.write_frame(True, OP_TEXT, data.encode('utf-8'))
-
-        elif isinstance(data, collections.abc.ByteString):
-            yield from self.write_frame(True, OP_BINARY, data)
+        try:
+            opcode, data = prepare_data(data)
+        except TypeError:
+            # Perhaps data is an iterator, see below.
+            pass
+        else:
+            yield from self.write_frame(True, opcode, data)
+            return
 
         # Fragmented message -- regular iterator.
 
-        elif isinstance(data, collections.abc.Iterable):
+        if isinstance(data, collections.abc.Iterable):
             iter_data = iter(data)
 
             # First fragment.
@@ -479,29 +483,21 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 data = next(iter_data)
             except StopIteration:
                 return
-            data_type = type(data)
-            if isinstance(data, str):
-                yield from self.write_frame(False, OP_TEXT, data.encode('utf-8'))
-                encode_data = True
-            elif isinstance(data, collections.abc.ByteString):
-                yield from self.write_frame(False, OP_BINARY, data)
-                encode_data = False
-            else:
-                raise TypeError("data must be an iterable of bytes or str")
+            opcode, data = prepare_data(data)
+            yield from self.write_frame(False, opcode, data)
 
             # Other fragments.
             for data in iter_data:
-                if type(data) != data_type:
+                confirm_opcode, data = prepare_data(data)
+                if confirm_opcode != opcode:
                     # We're half-way through a fragmented message and we can't
                     # complete it. This makes the connection unusable.
                     self.fail_connection(1011)
                     raise TypeError("data contains inconsistent types")
-                if encode_data:
-                    data = data.encode('utf-8')
                 yield from self.write_frame(False, OP_CONT, data)
 
             # Final fragment.
-            yield from self.write_frame(True, OP_CONT, type(data)())
+            yield from self.write_frame(True, OP_CONT, b'')
 
         # Fragmented message -- asynchronous iterator
 

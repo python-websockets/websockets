@@ -68,7 +68,7 @@ Shared
    .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None)
 
         .. automethod:: close(code=1000, reason='')
-        .. automethod:: wait_closed(code=1000, reason='')
+        .. automethod:: wait_closed()
 
         .. automethod:: recv()
         .. automethod:: send(data)

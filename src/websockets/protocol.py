@@ -888,7 +888,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Defensive assertion for protocol compliance.
         if self.state is not _expected_state:  # pragma: no cover
             raise InvalidState(
-                "Cannot write to a WebSocket " "in the {} state".format(self.state.name)
+                "Cannot write to a WebSocket in the {} state".format(self.state.name)
             )
 
         frame = Frame(fin, opcode, data)

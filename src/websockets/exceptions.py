@@ -43,6 +43,16 @@ class AbortHandshake(InvalidHandshake):
         super().__init__(message)
 
 
+class RedirectHandshake(InvalidHandshake):
+    """
+    Exception raised when a handshake gets redirected.
+
+    """
+
+    def __init__(self, wsuri):
+        self.wsuri = wsuri
+
+
 class InvalidMessage(InvalidHandshake):
     """
     Exception raised when the HTTP message in a handshake request is malformed.

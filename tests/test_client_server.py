@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import functools
+import http
 import logging
 import pathlib
 import random
@@ -19,6 +20,7 @@ from websockets.compatibility import FORBIDDEN, OK, UNAUTHORIZED
 from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
+    InvalidMessage,
     InvalidStatusCode,
     NegotiationError,
 )
@@ -77,6 +79,16 @@ def temp_test_server(test, **kwds):
         yield
     finally:
         test.stop_server()
+
+
+@contextlib.contextmanager
+def temp_test_redirecting_server(test, status,
+                                 include_location=True, force_insecure=False):
+    test.start_redirecting_server(status, include_location, force_insecure)
+    try:
+        yield
+    finally:
+        test.stop_redirecting_server()
 
 
 @contextlib.contextmanager
@@ -227,6 +239,8 @@ class ClientServerTests(unittest.TestCase):
     def setUp(self):
         self.loop = asyncio.new_event_loop()
         asyncio.set_event_loop(self.loop)
+        self.server = None
+        self.redirecting_server = None
 
     def tearDown(self):
         self.loop.close()
@@ -237,6 +251,10 @@ class ClientServerTests(unittest.TestCase):
         self.loop.call_soon(self.loop.stop)
         self.loop.run_forever()
 
+    @property
+    def server_context(self):
+        return None
+
     def start_server(self, **kwds):
         # Disable compression by default in tests.
         kwds.setdefault('compression', None)
@@ -245,13 +263,30 @@ class ClientServerTests(unittest.TestCase):
         start_server = serve(handler, 'localhost', 0, **kwds)
         self.server = self.loop.run_until_complete(start_server)
 
+    def start_redirecting_server(self, status,
+                                 include_location=True, force_insecure=False):
+        def _process_request(path, headers):
+            server_uri = get_server_uri(self.server, self.secure, path)
+            if force_insecure:
+                server_uri = server_uri.replace('wss:', 'ws:')
+            headers = {'Location': server_uri} if include_location else []
+            return status, headers, b""
+
+        start_server = serve(handler, 'localhost', 0,
+                             compression=None,
+                             ping_interval=None,
+                             process_request=_process_request,
+                             ssl=self.server_context)
+        self.redirecting_server = self.loop.run_until_complete(start_server)
+
     def start_client(self, resource_name='/', user_info=None, **kwds):
         # Disable compression by default in tests.
         kwds.setdefault('compression', None)
         # Disable pings by default in tests.
         kwds.setdefault('ping_interval', None)
         secure = kwds.get('ssl') is not None
-        server_uri = get_server_uri(self.server, secure, resource_name, user_info)
+        server = self.redirecting_server if self.redirecting_server else self.server
+        server_uri = get_server_uri(server, secure, resource_name, user_info)
         start_client = connect(server_uri, **kwds)
         self.client = self.loop.run_until_complete(start_client)
 
@@ -272,6 +307,17 @@ class ClientServerTests(unittest.TestCase):
         except asyncio.TimeoutError:  # pragma: no cover
             self.fail("Server failed to stop")
 
+    def stop_redirecting_server(self):
+        self.redirecting_server.close()
+        try:
+            self.loop.run_until_complete(
+                asyncio.wait_for(self.redirecting_server.wait_closed(), timeout=1)
+            )
+        except asyncio.TimeoutError:  # pragma: no cover
+            self.fail("Redirecting server failed to stop")
+        finally:
+            self.redirecting_server = None
+
     @contextlib.contextmanager
     def temp_server(self, **kwds):
         with temp_test_server(self, **kwds):
@@ -288,6 +334,37 @@ class ClientServerTests(unittest.TestCase):
         self.loop.run_until_complete(self.client.send("Hello!"))
         reply = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(reply, "Hello!")
+
+    @with_server()
+    def test_redirect(self):
+        redirect_statuses = [
+            http.HTTPStatus.MOVED_PERMANENTLY,
+            http.HTTPStatus.FOUND,
+            http.HTTPStatus.SEE_OTHER,
+            http.HTTPStatus.TEMPORARY_REDIRECT,
+            http.HTTPStatus.PERMANENT_REDIRECT,
+        ]
+        for status in redirect_statuses:
+            with temp_test_redirecting_server(self, status):
+                with temp_test_client(self):
+                    self.loop.run_until_complete(self.client.send("Hello!"))
+                    reply = self.loop.run_until_complete(self.client.recv())
+                    self.assertEqual(reply, "Hello!")
+
+    def test_infinite_redirect(self):
+        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND):
+            self.server = self.redirecting_server
+            with self.assertRaises(InvalidHandshake):
+                with temp_test_client(self):
+                    self.fail('Did not raise')  # pragma: no cover
+
+    @with_server()
+    def test_redirect_missing_location(self):
+        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND,
+                                          include_location=False):
+            with self.assertRaises(InvalidMessage):
+                with temp_test_client(self):
+                    self.fail('Did not raise')  # pragma: no cover
 
     def test_explicit_event_loop(self):
         with self.temp_server(loop=self.loop):
@@ -1069,6 +1146,14 @@ class SSLClientServerTests(ClientServerTests):
             # before awaiting.  However, with Python 3.4 the exception is
             # raised only when awaiting.
             self.loop.run_until_complete(client)  # pragma: no cover
+
+    @with_server()
+    def test_redirect_insecure(self):
+        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND,
+                                          force_insecure=True):
+            with self.assertRaises(InvalidHandshake):
+                with temp_test_client(self):
+                    self.fail('Did not raise')  # pragma: no cover
 
 
 class ClientServerOriginTests(unittest.TestCase):

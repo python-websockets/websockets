@@ -1,3 +1,6 @@
+from ..exceptions import InvalidHandshake, RedirectHandshake
+
+
 async def __aenter__(self):
     return await self
 
@@ -9,20 +12,30 @@ async def __aexit__(self, exc_type, exc_value, traceback):
 async def __await_impl__(self):
     # Duplicated with __iter__ because Python 3.7 requires an async function
     # (as explained in __await__ below) which Python 3.4 doesn't support.
-    transport, protocol = await self._creating_connection
+    for redirects in range(self.MAX_REDIRECTS_ALLOWED):
+        transport, protocol = await self._creating_connection()
 
-    try:
-        await protocol.handshake(
-            self._wsuri,
-            origin=self._origin,
-            available_extensions=protocol.available_extensions,
-            available_subprotocols=protocol.available_subprotocols,
-            extra_headers=protocol.extra_headers,
-        )
-    except Exception:
-        protocol.fail_connection()
-        await protocol.wait_closed()
-        raise
+        try:
+            try:
+                await protocol.handshake(
+                    self._wsuri,
+                    origin=self._origin,
+                    available_extensions=protocol.available_extensions,
+                    available_subprotocols=protocol.available_subprotocols,
+                    extra_headers=protocol.extra_headers,
+                )
+                break  # redirection chain ended
+            except Exception:
+                protocol.fail_connection()
+                await protocol.wait_closed()
+                raise
+        except RedirectHandshake as e:
+            if self._wsuri.secure and not e.wsuri.secure:
+                raise InvalidHandshake('Redirect dropped TLS')
+            self._wsuri = e.wsuri
+            continue  # redirection chain continues
+    else:
+        raise InvalidHandshake('Maximum redirects exceeded')
 
     self.ws_client = protocol
     return protocol

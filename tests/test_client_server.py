@@ -82,8 +82,9 @@ def temp_test_server(test, **kwds):
 
 
 @contextlib.contextmanager
-def temp_test_redirecting_server(test, status,
-                                 include_location=True, force_insecure=False):
+def temp_test_redirecting_server(
+    test, status, include_location=True, force_insecure=False
+):
     test.start_redirecting_server(status, include_location, force_insecure)
     try:
         yield
@@ -263,8 +264,9 @@ class ClientServerTests(unittest.TestCase):
         start_server = serve(handler, 'localhost', 0, **kwds)
         self.server = self.loop.run_until_complete(start_server)
 
-    def start_redirecting_server(self, status,
-                                 include_location=True, force_insecure=False):
+    def start_redirecting_server(
+        self, status, include_location=True, force_insecure=False
+    ):
         def _process_request(path, headers):
             server_uri = get_server_uri(self.server, self.secure, path)
             if force_insecure:
@@ -272,11 +274,15 @@ class ClientServerTests(unittest.TestCase):
             headers = {'Location': server_uri} if include_location else []
             return status, headers, b""
 
-        start_server = serve(handler, 'localhost', 0,
-                             compression=None,
-                             ping_interval=None,
-                             process_request=_process_request,
-                             ssl=self.server_context)
+        start_server = serve(
+            handler,
+            'localhost',
+            0,
+            compression=None,
+            ping_interval=None,
+            process_request=_process_request,
+            ssl=self.server_context,
+        )
         self.redirecting_server = self.loop.run_until_complete(start_server)
 
     def start_client(self, resource_name='/', user_info=None, **kwds):
@@ -360,8 +366,9 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server()
     def test_redirect_missing_location(self):
-        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND,
-                                          include_location=False):
+        with temp_test_redirecting_server(
+            self, http.HTTPStatus.FOUND, include_location=False
+        ):
             with self.assertRaises(InvalidMessage):
                 with temp_test_client(self):
                     self.fail('Did not raise')  # pragma: no cover
@@ -1149,8 +1156,9 @@ class SSLClientServerTests(ClientServerTests):
 
     @with_server()
     def test_redirect_insecure(self):
-        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND,
-                                          force_insecure=True):
+        with temp_test_redirecting_server(
+            self, http.HTTPStatus.FOUND, force_insecure=True
+        ):
             with self.assertRaises(InvalidHandshake):
                 with temp_test_client(self):
                     self.fail('Did not raise')  # pragma: no cover

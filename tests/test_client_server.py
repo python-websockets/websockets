@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import functools
-import http
 import logging
 import pathlib
 import random
@@ -16,7 +15,16 @@ import urllib.request
 import warnings
 
 from websockets.client import *
-from websockets.compatibility import FORBIDDEN, OK, UNAUTHORIZED
+from websockets.compatibility import (
+    FORBIDDEN,
+    FOUND,
+    MOVED_PERMANENTLY,
+    OK,
+    PERMANENT_REDIRECT,
+    SEE_OTHER,
+    TEMPORARY_REDIRECT,
+    UNAUTHORIZED,
+)
 from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
@@ -344,11 +352,11 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     def test_redirect(self):
         redirect_statuses = [
-            http.HTTPStatus.MOVED_PERMANENTLY,
-            http.HTTPStatus.FOUND,
-            http.HTTPStatus.SEE_OTHER,
-            http.HTTPStatus.TEMPORARY_REDIRECT,
-            http.HTTPStatus.PERMANENT_REDIRECT,
+            MOVED_PERMANENTLY,
+            FOUND,
+            SEE_OTHER,
+            TEMPORARY_REDIRECT,
+            PERMANENT_REDIRECT,
         ]
         for status in redirect_statuses:
             with temp_test_redirecting_server(self, status):
@@ -358,7 +366,7 @@ class ClientServerTests(unittest.TestCase):
                     self.assertEqual(reply, "Hello!")
 
     def test_infinite_redirect(self):
-        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND):
+        with temp_test_redirecting_server(self, FOUND):
             self.server = self.redirecting_server
             with self.assertRaises(InvalidHandshake):
                 with temp_test_client(self):
@@ -366,9 +374,7 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server()
     def test_redirect_missing_location(self):
-        with temp_test_redirecting_server(
-            self, http.HTTPStatus.FOUND, include_location=False
-        ):
+        with temp_test_redirecting_server(self, FOUND, include_location=False):
             with self.assertRaises(InvalidMessage):
                 with temp_test_client(self):
                     self.fail('Did not raise')  # pragma: no cover
@@ -1156,9 +1162,7 @@ class SSLClientServerTests(ClientServerTests):
 
     @with_server()
     def test_redirect_insecure(self):
-        with temp_test_redirecting_server(
-            self, http.HTTPStatus.FOUND, force_insecure=True
-        ):
+        with temp_test_redirecting_server(self, FOUND, force_insecure=True):
             with self.assertRaises(InvalidHandshake):
                 with temp_test_client(self):
                     self.fail('Did not raise')  # pragma: no cover

@@ -20,6 +20,9 @@ Also:
   :meth:`~protocol.WebSocketCommonProtocol.pong` support bytes-like types
   :class:`bytearray` and :class:`memoryview` in addition to :class:`bytes`.
 
+* :func:`~client.connect()` handles redirects from the server during the
+  handshake.
+
 7.0
 ...
 

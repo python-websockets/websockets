@@ -24,6 +24,11 @@ try:  # pragma: no cover
     UPGRADE_REQUIRED = http.HTTPStatus.UPGRADE_REQUIRED
     INTERNAL_SERVER_ERROR = http.HTTPStatus.INTERNAL_SERVER_ERROR
     SERVICE_UNAVAILABLE = http.HTTPStatus.SERVICE_UNAVAILABLE
+    MOVED_PERMANENTLY = http.HTTPStatus.MOVED_PERMANENTLY
+    FOUND = http.HTTPStatus.FOUND
+    SEE_OTHER = http.HTTPStatus.SEE_OTHER
+    TEMPORARY_REDIRECT = http.HTTPStatus.TEMPORARY_REDIRECT
+    PERMANENT_REDIRECT = http.HTTPStatus.PERMANENT_REDIRECT
 except AttributeError:  # pragma: no cover
     # Python < 3.5
     class SWITCHING_PROTOCOLS:
@@ -57,3 +62,23 @@ except AttributeError:  # pragma: no cover
     class SERVICE_UNAVAILABLE:
         value = 503
         phrase = "Service Unavailable"
+
+    class MOVED_PERMANENTLY:
+        value = 301
+        phrase = "Moved Permanently"
+
+    class FOUND:
+        value = 302
+        phrase = "Found"
+
+    class SEE_OTHER:
+        value = 303
+        phrase = "See Other"
+
+    class TEMPORARY_REDIRECT:
+        value = 307
+        phrase = "Temporary Redirect"
+
+    class PERMANENT_REDIRECT:
+        value = 308
+        phrase = "Permanent Redirect"

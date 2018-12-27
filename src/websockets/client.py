@@ -13,6 +13,7 @@ from .exceptions import (
     InvalidMessage,
     InvalidStatusCode,
     NegotiationError,
+    RedirectHandshake,
 )
 from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from .handshake import build_request, check_response
@@ -289,8 +290,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.write_http_request(wsuri.resource_name, request_headers)
 
         status_code, response_headers = yield from self.read_http_response()
-
-        if status_code != 101:
+        if status_code in (301, 302, 303, 307, 308):
+            if 'Location' not in response_headers:
+                raise InvalidMessage('Redirect response missing Location')
+            raise RedirectHandshake(parse_uri(response_headers['Location']))
+        elif status_code != 101:
             raise InvalidStatusCode(status_code)
 
         check_response(response_headers, key)
@@ -358,6 +362,8 @@ class Connect:
 
     """
 
+    MAX_REDIRECTS_ALLOWED = 10
+
     def __init__(
         self,
         uri,
@@ -394,8 +400,8 @@ class Connect:
         if create_protocol is None:
             create_protocol = klass
 
-        wsuri = parse_uri(uri)
-        if wsuri.secure:
+        self._wsuri = parse_uri(uri)
+        if self._wsuri.secure:
             kwds.setdefault('ssl', True)
         elif kwds.get('ssl') is not None:
             raise ValueError(
@@ -416,53 +422,86 @@ class Connect:
         elif compression is not None:
             raise ValueError("Unsupported compression: {}".format(compression))
 
-        factory = lambda: create_protocol(
-            host=wsuri.host,
-            port=wsuri.port,
-            secure=wsuri.secure,
-            ping_interval=ping_interval,
-            ping_timeout=ping_timeout,
-            close_timeout=close_timeout,
-            max_size=max_size,
-            max_queue=max_queue,
-            read_limit=read_limit,
-            write_limit=write_limit,
-            loop=loop,
-            legacy_recv=legacy_recv,
-            origin=origin,
-            extensions=extensions,
-            subprotocols=subprotocols,
-            extra_headers=extra_headers,
+        self._create_protocol = create_protocol
+        self._ping_interval = ping_interval
+        self._ping_timeout = ping_timeout
+        self._close_timeout = close_timeout
+        self._max_size = max_size
+        self._max_queue = max_queue
+        self._read_limit = read_limit
+        self._write_limit = write_limit
+        self._loop = loop
+        self._legacy_recv = legacy_recv
+        self._klass = klass
+        self._timeout = timeout
+        self._compression = compression
+        self._origin = origin
+        self._extensions = extensions
+        self._subprotocols = subprotocols
+        self._extra_headers = extra_headers
+        self._kwds = kwds
+
+    def _creating_connection(self):
+        if self._wsuri.secure:
+            self._kwds.setdefault('ssl', True)
+
+        factory = lambda: self._create_protocol(
+            host=self._wsuri.host,
+            port=self._wsuri.port,
+            secure=self._wsuri.secure,
+            ping_interval=self._ping_interval,
+            ping_timeout=self._ping_timeout,
+            close_timeout=self._close_timeout,
+            max_size=self._max_size,
+            max_queue=self._max_queue,
+            read_limit=self._read_limit,
+            write_limit=self._write_limit,
+            loop=self._loop,
+            legacy_recv=self._legacy_recv,
+            origin=self._origin,
+            extensions=self._extensions,
+            subprotocols=self._subprotocols,
+            extra_headers=self._extra_headers,
         )
 
-        if kwds.get('sock') is None:
-            host, port = wsuri.host, wsuri.port
+        if self._kwds.get('sock') is None:
+            host, port = self._wsuri.host, self._wsuri.port
         else:
             # If sock is given, host and port mustn't be specified.
             host, port = None, None
 
-        self._wsuri = wsuri
-        self._origin = origin
+        self._wsuri = self._wsuri
+        self._origin = self._origin
 
         # This is a coroutine object.
-        self._creating_connection = loop.create_connection(factory, host, port, **kwds)
+        return self._loop.create_connection(factory, host, port, **self._kwds)
 
     @asyncio.coroutine
     def __iter__(self):  # pragma: no cover
-        transport, protocol = yield from self._creating_connection
+        for redirects in range(self.MAX_REDIRECTS_ALLOWED):
+            transport, protocol = yield from self._creating_connection()
 
-        try:
-            yield from protocol.handshake(
-                self._wsuri,
-                origin=self._origin,
-                available_extensions=protocol.available_extensions,
-                available_subprotocols=protocol.available_subprotocols,
-                extra_headers=protocol.extra_headers,
-            )
-        except Exception:
-            protocol.fail_connection()
-            yield from protocol.wait_closed()
-            raise
+            try:
+                try:
+                    yield from protocol.handshake(
+                        self._wsuri,
+                        origin=self._origin,
+                        available_extensions=protocol.available_extensions,
+                        available_subprotocols=protocol.available_subprotocols,
+                        extra_headers=protocol.extra_headers,
+                    )
+                    break  # redirection chain ended
+                except Exception:
+                    protocol.fail_connection()
+                    yield from protocol.wait_closed()
+                    raise
+            except RedirectHandshake as e:
+                if self._wsuri.secure and not e.wsuri.secure:
+                    raise InvalidHandshake('Redirect dropped TLS')
+                self._wsuri = e.wsuri
+                continue  # redirection chain continues
+        else:
+            raise InvalidHandshake('Maximum redirects exceeded')
 
         self.ws_client = protocol
         return protocol

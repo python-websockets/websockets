@@ -506,11 +506,58 @@ class Connect:
         self.ws_client = protocol
         return protocol
 
+    async def __aenter__(self):
+        return await self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await self.ws_client.close()
+
+    async def __await_impl__(self):
+        # Duplicated with __iter__ because Python 3.7 requires an async function
+        # (as explained in __await__ below) which Python 3.4 doesn't support.
+        for redirects in range(self.MAX_REDIRECTS_ALLOWED):
+            transport, protocol = await self._creating_connection()
+
+            try:
+                try:
+                    await protocol.handshake(
+                        self._wsuri,
+                        origin=self._origin,
+                        available_extensions=protocol.available_extensions,
+                        available_subprotocols=protocol.available_subprotocols,
+                        extra_headers=protocol.extra_headers,
+                    )
+                    break  # redirection chain ended
+                except Exception:
+                    protocol.fail_connection()
+                    await protocol.wait_closed()
+                    raise
+            except RedirectHandshake as e:
+                if self._wsuri.secure and not e.wsuri.secure:
+                    raise InvalidHandshake("Redirect dropped TLS")
+                self._wsuri = e.wsuri
+                continue  # redirection chain continues
+        else:
+            raise InvalidHandshake("Maximum redirects exceeded")
+
+        self.ws_client = protocol
+        return protocol
+
+    def __await__(self):
+        # __await__() must return a type that I don't know how to obtain except
+        # by calling __await__() on the return value of an async function.
+        # I'm not finding a better way to take advantage of PEP 492.
+        return self.__await_impl__().__await__()
+
 
 # We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
 # didn't accept arbitrary awaitables until Python 3.5.1. We don't define
 # __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
-if sys.version_info[:3] <= (3, 5, 0):  # pragma: no cover
+if sys.version_info[:3] < (3, 5, 1):  # pragma: no cover
+
+    del Connect.__aenter__
+    del Connect.__aexit__
+    del Connect.__await__
 
     @asyncio.coroutine
     def connect(*args, **kwds):
@@ -519,9 +566,5 @@ if sys.version_info[:3] <= (3, 5, 0):  # pragma: no cover
     connect.__doc__ = Connect.__doc__
 
 else:
-    from .py35.client import __aenter__, __aexit__, __await__
 
-    Connect.__aenter__ = __aenter__
-    Connect.__aexit__ = __aexit__
-    Connect.__await__ = __await__
     connect = Connect

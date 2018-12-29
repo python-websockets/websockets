@@ -850,6 +850,26 @@ class Serve:
         self.ws_server.wrap(server)
         return self.ws_server
 
+    async def __aenter__(self):
+        return await self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        self.ws_server.close()
+        await self.ws_server.wait_closed()
+
+    async def __await_impl__(self):
+        # Duplicated with __iter__ because Python 3.7 requires an async function
+        # (as explained in __await__ below) which Python 3.4 doesn't support.
+        server = await self._creating_server
+        self.ws_server.wrap(server)
+        return self.ws_server
+
+    def __await__(self):
+        # __await__() must return a type that I don't know how to obtain except
+        # by calling __await__() on the return value of an async function.
+        # I'm not finding a better way to take advantage of PEP 492.
+        return self.__await_impl__().__await__()
+
 
 def unix_serve(ws_handler, path, **kwargs):
     """
@@ -869,7 +889,11 @@ def unix_serve(ws_handler, path, **kwargs):
 # We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
 # didn't accept arbitrary awaitables until Python 3.5.1. We don't define
 # __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
-if sys.version_info[:3] <= (3, 5, 0):  # pragma: no cover
+if sys.version_info[:3] < (3, 5, 1):  # pragma: no cover
+
+    del Serve.__aenter__
+    del Serve.__aexit__
+    del Serve.__await__
 
     @asyncio.coroutine
     def serve(*args, **kwds):
@@ -878,9 +902,5 @@ if sys.version_info[:3] <= (3, 5, 0):  # pragma: no cover
     serve.__doc__ = Serve.__doc__
 
 else:
-    from .py35.server import __aenter__, __aexit__, __await__
 
-    Serve.__aenter__ = __aenter__
-    Serve.__aexit__ = __aexit__
-    Serve.__await__ = __await__
     serve = Serve

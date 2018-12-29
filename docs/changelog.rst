@@ -28,6 +28,8 @@ Also:
 * :func:`~client.connect()` handles redirects from the server during the
   handshake.
 
+* Added documentation for extensions.
+
 7.0
 ...
 

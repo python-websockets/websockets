@@ -60,6 +60,7 @@ These guides will help you build and deploy a ``websockets`` application.
 
    cheatsheet
    deployment
+   extensions
 
 Reference
 ---------

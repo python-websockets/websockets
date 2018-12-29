@@ -1,7 +1,8 @@
 """
-The :mod:`websockets.extensions.base` defines abstract classes for extensions.
+The :mod:`websockets.extensions.base` module defines abstract classes for
+implementing extensions as specified in `section 9 of RFC 6455`_.
 
-See https://tools.ietf.org/html/rfc6455#section-9.
+.. _section 9 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-9
 
 """
 
@@ -10,11 +11,14 @@ class ClientExtensionFactory:
     """
     Abstract class for client-side extension factories.
 
-    Extension factories handle configuration and negotiation.
-
     """
 
-    name = ...
+    @property
+    def name(self):
+        """
+        Extension identifier.
+
+        """
 
     def get_request_params(self):
         """
@@ -25,18 +29,17 @@ class ClientExtensionFactory:
         """
 
     def process_response_params(self, params, accepted_extensions):
-        """"
-        Process response parameters.
+        """
+        Process response parameters received from the server.
 
-        ``params`` are a list of (name, value) pairs.
+        ``params`` is a list of (name, value) pairs.
 
-        ``accepted_extensions`` is a list of previously accepted extensions,
-        represented by extension instances.
+        ``accepted_extensions`` is a list of previously accepted extensions.
 
-        Return an extension instance (an instance of a subclass of
-        :class:`Extension`) if these parameters are acceptable.
+        If parameters are acceptable, return an extension: an instance of a
+        subclass of :class:`Extension`.
 
-        Raise :exc:`~websockets.exceptions.NegotiationError` if they aren't.
+        If they aren't, raise :exc:`~websockets.exceptions.NegotiationError`.
 
         """
 
@@ -45,24 +48,30 @@ class ServerExtensionFactory:
     """
     Abstract class for server-side extension factories.
 
-    Extension factories handle configuration and negotiation.
-
     """
 
-    name = ...
+    @property
+    def name(self):
+        """
+        Extension identifier.
+
+        """
 
     def process_request_params(self, params, accepted_extensions):
-        """"
-        Process request parameters.
+        """
+        Process request parameters received from the client.
 
-        ``accepted_extensions`` is a list of previously accepted extensions,
-        represented by extension instances.
+        ``params`` is a list of (name, value) pairs.
 
-        Return response params (a list of (name, value) pairs) and an
-        extension instance (an instance of a subclass of :class:`Extension`)
-        to accept this extension.
+        ``accepted_extensions`` is a list of previously accepted extensions.
 
-        Raise :exc:`~websockets.exceptions.NegotiationError` to reject it.
+        To accept the offer, return a 2-uple containing:
+
+        - response parameters: a list of (name, value) pairs
+        - an extension: an instance of a subclass of :class:`Extension`
+
+        To reject the offer, raise
+        :exc:`~websockets.exceptions.NegotiationError`.
 
         """
 
@@ -73,13 +82,21 @@ class Extension:
 
     """
 
-    name = ...
+    @property
+    def name(self):
+        """
+        Extension identifier.
+
+        """
 
     def decode(self, frame, *, max_size=None):
         """
         Decode an incoming frame.
 
-        Return a frame.
+        The ``frame`` parameter and the return value are
+        :class:`~websockets.framing.Frame` instances.
+
+
 
         """
 
@@ -87,6 +104,7 @@ class Extension:
         """
         Encode an outgoing frame.
 
-        Return a frame.
+        The ``frame`` parameter and the return value are
+        :class:`~websockets.framing.Frame` instances.
 
         """

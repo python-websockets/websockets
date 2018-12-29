@@ -82,6 +82,15 @@ Shared
         .. autoattribute:: open
         .. autoattribute:: closed
 
+Per-Message Deflate Extension
+.............................
+
+.. automodule:: websockets.extensions.permessage_deflate
+
+  .. autoclass:: ServerPerMessageDeflateFactory
+
+  .. autoclass:: ClientPerMessageDeflateFactory
+
 Exceptions
 ..........
 

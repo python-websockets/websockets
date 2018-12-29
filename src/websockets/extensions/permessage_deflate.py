@@ -113,7 +113,22 @@ def _extract_parameters(params, *, is_server):
 
 class ClientPerMessageDeflateFactory:
     """
-    Client-side extension factory for permessage-deflate extension.
+    Client-side extension factory for Per-Message Deflate extension.
+
+    These parameters behave as described in `section 7.1 of RFC 7692`_:
+
+    - ``server_no_context_takeover``
+    - ``client_no_context_takeover``
+    - ``server_max_window_bits``
+    - ``client_max_window_bits``
+
+    Set them to ``True`` to include them in the negotiation offer without a
+    value or to an integer value to include them with this value.
+
+    .. _section 7.1 of RFC 7692: https://tools.ietf.org/html/rfc7692#section-7.1
+
+    ``compress_settings`` is an optional :class:`dict` of keyword arguments
+    for :func:`zlib.compressobj`, excluding ``wbits``.
 
     """
 
@@ -128,9 +143,7 @@ class ClientPerMessageDeflateFactory:
         compress_settings=None,
     ):
         """
-        Configure permessage-deflate extension factory.
-
-        See https://tools.ietf.org/html/rfc7692#section-7.1.
+        Configure the Per-Message Deflate extension factory.
 
         """
         if not (server_max_window_bits is None or 8 <= server_max_window_bits <= 15):
@@ -166,7 +179,7 @@ class ClientPerMessageDeflateFactory:
         )
 
     def process_response_params(self, params, accepted_extensions):
-        """"
+        """
         Process response parameters.
 
         Return an extension instance.
@@ -269,7 +282,22 @@ class ClientPerMessageDeflateFactory:
 
 class ServerPerMessageDeflateFactory:
     """
-    Server-side extension factory for permessage-deflate extension.
+    Server-side extension factory for the Per-Message Deflate extension.
+
+    These parameters behave as described in `section 7.1 of RFC 7692`_:
+
+    - ``server_no_context_takeover``
+    - ``client_no_context_takeover``
+    - ``server_max_window_bits``
+    - ``client_max_window_bits``
+
+    Set them to ``True`` to include them in the negotiation offer without a
+    value or to an integer value to include them with this value.
+
+    .. _section 7.1 of RFC 7692: https://tools.ietf.org/html/rfc7692#section-7.1
+
+    ``compress_settings`` is an optional :class:`dict` of keyword arguments
+    for :func:`zlib.compressobj`, excluding ``wbits``.
 
     """
 
@@ -284,9 +312,7 @@ class ServerPerMessageDeflateFactory:
         compress_settings=None,
     ):
         """
-        Configure permessage-deflate extension factory.
-
-        See https://tools.ietf.org/html/rfc7692#section-7.1.
+        Configure the Per-Message Deflate extension factory.
 
         """
         if not (server_max_window_bits is None or 8 <= server_max_window_bits <= 15):
@@ -306,7 +332,7 @@ class ServerPerMessageDeflateFactory:
         self.compress_settings = compress_settings
 
     def process_request_params(self, params, accepted_extensions):
-        """"
+        """
         Process request parameters.
 
         Return response params and an extension instance.
@@ -416,7 +442,7 @@ class ServerPerMessageDeflateFactory:
 
 class PerMessageDeflate:
     """
-    permessage-deflate extension.
+    Per-Message Deflate extension.
 
     """
 
@@ -431,7 +457,7 @@ class PerMessageDeflate:
         compress_settings=None,
     ):
         """
-        Configure permessage-deflate extension.
+        Configure the Per-Message Deflate extension.
 
         """
         if compress_settings is None:

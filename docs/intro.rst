@@ -233,7 +233,6 @@ Python < 3.6
 This documentation takes advantage of several features that aren't available
 in Python < 3.6:
 
-- ``await`` and ``async`` were added in Python 3.5;
 - Asynchronous context managers didn't work well until Python 3.5.1;
 - Asynchronous iterators were added in Python 3.6;
 - f-strings were introduced in Python 3.6 (this is unrelated to :mod:`asyncio`
@@ -242,34 +241,10 @@ in Python < 3.6:
 Here's how to adapt the basic server example.
 
 .. literalinclude:: ../example/old_server.py
-    :emphasize-lines: 8-9,18
 
 And here's the basic client example.
 
 .. literalinclude:: ../example/old_client.py
-    :emphasize-lines: 8-11,13,22-23
-
-``await`` and ``async``
-.......................
-
-If you're using Python < 3.5, you must substitute::
-
-    async def ...
-
-with::
-
-    @asyncio.coroutine
-    def ...
-
-and::
-
-     await ...
-
-with::
-
-    yield from ...
-
-Otherwise you will encounter a :exc:`SyntaxError`.
 
 Asynchronous context managers
 .............................

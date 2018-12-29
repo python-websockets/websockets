@@ -79,8 +79,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         self.writer.write(request.encode())
 
-    @asyncio.coroutine
-    def read_http_response(self):
+    async def read_http_response(self):
         """
         Read status line and headers from the HTTP response.
 
@@ -93,7 +92,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         try:
-            status_code, reason, headers = yield from read_response(self.reader)
+            status_code, reason, headers = await read_response(self.reader)
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
@@ -220,8 +219,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         return subprotocol
 
-    @asyncio.coroutine
-    def handshake(
+    async def handshake(
         self,
         wsuri,
         origin=None,
@@ -289,7 +287,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         self.write_http_request(wsuri.resource_name, request_headers)
 
-        status_code, response_headers = yield from self.read_http_response()
+        status_code, response_headers = await self.read_http_response()
         if status_code in (301, 302, 303, 307, 308):
             if "Location" not in response_headers:
                 raise InvalidMessage("Redirect response missing Location")
@@ -477,13 +475,22 @@ class Connect:
         return self._loop.create_connection(factory, host, port, **self._kwds)
 
     @asyncio.coroutine
-    def __iter__(self):  # pragma: no cover
+    def __iter__(self):
+        return self.__await_impl__()
+
+    async def __aenter__(self):
+        return await self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        await self.ws_client.close()
+
+    async def __await_impl__(self):
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):
-            transport, protocol = yield from self._creating_connection()
+            transport, protocol = await self._creating_connection()
 
             try:
                 try:
-                    yield from protocol.handshake(
+                    await protocol.handshake(
                         self._wsuri,
                         origin=self._origin,
                         available_extensions=protocol.available_extensions,
@@ -493,7 +500,7 @@ class Connect:
                     break  # redirection chain ended
                 except Exception:
                     protocol.fail_connection()
-                    yield from protocol.wait_closed()
+                    await protocol.wait_closed()
                     raise
             except RedirectHandshake as e:
                 if self._wsuri.secure and not e.wsuri.secure:
@@ -506,22 +513,27 @@ class Connect:
         self.ws_client = protocol
         return protocol
 
+    def __await__(self):
+        # __await__() must return a type that I don't know how to obtain except
+        # by calling __await__() on the return value of an async function.
+        # I'm not finding a better way to take advantage of PEP 492.
+        return self.__await_impl__().__await__()
+
 
 # We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
 # didn't accept arbitrary awaitables until Python 3.5.1. We don't define
 # __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
-if sys.version_info[:3] <= (3, 5, 0):  # pragma: no cover
+if sys.version_info[:3] < (3, 5, 1):  # pragma: no cover
 
-    @asyncio.coroutine
-    def connect(*args, **kwds):
+    del Connect.__aenter__
+    del Connect.__aexit__
+    del Connect.__await__
+
+    async def connect(*args, **kwds):
         return Connect(*args, **kwds).__iter__()
 
     connect.__doc__ = Connect.__doc__
 
 else:
-    from .py35.client import __aenter__, __aexit__, __await__
 
-    Connect.__aenter__ = __aenter__
-    Connect.__aexit__ = __aexit__
-    Connect.__await__ = __await__
     connect = Connect

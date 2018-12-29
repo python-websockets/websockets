@@ -7,7 +7,6 @@ from :mod:`websockets.http`.
 
 """
 
-import asyncio
 import collections.abc
 import re
 import sys
@@ -49,8 +48,7 @@ _token_re = re.compile(rb"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 
-@asyncio.coroutine
-def read_request(stream):
+async def read_request(stream):
     """
     Read an HTTP/1.1 GET request from ``stream``.
 
@@ -76,7 +74,7 @@ def read_request(stream):
     # version and because path isn't checked. Since WebSocket software tends
     # to implement HTTP/1.1 strictly, there's little need for lenient parsing.
 
-    request_line = yield from read_line(stream)
+    request_line = await read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
     method, path, version = request_line.split(b" ", 2)
@@ -87,13 +85,12 @@ def read_request(stream):
         raise ValueError("Unsupported HTTP version: %r" % version)
     path = path.decode("ascii", "surrogateescape")
 
-    headers = yield from read_headers(stream)
+    headers = await read_headers(stream)
 
     return path, headers
 
 
-@asyncio.coroutine
-def read_response(stream):
+async def read_response(stream):
     """
     Read an HTTP/1.1 response from ``stream``.
 
@@ -117,7 +114,7 @@ def read_response(stream):
     # As in read_request, parsing is simple because a fixed value is expected
     # for version, status_code is a 3-digit number, and reason can be ignored.
 
-    status_line = yield from read_line(stream)
+    status_line = await read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
     version, status_code, reason = status_line.split(b" ", 2)
@@ -132,13 +129,12 @@ def read_response(stream):
         raise ValueError("Invalid HTTP reason phrase: %r" % reason)
     reason = reason.decode()
 
-    headers = yield from read_headers(stream)
+    headers = await read_headers(stream)
 
     return status_code, reason, headers
 
 
-@asyncio.coroutine
-def read_headers(stream):
+async def read_headers(stream):
     """
     Read HTTP headers from ``stream``.
 
@@ -155,7 +151,7 @@ def read_headers(stream):
 
     headers = Headers()
     for _ in range(MAX_HEADERS + 1):
-        line = yield from read_line(stream)
+        line = await read_line(stream)
         if line == b"":
             break
 
@@ -177,8 +173,7 @@ def read_headers(stream):
     return headers
 
 
-@asyncio.coroutine
-def read_line(stream):
+async def read_line(stream):
     """
     Read a single line from ``stream``.
 
@@ -188,7 +183,7 @@ def read_line(stream):
 
     """
     # Security: this is bounded by the StreamReader's limit (default = 32kB).
-    line = yield from stream.readline()
+    line = await stream.readline()
     # Security: this guarantees header values are small (hard-coded = 4kB)
     if len(line) > MAX_LINE:
         raise ValueError("Line too long")

@@ -6,7 +6,6 @@ import sys
 import threading
 
 import websockets
-from websockets.compatibility import asyncio_ensure_future
 from websockets.exceptions import format_close
 
 
@@ -88,10 +87,9 @@ def print_over_input(string):
     sys.stdout.flush()
 
 
-@asyncio.coroutine
-def run_client(uri, loop, inputs, stop):
+async def run_client(uri, loop, inputs, stop):
     try:
-        websocket = yield from websockets.connect(uri)
+        websocket = await websockets.connect(uri)
     except Exception as exc:
         print_over_input("Failed to connect to {}: {}.".format(uri, exc))
         exit_from_event_loop_thread(loop, stop)
@@ -101,9 +99,9 @@ def run_client(uri, loop, inputs, stop):
 
     try:
         while True:
-            incoming = asyncio_ensure_future(websocket.recv())
-            outgoing = asyncio_ensure_future(inputs.get())
-            done, pending = yield from asyncio.wait(
+            incoming = asyncio.ensure_future(websocket.recv())
+            outgoing = asyncio.ensure_future(inputs.get())
+            done, pending = await asyncio.wait(
                 [incoming, outgoing, stop], return_when=asyncio.FIRST_COMPLETED
             )
 
@@ -123,13 +121,13 @@ def run_client(uri, loop, inputs, stop):
 
             if outgoing in done:
                 message = outgoing.result()
-                yield from websocket.send(message)
+                await websocket.send(message)
 
             if stop in done:
                 break
 
     finally:
-        yield from websocket.close()
+        await websocket.close()
         close_status = format_close(websocket.close_code, websocket.close_reason)
 
         print_over_input(
@@ -173,7 +171,7 @@ def main():
     stop = asyncio.Future(loop=loop)
 
     # Schedule the task that will manage the connection.
-    asyncio_ensure_future(run_client(args.uri, loop, inputs, stop), loop=loop)
+    asyncio.ensure_future(run_client(args.uri, loop, inputs, stop), loop=loop)
 
     # Start the event loop in a background thread.
     thread = threading.Thread(target=loop.run_forever)

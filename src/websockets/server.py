@@ -6,19 +6,11 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 import asyncio
 import collections.abc
 import email.utils
+import http
 import logging
 import sys
 import warnings
 
-from .compatibility import (
-    BAD_REQUEST,
-    FORBIDDEN,
-    INTERNAL_SERVER_ERROR,
-    SERVICE_UNAVAILABLE,
-    SWITCHING_PROTOCOLS,
-    UPGRADE_REQUIRED,
-    asyncio_ensure_future,
-)
 from .exceptions import (
     AbortHandshake,
     InvalidHandshake,
@@ -95,10 +87,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # create a race condition between the creation of the task, which
         # schedules its execution, and the moment the handler starts running.
         self.ws_server.register(self)
-        self.handler_task = asyncio_ensure_future(self.handler(), loop=self.loop)
+        self.handler_task = self.loop.create_task(self.handler())
 
-    @asyncio.coroutine
-    def handler(self):
+    async def handler(self):
         """
         Handle the lifecycle of a WebSocket connection.
 
@@ -110,7 +101,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         try:
 
             try:
-                path = yield from self.handshake(
+                path = await self.handshake(
                     origins=self.origins,
                     available_extensions=self.available_extensions,
                     available_subprotocols=self.available_subprotocols,
@@ -124,25 +115,29 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     status, headers, body = exc.status, exc.headers, exc.body
                 elif isinstance(exc, InvalidOrigin):
                     logger.debug("Invalid origin", exc_info=True)
-                    status, headers, body = FORBIDDEN, [], (str(exc) + "\n").encode()
+                    status, headers, body = (
+                        http.HTTPStatus.FORBIDDEN,
+                        [],
+                        (str(exc) + "\n").encode(),
+                    )
                 elif isinstance(exc, InvalidUpgrade):
                     logger.debug("Invalid upgrade", exc_info=True)
                     status, headers, body = (
-                        UPGRADE_REQUIRED,
+                        http.HTTPStatus.UPGRADE_REQUIRED,
                         [("Upgrade", "websocket")],
                         (str(exc) + "\n").encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):
                     logger.debug("Invalid handshake", exc_info=True)
                     status, headers, body = (
-                        BAD_REQUEST,
+                        http.HTTPStatus.BAD_REQUEST,
                         [],
                         (str(exc) + "\n").encode(),
                     )
                 else:
                     logger.warning("Error in opening handshake", exc_info=True)
                     status, headers, body = (
-                        INTERNAL_SERVER_ERROR,
+                        http.HTTPStatus.INTERNAL_SERVER_ERROR,
                         [],
                         b"See server log for more information.\n",
                     )
@@ -158,11 +153,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
                 self.write_http_response(status, headers, body)
                 self.fail_connection()
-                yield from self.wait_closed()
+                await self.wait_closed()
                 return
 
             try:
-                yield from self.ws_handler(self, path)
+                await self.ws_handler(self, path)
             except Exception:
                 logger.error("Error in connection handler", exc_info=True)
                 if not self.closed:
@@ -170,7 +165,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise
 
             try:
-                yield from self.close()
+                await self.close()
             except ConnectionError:
                 logger.debug("Connection error in closing handshake", exc_info=True)
                 raise
@@ -192,8 +187,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             # connections before terminating.
             self.ws_server.unregister(self)
 
-    @asyncio.coroutine
-    def read_http_request(self):
+    async def read_http_request(self):
         """
         Read request line and headers from the HTTP request.
 
@@ -206,7 +200,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         """
         try:
-            path, headers = yield from read_request(self.reader)
+            path, headers = await read_request(self.reader)
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
@@ -252,9 +246,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response is sent and the connection is closed.
 
         The HTTP status must be a :class:`~http.HTTPStatus`.
-        (:class:`~http.HTTPStatus` was added in Python 3.5. Use a compatible
-        object on earlier versions. Look at ``SWITCHING_PROTOCOLS`` in
-        ``websockets.compatibility`` for an example.)
 
         HTTP headers must be a :class:`~websockets.http.Headers` instance, a
         :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
@@ -433,8 +424,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         )
         return sorted(subprotocols, key=priority)[0]
 
-    @asyncio.coroutine
-    def handshake(
+    async def handshake(
         self,
         origins=None,
         available_extensions=None,
@@ -465,18 +455,22 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Return the path of the URI of the request.
 
         """
-        path, request_headers = yield from self.read_http_request()
+        path, request_headers = await self.read_http_request()
 
         # Hook for customizing request handling, for example checking
         # authentication or treating some paths as plain HTTP endpoints.
         if asyncio.iscoroutinefunction(self.process_request):
-            early_response = yield from self.process_request(path, request_headers)
+            early_response = await self.process_request(path, request_headers)
         else:
             early_response = self.process_request(path, request_headers)
 
         # Change the response to a 503 error if the server is shutting down.
         if not self.ws_server.is_serving():
-            early_response = SERVICE_UNAVAILABLE, [], b"Server is shutting down.\n"
+            early_response = (
+                http.HTTPStatus.SERVICE_UNAVAILABLE,
+                [],
+                b"Server is shutting down.\n",
+            )
 
         if early_response is not None:
             raise AbortHandshake(*early_response)
@@ -516,7 +510,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
         response_headers.setdefault("Server", USER_AGENT)
 
-        self.write_http_response(SWITCHING_PROTOCOLS, response_headers)
+        self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
 
         self.connection_open()
 
@@ -605,10 +599,9 @@ class WebSocketServer:
 
         """
         if self.close_task is None:
-            self.close_task = asyncio_ensure_future(self._close(), loop=self.loop)
+            self.close_task = self.loop.create_task(self._close())
 
-    @asyncio.coroutine
-    def _close(self):
+    async def _close(self):
         """
         Implementation of :meth:`close`.
 
@@ -621,11 +614,11 @@ class WebSocketServer:
         self.server.close()
 
         # Wait until self.server.close() completes.
-        yield from self.server.wait_closed()
+        await self.server.wait_closed()
 
         # Wait until all accepted connections reach connection_made() and call
         # register(). See https://bugs.python.org/issue34852 for details.
-        yield from asyncio.sleep(0)
+        await asyncio.sleep(0)
 
         # Close open connections. fail_connection() will cancel the transfer
         # data task, which is expected to cause the handler task to terminate.
@@ -640,7 +633,7 @@ class WebSocketServer:
             # running tasks.
             # TODO: it would be nicer to wait only for the connection handler
             # and let the handler wait for the connection to close.
-            yield from asyncio.wait(
+            await asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets]
                 + [
                     websocket.close_connection_task
@@ -653,8 +646,7 @@ class WebSocketServer:
         # Tell wait_closed() to return.
         self.closed_waiter.set_result(None)
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """
         Wait until the server is closed and all connections are terminated.
 
@@ -662,7 +654,7 @@ class WebSocketServer:
         there are no pending tasks left.
 
         """
-        yield from asyncio.shield(self.closed_waiter)
+        await asyncio.shield(self.closed_waiter)
 
     @property
     def sockets(self):
@@ -685,7 +677,7 @@ class Serve:
     :meth:`~websockets.server.WebSocketServer.wait_closed` methods for
     terminating the server and cleaning up its resources.
 
-    On Python ≥ 3.5, :func:`serve` can also be used as an asynchronous context
+    On Python ≥ 3.5.1, :func:`serve` can also be used as an asynchronous context
     manager. In this case, the server is shut down when exiting the context.
 
     :func:`serve` is a wrapper around the event loop's
@@ -848,10 +840,26 @@ class Serve:
         self.ws_server = ws_server
 
     @asyncio.coroutine
-    def __iter__(self):  # pragma: no cover
-        server = yield from self._creating_server
+    def __iter__(self):
+        return self.__await_impl__()
+
+    async def __aenter__(self):
+        return await self
+
+    async def __aexit__(self, exc_type, exc_value, traceback):
+        self.ws_server.close()
+        await self.ws_server.wait_closed()
+
+    async def __await_impl__(self):
+        server = await self._creating_server
         self.ws_server.wrap(server)
         return self.ws_server
+
+    def __await__(self):
+        # __await__() must return a type that I don't know how to obtain except
+        # by calling __await__() on the return value of an async function.
+        # I'm not finding a better way to take advantage of PEP 492.
+        return self.__await_impl__().__await__()
 
 
 def unix_serve(ws_handler, path, **kwargs):
@@ -872,18 +880,17 @@ def unix_serve(ws_handler, path, **kwargs):
 # We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
 # didn't accept arbitrary awaitables until Python 3.5.1. We don't define
 # __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
-if sys.version_info[:3] <= (3, 5, 0):  # pragma: no cover
+if sys.version_info[:3] < (3, 5, 1):  # pragma: no cover
 
-    @asyncio.coroutine
-    def serve(*args, **kwds):
+    del Serve.__aenter__
+    del Serve.__aexit__
+    del Serve.__await__
+
+    async def serve(*args, **kwds):
         return Serve(*args, **kwds).__iter__()
 
     serve.__doc__ = Serve.__doc__
 
 else:
-    from .py35.server import __aenter__, __aexit__, __await__
 
-    Serve.__aenter__ = __aenter__
-    Serve.__aexit__ = __aexit__
-    Serve.__await__ = __await__
     serve = Serve

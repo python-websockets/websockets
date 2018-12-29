@@ -16,9 +16,7 @@ import logging
 import random
 import struct
 import sys
-import warnings
 
-from .compatibility import asyncio_ensure_future
 from .exceptions import (
     ConnectionClosed,
     InvalidState,
@@ -32,15 +30,6 @@ from .handshake import *
 __all__ = ["WebSocketCommonProtocol"]
 
 logger = logging.getLogger(__name__)
-
-
-# On Python ≥ 3.7, silence a deprecation warning that we can't address before
-# dropping support for Python < 3.5.
-warnings.filterwarnings(
-    action="ignore",
-    message=r"'with \(yield from lock\)' is deprecated use 'async with lock' instead",
-    category=DeprecationWarning,
-)
 
 
 # A WebSocket connection goes through the following four states, in order:
@@ -288,17 +277,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.state = State.OPEN
         logger.debug("%s - state = OPEN", self.side)
         # Start the task that receives incoming WebSocket messages.
-        self.transfer_data_task = asyncio_ensure_future(
-            self.transfer_data(), loop=self.loop
-        )
+        self.transfer_data_task = self.loop.create_task(self.transfer_data())
         # Start the task that sends pings at regular intervals.
-        self.keepalive_ping_task = asyncio_ensure_future(
-            self.keepalive_ping(), loop=self.loop
-        )
+        self.keepalive_ping_task = self.loop.create_task(self.keepalive_ping())
         # Start the task that eventually closes the TCP connection.
-        self.close_connection_task = asyncio_ensure_future(
-            self.close_connection(), loop=self.loop
-        )
+        self.close_connection_task = self.loop.create_task(self.close_connection())
 
     # Public API
 
@@ -353,8 +336,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         return self.state is State.CLOSED
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """
         Wait until the connection is closed.
 
@@ -364,10 +346,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         of its cause, in tasks that interact with the WebSocket connection.
 
         """
-        yield from asyncio.shield(self.connection_lost_waiter)
+        await asyncio.shield(self.connection_lost_waiter)
 
-    @asyncio.coroutine
-    def recv(self):
+    async def recv(self):
         """
         This coroutine receives the next message.
 
@@ -399,7 +380,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 "is already waiting for the next message"
             )
 
-        # Don't yield from self.ensure_open() here:
+        # Don't await self.ensure_open() here:
         # - messages could be available in the queue even if the connection
         #   is closed;
         # - messages could be received before the closing frame even if the
@@ -413,7 +394,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             try:
                 # If asyncio.wait() is canceled, it doesn't cancel
                 # pop_message_waiter and self.transfer_data_task.
-                yield from asyncio.wait(
+                await asyncio.wait(
                     [pop_message_waiter, self.transfer_data_task],
                     loop=self.loop,
                     return_when=asyncio.FIRST_COMPLETED,
@@ -431,7 +412,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     assert self.state in [State.CLOSING, State.CLOSED]
                     # Wait until the connection is closed to raise
                     # ConnectionClosed with the correct code and reason.
-                    yield from self.ensure_open()
+                    await self.ensure_open()
 
         # Pop a message from the queue.
         message = self.messages.popleft()
@@ -443,8 +424,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         return message
 
-    @asyncio.coroutine
-    def send(self, data):
+    async def send(self, data):
         """
         This coroutine sends a message.
 
@@ -460,7 +440,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         It raises a :exc:`TypeError` for other inputs.
 
         """
-        yield from self.ensure_open()
+        await self.ensure_open()
 
         # Unfragmented message -- this case must be handled first because
         # strings and bytes-like objects are iterable.
@@ -471,7 +451,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # Perhaps data is an iterator, see below.
             pass
         else:
-            yield from self.write_frame(True, opcode, data)
+            await self.write_frame(True, opcode, data)
             return
 
         # Fragmented message -- regular iterator.
@@ -485,7 +465,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             except StopIteration:
                 return
             opcode, data = prepare_data(data)
-            yield from self.write_frame(False, opcode, data)
+            await self.write_frame(False, opcode, data)
 
             # Other fragments.
             for data in iter_data:
@@ -495,10 +475,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     # complete it. This makes the connection unusable.
                     self.fail_connection(1011)
                     raise TypeError("data contains inconsistent types")
-                yield from self.write_frame(False, OP_CONT, data)
+                await self.write_frame(False, OP_CONT, data)
 
             # Final fragment.
-            yield from self.write_frame(True, OP_CONT, b"")
+            await self.write_frame(True, OP_CONT, b"")
 
         # Fragmented message -- asynchronous iterator
 
@@ -507,8 +487,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         else:
             raise TypeError("data must be bytes, str, or iterable")
 
-    @asyncio.coroutine
-    def close(self, code=1000, reason=""):
+    async def close(self, code=1000, reason=""):
         """
         This coroutine performs the closing handshake.
 
@@ -519,14 +498,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         :meth:`close` is idempotent: it doesn't do anything once the
         connection is closed.
 
-        It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
-        since errors during connection termination aren't particularly useful.
+        It's safe to wrap this coroutine in :func:`~asyncio.create_task` since
+        errors during connection termination aren't particularly useful.
 
         ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
 
         """
         try:
-            yield from asyncio.wait_for(
+            await asyncio.wait_for(
                 self.write_close_frame(serialize_close(code, reason)),
                 self.close_timeout,
                 loop=self.loop,
@@ -546,19 +525,18 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         try:
             # If close() is canceled during the wait, self.transfer_data_task
-            # is canceled before the timeout elapses (on Python ≥ 3.4.3).
+            # is canceled before the timeout elapses.
             # This helps closing connections when shutting down a server.
-            yield from asyncio.wait_for(
+            await asyncio.wait_for(
                 self.transfer_data_task, self.close_timeout, loop=self.loop
             )
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
 
         # Wait for the close connection task to close the TCP connection.
-        yield from asyncio.shield(self.close_connection_task)
+        await asyncio.shield(self.close_connection_task)
 
-    @asyncio.coroutine
-    def ping(self, data=None):
+    async def ping(self, data=None):
         """
         This coroutine sends a ping.
 
@@ -577,7 +555,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         (which will be encoded to UTF-8) or a bytes-like object.
 
         """
-        yield from self.ensure_open()
+        await self.ensure_open()
 
         if data is not None:
             data = encode_data(data)
@@ -592,12 +570,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         self.pings[data] = asyncio.Future(loop=self.loop)
 
-        yield from self.write_frame(True, OP_PING, data)
+        await self.write_frame(True, OP_PING, data)
 
         return asyncio.shield(self.pings[data])
 
-    @asyncio.coroutine
-    def pong(self, data=b""):
+    async def pong(self, data=b""):
         """
         This coroutine sends a pong.
 
@@ -608,16 +585,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         bytes-like object.
 
         """
-        yield from self.ensure_open()
+        await self.ensure_open()
 
         data = encode_data(data)
 
-        yield from self.write_frame(True, OP_PONG, data)
+        await self.write_frame(True, OP_PONG, data)
 
     # Private methods - no guarantees.
 
-    @asyncio.coroutine
-    def ensure_open(self):
+    async def ensure_open(self):
         """
         Check that the WebSocket connection is open.
 
@@ -630,7 +606,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # self.close_connection_task may be closing it, going straight
             # from OPEN to CLOSED.
             if self.transfer_data_task.done():
-                yield from asyncio.shield(self.close_connection_task)
+                await asyncio.shield(self.close_connection_task)
                 raise ConnectionClosed(
                     self.close_code, self.close_reason
                 ) from self.transfer_data_exc
@@ -649,7 +625,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # CLOSING state also occurs when failing the connection. In that
             # case self.close_connection_task will complete even faster.
             if self.close_code is None:
-                yield from asyncio.shield(self.close_connection_task)
+                await asyncio.shield(self.close_connection_task)
             raise ConnectionClosed(
                 self.close_code, self.close_reason
             ) from self.transfer_data_exc
@@ -658,8 +634,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         assert self.state is State.CONNECTING
         raise InvalidState("WebSocket connection isn't established yet")
 
-    @asyncio.coroutine
-    def transfer_data(self):
+    async def transfer_data(self):
         """
         Read incoming messages and put them in a queue.
 
@@ -668,7 +643,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         try:
             while True:
-                message = yield from self.read_message()
+                message = await self.read_message()
 
                 # Exit the loop when receiving a close frame.
                 if message is None:
@@ -678,7 +653,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 while len(self.messages) >= self.max_queue:
                     self._put_message_waiter = asyncio.Future(loop=self.loop)
                     try:
-                        yield from self._put_message_waiter
+                        await self._put_message_waiter
                     finally:
                         self._put_message_waiter = None
 
@@ -726,8 +701,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.transfer_data_exc = exc
             self.fail_connection(1011)
 
-    @asyncio.coroutine
-    def read_message(self):
+    async def read_message(self):
         """
         Read a single message from the connection.
 
@@ -736,7 +710,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         Return ``None`` when the closing handshake is started.
 
         """
-        frame = yield from self.read_data_frame(max_size=self.max_size)
+        frame = await self.read_data_frame(max_size=self.max_size)
 
         # A close frame was received.
         if frame is None:
@@ -788,7 +762,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         append(frame)
 
         while not frame.fin:
-            frame = yield from self.read_data_frame(max_size=max_size)
+            frame = await self.read_data_frame(max_size=max_size)
             if frame is None:
                 raise WebSocketProtocolError("Incomplete fragmented message")
             if frame.opcode != OP_CONT:
@@ -797,8 +771,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         return ("" if text else b"").join(chunks)
 
-    @asyncio.coroutine
-    def read_data_frame(self, max_size):
+    async def read_data_frame(self, max_size):
         """
         Read a single data frame from the connection.
 
@@ -809,7 +782,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         # 6.2. Receiving Data
         while True:
-            frame = yield from self.read_frame(max_size)
+            frame = await self.read_frame(max_size)
 
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:
@@ -819,17 +792,16 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 # Echo the original data instead of re-serializing it with
                 # serialize_close() because that fails when the close frame is
                 # empty and parse_close() synthetizes a 1005 close code.
-                yield from self.write_close_frame(frame.data)
+                await self.write_close_frame(frame.data)
                 return
 
             elif frame.opcode == OP_PING:
                 # Answer pings.
-                # Replace by frame.data.hex() when dropping Python < 3.5.
-                ping_hex = binascii.hexlify(frame.data).decode() or "[empty]"
+                ping_hex = frame.data.hex() or "[empty]"
                 logger.debug(
                     "%s - received ping, sending pong: %s", self.side, ping_hex
                 )
-                yield from self.pong(frame.data)
+                await self.pong(frame.data)
 
             elif frame.opcode == OP_PONG:
                 # Acknowledge pings on solicited pongs.
@@ -868,13 +840,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             else:
                 return frame
 
-    @asyncio.coroutine
-    def read_frame(self, max_size):
+    async def read_frame(self, max_size):
         """
         Read a single frame from the connection.
 
         """
-        frame = yield from Frame.read(
+        frame = await Frame.read(
             self.reader.readexactly,
             mask=not self.is_client,
             max_size=max_size,
@@ -883,8 +854,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         logger.debug("%s < %r", self.side, frame)
         return frame
 
-    @asyncio.coroutine
-    def write_frame(self, fin, opcode, data, *, _expected_state=State.OPEN):
+    async def write_frame(self, fin, opcode, data, *, _expected_state=State.OPEN):
         # Defensive assertion for protocol compliance.
         if self.state is not _expected_state:  # pragma: no cover
             raise InvalidState(
@@ -899,21 +869,21 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Remove when dropping support for Python < 3.6.
         if self.writer.transport is not None:  # pragma: no cover
             if self.writer_is_closing():
-                yield
+                await asyncio.sleep(0)
 
         try:
             # drain() cannot be called concurrently by multiple coroutines:
             # http://bugs.python.org/issue29930. Remove this lock when no
             # version of Python where this bugs exists is supported anymore.
-            with (yield from self._drain_lock):
+            async with self._drain_lock:
                 # Handle flow control automatically.
-                yield from self.writer.drain()
+                await self.writer.drain()
         except ConnectionError:
             # Terminate the connection if the socket died.
             self.fail_connection()
             # Wait until the connection is closed to raise ConnectionClosed
             # with the correct code and reason.
-            yield from self.ensure_open()
+            await self.ensure_open()
 
     def writer_is_closing(self):
         """
@@ -934,8 +904,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             except AttributeError:
                 return transport._closed
 
-    @asyncio.coroutine
-    def write_close_frame(self, data=b""):
+    async def write_close_frame(self, data=b""):
         """
         Write a close frame if and only if the connection state is OPEN.
 
@@ -951,12 +920,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             logger.debug("%s - state = CLOSING", self.side)
 
             # 7.1.2. Start the WebSocket Closing Handshake
-            yield from self.write_frame(
-                True, OP_CLOSE, data, _expected_state=State.CLOSING
-            )
+            await self.write_frame(True, OP_CLOSE, data, _expected_state=State.CLOSING)
 
-    @asyncio.coroutine
-    def keepalive_ping(self):
+    async def keepalive_ping(self):
         """
         Send a Ping frame and wait for a Pong frame at regular intervals.
 
@@ -971,18 +937,18 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         try:
             while True:
-                yield from asyncio.sleep(self.ping_interval, loop=self.loop)
+                await asyncio.sleep(self.ping_interval, loop=self.loop)
 
                 # ping() cannot raise ConnectionClosed, only CancelledError:
                 # - If the connection is CLOSING, keepalive_ping_task will be
                 #   canceled by close_connection() before ping() returns.
                 # - If the connection is CLOSED, keepalive_ping_task must be
                 #   canceled already.
-                ping_waiter = yield from self.ping()
+                ping_waiter = await self.ping()
 
                 if self.ping_timeout is not None:
                     try:
-                        yield from asyncio.wait_for(
+                        await asyncio.wait_for(
                             ping_waiter, self.ping_timeout, loop=self.loop
                         )
                     except asyncio.TimeoutError:
@@ -996,8 +962,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         except Exception:
             logger.warning("Unexpected exception in keepalive ping task", exc_info=True)
 
-    @asyncio.coroutine
-    def close_connection(self):
+    async def close_connection(self):
         """
         7.1.1. Close the WebSocket Connection
 
@@ -1013,7 +978,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # Wait for the data transfer phase to complete.
             if self.transfer_data_task is not None:
                 try:
-                    yield from self.transfer_data_task
+                    await self.transfer_data_task
                 except asyncio.CancelledError:
                     pass
 
@@ -1023,7 +988,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
             # A client should wait for a TCP close from the server.
             if self.is_client and self.transfer_data_task is not None:
-                if (yield from self.wait_for_connection_lost()):
+                if await self.wait_for_connection_lost():
                     return
                 logger.debug("%s ! timed out waiting for TCP close", self.side)
 
@@ -1032,7 +997,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 logger.debug("%s x half-closing TCP connection", self.side)
                 self.writer.write_eof()
 
-                if (yield from self.wait_for_connection_lost()):
+                if await self.wait_for_connection_lost():
                     return
                 logger.debug("%s ! timed out waiting for TCP close", self.side)
 
@@ -1050,7 +1015,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             logger.debug("%s x closing TCP connection", self.side)
             self.writer.close()
 
-            if (yield from self.wait_for_connection_lost()):
+            if await self.wait_for_connection_lost():
                 return
             logger.debug("%s ! timed out waiting for TCP close", self.side)
 
@@ -1059,10 +1024,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.writer.transport.abort()
 
             # connection_lost() is called quickly after aborting.
-            yield from self.wait_for_connection_lost()
+            await self.wait_for_connection_lost()
 
-    @asyncio.coroutine
-    def wait_for_connection_lost(self):
+    async def wait_for_connection_lost(self):
         """
         Wait until the TCP connection is closed or ``self.close_timeout`` elapses.
 
@@ -1071,7 +1035,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         if not self.connection_lost_waiter.done():
             try:
-                yield from asyncio.wait_for(
+                await asyncio.wait_for(
                     asyncio.shield(self.connection_lost_waiter),
                     self.close_timeout,
                     loop=self.loop,
@@ -1142,9 +1106,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         # Start close_connection_task if the opening handshake didn't succeed.
         if self.close_connection_task is None:
-            self.close_connection_task = asyncio_ensure_future(
-                self.close_connection(), loop=self.loop
-            )
+            self.close_connection_task = self.loop.create_task(self.close_connection())
 
     def abort_keepalive_pings(self):
         """

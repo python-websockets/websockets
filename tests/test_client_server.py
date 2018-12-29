@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import functools
+import http
 import logging
 import pathlib
 import random
@@ -15,16 +16,6 @@ import urllib.request
 import warnings
 
 from websockets.client import *
-from websockets.compatibility import (
-    FORBIDDEN,
-    FOUND,
-    MOVED_PERMANENTLY,
-    OK,
-    PERMANENT_REDIRECT,
-    SEE_OTHER,
-    TEMPORARY_REDIRECT,
-    UNAUTHORIZED,
-)
 from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
@@ -58,26 +49,25 @@ logging.basicConfig(level=logging.CRITICAL)
 testcert = bytes(pathlib.Path(__file__).with_name("test_localhost.pem"))
 
 
-@asyncio.coroutine
-def handler(ws, path):
+async def handler(ws, path):
     if path == "/attributes":
-        yield from ws.send(repr((ws.host, ws.port, ws.secure)))
+        await ws.send(repr((ws.host, ws.port, ws.secure)))
     elif path == "/close_timeout":
-        yield from ws.send(repr(ws.close_timeout))
+        await ws.send(repr(ws.close_timeout))
     elif path == "/path":
-        yield from ws.send(str(ws.path))
+        await ws.send(str(ws.path))
     elif path == "/headers":
-        yield from ws.send(repr(ws.request_headers))
-        yield from ws.send(repr(ws.response_headers))
+        await ws.send(repr(ws.request_headers))
+        await ws.send(repr(ws.response_headers))
     elif path == "/extensions":
-        yield from ws.send(repr(ws.extensions))
+        await ws.send(repr(ws.extensions))
     elif path == "/subprotocol":
-        yield from ws.send(repr(ws.subprotocol))
+        await ws.send(repr(ws.subprotocol))
     elif path == "/slow_stop":
-        yield from ws.wait_closed()
-        yield from asyncio.sleep(2 * MS)
+        await ws.wait_closed()
+        await asyncio.sleep(2 * MS)
     else:
-        yield from ws.send((yield from ws.recv()))
+        await ws.send((await ws.recv()))
 
 
 @contextlib.contextmanager
@@ -171,31 +161,27 @@ def get_server_uri(server, secure=False, resource_name="/", user_info=None):
 
 
 class UnauthorizedServerProtocol(WebSocketServerProtocol):
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
+    async def process_request(self, path, request_headers):
         # Test returning headers as a Headers instance (1/3)
-        return UNAUTHORIZED, Headers([("X-Access", "denied")]), b""
+        return http.HTTPStatus.UNAUTHORIZED, Headers([("X-Access", "denied")]), b""
 
 
 class ForbiddenServerProtocol(WebSocketServerProtocol):
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
+    async def process_request(self, path, request_headers):
         # Test returning headers as a dict (2/3)
-        return FORBIDDEN, {"X-Access": "denied"}, b""
+        return http.HTTPStatus.FORBIDDEN, {"X-Access": "denied"}, b""
 
 
 class HealthCheckServerProtocol(WebSocketServerProtocol):
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
+    async def process_request(self, path, request_headers):
         # Test returning headers as a list of pairs (3/3)
         if path == "/__health__/":
-            return OK, [("X-Access", "OK")], b"status = green\n"
+            return http.HTTPStatus.OK, [("X-Access", "OK")], b"status = green\n"
 
 
 class SlowServerProtocol(WebSocketServerProtocol):
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
-        yield from asyncio.sleep(10 * MS)
+    async def process_request(self, path, request_headers):
+        await asyncio.sleep(10 * MS)
 
 
 class FooClientProtocol(WebSocketClientProtocol):
@@ -352,11 +338,11 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     def test_redirect(self):
         redirect_statuses = [
-            MOVED_PERMANENTLY,
-            FOUND,
-            SEE_OTHER,
-            TEMPORARY_REDIRECT,
-            PERMANENT_REDIRECT,
+            http.HTTPStatus.MOVED_PERMANENTLY,
+            http.HTTPStatus.FOUND,
+            http.HTTPStatus.SEE_OTHER,
+            http.HTTPStatus.TEMPORARY_REDIRECT,
+            http.HTTPStatus.PERMANENT_REDIRECT,
         ]
         for status in redirect_statuses:
             with temp_test_redirecting_server(self, status):
@@ -366,7 +352,7 @@ class ClientServerTests(unittest.TestCase):
                     self.assertEqual(reply, "Hello!")
 
     def test_infinite_redirect(self):
-        with temp_test_redirecting_server(self, FOUND):
+        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND):
             self.server = self.redirecting_server
             with self.assertRaises(InvalidHandshake):
                 with temp_test_client(self):
@@ -374,7 +360,9 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server()
     def test_redirect_missing_location(self):
-        with temp_test_redirecting_server(self, FOUND, include_location=False):
+        with temp_test_redirecting_server(
+            self, http.HTTPStatus.FOUND, include_location=False
+        ):
             with self.assertRaises(InvalidMessage):
                 with temp_test_client(self):
                     self.fail("Did not raise")  # pragma: no cover
@@ -386,9 +374,6 @@ class ClientServerTests(unittest.TestCase):
                 reply = self.loop.run_until_complete(self.client.recv())
                 self.assertEqual(reply, "Hello!")
 
-    # The way the legacy SSL implementation wraps sockets makes it extremely
-    # hard to write a test for Python 3.4.
-    @unittest.skipIf(sys.version_info[:2] <= (3, 4), "this test requires Python 3.5+")
     @with_server()
     def test_explicit_socket(self):
         class TrackedSocket(socket.socket):
@@ -452,7 +437,7 @@ class ClientServerTests(unittest.TestCase):
                 client_socket.close()
                 self.stop_server()
 
-    @with_server(process_request=lambda p, rh: (OK, [], b"OK\n"))
+    @with_server(process_request=lambda p, rh: (http.HTTPStatus.OK, [], b"OK\n"))
     def test_process_request_argument(self):
         response = self.loop.run_until_complete(self.make_http_request("/"))
 
@@ -967,9 +952,8 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     @unittest.mock.patch("websockets.client.read_response")
     def test_server_does_not_switch_protocols(self, _read_response):
-        @asyncio.coroutine
-        def wrong_read_response(stream):
-            status_code, reason, headers = yield from read_response(stream)
+        async def wrong_read_response(stream):
+            status_code, reason, headers = await read_response(stream)
             return 400, "Bad Request", headers
 
         _read_response.side_effect = wrong_read_response
@@ -1132,10 +1116,7 @@ class SSLClientServerTests(ClientServerTests):
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         ssl_context.load_verify_locations(testcert)
         ssl_context.verify_mode = ssl.CERT_REQUIRED
-        # ssl.match_hostname can't match IP addresses on Python < 3.5.
-        # We're using IP addresses to enforce testing of IPv4 and IPv6.
-        if sys.version_info[:2] >= (3, 5):  # pragma: no cover
-            ssl_context.check_hostname = True
+        ssl_context.check_hostname = True
         return ssl_context
 
     def start_server(self, **kwds):
@@ -1152,17 +1133,13 @@ class SSLClientServerTests(ClientServerTests):
     @with_server()
     def test_ws_uri_is_rejected(self):
         with self.assertRaises(ValueError):
-            client = connect(
-                get_server_uri(self.server, secure=False), ssl=self.client_context
-            )
-            # With Python ≥ 3.5, the exception is raised by connect() even
-            # before awaiting.  However, with Python 3.4 the exception is
-            # raised only when awaiting.
-            self.loop.run_until_complete(client)  # pragma: no cover
+            connect(get_server_uri(self.server, secure=False), ssl=self.client_context)
 
     @with_server()
     def test_redirect_insecure(self):
-        with temp_test_redirecting_server(self, FOUND, force_insecure=True):
+        with temp_test_redirecting_server(
+            self, http.HTTPStatus.FOUND, force_insecure=True
+        ):
             with self.assertRaises(InvalidHandshake):
                 with temp_test_client(self):
                     self.fail("Did not raise")  # pragma: no cover
@@ -1290,9 +1267,102 @@ class YieldFromTests(unittest.TestCase):
         self.loop.run_until_complete(run_server())
 
 
-if sys.version_info[:2] >= (3, 5):  # pragma: no cover
-    from .py35._test_client_server import AsyncAwaitTests  # noqa
-    from .py35._test_client_server import ContextManagerTests  # noqa
+class AsyncAwaitTests(unittest.TestCase):
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+
+    def test_client(self):
+        start_server = serve(handler, "localhost", 0)
+        server = self.loop.run_until_complete(start_server)
+
+        async def run_client():
+            # Await connect.
+            client = await connect(get_server_uri(server))
+            self.assertEqual(client.state, State.OPEN)
+            await client.close()
+            self.assertEqual(client.state, State.CLOSED)
+
+        self.loop.run_until_complete(run_client())
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
+    def test_server(self):
+        async def run_server():
+            # Await serve.
+            server = await serve(handler, "localhost", 0)
+            self.assertTrue(server.sockets)
+            server.close()
+            await server.wait_closed()
+            self.assertFalse(server.sockets)
+
+        self.loop.run_until_complete(run_server())
+
+
+class ContextManagerTests(unittest.TestCase):
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+
+    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
+    @unittest.skipIf(
+        sys.version_info[:3] <= (3, 5, 0), "this test requires Python 3.5.1+"
+    )
+    def test_client(self):
+        start_server = serve(handler, "localhost", 0)
+        server = self.loop.run_until_complete(start_server)
+
+        async def run_client():
+            # Use connect as an asynchronous context manager.
+            async with connect(get_server_uri(server)) as client:
+                self.assertEqual(client.state, State.OPEN)
+
+            # Check that exiting the context manager closed the connection.
+            self.assertEqual(client.state, State.CLOSED)
+
+        self.loop.run_until_complete(run_client())
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
+    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
+    @unittest.skipIf(
+        sys.version_info[:3] <= (3, 5, 0), "this test requires Python 3.5.1+"
+    )
+    def test_server(self):
+        async def run_server():
+            # Use serve as an asynchronous context manager.
+            async with serve(handler, "localhost", 0) as server:
+                self.assertTrue(server.sockets)
+
+            # Check that exiting the context manager closed the server.
+            self.assertFalse(server.sockets)
+
+        self.loop.run_until_complete(run_server())
+
+    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
+    @unittest.skipIf(
+        sys.version_info[:3] <= (3, 5, 0), "this test requires Python 3.5.1+"
+    )
+    @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
+    def test_unix_server(self):
+        async def run_server(path):
+            async with unix_serve(handler, path) as server:
+                self.assertTrue(server.sockets)
+
+            # Check that exiting the context manager closed the server.
+            self.assertFalse(server.sockets)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            path = bytes(pathlib.Path(temp_dir) / "websockets")
+            self.loop.run_until_complete(run_server(path))
 
 
 if sys.version_info[:2] >= (3, 6):  # pragma: no cover

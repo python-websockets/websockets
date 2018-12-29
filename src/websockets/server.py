@@ -6,18 +6,11 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 import asyncio
 import collections.abc
 import email.utils
+import http
 import logging
 import sys
 import warnings
 
-from .compatibility import (
-    BAD_REQUEST,
-    FORBIDDEN,
-    INTERNAL_SERVER_ERROR,
-    SERVICE_UNAVAILABLE,
-    SWITCHING_PROTOCOLS,
-    UPGRADE_REQUIRED,
-)
 from .exceptions import (
     AbortHandshake,
     InvalidHandshake,
@@ -123,25 +116,29 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     status, headers, body = exc.status, exc.headers, exc.body
                 elif isinstance(exc, InvalidOrigin):
                     logger.debug("Invalid origin", exc_info=True)
-                    status, headers, body = FORBIDDEN, [], (str(exc) + "\n").encode()
+                    status, headers, body = (
+                        http.HTTPStatus.FORBIDDEN,
+                        [],
+                        (str(exc) + "\n").encode(),
+                    )
                 elif isinstance(exc, InvalidUpgrade):
                     logger.debug("Invalid upgrade", exc_info=True)
                     status, headers, body = (
-                        UPGRADE_REQUIRED,
+                        http.HTTPStatus.UPGRADE_REQUIRED,
                         [("Upgrade", "websocket")],
                         (str(exc) + "\n").encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):
                     logger.debug("Invalid handshake", exc_info=True)
                     status, headers, body = (
-                        BAD_REQUEST,
+                        http.HTTPStatus.BAD_REQUEST,
                         [],
                         (str(exc) + "\n").encode(),
                     )
                 else:
                     logger.warning("Error in opening handshake", exc_info=True)
                     status, headers, body = (
-                        INTERNAL_SERVER_ERROR,
+                        http.HTTPStatus.INTERNAL_SERVER_ERROR,
                         [],
                         b"See server log for more information.\n",
                     )
@@ -251,9 +248,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response is sent and the connection is closed.
 
         The HTTP status must be a :class:`~http.HTTPStatus`.
-        (:class:`~http.HTTPStatus` was added in Python 3.5. Use a compatible
-        object on earlier versions. Look at ``SWITCHING_PROTOCOLS`` in
-        ``websockets.compatibility`` for an example.)
 
         HTTP headers must be a :class:`~websockets.http.Headers` instance, a
         :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
@@ -475,7 +469,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         # Change the response to a 503 error if the server is shutting down.
         if not self.ws_server.is_serving():
-            early_response = SERVICE_UNAVAILABLE, [], b"Server is shutting down.\n"
+            early_response = (
+                http.HTTPStatus.SERVICE_UNAVAILABLE,
+                [],
+                b"Server is shutting down.\n",
+            )
 
         if early_response is not None:
             raise AbortHandshake(*early_response)
@@ -515,7 +513,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
         response_headers.setdefault("Server", USER_AGENT)
 
-        self.write_http_response(SWITCHING_PROTOCOLS, response_headers)
+        self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
 
         self.connection_open()
 

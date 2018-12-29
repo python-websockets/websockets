@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import functools
+import http
 import logging
 import pathlib
 import random
@@ -15,16 +16,6 @@ import urllib.request
 import warnings
 
 from websockets.client import *
-from websockets.compatibility import (
-    FORBIDDEN,
-    FOUND,
-    MOVED_PERMANENTLY,
-    OK,
-    PERMANENT_REDIRECT,
-    SEE_OTHER,
-    TEMPORARY_REDIRECT,
-    UNAUTHORIZED,
-)
 from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
@@ -174,14 +165,14 @@ class UnauthorizedServerProtocol(WebSocketServerProtocol):
     @asyncio.coroutine
     def process_request(self, path, request_headers):
         # Test returning headers as a Headers instance (1/3)
-        return UNAUTHORIZED, Headers([("X-Access", "denied")]), b""
+        return http.HTTPStatus.UNAUTHORIZED, Headers([("X-Access", "denied")]), b""
 
 
 class ForbiddenServerProtocol(WebSocketServerProtocol):
     @asyncio.coroutine
     def process_request(self, path, request_headers):
         # Test returning headers as a dict (2/3)
-        return FORBIDDEN, {"X-Access": "denied"}, b""
+        return http.HTTPStatus.FORBIDDEN, {"X-Access": "denied"}, b""
 
 
 class HealthCheckServerProtocol(WebSocketServerProtocol):
@@ -189,7 +180,7 @@ class HealthCheckServerProtocol(WebSocketServerProtocol):
     def process_request(self, path, request_headers):
         # Test returning headers as a list of pairs (3/3)
         if path == "/__health__/":
-            return OK, [("X-Access", "OK")], b"status = green\n"
+            return http.HTTPStatus.OK, [("X-Access", "OK")], b"status = green\n"
 
 
 class SlowServerProtocol(WebSocketServerProtocol):
@@ -352,11 +343,11 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     def test_redirect(self):
         redirect_statuses = [
-            MOVED_PERMANENTLY,
-            FOUND,
-            SEE_OTHER,
-            TEMPORARY_REDIRECT,
-            PERMANENT_REDIRECT,
+            http.HTTPStatus.MOVED_PERMANENTLY,
+            http.HTTPStatus.FOUND,
+            http.HTTPStatus.SEE_OTHER,
+            http.HTTPStatus.TEMPORARY_REDIRECT,
+            http.HTTPStatus.PERMANENT_REDIRECT,
         ]
         for status in redirect_statuses:
             with temp_test_redirecting_server(self, status):
@@ -366,7 +357,7 @@ class ClientServerTests(unittest.TestCase):
                     self.assertEqual(reply, "Hello!")
 
     def test_infinite_redirect(self):
-        with temp_test_redirecting_server(self, FOUND):
+        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND):
             self.server = self.redirecting_server
             with self.assertRaises(InvalidHandshake):
                 with temp_test_client(self):
@@ -374,7 +365,9 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server()
     def test_redirect_missing_location(self):
-        with temp_test_redirecting_server(self, FOUND, include_location=False):
+        with temp_test_redirecting_server(
+            self, http.HTTPStatus.FOUND, include_location=False
+        ):
             with self.assertRaises(InvalidMessage):
                 with temp_test_client(self):
                     self.fail("Did not raise")  # pragma: no cover
@@ -449,7 +442,7 @@ class ClientServerTests(unittest.TestCase):
                 client_socket.close()
                 self.stop_server()
 
-    @with_server(process_request=lambda p, rh: (OK, [], b"OK\n"))
+    @with_server(process_request=lambda p, rh: (http.HTTPStatus.OK, [], b"OK\n"))
     def test_process_request_argument(self):
         response = self.loop.run_until_complete(self.make_http_request("/"))
 
@@ -1156,7 +1149,9 @@ class SSLClientServerTests(ClientServerTests):
 
     @with_server()
     def test_redirect_insecure(self):
-        with temp_test_redirecting_server(self, FOUND, force_insecure=True):
+        with temp_test_redirecting_server(
+            self, http.HTTPStatus.FOUND, force_insecure=True
+        ):
             with self.assertRaises(InvalidHandshake):
                 with temp_test_client(self):
                     self.fail("Did not raise")  # pragma: no cover

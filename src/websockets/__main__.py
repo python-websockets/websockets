@@ -56,19 +56,19 @@ def print_during_input(string):
     sys.stdout.write(
         (
             # Save cursor position
-            '\N{ESC}7'
+            "\N{ESC}7"
             # Add a new line
-            '\N{LINE FEED}'
+            "\N{LINE FEED}"
             # Move cursor up
-            '\N{ESC}[A'
+            "\N{ESC}[A"
             # Insert blank line, scroll last line down
-            '\N{ESC}[L'
+            "\N{ESC}[L"
             # Print string in the inserted blank line
-            '{string}\N{LINE FEED}'
+            "{string}\N{LINE FEED}"
             # Restore cursor position
-            '\N{ESC}8'
+            "\N{ESC}8"
             # Move cursor down
-            '\N{ESC}[B'
+            "\N{ESC}[B"
         ).format(string=string)
     )
     sys.stdout.flush()
@@ -78,11 +78,11 @@ def print_over_input(string):
     sys.stdout.write(
         (
             # Move cursor to beginning of line
-            '\N{CARRIAGE RETURN}'
+            "\N{CARRIAGE RETURN}"
             # Delete current line
-            '\N{ESC}[K'
+            "\N{ESC}[K"
             # Print string
-            '{string}\N{LINE FEED}'
+            "{string}\N{LINE FEED}"
         ).format(string=string)
     )
     sys.stdout.flush()
@@ -119,7 +119,7 @@ def run_client(uri, loop, inputs, stop):
                 except websockets.ConnectionClosed:
                     break
                 else:
-                    print_during_input('< ' + message)
+                    print_during_input("< " + message)
 
             if outgoing in done:
                 message = outgoing.result()
@@ -141,7 +141,7 @@ def run_client(uri, loop, inputs, stop):
 
 def main():
     # If we're on Windows, enable VT100 terminal support.
-    if os.name == 'nt':
+    if os.name == "nt":
         try:
             win_enable_vt100()
         except RuntimeError as exc:
@@ -160,7 +160,7 @@ def main():
         description="Interactive WebSocket client.",
         add_help=False,
     )
-    parser.add_argument('uri', metavar='<uri>')
+    parser.add_argument("uri", metavar="<uri>")
     args = parser.parse_args()
 
     # Create an event loop that will run in a background thread.
@@ -183,7 +183,7 @@ def main():
     try:
         while True:
             # Since there's no size limit, put_nowait is identical to put.
-            message = input('> ')
+            message = input("> ")
             loop.call_soon_threadsafe(inputs.put_nowait, message)
     except (KeyboardInterrupt, EOFError):  # ^C, ^D
         loop.call_soon_threadsafe(stop.set_result, None)
@@ -192,5 +192,5 @@ def main():
     thread.join()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

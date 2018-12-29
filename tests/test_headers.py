@@ -9,16 +9,16 @@ class HeadersTests(unittest.TestCase):
     def test_parse_connection(self):
         for header, parsed in [
             # Realistic use cases
-            ('Upgrade', ['Upgrade']),  # Safari, Chrome
-            ('keep-alive, Upgrade', ['keep-alive', 'Upgrade']),  # Firefox
+            ("Upgrade", ["Upgrade"]),  # Safari, Chrome
+            ("keep-alive, Upgrade", ["keep-alive", "Upgrade"]),  # Firefox
             # Pathological example
-            (',,\t,  , ,Upgrade  ,,', ['Upgrade']),
+            (",,\t,  , ,Upgrade  ,,", ["Upgrade"]),
         ]:
             with self.subTest(header=header):
                 self.assertEqual(parse_connection(header), parsed)
 
     def test_parse_connection_invalid_header(self):
-        for header in ['???', 'keep-alive; Upgrade']:
+        for header in ["???", "keep-alive; Upgrade"]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
                     parse_connection(header)
@@ -26,17 +26,17 @@ class HeadersTests(unittest.TestCase):
     def test_parse_upgrade(self):
         for header, parsed in [
             # Realistic use case
-            ('websocket', ['websocket']),
+            ("websocket", ["websocket"]),
             # Synthetic example
-            ('http/3.0, websocket', ['http/3.0', 'websocket']),
+            ("http/3.0, websocket", ["http/3.0", "websocket"]),
             # Pathological example
-            (',,  WebSocket,  \t,,', ['WebSocket']),
+            (",,  WebSocket,  \t,,", ["WebSocket"]),
         ]:
             with self.subTest(header=header):
                 self.assertEqual(parse_upgrade(header), parsed)
 
     def test_parse_upgrade_invalid_header(self):
-        for header in ['???', 'websocket 2', 'http/3.0; websocket']:
+        for header in ["???", "websocket 2", "http/3.0; websocket"]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
                     parse_upgrade(header)
@@ -44,37 +44,37 @@ class HeadersTests(unittest.TestCase):
     def test_parse_extension_list(self):
         for header, parsed in [
             # Synthetic examples
-            ('foo', [('foo', [])]),
-            ('foo, bar', [('foo', []), ('bar', [])]),
+            ("foo", [("foo", [])]),
+            ("foo, bar", [("foo", []), ("bar", [])]),
             (
                 'foo; name; token=token; quoted-string="quoted-string", '
-                'bar; quux; quuux',
+                "bar; quux; quuux",
                 [
                     (
-                        'foo',
+                        "foo",
                         [
-                            ('name', None),
-                            ('token', 'token'),
-                            ('quoted-string', 'quoted-string'),
+                            ("name", None),
+                            ("token", "token"),
+                            ("quoted-string", "quoted-string"),
                         ],
                     ),
-                    ('bar', [('quux', None), ('quuux', None)]),
+                    ("bar", [("quux", None), ("quuux", None)]),
                 ],
             ),
             # Pathological example
             (
-                ',\t, ,  ,foo  ;bar = 42,,   baz,,',
-                [('foo', [('bar', '42')]), ('baz', [])],
+                ",\t, ,  ,foo  ;bar = 42,,   baz,,",
+                [("foo", [("bar", "42")]), ("baz", [])],
             ),
             # Realistic use cases for permessage-deflate
-            ('permessage-deflate', [('permessage-deflate', [])]),
+            ("permessage-deflate", [("permessage-deflate", [])]),
             (
-                'permessage-deflate; client_max_window_bits',
-                [('permessage-deflate', [('client_max_window_bits', None)])],
+                "permessage-deflate; client_max_window_bits",
+                [("permessage-deflate", [("client_max_window_bits", None)])],
             ),
             (
-                'permessage-deflate; server_max_window_bits=10',
-                [('permessage-deflate', [('server_max_window_bits', '10')])],
+                "permessage-deflate; server_max_window_bits=10",
+                [("permessage-deflate", [("server_max_window_bits", "10")])],
             ),
         ]:
             with self.subTest(header=header):
@@ -86,14 +86,14 @@ class HeadersTests(unittest.TestCase):
     def test_parse_extension_list_invalid_header(self):
         for header in [
             # Truncated examples
-            '',
-            ',\t,',
-            'foo;',
-            'foo; bar;',
-            'foo; bar=',
+            "",
+            ",\t,",
+            "foo;",
+            "foo; bar;",
+            "foo; bar=",
             'foo; bar="baz',
             # Wrong delimiter
-            'foo, bar, baz=quux; quuux',
+            "foo, bar, baz=quux; quuux",
             # Value in quoted string parameter that isn't a token
             'foo; bar=" "',
         ]:
@@ -104,10 +104,10 @@ class HeadersTests(unittest.TestCase):
     def test_parse_subprotocol_list(self):
         for header, parsed in [
             # Synthetic examples
-            ('foo', ['foo']),
-            ('foo, bar', ['foo', 'bar']),
+            ("foo", ["foo"]),
+            ("foo, bar", ["foo", "bar"]),
             # Pathological example
-            (',\t, ,  ,foo  ,,   bar,baz,,', ['foo', 'bar', 'baz']),
+            (",\t, ,  ,foo  ,,   bar,baz,,", ["foo", "bar", "baz"]),
         ]:
             with self.subTest(header=header):
                 self.assertEqual(parse_subprotocol_list(header), parsed)
@@ -118,10 +118,10 @@ class HeadersTests(unittest.TestCase):
     def test_parse_subprotocol_list_invalid_header(self):
         for header in [
             # Truncated examples
-            '',
-            ',\t,'
+            "",
+            ",\t,"
             # Wrong delimiter
-            'foo; bar',
+            "foo; bar",
         ]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
@@ -131,5 +131,5 @@ class HeadersTests(unittest.TestCase):
         # Test vector from RFC 7617.
         self.assertEqual(
             build_basic_auth("Aladdin", "open sesame"),
-            'Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==',
+            "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
         )

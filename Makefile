@@ -3,7 +3,7 @@ export PYTHONPATH=src
 
 style:
 	isort --recursive src tests
-	black --skip-string-normalization src tests
+	black src tests
 	flake8 src tests
 
 test:

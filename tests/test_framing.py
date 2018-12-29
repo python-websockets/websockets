@@ -59,63 +59,63 @@ class FramingTests(unittest.TestCase):
         self.assertEqual(serialized, data)
 
     def test_text(self):
-        self.round_trip(b'\x81\x04Spam', Frame(True, OP_TEXT, b'Spam'))
+        self.round_trip(b"\x81\x04Spam", Frame(True, OP_TEXT, b"Spam"))
 
     def test_text_masked(self):
         self.round_trip(
-            b'\x81\x84\x5b\xfb\xe1\xa8\x08\x8b\x80\xc5',
-            Frame(True, OP_TEXT, b'Spam'),
+            b"\x81\x84\x5b\xfb\xe1\xa8\x08\x8b\x80\xc5",
+            Frame(True, OP_TEXT, b"Spam"),
             mask=True,
         )
 
     def test_binary(self):
-        self.round_trip(b'\x82\x04Eggs', Frame(True, OP_BINARY, b'Eggs'))
+        self.round_trip(b"\x82\x04Eggs", Frame(True, OP_BINARY, b"Eggs"))
 
     def test_binary_masked(self):
         self.round_trip(
-            b'\x82\x84\x53\xcd\xe2\x89\x16\xaa\x85\xfa',
-            Frame(True, OP_BINARY, b'Eggs'),
+            b"\x82\x84\x53\xcd\xe2\x89\x16\xaa\x85\xfa",
+            Frame(True, OP_BINARY, b"Eggs"),
             mask=True,
         )
 
     def test_non_ascii_text(self):
         self.round_trip(
-            b'\x81\x05caf\xc3\xa9', Frame(True, OP_TEXT, 'café'.encode('utf-8'))
+            b"\x81\x05caf\xc3\xa9", Frame(True, OP_TEXT, "café".encode("utf-8"))
         )
 
     def test_non_ascii_text_masked(self):
         self.round_trip(
-            b'\x81\x85\x64\xbe\xee\x7e\x07\xdf\x88\xbd\xcd',
-            Frame(True, OP_TEXT, 'café'.encode('utf-8')),
+            b"\x81\x85\x64\xbe\xee\x7e\x07\xdf\x88\xbd\xcd",
+            Frame(True, OP_TEXT, "café".encode("utf-8")),
             mask=True,
         )
 
     def test_close(self):
-        self.round_trip(b'\x88\x00', Frame(True, OP_CLOSE, b''))
+        self.round_trip(b"\x88\x00", Frame(True, OP_CLOSE, b""))
 
     def test_ping(self):
-        self.round_trip(b'\x89\x04ping', Frame(True, OP_PING, b'ping'))
+        self.round_trip(b"\x89\x04ping", Frame(True, OP_PING, b"ping"))
 
     def test_pong(self):
-        self.round_trip(b'\x8a\x04pong', Frame(True, OP_PONG, b'pong'))
+        self.round_trip(b"\x8a\x04pong", Frame(True, OP_PONG, b"pong"))
 
     def test_long(self):
         self.round_trip(
-            b'\x82\x7e\x00\x7e' + 126 * b'a', Frame(True, OP_BINARY, 126 * b'a')
+            b"\x82\x7e\x00\x7e" + 126 * b"a", Frame(True, OP_BINARY, 126 * b"a")
         )
 
     def test_very_long(self):
         self.round_trip(
-            b'\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00' + 65536 * b'a',
-            Frame(True, OP_BINARY, 65536 * b'a'),
+            b"\x82\x7f\x00\x00\x00\x00\x00\x01\x00\x00" + 65536 * b"a",
+            Frame(True, OP_BINARY, 65536 * b"a"),
         )
 
     def test_payload_too_big(self):
         with self.assertRaises(PayloadTooBig):
-            self.decode(b'\x82\x7e\x04\x01' + 1025 * b'a', max_size=1024)
+            self.decode(b"\x82\x7e\x04\x01" + 1025 * b"a", max_size=1024)
 
     def test_bad_reserved_bits(self):
-        for encoded in [b'\xc0\x00', b'\xa0\x00', b'\x90\x00']:
+        for encoded in [b"\xc0\x00", b"\xa0\x00", b"\x90\x00"]:
             with self.subTest(encoded=encoded):
                 with self.assertRaises(WebSocketProtocolError):
                     self.decode(encoded)
@@ -135,41 +135,41 @@ class FramingTests(unittest.TestCase):
 
     def test_mask_flag(self):
         # Mask flag correctly set.
-        self.decode(b'\x80\x80\x00\x00\x00\x00', mask=True)
+        self.decode(b"\x80\x80\x00\x00\x00\x00", mask=True)
         # Mask flag incorrectly unset.
         with self.assertRaises(WebSocketProtocolError):
-            self.decode(b'\x80\x80\x00\x00\x00\x00')
+            self.decode(b"\x80\x80\x00\x00\x00\x00")
         # Mask flag correctly unset.
-        self.decode(b'\x80\x00')
+        self.decode(b"\x80\x00")
         # Mask flag incorrectly set.
         with self.assertRaises(WebSocketProtocolError):
-            self.decode(b'\x80\x00', mask=True)
+            self.decode(b"\x80\x00", mask=True)
 
     def test_control_frame_max_length(self):
         # At maximum allowed length.
-        self.decode(b'\x88\x7e\x00\x7d' + 125 * b'a')
+        self.decode(b"\x88\x7e\x00\x7d" + 125 * b"a")
         # Above maximum allowed length.
         with self.assertRaises(WebSocketProtocolError):
-            self.decode(b'\x88\x7e\x00\x7e' + 126 * b'a')
+            self.decode(b"\x88\x7e\x00\x7e" + 126 * b"a")
 
     def test_prepare_data_str(self):
-        self.assertEqual(prepare_data('café'), (OP_TEXT, b'caf\xc3\xa9'))
+        self.assertEqual(prepare_data("café"), (OP_TEXT, b"caf\xc3\xa9"))
 
     def test_prepare_data_bytes(self):
-        self.assertEqual(prepare_data(b'tea'), (OP_BINARY, b'tea'))
+        self.assertEqual(prepare_data(b"tea"), (OP_BINARY, b"tea"))
 
     def test_prepare_data_bytearray(self):
         self.assertEqual(
-            prepare_data(bytearray(b'tea')), (OP_BINARY, bytearray(b'tea'))
+            prepare_data(bytearray(b"tea")), (OP_BINARY, bytearray(b"tea"))
         )
 
     def test_prepare_data_memoryview(self):
         self.assertEqual(
-            prepare_data(memoryview(b'tea')), (OP_BINARY, memoryview(b'tea'))
+            prepare_data(memoryview(b"tea")), (OP_BINARY, memoryview(b"tea"))
         )
 
     def test_prepare_data_non_contiguous_memoryview(self):
-        self.assertEqual(prepare_data(memoryview(b'tteeaa')[::2]), (OP_BINARY, b'tea'))
+        self.assertEqual(prepare_data(memoryview(b"tteeaa")[::2]), (OP_BINARY, b"tea"))
 
     def test_prepare_data_list(self):
         with self.assertRaises(TypeError):
@@ -180,19 +180,19 @@ class FramingTests(unittest.TestCase):
             prepare_data(None)
 
     def test_encode_data_str(self):
-        self.assertEqual(encode_data('café'), b'caf\xc3\xa9')
+        self.assertEqual(encode_data("café"), b"caf\xc3\xa9")
 
     def test_encode_data_bytes(self):
-        self.assertEqual(encode_data(b'tea'), b'tea')
+        self.assertEqual(encode_data(b"tea"), b"tea")
 
     def test_encode_data_bytearray(self):
-        self.assertEqual(encode_data(bytearray(b'tea')), b'tea')
+        self.assertEqual(encode_data(bytearray(b"tea")), b"tea")
 
     def test_encode_data_memoryview(self):
-        self.assertEqual(encode_data(memoryview(b'tea')), b'tea')
+        self.assertEqual(encode_data(memoryview(b"tea")), b"tea")
 
     def test_encode_data_non_contiguous_memoryview(self):
-        self.assertEqual(encode_data(memoryview(b'tteeaa')[::2]), b'tea')
+        self.assertEqual(encode_data(memoryview(b"tteeaa")[::2]), b"tea")
 
     def test_encode_data_list(self):
         with self.assertRaises(TypeError):
@@ -204,29 +204,29 @@ class FramingTests(unittest.TestCase):
 
     def test_fragmented_control_frame(self):
         # Fin bit correctly set.
-        self.decode(b'\x88\x00')
+        self.decode(b"\x88\x00")
         # Fin bit incorrectly unset.
         with self.assertRaises(WebSocketProtocolError):
-            self.decode(b'\x08\x00')
+            self.decode(b"\x08\x00")
 
     def test_parse_close_and_serialize_close(self):
-        self.round_trip_close(b'\x03\xe8', 1000, '')
-        self.round_trip_close(b'\x03\xe8OK', 1000, 'OK')
+        self.round_trip_close(b"\x03\xe8", 1000, "")
+        self.round_trip_close(b"\x03\xe8OK", 1000, "OK")
 
     def test_parse_close_empty(self):
-        self.assertEqual(parse_close(b''), (1005, ''))
+        self.assertEqual(parse_close(b""), (1005, ""))
 
     def test_parse_close_errors(self):
         with self.assertRaises(WebSocketProtocolError):
-            parse_close(b'\x03')
+            parse_close(b"\x03")
         with self.assertRaises(WebSocketProtocolError):
-            parse_close(b'\x03\xe7')
+            parse_close(b"\x03\xe7")
         with self.assertRaises(UnicodeDecodeError):
-            parse_close(b'\x03\xe8\xff\xff')
+            parse_close(b"\x03\xe8\xff\xff")
 
     def test_serialize_close_errors(self):
         with self.assertRaises(WebSocketProtocolError):
-            serialize_close(999, '')
+            serialize_close(999, "")
 
     def test_extensions(self):
         class Rot13:
@@ -234,7 +234,7 @@ class FramingTests(unittest.TestCase):
             def encode(frame):
                 assert frame.opcode == OP_TEXT
                 text = frame.data.decode()
-                data = codecs.encode(text, 'rot13').encode()
+                data = codecs.encode(text, "rot13").encode()
                 return frame._replace(data=data)
 
             # This extensions is symmetrical.
@@ -243,5 +243,5 @@ class FramingTests(unittest.TestCase):
                 return Rot13.encode(frame)
 
         self.round_trip(
-            b'\x81\x05uryyb', Frame(True, OP_TEXT, b'hello'), extensions=[Rot13()]
+            b"\x81\x05uryyb", Frame(True, OP_TEXT, b"hello"), extensions=[Rot13()]
         )

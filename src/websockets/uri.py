@@ -12,10 +12,10 @@ import urllib.parse
 from .exceptions import InvalidURI
 
 
-__all__ = ['parse_uri', 'WebSocketURI']
+__all__ = ["parse_uri", "WebSocketURI"]
 
 WebSocketURI = collections.namedtuple(
-    'WebSocketURI', ['secure', 'host', 'port', 'resource_name', 'user_info']
+    "WebSocketURI", ["secure", "host", "port", "resource_name", "user_info"]
 )
 WebSocketURI.__doc__ = """WebSocket URI.
 
@@ -42,19 +42,19 @@ def parse_uri(uri):
     """
     uri = urllib.parse.urlparse(uri)
     try:
-        assert uri.scheme in ['ws', 'wss']
-        assert uri.params == ''
-        assert uri.fragment == ''
+        assert uri.scheme in ["ws", "wss"]
+        assert uri.params == ""
+        assert uri.fragment == ""
         assert uri.hostname is not None
     except AssertionError as exc:
         raise InvalidURI("{} isn't a valid URI".format(uri)) from exc
 
-    secure = uri.scheme == 'wss'
+    secure = uri.scheme == "wss"
     host = uri.hostname
     port = uri.port or (443 if secure else 80)
-    resource_name = uri.path or '/'
+    resource_name = uri.path or "/"
     if uri.query:
-        resource_name += '?' + uri.query
+        resource_name += "?" + uri.query
     user_info = None
     if uri.username or uri.password:
         user_info = (uri.username, uri.password)

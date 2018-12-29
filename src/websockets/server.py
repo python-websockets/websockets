@@ -35,7 +35,7 @@ from .http import USER_AGENT, Headers, MultipleValuesError, read_request
 from .protocol import State, WebSocketCommonProtocol
 
 
-__all__ = ['serve', 'unix_serve', 'WebSocketServerProtocol']
+__all__ = ["serve", "unix_serve", "WebSocketServerProtocol"]
 
 logger = logging.getLogger(__name__)
 
@@ -53,7 +53,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
 
     is_client = False
-    side = 'server'
+    side = "server"
 
     def __init__(
         self,
@@ -69,9 +69,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         **kwds
     ):
         # For backwards-compatibility with 6.0 or earlier.
-        if origins is not None and '' in origins:
+        if origins is not None and "" in origins:
             warnings.warn("use None instead of '' in origins", DeprecationWarning)
-            origins = [None if origin == '' else origin for origin in origins]
+            origins = [None if origin == "" else origin for origin in origins]
         self.ws_handler = ws_handler
         self.ws_server = ws_server
         self.origins = origins
@@ -129,7 +129,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     logger.debug("Invalid upgrade", exc_info=True)
                     status, headers, body = (
                         UPGRADE_REQUIRED,
-                        [('Upgrade', 'websocket')],
+                        [("Upgrade", "websocket")],
                         (str(exc) + "\n").encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):
@@ -150,11 +150,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 if not isinstance(headers, Headers):
                     headers = Headers(headers)
 
-                headers.setdefault('Date', email.utils.formatdate(usegmt=True))
-                headers.setdefault('Server', USER_AGENT)
-                headers.setdefault('Content-Length', str(len(body)))
-                headers.setdefault('Content-Type', 'text/plain')
-                headers.setdefault('Connection', 'close')
+                headers.setdefault("Date", email.utils.formatdate(usegmt=True))
+                headers.setdefault("Server", USER_AGENT)
+                headers.setdefault("Content-Length", str(len(body)))
+                headers.setdefault("Content-Type", "text/plain")
+                headers.setdefault("Connection", "close")
 
                 self.write_http_response(status, headers, body)
                 self.fail_connection()
@@ -232,7 +232,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         # Since the status line and headers only contain ASCII characters,
         # we can keep this simple.
-        response = 'HTTP/1.1 {status.value} {status.phrase}\r\n'.format(status=status)
+        response = "HTTP/1.1 {status.value} {status.phrase}\r\n".format(status=status)
         response += str(headers)
 
         self.writer.write(response.encode())
@@ -287,9 +287,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # "The user agent MUST NOT include more than one Origin header field"
         # per https://tools.ietf.org/html/rfc6454#section-7.3.
         try:
-            origin = headers.get('Origin')
+            origin = headers.get("Origin")
         except MultipleValuesError:
-            raise InvalidHeader('Origin', "more than one Origin header found")
+            raise InvalidHeader("Origin", "more than one Origin header found")
         if origins is not None:
             if origin not in origins:
                 raise InvalidOrigin(origin)
@@ -332,7 +332,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response_header = []
         accepted_extensions = []
 
-        header_values = headers.get_all('Sec-WebSocket-Extensions')
+        header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values and available_extensions:
 
@@ -386,7 +386,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         subprotocol = None
 
-        header_values = headers.get_all('Sec-WebSocket-Protocol')
+        header_values = headers.get_all("Sec-WebSocket-Protocol")
 
         if header_values and available_subprotocols:
 
@@ -498,10 +498,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         build_response(response_headers, key)
 
         if extensions_header is not None:
-            response_headers['Sec-WebSocket-Extensions'] = extensions_header
+            response_headers["Sec-WebSocket-Extensions"] = extensions_header
 
         if protocol_header is not None:
-            response_headers['Sec-WebSocket-Protocol'] = protocol_header
+            response_headers["Sec-WebSocket-Protocol"] = protocol_header
 
         if extra_headers is not None:
             if callable(extra_headers):
@@ -513,8 +513,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             for name, value in extra_headers:
                 response_headers[name] = value
 
-        response_headers.setdefault('Date', email.utils.formatdate(usegmt=True))
-        response_headers.setdefault('Server', USER_AGENT)
+        response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
+        response_headers.setdefault("Server", USER_AGENT)
 
         self.write_http_response(SWITCHING_PROTOCOLS, response_headers)
 
@@ -778,7 +778,7 @@ class Serve:
         legacy_recv=False,
         klass=WebSocketServerProtocol,
         timeout=10,
-        compression='deflate',
+        compression="deflate",
         origins=None,
         extensions=None,
         subprotocols=None,
@@ -802,9 +802,9 @@ class Serve:
 
         ws_server = WebSocketServer(loop)
 
-        secure = kwds.get('ssl') is not None
+        secure = kwds.get("ssl") is not None
 
-        if compression == 'deflate':
+        if compression == "deflate":
             if extensions is None:
                 extensions = []
             if not any(

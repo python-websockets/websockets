@@ -14,12 +14,12 @@ from .exceptions import InvalidHeaderFormat
 
 
 __all__ = [
-    'parse_connection',
-    'parse_upgrade',
-    'parse_extension_list',
-    'build_extension_list',
-    'parse_subprotocol_list',
-    'build_subprotocol_list',
+    "parse_connection",
+    "parse_upgrade",
+    "parse_extension_list",
+    "build_extension_list",
+    "parse_subprotocol_list",
+    "build_subprotocol_list",
 ]
 
 
@@ -40,7 +40,7 @@ def peek_ahead(string, pos):
     return None if pos == len(string) else string[pos]
 
 
-_OWS_re = re.compile(r'[\t ]*')
+_OWS_re = re.compile(r"[\t ]*")
 
 
 def parse_OWS(string, pos):
@@ -57,7 +57,7 @@ def parse_OWS(string, pos):
     return match.end()
 
 
-_token_re = re.compile(r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+')
+_token_re = re.compile(r"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 
 
 def parse_token(string, pos, header_name):
@@ -80,7 +80,7 @@ _quoted_string_re = re.compile(
 )
 
 
-_unquote_re = re.compile(r'\\([\x09\x20-\x7e\x80-\xff])')
+_unquote_re = re.compile(r"\\([\x09\x20-\x7e\x80-\xff])")
 
 
 def parse_quoted_string(string, pos, header_name):
@@ -97,7 +97,7 @@ def parse_quoted_string(string, pos, header_name):
         raise InvalidHeaderFormat(
             header_name, "expected quoted string", string=string, pos=pos
         )
-    return _unquote_re.sub(r'\1', match.group()[1:-1]), match.end()
+    return _unquote_re.sub(r"\1", match.group()[1:-1]), match.end()
 
 
 def parse_list(parse_item, string, pos, header_name):
@@ -125,7 +125,7 @@ def parse_list(parse_item, string, pos, header_name):
     # while loops that remove extra delimiters.
 
     # Remove extra delimiters before the first item.
-    while peek_ahead(string, pos) == ',':
+    while peek_ahead(string, pos) == ",":
         pos = parse_OWS(string, pos + 1)
 
     items = []
@@ -140,7 +140,7 @@ def parse_list(parse_item, string, pos, header_name):
             break
 
         # There must be a delimiter after each element except the last one.
-        if peek_ahead(string, pos) == ',':
+        if peek_ahead(string, pos) == ",":
             pos = parse_OWS(string, pos + 1)
         else:
             raise InvalidHeaderFormat(
@@ -148,7 +148,7 @@ def parse_list(parse_item, string, pos, header_name):
             )
 
         # Remove extra delimiters before the next item.
-        while peek_ahead(string, pos) == ',':
+        while peek_ahead(string, pos) == ",":
             pos = parse_OWS(string, pos + 1)
 
         # We may have reached the end of the string.
@@ -171,11 +171,11 @@ def parse_connection(string):
     Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
-    return parse_list(parse_token, string, 0, 'Connection')
+    return parse_list(parse_token, string, 0, "Connection")
 
 
 _protocol_re = re.compile(
-    r'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+(?:/[-!#$%&\'*+.^_`|~0-9a-zA-Z]+)?'
+    r"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+(?:/[-!#$%&\'*+.^_`|~0-9a-zA-Z]+)?"
 )
 
 
@@ -205,7 +205,7 @@ def parse_upgrade(string):
     Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
-    return parse_list(parse_protocol, string, 0, 'Upgrade')
+    return parse_list(parse_protocol, string, 0, "Upgrade")
 
 
 def parse_extension_param(string, pos, header_name):
@@ -221,7 +221,7 @@ def parse_extension_param(string, pos, header_name):
     name, pos = parse_token(string, pos, header_name)
     pos = parse_OWS(string, pos)
     # Extract parameter string, if there is one.
-    if peek_ahead(string, pos) == '=':
+    if peek_ahead(string, pos) == "=":
         pos = parse_OWS(string, pos + 1)
         if peek_ahead(string, pos) == '"':
             pos_before = pos  # for proper error reporting below
@@ -259,7 +259,7 @@ def parse_extension(string, pos, header_name):
     pos = parse_OWS(string, pos)
     # Extract all parameters.
     parameters = []
-    while peek_ahead(string, pos) == ';':
+    while peek_ahead(string, pos) == ";":
         pos = parse_OWS(string, pos + 1)
         parameter, pos = parse_extension_param(string, pos, header_name)
         parameters.append(parameter)
@@ -288,7 +288,7 @@ def parse_extension_list(string):
     Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
-    return parse_list(parse_extension, string, 0, 'Sec-WebSocket-Extensions')
+    return parse_list(parse_extension, string, 0, "Sec-WebSocket-Extensions")
 
 
 def build_extension(name, parameters):
@@ -298,11 +298,11 @@ def build_extension(name, parameters):
     This is the reverse of :func:`parse_extension`.
 
     """
-    return '; '.join(
+    return "; ".join(
         [name]
         + [
             # Quoted strings aren't necessary because values are always tokens.
-            name if value is None else '{}={}'.format(name, value)
+            name if value is None else "{}={}".format(name, value)
             for name, value in parameters
         ]
     )
@@ -315,7 +315,7 @@ def build_extension_list(extensions):
     This is the reverse of :func:`parse_extension_list`.
 
     """
-    return ', '.join(
+    return ", ".join(
         build_extension(name, parameters) for name, parameters in extensions
     )
 
@@ -327,7 +327,7 @@ def parse_subprotocol_list(string):
     Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
 
     """
-    return parse_list(parse_token, string, 0, 'Sec-WebSocket-Protocol')
+    return parse_list(parse_token, string, 0, "Sec-WebSocket-Protocol")
 
 
 def build_subprotocol_list(protocols):
@@ -337,7 +337,7 @@ def build_subprotocol_list(protocols):
     This is the reverse of :func:`parse_subprotocol_list`.
 
     """
-    return ', '.join(protocols)
+    return ", ".join(protocols)
 
 
 def build_basic_auth(username, password):
@@ -346,7 +346,7 @@ def build_basic_auth(username, password):
 
     """
     # https://tools.ietf.org/html/rfc7617#section-2
-    assert ':' not in username
-    user_pass = '{}:{}'.format(username, password)
+    assert ":" not in username
+    user_pass = "{}:{}".format(username, password)
     basic_credentials = base64.b64encode(user_pass.encode()).decode()
-    return 'Basic ' + basic_credentials
+    return "Basic " + basic_credentials

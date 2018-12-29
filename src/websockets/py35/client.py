@@ -31,11 +31,11 @@ async def __await_impl__(self):
                 raise
         except RedirectHandshake as e:
             if self._wsuri.secure and not e.wsuri.secure:
-                raise InvalidHandshake('Redirect dropped TLS')
+                raise InvalidHandshake("Redirect dropped TLS")
             self._wsuri = e.wsuri
             continue  # redirection chain continues
     else:
-        raise InvalidHandshake('Maximum redirects exceeded')
+        raise InvalidHandshake("Maximum redirects exceeded")
 
     self.ws_client = protocol
     return protocol

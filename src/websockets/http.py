@@ -16,24 +16,24 @@ from .version import version as websockets_version
 
 
 __all__ = [
-    'Headers',
-    'MultipleValuesError',
-    'read_request',
-    'read_response',
-    'USER_AGENT',
+    "Headers",
+    "MultipleValuesError",
+    "read_request",
+    "read_response",
+    "USER_AGENT",
 ]
 
 MAX_HEADERS = 256
 MAX_LINE = 4096
 
-USER_AGENT = 'Python/{} websockets/{}'.format(sys.version[:3], websockets_version)
+USER_AGENT = "Python/{} websockets/{}".format(sys.version[:3], websockets_version)
 
 
 # See https://tools.ietf.org/html/rfc7230#appendix-B.
 
 # Regex for validating header names.
 
-_token_re = re.compile(rb'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+')
+_token_re = re.compile(rb"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 
 # Regex for validating header values.
 
@@ -46,7 +46,7 @@ _token_re = re.compile(rb'[-!#$%&\'*+.^_`|~0-9a-zA-Z]+')
 
 # See also https://www.rfc-editor.org/errata_search.php?rfc=7230&eid=4189
 
-_value_re = re.compile(rb'[\x09\x20-\x7e\x80-\xff]*')
+_value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 
 @asyncio.coroutine
@@ -79,13 +79,13 @@ def read_request(stream):
     request_line = yield from read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
-    method, path, version = request_line.split(b' ', 2)
+    method, path, version = request_line.split(b" ", 2)
 
-    if method != b'GET':
+    if method != b"GET":
         raise ValueError("Unsupported HTTP method: %r" % method)
-    if version != b'HTTP/1.1':
+    if version != b"HTTP/1.1":
         raise ValueError("Unsupported HTTP version: %r" % version)
-    path = path.decode('ascii', 'surrogateescape')
+    path = path.decode("ascii", "surrogateescape")
 
     headers = yield from read_headers(stream)
 
@@ -120,9 +120,9 @@ def read_response(stream):
     status_line = yield from read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
-    version, status_code, reason = status_line.split(b' ', 2)
+    version, status_code, reason = status_line.split(b" ", 2)
 
-    if version != b'HTTP/1.1':
+    if version != b"HTTP/1.1":
         raise ValueError("Unsupported HTTP version: %r" % version)
     # This may raise "ValueError: invalid literal for int() with base 10"
     status_code = int(status_code)
@@ -156,19 +156,19 @@ def read_headers(stream):
     headers = Headers()
     for _ in range(MAX_HEADERS + 1):
         line = yield from read_line(stream)
-        if line == b'':
+        if line == b"":
             break
 
         # This may raise "ValueError: not enough values to unpack"
-        name, value = line.split(b':', 1)
+        name, value = line.split(b":", 1)
         if not _token_re.fullmatch(name):
             raise ValueError("Invalid HTTP header name: %r" % name)
-        value = value.strip(b' \t')
+        value = value.strip(b" \t")
         if not _value_re.fullmatch(value):
             raise ValueError("Invalid HTTP header value: %r" % value)
 
-        name = name.decode('ascii')  # guaranteed to be ASCII at this point
-        value = value.decode('ascii', 'surrogateescape')
+        name = name.decode("ascii")  # guaranteed to be ASCII at this point
+        value = value.decode("ascii", "surrogateescape")
         headers[name] = value
 
     else:
@@ -193,7 +193,7 @@ def read_line(stream):
     if len(line) > MAX_LINE:
         raise ValueError("Line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
-    if not line.endswith(b'\r\n'):
+    if not line.endswith(b"\r\n"):
         raise ValueError("Line without CRLF")
     return line[:-2]
 
@@ -248,7 +248,7 @@ class Headers(collections.abc.MutableMapping):
 
     """
 
-    __slots__ = ['_dict', '_list']
+    __slots__ = ["_dict", "_list"]
 
     def __init__(self, *args, **kwargs):
         self._dict = {}
@@ -258,12 +258,12 @@ class Headers(collections.abc.MutableMapping):
 
     def __str__(self):
         return (
-            ''.join('{}: {}\r\n'.format(key, value) for key, value in self._list)
-            + '\r\n'
+            "".join("{}: {}\r\n".format(key, value) for key, value in self._list)
+            + "\r\n"
         )
 
     def __repr__(self):
-        return '{}({})'.format(self.__class__.__name__, repr(self._list))
+        return "{}({})".format(self.__class__.__name__, repr(self._list))
 
     def copy(self):
         copy = self.__class__()

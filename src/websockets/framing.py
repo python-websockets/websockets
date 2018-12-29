@@ -25,19 +25,19 @@ except ImportError:  # pragma: no cover
 
 
 __all__ = [
-    'DATA_OPCODES',
-    'CTRL_OPCODES',
-    'OP_CONT',
-    'OP_TEXT',
-    'OP_BINARY',
-    'OP_CLOSE',
-    'OP_PING',
-    'OP_PONG',
-    'Frame',
-    'prepare_data',
-    'encode_data',
-    'parse_close',
-    'serialize_close',
+    "DATA_OPCODES",
+    "CTRL_OPCODES",
+    "OP_CONT",
+    "OP_TEXT",
+    "OP_BINARY",
+    "OP_CLOSE",
+    "OP_PING",
+    "OP_PONG",
+    "Frame",
+    "prepare_data",
+    "encode_data",
+    "parse_close",
+    "serialize_close",
 ]
 
 DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY = 0x00, 0x01, 0x02
@@ -48,7 +48,7 @@ CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0A
 EXTERNAL_CLOSE_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
 FrameData = collections.namedtuple(
-    'FrameData', ['fin', 'opcode', 'data', 'rsv1', 'rsv2', 'rsv3']
+    "FrameData", ["fin", "opcode", "data", "rsv1", "rsv2", "rsv3"]
 )
 
 
@@ -98,7 +98,7 @@ class Frame(FrameData):
         """
         # Read the header.
         data = yield from reader(2)
-        head1, head2 = struct.unpack('!BB', data)
+        head1, head2 = struct.unpack("!BB", data)
 
         # While not Pythonic, this is marginally faster than calling bool().
         fin = True if head1 & 0b10000000 else False
@@ -113,10 +113,10 @@ class Frame(FrameData):
         length = head2 & 0b01111111
         if length == 126:
             data = yield from reader(2)
-            length, = struct.unpack('!H', data)
+            length, = struct.unpack("!H", data)
         elif length == 127:
             data = yield from reader(8)
-            length, = struct.unpack('!Q', data)
+            length, = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
             raise PayloadTooBig(
                 "Payload length exceeds size limit ({} > {} bytes)".format(
@@ -187,14 +187,14 @@ class Frame(FrameData):
 
         length = len(frame.data)
         if length < 126:
-            output.write(struct.pack('!BB', head1, head2 | length))
+            output.write(struct.pack("!BB", head1, head2 | length))
         elif length < 65536:
-            output.write(struct.pack('!BBH', head1, head2 | 126, length))
+            output.write(struct.pack("!BBH", head1, head2 | 126, length))
         else:
-            output.write(struct.pack('!BBQ', head1, head2 | 127, length))
+            output.write(struct.pack("!BBQ", head1, head2 | 127, length))
 
         if mask:
-            mask_bits = struct.pack('!I', random.getrandbits(32))
+            mask_bits = struct.pack("!I", random.getrandbits(32))
             output.write(mask_bits)
 
         # Prepare the data.
@@ -252,7 +252,7 @@ def prepare_data(data):
 
     """
     if isinstance(data, str):
-        return OP_TEXT, data.encode('utf-8')
+        return OP_TEXT, data.encode("utf-8")
     elif isinstance(data, collections.abc.ByteString):
         return OP_BINARY, data
     elif isinstance(data, memoryview):
@@ -279,7 +279,7 @@ def encode_data(data):
 
     """
     if isinstance(data, str):
-        return data.encode('utf-8')
+        return data.encode("utf-8")
     elif isinstance(data, collections.abc.ByteString):
         return bytes(data)
     elif isinstance(data, memoryview):
@@ -301,12 +301,12 @@ def parse_close(data):
     """
     length = len(data)
     if length >= 2:
-        code, = struct.unpack('!H', data[:2])
+        code, = struct.unpack("!H", data[:2])
         check_close(code)
-        reason = data[2:].decode('utf-8')
+        reason = data[2:].decode("utf-8")
         return code, reason
     elif length == 0:
-        return 1005, ''
+        return 1005, ""
     else:
         assert length == 1
         raise WebSocketProtocolError("Close frame too short")
@@ -320,7 +320,7 @@ def serialize_close(code, reason):
 
     """
     check_close(code)
-    return struct.pack('!H', code) + reason.encode('utf-8')
+    return struct.pack("!H", code) + reason.encode("utf-8")
 
 
 def check_close(code):

@@ -19,14 +19,14 @@ logging.basicConfig(level=logging.CRITICAL)
 
 # Unit for timeouts. May be increased on slow machines by setting the
 # WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
-MS = 0.001 * int(os.environ.get('WEBSOCKETS_TESTS_TIMEOUT_FACTOR', 1))
+MS = 0.001 * int(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", 1))
 
 # asyncio's debug mode has a 10x performance penalty for this test suite.
-if os.environ.get('PYTHONASYNCIODEBUG'):  # pragma: no cover
+if os.environ.get("PYTHONASYNCIODEBUG"):  # pragma: no cover
     MS *= 10
 
 # Ensure that timeouts are larger than the clock's resolution (for Windows).
-MS = max(MS, 2.5 * time.get_clock_info('monotonic').resolution)
+MS = max(MS, 2.5 * time.get_clock_info("monotonic").resolution)
 
 
 class TransportMock(unittest.mock.Mock):
@@ -126,9 +126,9 @@ class CommonTests:
 
         self.protocol.writer.drain = delayed_drain
 
-    close_frame = Frame(True, OP_CLOSE, serialize_close(1000, 'close'))
-    local_close = Frame(True, OP_CLOSE, serialize_close(1000, 'local'))
-    remote_close = Frame(True, OP_CLOSE, serialize_close(1000, 'remote'))
+    close_frame = Frame(True, OP_CLOSE, serialize_close(1000, "close"))
+    local_close = Frame(True, OP_CLOSE, serialize_close(1000, "local"))
+    remote_close = Frame(True, OP_CLOSE, serialize_close(1000, "remote"))
 
     @property
     def ensure_future(self):
@@ -166,7 +166,7 @@ class CommonTests:
         if self.protocol.is_client:
             self.receive_eof()
 
-    def close_connection(self, code=1000, reason='close'):
+    def close_connection(self, code=1000, reason="close"):
         """
         Execute a closing handshake.
 
@@ -184,7 +184,7 @@ class CommonTests:
 
         assert self.protocol.state is State.CLOSED
 
-    def half_close_connection_local(self, code=1000, reason='close'):
+    def half_close_connection_local(self, code=1000, reason="close"):
         """
         Start a closing handshake but do not complete it.
 
@@ -215,7 +215,7 @@ class CommonTests:
         # This task must be awaited or canceled by the caller.
         return close_task
 
-    def half_close_connection_remote(self, code=1000, reason='close'):
+    def half_close_connection_remote(self, code=1000, reason="close"):
         """
         Receive a closing handshake but do not complete it.
 
@@ -310,7 +310,7 @@ class CommonTests:
         self.assertEqual(self.protocol.state, State.CLOSED)
         # No close frame was received.
         self.assertEqual(self.protocol.close_code, 1006)
-        self.assertEqual(self.protocol.close_reason, '')
+        self.assertEqual(self.protocol.close_reason, "")
         # A close frame was sent -- unless the connection was already lost.
         if code == 1006:
             self.assertNoFrameSent()
@@ -329,11 +329,11 @@ class CommonTests:
     # Test public attributes.
 
     def test_local_address(self):
-        get_extra_info = unittest.mock.Mock(return_value=('host', 4312))
+        get_extra_info = unittest.mock.Mock(return_value=("host", 4312))
         self.transport.get_extra_info = get_extra_info
 
-        self.assertEqual(self.protocol.local_address, ('host', 4312))
-        get_extra_info.assert_called_with('sockname', None)
+        self.assertEqual(self.protocol.local_address, ("host", 4312))
+        get_extra_info.assert_called_with("sockname", None)
 
     def test_local_address_before_connection(self):
         # Emulate the situation before connection_open() runs.
@@ -345,11 +345,11 @@ class CommonTests:
             self.protocol.writer = _writer
 
     def test_remote_address(self):
-        get_extra_info = unittest.mock.Mock(return_value=('host', 4312))
+        get_extra_info = unittest.mock.Mock(return_value=("host", 4312))
         self.transport.get_extra_info = get_extra_info
 
-        self.assertEqual(self.protocol.remote_address, ('host', 4312))
-        get_extra_info.assert_called_with('peername', None)
+        self.assertEqual(self.protocol.remote_address, ("host", 4312))
+        get_extra_info.assert_called_with("peername", None)
 
     def test_remote_address_before_connection(self):
         # Emulate the situation before connection_open() runs.
@@ -379,14 +379,14 @@ class CommonTests:
     # Test the recv coroutine.
 
     def test_recv_text(self):
-        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, 'café')
+        self.assertEqual(data, "café")
 
     def test_recv_binary(self):
-        self.receive_frame(Frame(True, OP_BINARY, b'tea'))
+        self.receive_frame(Frame(True, OP_BINARY, b"tea"))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, b'tea')
+        self.assertEqual(data, b"tea")
 
     def test_recv_on_closing_connection_local(self):
         close_task = self.half_close_connection_local()
@@ -409,38 +409,38 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.recv())
 
     def test_recv_protocol_error(self):
-        self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_CONT, "café".encode("utf-8")))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1002, '')
+        self.assertConnectionFailed(1002, "")
 
     def test_recv_unicode_error(self):
-        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('latin-1')))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode("latin-1")))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1007, '')
+        self.assertConnectionFailed(1007, "")
 
     def test_recv_text_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8") * 205))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1009, '')
+        self.assertConnectionFailed(1009, "")
 
     def test_recv_binary_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
+        self.receive_frame(Frame(True, OP_BINARY, b"tea" * 342))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1009, '')
+        self.assertConnectionFailed(1009, "")
 
     def test_recv_text_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
-        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8') * 205))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8") * 205))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, 'café' * 205)
+        self.assertEqual(data, "café" * 205)
 
     def test_recv_binary_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
-        self.receive_frame(Frame(True, OP_BINARY, b'tea' * 342))
+        self.receive_frame(Frame(True, OP_BINARY, b"tea" * 342))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, b'tea' * 342)
+        self.assertEqual(data, b"tea" * 342)
 
     def test_recv_queue_empty(self):
         recv = self.ensure_future(self.protocol.recv())
@@ -449,32 +449,32 @@ class CommonTests:
                 asyncio.wait_for(asyncio.shield(recv), timeout=MS)
             )
 
-        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
         data = self.loop.run_until_complete(recv)
-        self.assertEqual(data, 'café')
+        self.assertEqual(data, "café")
 
     def test_recv_queue_full(self):
         self.protocol.max_queue = 2
         # Test internals because it's hard to verify buffers from the outside.
         self.assertEqual(list(self.protocol.messages), [])
 
-        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
         self.run_loop_once()
-        self.assertEqual(list(self.protocol.messages), ['café'])
+        self.assertEqual(list(self.protocol.messages), ["café"])
 
-        self.receive_frame(Frame(True, OP_BINARY, b'tea'))
+        self.receive_frame(Frame(True, OP_BINARY, b"tea"))
         self.run_loop_once()
-        self.assertEqual(list(self.protocol.messages), ['café', b'tea'])
+        self.assertEqual(list(self.protocol.messages), ["café", b"tea"])
 
-        self.receive_frame(Frame(True, OP_BINARY, b'milk'))
+        self.receive_frame(Frame(True, OP_BINARY, b"milk"))
         self.run_loop_once()
-        self.assertEqual(list(self.protocol.messages), ['café', b'tea'])
+        self.assertEqual(list(self.protocol.messages), ["café", b"tea"])
 
         self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(list(self.protocol.messages), [b'tea', b'milk'])
+        self.assertEqual(list(self.protocol.messages), [b"tea", b"milk"])
 
         self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(list(self.protocol.messages), [b'milk'])
+        self.assertEqual(list(self.protocol.messages), [b"milk"])
 
         self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(list(self.protocol.messages), [])
@@ -486,7 +486,7 @@ class CommonTests:
 
         self.protocol.read_message = read_message
         self.process_invalid_frames()
-        self.assertConnectionFailed(1011, '')
+        self.assertConnectionFailed(1011, "")
 
     def test_recv_canceled(self):
         recv = self.ensure_future(self.protocol.recv())
@@ -496,26 +496,26 @@ class CommonTests:
             self.loop.run_until_complete(recv)
 
         # The next frame doesn't disappear in a vacuum (it used to).
-        self.receive_frame(Frame(True, OP_TEXT, 'café'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, 'café')
+        self.assertEqual(data, "café")
 
     def test_recv_canceled_race_condition(self):
         recv = self.ensure_future(
             asyncio.wait_for(self.protocol.recv(), timeout=0.000001)
         )
         self.loop.call_soon(
-            self.receive_frame, Frame(True, OP_TEXT, 'café'.encode('utf-8'))
+            self.receive_frame, Frame(True, OP_TEXT, "café".encode("utf-8"))
         )
 
         with self.assertRaises(asyncio.TimeoutError):
             self.loop.run_until_complete(recv)
 
         # The previous frame doesn't disappear in a vacuum (it used to).
-        self.receive_frame(Frame(True, OP_TEXT, 'tea'.encode('utf-8')))
+        self.receive_frame(Frame(True, OP_TEXT, "tea".encode("utf-8")))
         data = self.loop.run_until_complete(self.protocol.recv())
         # If we're getting "tea" there, it means "café" was swallowed (ha, ha).
-        self.assertEqual(data, 'café')
+        self.assertEqual(data, "café")
 
     def test_recv_prevents_concurrent_calls(self):
         recv = self.ensure_future(self.protocol.recv())
@@ -528,24 +528,24 @@ class CommonTests:
     # Test the send coroutine.
 
     def test_send_text(self):
-        self.loop.run_until_complete(self.protocol.send('café'))
-        self.assertOneFrameSent(True, OP_TEXT, 'café'.encode('utf-8'))
+        self.loop.run_until_complete(self.protocol.send("café"))
+        self.assertOneFrameSent(True, OP_TEXT, "café".encode("utf-8"))
 
     def test_send_binary(self):
-        self.loop.run_until_complete(self.protocol.send(b'tea'))
-        self.assertOneFrameSent(True, OP_BINARY, b'tea')
+        self.loop.run_until_complete(self.protocol.send(b"tea"))
+        self.assertOneFrameSent(True, OP_BINARY, b"tea")
 
     def test_send_binary_from_bytearray(self):
-        self.loop.run_until_complete(self.protocol.send(bytearray(b'tea')))
-        self.assertOneFrameSent(True, OP_BINARY, b'tea')
+        self.loop.run_until_complete(self.protocol.send(bytearray(b"tea")))
+        self.assertOneFrameSent(True, OP_BINARY, b"tea")
 
     def test_send_binary_from_memoryview(self):
-        self.loop.run_until_complete(self.protocol.send(memoryview(b'tea')))
-        self.assertOneFrameSent(True, OP_BINARY, b'tea')
+        self.loop.run_until_complete(self.protocol.send(memoryview(b"tea")))
+        self.assertOneFrameSent(True, OP_BINARY, b"tea")
 
     def test_send_binary_from_non_contiguous_memoryview(self):
-        self.loop.run_until_complete(self.protocol.send(memoryview(b'tteeaa')[::2]))
-        self.assertOneFrameSent(True, OP_BINARY, b'tea')
+        self.loop.run_until_complete(self.protocol.send(memoryview(b"tteeaa")[::2]))
+        self.assertOneFrameSent(True, OP_BINARY, b"tea")
 
     def test_send_type_error(self):
         with self.assertRaises(TypeError):
@@ -553,41 +553,41 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_send_iterable_text(self):
-        self.loop.run_until_complete(self.protocol.send(['ca', 'fé']))
+        self.loop.run_until_complete(self.protocol.send(["ca", "fé"]))
         self.assertFramesSent(
-            (False, OP_TEXT, 'ca'.encode('utf-8')),
-            (False, OP_CONT, 'fé'.encode('utf-8')),
-            (True, OP_CONT, ''.encode('utf-8')),
+            (False, OP_TEXT, "ca".encode("utf-8")),
+            (False, OP_CONT, "fé".encode("utf-8")),
+            (True, OP_CONT, "".encode("utf-8")),
         )
 
     def test_send_iterable_binary(self):
-        self.loop.run_until_complete(self.protocol.send([b'te', b'a']))
+        self.loop.run_until_complete(self.protocol.send([b"te", b"a"]))
         self.assertFramesSent(
-            (False, OP_BINARY, b'te'), (False, OP_CONT, b'a'), (True, OP_CONT, b'')
+            (False, OP_BINARY, b"te"), (False, OP_CONT, b"a"), (True, OP_CONT, b"")
         )
 
     def test_send_iterable_binary_from_bytearray(self):
         self.loop.run_until_complete(
-            self.protocol.send([bytearray(b'te'), bytearray(b'a')])
+            self.protocol.send([bytearray(b"te"), bytearray(b"a")])
         )
         self.assertFramesSent(
-            (False, OP_BINARY, b'te'), (False, OP_CONT, b'a'), (True, OP_CONT, b'')
+            (False, OP_BINARY, b"te"), (False, OP_CONT, b"a"), (True, OP_CONT, b"")
         )
 
     def test_send_iterable_binary_from_memoryview(self):
         self.loop.run_until_complete(
-            self.protocol.send([memoryview(b'te'), memoryview(b'a')])
+            self.protocol.send([memoryview(b"te"), memoryview(b"a")])
         )
         self.assertFramesSent(
-            (False, OP_BINARY, b'te'), (False, OP_CONT, b'a'), (True, OP_CONT, b'')
+            (False, OP_BINARY, b"te"), (False, OP_CONT, b"a"), (True, OP_CONT, b"")
         )
 
     def test_send_iterable_binary_from_non_contiguous_memoryview(self):
         self.loop.run_until_complete(
-            self.protocol.send([memoryview(b'ttee')[::2], memoryview(b'aa')[::2]])
+            self.protocol.send([memoryview(b"ttee")[::2], memoryview(b"aa")[::2]])
         )
         self.assertFramesSent(
-            (False, OP_BINARY, b'te'), (False, OP_CONT, b'a'), (True, OP_CONT, b'')
+            (False, OP_BINARY, b"te"), (False, OP_CONT, b"a"), (True, OP_CONT, b"")
         )
 
     def test_send_empty_iterable(self):
@@ -601,17 +601,17 @@ class CommonTests:
 
     def test_send_iterable_mixed_type_error(self):
         with self.assertRaises(TypeError):
-            self.loop.run_until_complete(self.protocol.send(['café', b'tea']))
+            self.loop.run_until_complete(self.protocol.send(["café", b"tea"]))
         self.assertFramesSent(
-            (False, OP_TEXT, 'café'.encode('utf-8')),
-            (True, OP_CLOSE, serialize_close(1011, '')),
+            (False, OP_TEXT, "café".encode("utf-8")),
+            (True, OP_CLOSE, serialize_close(1011, "")),
         )
 
     def test_send_on_closing_connection_local(self):
         close_task = self.half_close_connection_local()
 
         with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.send('foobar'))
+            self.loop.run_until_complete(self.protocol.send("foobar"))
 
         self.assertNoFrameSent()
 
@@ -621,7 +621,7 @@ class CommonTests:
         self.half_close_connection_remote()
 
         with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.send('foobar'))
+            self.loop.run_until_complete(self.protocol.send("foobar"))
 
         self.assertNoFrameSent()
 
@@ -629,7 +629,7 @@ class CommonTests:
         self.close_connection()
 
         with self.assertRaises(ConnectionClosed):
-            self.loop.run_until_complete(self.protocol.send('foobar'))
+            self.loop.run_until_complete(self.protocol.send("foobar"))
 
         self.assertNoFrameSent()
 
@@ -645,24 +645,24 @@ class CommonTests:
         self.assertOneFrameSent(True, OP_PING, ping_data)
 
     def test_ping_text(self):
-        self.loop.run_until_complete(self.protocol.ping('café'))
-        self.assertOneFrameSent(True, OP_PING, 'café'.encode('utf-8'))
+        self.loop.run_until_complete(self.protocol.ping("café"))
+        self.assertOneFrameSent(True, OP_PING, "café".encode("utf-8"))
 
     def test_ping_binary(self):
-        self.loop.run_until_complete(self.protocol.ping(b'tea'))
-        self.assertOneFrameSent(True, OP_PING, b'tea')
+        self.loop.run_until_complete(self.protocol.ping(b"tea"))
+        self.assertOneFrameSent(True, OP_PING, b"tea")
 
     def test_ping_binary_from_bytearray(self):
-        self.loop.run_until_complete(self.protocol.ping(bytearray(b'tea')))
-        self.assertOneFrameSent(True, OP_PING, b'tea')
+        self.loop.run_until_complete(self.protocol.ping(bytearray(b"tea")))
+        self.assertOneFrameSent(True, OP_PING, b"tea")
 
     def test_ping_binary_from_memoryview(self):
-        self.loop.run_until_complete(self.protocol.ping(memoryview(b'tea')))
-        self.assertOneFrameSent(True, OP_PING, b'tea')
+        self.loop.run_until_complete(self.protocol.ping(memoryview(b"tea")))
+        self.assertOneFrameSent(True, OP_PING, b"tea")
 
     def test_ping_binary_from_non_contiguous_memoryview(self):
-        self.loop.run_until_complete(self.protocol.ping(memoryview(b'tteeaa')[::2]))
-        self.assertOneFrameSent(True, OP_PING, b'tea')
+        self.loop.run_until_complete(self.protocol.ping(memoryview(b"tteeaa")[::2]))
+        self.assertOneFrameSent(True, OP_PING, b"tea")
 
     def test_ping_type_error(self):
         with self.assertRaises(TypeError):
@@ -699,27 +699,27 @@ class CommonTests:
 
     def test_pong_default(self):
         self.loop.run_until_complete(self.protocol.pong())
-        self.assertOneFrameSent(True, OP_PONG, b'')
+        self.assertOneFrameSent(True, OP_PONG, b"")
 
     def test_pong_text(self):
-        self.loop.run_until_complete(self.protocol.pong('café'))
-        self.assertOneFrameSent(True, OP_PONG, 'café'.encode('utf-8'))
+        self.loop.run_until_complete(self.protocol.pong("café"))
+        self.assertOneFrameSent(True, OP_PONG, "café".encode("utf-8"))
 
     def test_pong_binary(self):
-        self.loop.run_until_complete(self.protocol.pong(b'tea'))
-        self.assertOneFrameSent(True, OP_PONG, b'tea')
+        self.loop.run_until_complete(self.protocol.pong(b"tea"))
+        self.assertOneFrameSent(True, OP_PONG, b"tea")
 
     def test_pong_binary_from_bytearray(self):
-        self.loop.run_until_complete(self.protocol.pong(bytearray(b'tea')))
-        self.assertOneFrameSent(True, OP_PONG, b'tea')
+        self.loop.run_until_complete(self.protocol.pong(bytearray(b"tea")))
+        self.assertOneFrameSent(True, OP_PONG, b"tea")
 
     def test_pong_binary_from_memoryview(self):
-        self.loop.run_until_complete(self.protocol.pong(memoryview(b'tea')))
-        self.assertOneFrameSent(True, OP_PONG, b'tea')
+        self.loop.run_until_complete(self.protocol.pong(memoryview(b"tea")))
+        self.assertOneFrameSent(True, OP_PONG, b"tea")
 
     def test_pong_binary_from_non_contiguous_memoryview(self):
-        self.loop.run_until_complete(self.protocol.pong(memoryview(b'tteeaa')[::2]))
-        self.assertOneFrameSent(True, OP_PONG, b'tea')
+        self.loop.run_until_complete(self.protocol.pong(memoryview(b"tteeaa")[::2]))
+        self.assertOneFrameSent(True, OP_PONG, b"tea")
 
     def test_pong_type_error(self):
         with self.assertRaises(TypeError):
@@ -755,12 +755,12 @@ class CommonTests:
     # Test the protocol's logic for acknowledging pings with pongs.
 
     def test_answer_ping(self):
-        self.receive_frame(Frame(True, OP_PING, b'test'))
+        self.receive_frame(Frame(True, OP_PING, b"test"))
         self.run_loop_once()
-        self.assertOneFrameSent(True, OP_PONG, b'test')
+        self.assertOneFrameSent(True, OP_PONG, b"test")
 
     def test_ignore_pong(self):
-        self.receive_frame(Frame(True, OP_PONG, b'test'))
+        self.receive_frame(Frame(True, OP_PONG, b"test"))
         self.run_loop_once()
         self.assertNoFrameSent()
 
@@ -789,7 +789,7 @@ class CommonTests:
             for i in range(3)
         ]
         # Unsolicited pong doesn't acknowledge pings
-        self.receive_frame(Frame(True, OP_PONG, b''))
+        self.receive_frame(Frame(True, OP_PONG, b""))
         self.run_loop_once()
         self.run_loop_once()
         self.assertFalse(pings[0][0].done())
@@ -814,84 +814,84 @@ class CommonTests:
         self.assertTrue(ping.cancelled())
 
     def test_duplicate_ping(self):
-        self.loop.run_until_complete(self.protocol.ping(b'foobar'))
-        self.assertOneFrameSent(True, OP_PING, b'foobar')
+        self.loop.run_until_complete(self.protocol.ping(b"foobar"))
+        self.assertOneFrameSent(True, OP_PING, b"foobar")
         with self.assertRaises(ValueError):
-            self.loop.run_until_complete(self.protocol.ping(b'foobar'))
+            self.loop.run_until_complete(self.protocol.ping(b"foobar"))
         self.assertNoFrameSent()
 
     # Test the protocol's logic for rebuilding fragmented messages.
 
     def test_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
-        self.receive_frame(Frame(True, OP_CONT, 'fé'.encode('utf-8')))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_CONT, "fé".encode("utf-8")))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, 'café')
+        self.assertEqual(data, "café")
 
     def test_fragmented_binary(self):
-        self.receive_frame(Frame(False, OP_BINARY, b't'))
-        self.receive_frame(Frame(False, OP_CONT, b'e'))
-        self.receive_frame(Frame(True, OP_CONT, b'a'))
+        self.receive_frame(Frame(False, OP_BINARY, b"t"))
+        self.receive_frame(Frame(False, OP_CONT, b"e"))
+        self.receive_frame(Frame(True, OP_CONT, b"a"))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, b'tea')
+        self.assertEqual(data, b"tea")
 
     def test_fragmented_text_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.receive_frame(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
-        self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
+        self.receive_frame(Frame(False, OP_TEXT, "café".encode("utf-8") * 100))
+        self.receive_frame(Frame(True, OP_CONT, "café".encode("utf-8") * 105))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1009, '')
+        self.assertConnectionFailed(1009, "")
 
     def test_fragmented_binary_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.receive_frame(Frame(False, OP_BINARY, b'tea' * 171))
-        self.receive_frame(Frame(True, OP_CONT, b'tea' * 171))
+        self.receive_frame(Frame(False, OP_BINARY, b"tea" * 171))
+        self.receive_frame(Frame(True, OP_CONT, b"tea" * 171))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1009, '')
+        self.assertConnectionFailed(1009, "")
 
     def test_fragmented_text_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
-        self.receive_frame(Frame(False, OP_TEXT, 'café'.encode('utf-8') * 100))
-        self.receive_frame(Frame(True, OP_CONT, 'café'.encode('utf-8') * 105))
+        self.receive_frame(Frame(False, OP_TEXT, "café".encode("utf-8") * 100))
+        self.receive_frame(Frame(True, OP_CONT, "café".encode("utf-8") * 105))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, 'café' * 205)
+        self.assertEqual(data, "café" * 205)
 
     def test_fragmented_binary_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
-        self.receive_frame(Frame(False, OP_BINARY, b'tea' * 171))
-        self.receive_frame(Frame(True, OP_CONT, b'tea' * 171))
+        self.receive_frame(Frame(False, OP_BINARY, b"tea" * 171))
+        self.receive_frame(Frame(True, OP_CONT, b"tea" * 171))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, b'tea' * 342)
+        self.assertEqual(data, b"tea" * 342)
 
     def test_control_frame_within_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
-        self.receive_frame(Frame(True, OP_PING, b''))
-        self.receive_frame(Frame(True, OP_CONT, 'fé'.encode('utf-8')))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_PING, b""))
+        self.receive_frame(Frame(True, OP_CONT, "fé".encode("utf-8")))
         data = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(data, 'café')
-        self.assertOneFrameSent(True, OP_PONG, b'')
+        self.assertEqual(data, "café")
+        self.assertOneFrameSent(True, OP_PONG, b"")
 
     def test_unterminated_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
         # Missing the second part of the fragmented frame.
-        self.receive_frame(Frame(True, OP_BINARY, b'tea'))
+        self.receive_frame(Frame(True, OP_BINARY, b"tea"))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1002, '')
+        self.assertConnectionFailed(1002, "")
 
     def test_close_handshake_in_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
-        self.receive_frame(Frame(True, OP_CLOSE, b''))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_CLOSE, b""))
         self.process_invalid_frames()
         # The RFC may have overlooked this case: it says that control frames
         # can be interjected in the middle of a fragmented message and that a
         # close frame must be echoed. Even though there's an unterminated
         # message, technically, the closing handshake was successful.
-        self.assertConnectionClosed(1005, '')
+        self.assertConnectionClosed(1005, "")
 
     def test_connection_close_in_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, 'ca'.encode('utf-8')))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1006, '')
+        self.assertConnectionFailed(1006, "")
 
     # Test miscellaneous code paths to ensure full coverage.
 
@@ -899,7 +899,7 @@ class CommonTests:
         # Test calling connection_lost without going through close_connection.
         self.protocol.connection_lost(None)
 
-        self.assertConnectionFailed(1006, '')
+        self.assertConnectionFailed(1006, "")
 
     def test_ensure_open_before_opening_handshake(self):
         # Simulate a bug by forcibly reverting the protocol state.
@@ -941,7 +941,7 @@ class CommonTests:
 
         connection_closed_exc = context.exception
         self.assertEqual(connection_closed_exc.code, 1000)
-        self.assertEqual(connection_closed_exc.reason, 'close')
+        self.assertEqual(connection_closed_exc.reason, "close")
 
     # Test the protocol logic for sending keepalive pings.
 
@@ -988,7 +988,7 @@ class CommonTests:
 
         # Connection is closed at 6ms.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
-        self.assertOneFrameSent(True, OP_CLOSE, serialize_close(1011, ''))
+        self.assertOneFrameSent(True, OP_CLOSE, serialize_close(1011, ""))
 
         # The keepalive ping task is complete.
         self.assertEqual(self.protocol.keepalive_ping_task.result(), None)
@@ -1061,15 +1061,15 @@ class CommonTests:
         self.loop.call_later(MS, self.receive_eof_if_client)
 
         # Run the closing handshake.
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.loop.run_until_complete(self.protocol.close(reason="close"))
 
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1000, "close")
         self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
-        self.loop.run_until_complete(self.protocol.close(reason='oh noes!'))
+        self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
 
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1000, "close")
         self.assertNoFrameSent()
 
     def test_remote_close(self):
@@ -1082,13 +1082,13 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.recv())
 
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1000, "close")
         self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
-        self.loop.run_until_complete(self.protocol.close(reason='oh noes!'))
+        self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
 
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1000, "close")
         self.assertNoFrameSent()
 
     def test_simultaneous_close(self):
@@ -1098,42 +1098,42 @@ class CommonTests:
         self.loop.call_soon(self.receive_frame, self.remote_close)
         self.loop.call_soon(self.receive_eof_if_client)
 
-        self.loop.run_until_complete(self.protocol.close(reason='local'))
+        self.loop.run_until_complete(self.protocol.close(reason="local"))
 
-        self.assertConnectionClosed(1000, 'remote')
+        self.assertConnectionClosed(1000, "remote")
         # The current implementation sends a close frame in response to the
         # close frame received from the remote end. It skips the close frame
         # that should be sent as a result of calling close().
         self.assertOneFrameSent(*self.remote_close)
 
     def test_close_preserves_incoming_frames(self):
-        self.receive_frame(Frame(True, OP_TEXT, b'hello'))
+        self.receive_frame(Frame(True, OP_TEXT, b"hello"))
 
         self.loop.call_later(MS, self.receive_frame, self.close_frame)
         self.loop.call_later(MS, self.receive_eof_if_client)
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.loop.run_until_complete(self.protocol.close(reason="close"))
 
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1000, "close")
         self.assertOneFrameSent(*self.close_frame)
 
         next_message = self.loop.run_until_complete(self.protocol.recv())
-        self.assertEqual(next_message, 'hello')
+        self.assertEqual(next_message, "hello")
 
     def test_close_protocol_error(self):
-        invalid_close_frame = Frame(True, OP_CLOSE, b'\x00')
+        invalid_close_frame = Frame(True, OP_CLOSE, b"\x00")
         self.receive_frame(invalid_close_frame)
         self.receive_eof_if_client()
         self.run_loop_once()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.loop.run_until_complete(self.protocol.close(reason="close"))
 
-        self.assertConnectionFailed(1002, '')
+        self.assertConnectionFailed(1002, "")
 
     def test_close_connection_lost(self):
         self.receive_eof()
         self.run_loop_once()
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.loop.run_until_complete(self.protocol.close(reason="close"))
 
-        self.assertConnectionFailed(1006, '')
+        self.assertConnectionFailed(1006, "")
 
     def test_local_close_during_recv(self):
         recv = self.ensure_future(self.protocol.recv())
@@ -1141,19 +1141,19 @@ class CommonTests:
         self.loop.call_later(MS, self.receive_frame, self.close_frame)
         self.loop.call_later(MS, self.receive_eof_if_client)
 
-        self.loop.run_until_complete(self.protocol.close(reason='close'))
+        self.loop.run_until_complete(self.protocol.close(reason="close"))
 
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(recv)
 
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1000, "close")
 
     # There is no test_remote_close_during_recv because it would be identical
     # to test_remote_close.
 
     def test_remote_close_during_send(self):
         self.make_drain_slow()
-        send = self.ensure_future(self.protocol.send('hello'))
+        send = self.ensure_future(self.protocol.send("hello"))
 
         self.receive_frame(self.close_frame)
         self.receive_eof()
@@ -1161,7 +1161,7 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(send)
 
-        self.assertConnectionClosed(1000, 'close')
+        self.assertConnectionClosed(1000, "close")
 
     # There is no test_local_close_during_send because this cannot really
     # happen, considering that writes are serialized.
@@ -1171,7 +1171,7 @@ class ServerTests(CommonTests, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.protocol.is_client = False
-        self.protocol.side = 'server'
+        self.protocol.side = "server"
 
     def test_local_close_send_close_frame_timeout(self):
         self.protocol.close_timeout = 10 * MS
@@ -1179,16 +1179,16 @@ class ServerTests(CommonTests, unittest.TestCase):
         # If we can't send a close frame, time out in 10ms.
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(9 * MS, 19 * MS):
-            self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1006, '')
+            self.loop.run_until_complete(self.protocol.close(reason="close"))
+        self.assertConnectionClosed(1006, "")
 
     def test_local_close_receive_close_frame_timeout(self):
         self.protocol.close_timeout = 10 * MS
         # If the client doesn't send a close frame, time out in 10ms.
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(9 * MS, 19 * MS):
-            self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1006, '')
+            self.loop.run_until_complete(self.protocol.close(reason="close"))
+        self.assertConnectionClosed(1006, "")
 
     def test_local_close_connection_lost_timeout_after_write_eof(self):
         self.protocol.close_timeout = 10 * MS
@@ -1199,8 +1199,8 @@ class ServerTests(CommonTests, unittest.TestCase):
             # HACK: disable write_eof => other end drops connection emulation.
             self.transport._eof = True
             self.receive_frame(self.close_frame)
-            self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1000, 'close')
+            self.loop.run_until_complete(self.protocol.close(reason="close"))
+        self.assertConnectionClosed(1000, "close")
 
     def test_local_close_connection_lost_timeout_after_close(self):
         self.protocol.close_timeout = 10 * MS
@@ -1214,15 +1214,15 @@ class ServerTests(CommonTests, unittest.TestCase):
             # HACK: disable close => other end drops connection emulation.
             self.transport._closing = True
             self.receive_frame(self.close_frame)
-            self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1000, 'close')
+            self.loop.run_until_complete(self.protocol.close(reason="close"))
+        self.assertConnectionClosed(1000, "close")
 
 
 class ClientTests(CommonTests, unittest.TestCase):
     def setUp(self):
         super().setUp()
         self.protocol.is_client = True
-        self.protocol.side = 'client'
+        self.protocol.side = "client"
 
     def test_local_close_send_close_frame_timeout(self):
         self.protocol.close_timeout = 10 * MS
@@ -1232,8 +1232,8 @@ class ClientTests(CommonTests, unittest.TestCase):
         # - 10ms waiting for receiving a half-close
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
-            self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1006, '')
+            self.loop.run_until_complete(self.protocol.close(reason="close"))
+        self.assertConnectionClosed(1006, "")
 
     def test_local_close_receive_close_frame_timeout(self):
         self.protocol.close_timeout = 10 * MS
@@ -1242,8 +1242,8 @@ class ClientTests(CommonTests, unittest.TestCase):
         # - 10ms waiting for receiving a half-close
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
-            self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1006, '')
+            self.loop.run_until_complete(self.protocol.close(reason="close"))
+        self.assertConnectionClosed(1006, "")
 
     def test_local_close_connection_lost_timeout_after_write_eof(self):
         self.protocol.close_timeout = 10 * MS
@@ -1256,8 +1256,8 @@ class ClientTests(CommonTests, unittest.TestCase):
             # HACK: disable write_eof => other end drops connection emulation.
             self.transport._eof = True
             self.receive_frame(self.close_frame)
-            self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1000, 'close')
+            self.loop.run_until_complete(self.protocol.close(reason="close"))
+        self.assertConnectionClosed(1000, "close")
 
     def test_local_close_connection_lost_timeout_after_close(self):
         self.protocol.close_timeout = 10 * MS
@@ -1274,5 +1274,5 @@ class ClientTests(CommonTests, unittest.TestCase):
             # HACK: disable close => other end drops connection emulation.
             self.transport._closing = True
             self.receive_frame(self.close_frame)
-            self.loop.run_until_complete(self.protocol.close(reason='close'))
-        self.assertConnectionClosed(1000, 'close')
+            self.loop.run_until_complete(self.protocol.close(reason="close"))
+        self.assertConnectionClosed(1000, "close")

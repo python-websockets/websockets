@@ -29,7 +29,7 @@ from .protocol import WebSocketCommonProtocol
 from .uri import parse_uri
 
 
-__all__ = ['connect', 'WebSocketClientProtocol']
+__all__ = ["connect", "WebSocketClientProtocol"]
 
 logger = logging.getLogger(__name__)
 
@@ -44,7 +44,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
 
     is_client = True
-    side = 'client'
+    side = "client"
 
     def __init__(
         self,
@@ -74,7 +74,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         # Since the path and headers only contain ASCII characters,
         # we can keep this simple.
-        request = 'GET {path} HTTP/1.1\r\n'.format(path=path)
+        request = "GET {path} HTTP/1.1\r\n".format(path=path)
         request += str(headers)
 
         self.writer.write(request.encode())
@@ -134,7 +134,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         accepted_extensions = []
 
-        header_values = headers.get_all('Sec-WebSocket-Extensions')
+        header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values:
 
@@ -191,7 +191,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         subprotocol = None
 
-        header_values = headers.get_all('Sec-WebSocket-Protocol')
+        header_values = headers.get_all("Sec-WebSocket-Protocol")
 
         if header_values:
 
@@ -208,7 +208,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
             if len(parsed_header_values) > 1:
                 raise InvalidHandshake(
-                    "Multiple subprotocols: {}".format(', '.join(parsed_header_values))
+                    "Multiple subprotocols: {}".format(", ".join(parsed_header_values))
                 )
 
             subprotocol = parsed_header_values[0]
@@ -252,15 +252,15 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         request_headers = Headers()
 
         if wsuri.port == (443 if wsuri.secure else 80):  # pragma: no cover
-            request_headers['Host'] = wsuri.host
+            request_headers["Host"] = wsuri.host
         else:
-            request_headers['Host'] = '{}:{}'.format(wsuri.host, wsuri.port)
+            request_headers["Host"] = "{}:{}".format(wsuri.host, wsuri.port)
 
         if wsuri.user_info:
-            request_headers['Authorization'] = build_basic_auth(*wsuri.user_info)
+            request_headers["Authorization"] = build_basic_auth(*wsuri.user_info)
 
         if origin is not None:
-            request_headers['Origin'] = origin
+            request_headers["Origin"] = origin
 
         key = build_request(request_headers)
 
@@ -271,11 +271,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                     for extension_factory in available_extensions
                 ]
             )
-            request_headers['Sec-WebSocket-Extensions'] = extensions_header
+            request_headers["Sec-WebSocket-Extensions"] = extensions_header
 
         if available_subprotocols is not None:
             protocol_header = build_subprotocol_list(available_subprotocols)
-            request_headers['Sec-WebSocket-Protocol'] = protocol_header
+            request_headers["Sec-WebSocket-Protocol"] = protocol_header
 
         if extra_headers is not None:
             if isinstance(extra_headers, Headers):
@@ -285,15 +285,15 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             for name, value in extra_headers:
                 request_headers[name] = value
 
-        request_headers.setdefault('User-Agent', USER_AGENT)
+        request_headers.setdefault("User-Agent", USER_AGENT)
 
         self.write_http_request(wsuri.resource_name, request_headers)
 
         status_code, response_headers = yield from self.read_http_response()
         if status_code in (301, 302, 303, 307, 308):
-            if 'Location' not in response_headers:
-                raise InvalidMessage('Redirect response missing Location')
-            raise RedirectHandshake(parse_uri(response_headers['Location']))
+            if "Location" not in response_headers:
+                raise InvalidMessage("Redirect response missing Location")
+            raise RedirectHandshake(parse_uri(response_headers["Location"]))
         elif status_code != 101:
             raise InvalidStatusCode(status_code)
 
@@ -380,7 +380,7 @@ class Connect:
         legacy_recv=False,
         klass=WebSocketClientProtocol,
         timeout=10,
-        compression='deflate',
+        compression="deflate",
         origin=None,
         extensions=None,
         subprotocols=None,
@@ -402,14 +402,14 @@ class Connect:
 
         self._wsuri = parse_uri(uri)
         if self._wsuri.secure:
-            kwds.setdefault('ssl', True)
-        elif kwds.get('ssl') is not None:
+            kwds.setdefault("ssl", True)
+        elif kwds.get("ssl") is not None:
             raise ValueError(
                 "connect() received a SSL context for a ws:// URI, "
                 "use a wss:// URI to enable TLS"
             )
 
-        if compression == 'deflate':
+        if compression == "deflate":
             if extensions is None:
                 extensions = []
             if not any(
@@ -443,7 +443,7 @@ class Connect:
 
     def _creating_connection(self):
         if self._wsuri.secure:
-            self._kwds.setdefault('ssl', True)
+            self._kwds.setdefault("ssl", True)
 
         factory = lambda: self._create_protocol(
             host=self._wsuri.host,
@@ -464,7 +464,7 @@ class Connect:
             extra_headers=self._extra_headers,
         )
 
-        if self._kwds.get('sock') is None:
+        if self._kwds.get("sock") is None:
             host, port = self._wsuri.host, self._wsuri.port
         else:
             # If sock is given, host and port mustn't be specified.
@@ -497,11 +497,11 @@ class Connect:
                     raise
             except RedirectHandshake as e:
                 if self._wsuri.secure and not e.wsuri.secure:
-                    raise InvalidHandshake('Redirect dropped TLS')
+                    raise InvalidHandshake("Redirect dropped TLS")
                 self._wsuri = e.wsuri
                 continue  # redirection chain continues
         else:
-            raise InvalidHandshake('Maximum redirects exceeded')
+            raise InvalidHandshake("Maximum redirects exceeded")
 
         self.ws_client = protocol
         return protocol

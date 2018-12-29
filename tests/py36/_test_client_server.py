@@ -17,7 +17,7 @@ if sys.version_info[:2] < (3, 6):  # pragma: no cover
     raise ImportError("Python 3.6+ only")
 
 
-MESSAGES = ['3', '2', '1', 'Fire!']
+MESSAGES = ["3", "2", "1", "Fire!"]
 
 
 class AsyncIteratorTests(unittest.TestCase):
@@ -37,7 +37,7 @@ class AsyncIteratorTests(unittest.TestCase):
             for message in MESSAGES:
                 await ws.send(message)
 
-        start_server = serve(handler, 'localhost', 0)
+        start_server = serve(handler, "localhost", 0)
         server = self.loop.run_until_complete(start_server)
 
         messages = []
@@ -61,7 +61,7 @@ class AsyncIteratorTests(unittest.TestCase):
                 await ws.send(message)
             await ws.close(1001)
 
-        start_server = serve(handler, 'localhost', 0)
+        start_server = serve(handler, "localhost", 0)
         server = self.loop.run_until_complete(start_server)
 
         messages = []
@@ -85,7 +85,7 @@ class AsyncIteratorTests(unittest.TestCase):
                 await ws.send(message)
             await ws.close(1011)
 
-        start_server = serve(handler, 'localhost', 0)
+        start_server = serve(handler, "localhost", 0)
         server = self.loop.run_until_complete(start_server)
 
         messages = []

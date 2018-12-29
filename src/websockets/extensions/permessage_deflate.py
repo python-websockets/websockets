@@ -17,12 +17,12 @@ from ..framing import CTRL_OPCODES, OP_CONT
 
 
 __all__ = [
-    'ClientPerMessageDeflateFactory',
-    'ServerPerMessageDeflateFactory',
-    'PerMessageDeflate',
+    "ClientPerMessageDeflateFactory",
+    "ServerPerMessageDeflateFactory",
+    "PerMessageDeflate",
 ]
 
-_EMPTY_UNCOMPRESSED_BLOCK = b'\x00\x00\xff\xff'
+_EMPTY_UNCOMPRESSED_BLOCK = b"\x00\x00\xff\xff"
 
 _MAX_WINDOW_BITS_VALUES = [str(bits) for bits in range(8, 16)]
 
@@ -39,15 +39,15 @@ def _build_parameters(
     """
     params = []
     if server_no_context_takeover:
-        params.append(('server_no_context_takeover', None))
+        params.append(("server_no_context_takeover", None))
     if client_no_context_takeover:
-        params.append(('client_no_context_takeover', None))
+        params.append(("client_no_context_takeover", None))
     if server_max_window_bits:
-        params.append(('server_max_window_bits', str(server_max_window_bits)))
+        params.append(("server_max_window_bits", str(server_max_window_bits)))
     if client_max_window_bits is True:  # only in handshake requests
-        params.append(('client_max_window_bits', None))
+        params.append(("client_max_window_bits", None))
     elif client_max_window_bits:
-        params.append(('client_max_window_bits', str(client_max_window_bits)))
+        params.append(("client_max_window_bits", str(client_max_window_bits)))
     return params
 
 
@@ -66,7 +66,7 @@ def _extract_parameters(params, *, is_server):
 
     for name, value in params:
 
-        if name == 'server_no_context_takeover':
+        if name == "server_no_context_takeover":
             if server_no_context_takeover:
                 raise DuplicateParameter(name)
             if value is None:
@@ -74,7 +74,7 @@ def _extract_parameters(params, *, is_server):
             else:
                 raise InvalidParameterValue(name, value)
 
-        elif name == 'client_no_context_takeover':
+        elif name == "client_no_context_takeover":
             if client_no_context_takeover:
                 raise DuplicateParameter(name)
             if value is None:
@@ -82,7 +82,7 @@ def _extract_parameters(params, *, is_server):
             else:
                 raise InvalidParameterValue(name, value)
 
-        elif name == 'server_max_window_bits':
+        elif name == "server_max_window_bits":
             if server_max_window_bits is not None:
                 raise DuplicateParameter(name)
             if value in _MAX_WINDOW_BITS_VALUES:
@@ -90,7 +90,7 @@ def _extract_parameters(params, *, is_server):
             else:
                 raise InvalidParameterValue(name, value)
 
-        elif name == 'client_max_window_bits':
+        elif name == "client_max_window_bits":
             if client_max_window_bits is not None:
                 raise DuplicateParameter(name)
             if is_server and value is None:  # only in handshake requests
@@ -117,7 +117,7 @@ class ClientPerMessageDeflateFactory:
 
     """
 
-    name = 'permessage-deflate'
+    name = "permessage-deflate"
 
     def __init__(
         self,
@@ -141,7 +141,7 @@ class ClientPerMessageDeflateFactory:
             or 8 <= client_max_window_bits <= 15
         ):
             raise ValueError("client_max_window_bits must be between 8 and 15")
-        if compress_settings is not None and 'wbits' in compress_settings:
+        if compress_settings is not None and "wbits" in compress_settings:
             raise ValueError(
                 "compress_settings must not include wbits, "
                 "set client_max_window_bits instead"
@@ -273,7 +273,7 @@ class ServerPerMessageDeflateFactory:
 
     """
 
-    name = 'permessage-deflate'
+    name = "permessage-deflate"
 
     def __init__(
         self,
@@ -293,7 +293,7 @@ class ServerPerMessageDeflateFactory:
             raise ValueError("server_max_window_bits must be between 8 and 15")
         if not (client_max_window_bits is None or 8 <= client_max_window_bits <= 15):
             raise ValueError("client_max_window_bits must be between 8 and 15")
-        if compress_settings is not None and 'wbits' in compress_settings:
+        if compress_settings is not None and "wbits" in compress_settings:
             raise ValueError(
                 "compress_settings must not include wbits, "
                 "set server_max_window_bits instead"
@@ -420,7 +420,7 @@ class PerMessageDeflate:
 
     """
 
-    name = 'permessage-deflate'
+    name = "permessage-deflate"
 
     def __init__(
         self,
@@ -441,7 +441,7 @@ class PerMessageDeflate:
         assert local_no_context_takeover in [False, True]
         assert 8 <= remote_max_window_bits <= 15
         assert 8 <= local_max_window_bits <= 15
-        assert 'wbits' not in compress_settings
+        assert "wbits" not in compress_settings
 
         self.remote_no_context_takeover = remote_no_context_takeover
         self.local_no_context_takeover = local_no_context_takeover
@@ -465,11 +465,11 @@ class PerMessageDeflate:
 
     def __repr__(self):
         return (
-            'PerMessageDeflate('
-            'remote_no_context_takeover={}, '
-            'local_no_context_takeover={}, '
-            'remote_max_window_bits={}, '
-            'local_max_window_bits={})'
+            "PerMessageDeflate("
+            "remote_no_context_takeover={}, "
+            "local_no_context_takeover={}, "
+            "remote_max_window_bits={}, "
+            "local_max_window_bits={})"
         ).format(
             self.remote_no_context_takeover,
             self.local_no_context_takeover,

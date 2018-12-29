@@ -29,7 +29,7 @@ from .framing import *
 from .handshake import *
 
 
-__all__ = ['WebSocketCommonProtocol']
+__all__ = ["WebSocketCommonProtocol"]
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ logger = logging.getLogger(__name__)
 # On Python ≥ 3.7, silence a deprecation warning that we can't address before
 # dropping support for Python < 3.5.
 warnings.filterwarnings(
-    action='ignore',
+    action="ignore",
     message=r"'with \(yield from lock\)' is deprecated use 'async with lock' instead",
     category=DeprecationWarning,
 )
@@ -163,7 +163,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     # side behavior: masking the payload and closing the underlying TCP
     # connection. Set is_client and side to pick a side.
     is_client = None
-    side = 'undefined'
+    side = "undefined"
 
     def __init__(
         self,
@@ -236,7 +236,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # The close code and reason are set when receiving a close frame or
         # losing the TCP connection.
         self.close_code = None
-        self.close_reason = ''
+        self.close_reason = ""
 
         # Completed when the connection state becomes CLOSED. Translates the
         # :meth:`connection_lost()` callback to a :class:`~asyncio.Future`
@@ -313,7 +313,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         if self.writer is None:
             return None
-        return self.writer.get_extra_info('sockname')
+        return self.writer.get_extra_info("sockname")
 
     @property
     def remote_address(self):
@@ -326,7 +326,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         if self.writer is None:
             return None
-        return self.writer.get_extra_info('peername')
+        return self.writer.get_extra_info("peername")
 
     @property
     def open(self):
@@ -498,7 +498,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 yield from self.write_frame(False, OP_CONT, data)
 
             # Final fragment.
-            yield from self.write_frame(True, OP_CONT, b'')
+            yield from self.write_frame(True, OP_CONT, b"")
 
         # Fragmented message -- asynchronous iterator
 
@@ -508,7 +508,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             raise TypeError("data must be bytes, str, or iterable")
 
     @asyncio.coroutine
-    def close(self, code=1000, reason=''):
+    def close(self, code=1000, reason=""):
         """
         This coroutine performs the closing handshake.
 
@@ -588,7 +588,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         # Generate a unique random payload otherwise.
         while data is None or data in self.pings:
-            data = struct.pack('!I', random.getrandbits(32))
+            data = struct.pack("!I", random.getrandbits(32))
 
         self.pings[data] = asyncio.Future(loop=self.loop)
 
@@ -597,7 +597,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         return asyncio.shield(self.pings[data])
 
     @asyncio.coroutine
-    def pong(self, data=b''):
+    def pong(self, data=b""):
         """
         This coroutine sends a pong.
 
@@ -751,13 +751,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         # Shortcut for the common case - no fragmentation
         if frame.fin:
-            return frame.data.decode('utf-8') if text else frame.data
+            return frame.data.decode("utf-8") if text else frame.data
 
         # 5.4. Fragmentation
         chunks = []
         max_size = self.max_size
         if text:
-            decoder = codecs.getincrementaldecoder('utf-8')(errors='strict')
+            decoder = codecs.getincrementaldecoder("utf-8")(errors="strict")
             if max_size is None:
 
                 def append(frame):
@@ -795,7 +795,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 raise WebSocketProtocolError("Unexpected opcode")
             append(frame)
 
-        return ('' if text else b'').join(chunks)
+        return ("" if text else b"").join(chunks)
 
     @asyncio.coroutine
     def read_data_frame(self, max_size):
@@ -825,7 +825,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             elif frame.opcode == OP_PING:
                 # Answer pings.
                 # Replace by frame.data.hex() when dropping Python < 3.5.
-                ping_hex = binascii.hexlify(frame.data).decode() or '[empty]'
+                ping_hex = binascii.hexlify(frame.data).decode() or "[empty]"
                 logger.debug(
                     "%s - received ping, sending pong: %s", self.side, ping_hex
                 )
@@ -841,17 +841,17 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                         ping_id, pong_waiter = self.pings.popitem(0)
                         ping_ids.append(ping_id)
                         pong_waiter.set_result(None)
-                    pong_hex = binascii.hexlify(frame.data).decode() or '[empty]'
+                    pong_hex = binascii.hexlify(frame.data).decode() or "[empty]"
                     logger.debug(
                         "%s - received solicited pong: %s", self.side, pong_hex
                     )
                     ping_ids = ping_ids[:-1]
                     if ping_ids:
-                        pings_hex = ', '.join(
-                            binascii.hexlify(ping_id).decode() or '[empty]'
+                        pings_hex = ", ".join(
+                            binascii.hexlify(ping_id).decode() or "[empty]"
                             for ping_id in ping_ids
                         )
-                        plural = 's' if len(ping_ids) > 1 else ''
+                        plural = "s" if len(ping_ids) > 1 else ""
                         logger.debug(
                             "%s - acknowledged previous ping%s: %s",
                             self.side,
@@ -859,7 +859,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                             pings_hex,
                         )
                 else:
-                    pong_hex = binascii.hexlify(frame.data).decode() or '[empty]'
+                    pong_hex = binascii.hexlify(frame.data).decode() or "[empty]"
                     logger.debug(
                         "%s - received unsolicited pong: %s", self.side, pong_hex
                     )
@@ -935,7 +935,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 return transport._closed
 
     @asyncio.coroutine
-    def write_close_frame(self, data=b''):
+    def write_close_frame(self, data=b""):
         """
         Write a close frame if and only if the connection state is OPEN.
 
@@ -1083,7 +1083,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # and the moment this coroutine resumes running.
         return self.connection_lost_waiter.done()
 
-    def fail_connection(self, code=1006, reason=''):
+    def fail_connection(self, code=1006, reason=""):
         """
         7.1.7. Fail the WebSocket Connection
 
@@ -1161,11 +1161,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             ping.set_exception(exc)
 
         if self.pings:
-            pings_hex = ', '.join(
-                binascii.hexlify(ping_id).decode() or '[empty]'
+            pings_hex = ", ".join(
+                binascii.hexlify(ping_id).decode() or "[empty]"
                 for ping_id in self.pings
             )
-            plural = 's' if len(self.pings) > 1 else ''
+            plural = "s" if len(self.pings) > 1 else ""
             logger.debug(
                 "%s - aborted pending ping%s: %s", self.side, plural, pings_hex
             )
@@ -1231,7 +1231,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             "%s x code = %d, reason = %s",
             self.side,
             self.close_code,
-            self.close_reason or '[no reason]',
+            self.close_reason or "[no reason]",
         )
         self.abort_keepalive_pings()
         # If self.connection_lost_waiter isn't pending, that's a bug, because:

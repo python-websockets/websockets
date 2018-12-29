@@ -1,7 +1,7 @@
 import itertools
 
 
-__all__ = ['apply_mask']
+__all__ = ["apply_mask"]
 
 
 def apply_mask(data, mask):

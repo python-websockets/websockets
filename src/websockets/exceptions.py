@@ -1,22 +1,22 @@
 __all__ = [
-    'AbortHandshake',
-    'ConnectionClosed',
-    'DuplicateParameter',
-    'InvalidHandshake',
-    'InvalidHeader',
-    'InvalidHeaderFormat',
-    'InvalidHeaderValue',
-    'InvalidMessage',
-    'InvalidOrigin',
-    'InvalidParameterName',
-    'InvalidParameterValue',
-    'InvalidState',
-    'InvalidStatusCode',
-    'InvalidUpgrade',
-    'InvalidURI',
-    'NegotiationError',
-    'PayloadTooBig',
-    'WebSocketProtocolError',
+    "AbortHandshake",
+    "ConnectionClosed",
+    "DuplicateParameter",
+    "InvalidHandshake",
+    "InvalidHeader",
+    "InvalidHeaderFormat",
+    "InvalidHeaderValue",
+    "InvalidMessage",
+    "InvalidOrigin",
+    "InvalidParameterName",
+    "InvalidParameterValue",
+    "InvalidState",
+    "InvalidStatusCode",
+    "InvalidUpgrade",
+    "InvalidURI",
+    "NegotiationError",
+    "PayloadTooBig",
+    "WebSocketProtocolError",
 ]
 
 
@@ -33,7 +33,7 @@ class AbortHandshake(InvalidHandshake):
 
     """
 
-    def __init__(self, status, headers, body=b''):
+    def __init__(self, status, headers, body=b""):
         self.status = status
         self.headers = headers
         self.body = body
@@ -69,7 +69,7 @@ class InvalidHeader(InvalidHandshake):
     def __init__(self, name, value=None):
         if value is None:
             message = "Missing {} header".format(name)
-        elif value == '':
+        elif value == "":
             message = "Empty {} header".format(name)
         else:
             message = "Invalid {} header: {}".format(name, value)
@@ -108,7 +108,7 @@ class InvalidOrigin(InvalidHeader):
     """
 
     def __init__(self, origin):
-        super().__init__('Origin', origin)
+        super().__init__("Origin", origin)
 
 
 class InvalidStatusCode(InvalidHandshake):

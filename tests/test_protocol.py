@@ -117,10 +117,9 @@ class CommonTests:
 
         original_drain = self.protocol.writer.drain
 
-        @asyncio.coroutine
-        def delayed_drain():
-            yield from asyncio.sleep(delay, loop=self.loop)
-            yield from original_drain()
+        async def delayed_drain():
+            await asyncio.sleep(delay, loop=self.loop)
+            await original_drain()
 
         self.protocol.writer.drain = delayed_drain
 
@@ -474,8 +473,7 @@ class CommonTests:
         self.assertEqual(list(self.protocol.messages), [])
 
     def test_recv_other_error(self):
-        @asyncio.coroutine
-        def read_message():
+        async def read_message():
             raise Exception("BOOM")
 
         self.protocol.read_message = read_message
@@ -1034,8 +1032,7 @@ class CommonTests:
     def test_keepalive_ping_unexpected_error(self):
         self.restart_protocol_with_keepalive_ping()
 
-        @asyncio.coroutine
-        def ping():
+        async def ping():
             raise Exception("BOOM")
 
         self.protocol.ping = ping

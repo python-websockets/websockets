@@ -16,42 +16,38 @@ SERVER = 'ws://127.0.0.1:8642'
 AGENT = 'websockets'
 
 
-@asyncio.coroutine
-def get_case_count(server):
+async def get_case_count(server):
     uri = server + '/getCaseCount'
-    ws = yield from websockets.connect(uri)
-    msg = yield from ws.recv()
-    yield from ws.close()
+    ws = await websockets.connect(uri)
+    msg = await ws.recv()
+    await ws.close()
     return json.loads(msg)
 
 
-@asyncio.coroutine
-def run_case(server, case, agent):
+async def run_case(server, case, agent):
     uri = server + '/runCase?case={}&agent={}'.format(case, agent)
-    ws = yield from websockets.connect(uri, max_size=2 ** 25, max_queue=1)
+    ws = await websockets.connect(uri, max_size=2 ** 25, max_queue=1)
     while True:
         try:
-            msg = yield from ws.recv()
-            yield from ws.send(msg)
+            msg = await ws.recv()
+            await ws.send(msg)
         except websockets.ConnectionClosed:
             break
 
 
-@asyncio.coroutine
-def update_reports(server, agent):
+async def update_reports(server, agent):
     uri = server + '/updateReports?agent={}'.format(agent)
-    ws = yield from websockets.connect(uri)
-    yield from ws.close()
+    ws = await websockets.connect(uri)
+    await ws.close()
 
 
-@asyncio.coroutine
-def run_tests(server, agent):
-    cases = yield from get_case_count(server)
+async def run_tests(server, agent):
+    cases = await get_case_count(server)
     for case in range(1, cases + 1):
         print("Running test case {} out of {}".format(case, cases), end="\r")
-        yield from run_case(server, case, agent)
+        await run_case(server, case, agent)
     print("Ran {} test cases               ".format(cases))
-    yield from update_reports(server, agent)
+    await update_reports(server, agent)
 
 
 main = run_tests(SERVER, urllib.parse.quote(AGENT))

@@ -49,26 +49,25 @@ logging.basicConfig(level=logging.CRITICAL)
 testcert = bytes(pathlib.Path(__file__).with_name("test_localhost.pem"))
 
 
-@asyncio.coroutine
-def handler(ws, path):
+async def handler(ws, path):
     if path == "/attributes":
-        yield from ws.send(repr((ws.host, ws.port, ws.secure)))
+        await ws.send(repr((ws.host, ws.port, ws.secure)))
     elif path == "/close_timeout":
-        yield from ws.send(repr(ws.close_timeout))
+        await ws.send(repr(ws.close_timeout))
     elif path == "/path":
-        yield from ws.send(str(ws.path))
+        await ws.send(str(ws.path))
     elif path == "/headers":
-        yield from ws.send(repr(ws.request_headers))
-        yield from ws.send(repr(ws.response_headers))
+        await ws.send(repr(ws.request_headers))
+        await ws.send(repr(ws.response_headers))
     elif path == "/extensions":
-        yield from ws.send(repr(ws.extensions))
+        await ws.send(repr(ws.extensions))
     elif path == "/subprotocol":
-        yield from ws.send(repr(ws.subprotocol))
+        await ws.send(repr(ws.subprotocol))
     elif path == "/slow_stop":
-        yield from ws.wait_closed()
-        yield from asyncio.sleep(2 * MS)
+        await ws.wait_closed()
+        await asyncio.sleep(2 * MS)
     else:
-        yield from ws.send((yield from ws.recv()))
+        await ws.send((await ws.recv()))
 
 
 @contextlib.contextmanager
@@ -162,31 +161,27 @@ def get_server_uri(server, secure=False, resource_name="/", user_info=None):
 
 
 class UnauthorizedServerProtocol(WebSocketServerProtocol):
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
+    async def process_request(self, path, request_headers):
         # Test returning headers as a Headers instance (1/3)
         return http.HTTPStatus.UNAUTHORIZED, Headers([("X-Access", "denied")]), b""
 
 
 class ForbiddenServerProtocol(WebSocketServerProtocol):
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
+    async def process_request(self, path, request_headers):
         # Test returning headers as a dict (2/3)
         return http.HTTPStatus.FORBIDDEN, {"X-Access": "denied"}, b""
 
 
 class HealthCheckServerProtocol(WebSocketServerProtocol):
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
+    async def process_request(self, path, request_headers):
         # Test returning headers as a list of pairs (3/3)
         if path == "/__health__/":
             return http.HTTPStatus.OK, [("X-Access", "OK")], b"status = green\n"
 
 
 class SlowServerProtocol(WebSocketServerProtocol):
-    @asyncio.coroutine
-    def process_request(self, path, request_headers):
-        yield from asyncio.sleep(10 * MS)
+    async def process_request(self, path, request_headers):
+        await asyncio.sleep(10 * MS)
 
 
 class FooClientProtocol(WebSocketClientProtocol):
@@ -957,9 +952,8 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     @unittest.mock.patch("websockets.client.read_response")
     def test_server_does_not_switch_protocols(self, _read_response):
-        @asyncio.coroutine
-        def wrong_read_response(stream):
-            status_code, reason, headers = yield from read_response(stream)
+        async def wrong_read_response(stream):
+            status_code, reason, headers = await read_response(stream)
             return 400, "Bad Request", headers
 
         _read_response.side_effect = wrong_read_response

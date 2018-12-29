@@ -10,12 +10,11 @@ logging.basicConfig(level=logging.WARNING)
 # logging.getLogger('websockets').setLevel(logging.DEBUG)
 
 
-@asyncio.coroutine
-def echo(ws, path):
+async def echo(ws, path):
     while True:
         try:
-            msg = yield from ws.recv()
-            yield from ws.send(msg)
+            msg = await ws.recv()
+            await ws.send(msg)
         except websockets.ConnectionClosed:
             break
 

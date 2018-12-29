@@ -79,8 +79,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         self.writer.write(request.encode())
 
-    @asyncio.coroutine
-    def read_http_response(self):
+    async def read_http_response(self):
         """
         Read status line and headers from the HTTP response.
 
@@ -93,7 +92,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         try:
-            status_code, reason, headers = yield from read_response(self.reader)
+            status_code, reason, headers = await read_response(self.reader)
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
@@ -220,8 +219,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         return subprotocol
 
-    @asyncio.coroutine
-    def handshake(
+    async def handshake(
         self,
         wsuri,
         origin=None,
@@ -289,7 +287,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         self.write_http_request(wsuri.resource_name, request_headers)
 
-        status_code, response_headers = yield from self.read_http_response()
+        status_code, response_headers = await self.read_http_response()
         if status_code in (301, 302, 303, 307, 308):
             if "Location" not in response_headers:
                 raise InvalidMessage("Redirect response missing Location")
@@ -477,34 +475,8 @@ class Connect:
         return self._loop.create_connection(factory, host, port, **self._kwds)
 
     @asyncio.coroutine
-    def __iter__(self):  # pragma: no cover
-        for redirects in range(self.MAX_REDIRECTS_ALLOWED):
-            transport, protocol = yield from self._creating_connection()
-
-            try:
-                try:
-                    yield from protocol.handshake(
-                        self._wsuri,
-                        origin=self._origin,
-                        available_extensions=protocol.available_extensions,
-                        available_subprotocols=protocol.available_subprotocols,
-                        extra_headers=protocol.extra_headers,
-                    )
-                    break  # redirection chain ended
-                except Exception:
-                    protocol.fail_connection()
-                    yield from protocol.wait_closed()
-                    raise
-            except RedirectHandshake as e:
-                if self._wsuri.secure and not e.wsuri.secure:
-                    raise InvalidHandshake("Redirect dropped TLS")
-                self._wsuri = e.wsuri
-                continue  # redirection chain continues
-        else:
-            raise InvalidHandshake("Maximum redirects exceeded")
-
-        self.ws_client = protocol
-        return protocol
+    def __iter__(self):
+        return self.__await_impl__()
 
     async def __aenter__(self):
         return await self
@@ -513,8 +485,6 @@ class Connect:
         await self.ws_client.close()
 
     async def __await_impl__(self):
-        # Duplicated with __iter__ because Python 3.7 requires an async function
-        # (as explained in __await__ below) which Python 3.4 doesn't support.
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):
             transport, protocol = await self._creating_connection()
 
@@ -559,8 +529,7 @@ if sys.version_info[:3] < (3, 5, 1):  # pragma: no cover
     del Connect.__aexit__
     del Connect.__await__
 
-    @asyncio.coroutine
-    def connect(*args, **kwds):
+    async def connect(*args, **kwds):
         return Connect(*args, **kwds).__iter__()
 
     connect.__doc__ = Connect.__doc__

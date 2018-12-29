@@ -87,10 +87,9 @@ def print_over_input(string):
     sys.stdout.flush()
 
 
-@asyncio.coroutine
-def run_client(uri, loop, inputs, stop):
+async def run_client(uri, loop, inputs, stop):
     try:
-        websocket = yield from websockets.connect(uri)
+        websocket = await websockets.connect(uri)
     except Exception as exc:
         print_over_input("Failed to connect to {}: {}.".format(uri, exc))
         exit_from_event_loop_thread(loop, stop)
@@ -102,7 +101,7 @@ def run_client(uri, loop, inputs, stop):
         while True:
             incoming = asyncio.ensure_future(websocket.recv())
             outgoing = asyncio.ensure_future(inputs.get())
-            done, pending = yield from asyncio.wait(
+            done, pending = await asyncio.wait(
                 [incoming, outgoing, stop], return_when=asyncio.FIRST_COMPLETED
             )
 
@@ -122,13 +121,13 @@ def run_client(uri, loop, inputs, stop):
 
             if outgoing in done:
                 message = outgoing.result()
-                yield from websocket.send(message)
+                await websocket.send(message)
 
             if stop in done:
                 break
 
     finally:
-        yield from websocket.close()
+        await websocket.close()
         close_status = format_close(websocket.close_code, websocket.close_reason)
 
         print_over_input(

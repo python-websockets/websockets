@@ -9,7 +9,6 @@ of frames is implemented in :mod:`websockets.protocol`.
 
 """
 
-import asyncio
 import collections
 import io
 import random
@@ -73,8 +72,7 @@ class Frame(FrameData):
         return FrameData.__new__(cls, fin, opcode, data, rsv1, rsv2, rsv3)
 
     @classmethod
-    @asyncio.coroutine
-    def read(cls, reader, *, mask, max_size=None, extensions=None):
+    async def read(cls, reader, *, mask, max_size=None, extensions=None):
         """
         Read a WebSocket frame and return a :class:`Frame` object.
 
@@ -97,7 +95,7 @@ class Frame(FrameData):
 
         """
         # Read the header.
-        data = yield from reader(2)
+        data = await reader(2)
         head1, head2 = struct.unpack("!BB", data)
 
         # While not Pythonic, this is marginally faster than calling bool().
@@ -112,10 +110,10 @@ class Frame(FrameData):
 
         length = head2 & 0b01111111
         if length == 126:
-            data = yield from reader(2)
+            data = await reader(2)
             length, = struct.unpack("!H", data)
         elif length == 127:
-            data = yield from reader(8)
+            data = await reader(8)
             length, = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
             raise PayloadTooBig(
@@ -124,10 +122,10 @@ class Frame(FrameData):
                 )
             )
         if mask:
-            mask_bits = yield from reader(4)
+            mask_bits = await reader(4)
 
         # Read the data.
-        data = yield from reader(length)
+        data = await reader(length)
         if mask:
             data = apply_mask(data, mask_bits)
 

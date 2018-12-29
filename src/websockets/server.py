@@ -89,8 +89,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.ws_server.register(self)
         self.handler_task = self.loop.create_task(self.handler())
 
-    @asyncio.coroutine
-    def handler(self):
+    async def handler(self):
         """
         Handle the lifecycle of a WebSocket connection.
 
@@ -102,7 +101,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         try:
 
             try:
-                path = yield from self.handshake(
+                path = await self.handshake(
                     origins=self.origins,
                     available_extensions=self.available_extensions,
                     available_subprotocols=self.available_subprotocols,
@@ -154,11 +153,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
                 self.write_http_response(status, headers, body)
                 self.fail_connection()
-                yield from self.wait_closed()
+                await self.wait_closed()
                 return
 
             try:
-                yield from self.ws_handler(self, path)
+                await self.ws_handler(self, path)
             except Exception:
                 logger.error("Error in connection handler", exc_info=True)
                 if not self.closed:
@@ -166,7 +165,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 raise
 
             try:
-                yield from self.close()
+                await self.close()
             except ConnectionError:
                 logger.debug("Connection error in closing handshake", exc_info=True)
                 raise
@@ -188,8 +187,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             # connections before terminating.
             self.ws_server.unregister(self)
 
-    @asyncio.coroutine
-    def read_http_request(self):
+    async def read_http_request(self):
         """
         Read request line and headers from the HTTP request.
 
@@ -202,7 +200,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         """
         try:
-            path, headers = yield from read_request(self.reader)
+            path, headers = await read_request(self.reader)
         except ValueError as exc:
             raise InvalidMessage("Malformed HTTP message") from exc
 
@@ -426,8 +424,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         )
         return sorted(subprotocols, key=priority)[0]
 
-    @asyncio.coroutine
-    def handshake(
+    async def handshake(
         self,
         origins=None,
         available_extensions=None,
@@ -458,12 +455,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Return the path of the URI of the request.
 
         """
-        path, request_headers = yield from self.read_http_request()
+        path, request_headers = await self.read_http_request()
 
         # Hook for customizing request handling, for example checking
         # authentication or treating some paths as plain HTTP endpoints.
         if asyncio.iscoroutinefunction(self.process_request):
-            early_response = yield from self.process_request(path, request_headers)
+            early_response = await self.process_request(path, request_headers)
         else:
             early_response = self.process_request(path, request_headers)
 
@@ -604,8 +601,7 @@ class WebSocketServer:
         if self.close_task is None:
             self.close_task = self.loop.create_task(self._close())
 
-    @asyncio.coroutine
-    def _close(self):
+    async def _close(self):
         """
         Implementation of :meth:`close`.
 
@@ -618,11 +614,11 @@ class WebSocketServer:
         self.server.close()
 
         # Wait until self.server.close() completes.
-        yield from self.server.wait_closed()
+        await self.server.wait_closed()
 
         # Wait until all accepted connections reach connection_made() and call
         # register(). See https://bugs.python.org/issue34852 for details.
-        yield from asyncio.sleep(0)
+        await asyncio.sleep(0)
 
         # Close open connections. fail_connection() will cancel the transfer
         # data task, which is expected to cause the handler task to terminate.
@@ -637,7 +633,7 @@ class WebSocketServer:
             # running tasks.
             # TODO: it would be nicer to wait only for the connection handler
             # and let the handler wait for the connection to close.
-            yield from asyncio.wait(
+            await asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets]
                 + [
                     websocket.close_connection_task
@@ -650,8 +646,7 @@ class WebSocketServer:
         # Tell wait_closed() to return.
         self.closed_waiter.set_result(None)
 
-    @asyncio.coroutine
-    def wait_closed(self):
+    async def wait_closed(self):
         """
         Wait until the server is closed and all connections are terminated.
 
@@ -659,7 +654,7 @@ class WebSocketServer:
         there are no pending tasks left.
 
         """
-        yield from asyncio.shield(self.closed_waiter)
+        await asyncio.shield(self.closed_waiter)
 
     @property
     def sockets(self):
@@ -845,10 +840,8 @@ class Serve:
         self.ws_server = ws_server
 
     @asyncio.coroutine
-    def __iter__(self):  # pragma: no cover
-        server = yield from self._creating_server
-        self.ws_server.wrap(server)
-        return self.ws_server
+    def __iter__(self):
+        return self.__await_impl__()
 
     async def __aenter__(self):
         return await self
@@ -858,8 +851,6 @@ class Serve:
         await self.ws_server.wait_closed()
 
     async def __await_impl__(self):
-        # Duplicated with __iter__ because Python 3.7 requires an async function
-        # (as explained in __await__ below) which Python 3.4 doesn't support.
         server = await self._creating_server
         self.ws_server.wrap(server)
         return self.ws_server
@@ -895,8 +886,7 @@ if sys.version_info[:3] < (3, 5, 1):  # pragma: no cover
     del Serve.__aexit__
     del Serve.__await__
 
-    @asyncio.coroutine
-    def serve(*args, **kwds):
+    async def serve(*args, **kwds):
         return Serve(*args, **kwds).__iter__()
 
     serve.__doc__ = Serve.__doc__

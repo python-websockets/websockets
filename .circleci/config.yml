@@ -11,15 +11,6 @@ jobs:
       - run: sudo pip install tox codecov
       - run: tox -e coverage,black,flake8,isort
       - run: codecov
-  py34:
-    docker:
-      - image: circleci/python:3.4
-    steps:
-      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
-      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
-      - checkout
-      - run: sudo pip install tox
-      - run: tox -e py34
   py35:
     docker:
       - image: circleci/python:3.5
@@ -53,9 +44,6 @@ workflows:
   build:
     jobs:
       - main
-      - py34:
-          requires:
-            - main
       - py35:
           requires:
             - main

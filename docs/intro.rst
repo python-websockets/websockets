@@ -6,14 +6,11 @@ Getting started
 Requirements
 ------------
 
-``websockets`` requires Python ≥ 3.4.
+``websockets`` requires Python ≥ 3.5.
 
 You should use the latest version of Python if possible. If you're using an
 older version, be aware that for each minor version (3.x), only the latest
 bugfix release (3.x.y) is officially supported.
-
-For the best experience, you should start with Python ≥ 3.6. :mod:`asyncio`
-received interesting improvements between Python 3.4 and 3.6.
 
 .. warning::
 

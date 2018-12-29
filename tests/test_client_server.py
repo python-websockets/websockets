@@ -386,9 +386,6 @@ class ClientServerTests(unittest.TestCase):
                 reply = self.loop.run_until_complete(self.client.recv())
                 self.assertEqual(reply, "Hello!")
 
-    # The way the legacy SSL implementation wraps sockets makes it extremely
-    # hard to write a test for Python 3.4.
-    @unittest.skipIf(sys.version_info[:2] <= (3, 4), "this test requires Python 3.5+")
     @with_server()
     def test_explicit_socket(self):
         class TrackedSocket(socket.socket):
@@ -1132,10 +1129,7 @@ class SSLClientServerTests(ClientServerTests):
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
         ssl_context.load_verify_locations(testcert)
         ssl_context.verify_mode = ssl.CERT_REQUIRED
-        # ssl.match_hostname can't match IP addresses on Python < 3.5.
-        # We're using IP addresses to enforce testing of IPv4 and IPv6.
-        if sys.version_info[:2] >= (3, 5):  # pragma: no cover
-            ssl_context.check_hostname = True
+        ssl_context.check_hostname = True
         return ssl_context
 
     def start_server(self, **kwds):

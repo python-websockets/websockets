@@ -10,8 +10,13 @@ Changelog
 
 .. warning::
 
+    **Version 8.0 drops compatibility with Python 3.4.**
+
+.. warning::
+
     **Version 8.0 adds the reason phrase to the return type of the low-level
     API** :func:`~http.read_response` **.**
+
 
 Also:
 

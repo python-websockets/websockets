@@ -6,7 +6,6 @@ import sys
 import threading
 
 import websockets
-from websockets.compatibility import asyncio_ensure_future
 from websockets.exceptions import format_close
 
 
@@ -101,8 +100,8 @@ def run_client(uri, loop, inputs, stop):
 
     try:
         while True:
-            incoming = asyncio_ensure_future(websocket.recv())
-            outgoing = asyncio_ensure_future(inputs.get())
+            incoming = asyncio.ensure_future(websocket.recv())
+            outgoing = asyncio.ensure_future(inputs.get())
             done, pending = yield from asyncio.wait(
                 [incoming, outgoing, stop], return_when=asyncio.FIRST_COMPLETED
             )
@@ -173,7 +172,7 @@ def main():
     stop = asyncio.Future(loop=loop)
 
     # Schedule the task that will manage the connection.
-    asyncio_ensure_future(run_client(args.uri, loop, inputs, stop), loop=loop)
+    asyncio.ensure_future(run_client(args.uri, loop, inputs, stop), loop=loop)
 
     # Start the event loop in a background thread.
     thread = threading.Thread(target=loop.run_forever)

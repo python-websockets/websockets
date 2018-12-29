@@ -1,13 +1,11 @@
 import asyncio
 import contextlib
-import functools
 import logging
 import os
 import time
 import unittest
 import unittest.mock
 
-from websockets.compatibility import asyncio_ensure_future
 from websockets.exceptions import ConnectionClosed, InvalidState
 from websockets.framing import *
 from websockets.protocol import State, WebSocketCommonProtocol
@@ -130,10 +128,6 @@ class CommonTests:
     local_close = Frame(True, OP_CLOSE, serialize_close(1000, "local"))
     remote_close = Frame(True, OP_CLOSE, serialize_close(1000, "remote"))
 
-    @property
-    def ensure_future(self):
-        return functools.partial(asyncio_ensure_future, loop=self.loop)
-
     def receive_frame(self, frame):
         """
         Make the protocol receive a frame.
@@ -197,7 +191,7 @@ class CommonTests:
         """
         close_frame_data = serialize_close(code, reason)
         # Trigger the closing handshake from the local endpoint.
-        close_task = self.ensure_future(self.protocol.close(code, reason))
+        close_task = self.loop.create_task(self.protocol.close(code, reason))
         self.run_loop_once()  # wait_for executes
         self.run_loop_once()  # write_frame executes
         # Empty the outgoing data stream so we can make assertions later on.
@@ -371,7 +365,7 @@ class CommonTests:
         self.assertTrue(self.protocol.closed)
 
     def test_wait_closed(self):
-        wait_closed = asyncio_ensure_future(self.protocol.wait_closed())
+        wait_closed = self.loop.create_task(self.protocol.wait_closed())
         self.assertFalse(wait_closed.done())
         self.close_connection()
         self.assertTrue(wait_closed.done())
@@ -443,7 +437,7 @@ class CommonTests:
         self.assertEqual(data, b"tea" * 342)
 
     def test_recv_queue_empty(self):
-        recv = self.ensure_future(self.protocol.recv())
+        recv = self.loop.create_task(self.protocol.recv())
         with self.assertRaises(asyncio.TimeoutError):
             self.loop.run_until_complete(
                 asyncio.wait_for(asyncio.shield(recv), timeout=MS)
@@ -489,7 +483,7 @@ class CommonTests:
         self.assertConnectionFailed(1011, "")
 
     def test_recv_canceled(self):
-        recv = self.ensure_future(self.protocol.recv())
+        recv = self.loop.create_task(self.protocol.recv())
         self.loop.call_soon(recv.cancel)
 
         with self.assertRaises(asyncio.CancelledError):
@@ -501,7 +495,7 @@ class CommonTests:
         self.assertEqual(data, "café")
 
     def test_recv_canceled_race_condition(self):
-        recv = self.ensure_future(
+        recv = self.loop.create_task(
             asyncio.wait_for(self.protocol.recv(), timeout=0.000001)
         )
         self.loop.call_soon(
@@ -518,7 +512,7 @@ class CommonTests:
         self.assertEqual(data, "café")
 
     def test_recv_prevents_concurrent_calls(self):
-        recv = self.ensure_future(self.protocol.recv())
+        recv = self.loop.create_task(self.protocol.recv())
 
         with self.assertRaises(RuntimeError):
             self.loop.run_until_complete(self.protocol.recv())
@@ -1136,7 +1130,7 @@ class CommonTests:
         self.assertConnectionFailed(1006, "")
 
     def test_local_close_during_recv(self):
-        recv = self.ensure_future(self.protocol.recv())
+        recv = self.loop.create_task(self.protocol.recv())
 
         self.loop.call_later(MS, self.receive_frame, self.close_frame)
         self.loop.call_later(MS, self.receive_eof_if_client)
@@ -1153,7 +1147,7 @@ class CommonTests:
 
     def test_remote_close_during_send(self):
         self.make_drain_slow()
-        send = self.ensure_future(self.protocol.send("hello"))
+        send = self.loop.create_task(self.protocol.send("hello"))
 
         self.receive_frame(self.close_frame)
         self.receive_eof()

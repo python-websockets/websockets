@@ -18,7 +18,6 @@ import struct
 import sys
 import warnings
 
-from .compatibility import asyncio_ensure_future
 from .exceptions import (
     ConnectionClosed,
     InvalidState,
@@ -288,17 +287,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.state = State.OPEN
         logger.debug("%s - state = OPEN", self.side)
         # Start the task that receives incoming WebSocket messages.
-        self.transfer_data_task = asyncio_ensure_future(
-            self.transfer_data(), loop=self.loop
-        )
+        self.transfer_data_task = self.loop.create_task(self.transfer_data())
         # Start the task that sends pings at regular intervals.
-        self.keepalive_ping_task = asyncio_ensure_future(
-            self.keepalive_ping(), loop=self.loop
-        )
+        self.keepalive_ping_task = self.loop.create_task(self.keepalive_ping())
         # Start the task that eventually closes the TCP connection.
-        self.close_connection_task = asyncio_ensure_future(
-            self.close_connection(), loop=self.loop
-        )
+        self.close_connection_task = self.loop.create_task(self.close_connection())
 
     # Public API
 
@@ -519,8 +512,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         :meth:`close` is idempotent: it doesn't do anything once the
         connection is closed.
 
-        It's safe to wrap this coroutine in :func:`~asyncio.ensure_future`
-        since errors during connection termination aren't particularly useful.
+        It's safe to wrap this coroutine in :func:`~asyncio.create_task` since
+        errors during connection termination aren't particularly useful.
 
         ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
 
@@ -1142,9 +1135,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         # Start close_connection_task if the opening handshake didn't succeed.
         if self.close_connection_task is None:
-            self.close_connection_task = asyncio_ensure_future(
-                self.close_connection(), loop=self.loop
-            )
+            self.close_connection_task = self.loop.create_task(self.close_connection())
 
     def abort_keepalive_pings(self):
         """

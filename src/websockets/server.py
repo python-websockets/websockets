@@ -17,7 +17,6 @@ from .compatibility import (
     SERVICE_UNAVAILABLE,
     SWITCHING_PROTOCOLS,
     UPGRADE_REQUIRED,
-    asyncio_ensure_future,
 )
 from .exceptions import (
     AbortHandshake,
@@ -95,7 +94,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # create a race condition between the creation of the task, which
         # schedules its execution, and the moment the handler starts running.
         self.ws_server.register(self)
-        self.handler_task = asyncio_ensure_future(self.handler(), loop=self.loop)
+        self.handler_task = self.loop.create_task(self.handler())
 
     @asyncio.coroutine
     def handler(self):
@@ -605,7 +604,7 @@ class WebSocketServer:
 
         """
         if self.close_task is None:
-            self.close_task = asyncio_ensure_future(self._close(), loop=self.loop)
+            self.close_task = self.loop.create_task(self._close())
 
     @asyncio.coroutine
     def _close(self):

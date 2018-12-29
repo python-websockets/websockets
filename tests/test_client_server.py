@@ -1133,13 +1133,7 @@ class SSLClientServerTests(ClientServerTests):
     @with_server()
     def test_ws_uri_is_rejected(self):
         with self.assertRaises(ValueError):
-            client = connect(
-                get_server_uri(self.server, secure=False), ssl=self.client_context
-            )
-            # With Python ≥ 3.5, the exception is raised by connect() even
-            # before awaiting.  However, with Python 3.4 the exception is
-            # raised only when awaiting.
-            self.loop.run_until_complete(client)  # pragma: no cover
+            connect(get_server_uri(self.server, secure=False), ssl=self.client_context)
 
     @with_server()
     def test_redirect_insecure(self):

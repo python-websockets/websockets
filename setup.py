@@ -8,15 +8,9 @@ root_dir = pathlib.Path(__file__).parent
 
 description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
 
-# When dropping Python < 3.5, change to:
-# long_description = (root_dir / 'README.rst').read_text(encoding='utf-8')
-with (root_dir / 'README.rst').open(encoding='utf-8') as f:
-    long_description = f.read()
+long_description = (root_dir / 'README.rst').read_text(encoding='utf-8')
 
-# When dropping Python < 3.5, change to:
-# exec((root_dir / 'src' / 'websockets' / 'version.py').read_text(encoding='utf-8'))
-with (root_dir / 'src' / 'websockets' / 'version.py').open(encoding='utf-8') as f:
-    exec(f.read())
+exec((root_dir / 'src' / 'websockets' / 'version.py').read_text(encoding='utf-8'))
 
 py_version = sys.version_info[:2]
 

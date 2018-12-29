@@ -525,7 +525,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         try:
             # If close() is canceled during the wait, self.transfer_data_task
-            # is canceled before the timeout elapses (on Python ≥ 3.4.3).
+            # is canceled before the timeout elapses.
             # This helps closing connections when shutting down a server.
             await asyncio.wait_for(
                 self.transfer_data_task, self.close_timeout, loop=self.loop
@@ -797,8 +797,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
             elif frame.opcode == OP_PING:
                 # Answer pings.
-                # Replace by frame.data.hex() when dropping Python < 3.5.
-                ping_hex = binascii.hexlify(frame.data).decode() or "[empty]"
+                ping_hex = frame.data.hex() or "[empty]"
                 logger.debug(
                     "%s - received ping, sending pong: %s", self.side, ping_hex
                 )

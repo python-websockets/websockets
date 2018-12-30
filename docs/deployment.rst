@@ -37,9 +37,9 @@ Here's a full example (Unix-only):
 .. literalinclude:: ../example/shutdown.py
     :emphasize-lines: 13,17-19
 
-``async`` and ``await`` were introduced in Python 3.5. websockets supports
-asynchronous context managers on Python ≥ 3.5.1. ``async for`` was introduced
-in Python 3.6. Here's the equivalent for older Python versions:
+websockets supports asynchronous context managers on Python ≥ 3.5.1. ``async
+for`` was introduced in Python 3.6. Here's the equivalent for older Python
+versions:
 
 .. literalinclude:: ../example/old_shutdown.py
     :emphasize-lines: 22-25

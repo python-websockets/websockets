@@ -513,21 +513,21 @@ Bufferbloat can happen at every level in the stack where there is a buffer.
 For each connection, the receiving side contains these buffers:
 
 - OS buffers: tuning them is an advanced optimization.
-- :class:`~asyncio.StreamReader` bytes buffer: the default limit is 64kB.
+- :class:`~asyncio.StreamReader` bytes buffer: the default limit is 64 KiB.
   You can set another limit by passing a ``read_limit`` keyword argument to
   :func:`~client.connect()` or :func:`~server.serve()`.
 - Incoming messages :class:`~collections.deque`: its size depends both on
   the size and the number of messages it contains. By default the maximum
-  UTF-8 encoded size is 1MB and the maximum number is 32. In the worst case,
-  after UTF-8 decoding, a single message could take up to 4MB of memory and
-  the overall memory consumption could reach 128MB. You should adjust these
+  UTF-8 encoded size is 1 MiB and the maximum number is 32. In the worst case,
+  after UTF-8 decoding, a single message could take up to 4 MiB of memory and
+  the overall memory consumption could reach 128 MiB. You should adjust these
   limits by setting the ``max_size`` and ``max_queue`` keyword arguments of
   :func:`~client.connect()` or :func:`~server.serve()` according to your
   application's requirements.
 
 For each connection, the sending side contains these buffers:
 
-- :class:`~asyncio.StreamWriter` bytes buffer: the default size is 64kB.
+- :class:`~asyncio.StreamWriter` bytes buffer: the default size is 64 KiB.
   You can set another limit by passing a ``write_limit`` keyword argument to
   :func:`~client.connect()` or :func:`~server.serve()`.
 - OS buffers: tuning them is an advanced optimization.

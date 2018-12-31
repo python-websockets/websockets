@@ -30,6 +30,8 @@ Also:
 
 * Added documentation for extensions.
 
+* Documented how to optimize memory usage.
+
 7.0
 ...
 

@@ -50,6 +50,8 @@ Here's a corresponding WebSocket client example.
 Using :func:`connect` as an asynchronous context manager ensures the
 connection is closed before exiting the ``hello`` coroutine.
 
+.. _secure-server-example:
+
 Secure example
 --------------
 

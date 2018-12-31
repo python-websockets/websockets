@@ -20,6 +20,8 @@ Deflate extension by default. You can disable this with ``compression=None``.
 You can also configure the Per-Message Deflate extension explicitly if you
 want to customize its parameters.
 
+.. _per-message-deflate-configuration-example:
+
 Here's an example on the server side::
 
     import websockets
@@ -66,8 +68,8 @@ extensions before it's sent and after it's received.
 
 As a consequence writing an extension requires implementing several classes:
 
-1. Extension Factory: it negotiates parameters and instanciates the extension.
-   Clients and servers require separate extension factories with distict APIs.
+1. Extension Factory: it negotiates parameters and instantiates the extension.
+   Clients and servers require separate extension factories with distinct APIs.
 
 2. Extension: it decodes incoming frames and encodes outgoing frames. If the
    extension is symmetrical, clients and servers can use the same class.

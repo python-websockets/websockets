@@ -50,15 +50,102 @@ projects try to help with this problem.
 If your server doesn't run in the main thread, look at
 :func:`~asyncio.AbstractEventLoop.call_soon_threadsafe`.
 
-Memory use
-----------
+Memory usage
+------------
 
-In order to avoid excessive memory use caused by buffer bloat, it is strongly
-recommended to :ref:`tune buffer sizes <buffers>`.
+.. _memory-usage:
 
-Most importantly ``max_size`` should be lowered according to the expected size
-of messages. It is also suggested to lower ``max_queue``, ``read_limit`` and
-``write_limit`` if memory use is a concern.
+In most cases, memory usage of a WebSocket server is proportional to the
+number of open connections. When a server handles thousands of connections,
+memory usage can become a bottleneck.
+
+Memory usage of a single connection is the sum of:
+
+1. the baseline amount of memory ``websockets`` requires for each connection,
+2. the amount of data held in buffers before the application processes it,
+3. any additional memory allocated by the application itself.
+
+Baseline
+........
+
+Compression settings are the main factor affecting the baseline amount of
+memory used by each connection.
+
+By default ``websockets`` maximizes compression rate at the expense of memory
+usage. If memory usage is an issue, lowering compression settings can help:
+
+- Context Takeover is necessary to get good performance for almost all
+  applications. It should remain enabled.
+- Window Bits is a trade-off between memory usage and compression rate.
+  It defaults to 15 and can be lowered. The default value isn't optimal
+  for small, repetitive messages which are typical of WebSocket servers.
+- Memory Level is a trade-off between memory usage and compression speed.
+  It defaults to 8 and can be lowered. A lower memory level can actually
+  increase speed thanks to memory locality, even if the CPU does more work!
+
+See this :ref:`example <per-message-deflate-configuration-example>` for how to
+configure compression settings.
+
+Here's how various compression settings affect memory usage of a single
+connection on a 64-bit system, as well a benchmark_ of compressed size and
+compression time for a corpus of small JSON documents.
+
++-------------+-------------+--------------+--------------+------------------+------------------+
+| Compression | Window Bits | Memory Level | Memory usage | Size vs. default | Time vs. default |
++=============+=============+==============+==============+==================+==================+
+| *default*   | 15          | 8            | 325 KiB      | +0%              | +0%              +
++-------------+-------------+--------------+--------------+------------------+------------------+
+|             | 14          | 7            | 181 KiB      | +1.5%            | -5.3%            |
++-------------+-------------+--------------+--------------+------------------+------------------+
+|             | 13          | 6            | 110 KiB      | +2.8%            | -7.5%            |
++-------------+-------------+--------------+--------------+------------------+------------------+
+|             | 12          | 5            | 73 KiB       | +4.4%            | -18.9%           |
++-------------+-------------+--------------+--------------+------------------+------------------+
+|             | 11          | 4            | 55 KiB       | +8.5%            | -18.8%           |
++-------------+-------------+--------------+--------------+------------------+------------------+
+| *disabled*  | N/A         | N/A          | 22 KiB       | N/A              | N/A              |
++-------------+-------------+--------------+--------------+------------------+------------------+
+
+*Don't assume this example is representative! Compressed size and compression
+time depend heavily on the kind of messages exchanged by the application!*
+
+You can run the same benchmark for your application by creating a list of
+typical messages and passing it to the ``_benchmark`` function_.
+
+.. _benchmark: https://gist.github.com/aaugustin/fbea09ce8b5b30c4e56458eb081fe599
+.. _function: https://gist.github.com/aaugustin/fbea09ce8b5b30c4e56458eb081fe599#file-compression-py-L48-L144
+
+This `blog post by Ilya Grigorik`_ provides more details about how compression
+settings affect memory usage and how to optimize them.
+
+.. _blog post by Ilya Grigorik: https://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/
+
+This `experiment by Peter Thorson`_ suggests Window Bits = 11, Memory Level =
+4 as a sweet spot for optimizing memory usage.
+
+.. _experiment by Peter Thorson: https://www.ietf.org/mail-archive/web/hybi/current/msg10222.html
+
+Buffers
+.......
+
+Under normal circumstances, buffers are almost always empty.
+
+Under high load, if a server receives more messages than it can process,
+bufferbloat can result in excessive memory use.
+
+By default ``websockets`` has generous limits. It is strongly recommended to
+adapt them to your application. When you call :func:`~server.serve()`:
+
+- Set ``max_size`` (default: 1 MiB, UTF-8 encoded) to the maximum size of
+  messages your application generates.
+- Set ``max_queue`` (default: 32) to the maximum number of messages your
+  application expects to receive faster than it can process them. The queue
+  provides burst tolerance without slowing down the TCP connection.
+
+Furthermore, you can lower ``read_limit`` and ``write_limit`` (default:
+64 KiB) to reduce the size of buffers for incoming and outgoing data.
+
+The design document provides :ref:`more details about buffers<buffers>`.
 
 Port sharing
 ------------

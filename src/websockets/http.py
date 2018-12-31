@@ -182,9 +182,9 @@ async def read_line(stream):
     Return :class:`bytes` without CRLF.
 
     """
-    # Security: this is bounded by the StreamReader's limit (default = 32kB).
+    # Security: this is bounded by the StreamReader's limit (default = 32 KiB).
     line = await stream.readline()
-    # Security: this guarantees header values are small (hard-coded = 4kB)
+    # Security: this guarantees header values are small (hard-coded = 4 KiB)
     if len(line) > MAX_LINE:
         raise ValueError("Line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5

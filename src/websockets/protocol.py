@@ -99,7 +99,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     To apply a timeout to any other API, wrap it in :func:`~asyncio.wait_for`.
 
     The ``max_size`` parameter enforces the maximum size for incoming messages
-    in bytes. The default value is 1MB. ``None`` disables the limit. If a
+    in bytes. The default value is 1 MiB. ``None`` disables the limit. If a
     message larger than the maximum size is received, :meth:`recv()` will
     raise :exc:`~websockets.exceptions.ConnectionClosed` and the connection
     will be closed with status code 1009.
@@ -117,17 +117,17 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     Since Python can use up to 4 bytes of memory to represent a single
     character, each websocket connection may use up to ``4 * max_size *
     max_queue`` bytes of memory to store incoming messages. By default,
-    this is 128MB. You may want to lower the limits, depending on your
+    this is 128 MiB. You may want to lower the limits, depending on your
     application's requirements.
 
     The ``read_limit`` argument sets the high-water limit of the buffer for
     incoming bytes. The low-water limit is half the high-water limit. The
-    default value is 64kB, half of asyncio's default (based on the current
+    default value is 64 KiB, half of asyncio's default (based on the current
     implementation of :class:`~asyncio.StreamReader`).
 
     The ``write_limit`` argument sets the high-water limit of the buffer for
     outgoing bytes. The low-water limit is a quarter of the high-water limit.
-    The default value is 64kB, equal to asyncio's default (based on the
+    The default value is 64 KiB, equal to asyncio's default (based on the
     current implementation of ``FlowControlMixin``).
 
     As soon as the HTTP request and response in the opening handshake are

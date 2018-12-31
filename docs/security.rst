@@ -1,8 +1,17 @@
 Security
 ========
 
+Encryption
+----------
+
+For production use, a server should require encrypted connections.
+
+See this example of :ref:`encrypting connections with TLS
+<secure-server-example>`.
+
 Memory use
 ----------
+
 .. warning::
 
     An attacker who can open an arbitrary number of connections will be able
@@ -10,27 +19,13 @@ Memory use
     by denial of service attacks, you must reject suspicious connections
     before they reach ``websockets``, typically in a reverse proxy.
 
-The baseline memory use for a connection is about 20kB.
+With the default settings, opening a connection uses 325 KiB of memory.
 
-The incoming bytes buffer, incoming messages queue and outgoing bytes buffer
-contribute to the memory use of a connection. By default, each bytes buffer
-takes up to 64kB and the messages queue up to 128MB, which is very large.
+Sending some highly compressed messages could use up to 128 MiB of memory
+with an amplification factor of 1000 between network traffic and memory use.
 
-Most applications use small messages. Setting ``max_size`` according to the
-application's requirements is strongly recommended. See :ref:`buffers` for
-details about tuning buffers.
-
-When compression is enabled, additional memory may be allocated for carrying
-the compression context across messages, depending on the context takeover and
-window size parameters. With the default configuration, this adds 320kB to the
-memory use for a connection.
-
-You can reduce this amount by configuring the ``PerMessageDeflate`` extension
-with lower ``server_max_window_bits`` and ``client_max_window_bits`` values.
-These parameters default is 15. Lowering them to 11 is a good choice.
-
-Finally, memory consumed by your application code also counts towards the
-memory use of a connection.
+Configuring a server to :ref:`optimize memory usage <memory-usage>` will
+improve security in addition to improving performance.
 
 Other limits
 ------------

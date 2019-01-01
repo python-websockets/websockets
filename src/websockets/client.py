@@ -328,6 +328,11 @@ class Connect:
     a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
     ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
 
+    Normally ``host`` and ``port`` parameters of
+    :meth:`~asyncio.BaseEventLoop.create_connection` are populated from the
+    supplied URI, but can be overwritten by the caller if desired, this can be
+    useful when connecting via ssh tunnel for example.
+
     The behavior of the ``ping_interval``, ``ping_timeout``, ``close_timeout``,
     ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit`` optional
     arguments is described in the documentation of
@@ -461,18 +466,20 @@ class Connect:
             subprotocols=self._subprotocols,
             extra_headers=self._extra_headers,
         )
+        kwds = self._kwds.copy()
 
-        if self._kwds.get("sock") is None:
-            host, port = self._wsuri.host, self._wsuri.port
-        else:
-            # If sock is given, host and port mustn't be specified.
-            host, port = None, None
+        if kwds.get("sock") is None:
+            kwds.setdefault("host", self._wsuri.host)
+            kwds.setdefault("port", self._wsuri.port)
+
+        if kwds.get("ssl") and kwds.get("host") != self._wsuri.host:
+            kwds.setdefault("server_hostname", self._wsuri.host)
 
         self._wsuri = self._wsuri
         self._origin = self._origin
 
         # This is a coroutine object.
-        return self._loop.create_connection(factory, host, port, **self._kwds)
+        return self._loop.create_connection(factory, **kwds)
 
     @asyncio.coroutine
     def __iter__(self):

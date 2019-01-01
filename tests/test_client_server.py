@@ -375,6 +375,19 @@ class ClientServerTests(unittest.TestCase):
                 self.assertEqual(reply, "Hello!")
 
     @with_server()
+    def test_explicit_host_port(self):
+        # uri contains ip address, overwrite host with "localhost"
+        with self.temp_client(host="localhost"):
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
+
+        # override port and fail to connect as a result
+        with self.assertRaises(OSError):
+            with self.temp_client(port=10000):
+                self.loop.run_until_complete(self.client.send("Hello!"))
+
+    @with_server()
     def test_explicit_socket(self):
         class TrackedSocket(socket.socket):
             def __init__(self, *args, **kwargs):

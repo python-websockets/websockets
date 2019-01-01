@@ -152,6 +152,11 @@ def main():
             )
             sys.stderr.flush()
 
+    try:
+        import readline  # noqa
+    except ImportError:  # Windows has no `readline` normally
+        pass
+
     # Parse command line arguments.
     parser = argparse.ArgumentParser(
         prog="python -m websockets",

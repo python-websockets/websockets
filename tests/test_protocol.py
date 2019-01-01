@@ -27,6 +27,27 @@ if os.environ.get("PYTHONASYNCIODEBUG"):  # pragma: no cover
 MS = max(MS, 2.5 * time.get_clock_info("monotonic").resolution)
 
 
+class async_iterable:
+
+    # In Python ≥ 3.6, this can be simplified to:
+
+    # async def async_iterable(iterable):
+    #     for item in iterable:
+    #         yield item
+
+    def __init__(self, iterable):
+        self.iterator = iter(iterable)
+
+    def __aiter__(self):
+        return self
+
+    async def __anext__(self):
+        try:
+            return next(self.iterator)
+        except StopIteration:
+            raise StopAsyncIteration
+
+
 class TransportMock(unittest.mock.Mock):
     """
     Transport mock to control the protocol's inputs and outputs in tests.
@@ -594,6 +615,65 @@ class CommonTests:
     def test_send_iterable_mixed_type_error(self):
         with self.assertRaises(TypeError):
             self.loop.run_until_complete(self.protocol.send(["café", b"tea"]))
+        self.assertFramesSent(
+            (False, OP_TEXT, "café".encode("utf-8")),
+            (True, OP_CLOSE, serialize_close(1011, "")),
+        )
+
+    def test_send_async_iterable_text(self):
+        self.loop.run_until_complete(self.protocol.send(async_iterable(["ca", "fé"])))
+        self.assertFramesSent(
+            (False, OP_TEXT, "ca".encode("utf-8")),
+            (False, OP_CONT, "fé".encode("utf-8")),
+            (True, OP_CONT, "".encode("utf-8")),
+        )
+
+    def test_send_async_iterable_binary(self):
+        self.loop.run_until_complete(self.protocol.send(async_iterable([b"te", b"a"])))
+        self.assertFramesSent(
+            (False, OP_BINARY, b"te"), (False, OP_CONT, b"a"), (True, OP_CONT, b"")
+        )
+
+    def test_send_async_iterable_binary_from_bytearray(self):
+        self.loop.run_until_complete(
+            self.protocol.send(async_iterable([bytearray(b"te"), bytearray(b"a")]))
+        )
+        self.assertFramesSent(
+            (False, OP_BINARY, b"te"), (False, OP_CONT, b"a"), (True, OP_CONT, b"")
+        )
+
+    def test_send_async_iterable_binary_from_memoryview(self):
+        self.loop.run_until_complete(
+            self.protocol.send(async_iterable([memoryview(b"te"), memoryview(b"a")]))
+        )
+        self.assertFramesSent(
+            (False, OP_BINARY, b"te"), (False, OP_CONT, b"a"), (True, OP_CONT, b"")
+        )
+
+    def test_send_async_iterable_binary_from_non_contiguous_memoryview(self):
+        self.loop.run_until_complete(
+            self.protocol.send(
+                async_iterable([memoryview(b"ttee")[::2], memoryview(b"aa")[::2]])
+            )
+        )
+        self.assertFramesSent(
+            (False, OP_BINARY, b"te"), (False, OP_CONT, b"a"), (True, OP_CONT, b"")
+        )
+
+    def test_send_empty_async_iterable(self):
+        self.loop.run_until_complete(self.protocol.send(async_iterable([])))
+        self.assertNoFrameSent()
+
+    def test_send_async_iterable_type_error(self):
+        with self.assertRaises(TypeError):
+            self.loop.run_until_complete(self.protocol.send(async_iterable([42])))
+        self.assertNoFrameSent()
+
+    def test_send_async_iterable_mixed_type_error(self):
+        with self.assertRaises(TypeError):
+            self.loop.run_until_complete(
+                self.protocol.send(async_iterable(["café", b"tea"]))
+            )
         self.assertFramesSent(
             (False, OP_TEXT, "café".encode("utf-8")),
             (True, OP_CLOSE, serialize_close(1011, "")),

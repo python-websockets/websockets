@@ -432,10 +432,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         object (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`)
         as a binary frame.
 
-        It also accepts an iterable of strings or bytes-like objects. Each
-        item is treated as a message fragment and sent in its own frame. All
-        items must be of the same type, or else :meth:`send` will raise a
-        :exc:`TypeError` and the connection will be closed.
+        It also accepts an iterable or an asynchronous iterator of strings or
+        bytes-like objects. Each item is treated as a message fragment and
+        sent in its own frame. All items must be of the same type, or else
+        :meth:`send` will raise a :exc:`TypeError` and the connection will be
+        closed.
 
         It raises a :exc:`TypeError` for other inputs.
 
@@ -482,7 +483,31 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         # Fragmented message -- asynchronous iterator
 
-        # To be implemented after dropping support for Python 3.4.
+        elif isinstance(data, collections.abc.AsyncIterable):
+            # aiter_data = aiter(data) without aiter
+            aiter_data = type(data).__aiter__(data)
+
+            # First fragment.
+            try:
+                # data = anext(aiter_data) without anext
+                data = await type(aiter_data).__anext__(aiter_data)
+            except StopAsyncIteration:
+                return
+            opcode, data = prepare_data(data)
+            await self.write_frame(False, opcode, data)
+
+            # Other fragments.
+            async for data in aiter_data:
+                confirm_opcode, data = prepare_data(data)
+                if confirm_opcode != opcode:
+                    # We're half-way through a fragmented message and we can't
+                    # complete it. This makes the connection unusable.
+                    self.fail_connection(1011)
+                    raise TypeError("data contains inconsistent types")
+                await self.write_frame(False, OP_CONT, data)
+
+            # Final fragment.
+            await self.write_frame(True, OP_CONT, b"")
 
         else:
             raise TypeError("data must be bytes, str, or iterable")

@@ -385,7 +385,7 @@ class ClientServerTests(unittest.TestCase):
         # override port and fail to connect as a result
         with self.assertRaises(OSError):
             with self.temp_client(port=10000):
-                self.loop.run_until_complete(self.client.send("Hello!"))
+                self.fail("Did not raise")  # pragma: no cover
 
     @with_server()
     def test_explicit_socket(self):

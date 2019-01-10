@@ -1,4 +1,5 @@
 __all__ = [
+    'WebsocketError',
     "AbortHandshake",
     "ConnectionClosed",
     "DuplicateParameter",
@@ -20,7 +21,14 @@ __all__ = [
 ]
 
 
-class InvalidHandshake(Exception):
+class WebsocketError(Exception):
+    """
+    The base exception for all other websocket exceptions.
+
+    """
+
+
+class InvalidHandshake(WebsocketError):
     """
     Exception raised when a handshake request or response is invalid.
 
@@ -169,7 +177,7 @@ class DuplicateParameter(NegotiationError):
         super().__init__(message)
 
 
-class InvalidState(Exception):
+class InvalidState(WebsocketError):
     """
     Exception raised when an operation is forbidden in the current state.
 
@@ -232,21 +240,21 @@ class ConnectionClosed(InvalidState):
         super().__init__(message)
 
 
-class InvalidURI(Exception):
+class InvalidURI(WebsocketError):
     """
     Exception raised when an URI isn't a valid websocket URI.
 
     """
 
 
-class PayloadTooBig(Exception):
+class PayloadTooBig(WebsocketError):
     """
     Exception raised when a frame's payload exceeds the maximum size.
 
     """
 
 
-class WebSocketProtocolError(Exception):
+class WebSocketProtocolError(WebsocketError):
     """
     Internal exception raised when the remote side breaks the protocol.
 

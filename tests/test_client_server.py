@@ -1018,12 +1018,14 @@ class ClientServerTests(unittest.TestCase):
     @with_server()
     def test_server_shuts_down_during_connection_handling(self):
         with self.temp_client():
+            server_protocol = list(self.server.websockets)[0]
             self.server.close()
             with self.assertRaises(ConnectionClosed):
                 self.loop.run_until_complete(self.client.recv())
 
         # Websocket connection terminates with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
+        self.assertEqual(server_protocol.close_code, 1001)
 
     @with_server()
     @unittest.mock.patch("websockets.server.WebSocketServerProtocol.close")

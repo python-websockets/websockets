@@ -32,6 +32,10 @@ Also:
 
 * Documented how to optimize memory usage.
 
+* Calling :meth:`~server.WebSocketServer.close` properly sets the server
+  :attr:`~protocol.WebSocketCommonProtocol.close_code` to close code 1001
+  (going away).
+
 7.0
 ...
 

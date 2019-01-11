@@ -621,9 +621,10 @@ class WebSocketServer:
 
         # Close open connections. fail_connection() will cancel the transfer
         # data task, which is expected to cause the handler task to terminate.
-        for websocket in self.websockets:
+        # Iterate over a copy since calling close() affects the set
+        for websocket in set(self.websockets):
             if websocket.state is State.OPEN:
-                websocket.fail_connection(1001)
+                await websocket.close(code=1001)
 
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:

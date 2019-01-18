@@ -146,11 +146,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     """
 
-    # There are only two differences between the client-side and the server-
-    # side behavior: masking the payload and closing the underlying TCP
-    # connection. Set is_client and side to pick a side.
-    is_client = None
-    side = "undefined"
+    # There are only two differences between the client-side and server-side
+    # behavior: masking the payload and closing the underlying TCP connection.
+    # Set is_client = True/False and side = "client"/"server" to pick a side.
+    is_client: bool
+    side: str = "undefined"
 
     def __init__(
         self,

@@ -330,7 +330,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         This property is ``True`` once the connection is closed.
 
-        Be aware that both :attr:`open` and :attr`closed` are ``False`` during
+        Be aware that both :attr:`open` and :attr:`closed` are ``False`` during
         the opening and closing sequences.
 
         """

@@ -6,17 +6,29 @@ according to `section 3 of RFC 6455`_.
 
 """
 
-import collections
 import urllib.parse
+from typing import NamedTuple, Optional, Tuple
 
 from .exceptions import InvalidURI
 
 
 __all__ = ["parse_uri", "WebSocketURI"]
 
-WebSocketURI = collections.namedtuple(
-    "WebSocketURI", ["secure", "host", "port", "resource_name", "user_info"]
+# Switch to class-based syntax when dropping support for Python < 3.6.
+
+# Convert to a dataclass when dropping support for Python < 3.7.
+
+WebSocketURI = NamedTuple(
+    "WebSocketURI",
+    [
+        ("secure", bool),
+        ("host", str),
+        ("port", int),
+        ("resource_name", str),
+        ("user_info", Optional[Tuple[str, str]]),
+    ],
 )
+
 WebSocketURI.__doc__ = """WebSocket URI.
 
 * ``secure`` is the secure flag
@@ -31,7 +43,7 @@ WebSocketURI.__doc__ = """WebSocket URI.
 """
 
 
-def parse_uri(uri):
+def parse_uri(uri: str) -> WebSocketURI:
     """
     This function parses and validates a WebSocket URI.
 
@@ -40,22 +52,22 @@ def parse_uri(uri):
     Otherwise it raises an :exc:`~websockets.exceptions.InvalidURI` exception.
 
     """
-    uri = urllib.parse.urlparse(uri)
+    parsed = urllib.parse.urlparse(uri)
     try:
-        assert uri.scheme in ["ws", "wss"]
-        assert uri.params == ""
-        assert uri.fragment == ""
-        assert uri.hostname is not None
+        assert parsed.scheme in ["ws", "wss"]
+        assert parsed.params == ""
+        assert parsed.fragment == ""
+        assert parsed.hostname is not None
     except AssertionError as exc:
-        raise InvalidURI(f"{uri} isn't a valid URI") from exc
+        raise InvalidURI(uri) from exc
 
-    secure = uri.scheme == "wss"
-    host = uri.hostname
-    port = uri.port or (443 if secure else 80)
-    resource_name = uri.path or "/"
-    if uri.query:
-        resource_name += "?" + uri.query
+    secure = parsed.scheme == "wss"
+    host = parsed.hostname
+    port = parsed.port or (443 if secure else 80)
+    resource_name = parsed.path or "/"
+    if parsed.query:
+        resource_name += "?" + parsed.query
     user_info = None
-    if uri.username or uri.password:
-        user_info = (uri.username, uri.password)
+    if parsed.username or parsed.password:
+        user_info = (parsed.username, parsed.password)
     return WebSocketURI(secure, host, port, resource_name, user_info)

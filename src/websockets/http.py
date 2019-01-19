@@ -7,9 +7,20 @@ from :mod:`websockets.http`.
 
 """
 
-import collections.abc
+import asyncio
 import re
 import sys
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Mapping,
+    MutableMapping,
+    Tuple,
+    Union,
+)
 
 from .version import version as websockets_version
 
@@ -48,7 +59,7 @@ _token_re = re.compile(rb"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 
-async def read_request(stream):
+async def read_request(stream: asyncio.StreamReader) -> Tuple[str, "Headers"]:
     """
     Read an HTTP/1.1 GET request from ``stream``.
 
@@ -77,20 +88,20 @@ async def read_request(stream):
     request_line = await read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
-    method, path, version = request_line.split(b" ", 2)
+    method, raw_path, version = request_line.split(b" ", 2)
 
     if method != b"GET":
         raise ValueError("Unsupported HTTP method: %r" % method)
     if version != b"HTTP/1.1":
         raise ValueError("Unsupported HTTP version: %r" % version)
-    path = path.decode("ascii", "surrogateescape")
+    path = raw_path.decode("ascii", "surrogateescape")
 
     headers = await read_headers(stream)
 
     return path, headers
 
 
-async def read_response(stream):
+async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, "Headers"]:
     """
     Read an HTTP/1.1 response from ``stream``.
 
@@ -117,24 +128,24 @@ async def read_response(stream):
     status_line = await read_line(stream)
 
     # This may raise "ValueError: not enough values to unpack"
-    version, status_code, reason = status_line.split(b" ", 2)
+    version, raw_status_code, raw_reason = status_line.split(b" ", 2)
 
     if version != b"HTTP/1.1":
         raise ValueError("Unsupported HTTP version: %r" % version)
     # This may raise "ValueError: invalid literal for int() with base 10"
-    status_code = int(status_code)
+    status_code = int(raw_status_code)
     if not 100 <= status_code < 1000:
         raise ValueError("Unsupported HTTP status code: %d" % status_code)
-    if not _value_re.fullmatch(reason):
-        raise ValueError("Invalid HTTP reason phrase: %r" % reason)
-    reason = reason.decode()
+    if not _value_re.fullmatch(raw_reason):
+        raise ValueError("Invalid HTTP reason phrase: %r" % raw_reason)
+    reason = raw_reason.decode()
 
     headers = await read_headers(stream)
 
     return status_code, reason, headers
 
 
-async def read_headers(stream):
+async def read_headers(stream: asyncio.StreamReader) -> "Headers":
     """
     Read HTTP headers from ``stream``.
 
@@ -156,15 +167,15 @@ async def read_headers(stream):
             break
 
         # This may raise "ValueError: not enough values to unpack"
-        name, value = line.split(b":", 1)
-        if not _token_re.fullmatch(name):
-            raise ValueError("Invalid HTTP header name: %r" % name)
-        value = value.strip(b" \t")
-        if not _value_re.fullmatch(value):
-            raise ValueError("Invalid HTTP header value: %r" % value)
+        raw_name, raw_value = line.split(b":", 1)
+        if not _token_re.fullmatch(raw_name):
+            raise ValueError("Invalid HTTP header name: %r" % raw_name)
+        raw_value = raw_value.strip(b" \t")
+        if not _value_re.fullmatch(raw_value):
+            raise ValueError("Invalid HTTP header value: %r" % raw_value)
 
-        name = name.decode("ascii")  # guaranteed to be ASCII at this point
-        value = value.decode("ascii", "surrogateescape")
+        name = raw_name.decode("ascii")  # guaranteed to be ASCII at this point
+        value = raw_value.decode("ascii", "surrogateescape")
         headers[name] = value
 
     else:
@@ -173,7 +184,7 @@ async def read_headers(stream):
     return headers
 
 
-async def read_line(stream):
+async def read_line(stream: asyncio.StreamReader) -> bytes:
     """
     Read a single line from ``stream``.
 
@@ -199,14 +210,14 @@ class MultipleValuesError(LookupError):
 
     """
 
-    def __str__(self):
+    def __str__(self) -> str:
         # Implement the same logic as KeyError_str in Objects/exceptions.c.
         if len(self.args) == 1:
             return repr(self.args[0])
         return super().__str__()
 
 
-class Headers(collections.abc.MutableMapping):
+class Headers(MutableMapping[str, str]):
     """
     Data structure for working with HTTP headers efficiently.
 
@@ -245,19 +256,19 @@ class Headers(collections.abc.MutableMapping):
 
     __slots__ = ["_dict", "_list"]
 
-    def __init__(self, *args, **kwargs):
-        self._dict = {}
-        self._list = []
+    def __init__(self, *args: Any, **kwargs: str) -> None:
+        self._dict: Dict[str, List[str]] = {}
+        self._list: List[Tuple[str, str]] = []
         # MutableMapping.update calls __setitem__ for each (name, value) pair.
         self.update(*args, **kwargs)
 
-    def __str__(self):
+    def __str__(self) -> str:
         return "".join(f"{key}: {value}\r\n" for key, value in self._list) + "\r\n"
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self._list!r})"
 
-    def copy(self):
+    def copy(self) -> "Headers":
         copy = self.__class__()
         copy._dict = self._dict.copy()
         copy._list = self._list.copy()
@@ -265,40 +276,40 @@ class Headers(collections.abc.MutableMapping):
 
     # Collection methods
 
-    def __contains__(self, key):
-        return key.lower() in self._dict
+    def __contains__(self, key: object) -> bool:
+        return isinstance(key, str) and key.lower() in self._dict
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self._dict)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._dict)
 
     # MutableMapping methods
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> str:
         value = self._dict[key.lower()]
         if len(value) == 1:
             return value[0]
         else:
             raise MultipleValuesError(key)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: str, value: str) -> None:
         self._dict.setdefault(key.lower(), []).append(value)
         self._list.append((key, value))
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: str) -> None:
         key_lower = key.lower()
         self._dict.__delitem__(key_lower)
         # This is inefficent. Fortunately deleting HTTP headers is uncommon.
         self._list = [(k, v) for k, v in self._list if k.lower() != key_lower]
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Headers):
             return NotImplemented
         return self._list == other._list
 
-    def clear(self):
+    def clear(self) -> None:
         """
         Remove all headers.
 
@@ -308,16 +319,19 @@ class Headers(collections.abc.MutableMapping):
 
     # Methods for handling multiple values
 
-    def get_all(self, key):
+    def get_all(self, key: str) -> List[str]:
         """
         Return the (possibly empty) list of all values for a header.
 
         """
         return self._dict.get(key.lower(), [])
 
-    def raw_items(self):
+    def raw_items(self) -> Iterator[Tuple[str, str]]:
         """
         Return an iterator of (header name, header value).
 
         """
         return iter(self._list)
+
+
+HeadersLike = Union[Headers, Mapping[str, str], Iterable[Tuple[str, str]]]

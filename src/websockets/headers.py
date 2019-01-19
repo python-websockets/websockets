@@ -9,6 +9,7 @@ from :mod:`websockets.headers`.
 
 import base64
 import re
+from typing import Callable, List, Optional, Tuple, TypeVar
 
 from .exceptions import InvalidHeaderFormat
 
@@ -23,12 +24,19 @@ __all__ = [
 ]
 
 
+T = TypeVar("T")
+
+ExtensionParameter = Tuple[str, Optional[str]]
+ExtensionParameters = List[ExtensionParameter]
+ExtensionHeader = Tuple[str, ExtensionParameters]
+SubprotocolHeader = str
+
 # To avoid a dependency on a parsing library, we implement manually the ABNF
 # described in https://tools.ietf.org/html/rfc6455#section-9.1 with the
 # definitions from https://tools.ietf.org/html/rfc7230#appendix-B.
 
 
-def peek_ahead(string, pos):
+def peek_ahead(string: str, pos: int) -> Optional[str]:
     """
     Return the next character from ``string`` at the given position.
 
@@ -43,7 +51,7 @@ def peek_ahead(string, pos):
 _OWS_re = re.compile(r"[\t ]*")
 
 
-def parse_OWS(string, pos):
+def parse_OWS(string: str, pos: int) -> int:
     """
     Parse optional whitespace from ``string`` at the given position.
 
@@ -54,13 +62,14 @@ def parse_OWS(string, pos):
     """
     # There's always a match, possibly empty, whose content doesn't matter.
     match = _OWS_re.match(string, pos)
+    assert match is not None
     return match.end()
 
 
 _token_re = re.compile(r"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 
 
-def parse_token(string, pos, header_name):
+def parse_token(string: str, pos: int, header_name: str) -> Tuple[str, int]:
     """
     Parse a token from ``string`` at the given position.
 
@@ -83,7 +92,7 @@ _quoted_string_re = re.compile(
 _unquote_re = re.compile(r"\\([\x09\x20-\x7e\x80-\xff])")
 
 
-def parse_quoted_string(string, pos, header_name):
+def parse_quoted_string(string: str, pos: int, header_name: str) -> Tuple[str, int]:
     """
     Parse a quoted string from ``string`` at the given position.
 
@@ -100,7 +109,12 @@ def parse_quoted_string(string, pos, header_name):
     return _unquote_re.sub(r"\1", match.group()[1:-1]), match.end()
 
 
-def parse_list(parse_item, string, pos, header_name):
+def parse_list(
+    parse_item: Callable[[str, int, str], Tuple[T, int]],
+    string: str,
+    pos: int,
+    header_name: str,
+) -> List[T]:
     """
     Parse a comma-separated list from ``string`` at the given position.
 
@@ -162,7 +176,7 @@ def parse_list(parse_item, string, pos, header_name):
     return items
 
 
-def parse_connection(string):
+def parse_connection(string: str) -> List[str]:
     """
     Parse a ``Connection`` header.
 
@@ -179,7 +193,7 @@ _protocol_re = re.compile(
 )
 
 
-def parse_protocol(string, pos, header_name):
+def parse_protocol(string: str, pos: int, header_name: str) -> Tuple[str, int]:
     """
     Parse a protocol from ``string`` at the given position.
 
@@ -196,7 +210,7 @@ def parse_protocol(string, pos, header_name):
     return match.group(), match.end()
 
 
-def parse_upgrade(string):
+def parse_upgrade(string: str) -> List[str]:
     """
     Parse an ``Upgrade`` header.
 
@@ -208,7 +222,9 @@ def parse_upgrade(string):
     return parse_list(parse_protocol, string, 0, "Upgrade")
 
 
-def parse_extension_param(string, pos, header_name):
+def parse_extension_param(
+    string: str, pos: int, header_name: str
+) -> Tuple[ExtensionParameter, int]:
     """
     Parse a single extension parameter from ``string`` at the given position.
 
@@ -220,7 +236,8 @@ def parse_extension_param(string, pos, header_name):
     # Extract parameter name.
     name, pos = parse_token(string, pos, header_name)
     pos = parse_OWS(string, pos)
-    # Extract parameter string, if there is one.
+    # Extract parameter value, if there is one.
+    value: Optional[str] = None
     if peek_ahead(string, pos) == "=":
         pos = parse_OWS(string, pos + 1)
         if peek_ahead(string, pos) == '"':
@@ -238,13 +255,13 @@ def parse_extension_param(string, pos, header_name):
         else:
             value, pos = parse_token(string, pos, header_name)
         pos = parse_OWS(string, pos)
-    else:
-        value = None
 
     return (name, value), pos
 
 
-def parse_extension(string, pos, header_name):
+def parse_extension(
+    string: str, pos: int, header_name: str
+) -> Tuple[ExtensionHeader, int]:
     """
     Parse an extension definition from ``string`` at the given position.
 
@@ -266,7 +283,7 @@ def parse_extension(string, pos, header_name):
     return (name, parameters), pos
 
 
-def parse_extension_list(string):
+def parse_extension_list(string: str) -> List[ExtensionHeader]:
     """
     Parse a ``Sec-WebSocket-Extensions`` header.
 
@@ -291,7 +308,7 @@ def parse_extension_list(string):
     return parse_list(parse_extension, string, 0, "Sec-WebSocket-Extensions")
 
 
-def build_extension(name, parameters):
+def build_extension(name: str, parameters: ExtensionParameters) -> str:
     """
     Build an extension definition.
 
@@ -308,7 +325,7 @@ def build_extension(name, parameters):
     )
 
 
-def build_extension_list(extensions):
+def build_extension_list(extensions: List[ExtensionHeader]) -> str:
     """
     Unparse a ``Sec-WebSocket-Extensions`` header.
 
@@ -320,7 +337,7 @@ def build_extension_list(extensions):
     )
 
 
-def parse_subprotocol_list(string):
+def parse_subprotocol_list(string: str) -> List[SubprotocolHeader]:
     """
     Parse a ``Sec-WebSocket-Protocol`` header.
 
@@ -330,7 +347,7 @@ def parse_subprotocol_list(string):
     return parse_list(parse_token, string, 0, "Sec-WebSocket-Protocol")
 
 
-def build_subprotocol_list(protocols):
+def build_subprotocol_list(protocols: List[SubprotocolHeader]) -> str:
     """
     Unparse a ``Sec-WebSocket-Protocol`` header.
 
@@ -340,7 +357,7 @@ def build_subprotocol_list(protocols):
     return ", ".join(protocols)
 
 
-def build_basic_auth(username, password):
+def build_basic_auth(username: str, password: str) -> str:
     """
     Build an Authorization header for HTTP Basic Auth.
 

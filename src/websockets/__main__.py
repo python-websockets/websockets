@@ -4,42 +4,47 @@ import os
 import signal
 import sys
 import threading
+from typing import Any, Set
 
 import websockets
 from websockets.exceptions import format_close
 
 
-def win_enable_vt100():
-    """
-    Enable VT-100 for console output on Windows.
+if sys.platform == "win32":
 
-    See also https://bugs.python.org/issue29059.
+    def win_enable_vt100() -> None:
+        """
+        Enable VT-100 for console output on Windows.
 
-    """
-    import ctypes
+        See also https://bugs.python.org/issue29059.
 
-    STD_OUTPUT_HANDLE = ctypes.c_uint(-11)
-    INVALID_HANDLE_VALUE = ctypes.c_uint(-1)
-    ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x004
+        """
+        import ctypes
 
-    handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
-    if handle == INVALID_HANDLE_VALUE:
-        raise RuntimeError("Unable to obtain stdout handle")
+        STD_OUTPUT_HANDLE = ctypes.c_uint(-11)
+        INVALID_HANDLE_VALUE = ctypes.c_uint(-1)
+        ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x004
 
-    cur_mode = ctypes.c_uint()
-    if ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(cur_mode)) == 0:
-        raise RuntimeError("Unable to query current console mode")
+        handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
+        if handle == INVALID_HANDLE_VALUE:
+            raise RuntimeError("Unable to obtain stdout handle")
 
-    # ctypes ints lack support for the required bit-OR operation.
-    # Temporarily convert to Py int, do the OR and convert back.
-    py_int_mode = int.from_bytes(cur_mode, sys.byteorder)
-    new_mode = ctypes.c_uint(py_int_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+        cur_mode = ctypes.c_uint()
+        if ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(cur_mode)) == 0:
+            raise RuntimeError("Unable to query current console mode")
 
-    if ctypes.windll.kernel32.SetConsoleMode(handle, new_mode) == 0:
-        raise RuntimeError("Unable to set console mode")
+        # ctypes ints lack support for the required bit-OR operation.
+        # Temporarily convert to Py int, do the OR and convert back.
+        py_int_mode = int.from_bytes(cur_mode, sys.byteorder)
+        new_mode = ctypes.c_uint(py_int_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
+
+        if ctypes.windll.kernel32.SetConsoleMode(handle, new_mode) == 0:
+            raise RuntimeError("Unable to set console mode")
 
 
-def exit_from_event_loop_thread(loop, stop):
+def exit_from_event_loop_thread(
+    loop: asyncio.AbstractEventLoop, stop: asyncio.Future[None]
+) -> None:
     loop.stop()
     if not stop.done():
         # When exiting the thread that runs the event loop, raise
@@ -51,7 +56,7 @@ def exit_from_event_loop_thread(loop, stop):
         os.kill(os.getpid(), ctrl_c)
 
 
-def print_during_input(string):
+def print_during_input(string: str) -> None:
     sys.stdout.write(
         # Save cursor position
         "\N{ESC}7"
@@ -71,7 +76,7 @@ def print_during_input(string):
     sys.stdout.flush()
 
 
-def print_over_input(string):
+def print_over_input(string: str) -> None:
     sys.stdout.write(
         # Move cursor to beginning of line
         "\N{CARRIAGE RETURN}"
@@ -83,7 +88,12 @@ def print_over_input(string):
     sys.stdout.flush()
 
 
-async def run_client(uri, loop, inputs, stop):
+async def run_client(
+    uri: str,
+    loop: asyncio.AbstractEventLoop,
+    inputs: asyncio.Queue[str],
+    stop: asyncio.Future[None],
+) -> None:
     try:
         websocket = await websockets.connect(uri)
     except Exception as exc:
@@ -95,8 +105,10 @@ async def run_client(uri, loop, inputs, stop):
 
     try:
         while True:
-            incoming = asyncio.ensure_future(websocket.recv())
-            outgoing = asyncio.ensure_future(inputs.get())
+            incoming: asyncio.Future[Any] = asyncio.ensure_future(websocket.recv())
+            outgoing: asyncio.Future[Any] = asyncio.ensure_future(inputs.get())
+            done: Set[asyncio.Future[Any]]
+            pending: Set[asyncio.Future[Any]]
             done, pending = await asyncio.wait(
                 [incoming, outgoing, stop], return_when=asyncio.FIRST_COMPLETED
             )
@@ -113,7 +125,10 @@ async def run_client(uri, loop, inputs, stop):
                 except websockets.ConnectionClosed:
                     break
                 else:
-                    print_during_input("< " + message)
+                    if isinstance(message, str):
+                        print_during_input("< " + message)
+                    else:
+                        print_during_input("< (binary) " + message.hex())
 
             if outgoing in done:
                 message = outgoing.result()
@@ -131,9 +146,9 @@ async def run_client(uri, loop, inputs, stop):
         exit_from_event_loop_thread(loop, stop)
 
 
-def main():
+def main() -> None:
     # If we're on Windows, enable VT100 terminal support.
-    if os.name == "nt":
+    if sys.platform == "win32":
         try:
             win_enable_vt100()
         except RuntimeError as exc:
@@ -162,10 +177,10 @@ def main():
     loop = asyncio.new_event_loop()
 
     # Create a queue of user inputs. There's no need to limit its size.
-    inputs = asyncio.Queue(loop=loop)
+    inputs: asyncio.Queue[str] = asyncio.Queue(loop=loop)
 
     # Create a stop condition when receiving SIGINT or SIGTERM.
-    stop = loop.create_future()
+    stop: asyncio.Future[None] = loop.create_future()
 
     # Schedule the task that will manage the connection.
     asyncio.ensure_future(run_client(args.uri, loop, inputs, stop), loop=loop)

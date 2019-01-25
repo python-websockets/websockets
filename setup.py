@@ -14,8 +14,8 @@ exec((root_dir / 'src' / 'websockets' / 'version.py').read_text(encoding='utf-8'
 
 py_version = sys.version_info[:2]
 
-if py_version < (3, 5):
-    raise Exception("websockets requires Python >= 3.5.")
+if py_version < (3, 6):
+    raise Exception("websockets requires Python >= 3.6.")
 
 packages = ['websockets', 'websockets/extensions']
 
@@ -47,7 +47,6 @@ setuptools.setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.5',
         'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
     ],
@@ -56,6 +55,6 @@ setuptools.setup(
     ext_modules=ext_modules,
     include_package_data=True,
     zip_safe=True,
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     test_loader='unittest:TestLoader',
 )

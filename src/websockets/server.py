@@ -546,7 +546,7 @@ class WebSocketServer:
         self.close_task = None
 
         # Completed when the server is closed and connections are terminated.
-        self.closed_waiter = asyncio.Future(loop=loop)
+        self.closed_waiter = loop.create_future()
 
     def wrap(self, server):
         """

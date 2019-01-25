@@ -49,7 +49,7 @@ async def mem_server(stop):
 
 loop = asyncio.get_event_loop()
 
-stop = asyncio.Future()
+stop = loop.create_future()
 loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
 
 tracemalloc.start()

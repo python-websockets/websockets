@@ -10,7 +10,7 @@ Changelog
 
 .. warning::
 
-    **Version 8.0 drops compatibility with Python 3.4.**
+    **Version 8.0 drops compatibility with Python 3.4 and 3.5.**
 
 .. warning::
 

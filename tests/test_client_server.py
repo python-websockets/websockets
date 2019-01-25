@@ -7,7 +7,6 @@ import pathlib
 import random
 import socket
 import ssl
-import sys
 import tempfile
 import unittest
 import unittest.mock
@@ -1306,10 +1305,6 @@ class ContextManagerTests(unittest.TestCase):
     def tearDown(self):
         self.loop.close()
 
-    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
-    @unittest.skipIf(
-        sys.version_info[:3] <= (3, 5, 0), "this test requires Python 3.5.1+"
-    )
     def test_client(self):
         start_server = serve(handler, "localhost", 0)
         server = self.loop.run_until_complete(start_server)
@@ -1327,10 +1322,6 @@ class ContextManagerTests(unittest.TestCase):
         server.close()
         self.loop.run_until_complete(server.wait_closed())
 
-    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
-    @unittest.skipIf(
-        sys.version_info[:3] <= (3, 5, 0), "this test requires Python 3.5.1+"
-    )
     def test_server(self):
         async def run_server():
             # Use serve as an asynchronous context manager.
@@ -1342,10 +1333,6 @@ class ContextManagerTests(unittest.TestCase):
 
         self.loop.run_until_complete(run_server())
 
-    # Asynchronous context managers are only enabled on Python ≥ 3.5.1.
-    @unittest.skipIf(
-        sys.version_info[:3] <= (3, 5, 0), "this test requires Python 3.5.1+"
-    )
     @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
     def test_unix_server(self):
         async def run_server(path):
@@ -1360,5 +1347,88 @@ class ContextManagerTests(unittest.TestCase):
             self.loop.run_until_complete(run_server(path))
 
 
-if sys.version_info[:2] >= (3, 6):  # pragma: no cover
-    from .py36._test_client_server import AsyncIteratorTests  # noqa
+class AsyncIteratorTests(unittest.TestCase):
+
+    # This is a protocol-level feature, but since it's a high-level API, it is
+    # much easier to exercise at the client or server level.
+
+    MESSAGES = ["3", "2", "1", "Fire!"]
+
+    def setUp(self):
+        self.loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(self.loop)
+
+    def tearDown(self):
+        self.loop.close()
+
+    def test_iterate_on_messages(self):
+        async def handler(ws, path):
+            for message in self.MESSAGES:
+                await ws.send(message)
+
+        start_server = serve(handler, "localhost", 0)
+        server = self.loop.run_until_complete(start_server)
+
+        messages = []
+
+        async def run_client():
+            nonlocal messages
+            async with connect(get_server_uri(server)) as ws:
+                async for message in ws:
+                    messages.append(message)
+
+        self.loop.run_until_complete(run_client())
+
+        self.assertEqual(messages, self.MESSAGES)
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
+    def test_iterate_on_messages_going_away_exit_ok(self):
+        async def handler(ws, path):
+            for message in self.MESSAGES:
+                await ws.send(message)
+            await ws.close(1001)
+
+        start_server = serve(handler, "localhost", 0)
+        server = self.loop.run_until_complete(start_server)
+
+        messages = []
+
+        async def run_client():
+            nonlocal messages
+            async with connect(get_server_uri(server)) as ws:
+                async for message in ws:
+                    messages.append(message)
+
+        self.loop.run_until_complete(run_client())
+
+        self.assertEqual(messages, self.MESSAGES)
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())
+
+    def test_iterate_on_messages_internal_error_exit_not_ok(self):
+        async def handler(ws, path):
+            for message in self.MESSAGES:
+                await ws.send(message)
+            await ws.close(1011)
+
+        start_server = serve(handler, "localhost", 0)
+        server = self.loop.run_until_complete(start_server)
+
+        messages = []
+
+        async def run_client():
+            nonlocal messages
+            async with connect(get_server_uri(server)) as ws:
+                async for message in ws:
+                    messages.append(message)
+
+        with self.assertRaises(ConnectionClosed):
+            self.loop.run_until_complete(run_client())
+
+        self.assertEqual(messages, self.MESSAGES)
+
+        server.close()
+        self.loop.run_until_complete(server.wait_closed())

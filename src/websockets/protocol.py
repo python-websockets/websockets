@@ -15,7 +15,6 @@ import enum
 import logging
 import random
 import struct
-import sys
 
 from .exceptions import (
     ConnectionClosed,
@@ -346,6 +345,24 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         """
         await asyncio.shield(self.connection_lost_waiter)
+
+    async def __aiter__(self):
+        """
+        Iterate on received messages.
+
+        Exit normally when the connection is closed with code 1000 or 1001.
+
+        Raise an exception in other cases.
+
+        """
+        try:
+            while True:
+                yield await self.recv()
+        except ConnectionClosed as exc:
+            if exc.code == 1000 or exc.code == 1001:
+                return
+            else:
+                raise
 
     async def recv(self):
         """
@@ -1225,9 +1242,3 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # - it must never be canceled.
         self.connection_lost_waiter.set_result(None)
         super().connection_lost(exc)
-
-
-if sys.version_info[:2] >= (3, 6):  # pragma: no cover
-    from .py36.protocol import __aiter__
-
-    WebSocketCommonProtocol.__aiter__ = __aiter__

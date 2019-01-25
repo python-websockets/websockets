@@ -8,7 +8,6 @@ import collections.abc
 import email.utils
 import http
 import logging
-import sys
 import warnings
 
 from .exceptions import (
@@ -861,6 +860,9 @@ class Serve:
         return self.__await_impl__().__await__()
 
 
+serve = Serve
+
+
 def unix_serve(ws_handler, path, **kwargs):
     """
     Similar to :func:`serve()`, but for listening on Unix sockets.
@@ -874,22 +876,3 @@ def unix_serve(ws_handler, path, **kwargs):
 
     """
     return serve(ws_handler, path=path, **kwargs)
-
-
-# We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
-# didn't accept arbitrary awaitables until Python 3.5.1. We don't define
-# __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
-if sys.version_info[:3] < (3, 5, 1):  # pragma: no cover
-
-    del Serve.__aenter__
-    del Serve.__aexit__
-    del Serve.__await__
-
-    async def serve(*args, **kwds):
-        return Serve(*args, **kwds).__iter__()
-
-    serve.__doc__ = Serve.__doc__
-
-else:
-
-    serve = Serve

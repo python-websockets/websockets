@@ -6,7 +6,6 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 import asyncio
 import collections.abc
 import logging
-import sys
 
 from .exceptions import (
     InvalidHandshake,
@@ -520,20 +519,4 @@ class Connect:
         return self.__await_impl__().__await__()
 
 
-# We can't define __await__ on Python < 3.5.1 because asyncio.ensure_future
-# didn't accept arbitrary awaitables until Python 3.5.1. We don't define
-# __aenter__ and __aexit__ either on Python < 3.5.1 to keep things simple.
-if sys.version_info[:3] < (3, 5, 1):  # pragma: no cover
-
-    del Connect.__aenter__
-    del Connect.__aexit__
-    del Connect.__await__
-
-    async def connect(*args, **kwds):
-        return Connect(*args, **kwds).__iter__()
-
-    connect.__doc__ = Connect.__doc__
-
-else:
-
-    connect = Connect
+connect = Connect

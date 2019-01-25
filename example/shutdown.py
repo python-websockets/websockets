@@ -15,7 +15,7 @@ async def echo_server(stop):
 loop = asyncio.get_event_loop()
 
 # The stop condition is set when receiving SIGTERM.
-stop = asyncio.Future()
+stop = loop.create_future()
 loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
 
 # Run the server until the stop condition is met.

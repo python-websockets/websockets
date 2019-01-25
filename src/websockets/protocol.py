@@ -229,7 +229,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # :meth:`connection_lost()` callback to a :class:`~asyncio.Future`
         # that can be awaited. (Other :class:`~asyncio.Protocol` callbacks are
         # translated by ``self.stream_reader``).
-        self.connection_lost_waiter = asyncio.Future(loop=loop)
+        self.connection_lost_waiter = loop.create_future()
 
         # Queue of received messages.
         self.messages = collections.deque()
@@ -405,7 +405,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Wait until there's a message in the queue (if necessary) or the
         # connection is closed.
         while len(self.messages) <= 0:
-            pop_message_waiter = asyncio.Future(loop=self.loop)
+            pop_message_waiter = self.loop.create_future()
             self._pop_message_waiter = pop_message_waiter
             try:
                 # If asyncio.wait() is canceled, it doesn't cancel
@@ -609,7 +609,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         while data is None or data in self.pings:
             data = struct.pack("!I", random.getrandbits(32))
 
-        self.pings[data] = asyncio.Future(loop=self.loop)
+        self.pings[data] = self.loop.create_future()
 
         await self.write_frame(True, OP_PING, data)
 
@@ -692,7 +692,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
                 # Wait until there's room in the queue (if necessary).
                 while len(self.messages) >= self.max_queue:
-                    self._put_message_waiter = asyncio.Future(loop=self.loop)
+                    self._put_message_waiter = self.loop.create_future()
                     try:
                         await self._put_message_waiter
                     finally:

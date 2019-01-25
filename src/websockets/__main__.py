@@ -173,7 +173,7 @@ def main():
     inputs = asyncio.Queue(loop=loop)
 
     # Create a stop condition when receiving SIGINT or SIGTERM.
-    stop = asyncio.Future(loop=loop)
+    stop = loop.create_future()
 
     # Schedule the task that will manage the connection.
     asyncio.ensure_future(run_client(args.uri, loop, inputs, stop), loop=loop)

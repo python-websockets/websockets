@@ -27,25 +27,9 @@ if os.environ.get("PYTHONASYNCIODEBUG"):  # pragma: no cover
 MS = max(MS, 2.5 * time.get_clock_info("monotonic").resolution)
 
 
-class async_iterable:
-
-    # In Python ≥ 3.6, this can be simplified to:
-
-    # async def async_iterable(iterable):
-    #     for item in iterable:
-    #         yield item
-
-    def __init__(self, iterable):
-        self.iterator = iter(iterable)
-
-    def __aiter__(self):
-        return self
-
-    async def __anext__(self):
-        try:
-            return next(self.iterator)
-        except StopIteration:
-            raise StopAsyncIteration
+async def async_iterable(iterable):
+    for item in iterable:
+        yield item
 
 
 class TransportMock(unittest.mock.Mock):

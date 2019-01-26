@@ -906,12 +906,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         logger.debug("%s > %r", self.side, frame)
         frame.write(self.writer.write, mask=self.is_client, extensions=self.extensions)
 
-        # Backport of https://github.com/python/asyncio/pull/280.
-        # Remove when dropping support for Python < 3.6.
-        if self.writer.transport is not None:  # pragma: no cover
-            if self.writer_is_closing():
-                await asyncio.sleep(0)
-
         try:
             # drain() cannot be called concurrently by multiple coroutines:
             # http://bugs.python.org/issue29930. Remove this lock when no
@@ -925,25 +919,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # Wait until the connection is closed to raise ConnectionClosed
             # with the correct code and reason.
             await self.ensure_open()
-
-    def writer_is_closing(self):
-        """
-        Backport of https://github.com/python/asyncio/pull/291.
-
-        Replace with ``self.writer.transport.is_closing()`` when dropping
-        support for Python < 3.6 and with ``self.writer.is_closing()`` when
-        https://bugs.python.org/issue31491 is fixed.
-
-        """
-        transport = self.writer.transport
-        try:
-            return transport.is_closing()
-        except AttributeError:  # pragma: no cover
-            # This emulates what is_closing would return if it existed.
-            try:
-                return transport._closing
-            except AttributeError:
-                return transport._closed
 
     async def write_close_frame(self, data=b""):
         """

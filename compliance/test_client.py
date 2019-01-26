@@ -12,41 +12,36 @@ logging.basicConfig(level=logging.WARNING)
 # logging.getLogger('websockets').setLevel(logging.DEBUG)
 
 
-SERVER = 'ws://127.0.0.1:8642'
-AGENT = 'websockets'
+SERVER = "ws://127.0.0.1:8642"
+AGENT = "websockets"
 
 
 async def get_case_count(server):
-    uri = server + '/getCaseCount'
-    ws = await websockets.connect(uri)
-    msg = await ws.recv()
-    await ws.close()
+    uri = f"{server}/getCaseCount"
+    async with websockets.connect(uri) as ws:
+        msg = ws.recv()
     return json.loads(msg)
 
 
 async def run_case(server, case, agent):
-    uri = server + '/runCase?case={}&agent={}'.format(case, agent)
-    ws = await websockets.connect(uri, max_size=2 ** 25, max_queue=1)
-    while True:
-        try:
-            msg = await ws.recv()
+    uri = f"{server}/runCase?case={case}&agent={agent}"
+    async with websockets.connect(uri, max_size=2 ** 25, max_queue=1) as ws:
+        async for msg in ws:
             await ws.send(msg)
-        except websockets.ConnectionClosed:
-            break
 
 
 async def update_reports(server, agent):
-    uri = server + '/updateReports?agent={}'.format(agent)
-    ws = await websockets.connect(uri)
-    await ws.close()
+    uri = f"{server}/updateReports?agent={agent}"
+    async with websockets.connect(uri):
+        pass
 
 
 async def run_tests(server, agent):
     cases = await get_case_count(server)
     for case in range(1, cases + 1):
-        print("Running test case {} out of {}".format(case, cases), end="\r")
+        print(f"Running test case {case} out of {cases}", end="\r")
         await run_case(server, case, agent)
-    print("Ran {} test cases               ".format(cases))
+    print(f"Ran {cases} test cases               ")
     await update_reports(server, agent)
 
 

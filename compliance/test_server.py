@@ -10,17 +10,15 @@ logging.basicConfig(level=logging.WARNING)
 # logging.getLogger('websockets').setLevel(logging.DEBUG)
 
 
+HOST, PORT = "127.0.0.1", 8642
+
+
 async def echo(ws, path):
-    while True:
-        try:
-            msg = await ws.recv()
-            await ws.send(msg)
-        except websockets.ConnectionClosed:
-            break
+    async for msg in ws:
+        await ws.send(msg)
 
 
-start_server = websockets.serve(
-    echo, '127.0.0.1', 8642, max_size=2 ** 25, max_queue=1)
+start_server = websockets.serve(echo, HOST, PORT, max_size=2 ** 25, max_queue=1)
 
 try:
     asyncio.get_event_loop().run_until_complete(start_server)

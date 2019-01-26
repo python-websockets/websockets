@@ -1104,19 +1104,14 @@ class SSLClientServerTests(ClientServerTests):
 
     @property
     def server_context(self):
-        # Change to ssl.PROTOCOL_TLS_SERVER when dropping Python < 3.6.
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
         ssl_context.load_cert_chain(testcert)
         return ssl_context
 
     @property
     def client_context(self):
-        # Change to ssl.PROTOCOL_TLS_CLIENT when dropping Python < 3.6.
-        # Then remove verify_mode and check_hostname below.
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1)
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_context.load_verify_locations(testcert)
-        ssl_context.verify_mode = ssl.CERT_REQUIRED
-        ssl_context.check_hostname = True
         return ssl_context
 
     def start_server(self, **kwds):

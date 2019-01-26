@@ -57,8 +57,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     control frames automatically. It sends outgoing data frames and performs
     the closing handshake.
 
-    On Python ≥ 3.6, :class:`WebSocketCommonProtocol` instances support
-    asynchronous iteration::
+    :class:`WebSocketCommonProtocol` supports asynchronous iteration::
 
         async for message in websocket:
             await process(message)

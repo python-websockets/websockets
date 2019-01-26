@@ -316,8 +316,8 @@ class Connect:
     :class:`WebSocketClientProtocol` which can then be used to send and
     receive messages.
 
-    On Python ≥ 3.5.1, :func:`connect` can be used as a asynchronous context
-    manager. In that case, the connection is closed when exiting the context.
+    :func:`connect` can also be used as a asynchronous context manager. In
+    that case, the connection is closed when exiting the context.
 
     :func:`connect` is a wrapper around the event loop's
     :meth:`~asyncio.BaseEventLoop.create_connection` method. Unknown keyword

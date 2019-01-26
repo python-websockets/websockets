@@ -6,16 +6,11 @@ Getting started
 Requirements
 ------------
 
-``websockets`` requires Python ≥ 3.5.
+``websockets`` requires Python ≥ 3.6.
 
 You should use the latest version of Python if possible. If you're using an
 older version, be aware that for each minor version (3.x), only the latest
 bugfix release (3.x.y) is officially supported.
-
-.. warning::
-
-    This documentation is written for Python ≥ 3.6. If you're using an older
-    Python version, you need to :ref:`adapt the code samples <python-lt-36>`.
 
 Installation
 ------------
@@ -61,16 +56,13 @@ because they reduce the risk of interference by bad proxies.
 The WSS protocol is to WS what HTTPS is to HTTP: the connection is encrypted
 with TLS. WSS requires TLS certificates like HTTPS.
 
-Here's how to adapt the server example to provide secure connections, using
-APIs available in Python ≥ 3.6.
-
-Refer to the documentation of the :mod:`ssl` module for configuring the
-context securely or adapting the code to older Python versions.
+Here's how to adapt the server example to provide secure connections. See the
+documentation of the :mod:`ssl` module for configuring the context securely.
 
 .. literalinclude:: ../example/secure_server.py
     :emphasize-lines: 19,23-24
 
-Here's how to adapt the client, also on Python ≥ 3.6.
+Here's how to adapt the client.
 
 .. literalinclude:: ../example/secure_client.py
     :emphasize-lines: 10,15-16
@@ -136,18 +128,6 @@ In this example, ``consumer`` represents your business logic for processing
 messages received on the WebSocket connection.
 
 Iteration terminates when the client disconnects.
-
-Asynchronous iteration was introduced in Python 3.6; here's the same code for
-earlier Python versions::
-
-    async def consumer_handler(websocket, path):
-        while True:
-            message = await websocket.recv()
-            await consumer(message)
-
-:meth:`~protocol.WebSocketCommonProtocol.recv` raises a
-:exc:`~exceptions.ConnectionClosed` exception when the client disconnects,
-which breaks out of the ``while True`` loop.
 
 Producer
 ........
@@ -226,62 +206,3 @@ One more thing...
 ``websockets`` provides an interactive client::
 
     $ python -m websockets wss://echo.websocket.org/
-
-.. _python-lt-36:
-
-Python < 3.6
-------------
-
-This documentation takes advantage of several features that aren't available
-in Python < 3.6:
-
-- Asynchronous context managers didn't work well until Python 3.5.1;
-- Asynchronous iterators were added in Python 3.6;
-- f-strings were introduced in Python 3.6 (this is unrelated to :mod:`asyncio`
-  and :mod:`websockets`).
-
-Here's how to adapt the basic server example.
-
-.. literalinclude:: ../example/old_server.py
-
-And here's the basic client example.
-
-.. literalinclude:: ../example/old_client.py
-
-Asynchronous context managers
-.............................
-
-Asynchronous context managers were added in Python 3.5. However,
-``websockets`` only supports them on Python ≥ 3.5.1, where
-:func:`~asyncio.ensure_future` accepts any awaitable.
-
-If you're using Python < 3.5.1, instead of::
-
-    with websockets.connect(...) as client:
-        ...
-
-you must write::
-
-    client = yield from websockets.connect(...)
-    try:
-        ...
-    finally:
-        yield from client.close()
-
-Asynchronous iterators
-......................
-
-If you're using Python < 3.6, you must replace::
-
-    async for message in websocket:
-        ...
-
-with::
-
-    while True:
-        message = yield from websocket.recv()
-        ...
-
-The latter will always raise a :exc:`~exceptions.ConnectionClosed` exception
-when the connection is closed, while the former will only raise that exception
-if the connection terminates with an error.

@@ -676,8 +676,8 @@ class Serve:
     :meth:`~websockets.server.WebSocketServer.wait_closed` methods for
     terminating the server and cleaning up its resources.
 
-    On Python ≥ 3.5.1, :func:`serve` can also be used as an asynchronous context
-    manager. In this case, the server is shut down when exiting the context.
+    :func:`serve` can also be used as an asynchronous context manager. In
+    this case, the server is shut down when exiting the context.
 
     :func:`serve` is a wrapper around the event loop's
     :meth:`~asyncio.AbstractEventLoop.create_server` method. Internally, it

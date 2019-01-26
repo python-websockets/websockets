@@ -27,9 +27,8 @@ Server
     needed in general.
 
 * Create a server with :func:`~server.serve` which is similar to asyncio's
-  :meth:`~asyncio.AbstractEventLoop.create_server`.
-
-  * On Python ≥ 3.5.1, you can also use it as an asynchronous context manager.
+  :meth:`~asyncio.AbstractEventLoop.create_server`. You can also use it as an
+  asynchronous context manager.
 
   * The server takes care of establishing connections, then lets the handler
     execute the application logic, and finally closes the connection after the
@@ -43,9 +42,8 @@ Client
 ------
 
 * Create a client with :func:`~client.connect` which is similar to asyncio's
-  :meth:`~asyncio.BaseEventLoop.create_connection`.
-
-  * On Python ≥ 3.5.1, you can also use it as an asynchronous context manager.
+  :meth:`~asyncio.BaseEventLoop.create_connection`. You can also use it as an
+  asynchronous context manager.
 
   * For advanced customization, you may subclass
     :class:`~server.WebSocketClientProtocol` and pass either this subclass or

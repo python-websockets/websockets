@@ -36,7 +36,7 @@ Python with a focus on correctness and simplicity.
 Built on top of ``asyncio``, Python's standard asynchronous I/O framework, it
 provides an elegant coroutine-based API.
 
-Here's how a client sends and receives messages (Python ≥ 3.6):
+Here's how a client sends and receives messages:
 
 .. copy-pasted because GitHub doesn't support the include directive
 
@@ -55,7 +55,7 @@ Here's how a client sends and receives messages (Python ≥ 3.6):
     asyncio.get_event_loop().run_until_complete(
         hello('ws://localhost:8765'))
 
-And here's an echo server (Python ≥ 3.6):
+And here's an echo server:
 
 .. code:: python
 

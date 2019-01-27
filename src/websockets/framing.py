@@ -117,9 +117,7 @@ class Frame(FrameData):
             length, = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
             raise PayloadTooBig(
-                "Payload length exceeds size limit ({} > {} bytes)".format(
-                    length, max_size
-                )
+                f"Payload length exceeds size limit ({length} > {max_size} bytes)"
             )
         if mask:
             mask_bits = await reader(4)
@@ -231,7 +229,7 @@ class Frame(FrameData):
             if not frame.fin:
                 raise WebSocketProtocolError("Fragmented control frame")
         else:
-            raise WebSocketProtocolError("Invalid opcode: {}".format(frame.opcode))
+            raise WebSocketProtocolError(f"Invalid opcode: {frame.opcode}")
 
 
 def prepare_data(data):

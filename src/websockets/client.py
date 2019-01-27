@@ -52,7 +52,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         extensions=None,
         subprotocols=None,
         extra_headers=None,
-        **kwds
+        **kwds,
     ):
         self.origin = origin
         self.available_extensions = extensions
@@ -73,7 +73,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         # Since the path and headers only contain ASCII characters,
         # we can keep this simple.
-        request = "GET {path} HTTP/1.1\r\n".format(path=path)
+        request = f"GET {path} HTTP/1.1\r\n"
         request += str(headers)
 
         self.writer.write(request.encode())
@@ -170,9 +170,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                 # matched what the server sent. Fail the connection.
                 else:
                     raise NegotiationError(
-                        "Unsupported extension: name = {}, params = {}".format(
-                            name, response_params
-                        )
+                        f"Unsupported extension: "
+                        f"name = {name}, params = {response_params}"
                     )
 
         return accepted_extensions
@@ -205,16 +204,13 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             )
 
             if len(parsed_header_values) > 1:
-                raise InvalidHandshake(
-                    "Multiple subprotocols: {}".format(", ".join(parsed_header_values))
-                )
+                subprotocols = ", ".join(parsed_header_values)
+                raise InvalidHandshake(f"Multiple subprotocols: {subprotocols}")
 
             subprotocol = parsed_header_values[0]
 
             if subprotocol not in available_subprotocols:
-                raise NegotiationError(
-                    "Unsupported subprotocol: {}".format(subprotocol)
-                )
+                raise NegotiationError(f"Unsupported subprotocol: {subprotocol}")
 
         return subprotocol
 
@@ -251,7 +247,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if wsuri.port == (443 if wsuri.secure else 80):  # pragma: no cover
             request_headers["Host"] = wsuri.host
         else:
-            request_headers["Host"] = "{}:{}".format(wsuri.host, wsuri.port)
+            request_headers["Host"] = f"{wsuri.host}:{wsuri.port}"
 
         if wsuri.user_info:
             request_headers["Authorization"] = build_basic_auth(*wsuri.user_info)
@@ -382,7 +378,7 @@ class Connect:
         extensions=None,
         subprotocols=None,
         extra_headers=None,
-        **kwds
+        **kwds,
     ):
         if loop is None:
             loop = asyncio.get_event_loop()
@@ -417,7 +413,7 @@ class Connect:
                     ClientPerMessageDeflateFactory(client_max_window_bits=True)
                 )
         elif compression is not None:
-            raise ValueError("Unsupported compression: {}".format(compression))
+            raise ValueError(f"Unsupported compression: {compression}")
 
         self._create_protocol = create_protocol
         self._ping_interval = ping_interval

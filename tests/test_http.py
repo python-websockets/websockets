@@ -108,15 +108,13 @@ class HeadersTests(unittest.TestCase):
 
     def test_str(self):
         self.assertEqual(
-            str(self.headers),
-            "Connection: Upgrade\r\nServer: {}\r\n\r\n".format(USER_AGENT),
+            str(self.headers), f"Connection: Upgrade\r\nServer: {USER_AGENT}\r\n\r\n"
         )
 
     def test_repr(self):
         self.assertEqual(
             repr(self.headers),
-            "Headers([('Connection', 'Upgrade'), "
-            "('Server', '{}')])".format(USER_AGENT),
+            f"Headers([('Connection', 'Upgrade'), " f"('Server', '{USER_AGENT}')])",
         )
 
     def test_multiple_values_error_str(self):

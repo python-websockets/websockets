@@ -167,7 +167,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         write_limit=2 ** 16,
         loop=None,
         legacy_recv=False,
-        timeout=10
+        timeout=10,
     ):
         # Backwards-compatibility: close_timeout used to be called timeout.
         # If both are specified, timeout is ignored.
@@ -899,7 +899,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Defensive assertion for protocol compliance.
         if self.state is not _expected_state:  # pragma: no cover
             raise InvalidState(
-                "Cannot write to a WebSocket in the {} state".format(self.state.name)
+                f"Cannot write to a WebSocket in the {self.state.name} state"
             )
 
         frame = Frame(fin, opcode, data)

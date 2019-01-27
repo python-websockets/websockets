@@ -37,9 +37,7 @@ class AbortHandshake(InvalidHandshake):
         self.status = status
         self.headers = headers
         self.body = body
-        message = "HTTP {}, {} headers, {} bytes".format(
-            status, len(headers), len(body)
-        )
+        message = f"HTTP {status}, {len(headers)} headers, {len(body)} bytes"
         super().__init__(message)
 
 
@@ -68,11 +66,11 @@ class InvalidHeader(InvalidHandshake):
 
     def __init__(self, name, value=None):
         if value is None:
-            message = "Missing {} header".format(name)
+            message = f"Missing {name} header"
         elif value == "":
-            message = "Empty {} header".format(name)
+            message = f"Empty {name} header"
         else:
-            message = "Invalid {} header: {}".format(name, value)
+            message = f"Invalid {name} header: {value}"
         super().__init__(message)
 
 
@@ -83,7 +81,7 @@ class InvalidHeaderFormat(InvalidHeader):
     """
 
     def __init__(self, name, error, string, pos):
-        error = "{} at {} in {}".format(error, pos, string)
+        error = f"{error} at {pos} in {string}"
         super().__init__(name, error)
 
 
@@ -121,7 +119,7 @@ class InvalidStatusCode(InvalidHandshake):
 
     def __init__(self, status_code):
         self.status_code = status_code
-        message = "Status code not 101: {}".format(status_code)
+        message = f"Status code not 101: {status_code}"
         super().__init__(message)
 
 
@@ -140,7 +138,7 @@ class InvalidParameterName(NegotiationError):
 
     def __init__(self, name):
         self.name = name
-        message = "Invalid parameter name: {}".format(name)
+        message = f"Invalid parameter name: {name}"
         super().__init__(message)
 
 
@@ -153,7 +151,7 @@ class InvalidParameterValue(NegotiationError):
     def __init__(self, name, value):
         self.name = name
         self.value = value
-        message = "Invalid value for parameter {}: {}".format(name, value)
+        message = f"Invalid value for parameter {name}: {value}"
         super().__init__(message)
 
 
@@ -165,7 +163,7 @@ class DuplicateParameter(NegotiationError):
 
     def __init__(self, name):
         self.name = name
-        message = "Duplicate parameter: {}".format(name)
+        message = f"Duplicate parameter: {name}"
         super().__init__(message)
 
 
@@ -205,10 +203,10 @@ def format_close(code, reason):
         explanation = "private use"
     else:
         explanation = CLOSE_CODES.get(code, "unknown")
-    result = "code = {} ({}), ".format(code, explanation)
+    result = f"code = {code} ({explanation}), "
 
     if reason:
-        result += "reason = {}".format(reason)
+        result += f"reason = {reason}"
     else:
         result += "no reason"
 

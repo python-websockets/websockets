@@ -25,7 +25,7 @@ __all__ = [
 MAX_HEADERS = 256
 MAX_LINE = 4096
 
-USER_AGENT = "Python/{} websockets/{}".format(sys.version[:3], websockets_version)
+USER_AGENT = f"Python/{sys.version[:3]} websockets/{websockets_version}"
 
 
 # See https://tools.ietf.org/html/rfc7230#appendix-B.
@@ -252,13 +252,10 @@ class Headers(collections.abc.MutableMapping):
         self.update(*args, **kwargs)
 
     def __str__(self):
-        return (
-            "".join("{}: {}\r\n".format(key, value) for key, value in self._list)
-            + "\r\n"
-        )
+        return "".join(f"{key}: {value}\r\n" for key, value in self._list) + "\r\n"
 
     def __repr__(self):
-        return "{}({})".format(self.__class__.__name__, repr(self._list))
+        return f"{self.__class__.__name__}({self._list!r})"
 
     def copy(self):
         copy = self.__class__()

@@ -47,7 +47,7 @@ def parse_uri(uri):
         assert uri.fragment == ""
         assert uri.hostname is not None
     except AssertionError as exc:
-        raise InvalidURI("{} isn't a valid URI".format(uri)) from exc
+        raise InvalidURI(f"{uri} isn't a valid URI") from exc
 
     secure = uri.scheme == "wss"
     host = uri.hostname

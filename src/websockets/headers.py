@@ -302,7 +302,7 @@ def build_extension(name, parameters):
         [name]
         + [
             # Quoted strings aren't necessary because values are always tokens.
-            name if value is None else "{}={}".format(name, value)
+            name if value is None else f"{name}={value}"
             for name, value in parameters
         ]
     )
@@ -347,6 +347,6 @@ def build_basic_auth(username, password):
     """
     # https://tools.ietf.org/html/rfc7617#section-2
     assert ":" not in username
-    user_pass = "{}:{}".format(username, password)
+    user_pass = f"{username}:{password}"
     basic_credentials = base64.b64encode(user_pass.encode()).decode()
     return "Basic " + basic_credentials

@@ -186,7 +186,7 @@ class ClientPerMessageDeflateFactory:
 
         """
         if any(other.name == self.name for other in accepted_extensions):
-            raise NegotiationError("Received duplicate {}".format(self.name))
+            raise NegotiationError(f"Received duplicate {self.name}")
 
         # Request parameters are available in instance variables.
 
@@ -339,7 +339,7 @@ class ServerPerMessageDeflateFactory:
 
         """
         if any(other.name == self.name for other in accepted_extensions):
-            raise NegotiationError("Skipped duplicate {}".format(self.name))
+            raise NegotiationError(f"Skipped duplicate {self.name}")
 
         # Load request parameters in local variables.
         (
@@ -491,16 +491,11 @@ class PerMessageDeflate:
 
     def __repr__(self):
         return (
-            "PerMessageDeflate("
-            "remote_no_context_takeover={}, "
-            "local_no_context_takeover={}, "
-            "remote_max_window_bits={}, "
-            "local_max_window_bits={})"
-        ).format(
-            self.remote_no_context_takeover,
-            self.local_no_context_takeover,
-            self.remote_max_window_bits,
-            self.local_max_window_bits,
+            f"PerMessageDeflate("
+            f"remote_no_context_takeover={self.remote_no_context_takeover}, "
+            f"local_no_context_takeover={self.local_no_context_takeover}, "
+            f"remote_max_window_bits={self.remote_max_window_bits}, "
+            f"local_max_window_bits={self.local_max_window_bits})"
         )
 
     def decode(self, frame, *, max_size=None):
@@ -544,9 +539,7 @@ class PerMessageDeflate:
         data = self.decoder.decompress(data, max_length)
         if self.decoder.unconsumed_tail:
             raise PayloadTooBig(
-                "Uncompressed payload length exceeds size limit (? > {} bytes)".format(
-                    max_size
-                )
+                f"Uncompressed payload length exceeds size limit (? > {max_size} bytes)"
             )
 
         # Allow garbage collection of the decoder if it won't be reused.

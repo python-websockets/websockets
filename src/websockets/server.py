@@ -57,7 +57,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         extra_headers=None,
         process_request=None,
         select_subprotocol=None,
-        **kwds
+        **kwds,
     ):
         # For backwards-compatibility with 6.0 or earlier.
         if origins is not None and "" in origins:
@@ -225,7 +225,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         # Since the status line and headers only contain ASCII characters,
         # we can keep this simple.
-        response = "HTTP/1.1 {status.value} {status.phrase}\r\n".format(status=status)
+        response = f"HTTP/1.1 {status.value} {status.phrase}\r\n"
         response += str(headers)
 
         self.writer.write(response.encode())
@@ -775,7 +775,7 @@ class Serve:
         extra_headers=None,
         process_request=None,
         select_subprotocol=None,
-        **kwds
+        **kwds,
     ):
         # Backwards-compatibility: close_timeout used to be called timeout.
         # If both are specified, timeout is ignored.
@@ -803,7 +803,7 @@ class Serve:
             ):
                 extensions.append(ServerPerMessageDeflateFactory())
         elif compression is not None:
-            raise ValueError("Unsupported compression: {}".format(compression))
+            raise ValueError(f"Unsupported compression: {compression}")
 
         factory = lambda: create_protocol(
             ws_handler,

@@ -51,7 +51,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = 'websockets'
-copyright = '2013-{}, Aymeric Augustin'.format(datetime.date.today().year)
+copyright = f'2013-{datetime.date.today().year}, Aymeric Augustin and contributors'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the

@@ -53,36 +53,32 @@ def exit_from_event_loop_thread(loop, stop):
 
 def print_during_input(string):
     sys.stdout.write(
-        (
-            # Save cursor position
-            "\N{ESC}7"
-            # Add a new line
-            "\N{LINE FEED}"
-            # Move cursor up
-            "\N{ESC}[A"
-            # Insert blank line, scroll last line down
-            "\N{ESC}[L"
-            # Print string in the inserted blank line
-            "{string}\N{LINE FEED}"
-            # Restore cursor position
-            "\N{ESC}8"
-            # Move cursor down
-            "\N{ESC}[B"
-        ).format(string=string)
+        # Save cursor position
+        "\N{ESC}7"
+        # Add a new line
+        "\N{LINE FEED}"
+        # Move cursor up
+        "\N{ESC}[A"
+        # Insert blank line, scroll last line down
+        "\N{ESC}[L"
+        # Print string in the inserted blank line
+        f"{string}\N{LINE FEED}"
+        # Restore cursor position
+        "\N{ESC}8"
+        # Move cursor down
+        "\N{ESC}[B"
     )
     sys.stdout.flush()
 
 
 def print_over_input(string):
     sys.stdout.write(
-        (
-            # Move cursor to beginning of line
-            "\N{CARRIAGE RETURN}"
-            # Delete current line
-            "\N{ESC}[K"
-            # Print string
-            "{string}\N{LINE FEED}"
-        ).format(string=string)
+        # Move cursor to beginning of line
+        "\N{CARRIAGE RETURN}"
+        # Delete current line
+        "\N{ESC}[K"
+        # Print string
+        f"{string}\N{LINE FEED}"
     )
     sys.stdout.flush()
 
@@ -91,11 +87,11 @@ async def run_client(uri, loop, inputs, stop):
     try:
         websocket = await websockets.connect(uri)
     except Exception as exc:
-        print_over_input("Failed to connect to {}: {}.".format(uri, exc))
+        print_over_input(f"Failed to connect to {uri}: {exc}.")
         exit_from_event_loop_thread(loop, stop)
         return
     else:
-        print_during_input("Connected to {}.".format(uri))
+        print_during_input(f"Connected to {uri}.")
 
     try:
         while True:
@@ -130,9 +126,7 @@ async def run_client(uri, loop, inputs, stop):
         await websocket.close()
         close_status = format_close(websocket.close_code, websocket.close_reason)
 
-        print_over_input(
-            "Connection closed: {close_status}.".format(close_status=close_status)
-        )
+        print_over_input(f"Connection closed: {close_status}.")
 
         exit_from_event_loop_thread(loop, stop)
 
@@ -144,11 +138,9 @@ def main():
             win_enable_vt100()
         except RuntimeError as exc:
             sys.stderr.write(
-                (
-                    "Unable to set terminal to VT100 mode. This is only "
-                    "supported since Win10 anniversary update. Expect "
-                    "weird symbols on the terminal.\nError: {exc!s}\n"
-                ).format(exc=exc)
+                f"Unable to set terminal to VT100 mode. This is only "
+                f"supported since Win10 anniversary update. Expect "
+                f"weird symbols on the terminal.\nError: {exc}\n"
             )
             sys.stderr.flush()
 

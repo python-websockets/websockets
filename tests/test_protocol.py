@@ -321,8 +321,8 @@ class CommonTests:
         yield
         t1 = self.loop.time()
         dt = t1 - t0
-        self.assertGreaterEqual(dt, min_time, "Too fast: {} < {}".format(dt, min_time))
-        self.assertLess(dt, max_time, "Too slow: {} >= {}".format(dt, max_time))
+        self.assertGreaterEqual(dt, min_time, f"Too fast: {dt} < {min_time}")
+        self.assertLess(dt, max_time, f"Too slow: {dt} >= {max_time}")
 
     # Test public attributes.
 
@@ -499,7 +499,7 @@ class CommonTests:
 
     def test_recv_canceled_race_condition(self):
         recv = self.loop.create_task(
-            asyncio.wait_for(self.protocol.recv(), timeout=0.000001)
+            asyncio.wait_for(self.protocol.recv(), timeout=0.000_001)
         )
         self.loop.call_soon(
             self.receive_frame, Frame(True, OP_TEXT, "café".encode("utf-8"))

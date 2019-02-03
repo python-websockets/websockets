@@ -5,7 +5,7 @@ Compression Extensions for WebSocket as specified in :rfc:`7692`.
 """
 
 import zlib
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 from ..exceptions import (
     DuplicateParameter,
@@ -15,7 +15,7 @@ from ..exceptions import (
     PayloadTooBig,
 )
 from ..framing import CTRL_OPCODES, OP_CONT, Frame
-from ..headers import ExtensionParameters
+from ..typing import ExtensionParameter
 from .base import ClientExtensionFactory, Extension, ServerExtensionFactory
 
 
@@ -174,12 +174,12 @@ def _build_parameters(
     client_no_context_takeover: bool,
     server_max_window_bits: Optional[int],
     client_max_window_bits: Optional[Union[int, bool]],
-) -> ExtensionParameters:
+) -> List[ExtensionParameter]:
     """
     Build a list of ``(name, value)`` pairs for some compression parameters.
 
     """
-    params: ExtensionParameters = []
+    params: List[ExtensionParameter] = []
     if server_no_context_takeover:
         params.append(("server_no_context_takeover", None))
     if client_no_context_takeover:
@@ -194,7 +194,7 @@ def _build_parameters(
 
 
 def _extract_parameters(
-    params: ExtensionParameters, *, is_server: bool
+    params: Sequence[ExtensionParameter], *, is_server: bool
 ) -> Tuple[bool, bool, Optional[int], Optional[Union[int, bool]]]:
     """
     Extract compression parameters from a list of ``(name, value)`` pairs.
@@ -310,7 +310,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         self.client_max_window_bits = client_max_window_bits
         self.compress_settings = compress_settings
 
-    def get_request_params(self) -> ExtensionParameters:
+    def get_request_params(self) -> List[ExtensionParameter]:
         """
         Build request parameters.
 
@@ -324,8 +324,8 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
     def process_response_params(
         self,
-        params: List[Tuple[str, Optional[str]]],
-        accepted_extensions: List["Extension"],
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence["Extension"],
     ) -> PerMessageDeflate:
         """
         Process response parameters.
@@ -481,9 +481,9 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
     def process_request_params(
         self,
-        params: List[Tuple[str, Optional[str]]],
-        accepted_extensions: List["Extension"],
-    ) -> Tuple[ExtensionParameters, PerMessageDeflate]:
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence["Extension"],
+    ) -> Tuple[List[ExtensionParameter], PerMessageDeflate]:
         """
         Process request parameters.
 

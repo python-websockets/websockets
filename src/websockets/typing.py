@@ -1,7 +1,7 @@
-from typing import Union
+from typing import List, NewType, Optional, Tuple, Union
 
 
-__all__ = ["Data"]
+__all__ = ["Data", "Origin", "ExtensionHeader", "ExtensionParameter", "Subprotocol"]
 
 Data = Union[str, bytes]
 
@@ -17,3 +17,12 @@ try:
     Data.__doc__ = Data__doc__  # type: ignore
 except AttributeError:  # pragma: no cover
     pass
+
+
+Origin = NewType("Origin", str)
+
+ExtensionParameter = Tuple[str, Optional[str]]
+
+ExtensionHeader = Tuple[str, List[ExtensionParameter]]
+
+Subprotocol = NewType("Subprotocol", str)

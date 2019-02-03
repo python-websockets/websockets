@@ -17,9 +17,9 @@ from typing import (
     Any,
     Awaitable,
     Callable,
-    List,
     NamedTuple,
     Optional,
+    Sequence,
     Tuple,
 )
 
@@ -112,7 +112,7 @@ class Frame(FrameData):
         *,
         mask: bool,
         max_size: Optional[int] = None,
-        extensions: Optional[List[Extension]] = None,
+        extensions: Optional[Sequence[Extension]] = None,
     ) -> "Frame":
         """
         Read a WebSocket frame and return a :class:`Frame` object.
@@ -184,7 +184,7 @@ class Frame(FrameData):
         writer: Callable[[bytes], Any],
         *,
         mask: bool,
-        extensions: Optional[List[Extension]] = None,
+        extensions: Optional[Sequence[Extension]] = None,
     ) -> None:
         """
         Write a WebSocket frame.

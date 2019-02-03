@@ -94,8 +94,8 @@ class InvalidHeaderFormat(InvalidHeader):
 
     """
 
-    def __init__(self, name: str, error: str, string: str, pos: int) -> None:
-        error = f"{error} at {pos} in {string}"
+    def __init__(self, name: str, error: str, header: str, pos: int) -> None:
+        error = f"{error} at {pos} in {header}"
         super().__init__(name, error)
 
 

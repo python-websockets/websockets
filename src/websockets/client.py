@@ -7,7 +7,7 @@ import asyncio
 import collections.abc
 import logging
 from types import TracebackType
-from typing import Any, Generator, List, Optional, Tuple, Type, cast
+from typing import Any, Generator, List, Optional, Sequence, Tuple, Type, cast
 
 from .exceptions import (
     InvalidHandshake,
@@ -22,13 +22,14 @@ from .handshake import build_request, check_response
 from .headers import (
     ExtensionHeader,
     build_basic_auth,
-    build_extension_list,
-    build_subprotocol_list,
-    parse_extension_list,
-    parse_subprotocol_list,
+    build_extension,
+    build_subprotocol,
+    parse_extension,
+    parse_subprotocol,
 )
 from .http import USER_AGENT, Headers, HeadersLike, read_response
 from .protocol import WebSocketCommonProtocol
+from .typing import Origin, Subprotocol
 from .uri import WebSocketURI, parse_uri
 
 
@@ -52,9 +53,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     def __init__(
         self,
         *,
-        origin: Optional[str] = None,
-        extensions: Optional[List[ClientExtensionFactory]] = None,
-        subprotocols: Optional[List[str]] = None,
+        origin: Optional[Origin] = None,
+        extensions: Optional[Sequence[ClientExtensionFactory]] = None,
+        subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
         **kwds: Any,
     ) -> None:
@@ -108,7 +109,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
     @staticmethod
     def process_extensions(
-        headers: Headers, available_extensions: Optional[List[ClientExtensionFactory]]
+        headers: Headers,
+        available_extensions: Optional[Sequence[ClientExtensionFactory]],
     ) -> List[Extension]:
         """
         Handle the Sec-WebSocket-Extensions HTTP response header.
@@ -146,8 +148,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                 raise InvalidHandshake("No extensions supported")
 
             parsed_header_values: List[ExtensionHeader] = sum(
-                [parse_extension_list(header_value) for header_value in header_values],
-                [],
+                [parse_extension(header_value) for header_value in header_values], []
             )
 
             for name, response_params in parsed_header_values:
@@ -184,8 +185,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
     @staticmethod
     def process_subprotocol(
-        headers: Headers, available_subprotocols: Optional[List[str]]
-    ) -> Optional[str]:
+        headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
+    ) -> Optional[Subprotocol]:
         """
         Handle the Sec-WebSocket-Protocol HTTP response header.
 
@@ -194,7 +195,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         Return the selected subprotocol.
 
         """
-        subprotocol: Optional[str] = None
+        subprotocol: Optional[Subprotocol] = None
 
         header_values = headers.get_all("Sec-WebSocket-Protocol")
 
@@ -203,12 +204,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if available_subprotocols is None:
                 raise InvalidHandshake("No subprotocols supported")
 
-            parsed_header_values: List[str] = sum(
-                [
-                    parse_subprotocol_list(header_value)
-                    for header_value in header_values
-                ],
-                [],
+            parsed_header_values: Sequence[Subprotocol] = sum(
+                [parse_subprotocol(header_value) for header_value in header_values], []
             )
 
             if len(parsed_header_values) > 1:
@@ -225,9 +222,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     async def handshake(
         self,
         wsuri: WebSocketURI,
-        origin: Optional[str] = None,
-        available_extensions: Optional[List[ClientExtensionFactory]] = None,
-        available_subprotocols: Optional[List[str]] = None,
+        origin: Optional[Origin] = None,
+        available_extensions: Optional[Sequence[ClientExtensionFactory]] = None,
+        available_subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
     ) -> None:
         """
@@ -266,7 +263,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         key = build_request(request_headers)
 
         if available_extensions is not None:
-            extensions_header = build_extension_list(
+            extensions_header = build_extension(
                 [
                     (extension_factory.name, extension_factory.get_request_params())
                     for extension_factory in available_extensions
@@ -275,7 +272,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             request_headers["Sec-WebSocket-Extensions"] = extensions_header
 
         if available_subprotocols is not None:
-            protocol_header = build_subprotocol_list(available_subprotocols)
+            protocol_header = build_subprotocol(available_subprotocols)
             request_headers["Sec-WebSocket-Protocol"] = protocol_header
 
         if extra_headers is not None:
@@ -382,9 +379,9 @@ class Connect:
         klass: Type[WebSocketClientProtocol] = WebSocketClientProtocol,
         timeout: float = 10,
         compression: Optional[str] = "deflate",
-        origin: Optional[str] = None,
-        extensions: Optional[List[ClientExtensionFactory]] = None,
-        subprotocols: Optional[List[str]] = None,
+        origin: Optional[Origin] = None,
+        extensions: Optional[Sequence[ClientExtensionFactory]] = None,
+        subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
         **kwds: Any,
     ):
@@ -417,9 +414,9 @@ class Connect:
                 extension_factory.name == ClientPerMessageDeflateFactory.name
                 for extension_factory in extensions
             ):
-                extensions.append(
+                extensions = list(extensions) + [
                     ClientPerMessageDeflateFactory(client_max_window_bits=True)
-                )
+                ]
         elif compression is not None:
             raise ValueError(f"Unsupported compression: {compression}")
 

@@ -40,12 +40,13 @@ from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from .handshake import build_response, check_request
 from .headers import (
     ExtensionHeader,
-    build_extension_list,
-    parse_extension_list,
-    parse_subprotocol_list,
+    build_extension,
+    parse_extension,
+    parse_subprotocol,
 )
 from .http import USER_AGENT, Headers, HeadersLike, MultipleValuesError, read_request
 from .protocol import State, WebSocketCommonProtocol
+from .typing import Origin, Subprotocol
 
 
 __all__ = ["serve", "unix_serve", "WebSocketServerProtocol"]
@@ -78,9 +79,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         ws_handler: Callable[["WebSocketServerProtocol", str], Awaitable[Any]],
         ws_server: "WebSocketServer",
         *,
-        origins: Optional[List[Optional[str]]] = None,
-        extensions: Optional[List[ServerExtensionFactory]] = None,
-        subprotocols: Optional[List[str]] = None,
+        origins: Optional[Sequence[Optional[Origin]]] = None,
+        extensions: Optional[Sequence[ServerExtensionFactory]] = None,
+        subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
         process_request: Optional[
             Callable[
@@ -88,7 +89,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 Union[Optional[HTTPResponse], Awaitable[Optional[HTTPResponse]]],
             ]
         ] = None,
-        select_subprotocol: Optional[Callable[[List[str], List[str]], str]] = None,
+        select_subprotocol: Optional[
+            Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
+        ] = None,
         **kwds: Any,
     ) -> None:
         # For backwards-compatibility with 6.0 or earlier.
@@ -301,8 +304,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     @staticmethod
     def process_origin(
-        headers: Headers, origins: Optional[List[Optional[str]]] = None
-    ) -> Optional[str]:
+        headers: Headers, origins: Optional[Sequence[Optional[Origin]]] = None
+    ) -> Optional[Origin]:
         """
         Handle the Origin HTTP request header.
 
@@ -313,7 +316,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # "The user agent MUST NOT include more than one Origin header field"
         # per https://tools.ietf.org/html/rfc6454#section-7.3.
         try:
-            origin = headers.get("Origin")
+            origin = cast(Origin, headers.get("Origin"))
         except MultipleValuesError:
             raise InvalidHeader("Origin", "more than one Origin header found")
         if origins is not None:
@@ -323,7 +326,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     @staticmethod
     def process_extensions(
-        headers: Headers, available_extensions: Optional[List[ServerExtensionFactory]]
+        headers: Headers,
+        available_extensions: Optional[Sequence[ServerExtensionFactory]],
     ) -> Tuple[Optional[str], List[Extension]]:
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.
@@ -367,8 +371,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if header_values and available_extensions:
 
             parsed_header_values: List[ExtensionHeader] = sum(
-                [parse_extension_list(header_value) for header_value in header_values],
-                [],
+                [parse_extension(header_value) for header_value in header_values], []
             )
 
             for name, request_params in parsed_header_values:
@@ -399,14 +402,14 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         # Serialize extension header.
         if extension_headers:
-            response_header_value = build_extension_list(extension_headers)
+            response_header_value = build_extension(extension_headers)
 
         return response_header_value, accepted_extensions
 
     # Not @staticmethod because it calls self.select_subprotocol()
     def process_subprotocol(
-        self, headers: Headers, available_subprotocols: Optional[List[str]]
-    ) -> Optional[str]:
+        self, headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
+    ) -> Optional[Subprotocol]:
         """
         Handle the Sec-WebSocket-Protocol HTTP request header.
 
@@ -414,18 +417,14 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         as the selected subprotocol.
 
         """
-        subprotocol: Optional[str] = None
+        subprotocol: Optional[Subprotocol] = None
 
         header_values = headers.get_all("Sec-WebSocket-Protocol")
 
         if header_values and available_subprotocols:
 
-            parsed_header_values: List[str] = sum(
-                [
-                    parse_subprotocol_list(header_value)
-                    for header_value in header_values
-                ],
-                [],
+            parsed_header_values: List[Subprotocol] = sum(
+                [parse_subprotocol(header_value) for header_value in header_values], []
             )
 
             subprotocol = self.select_subprotocol(
@@ -435,8 +434,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return subprotocol
 
     def select_subprotocol(
-        self, client_subprotocols: List[str], server_subprotocols: List[str]
-    ) -> Optional[str]:
+        self,
+        client_subprotocols: Sequence[Subprotocol],
+        server_subprotocols: Sequence[Subprotocol],
+    ) -> Optional[Subprotocol]:
         """
         Pick a subprotocol among those offered by the client.
 
@@ -469,9 +470,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     async def handshake(
         self,
-        origins: Optional[List[Optional[str]]] = None,
-        available_extensions: Optional[List[ServerExtensionFactory]] = None,
-        available_subprotocols: Optional[List[str]] = None,
+        origins: Optional[Sequence[Optional[Origin]]] = None,
+        available_extensions: Optional[Sequence[ServerExtensionFactory]] = None,
+        available_subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
     ) -> str:
         """
@@ -815,14 +816,16 @@ class Serve:
         klass: Type[WebSocketServerProtocol] = WebSocketServerProtocol,
         timeout: float = 10,
         compression: Optional[str] = "deflate",
-        origins: Optional[List[Optional[str]]] = None,
-        extensions: Optional[List[ServerExtensionFactory]] = None,
-        subprotocols: Optional[List[str]] = None,
+        origins: Optional[Sequence[Optional[Origin]]] = None,
+        extensions: Optional[Sequence[ServerExtensionFactory]] = None,
+        subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
         process_request: Optional[
             Callable[[str, Headers], Optional[HTTPResponse]]
         ] = None,
-        select_subprotocol: Optional[Callable[[List[str], List[str]], str]] = None,
+        select_subprotocol: Optional[
+            Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
+        ] = None,
         **kwds: Any,
     ):
         # Backwards-compatibility: close_timeout used to be called timeout.
@@ -849,7 +852,7 @@ class Serve:
                 ext_factory.name == ServerPerMessageDeflateFactory.name
                 for ext_factory in extensions
             ):
-                extensions.append(ServerPerMessageDeflateFactory())
+                extensions = list(extensions) + [ServerPerMessageDeflateFactory()]
         elif compression is not None:
             raise ValueError(f"Unsupported compression: {compression}")
 

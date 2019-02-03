@@ -6,10 +6,10 @@ implementing extensions as specified in `section 9 of RFC 6455`_.
 
 """
 
-from typing import List, Optional, Tuple
+from typing import List, Optional, Sequence, Tuple
 
 from ..framing import Frame
-from ..headers import ExtensionParameters
+from ..typing import ExtensionParameter
 
 
 __all__ = ["Extension", "ClientExtensionFactory", "ServerExtensionFactory"]
@@ -60,7 +60,7 @@ class ClientExtensionFactory:
 
         """
 
-    def get_request_params(self) -> ExtensionParameters:
+    def get_request_params(self) -> List[ExtensionParameter]:
         """
         Build request parameters.
 
@@ -69,7 +69,9 @@ class ClientExtensionFactory:
         """
 
     def process_response_params(
-        self, params: ExtensionParameters, accepted_extensions: List[Extension]
+        self,
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence[Extension],
     ) -> Extension:
         """
         Process response parameters received from the server.
@@ -100,8 +102,10 @@ class ServerExtensionFactory:
         """
 
     def process_request_params(
-        self, params: ExtensionParameters, accepted_extensions: List[Extension]
-    ) -> Tuple[ExtensionParameters, Extension]:
+        self,
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence[Extension],
+    ) -> Tuple[List[ExtensionParameter], Extension]:
         """
         Process request parameters received from the client.
 

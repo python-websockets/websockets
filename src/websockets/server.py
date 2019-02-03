@@ -782,8 +782,8 @@ class Serve:
     When a server is closed with :meth:`~WebSocketServer.close`, it closes all
     connections with close code 1001 (going away). WebSocket handlers — which
     are running the coroutine passed in the ``ws_handler`` — will receive a
-    :exc:`~websockets.exceptions.ConnectionClosed` exception on their current
-    or next interaction with the WebSocket connection.
+    :exc:`~websockets.exceptions.ConnectionClosedOK` exception on their
+    current or next interaction with the WebSocket connection.
 
     Since there's no useful way to propagate exceptions triggered in handlers,
     they're sent to the ``'websockets.server'`` logger instead. Debugging is

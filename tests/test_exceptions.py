@@ -90,7 +90,7 @@ class ExceptionsTests(unittest.TestCase):
                 "(OK), no reason",
             ),
             (
-                ConnectionClosed(1001, 'bye'),
+                ConnectionClosedOK(1001, 'bye'),
                 "WebSocket connection is closed: code = 1001 "
                 "(going away), reason = bye",
             ),
@@ -100,7 +100,7 @@ class ExceptionsTests(unittest.TestCase):
                 "(connection closed abnormally [internal]), no reason"
             ),
             (
-                ConnectionClosed(1016, None),
+                ConnectionClosedError(1016, None),
                 "WebSocket connection is closed: code = 1016 "
                 "(unknown), no reason"
             ),

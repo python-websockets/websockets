@@ -31,6 +31,11 @@ Also:
   :meth:`~protocol.WebSocketCommonProtocol.pong` support bytes-like types
   :class:`bytearray` and :class:`memoryview` in addition to :class:`bytes`.
 
+* Added :exc:`~exceptions.ConnectionClosedOK` and
+  :exc:`~exceptions.ConnectionClosedError` subclasses of
+  :exc:`~exceptions.ConnectionClosed` to tell apart normal connection
+  termination from errors.
+
 * :func:`~client.connect()` handles redirects from the server during the
   handshake.
 

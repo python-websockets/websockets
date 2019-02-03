@@ -12,25 +12,11 @@ of frames is implemented in :mod:`websockets.protocol`.
 import io
 import random
 import struct
-from typing import (
-    TYPE_CHECKING,
-    Any,
-    Awaitable,
-    Callable,
-    NamedTuple,
-    Optional,
-    Sequence,
-    Tuple,
-)
+from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence, Tuple
 
 from .exceptions import PayloadTooBig, WebSocketProtocolError
 from .typing import Data
 
-
-if TYPE_CHECKING:  # pragma: no cover
-    from .extensions.base import Extension
-else:
-    Extension = Any
 
 try:
     from .speedups import apply_mask
@@ -112,7 +98,7 @@ class Frame(FrameData):
         *,
         mask: bool,
         max_size: Optional[int] = None,
-        extensions: Optional[Sequence[Extension]] = None,
+        extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
     ) -> "Frame":
         """
         Read a WebSocket frame and return a :class:`Frame` object.
@@ -184,7 +170,7 @@ class Frame(FrameData):
         writer: Callable[[bytes], Any],
         *,
         mask: bool,
-        extensions: Optional[Sequence[Extension]] = None,
+        extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
     ) -> None:
         """
         Write a WebSocket frame.
@@ -373,3 +359,7 @@ def check_close(code: int) -> None:
     """
     if not (code in EXTERNAL_CLOSE_CODES or 3000 <= code < 5000):
         raise WebSocketProtocolError("Invalid status code")
+
+
+# at the bottom to allow circular import, because Extension depends on Frame
+import websockets.extensions.base  # isort:skip # noqa

@@ -86,6 +86,14 @@ Shared
         .. autoattribute:: open
         .. autoattribute:: closed
 
+Types
+.....
+
+.. automodule:: websockets.typing
+
+    .. autodata:: Data
+
+
 Per-Message Deflate Extension
 .............................
 

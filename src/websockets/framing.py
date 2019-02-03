@@ -21,10 +21,10 @@ from typing import (
     NamedTuple,
     Optional,
     Tuple,
-    Union,
 )
 
 from .exceptions import PayloadTooBig, WebSocketProtocolError
+from .typing import Data
 
 
 if TYPE_CHECKING:  # pragma: no cover
@@ -61,8 +61,6 @@ CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0A
 # Using a list optimizes `code in EXTERNAL_CLOSE_CODES`.
 EXTERNAL_CLOSE_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
-
-Data = Union[str, bytes]
 
 # Remove FrameData when dropping support for Python < 3.6.1 — the first
 # version where NamedTuple supports default values, methods, and docstrings.

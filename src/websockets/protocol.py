@@ -35,9 +35,9 @@ from .exceptions import (
 )
 from .extensions.base import Extension
 from .framing import *
-from .framing import Data
 from .handshake import *
 from .http import Headers
+from .typing import Data
 
 
 __all__ = ["WebSocketCommonProtocol"]

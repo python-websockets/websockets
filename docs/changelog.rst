@@ -28,6 +28,8 @@ Also:
 * :func:`~client.connect()` handles redirects from the server during the
   handshake.
 
+* Added type hints (:pep:`484`).
+
 * Added documentation for extensions.
 
 * Documented how to optimize memory usage.

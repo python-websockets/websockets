@@ -9,12 +9,13 @@ of frames is implemented in :mod:`websockets.protocol`.
 
 """
 
-import collections
 import io
 import random
 import struct
+from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence, Tuple
 
 from .exceptions import PayloadTooBig, WebSocketProtocolError
+from .typing import Data
 
 
 try:
@@ -46,9 +47,20 @@ CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0A
 # Using a list optimizes `code in EXTERNAL_CLOSE_CODES`.
 EXTERNAL_CLOSE_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
-FrameData = collections.namedtuple(
-    "FrameData", ["fin", "opcode", "data", "rsv1", "rsv2", "rsv3"]
-)
+
+# Remove FrameData when dropping support for Python < 3.6.1 — the first
+# version where NamedTuple supports default values, methods, and docstrings.
+
+# Consider converting to a dataclass when dropping support for Python < 3.7.
+
+
+class FrameData(NamedTuple):
+    fin: bool
+    opcode: int
+    data: bytes
+    rsv1: bool
+    rsv2: bool
+    rsv3: bool
 
 
 class Frame(FrameData):
@@ -68,11 +80,26 @@ class Frame(FrameData):
 
     """
 
-    def __new__(cls, fin, opcode, data, rsv1=False, rsv2=False, rsv3=False):
+    def __new__(
+        cls,
+        fin: bool,
+        opcode: int,
+        data: bytes,
+        rsv1: bool = False,
+        rsv2: bool = False,
+        rsv3: bool = False,
+    ) -> "Frame":
         return FrameData.__new__(cls, fin, opcode, data, rsv1, rsv2, rsv3)
 
     @classmethod
-    async def read(cls, reader, *, mask, max_size=None, extensions=None):
+    async def read(
+        cls,
+        reader: Callable[[int], Awaitable[bytes]],
+        *,
+        mask: bool,
+        max_size: Optional[int] = None,
+        extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
+    ) -> "Frame":
         """
         Read a WebSocket frame and return a :class:`Frame` object.
 
@@ -138,7 +165,13 @@ class Frame(FrameData):
 
         return frame
 
-    def write(frame, writer, *, mask, extensions=None):
+    def write(
+        frame,
+        writer: Callable[[bytes], Any],
+        *,
+        mask: bool,
+        extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
+    ) -> None:
         """
         Write a WebSocket frame.
 
@@ -207,7 +240,7 @@ class Frame(FrameData):
         # send frames concurrently from multiple coroutines.
         writer(output.getvalue())
 
-    def check(frame):
+    def check(frame) -> None:
         """
         Check that this frame contains acceptable values.
 
@@ -232,7 +265,7 @@ class Frame(FrameData):
             raise WebSocketProtocolError(f"Invalid opcode: {frame.opcode}")
 
 
-def prepare_data(data):
+def prepare_data(data: Data) -> Tuple[int, bytes]:
     """
     Convert a string or byte-like object to an opcode and a bytes-like object.
 
@@ -249,7 +282,7 @@ def prepare_data(data):
     """
     if isinstance(data, str):
         return OP_TEXT, data.encode("utf-8")
-    elif isinstance(data, collections.abc.ByteString):
+    elif isinstance(data, (bytes, bytearray)):
         return OP_BINARY, data
     elif isinstance(data, memoryview):
         if data.c_contiguous:
@@ -260,11 +293,11 @@ def prepare_data(data):
         raise TypeError("data must be bytes-like or str")
 
 
-def encode_data(data):
+def encode_data(data: Data) -> bytes:
     """
     Convert a string or byte-like object to bytes.
 
-    This function is designed for ping and pong frames.
+    This function is designed for ping and pon g frames.
 
     If ``data`` is a :class:`str`, return a :class:`bytes` object encoding
     ``data`` in UTF-8.
@@ -276,7 +309,7 @@ def encode_data(data):
     """
     if isinstance(data, str):
         return data.encode("utf-8")
-    elif isinstance(data, collections.abc.ByteString):
+    elif isinstance(data, (bytes, bytearray)):
         return bytes(data)
     elif isinstance(data, memoryview):
         return data.tobytes()
@@ -284,7 +317,7 @@ def encode_data(data):
         raise TypeError("data must be bytes-like or str")
 
 
-def parse_close(data):
+def parse_close(data: bytes) -> Tuple[int, str]:
     """
     Parse the data in a close frame.
 
@@ -308,7 +341,7 @@ def parse_close(data):
         raise WebSocketProtocolError("Close frame too short")
 
 
-def serialize_close(code, reason):
+def serialize_close(code: int, reason: str) -> bytes:
     """
     Serialize the data for a close frame.
 
@@ -319,10 +352,14 @@ def serialize_close(code, reason):
     return struct.pack("!H", code) + reason.encode("utf-8")
 
 
-def check_close(code):
+def check_close(code: int) -> None:
     """
     Check the close code for a close frame.
 
     """
     if not (code in EXTERNAL_CLOSE_CODES or 3000 <= code < 5000):
         raise WebSocketProtocolError("Invalid status code")
+
+
+# at the bottom to allow circular import, because Extension depends on Frame
+import websockets.extensions.base  # isort:skip # noqa

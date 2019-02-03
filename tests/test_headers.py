@@ -41,7 +41,7 @@ class HeadersTests(unittest.TestCase):
                 with self.assertRaises(InvalidHeaderFormat):
                     parse_upgrade(header)
 
-    def test_parse_extension_list(self):
+    def test_parse_extension(self):
         for header, parsed in [
             # Synthetic examples
             ("foo", [("foo", [])]),
@@ -78,12 +78,12 @@ class HeadersTests(unittest.TestCase):
             ),
         ]:
             with self.subTest(header=header):
-                self.assertEqual(parse_extension_list(header), parsed)
-                # Also ensure that build_extension_list round-trips cleanly.
-                unparsed = build_extension_list(parsed)
-                self.assertEqual(parse_extension_list(unparsed), parsed)
+                self.assertEqual(parse_extension(header), parsed)
+                # Also ensure that build_extension round-trips cleanly.
+                unparsed = build_extension(parsed)
+                self.assertEqual(parse_extension(unparsed), parsed)
 
-    def test_parse_extension_list_invalid_header(self):
+    def test_parse_extension_invalid_header(self):
         for header in [
             # Truncated examples
             "",
@@ -99,9 +99,9 @@ class HeadersTests(unittest.TestCase):
         ]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
-                    parse_extension_list(header)
+                    parse_extension(header)
 
-    def test_parse_subprotocol_list(self):
+    def test_parse_subprotocol(self):
         for header, parsed in [
             # Synthetic examples
             ("foo", ["foo"]),
@@ -110,12 +110,12 @@ class HeadersTests(unittest.TestCase):
             (",\t, ,  ,foo  ,,   bar,baz,,", ["foo", "bar", "baz"]),
         ]:
             with self.subTest(header=header):
-                self.assertEqual(parse_subprotocol_list(header), parsed)
-                # Also ensure that build_subprotocol_list round-trips cleanly.
-                unparsed = build_subprotocol_list(parsed)
-                self.assertEqual(parse_subprotocol_list(unparsed), parsed)
+                self.assertEqual(parse_subprotocol(header), parsed)
+                # Also ensure that build_subprotocol round-trips cleanly.
+                unparsed = build_subprotocol(parsed)
+                self.assertEqual(parse_subprotocol(unparsed), parsed)
 
-    def test_parse_subprotocol_list_invalid_header(self):
+    def test_parse_subprotocol_invalid_header(self):
         for header in [
             # Truncated examples
             "",
@@ -125,7 +125,7 @@ class HeadersTests(unittest.TestCase):
         ]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
-                    parse_subprotocol_list(header)
+                    parse_subprotocol(header)
 
     def test_build_basic_auth(self):
         # Test vector from RFC 7617.

@@ -4,7 +4,7 @@ import itertools
 __all__ = ["apply_mask"]
 
 
-def apply_mask(data, mask):
+def apply_mask(data: bytes, mask: bytes) -> bytes:
     """
     Apply masking to the data of a WebSocket message.
 

@@ -6,6 +6,8 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 import asyncio
 import collections.abc
 import logging
+from types import TracebackType
+from typing import Any, Generator, List, Optional, Sequence, Tuple, Type, cast
 
 from .exceptions import (
     InvalidHandshake,
@@ -14,18 +16,21 @@ from .exceptions import (
     NegotiationError,
     RedirectHandshake,
 )
+from .extensions.base import ClientExtensionFactory, Extension
 from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from .handshake import build_request, check_response
 from .headers import (
+    ExtensionHeader,
     build_basic_auth,
-    build_extension_list,
-    build_subprotocol_list,
-    parse_extension_list,
-    parse_subprotocol_list,
+    build_extension,
+    build_subprotocol,
+    parse_extension,
+    parse_subprotocol,
 )
-from .http import USER_AGENT, Headers, read_response
+from .http import USER_AGENT, Headers, HeadersLike, read_response
 from .protocol import WebSocketCommonProtocol
-from .uri import parse_uri
+from .typing import Origin, Subprotocol
+from .uri import WebSocketURI, parse_uri
 
 
 __all__ = ["connect", "WebSocketClientProtocol"]
@@ -48,19 +53,19 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     def __init__(
         self,
         *,
-        origin=None,
-        extensions=None,
-        subprotocols=None,
-        extra_headers=None,
-        **kwds,
-    ):
+        origin: Optional[Origin] = None,
+        extensions: Optional[Sequence[ClientExtensionFactory]] = None,
+        subprotocols: Optional[Sequence[Subprotocol]] = None,
+        extra_headers: Optional[HeadersLike] = None,
+        **kwds: Any,
+    ) -> None:
         self.origin = origin
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
         super().__init__(**kwds)
 
-    def write_http_request(self, path, headers):
+    def write_http_request(self, path: str, headers: Headers) -> None:
         """
         Write request line and headers to the HTTP request.
 
@@ -78,7 +83,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         self.writer.write(request.encode())
 
-    async def read_http_response(self):
+    async def read_http_response(self) -> Tuple[int, Headers]:
         """
         Read status line and headers from the HTTP response.
 
@@ -103,7 +108,10 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         return status_code, self.response_headers
 
     @staticmethod
-    def process_extensions(headers, available_extensions):
+    def process_extensions(
+        headers: Headers,
+        available_extensions: Optional[Sequence[ClientExtensionFactory]],
+    ) -> List[Extension]:
         """
         Handle the Sec-WebSocket-Extensions HTTP response header.
 
@@ -130,7 +138,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         order of extensions, may be implemented by overriding this method.
 
         """
-        accepted_extensions = []
+        accepted_extensions: List[Extension] = []
 
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
@@ -139,9 +147,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if available_extensions is None:
                 raise InvalidHandshake("No extensions supported")
 
-            parsed_header_values = sum(
-                [parse_extension_list(header_value) for header_value in header_values],
-                [],
+            parsed_header_values: List[ExtensionHeader] = sum(
+                [parse_extension(header_value) for header_value in header_values], []
             )
 
             for name, response_params in parsed_header_values:
@@ -177,7 +184,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         return accepted_extensions
 
     @staticmethod
-    def process_subprotocol(headers, available_subprotocols):
+    def process_subprotocol(
+        headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
+    ) -> Optional[Subprotocol]:
         """
         Handle the Sec-WebSocket-Protocol HTTP response header.
 
@@ -186,7 +195,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         Return the selected subprotocol.
 
         """
-        subprotocol = None
+        subprotocol: Optional[Subprotocol] = None
 
         header_values = headers.get_all("Sec-WebSocket-Protocol")
 
@@ -195,12 +204,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if available_subprotocols is None:
                 raise InvalidHandshake("No subprotocols supported")
 
-            parsed_header_values = sum(
-                [
-                    parse_subprotocol_list(header_value)
-                    for header_value in header_values
-                ],
-                [],
+            parsed_header_values: Sequence[Subprotocol] = sum(
+                [parse_subprotocol(header_value) for header_value in header_values], []
             )
 
             if len(parsed_header_values) > 1:
@@ -216,12 +221,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
     async def handshake(
         self,
-        wsuri,
-        origin=None,
-        available_extensions=None,
-        available_subprotocols=None,
-        extra_headers=None,
-    ):
+        wsuri: WebSocketURI,
+        origin: Optional[Origin] = None,
+        available_extensions: Optional[Sequence[ClientExtensionFactory]] = None,
+        available_subprotocols: Optional[Sequence[Subprotocol]] = None,
+        extra_headers: Optional[HeadersLike] = None,
+    ) -> None:
         """
         Perform the client side of the opening handshake.
 
@@ -258,7 +263,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         key = build_request(request_headers)
 
         if available_extensions is not None:
-            extensions_header = build_extension_list(
+            extensions_header = build_extension(
                 [
                     (extension_factory.name, extension_factory.get_request_params())
                     for extension_factory in available_extensions
@@ -267,7 +272,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             request_headers["Sec-WebSocket-Extensions"] = extensions_header
 
         if available_subprotocols is not None:
-            protocol_header = build_subprotocol_list(available_subprotocols)
+            protocol_header = build_subprotocol(available_subprotocols)
             request_headers["Sec-WebSocket-Protocol"] = protocol_header
 
         if extra_headers is not None:
@@ -286,7 +291,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if status_code in (301, 302, 303, 307, 308):
             if "Location" not in response_headers:
                 raise InvalidMessage("Redirect response missing Location")
-            raise RedirectHandshake(parse_uri(response_headers["Location"]))
+            raise RedirectHandshake(response_headers["Location"])
         elif status_code != 101:
             raise InvalidStatusCode(status_code)
 
@@ -359,27 +364,27 @@ class Connect:
 
     def __init__(
         self,
-        uri,
+        uri: str,
         *,
-        create_protocol=None,
-        ping_interval=20,
-        ping_timeout=20,
-        close_timeout=None,
-        max_size=2 ** 20,
-        max_queue=2 ** 5,
-        read_limit=2 ** 16,
-        write_limit=2 ** 16,
-        loop=None,
-        legacy_recv=False,
-        klass=WebSocketClientProtocol,
-        timeout=10,
-        compression="deflate",
-        origin=None,
-        extensions=None,
-        subprotocols=None,
-        extra_headers=None,
-        **kwds,
-    ):
+        create_protocol: Optional[Type[WebSocketClientProtocol]] = None,
+        ping_interval: float = 20,
+        ping_timeout: float = 20,
+        close_timeout: Optional[float] = None,
+        max_size: int = 2 ** 20,
+        max_queue: int = 2 ** 5,
+        read_limit: int = 2 ** 16,
+        write_limit: int = 2 ** 16,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
+        legacy_recv: bool = False,
+        klass: Type[WebSocketClientProtocol] = WebSocketClientProtocol,
+        timeout: float = 10,
+        compression: Optional[str] = "deflate",
+        origin: Optional[Origin] = None,
+        extensions: Optional[Sequence[ClientExtensionFactory]] = None,
+        subprotocols: Optional[Sequence[Subprotocol]] = None,
+        extra_headers: Optional[HeadersLike] = None,
+        **kwds: Any,
+    ) -> None:
         if loop is None:
             loop = asyncio.get_event_loop()
 
@@ -409,9 +414,9 @@ class Connect:
                 extension_factory.name == ClientPerMessageDeflateFactory.name
                 for extension_factory in extensions
             ):
-                extensions.append(
+                extensions = list(extensions) + [
                     ClientPerMessageDeflateFactory(client_max_window_bits=True)
-                )
+                ]
         elif compression is not None:
             raise ValueError(f"Unsupported compression: {compression}")
 
@@ -434,7 +439,9 @@ class Connect:
         self._extra_headers = extra_headers
         self._kwds = kwds
 
-    def _creating_connection(self):
+    async def _creating_connection(
+        self
+    ) -> Tuple[asyncio.Transport, WebSocketClientProtocol]:
         if self._wsuri.secure:
             self._kwds.setdefault("ssl", True)
 
@@ -457,6 +464,8 @@ class Connect:
             extra_headers=self._extra_headers,
         )
 
+        host: Optional[str]
+        port: Optional[int]
         if self._kwds.get("sock") is None:
             host, port = self._wsuri.host, self._wsuri.port
         else:
@@ -467,19 +476,30 @@ class Connect:
         self._origin = self._origin
 
         # This is a coroutine object.
-        return self._loop.create_connection(factory, host, port, **self._kwds)
+        # https://github.com/python/typeshed/pull/2756
+        transport, protocol = await self._loop.create_connection(  # type: ignore
+            factory, host, port, **self._kwds
+        )
+        transport = cast(asyncio.Transport, transport)
+        protocol = cast(WebSocketClientProtocol, protocol)
+        return transport, protocol
 
     @asyncio.coroutine
-    def __iter__(self):
-        return self.__await_impl__()
+    def __iter__(self) -> Generator[Any, None, WebSocketClientProtocol]:
+        return (yield from self.__await__())
 
-    async def __aenter__(self):
+    async def __aenter__(self) -> WebSocketClientProtocol:
         return await self
 
-    async def __aexit__(self, exc_type, exc_value, traceback):
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
         await self.ws_client.close()
 
-    async def __await_impl__(self):
+    async def __await_impl__(self) -> WebSocketClientProtocol:
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):
             transport, protocol = await self._creating_connection()
 
@@ -498,9 +518,10 @@ class Connect:
                     await protocol.wait_closed()
                     raise
             except RedirectHandshake as e:
-                if self._wsuri.secure and not e.wsuri.secure:
+                wsuri = parse_uri(e.uri)
+                if self._wsuri.secure and not wsuri.secure:
                     raise InvalidHandshake("Redirect dropped TLS")
-                self._wsuri = e.wsuri
+                self._wsuri = wsuri
                 continue  # redirection chain continues
         else:
             raise InvalidHandshake("Maximum redirects exceeded")
@@ -508,7 +529,7 @@ class Connect:
         self.ws_client = protocol
         return protocol
 
-    def __await__(self):
+    def __await__(self) -> Generator[Any, None, WebSocketClientProtocol]:
         # __await__() must return a type that I don't know how to obtain except
         # by calling __await__() on the return value of an async function.
         # I'm not finding a better way to take advantage of PEP 492.

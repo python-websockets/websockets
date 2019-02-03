@@ -1,3 +1,4 @@
 sphinx
+sphinx-autodoc-typehints
 sphinxcontrib-spelling
 sphinxcontrib-trio

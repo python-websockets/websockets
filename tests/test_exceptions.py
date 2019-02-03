@@ -115,7 +115,7 @@ class ExceptionsTests(unittest.TestCase):
                 "(private use), no reason"
             ),
             (
-                InvalidURI("| isn't a valid URI"),
+                InvalidURI("|"),
                 "| isn't a valid URI",
             ),
             (

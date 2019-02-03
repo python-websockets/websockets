@@ -38,7 +38,7 @@ import random
 
 from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
 from .headers import parse_connection, parse_upgrade
-from .http import MultipleValuesError
+from .http import Headers, MultipleValuesError
 
 
 __all__ = ["build_request", "check_request", "build_response", "check_response"]
@@ -46,7 +46,7 @@ __all__ = ["build_request", "check_request", "build_response", "check_response"]
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
 
 
-def build_request(headers):
+def build_request(headers: Headers) -> str:
     """
     Build a handshake request to send to the server.
 
@@ -62,7 +62,7 @@ def build_request(headers):
     return key
 
 
-def check_request(headers):
+def check_request(headers: Headers) -> str:
     """
     Check a handshake request received from the client.
 
@@ -83,14 +83,14 @@ def check_request(headers):
     )
 
     if not any(value.lower() == "upgrade" for value in connection):
-        raise InvalidUpgrade("Connection", connection)
+        raise InvalidUpgrade("Connection", ", ".join(connection))
 
     upgrade = sum([parse_upgrade(value) for value in headers.get_all("Upgrade")], [])
 
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
     if not (len(upgrade) == 1 and upgrade[0].lower() == "websocket"):
-        raise InvalidUpgrade("Upgrade", upgrade)
+        raise InvalidUpgrade("Upgrade", ", ".join(upgrade))
 
     try:
         s_w_key = headers["Sec-WebSocket-Key"]
@@ -123,7 +123,7 @@ def check_request(headers):
     return s_w_key
 
 
-def build_response(headers, key):
+def build_response(headers: Headers, key: str) -> None:
     """
     Build a handshake response to send to the client.
 
@@ -135,7 +135,7 @@ def build_response(headers, key):
     headers["Sec-WebSocket-Accept"] = accept(key)
 
 
-def check_response(headers, key):
+def check_response(headers: Headers, key: str) -> None:
     """
     Check a handshake response received from the server.
 
@@ -156,14 +156,14 @@ def check_response(headers, key):
     )
 
     if not any(value.lower() == "upgrade" for value in connection):
-        raise InvalidUpgrade("Connection", connection)
+        raise InvalidUpgrade("Connection", " ".join(connection))
 
     upgrade = sum([parse_upgrade(value) for value in headers.get_all("Upgrade")], [])
 
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
     if not (len(upgrade) == 1 and upgrade[0].lower() == "websocket"):
-        raise InvalidUpgrade("Upgrade", upgrade)
+        raise InvalidUpgrade("Upgrade", ", ".join(upgrade))
 
     try:
         s_w_accept = headers["Sec-WebSocket-Accept"]
@@ -178,6 +178,6 @@ def check_response(headers, key):
         raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)
 
 
-def accept(key):
+def accept(key: str) -> str:
     sha1 = hashlib.sha1((key + GUID).encode()).digest()
     return base64.b64encode(sha1).decode()

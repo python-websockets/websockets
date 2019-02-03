@@ -6,6 +6,46 @@ implementing extensions as specified in `section 9 of RFC 6455`_.
 
 """
 
+from typing import List, Optional, Sequence, Tuple
+
+from ..framing import Frame
+from ..typing import ExtensionParameter
+
+
+__all__ = ["Extension", "ClientExtensionFactory", "ServerExtensionFactory"]
+
+
+class Extension:
+    """
+    Abstract class for extensions.
+
+    """
+
+    @property
+    def name(self) -> str:
+        """
+        Extension identifier.
+
+        """
+
+    def decode(self, frame: Frame, *, max_size: Optional[int] = None) -> Frame:
+        """
+        Decode an incoming frame.
+
+        The ``frame`` parameter and the return value are
+        :class:`~websockets.framing.Frame` instances.
+
+        """
+
+    def encode(self, frame: Frame) -> Frame:
+        """
+        Encode an outgoing frame.
+
+        The ``frame`` parameter and the return value are
+        :class:`~websockets.framing.Frame` instances.
+
+        """
+
 
 class ClientExtensionFactory:
     """
@@ -14,13 +54,13 @@ class ClientExtensionFactory:
     """
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
         Extension identifier.
 
         """
 
-    def get_request_params(self):
+    def get_request_params(self) -> List[ExtensionParameter]:
         """
         Build request parameters.
 
@@ -28,7 +68,11 @@ class ClientExtensionFactory:
 
         """
 
-    def process_response_params(self, params, accepted_extensions):
+    def process_response_params(
+        self,
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence[Extension],
+    ) -> Extension:
         """
         Process response parameters received from the server.
 
@@ -51,13 +95,17 @@ class ServerExtensionFactory:
     """
 
     @property
-    def name(self):
+    def name(self) -> str:
         """
         Extension identifier.
 
         """
 
-    def process_request_params(self, params, accepted_extensions):
+    def process_request_params(
+        self,
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence[Extension],
+    ) -> Tuple[List[ExtensionParameter], Extension]:
         """
         Process request parameters received from the client.
 
@@ -72,39 +120,5 @@ class ServerExtensionFactory:
 
         To reject the offer, raise
         :exc:`~websockets.exceptions.NegotiationError`.
-
-        """
-
-
-class Extension:
-    """
-    Abstract class for extensions.
-
-    """
-
-    @property
-    def name(self):
-        """
-        Extension identifier.
-
-        """
-
-    def decode(self, frame, *, max_size=None):
-        """
-        Decode an incoming frame.
-
-        The ``frame`` parameter and the return value are
-        :class:`~websockets.framing.Frame` instances.
-
-
-
-        """
-
-    def encode(self, frame):
-        """
-        Encode an outgoing frame.
-
-        The ``frame`` parameter and the return value are
-        :class:`~websockets.framing.Frame` instances.
 
         """

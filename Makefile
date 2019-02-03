@@ -5,6 +5,7 @@ style:
 	isort --recursive src tests
 	black src tests
 	flake8 src tests
+	mypy --strict src
 
 test:
 	python -W default -m unittest

@@ -130,6 +130,9 @@ class HeadersTests(unittest.TestCase):
     def test_contains_not_found(self):
         self.assertNotIn("Date", self.headers)
 
+    def test_contains_non_string_key(self):
+        self.assertNotIn(42, self.headers)
+
     def test_iter(self):
         self.assertEqual(set(iter(self.headers)), {"connection", "server"})
 

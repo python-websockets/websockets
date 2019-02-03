@@ -1,13 +1,7 @@
 import http
-from typing import TYPE_CHECKING, Any, Optional
+from typing import Optional
 
 from .http import Headers, HeadersLike
-
-
-if TYPE_CHECKING:  # pragma: no cover
-    from .uri import WebSocketURI
-else:
-    WebSocketURI = Any
 
 
 __all__ = [
@@ -61,8 +55,8 @@ class RedirectHandshake(InvalidHandshake):
 
     """
 
-    def __init__(self, wsuri: WebSocketURI) -> None:
-        self.wsuri = wsuri
+    def __init__(self, uri: str) -> None:
+        self.uri = uri
 
 
 class InvalidMessage(InvalidHandshake):

@@ -291,7 +291,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if status_code in (301, 302, 303, 307, 308):
             if "Location" not in response_headers:
                 raise InvalidMessage("Redirect response missing Location")
-            raise RedirectHandshake(parse_uri(response_headers["Location"]))
+            raise RedirectHandshake(response_headers["Location"])
         elif status_code != 101:
             raise InvalidStatusCode(status_code)
 
@@ -518,9 +518,10 @@ class Connect:
                     await protocol.wait_closed()
                     raise
             except RedirectHandshake as e:
-                if self._wsuri.secure and not e.wsuri.secure:
+                wsuri = parse_uri(e.uri)
+                if self._wsuri.secure and not wsuri.secure:
                     raise InvalidHandshake("Redirect dropped TLS")
-                self._wsuri = e.wsuri
+                self._wsuri = wsuri
                 continue  # redirection chain continues
         else:
             raise InvalidHandshake("Maximum redirects exceeded")

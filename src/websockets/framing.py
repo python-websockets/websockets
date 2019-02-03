@@ -64,22 +64,19 @@ EXTERNAL_CLOSE_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
 Data = Union[str, bytes]
 
+# Remove FrameData when dropping support for Python < 3.6.1 — the first
+# version where NamedTuple supports default values, methods, and docstrings.
 
-# Switch to class-based syntax when dropping support for Python < 3.6.
+# Consider converting to a dataclass when dropping support for Python < 3.7.
 
-# Convert to a dataclass when dropping support for Python < 3.7.
 
-FrameData = NamedTuple(
-    "FrameData",
-    [
-        ("fin", bool),
-        ("opcode", int),
-        ("data", bytes),
-        ("rsv1", bool),
-        ("rsv2", bool),
-        ("rsv3", bool),
-    ],
-)
+class FrameData(NamedTuple):
+    fin: bool
+    opcode: int
+    data: bytes
+    rsv1: bool
+    rsv2: bool
+    rsv3: bool
 
 
 class Frame(FrameData):

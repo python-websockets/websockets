@@ -14,22 +14,22 @@ from .exceptions import InvalidURI
 
 __all__ = ["parse_uri", "WebSocketURI"]
 
-# Switch to class-based syntax when dropping support for Python < 3.6.
 
-# Convert to a dataclass when dropping support for Python < 3.7.
+# Consider converting to a dataclass when dropping support for Python < 3.7.
 
-WebSocketURI = NamedTuple(
-    "WebSocketURI",
-    [
-        ("secure", bool),
-        ("host", str),
-        ("port", int),
-        ("resource_name", str),
-        ("user_info", Optional[Tuple[str, str]]),
-    ],
-)
 
-WebSocketURI.__doc__ = """WebSocket URI.
+class WebSocketURI(NamedTuple):
+    secure: bool
+    host: str
+    port: int
+    resource_name: str
+    user_info: Optional[Tuple[str, str]]
+
+
+# Declare the docstring normally when dropping support for Python < 3.6.1.
+
+WebSocketURI.__doc__ = """
+WebSocket URI.
 
 * ``secure`` is the secure flag
 * ``host`` is the lower-case host

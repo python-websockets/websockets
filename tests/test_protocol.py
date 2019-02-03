@@ -70,9 +70,6 @@ class TransportMock(unittest.mock.Mock):
             self.loop.call_soon(self.close)
         self._eof = True
 
-    def is_closing(self):
-        return self._closing
-
     def close(self):
         # Simulate how actual transports drop the connection.
         if not self._closing:

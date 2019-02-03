@@ -580,7 +580,7 @@ class WebSocketServer:
 
     """
 
-    def __init__(self, loop: asyncio.AbstractEventLoop):
+    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
         # Store a reference to loop to avoid relying on self.server._loop.
         self.loop = loop
 
@@ -827,7 +827,7 @@ class Serve:
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
         **kwds: Any,
-    ):
+    ) -> None:
         # Backwards-compatibility: close_timeout used to be called timeout.
         # If both are specified, timeout is ignored.
         if close_timeout is None:

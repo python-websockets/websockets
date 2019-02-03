@@ -45,7 +45,7 @@ class PerMessageDeflate(Extension):
         remote_max_window_bits: int,
         local_max_window_bits: int,
         compress_settings: Optional[Dict[Any, Any]] = None,
-    ):
+    ) -> None:
         """
         Configure the Per-Message Deflate extension.
 
@@ -285,7 +285,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         server_max_window_bits: Optional[int] = None,
         client_max_window_bits: Optional[Union[int, bool]] = None,
         compress_settings: Optional[Dict[Any, Any]] = None,
-    ):
+    ) -> None:
         """
         Configure the Per-Message Deflate extension factory.
 
@@ -458,7 +458,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         server_max_window_bits: Optional[int] = None,
         client_max_window_bits: Optional[int] = None,
         compress_settings: Optional[Dict[Any, Any]] = None,
-    ):
+    ) -> None:
         """
         Configure the Per-Message Deflate extension factory.
 

@@ -384,7 +384,7 @@ class Connect:
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
         **kwds: Any,
-    ):
+    ) -> None:
         if loop is None:
             loop = asyncio.get_event_loop()
 

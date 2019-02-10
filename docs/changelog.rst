@@ -149,6 +149,12 @@ Also:
 
 * Added compatibility with Python 3.7.
 
+5.0.1
+.....
+
+* Fixed a regression in the 5.0 release that broke some invocations of
+  :func:`~server.serve()` and :func:`~client.connect()`.
+
 5.0
 ...
 
@@ -207,6 +213,11 @@ Also:
 * Made connection termination more robust to network congestion.
 
 * Prevented processing of incoming frames after failing the connection.
+
+4.0.1
+.....
+
+* Fixed issues with the packaging of the 4.0 release.
 
 4.0
 ...

@@ -12,7 +12,7 @@ Changelog
 
     **Version 8.0 drops compatibility with Python 3.4 and 3.5.**
 
-.. warning::
+.. note::
 
     **Version 8.0 adds the reason phrase to the return type of the low-level
     API** :func:`~http.read_response` **.**
@@ -65,7 +65,7 @@ Also:
             closed = asyncio.ensure_future(websocket.wait_closed())
             closed.add_done_callback(lambda task: task.cancel())
 
-.. warning::
+.. note::
 
     **Version 7.0 changes how a** :meth:`~protocol.WebSocketCommonProtocol.ping`
     **that hasn't received a pong yet behaves when the connection is closed.**
@@ -75,7 +75,7 @@ Also:
     :exc:`~asyncio.CancelledError`. Now ``await ping`` raises
     :exc:`~exceptions.ConnectionClosed` like other public APIs.
 
-.. warning::
+.. note::
 
     **Version 7.0 raises a** :exc:`RuntimeError` **exception if two coroutines
     call** :meth:`~protocol.WebSocketCommonProtocol.recv` **concurrently.**
@@ -93,7 +93,7 @@ Also:
   :func:`~server.serve()` and :class:`~server.WebSocketServerProtocol` to
   customize :meth:`~server.WebSocketServerProtocol.process_request` and
   :meth:`~server.WebSocketServerProtocol.select_subprotocol` without
-  subclassing :class:`~server.WebSocketServerProtocol`
+  subclassing :class:`~server.WebSocketServerProtocol`.
 
 * Added support for sending fragmented messages.
 
@@ -142,8 +142,10 @@ Also:
     * Functions defined in the :mod:`~http` module now return HTTP headers as
       :class:`~http.Headers` instead of lists of ``(name, value)`` pairs.
 
-    Note that :class:`~http.Headers` and :class:`~http.client.HTTPMessage`
-    provide similar APIs.
+    Since :class:`~http.Headers` and :class:`~http.client.HTTPMessage` provide
+    similar APIs, this change won't affect most of the code dealing with HTTP
+    headers.
+
 
 Also:
 
@@ -164,9 +166,11 @@ Also:
 
     websockets 4.0 was vulnerable to denial of service by memory exhaustion
     because it didn't enforce ``max_size`` when decompressing compressed
-    messages (CVE-2018-1000518).
+    messages (`CVE-2018-1000518`_).
 
-.. warning::
+    .. _CVE-2018-1000518: https://nvd.nist.gov/vuln/detail/CVE-2018-1000518
+
+.. note::
 
     **Version 5.0 adds a** ``user_info`` **field to the return value of**
     :func:`~uri.parse_uri` **and** :class:`~uri.WebSocketURI` **.**
@@ -188,7 +192,8 @@ Also:
 * :func:`~server.unix_serve` can be used as an asynchronous context manager on
   Python ≥ 3.5.1.
 
-* Added :meth:`~protocol.WebSocketCommonProtocol.closed` property.
+* Added the :attr:`~protocol.WebSocketCommonProtocol.closed` property to
+  protocols.
 
 * If a :meth:`~protocol.WebSocketCommonProtocol.ping` doesn't receive a pong,
   it's canceled when the connection is closed.
@@ -235,6 +240,10 @@ Also:
 
 .. warning::
 
+    **Version 4.0 drops compatibility with Python 3.3.**
+
+.. note::
+
     **Version 4.0 removes the** ``state_name`` **attribute of protocols.**
 
     Use ``protocol.state.name`` instead of ``protocol.state_name``.
@@ -246,7 +255,8 @@ Also:
 
 * Added :func:`~server.unix_serve` for listening on Unix sockets.
 
-* Added the :attr:`~server.WebSocketServer.sockets` attribute.
+* Added the :attr:`~server.WebSocketServer.sockets` attribute to the return
+  value of :func:`~server.serve`.
 
 * Reorganized and extended documentation.
 
@@ -278,7 +288,7 @@ Also:
 
 * Rewrote HTTP handling for simplicity and performance.
 
-* Added an optional C extension to speed up low level operations.
+* Added an optional C extension to speed up low-level operations.
 
 * An invalid response status code during :func:`~client.connect()` now raises
   :class:`~exceptions.InvalidStatusCode` with a ``code`` attribute.

@@ -891,9 +891,7 @@ class Serve:
         self._creating_server = creating_server
         self.ws_server = ws_server
 
-    @asyncio.coroutine
-    def __iter__(self) -> Generator[Any, None, WebSocketServer]:
-        return (yield from self.__await__())
+    # async with serve(...)
 
     async def __aenter__(self) -> WebSocketServer:
         return await self
@@ -907,16 +905,20 @@ class Serve:
         self.ws_server.close()
         await self.ws_server.wait_closed()
 
+    # await serve(...)
+
+    def __await__(self) -> Generator[Any, None, WebSocketServer]:
+        # Create a suitable iterator by calling __await__ on a coroutine.
+        return self.__await_impl__().__await__()
+
     async def __await_impl__(self) -> WebSocketServer:
         server = await self._creating_server
         self.ws_server.wrap(server)
         return self.ws_server
 
-    def __await__(self) -> Generator[Any, None, WebSocketServer]:
-        # __await__() must return a type that I don't know how to obtain except
-        # by calling __await__() on the return value of an async function.
-        # I'm not finding a better way to take advantage of PEP 492.
-        return self.__await_impl__().__await__()
+    # yield from serve(...)
+
+    __iter__ = __await__
 
 
 serve = Serve

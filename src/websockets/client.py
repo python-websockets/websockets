@@ -484,9 +484,7 @@ class Connect:
         protocol = cast(WebSocketClientProtocol, protocol)
         return transport, protocol
 
-    @asyncio.coroutine
-    def __iter__(self) -> Generator[Any, None, WebSocketClientProtocol]:
-        return (yield from self.__await__())
+    # async with connect(...)
 
     async def __aenter__(self) -> WebSocketClientProtocol:
         return await self
@@ -498,6 +496,12 @@ class Connect:
         traceback: Optional[TracebackType],
     ) -> None:
         await self.ws_client.close()
+
+    # await connect(...)
+
+    def __await__(self) -> Generator[Any, None, WebSocketClientProtocol]:
+        # Create a suitable iterator by calling __await__ on a coroutine.
+        return self.__await_impl__().__await__()
 
     async def __await_impl__(self) -> WebSocketClientProtocol:
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):
@@ -529,11 +533,9 @@ class Connect:
         self.ws_client = protocol
         return protocol
 
-    def __await__(self) -> Generator[Any, None, WebSocketClientProtocol]:
-        # __await__() must return a type that I don't know how to obtain except
-        # by calling __await__() on the return value of an async function.
-        # I'm not finding a better way to take advantage of PEP 492.
-        return self.__await_impl__().__await__()
+    # yield from connect(...)
+
+    __iter__ = __await__
 
 
 connect = Connect

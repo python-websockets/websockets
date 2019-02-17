@@ -5,6 +5,7 @@ import os
 import time
 import unittest
 import unittest.mock
+import warnings
 
 from websockets.exceptions import ConnectionClosed, InvalidState
 from websockets.framing import *
@@ -320,6 +321,19 @@ class CommonTests:
         dt = t1 - t0
         self.assertGreaterEqual(dt, min_time, f"Too fast: {dt} < {min_time}")
         self.assertLess(dt, max_time, f"Too slow: {dt} >= {max_time}")
+
+    # Test constructor.
+
+    def test_timeout_backwards_compatibility(self):
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            protocol = WebSocketCommonProtocol(timeout=5)
+
+        self.assertEqual(protocol.close_timeout, 5)
+
+        self.assertEqual(len(recorded_warnings), 1)
+        warning = recorded_warnings[0].message
+        self.assertEqual(str(warning), "rename timeout to close_timeout")
+        self.assertEqual(type(warning), DeprecationWarning)
 
     # Test public attributes.
 

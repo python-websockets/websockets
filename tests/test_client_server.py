@@ -249,13 +249,23 @@ class ClientServerTests(unittest.TestCase):
     def server_context(self):
         return None
 
-    def start_server(self, **kwds):
+    def start_server(self, expected_warning=None, **kwds):
         # Disable compression by default in tests.
         kwds.setdefault("compression", None)
         # Disable pings by default in tests.
         kwds.setdefault("ping_interval", None)
-        start_server = serve(handler, "localhost", 0, **kwds)
-        self.server = self.loop.run_until_complete(start_server)
+
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            start_server = serve(handler, "localhost", 0, **kwds)
+            self.server = self.loop.run_until_complete(start_server)
+
+        if expected_warning is None:
+            self.assertEqual(len(recorded_warnings), 0)
+        else:
+            self.assertEqual(len(recorded_warnings), 1)
+            actual_warning = recorded_warnings[0].message
+            self.assertEqual(str(actual_warning), expected_warning)
+            self.assertEqual(type(actual_warning), DeprecationWarning)
 
     def start_redirecting_server(
         self, status, include_location=True, force_insecure=False
@@ -278,7 +288,9 @@ class ClientServerTests(unittest.TestCase):
         )
         self.redirecting_server = self.loop.run_until_complete(start_server)
 
-    def start_client(self, resource_name="/", user_info=None, **kwds):
+    def start_client(
+        self, resource_name="/", user_info=None, expected_warning=None, **kwds
+    ):
         # Disable compression by default in tests.
         kwds.setdefault("compression", None)
         # Disable pings by default in tests.
@@ -286,8 +298,18 @@ class ClientServerTests(unittest.TestCase):
         secure = kwds.get("ssl") is not None
         server = self.redirecting_server if self.redirecting_server else self.server
         server_uri = get_server_uri(server, secure, resource_name, user_info)
-        start_client = connect(server_uri, **kwds)
-        self.client = self.loop.run_until_complete(start_client)
+
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            start_client = connect(server_uri, **kwds)
+            self.client = self.loop.run_until_complete(start_client)
+
+        if expected_warning is None:
+            self.assertEqual(len(recorded_warnings), 0)
+        else:
+            self.assertEqual(len(recorded_warnings), 1)
+            actual_warning = recorded_warnings[0].message
+            self.assertEqual(str(actual_warning), expected_warning)
+            self.assertEqual(type(actual_warning), DeprecationWarning)
 
     def stop_client(self):
         try:
@@ -638,12 +660,17 @@ class ClientServerTests(unittest.TestCase):
     def test_server_create_protocol_function(self):
         self.assert_client_raises_code(401)
 
-    @with_server(klass=UnauthorizedServerProtocol)
+    @with_server(
+        klass=UnauthorizedServerProtocol,
+        expected_warning="rename klass to create_protocol",
+    )
     def test_server_klass_backwards_compatibility(self):
         self.assert_client_raises_code(401)
 
     @with_server(
-        create_protocol=ForbiddenServerProtocol, klass=UnauthorizedServerProtocol
+        create_protocol=ForbiddenServerProtocol,
+        klass=UnauthorizedServerProtocol,
+        expected_warning="rename klass to create_protocol",
     )
     def test_server_create_protocol_over_klass(self):
         self.assert_client_raises_code(403)
@@ -662,12 +689,21 @@ class ClientServerTests(unittest.TestCase):
         self.assertIsInstance(self.client, FooClientProtocol)
 
     @with_server()
-    @with_client("/path", klass=FooClientProtocol)
+    @with_client(
+        "/path",
+        klass=FooClientProtocol,
+        expected_warning="rename klass to create_protocol",
+    )
     def test_client_klass(self):
         self.assertIsInstance(self.client, FooClientProtocol)
 
     @with_server()
-    @with_client("/path", create_protocol=BarClientProtocol, klass=FooClientProtocol)
+    @with_client(
+        "/path",
+        create_protocol=BarClientProtocol,
+        klass=FooClientProtocol,
+        expected_warning="rename klass to create_protocol",
+    )
     def test_client_create_protocol_over_klass(self):
         self.assertIsInstance(self.client, BarClientProtocol)
 
@@ -677,13 +713,15 @@ class ClientServerTests(unittest.TestCase):
         close_timeout = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(eval(close_timeout), 7)
 
-    @with_server(timeout=6)
+    @with_server(timeout=6, expected_warning="rename timeout to close_timeout")
     @with_client("/close_timeout")
     def test_server_timeout_backwards_compatibility(self):
         close_timeout = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(eval(close_timeout), 6)
 
-    @with_server(close_timeout=7, timeout=6)
+    @with_server(
+        close_timeout=7, timeout=6, expected_warning="rename timeout to close_timeout"
+    )
     @with_client("/close_timeout")
     def test_server_close_timeout_over_timeout(self):
         close_timeout = self.loop.run_until_complete(self.client.recv())
@@ -695,12 +733,19 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(self.client.close_timeout, 7)
 
     @with_server()
-    @with_client("/close_timeout", timeout=6)
+    @with_client(
+        "/close_timeout", timeout=6, expected_warning="rename timeout to close_timeout"
+    )
     def test_client_timeout_backwards_compatibility(self):
         self.assertEqual(self.client.close_timeout, 6)
 
     @with_server()
-    @with_client("/close_timeout", close_timeout=7, timeout=6)
+    @with_client(
+        "/close_timeout",
+        close_timeout=7,
+        timeout=6,
+        expected_warning="rename timeout to close_timeout",
+    )
     def test_client_close_timeout_over_timeout(self):
         self.assertEqual(self.client.close_timeout, 7)
 

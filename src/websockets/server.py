@@ -813,8 +813,8 @@ class Serve:
         write_limit: int = 2 ** 16,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         legacy_recv: bool = False,
-        klass: Type[WebSocketServerProtocol] = WebSocketServerProtocol,
-        timeout: float = 10,
+        klass: Optional[Type[WebSocketServerProtocol]] = None,
+        timeout: Optional[float] = None,
         compression: Optional[str] = "deflate",
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
@@ -829,11 +829,19 @@ class Serve:
         **kwds: Any,
     ) -> None:
         # Backwards-compatibility: close_timeout used to be called timeout.
+        if timeout is None:
+            timeout = 10
+        else:
+            warnings.warn("rename timeout to close_timeout", DeprecationWarning)
         # If both are specified, timeout is ignored.
         if close_timeout is None:
             close_timeout = timeout
 
         # Backwards-compatibility: create_protocol used to be called klass.
+        if klass is None:
+            klass = WebSocketServerProtocol
+        else:
+            warnings.warn("rename klass to create_protocol", DeprecationWarning)
         # If both are specified, klass is ignored.
         if create_protocol is None:
             create_protocol = klass

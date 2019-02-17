@@ -6,6 +6,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 import asyncio
 import collections.abc
 import logging
+import warnings
 from types import TracebackType
 from typing import Any, Generator, List, Optional, Sequence, Tuple, Type, cast
 
@@ -376,8 +377,8 @@ class Connect:
         write_limit: int = 2 ** 16,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         legacy_recv: bool = False,
-        klass: Type[WebSocketClientProtocol] = WebSocketClientProtocol,
-        timeout: float = 10,
+        klass: Optional[Type[WebSocketClientProtocol]] = None,
+        timeout: Optional[float] = None,
         compression: Optional[str] = "deflate",
         origin: Optional[Origin] = None,
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
@@ -385,18 +386,26 @@ class Connect:
         extra_headers: Optional[HeadersLike] = None,
         **kwds: Any,
     ) -> None:
-        if loop is None:
-            loop = asyncio.get_event_loop()
-
-        # Backwards-compatibility: close_timeout used to be called timeout.
+        # Backwards compatibility: close_timeout used to be called timeout.
+        if timeout is None:
+            timeout = 10
+        else:
+            warnings.warn("rename timeout to close_timeout", DeprecationWarning)
         # If both are specified, timeout is ignored.
         if close_timeout is None:
             close_timeout = timeout
 
-        # Backwards-compatibility: create_protocol used to be called klass.
+        # Backwards compatibility: create_protocol used to be called klass.
+        if klass is None:
+            klass = WebSocketClientProtocol
+        else:
+            warnings.warn("rename klass to create_protocol", DeprecationWarning)
         # If both are specified, klass is ignored.
         if create_protocol is None:
             create_protocol = klass
+
+        if loop is None:
+            loop = asyncio.get_event_loop()
 
         self._wsuri = parse_uri(uri)
         if self._wsuri.secure:

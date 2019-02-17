@@ -14,6 +14,7 @@ import enum
 import logging
 import random
 import struct
+import warnings
 from typing import (
     Any,
     AsyncIterable,
@@ -182,9 +183,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         write_limit: int = 2 ** 16,
         loop: Optional[asyncio.AbstractEventLoop] = None,
         legacy_recv: bool = False,
-        timeout: float = 10,
+        timeout: Optional[float] = None,
     ) -> None:
         # Backwards-compatibility: close_timeout used to be called timeout.
+        if timeout is None:
+            timeout = 10
+        else:
+            warnings.warn("rename timeout to close_timeout", DeprecationWarning)
         # If both are specified, timeout is ignored.
         if close_timeout is None:
             close_timeout = timeout

@@ -116,15 +116,16 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     raise :exc:`~websockets.exceptions.ConnectionClosed` and the connection
     will be closed with status code 1009.
 
-    The ``max_queue`` parameter sets the maximum length of the queue that holds
-    incoming messages. The default value is 32. 0 disables the limit. Messages
-    are added to an in-memory queue when they're received; then :meth:`recv()`
-    pops from that queue. In order to prevent excessive memory consumption when
-    messages are received faster than they can be processed, the queue must be
-    bounded. If the queue fills up, the protocol stops processing incoming data
-    until :meth:`recv()` is called. In this situation, various receive buffers
-    (at least in ``asyncio`` and in the OS) will fill up, then the TCP receive
-    window will shrink, slowing down transmission to avoid packet loss.
+    The ``max_queue`` parameter sets the maximum length of the queue that
+    holds incoming messages. The default value is ``32``. ``None`` disables
+    the limit. Messages are added to an in-memory queue when they're received;
+    then :meth:`recv()` pops from that queue. In order to prevent excessive
+    memory consumption when messages are received faster than they can be
+    processed, the queue must be bounded. If the queue fills up, the protocol
+    stops processing incoming data until :meth:`recv()` is called. In this
+    situation, various receive buffers (at least in ``asyncio`` and in the OS)
+    will fill up, then the TCP receive window will shrink, slowing down
+    transmission to avoid packet loss.
 
     Since Python can use up to 4 bytes of memory to represent a single
     character, each websocket connection may use up to ``4 * max_size *
@@ -709,12 +710,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     break
 
                 # Wait until there's room in the queue (if necessary).
-                while len(self.messages) >= self.max_queue:
-                    self._put_message_waiter = self.loop.create_future()
-                    try:
-                        await self._put_message_waiter
-                    finally:
-                        self._put_message_waiter = None
+                if self.max_queue is not None:
+                    while len(self.messages) >= self.max_queue:
+                        self._put_message_waiter = self.loop.create_future()
+                        try:
+                            await self._put_message_waiter
+                        finally:
+                            self._put_message_waiter = None
 
                 # Put the message in the queue.
                 self.messages.append(message)

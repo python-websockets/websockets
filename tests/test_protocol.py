@@ -474,6 +474,21 @@ class CommonTests:
         self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(list(self.protocol.messages), [])
 
+    def test_recv_queue_no_limit(self):
+        self.protocol.max_queue = None
+
+        for _ in range(100):
+            self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
+            self.run_loop_once()
+
+        # Incoming message queue can contain at least 100 messages.
+        self.assertEqual(list(self.protocol.messages), ["café"] * 100)
+
+        for _ in range(100):
+            self.loop.run_until_complete(self.protocol.recv())
+
+        self.assertEqual(list(self.protocol.messages), [])
+
     def test_recv_other_error(self):
         async def read_message():
             raise Exception("BOOM")

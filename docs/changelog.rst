@@ -14,9 +14,15 @@ Changelog
 
 .. note::
 
+    **Version 8.0 changes the behavior of the ``max_queue`` parameter.**
+
+    If you were setting ``max_queue=0`` to make the queue of incoming messages
+    unbounded, change it to ``max_queue=None``.
+
+.. note::
+
     **Version 8.0 adds the reason phrase to the return type of the low-level
     API** :func:`~http.read_response` **.**
-
 
 Also:
 

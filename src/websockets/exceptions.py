@@ -262,3 +262,9 @@ class WebSocketProtocolError(Exception):
     Internal exception raised when the remote side breaks the protocol.
 
     """
+
+
+class TooManyOpenSocketsError(Exception):
+    """
+    Exception raised when too many clients try to connect.
+    """

@@ -34,6 +34,7 @@ from .exceptions import (
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
+    TooManyOpenSocketsError,
 )
 from .extensions.base import Extension, ServerExtensionFactory
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
@@ -133,6 +134,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         try:
 
             try:
+                if self.ws_server.max_connections != 0 and len(self.ws_server.websockets) >= self.ws_server.max_connections:
+                    raise TooManyOpenSocketsError()
                 path = await self.handshake(
                     origins=self.origins,
                     available_extensions=self.available_extensions,
@@ -166,6 +169,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                         Headers(),
                         (str(exc) + "\n").encode(),
                     )
+                elif isinstance(exc, TooManyOpenSocketsError):
+                    logger.debug("Too many open sockets", exc_info=True)
+                    status, headers, body = (
+                        http.HTTPStatus.TOO_MANY_REQUESTS,
+                        Headers(),
+                        (str(exc) + "\n").encode(),
+                    )
                 else:
                     logger.warning("Error in opening handshake", exc_info=True)
                     status, headers, body = (
@@ -181,20 +191,22 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 headers.setdefault("Connection", "close")
 
                 self.write_http_response(status, headers, body)
-                self.fail_connection()
-                await self.wait_closed()
+                if len(self.ws_server.websockets) == 1:
+                    self.fail_connection()
+                    await self.wait_closed()
                 return
 
             try:
                 await self.ws_handler(self, path)
             except Exception:
                 logger.error("Error in connection handler", exc_info=True)
-                if not self.closed:
+                if not self.closed and len(self.ws_server.websockets) == 1:
                     self.fail_connection(1011)
                 raise
 
             try:
-                await self.close()
+                if len(self.ws_server.websockets) == 1:
+                    await self.close()
             except ConnectionError:
                 logger.debug("Connection error in closing handshake", exc_info=True)
                 raise
@@ -205,7 +217,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         except Exception:
             # Last-ditch attempt to avoid leaking connections on errors.
             try:
-                self.writer.close()
+                if len(self.ws_server.websockets) == 1:
+                    self.writer.close()
             except Exception:  # pragma: no cover
                 pass
 
@@ -593,6 +606,8 @@ class WebSocketServer:
         # Completed when the server is closed and connections are terminated.
         self.closed_waiter: asyncio.Future[None] = loop.create_future()
 
+        self.max_connections = 0
+
     def wrap(self, server: asyncio.AbstractServer) -> None:
         """
         Attach to a given :class:`~asyncio.Server`.
@@ -826,6 +841,7 @@ class Serve:
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
+        max_connections: Optional[int] = 0,
         **kwds: Any,
     ) -> None:
         # Backwards-compatibility: close_timeout used to be called timeout.
@@ -898,6 +914,7 @@ class Serve:
         # This is a coroutine object.
         self._creating_server = creating_server
         self.ws_server = ws_server
+        ws_server.max_connections = max_connections
 
     # async with serve(...)
 

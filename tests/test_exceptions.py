@@ -13,7 +13,7 @@ class ExceptionsTests(unittest.TestCase):
                 "Invalid request",
             ),
             (
-                AbortHandshake(200, Headers(), b'OK\n'),
+                AbortHandshake(200, Headers(), b"OK\n"),
                 "HTTP 200, 0 headers, 3 bytes",
             ),
             (
@@ -21,44 +21,44 @@ class ExceptionsTests(unittest.TestCase):
                 "Malformed HTTP message",
             ),
             (
-                InvalidHeader('Name'),
+                InvalidHeader("Name"),
                 "Missing Name header",
             ),
             (
-                InvalidHeader('Name', None),
+                InvalidHeader("Name", None),
                 "Missing Name header",
             ),
             (
-                InvalidHeader('Name', ''),
+                InvalidHeader("Name", ""),
                 "Empty Name header",
             ),
             (
-                InvalidHeader('Name', 'Value'),
+                InvalidHeader("Name", "Value"),
                 "Invalid Name header: Value",
             ),
             (
                 InvalidHeaderFormat(
-                    'Sec-WebSocket-Protocol', "expected token", 'a=|', 3
+                    "Sec-WebSocket-Protocol", "expected token", "a=|", 3
                 ),
                 "Invalid Sec-WebSocket-Protocol header: "
                 "expected token at 3 in a=|",
             ),
             (
-                InvalidHeaderValue('Sec-WebSocket-Version', '42'),
+                InvalidHeaderValue("Sec-WebSocket-Version", "42"),
                 "Invalid Sec-WebSocket-Version header: 42",
             ),
 
             (
-                InvalidUpgrade('Upgrade'),
+                InvalidUpgrade("Upgrade"),
                 "Missing Upgrade header",
             ),
             (
-                InvalidUpgrade('Connection', 'websocket'),
+                InvalidUpgrade("Connection", "websocket"),
                 "Invalid Connection header: websocket",
             ),
             (
-                InvalidOrigin('http://bad.origin'),
-                'Invalid Origin header: http://bad.origin',
+                InvalidOrigin("http://bad.origin"),
+                "Invalid Origin header: http://bad.origin",
             ),
             (
                 InvalidStatusCode(403),
@@ -69,15 +69,15 @@ class ExceptionsTests(unittest.TestCase):
                 "Unsupported subprotocol: spam",
             ),
             (
-                InvalidParameterName('|'),
+                InvalidParameterName("|"),
                 "Invalid parameter name: |",
             ),
             (
-                InvalidParameterValue('a', '|'),
+                InvalidParameterValue("a", "|"),
                 "Invalid value for parameter a: |",
             ),
             (
-                DuplicateParameter('a'),
+                DuplicateParameter("a"),
                 "Duplicate parameter: a",
             ),
             (
@@ -85,12 +85,12 @@ class ExceptionsTests(unittest.TestCase):
                 "WebSocket connection isn't established yet",
             ),
             (
-                ConnectionClosed(1000, ''),
+                ConnectionClosed(1000, ""),
                 "WebSocket connection is closed: code = 1000 "
                 "(OK), no reason",
             ),
             (
-                ConnectionClosedOK(1001, 'bye'),
+                ConnectionClosedOK(1001, "bye"),
                 "WebSocket connection is closed: code = 1001 "
                 "(going away), reason = bye",
             ),

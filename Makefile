@@ -19,4 +19,4 @@ coverage:
 clean:
 	find . -name '*.pyc' -o -name '*.so' -delete
 	find . -name __pycache__ -delete
-	rm -rf .coverage build compliance/reports dist docs/_build htmlcov MANIFEST README src/websockets.egg-info
+	rm -rf .coverage build compliance/reports dist docs/_build htmlcov MANIFEST src/websockets.egg-info

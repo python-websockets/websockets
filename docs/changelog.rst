@@ -34,6 +34,8 @@ Also:
 * :func:`~client.connect()` handles redirects from the server during the
   handshake.
 
+* Enabled readline in the interactive client.
+
 * Added type hints (:pep:`484`).
 
 * Added documentation for extensions.

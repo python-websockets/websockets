@@ -1,4 +1,4 @@
-WebSockets
+websockets
 ==========
 
 |pypi-v| |pypi-pyversions| |pypi-l| |pypi-wheel| |circleci| |codecov|

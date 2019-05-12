@@ -1,5 +1,6 @@
-WebSockets
-==========
+.. image:: logo/horizontal.svg
+   :width: 480px
+   :alt: websockets
 
 |rtd| |pypi-v| |pypi-pyversions| |pypi-l| |pypi-wheel| |circleci| |codecov|
 

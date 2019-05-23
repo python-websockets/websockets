@@ -103,16 +103,9 @@ The development of ``websockets`` is shaped by four principles:
 Documentation is a first class concern in the project. Head over to `Read the
 Docs`_ and see for yourself.
 
-Professional support is available if you — or your company — are so inclined.
-`Get in touch`_.
-
-(If you contribute to ``websockets`` and would like to become an official
-support provider, let me know.)
-
 .. _Read the Docs: https://websockets.readthedocs.io/
 .. _handle backpressure correctly: https://vorpus.org/blog/some-thoughts-on-asynchronous-api-design-in-a-post-asyncawait-world/#websocket-servers
 .. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/master/compliance/README.rst
-.. _Get in touch: https://fractalideas.com/
 
 Why shouldn't I use ``websockets``?
 -----------------------------------
@@ -127,12 +120,31 @@ Why shouldn't I use ``websockets``?
 * If you want to use Python 2: ``websockets`` builds upon ``asyncio`` which
   only works on Python 3. ``websockets`` requires Python ≥ 3.6.
 
+
+*Professionally supported websockets is now available*
+------------------------------------------------------
+
+*Tidelift gives software development teams a single source for purchasing and
+maintaining their software, with professional grade assurances from the
+experts who know it best, while seamlessly integrating with existing tools.*
+
+`Get supported websockets with the Tidelift subscription
+<https://tidelift.com/>`_
+
+(If you contribute to ``websockets`` and would like to become an official
+support provider, `let me know <https://fractalideas.com/>`_.)
+
 What else?
 ----------
 
 Bug reports, patches and suggestions are welcome!
 
-Please open an issue_ or send a `pull request`_.
+To report a security vulnerability, please use the `Tidelift security
+contact`_. Tidelift will coordinate the fix and disclosure.
+
+.. _Tidelift security contact: https://tidelift.com/security
+
+For anything else, please open an issue_ or send a `pull request`_.
 
 .. _issue: https://github.com/aaugustin/websockets/issues/new
 .. _pull request: https://github.com/aaugustin/websockets/compare/

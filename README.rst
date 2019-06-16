@@ -37,6 +37,8 @@ Python with a focus on correctness and simplicity.
 Built on top of ``asyncio``, Python's standard asynchronous I/O framework, it
 provides an elegant coroutine-based API.
 
+`Documentation is available on Read the Docs. <https://websockets.readthedocs.io/>`_
+
 Here's how a client sends and receives messages:
 
 .. copy-pasted because GitHub doesn't support the include directive
@@ -75,9 +77,7 @@ And here's an echo server:
 
 Does that look good?
 
-`Get started with the tutorial!`_
-
-.. _Get started with the tutorial!: https://websockets.readthedocs.io/en/stable/intro.html
+`Get started with the tutorial! <https://websockets.readthedocs.io/en/stable/intro.html>`_
 
 .. raw:: html
 

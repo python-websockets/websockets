@@ -566,6 +566,12 @@ class ClientServerTests(unittest.TestCase):
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
+    @with_server(extra_headers=lambda p, r: None)
+    @with_client("/headers")
+    def test_protocol_custom_response_headers_callable(self):
+        self.loop.run_until_complete(self.client.recv())  # doesn't crash
+        self.loop.run_until_complete(self.client.recv())  # nothing to check
+
     @with_server(extra_headers=Headers({"X-Spam": "Eggs"}))
     @with_client("/headers")
     def test_protocol_custom_response_headers(self):

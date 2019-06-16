@@ -39,6 +39,8 @@ Also:
 * :func:`~client.connect()` handles redirects from the server during the
   handshake.
 
+* Avoided a crash of a ``extra_headers`` callable returns ``None``.
+
 * Enabled readline in the interactive client.
 
 * Added type hints (:pep:`484`).

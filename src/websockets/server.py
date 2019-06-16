@@ -540,9 +540,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if protocol_header is not None:
             response_headers["Sec-WebSocket-Protocol"] = protocol_header
 
+        if callable(extra_headers):
+            extra_headers = extra_headers(path, self.request_headers)
         if extra_headers is not None:
-            if callable(extra_headers):
-                extra_headers = extra_headers(path, self.request_headers)
             if isinstance(extra_headers, Headers):
                 extra_headers = extra_headers.raw_items()
             elif isinstance(extra_headers, collections.abc.Mapping):

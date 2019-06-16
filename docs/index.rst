@@ -30,7 +30,7 @@ Python with a focus on correctness and simplicity.
 Built on top of :mod:`asyncio`, Python's standard asynchronous I/O framework,
 it provides an elegant coroutine-based API.
 
-Here's a client that says "Hello world!":
+Here's how a client sends and receives messages:
 
 .. literalinclude:: ../example/hello.py
 

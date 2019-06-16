@@ -113,6 +113,7 @@ html_theme_options = {
     'github_button': True,
     'github_user': 'aaugustin',
     'github_repo': 'websockets',
+    'tidelift_url': 'https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=docs',
 }
 
 # Add any paths that contain custom themes here, relative to this directory.
@@ -151,9 +152,10 @@ html_static_path = ['_static']
 html_sidebars = {
     '**': [
         'about.html',
+        'searchbox.html',
         'navigation.html',
         'relations.html',
-        'searchbox.html',
+        'donate.html',
     ]
 }
 

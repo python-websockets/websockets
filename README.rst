@@ -75,9 +75,21 @@ And here's an echo server:
 
 Does that look good?
 
-`Start here!`_
+`Get started with the tutorial!`_
 
-.. _Start here!: https://websockets.readthedocs.io/en/stable/intro.html
+.. _Get started with the tutorial!: https://websockets.readthedocs.io/en/stable/intro.html
+
+.. raw:: html
+
+    <hr>
+    <img align="left" height="150" width="150" src="https://raw.githubusercontent.com/aaugustin/websockets/master/logo/tidelift.png">
+    <h3 align="center"><i>Professionally supported websockets is now available</i></h3>
+    <p align="center"><i>Tidelift gives software development teams a single source for purchasing and maintaining their software, with professional grade assurances from the experts who know it best, while seamlessly integrating with existing tools.</i></p>
+    <p align="center"><b><i><a href="https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme">Get supported websockets with the Tidelift Subscription</a></i></b></p>
+    <hr>
+
+(If you contribute to ``websockets`` and would like to become an official
+support provider, `let me know <https://fractalideas.com/>`_.)
 
 Why should I use ``websockets``?
 --------------------------------
@@ -119,20 +131,6 @@ Why shouldn't I use ``websockets``?
   is minimal — just enough for a HTTP health check.
 * If you want to use Python 2: ``websockets`` builds upon ``asyncio`` which
   only works on Python 3. ``websockets`` requires Python ≥ 3.6.
-
-
-*Professionally supported websockets is now available*
-------------------------------------------------------
-
-*Tidelift gives software development teams a single source for purchasing and
-maintaining their software, with professional grade assurances from the
-experts who know it best, while seamlessly integrating with existing tools.*
-
-`Get supported websockets with the Tidelift subscription
-<https://tidelift.com/>`_
-
-(If you contribute to ``websockets`` and would like to become an official
-support provider, `let me know <https://fractalideas.com/>`_.)
 
 What else?
 ----------

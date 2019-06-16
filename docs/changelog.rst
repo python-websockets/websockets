@@ -39,6 +39,9 @@ Also:
 * :func:`~client.connect()` handles redirects from the server during the
   handshake.
 
+* Improved support for sending fragmented messages by accepting asynchronous
+  iterators in :meth:`~protocol.WebSocketCommonProtocol.send`.
+
 * Avoided a crash of a ``extra_headers`` callable returns ``None``.
 
 * Enabled readline in the interactive client.

@@ -50,6 +50,9 @@ Also:
   :exc:`~exceptions.ConnectionClosed` to tell apart normal connection
   termination from errors.
 
+* Added :func:`~auth.basic_auth_protocol_factory` to provide HTTP Basic Auth
+  on the server side.
+
 * :func:`~client.connect` handles redirects from the server during the
   handshake.
 

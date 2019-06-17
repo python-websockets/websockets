@@ -1,8 +1,7 @@
 import unittest
 
-from websockets.exceptions import InvalidHeaderFormat
+from websockets.exceptions import InvalidHeaderFormat, InvalidHeaderValue
 from websockets.headers import *
-from websockets.headers import build_basic_auth
 
 
 class HeadersTests(unittest.TestCase):
@@ -17,7 +16,7 @@ class HeadersTests(unittest.TestCase):
             with self.subTest(header=header):
                 self.assertEqual(parse_connection(header), parsed)
 
-    def test_parse_connection_invalid_header(self):
+    def test_parse_connection_invalid_header_format(self):
         for header in ["???", "keep-alive; Upgrade"]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
@@ -35,7 +34,7 @@ class HeadersTests(unittest.TestCase):
             with self.subTest(header=header):
                 self.assertEqual(parse_upgrade(header), parsed)
 
-    def test_parse_upgrade_invalid_header(self):
+    def test_parse_upgrade_invalid_header_format(self):
         for header in ["???", "websocket 2", "http/3.0; websocket"]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderFormat):
@@ -83,7 +82,7 @@ class HeadersTests(unittest.TestCase):
                 unparsed = build_extension(parsed)
                 self.assertEqual(parse_extension(unparsed), parsed)
 
-    def test_parse_extension_invalid_header(self):
+    def test_parse_extension_invalid_header_format(self):
         for header in [
             # Truncated examples
             "",
@@ -127,9 +126,60 @@ class HeadersTests(unittest.TestCase):
                 with self.assertRaises(InvalidHeaderFormat):
                     parse_subprotocol(header)
 
-    def test_build_basic_auth(self):
-        # Test vector from RFC 7617.
+    def test_build_www_authenticate_basic(self):
+        # Test vector from RFC 7617
         self.assertEqual(
-            build_basic_auth("Aladdin", "open sesame"),
+            build_www_authenticate_basic("foo"), 'Basic realm="foo", charset="UTF-8"'
+        )
+
+    def test_build_www_authenticate_basic_invalid_realm(self):
+        # Realm contains a control character forbidden in quoted-string encoding
+        with self.assertRaises(ValueError):
+            build_www_authenticate_basic("\u0007")
+
+    def test_build_authorization_basic(self):
+        # Test vector from RFC 7617
+        self.assertEqual(
+            build_authorization_basic("Aladdin", "open sesame"),
             "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
         )
+
+    def test_build_authorization_basic_utf8(self):
+        # Test vector from RFC 7617
+        self.assertEqual(
+            build_authorization_basic("test", "123£"), "Basic dGVzdDoxMjPCow=="
+        )
+
+    def test_parse_authorization_basic(self):
+        for header, parsed in [
+            ("Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==", ("Aladdin", "open sesame")),
+            # Password contains non-ASCII character
+            ("Basic dGVzdDoxMjPCow==", ("test", "123£")),
+            # Password contains a colon
+            ("Basic YWxhZGRpbjpvcGVuOnNlc2FtZQ==", ("aladdin", "open:sesame")),
+            # Scheme name must be case insensitive
+            ("basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==", ("Aladdin", "open sesame")),
+        ]:
+            with self.subTest(header=header):
+                self.assertEqual(parse_authorization_basic(header), parsed)
+
+    def test_parse_authorization_basic_invalid_header_format(self):
+        for header in [
+            "// Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==",
+            "Basic\tQWxhZGRpbjpvcGVuIHNlc2FtZQ==",
+            "Basic ****************************",
+            "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ== //",
+        ]:
+            with self.subTest(header=header):
+                with self.assertRaises(InvalidHeaderFormat):
+                    parse_authorization_basic(header)
+
+    def test_parse_authorization_basic_invalid_header_value(self):
+        for header in [
+            "Digest ...",
+            "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ",
+            "Basic QWxhZGNlc2FtZQ==",
+        ]:
+            with self.subTest(header=header):
+                with self.assertRaises(InvalidHeaderValue):
+                    parse_authorization_basic(header)

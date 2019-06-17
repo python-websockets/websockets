@@ -22,7 +22,7 @@ from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from .handshake import build_request, check_response
 from .headers import (
     ExtensionHeader,
-    build_basic_auth,
+    build_authorization_basic,
     build_extension,
     build_subprotocol,
     parse_extension,
@@ -256,7 +256,9 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             request_headers["Host"] = f"{wsuri.host}:{wsuri.port}"
 
         if wsuri.user_info:
-            request_headers["Authorization"] = build_basic_auth(*wsuri.user_info)
+            request_headers["Authorization"] = build_authorization_basic(
+                *wsuri.user_info
+            )
 
         if origin is not None:
             request_headers["Origin"] = origin

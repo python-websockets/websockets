@@ -7,11 +7,13 @@ from :mod:`websockets.headers`.
 
 """
 
+
 import base64
+import binascii
 import re
 from typing import Callable, List, NewType, Optional, Sequence, Tuple, TypeVar, cast
 
-from .exceptions import InvalidHeaderFormat
+from .exceptions import InvalidHeaderFormat, InvalidHeaderValue
 from .typing import ExtensionHeader, ExtensionParameter, Subprotocol
 
 
@@ -22,6 +24,9 @@ __all__ = [
     "build_extension",
     "parse_subprotocol",
     "build_subprotocol",
+    "build_www_authenticate_basic",
+    "parse_authorization_basic",
+    "build_authorization_basic",
 ]
 
 
@@ -105,6 +110,25 @@ def parse_quoted_string(header: str, pos: int, header_name: str) -> Tuple[str, i
     if match is None:
         raise InvalidHeaderFormat(header_name, "expected quoted string", header, pos)
     return _unquote_re.sub(r"\1", match.group()[1:-1]), match.end()
+
+
+_quotable_re = re.compile(r"[\x09\x20-\x7e\x80-\xff]*")
+
+
+_quote_re = re.compile(r"([\x22\x5c])")
+
+
+def build_quoted_string(value: str) -> str:
+    """
+    Format ``value`` as a quoted string.
+
+    This is the reverse of :func:`parse_quoted_string`.
+
+    """
+    match = _quotable_re.fullmatch(value)
+    if match is None:
+        raise ValueError("invalid characters for quoted-string encoding")
+    return '"' + _quote_re.sub(r"\\\1", value) + '"'
 
 
 def parse_list(
@@ -392,7 +416,18 @@ def build_subprotocol(protocols: Sequence[Subprotocol]) -> str:
 build_subprotocol_list = build_subprotocol  # alias for backwards-compatibility
 
 
-def build_basic_auth(username: str, password: str) -> str:
+def build_www_authenticate_basic(realm: str) -> str:
+    """
+    Build an WWW-Authenticate header for HTTP Basic Auth.
+
+    """
+    # https://tools.ietf.org/html/rfc7617#section-2
+    realm = build_quoted_string(realm)
+    charset = build_quoted_string("UTF-8")
+    return f"Basic realm={realm}, charset={charset}"
+
+
+def build_authorization_basic(username: str, password: str) -> str:
     """
     Build an Authorization header for HTTP Basic Auth.
 
@@ -402,3 +437,66 @@ def build_basic_auth(username: str, password: str) -> str:
     user_pass = f"{username}:{password}"
     basic_credentials = base64.b64encode(user_pass.encode()).decode()
     return "Basic " + basic_credentials
+
+
+_token68_re = re.compile(r"[A-Za-z0-9-._~+/]+=*")
+
+
+def parse_token68(header: str, pos: int, header_name: str) -> Tuple[str, int]:
+    """
+    Parse a token68 from ``header`` at the given position.
+
+    Return the token value and the new position.
+
+    Raise :exc:`~websockets.exceptions.InvalidHeaderFormat` on invalid inputs.
+
+    """
+    match = _token68_re.match(header, pos)
+    if match is None:
+        raise InvalidHeaderFormat(header_name, "expected token68", header, pos)
+    return match.group(), match.end()
+
+
+def parse_end(header: str, pos: int, header_name: str) -> None:
+    """
+    Check that parsing reached the end of header.
+
+    """
+    if pos < len(header):
+        raise InvalidHeaderFormat(header_name, "trailing data", header, pos)
+
+
+def parse_authorization_basic(header: str) -> Tuple[str, str]:
+    """
+    Parse an Authorization header for HTTP Basic Auth.
+
+    Return a ``(username, password)`` tuple.
+
+    """
+    # https://tools.ietf.org/html/rfc7235#section-2.1
+    # https://tools.ietf.org/html/rfc7617#section-2
+    scheme, pos = parse_token(header, 0, "Authorization")
+    if scheme.lower() != "basic":
+        raise InvalidHeaderValue("Authorization", f"unsupported scheme: {scheme}")
+    if peek_ahead(header, pos) != " ":
+        raise InvalidHeaderFormat(
+            "Authorization", "expected space after scheme", header, pos
+        )
+    pos += 1
+    basic_credentials, pos = parse_token68(header, pos, "Authorization")
+    parse_end(header, pos, "Authorization")
+
+    try:
+        user_pass = base64.b64decode(basic_credentials.encode()).decode()
+    except binascii.Error:
+        raise InvalidHeaderValue(
+            "Authorization", "expected base64-encoded credentials"
+        ) from None
+    try:
+        username, password = user_pass.split(":", 1)
+    except ValueError:
+        raise InvalidHeaderValue(
+            "Authorization", "expected username:password credentials"
+        ) from None
+
+    return username, password

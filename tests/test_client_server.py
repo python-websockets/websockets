@@ -568,7 +568,7 @@ class ClientServerTests(unittest.TestCase):
 
     @with_server(extra_headers=lambda p, r: None)
     @with_client("/headers")
-    def test_protocol_custom_response_headers_callable(self):
+    def test_protocol_custom_response_headers_callable_none(self):
         self.loop.run_until_complete(self.client.recv())  # doesn't crash
         self.loop.run_until_complete(self.client.recv())  # nothing to check
 

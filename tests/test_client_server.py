@@ -340,6 +340,26 @@ class ClientServerTestsMixin:
         with temp_test_client(self, *args, **kwds):
             yield
 
+    def make_http_request(self, path="/", headers=None):
+        if headers is None:
+            headers = {}
+
+        # Set url to 'https?://<host>:<port><path>'.
+        url = get_server_uri(
+            self.server, resource_name=path, secure=self.secure
+        ).replace("ws", "http")
+
+        request = urllib.request.Request(url=url, headers=headers)
+
+        if self.secure:
+            open_health_check = functools.partial(
+                urllib.request.urlopen, request, context=self.client_context
+            )
+        else:
+            open_health_check = functools.partial(urllib.request.urlopen, request)
+
+        return self.loop.run_in_executor(None, open_health_check)
+
 
 class SecureClientServerTestsMixin(ClientServerTestsMixin):
 
@@ -587,13 +607,6 @@ class CommonClientServerTests:
         self.assertEqual(server_path, "/path")
 
     @with_server()
-    @with_client("/headers", user_info=("user", "pass"))
-    def test_protocol_basic_auth(self):
-        self.assertEqual(
-            self.client.request_headers["Authorization"], "Basic dXNlcjpwYXNz"
-        )
-
-    @with_server()
     @with_client("/headers")
     def test_protocol_headers(self):
         client_req = self.client.request_headers
@@ -689,20 +702,6 @@ class CommonClientServerTests:
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(resp_headers.count("Server"), 1)
         self.assertIn("('Server', 'Eggs')", resp_headers)
-
-    def make_http_request(self, path="/"):
-        # Set url to 'https?://<host>:<port><path>'.
-        url = get_server_uri(self.server, resource_name=path, secure=self.secure)
-        url = url.replace("ws", "http")
-
-        if self.secure:
-            open_health_check = functools.partial(
-                urllib.request.urlopen, url, context=self.client_context
-            )
-        else:
-            open_health_check = functools.partial(urllib.request.urlopen, url)
-
-        return self.loop.run_in_executor(None, open_health_check)
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_http_request_http_endpoint(self):
@@ -979,12 +978,12 @@ class CommonClientServerTests:
 
     def test_compression_unsupported_server(self):
         with self.assertRaises(ValueError):
-            self.loop.run_until_complete(self.start_server(compression="xz"))
+            self.start_server(compression="xz")
 
     @with_server()
     def test_compression_unsupported_client(self):
         with self.assertRaises(ValueError):
-            self.loop.run_until_complete(self.start_client(compression="xz"))
+            self.start_client(compression="xz")
 
     @with_server()
     @with_client("/subprotocol")

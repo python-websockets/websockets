@@ -102,6 +102,17 @@ Per-Message Deflate Extension
 
     .. autoclass:: ClientPerMessageDeflateFactory
 
+HTTP Basic Auth
+...............
+
+.. automodule:: websockets.auth
+
+    .. autofunction:: basic_auth_protocol_factory
+
+    .. autoclass:: BasicAuthWebSocketServerProtocol
+
+        .. automethod:: process_request
+
 Exceptions
 ..........
 

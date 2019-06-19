@@ -84,10 +84,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
         process_request: Optional[
-            Callable[
-                [str, Headers],
-                Union[Optional[HTTPResponse], Awaitable[Optional[HTTPResponse]]],
-            ]
+            Callable[[str, Headers], Awaitable[Optional[HTTPResponse]]]
         ] = None,
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
@@ -266,15 +263,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             logger.debug("%s > Body (%d bytes)", self.side, len(body))
             self.writer.write(body)
 
-    def process_request(
+    async def process_request(
         self, path: str, request_headers: Headers
-    ) -> Union[Optional[HTTPResponse], Awaitable[Optional[HTTPResponse]]]:
+    ) -> Optional[HTTPResponse]:
         """
         Intercept the HTTP request and return an HTTP response if needed.
 
         ``request_headers`` is a :class:`~websockets.http.Headers` instance.
 
-        If this method returns ``None``, the WebSocket handshake continues.
+        If this coroutine returns ``None``, the WebSocket handshake continues.
         If it returns a status code, headers and a response body, that HTTP
         response is sent and the connection is closed.
 
@@ -286,12 +283,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         The HTTP response body must be :class:`bytes`. It may be empty.
 
-        This method may be overridden to check the request headers and set a
-        different status, for example to authenticate the request and return
-        ``HTTPStatus.UNAUTHORIZED`` or ``HTTPStatus.FORBIDDEN``.
-
-        It can be declared as a function or as a coroutine because such
-        authentication checks are likely to require network requests.
+        This coroutine may be overridden to check the request headers and set
+        a different status, for example to authenticate the request and return
+        :attr:`http.HTTPStatus.UNAUTHORIZED` or
+        :attr:`http.HTTPStatus.FORBIDDEN`.
 
         It may also be overridden by passing a ``process_request`` argument to
         the :class:`WebSocketServerProtocol` constructor or the :func:`serve`
@@ -299,7 +294,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         """
         if self._process_request is not None:
-            return self._process_request(path, request_headers)
+            response = self._process_request(path, request_headers)
+            if isinstance(response, Awaitable):
+                return await response
+            else:
+                # For backwards-compatibility with 7.0.
+                warnings.warn(
+                    "declare process_request as a coroutine", DeprecationWarning
+                )
+                return response  # type: ignore
         return None
 
     @staticmethod
@@ -503,9 +506,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         # Hook for customizing request handling, for example checking
         # authentication or treating some paths as plain HTTP endpoints.
-        early_response = self.process_request(path, request_headers)
-        if isinstance(early_response, Awaitable):
-            early_response = await early_response
+        early_response_awaitable = self.process_request(path, request_headers)
+        if isinstance(early_response_awaitable, Awaitable):
+            early_response = await early_response_awaitable
+        else:
+            # For backwards-compatibility with 7.0.
+            warnings.warn("declare process_request as a coroutine", DeprecationWarning)
+            early_response = early_response_awaitable  # type: ignore
 
         # Change the response to a 503 error if the server is shutting down.
         if not self.ws_server.is_serving():
@@ -767,9 +774,9 @@ class Serve:
       :class:`~collections.abc.Mapping`, an iterable of ``(name, value)``
       pairs, or a callable taking the request path and headers in arguments
       and returning one of the above
-    * ``process_request`` is a callable or a coroutine taking the request path
-      and headers in argument, see
-      :meth:`~WebSocketServerProtocol.process_request` for details
+    * ``process_request`` is a coroutine taking the request path and headers
+      in argument, see :meth:`~WebSocketServerProtocol.process_request` for
+      details
     * ``select_subprotocol`` is a callable taking the subprotocols offered by
       the client and available on the server in argument, see
       :meth:`~WebSocketServerProtocol.select_subprotocol` for details
@@ -821,7 +828,7 @@ class Serve:
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
         process_request: Optional[
-            Callable[[str, Headers], Optional[HTTPResponse]]
+            Callable[[str, Headers], Awaitable[Optional[HTTPResponse]]]
         ] = None,
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]

@@ -14,7 +14,21 @@ Changelog
 
 .. note::
 
-    **Version 8.0 changes the behavior of the ``max_queue`` parameter.**
+    **Version 8.0 expects** ``process_request`` **to be a coroutine.**
+
+    Previously, it could be a function or a coroutine.
+
+    If you're passing a ``process_request`` argument to :func:`~server.serve`
+    or :class:`~server.WebSocketServerProtocol`, or if you're overriding
+    :meth:`~protocol.WebSocketServerProtocol.process_request` in a subclass,
+    define it with ``async def`` instead of ``def``.
+
+    For backwards compatibility, functions are still supported. However, in
+    some inheritance scenarios, mixing functions and coroutines won't work.
+
+.. note::
+
+    **Version 8.0 changes the behavior of the** ``max_queue`` **parameter.**
 
     If you were setting ``max_queue=0`` to make the queue of incoming messages
     unbounded, change it to ``max_queue=None``.

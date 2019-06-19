@@ -270,7 +270,7 @@ class ClientServerTests(unittest.TestCase):
     def start_redirecting_server(
         self, status, include_location=True, force_insecure=False
     ):
-        def _process_request(path, headers):
+        async def process_request(path, headers):
             server_uri = get_server_uri(self.server, self.secure, path)
             if force_insecure:
                 server_uri = server_uri.replace("wss:", "ws:")
@@ -283,7 +283,7 @@ class ClientServerTests(unittest.TestCase):
             0,
             compression=None,
             ping_interval=None,
-            process_request=_process_request,
+            process_request=process_request,
             ssl=self.server_context,
         )
         self.redirecting_server = self.loop.run_until_complete(start_server)
@@ -458,18 +458,82 @@ class ClientServerTests(unittest.TestCase):
                 client_socket.close()
                 self.stop_server()
 
-    @with_server(process_request=lambda p, rh: (http.HTTPStatus.OK, [], b"OK\n"))
+    async def process_request_OK(path, request_headers):
+        return http.HTTPStatus.OK, [], b"OK\n"
+
+    @with_server(process_request=process_request_OK)
     def test_process_request_argument(self):
         response = self.loop.run_until_complete(self.make_http_request("/"))
 
         with contextlib.closing(response):
             self.assertEqual(response.code, 200)
 
+    def legacy_process_request_OK(path, request_headers):
+        return http.HTTPStatus.OK, [], b"OK\n"
+
+    @with_server(process_request=legacy_process_request_OK)
+    def test_process_request_argument_backwards_compatibility(self):
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            response = self.loop.run_until_complete(self.make_http_request("/"))
+
+        with contextlib.closing(response):
+            self.assertEqual(response.code, 200)
+
+        self.assertEqual(len(recorded_warnings), 1)
+        warning = recorded_warnings[0].message
+        self.assertEqual(str(warning), "declare process_request as a coroutine")
+        self.assertEqual(type(warning), DeprecationWarning)
+
+    class ProcessRequestOKServerProtocol(WebSocketServerProtocol):
+        async def process_request(self, path, request_headers):
+            return http.HTTPStatus.OK, [], b"OK\n"
+
+    @with_server(create_protocol=ProcessRequestOKServerProtocol)
+    def test_process_request_override(self):
+        response = self.loop.run_until_complete(self.make_http_request("/"))
+
+        with contextlib.closing(response):
+            self.assertEqual(response.code, 200)
+
+    class LegacyProcessRequestOKServerProtocol(WebSocketServerProtocol):
+        def process_request(self, path, request_headers):
+            return http.HTTPStatus.OK, [], b"OK\n"
+
+    @with_server(create_protocol=LegacyProcessRequestOKServerProtocol)
+    def test_process_request_override_backwards_compatibility(self):
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            response = self.loop.run_until_complete(self.make_http_request("/"))
+
+        with contextlib.closing(response):
+            self.assertEqual(response.code, 200)
+
+        self.assertEqual(len(recorded_warnings), 1)
+        warning = recorded_warnings[0].message
+        self.assertEqual(str(warning), "declare process_request as a coroutine")
+        self.assertEqual(type(warning), DeprecationWarning)
+
+    def select_subprotocol_chat(client_subprotocols, server_subprotocols):
+        return "chat"
+
     @with_server(
-        subprotocols=["superchat", "chat"], select_subprotocol=lambda cs, ss: "chat"
+        subprotocols=["superchat", "chat"], select_subprotocol=select_subprotocol_chat
     )
     @with_client("/subprotocol", subprotocols=["superchat", "chat"])
     def test_select_subprotocol_argument(self):
+        server_subprotocol = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(server_subprotocol, repr("chat"))
+        self.assertEqual(self.client.subprotocol, "chat")
+
+    class SelectSubprotocolChatServerProtocol(WebSocketServerProtocol):
+        def select_subprotocol(self, client_subprotocols, server_subprotocols):
+            return "chat"
+
+    @with_server(
+        subprotocols=["superchat", "chat"],
+        create_protocol=SelectSubprotocolChatServerProtocol,
+    )
+    @with_client("/subprotocol", subprotocols=["superchat", "chat"])
+    def test_select_subprotocol_override(self):
         server_subprotocol = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(server_subprotocol, repr("chat"))
         self.assertEqual(self.client.subprotocol, "chat")
@@ -658,11 +722,10 @@ class ClientServerTests(unittest.TestCase):
     def test_server_create_protocol(self):
         self.assert_client_raises_code(401)
 
-    @with_server(
-        create_protocol=(
-            lambda *args, **kwargs: UnauthorizedServerProtocol(*args, **kwargs)
-        )
-    )
+    def create_unauthorized_server_protocol(*args, **kwargs):
+        return UnauthorizedServerProtocol(*args, **kwargs)
+
+    @with_server(create_protocol=create_unauthorized_server_protocol)
     def test_server_create_protocol_function(self):
         self.assert_client_raises_code(401)
 

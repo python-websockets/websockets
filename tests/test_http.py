@@ -4,17 +4,13 @@ import unittest
 from websockets.http import *
 from websockets.http import read_headers
 
+from .utils import AsyncioTestCase
 
-class HTTPAsyncTests(unittest.TestCase):
+
+class HTTPAsyncTests(AsyncioTestCase):
     def setUp(self):
         super().setUp()
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
         self.stream = asyncio.StreamReader(loop=self.loop)
-
-    def tearDown(self):
-        self.loop.close()
-        super().tearDown()
 
     def test_read_request(self):
         # Example from the protocol overview in RFC 6455

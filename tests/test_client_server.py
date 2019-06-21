@@ -33,6 +33,7 @@ from websockets.protocol import State
 from websockets.server import *
 
 from .test_protocol import MS
+from .utils import AsyncioTestCase
 
 
 # Avoid displaying stack traces at the ERROR logging level.
@@ -226,24 +227,14 @@ class NoOpExtension:
         return frame
 
 
-class ClientServerTests(unittest.TestCase):
+class ClientServerTestsMixin:
 
     secure = False
 
     def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
+        super().setUp()
         self.server = None
         self.redirecting_server = None
-
-    def tearDown(self):
-        self.loop.close()
-
-    def run_loop_once(self):
-        # Process callbacks scheduled with call_soon by appending a callback
-        # to stop the event loop then running it until it hits that callback.
-        self.loop.call_soon(self.loop.stop)
-        self.loop.run_forever()
 
     @property
     def server_context(self):
@@ -348,6 +339,40 @@ class ClientServerTests(unittest.TestCase):
     def temp_client(self, *args, **kwds):
         with temp_test_client(self, *args, **kwds):
             yield
+
+
+class SecureClientServerTestsMixin(ClientServerTestsMixin):
+
+    secure = True
+
+    @property
+    def server_context(self):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+        ssl_context.load_cert_chain(testcert)
+        return ssl_context
+
+    @property
+    def client_context(self):
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_context.load_verify_locations(testcert)
+        return ssl_context
+
+    def start_server(self, **kwds):
+        kwds.setdefault("ssl", self.server_context)
+        super().start_server(**kwds)
+
+    def start_client(self, path="/", **kwds):
+        kwds.setdefault("ssl", self.client_context)
+        super().start_client(path, **kwds)
+
+
+class CommonClientServerTests:
+    """
+    Mixin that defines most tests but doesn't inherit unittest.TestCase.
+
+    Tests are run by the ClientServerTests and SecureClientServerTests subclasses.
+
+    """
 
     @with_server()
     @with_client()
@@ -1211,29 +1236,15 @@ class ClientServerTests(unittest.TestCase):
         self.assertEqual(self.client.close_code, 1006)
 
 
-class SSLClientServerTests(ClientServerTests):
+class ClientServerTests(
+    CommonClientServerTests, ClientServerTestsMixin, AsyncioTestCase
+):
+    pass
 
-    secure = True
 
-    @property
-    def server_context(self):
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context.load_cert_chain(testcert)
-        return ssl_context
-
-    @property
-    def client_context(self):
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ssl_context.load_verify_locations(testcert)
-        return ssl_context
-
-    def start_server(self, **kwds):
-        kwds.setdefault("ssl", self.server_context)
-        super().start_server(**kwds)
-
-    def start_client(self, path="/", **kwds):
-        kwds.setdefault("ssl", self.client_context)
-        super().start_client(path, **kwds)
+class SecureClientServerTests(
+    CommonClientServerTests, SecureClientServerTestsMixin, AsyncioTestCase
+):
 
     # TLS over Unix sockets doesn't make sense.
     test_unix_socket = None
@@ -1253,14 +1264,7 @@ class SSLClientServerTests(ClientServerTests):
                     self.fail("Did not raise")  # pragma: no cover
 
 
-class ClientServerOriginTests(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-
-    def tearDown(self):
-        self.loop.close()
-
+class ClientServerOriginTests(AsyncioTestCase):
     def test_checking_origin_succeeds(self):
         server = self.loop.run_until_complete(
             serve(handler, "localhost", 0, origins=["http://localhost"])
@@ -1337,14 +1341,7 @@ class ClientServerOriginTests(unittest.TestCase):
         self.loop.run_until_complete(server.wait_closed())
 
 
-class YieldFromTests(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-
-    def tearDown(self):
-        self.loop.close()
-
+class YieldFromTests(AsyncioTestCase):
     def test_client(self):
         start_server = serve(handler, "localhost", 0)
         server = self.loop.run_until_complete(start_server)
@@ -1375,14 +1372,7 @@ class YieldFromTests(unittest.TestCase):
         self.loop.run_until_complete(run_server())
 
 
-class AsyncAwaitTests(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-
-    def tearDown(self):
-        self.loop.close()
-
+class AsyncAwaitTests(AsyncioTestCase):
     def test_client(self):
         start_server = serve(handler, "localhost", 0)
         server = self.loop.run_until_complete(start_server)
@@ -1411,14 +1401,7 @@ class AsyncAwaitTests(unittest.TestCase):
         self.loop.run_until_complete(run_server())
 
 
-class ContextManagerTests(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-
-    def tearDown(self):
-        self.loop.close()
-
+class ContextManagerTests(AsyncioTestCase):
     def test_client(self):
         start_server = serve(handler, "localhost", 0)
         server = self.loop.run_until_complete(start_server)
@@ -1461,19 +1444,12 @@ class ContextManagerTests(unittest.TestCase):
             self.loop.run_until_complete(run_server(path))
 
 
-class AsyncIteratorTests(unittest.TestCase):
+class AsyncIteratorTests(AsyncioTestCase):
 
     # This is a protocol-level feature, but since it's a high-level API, it is
     # much easier to exercise at the client or server level.
 
     MESSAGES = ["3", "2", "1", "Fire!"]
-
-    def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
-
-    def tearDown(self):
-        self.loop.close()
 
     def test_iterate_on_messages(self):
         async def handler(ws, path):

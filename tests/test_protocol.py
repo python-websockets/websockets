@@ -1,8 +1,6 @@
 import asyncio
 import contextlib
 import logging
-import os
-import time
 import unittest
 import unittest.mock
 import warnings
@@ -11,21 +9,11 @@ from websockets.exceptions import ConnectionClosed, InvalidState
 from websockets.framing import *
 from websockets.protocol import State, WebSocketCommonProtocol
 
+from .utils import MS, AsyncioTestCase
+
 
 # Avoid displaying stack traces at the ERROR logging level.
 logging.basicConfig(level=logging.CRITICAL)
-
-
-# Unit for timeouts. May be increased on slow machines by setting the
-# WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
-MS = 0.001 * int(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", 1))
-
-# asyncio's debug mode has a 10x performance penalty for this test suite.
-if os.environ.get("PYTHONASYNCIODEBUG"):  # pragma: no cover
-    MS *= 10
-
-# Ensure that timeouts are larger than the clock's resolution (for Windows).
-MS = max(MS, 2.5 * time.get_clock_info("monotonic").resolution)
 
 
 async def async_iterable(iterable):
@@ -93,8 +81,6 @@ class CommonTests:
 
     def setUp(self):
         super().setUp()
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
         # Disable pings to make it easier to test what frames are sent exactly.
         self.protocol = WebSocketCommonProtocol(ping_interval=None)
         self.transport = TransportMock()
@@ -103,16 +89,9 @@ class CommonTests:
     def tearDown(self):
         self.transport.close()
         self.loop.run_until_complete(self.protocol.close())
-        self.loop.close()
         super().tearDown()
 
     # Utilities for writing tests.
-
-    def run_loop_once(self):
-        # Process callbacks scheduled with call_soon by appending a callback
-        # to stop the event loop then running it until it hits that callback.
-        self.loop.call_soon(self.loop.stop)
-        self.loop.run_forever()
 
     def make_drain_slow(self, delay=MS):
         # Process connection_made in order to initialize self.protocol.writer.
@@ -1248,7 +1227,7 @@ class CommonTests:
     # happen, considering that writes are serialized.
 
 
-class ServerTests(CommonTests, unittest.TestCase):
+class ServerTests(CommonTests, AsyncioTestCase):
     def setUp(self):
         super().setUp()
         self.protocol.is_client = False
@@ -1299,7 +1278,7 @@ class ServerTests(CommonTests, unittest.TestCase):
         self.assertConnectionClosed(1000, "close")
 
 
-class ClientTests(CommonTests, unittest.TestCase):
+class ClientTests(CommonTests, AsyncioTestCase):
     def setUp(self):
         super().setUp()
         self.protocol.is_client = True

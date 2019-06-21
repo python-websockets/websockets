@@ -6,15 +6,10 @@ import unittest.mock
 from websockets.exceptions import PayloadTooBig, WebSocketProtocolError
 from websockets.framing import *
 
+from .utils import AsyncioTestCase
 
-class FramingTests(unittest.TestCase):
-    def setUp(self):
-        self.loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self.loop)
 
-    def tearDown(self):
-        self.loop.close()
-
+class FramingTests(AsyncioTestCase):
     def decode(self, message, mask=False, max_size=None, extensions=None):
         self.stream = asyncio.StreamReader(loop=self.loop)
         self.stream.feed_data(message)

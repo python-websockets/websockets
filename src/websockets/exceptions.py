@@ -24,6 +24,7 @@ __all__ = [
     "InvalidURI",
     "NegotiationError",
     "PayloadTooBig",
+    "RedirectHandshake",
     "WebSocketProtocolError",
 ]
 
@@ -59,6 +60,9 @@ class RedirectHandshake(InvalidHandshake):
 
     def __init__(self, uri: str) -> None:
         self.uri = uri
+
+    def __str__(self) -> str:
+        return f"Redirect to {self.uri}"
 
 
 class InvalidMessage(InvalidHandshake):

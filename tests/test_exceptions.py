@@ -17,6 +17,10 @@ class ExceptionsTests(unittest.TestCase):
                 "HTTP 200, 0 headers, 3 bytes",
             ),
             (
+                RedirectHandshake("wss://example.com"),
+                "Redirect to wss://example.com",
+            ),
+            (
                 InvalidMessage("Malformed HTTP message"),
                 "Malformed HTTP message",
             ),
@@ -47,7 +51,6 @@ class ExceptionsTests(unittest.TestCase):
                 InvalidHeaderValue("Sec-WebSocket-Version", "42"),
                 "Invalid Sec-WebSocket-Version header: 42",
             ),
-
             (
                 InvalidUpgrade("Upgrade"),
                 "Missing Upgrade header",

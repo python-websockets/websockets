@@ -8,12 +8,14 @@ import ssl
 import websockets
 
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-ssl_context.load_verify_locations(
-    pathlib.Path(__file__).with_name('localhost.pem'))
+localhost_pem = pathlib.Path(__file__).with_name("localhost.pem")
+ssl_context.load_verify_locations(localhost_pem)
 
 async def hello():
+    uri = "wss://localhost:8765"
     async with websockets.connect(
-            'wss://localhost:8765', ssl=ssl_context) as websocket:
+        uri, ssl=ssl_context
+    ) as websocket:
         name = input("What's your name? ")
 
         await websocket.send(name)

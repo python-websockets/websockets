@@ -154,4 +154,4 @@ the :meth:`~server.WebSocketServerProtocol.process_request` hook. Typical
 use cases include health checks. Here's an example:
 
 .. literalinclude:: ../example/health_check_server.py
-    :emphasize-lines: 9-11,17-18
+    :emphasize-lines: 9-11,17-19

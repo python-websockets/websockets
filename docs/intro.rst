@@ -40,7 +40,7 @@ coroutine returns.
 Here's a corresponding WebSocket client example.
 
 .. literalinclude:: ../example/client.py
-    :emphasize-lines: 8-10
+    :emphasize-lines: 8,10
 
 Using :func:`connect` as an asynchronous context manager ensures the
 connection is closed before exiting the ``hello`` coroutine.
@@ -60,12 +60,12 @@ Here's how to adapt the server example to provide secure connections. See the
 documentation of the :mod:`ssl` module for configuring the context securely.
 
 .. literalinclude:: ../example/secure_server.py
-    :emphasize-lines: 19,23-24
+    :emphasize-lines: 19,23-25
 
 Here's how to adapt the client.
 
 .. literalinclude:: ../example/secure_client.py
-    :emphasize-lines: 10,15-16
+    :emphasize-lines: 10,15-18
 
 This client needs a context because the server uses a self-signed certificate.
 

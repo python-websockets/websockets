@@ -9,7 +9,7 @@ async def echo(websocket, path):
         await websocket.send(message)
 
 async def echo_server(stop):
-    async with websockets.serve(echo, 'localhost', 8765):
+    async with websockets.serve(echo, "localhost", 8765):
         await stop
 
 loop = asyncio.get_event_loop()

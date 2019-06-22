@@ -864,6 +864,35 @@ class CommonTests:
         self.assertTrue(pings[1][0].done())
         self.assertFalse(pings[2][0].done())
 
+    def test_acknowledge_aborted_ping(self):
+        ping = self.loop.run_until_complete(self.protocol.ping())
+        ping_frame = self.last_sent_frame()
+        # Clog incoming queue. This lets connection_lost() abort pending pings
+        # with a ConnectionClosed exception before transfer_data_task
+        # terminates and close_connection cancels keepalive_ping_task.
+        self.protocol.max_queue = 1
+        self.receive_frame(Frame(True, OP_TEXT, b"1"))
+        self.receive_frame(Frame(True, OP_TEXT, b"2"))
+        # Add pong frame to the queue.
+        pong_frame = Frame(True, OP_PONG, ping_frame.data)
+        self.receive_frame(pong_frame)
+        # Connection drops.
+        self.receive_eof()
+        self.loop.run_until_complete(self.protocol.wait_closed())
+        # Ping receives a ConnectionClosed exception.
+        with self.assertRaises(ConnectionClosed):
+            ping.result()
+
+        with self.assertLogs("websockets", level=logging.ERROR) as logs:
+            # We want to test that no error log is emitted.
+            # Unfortunately assertLogs expects at least one log message.
+            logging.getLogger("websockets").error("dummy")
+            # Unclog incoming queue.
+            self.loop.run_until_complete(self.protocol.recv())
+            self.loop.run_until_complete(self.protocol.recv())
+        # transfer_data doesn't crash, which would be logged.
+        self.assertEqual(logs.output[1:], [])
+
     def test_canceled_ping(self):
         ping = self.loop.run_until_complete(self.protocol.ping())
         ping_frame = self.last_sent_frame()

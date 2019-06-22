@@ -43,7 +43,7 @@ if sys.platform == "win32":
 
 
 def exit_from_event_loop_thread(
-    loop: asyncio.AbstractEventLoop, stop: asyncio.Future[None]
+    loop: asyncio.AbstractEventLoop, stop: "asyncio.Future[None]"
 ) -> None:
     loop.stop()
     if not stop.done():
@@ -91,8 +91,8 @@ def print_over_input(string: str) -> None:
 async def run_client(
     uri: str,
     loop: asyncio.AbstractEventLoop,
-    inputs: asyncio.Queue[str],
-    stop: asyncio.Future[None],
+    inputs: "asyncio.Queue[str]",
+    stop: "asyncio.Future[None]",
 ) -> None:
     try:
         websocket = await websockets.connect(uri)

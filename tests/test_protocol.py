@@ -883,15 +883,11 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed):
             ping.result()
 
-        with self.assertLogs("websockets", level=logging.ERROR) as logs:
-            # We want to test that no error log is emitted.
-            # Unfortunately assertLogs expects at least one log message.
-            logging.getLogger("websockets").error("dummy")
+        # transfer_data doesn't crash, which would be logged.
+        with self.assertNoLogs():
             # Unclog incoming queue.
             self.loop.run_until_complete(self.protocol.recv())
             self.loop.run_until_complete(self.protocol.recv())
-        # transfer_data doesn't crash, which would be logged.
-        self.assertEqual(logs.output[1:], [])
 
     def test_canceled_ping(self):
         ping = self.loop.run_until_complete(self.protocol.ping())
@@ -1204,6 +1200,19 @@ class CommonTests:
 
         self.assertConnectionClosed(1000, "close")
         self.assertNoFrameSent()
+
+    def test_remote_close_and_connection_lost(self):
+        self.make_drain_slow()
+        # Drop the connection right after receiving a close frame,
+        # which prevents echoing the close frame properly.
+        self.receive_frame(self.close_frame)
+        self.receive_eof()
+
+        with self.assertNoLogs():
+            self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
+
+        self.assertConnectionClosed(1000, "close")
+        self.assertOneFrameSent(*self.close_frame)
 
     def test_simultaneous_close(self):
         # Receive the incoming close frame right after self.protocol.close()

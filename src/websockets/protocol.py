@@ -864,10 +864,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 # 7.1.5.  The WebSocket Connection Close Code
                 # 7.1.6.  The WebSocket Connection Close Reason
                 self.close_code, self.close_reason = parse_close(frame.data)
-                # Echo the original data instead of re-serializing it with
-                # serialize_close() because that fails when the close frame is
-                # empty and parse_close() synthetizes a 1005 close code.
-                await self.write_close_frame(frame.data)
+                try:
+                    # Echo the original data instead of re-serializing it with
+                    # serialize_close() because that fails when the close frame
+                    # is empty and parse_close() synthetizes a 1005 close code.
+                    await self.write_close_frame(frame.data)
+                except ConnectionClosed:
+                    # It doesn't really matter if the connection was closed
+                    # before we could send back a close frame.
+                    pass
                 return None
 
             elif frame.opcode == OP_PING:

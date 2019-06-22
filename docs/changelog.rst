@@ -50,7 +50,7 @@ Also:
   :exc:`~exceptions.ConnectionClosed` to tell apart normal connection
   termination from errors.
 
-* :func:`~client.connect()` handles redirects from the server during the
+* :func:`~client.connect` handles redirects from the server during the
   handshake.
 
 * Improved support for sending fragmented messages by accepting asynchronous
@@ -72,7 +72,7 @@ Also:
 .. warning::
 
     **Version 7.0 renames the** ``timeout`` **argument of**
-    :func:`~server.serve()` **and** :func:`~client.connect()` **to**
+    :func:`~server.serve()` **and** :func:`~client.connect` **to**
     ``close_timeout`` **.**
 
     This prevents confusion with ``ping_timeout``.
@@ -122,7 +122,7 @@ Also:
   :class:`~protocol.WebSocketCommonProtocol` for details.
 
 * Added ``process_request`` and ``select_subprotocol`` arguments to
-  :func:`~server.serve()` and :class:`~server.WebSocketServerProtocol` to
+  :func:`~server.serve` and :class:`~server.WebSocketServerProtocol` to
   customize :meth:`~server.WebSocketServerProtocol.process_request` and
   :meth:`~server.WebSocketServerProtocol.select_subprotocol` without
   subclassing :class:`~server.WebSocketServerProtocol`.
@@ -187,7 +187,7 @@ Also:
 .....
 
 * Fixed a regression in the 5.0 release that broke some invocations of
-  :func:`~server.serve()` and :func:`~client.connect()`.
+  :func:`~server.serve()` and :func:`~client.connect`.
 
 5.0
 ...
@@ -212,7 +212,7 @@ Also:
 
 Also:
 
-* :func:`~client.connect()` performs HTTP Basic Auth when the URI contains
+* :func:`~client.connect` performs HTTP Basic Auth when the URI contains
   credentials.
 
 * Iterating on incoming messages no longer raises an exception when the
@@ -268,7 +268,7 @@ Also:
     Compression should improve performance but it increases RAM and CPU use.
 
     If you want to disable compression, add ``compression=None`` when calling
-    :func:`~server.serve()` or :func:`~client.connect()`.
+    :func:`~server.serve()` or :func:`~client.connect`.
 
 .. warning::
 
@@ -306,7 +306,7 @@ Also:
 3.4
 ...
 
-* Renamed :func:`~server.serve()` and :func:`~client.connect()`'s ``klass``
+* Renamed :func:`~server.serve()` and :func:`~client.connect`'s ``klass``
   argument to ``create_protocol`` to reflect that it can also be a callable.
   For backwards compatibility, ``klass`` is still supported.
 
@@ -314,7 +314,7 @@ Also:
   Python ≥ 3.5.1.
 
 * Added support for customizing handling of incoming connections with
-  :meth:`~server.WebSocketServerProtocol.process_request()`.
+  :meth:`~server.WebSocketServerProtocol.process_request`.
 
 * Made read and write buffer sizes configurable.
 
@@ -322,10 +322,10 @@ Also:
 
 * Added an optional C extension to speed up low-level operations.
 
-* An invalid response status code during :func:`~client.connect()` now raises
+* An invalid response status code during :func:`~client.connect` now raises
   :class:`~exceptions.InvalidStatusCode` with a ``code`` attribute.
 
-* Providing a ``sock`` argument to :func:`~client.connect()` no longer
+* Providing a ``sock`` argument to :func:`~client.connect` no longer
   crashes.
 
 3.3
@@ -341,7 +341,7 @@ Also:
 ...
 
 * Added ``timeout``, ``max_size``, and ``max_queue`` arguments to
-  :func:`~client.connect()` and :func:`~server.serve()`.
+  :func:`~client.connect()` and :func:`~server.serve`.
 
 * Made server shutdown more robust.
 

@@ -32,20 +32,20 @@ WebSocket connections go through a trivial state machine:
 Transitions happen in the following places:
 
 - ``CONNECTING -> OPEN``: in
-  :meth:`~protocol.WebSocketCommonProtocol.connection_open()` which runs when
+  :meth:`~protocol.WebSocketCommonProtocol.connection_open` which runs when
   the :ref:`opening handshake <opening-handshake>` completes and the WebSocket
   connection is established — not to be confused with
   :meth:`~asyncio.Protocol.connection_made` which runs when the TCP connection
   is established;
 - ``OPEN -> CLOSING``: in
-  :meth:`~protocol.WebSocketCommonProtocol.write_frame()` immediately before
+  :meth:`~protocol.WebSocketCommonProtocol.write_frame` immediately before
   sending a close frame; since receiving a close frame triggers sending a
   close frame, this does the right thing regardless of which side started the
   :ref:`closing handshake <closing-handshake>`; also in
-  :meth:`~protocol.WebSocketCommonProtocol.fail_connection()` which duplicates
+  :meth:`~protocol.WebSocketCommonProtocol.fail_connection` which duplicates
   a few lines of code from `write_close_frame()` and `write_frame()`;
 - ``* -> CLOSED``: in
-  :meth:`~protocol.WebSocketCommonProtocol.connection_lost()` which is always
+  :meth:`~protocol.WebSocketCommonProtocol.connection_lost` which is always
   called exactly once when the TCP connection is closed.
 
 Coroutines
@@ -58,35 +58,35 @@ connection lifecycle on the client side.
    :target: _images/lifecycle.svg
 
 The lifecycle is identical on the server side, except inversion of control
-makes the equivalent of :meth:`~client.connect()` implicit.
+makes the equivalent of :meth:`~client.connect` implicit.
 
 Coroutines shown in green are called by the application. Multiple coroutines
 may interact with the WebSocket connection concurrently.
 
 Coroutines shown in gray manage the connection. When the opening handshake
-succeeds, :meth:`~protocol.WebSocketCommonProtocol.connection_open()` starts
+succeeds, :meth:`~protocol.WebSocketCommonProtocol.connection_open` starts
 two tasks:
 
 - :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` runs
-  :meth:`~protocol.WebSocketCommonProtocol.transfer_data()` which handles
-  incoming data and lets :meth:`~protocol.WebSocketCommonProtocol.recv()`
+  :meth:`~protocol.WebSocketCommonProtocol.transfer_data` which handles
+  incoming data and lets :meth:`~protocol.WebSocketCommonProtocol.recv`
   consume it. It may be canceled to terminate the connection. It never exits
   with an exception other than :exc:`~asyncio.CancelledError`. See :ref:`data
   transfer <data-transfer>` below.
 
 - :attr:`~protocol.WebSocketCommonProtocol.keepalive_ping_task` runs
-  :meth:`~protocol.WebSocketCommonProtocol.keepalive_ping()` which sends Ping
+  :meth:`~protocol.WebSocketCommonProtocol.keepalive_ping` which sends Ping
   frames at regular intervals and ensures that corresponding Pong frames are
   received. It is canceled when the connection terminates. It never exits
   with an exception other than :exc:`~asyncio.CancelledError`.
 
 - :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` runs
-  :meth:`~protocol.WebSocketCommonProtocol.close_connection()` which waits for
+  :meth:`~protocol.WebSocketCommonProtocol.close_connection` which waits for
   the data transfer to terminate, then takes care of closing the TCP
   connection. It must not be canceled. It never exits with an exception. See
   :ref:`connection termination <connection-termination>` below.
 
-Besides, :meth:`~protocol.WebSocketCommonProtocol.fail_connection()` starts
+Besides, :meth:`~protocol.WebSocketCommonProtocol.fail_connection` starts
 the same :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` when
 the opening handshake fails, in order to close the TCP connection.
 
@@ -113,7 +113,7 @@ Opening handshake
 -----------------
 
 ``websockets`` performs the opening handshake when establishing a WebSocket
-connection. On the client side, :meth:`~client.connect()` executes it before
+connection. On the client side, :meth:`~client.connect` executes it before
 returning the protocol to the caller. On the server side, it's executed before
 passing the protocol to the ``ws_handler`` coroutine handling the connection.
 
@@ -122,26 +122,26 @@ request and the server replies with an HTTP Switching Protocols response —
 ``websockets`` aims at keeping the implementation of both sides consistent
 with one another.
 
-On the client side, :meth:`~client.WebSocketClientProtocol.handshake()`:
+On the client side, :meth:`~client.WebSocketClientProtocol.handshake`:
 
 - builds a HTTP request based on the ``uri`` and parameters passed to
-  :meth:`~client.connect()`;
+  :meth:`~client.connect`;
 - writes the HTTP request to the network;
 - reads a HTTP response from the network;
 - checks the HTTP response, validates ``extensions`` and ``subprotocol``, and
   configures the protocol accordingly;
 - moves to the ``OPEN`` state.
 
-On the server side, :meth:`~server.WebSocketServerProtocol.handshake()`:
+On the server side, :meth:`~server.WebSocketServerProtocol.handshake`:
 
 - reads a HTTP request from the network;
-- calls :meth:`~server.WebSocketServerProtocol.process_request()` which may
+- calls :meth:`~server.WebSocketServerProtocol.process_request` which may
   abort the WebSocket handshake and return a HTTP response instead; this
   hook only makes sense on the server side;
 - checks the HTTP request, negotiates ``extensions`` and ``subprotocol``, and
   configures the protocol accordingly;
 - builds a HTTP response based on the above and parameters passed to
-  :meth:`~server.serve()`;
+  :meth:`~server.serve`;
 - writes the HTTP response to the network;
 - moves to the ``OPEN`` state;
 - returns the ``path`` part of the ``uri``.
@@ -226,10 +226,10 @@ When it encounters a control frame:
 Running this process in a task guarantees that control frames are processed
 promptly. Without such a task, ``websockets`` would depend on the application
 to drive the connection by having exactly one coroutine awaiting
-:meth:`~protocol.WebSocketCommonProtocol.recv()` at any time. While this
+:meth:`~protocol.WebSocketCommonProtocol.recv` at any time. While this
 happens naturally in many use cases, it cannot be relied upon.
 
-Then :meth:`~protocol.WebSocketCommonProtocol.recv()` fetches the next message
+Then :meth:`~protocol.WebSocketCommonProtocol.recv` fetches the next message
 from the :attr:`~protocol.WebSocketCommonProtocol.messages` queue, with some
 complexity added for handling termination correctly.
 
@@ -238,16 +238,16 @@ Sending data
 
 The right side of the diagram shows how ``websockets`` sends data.
 
-:meth:`~protocol.WebSocketCommonProtocol.send()` writes a single data frame
+:meth:`~protocol.WebSocketCommonProtocol.send` writes a single data frame
 containing the message. Fragmentation isn't supported at this time.
 
-:meth:`~protocol.WebSocketCommonProtocol.ping()` writes a ping frame and
+:meth:`~protocol.WebSocketCommonProtocol.ping` writes a ping frame and
 yields a :class:`~asyncio.Future` which will be completed when a matching pong
 frame is received.
 
-:meth:`~protocol.WebSocketCommonProtocol.pong()` writes a pong frame.
+:meth:`~protocol.WebSocketCommonProtocol.pong` writes a pong frame.
 
-:meth:`~protocol.WebSocketCommonProtocol.close()` writes a close frame and
+:meth:`~protocol.WebSocketCommonProtocol.close` writes a close frame and
 waits for the TCP connection to terminate.
 
 Outgoing data is written to a :class:`~asyncio.StreamWriter` in order to
@@ -259,15 +259,15 @@ Closing handshake
 .................
 
 When the other side of the connection initiates the closing handshake,
-:meth:`~protocol.WebSocketCommonProtocol.read_message()` receives a close
+:meth:`~protocol.WebSocketCommonProtocol.read_message` receives a close
 frame while in the ``OPEN`` state. It moves to the ``CLOSING`` state, sends a
 close frame, and returns ``None``, causing
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` to terminate.
 
 When this side of the connection initiates the closing handshake with
-:meth:`~protocol.WebSocketCommonProtocol.close()`, it moves to the ``CLOSING``
+:meth:`~protocol.WebSocketCommonProtocol.close`, it moves to the ``CLOSING``
 state and sends a close frame. When the other side sends a close frame,
-:meth:`~protocol.WebSocketCommonProtocol.read_message()` receives it in the
+:meth:`~protocol.WebSocketCommonProtocol.read_message` receives it in the
 ``CLOSING`` state and returns ``None``, also causing
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` to terminate.
 
@@ -417,30 +417,30 @@ Once the WebSocket connection is established, internal tasks
 accidentally canceled if a coroutine that awaits them is canceled. In other
 words, they must be shielded from cancellation.
 
-:meth:`~protocol.WebSocketCommonProtocol.recv()` waits for the next message in
+:meth:`~protocol.WebSocketCommonProtocol.recv` waits for the next message in
 the queue or for :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`
-to terminate, whichever comes first. It relies on :func:`~asyncio.wait()` for
+to terminate, whichever comes first. It relies on :func:`~asyncio.wait` for
 waiting on two tasks in parallel. As a consequence, even though it's waiting
 on the transfer data task, it doesn't propagate cancellation to that task.
 
-:meth:`~protocol.WebSocketCommonProtocol.ensure_open()` is called by
-:meth:`~protocol.WebSocketCommonProtocol.send()`,
-:meth:`~protocol.WebSocketCommonProtocol.ping()`, and
-:meth:`~protocol.WebSocketCommonProtocol.pong()`. When the connection state is
+:meth:`~protocol.WebSocketCommonProtocol.ensure_open` is called by
+:meth:`~protocol.WebSocketCommonProtocol.send`,
+:meth:`~protocol.WebSocketCommonProtocol.ping`, and
+:meth:`~protocol.WebSocketCommonProtocol.pong`. When the connection state is
 ``CLOSING``, it waits for
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` but shields it to
 prevent cancellation.
 
-:meth:`~protocol.WebSocketCommonProtocol.close()` waits for the data transfer
+:meth:`~protocol.WebSocketCommonProtocol.close` waits for the data transfer
 task to terminate with :func:`~asyncio.wait_for`. If it's canceled or if the
 timeout elapses, :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`
 is canceled, which is correct at this point.
-:meth:`~protocol.WebSocketCommonProtocol.close()` then waits for
+:meth:`~protocol.WebSocketCommonProtocol.close` then waits for
 :attr:`~protocol.WebSocketCommonProtocol.close_connection_task` but shields it
 to prevent cancellation.
 
-:meth:`~protocol.WebSocketCommonProtocol.close()` and
-:func:`~protocol.WebSocketCommonProtocol.fail_connection()` are the only
+:meth:`~protocol.WebSocketCommonProtocol.close` and
+:func:`~protocol.WebSocketCommonProtocol.fail_connection` are the only
 places where :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task` may
 be canceled.
 
@@ -515,35 +515,35 @@ For each connection, the receiving side contains these buffers:
 - OS buffers: tuning them is an advanced optimization.
 - :class:`~asyncio.StreamReader` bytes buffer: the default limit is 64 KiB.
   You can set another limit by passing a ``read_limit`` keyword argument to
-  :func:`~client.connect()` or :func:`~server.serve()`.
+  :func:`~client.connect()` or :func:`~server.serve`.
 - Incoming messages :class:`~collections.deque`: its size depends both on
   the size and the number of messages it contains. By default the maximum
   UTF-8 encoded size is 1 MiB and the maximum number is 32. In the worst case,
   after UTF-8 decoding, a single message could take up to 4 MiB of memory and
   the overall memory consumption could reach 128 MiB. You should adjust these
   limits by setting the ``max_size`` and ``max_queue`` keyword arguments of
-  :func:`~client.connect()` or :func:`~server.serve()` according to your
+  :func:`~client.connect()` or :func:`~server.serve` according to your
   application's requirements.
 
 For each connection, the sending side contains these buffers:
 
 - :class:`~asyncio.StreamWriter` bytes buffer: the default size is 64 KiB.
   You can set another limit by passing a ``write_limit`` keyword argument to
-  :func:`~client.connect()` or :func:`~server.serve()`.
+  :func:`~client.connect()` or :func:`~server.serve`.
 - OS buffers: tuning them is an advanced optimization.
 
 Concurrency
 -----------
 
-Calling any combination of :meth:`~protocol.WebSocketCommonProtocol.recv()`,
-:meth:`~protocol.WebSocketCommonProtocol.send()`,
-:meth:`~protocol.WebSocketCommonProtocol.close()`
-:meth:`~protocol.WebSocketCommonProtocol.ping()`, or
-:meth:`~protocol.WebSocketCommonProtocol.pong()` concurrently is safe,
+Calling any combination of :meth:`~protocol.WebSocketCommonProtocol.recv`,
+:meth:`~protocol.WebSocketCommonProtocol.send`,
+:meth:`~protocol.WebSocketCommonProtocol.close`
+:meth:`~protocol.WebSocketCommonProtocol.ping`, or
+:meth:`~protocol.WebSocketCommonProtocol.pong` concurrently is safe,
 including multiple calls to the same method.
 
 As shown above, receiving frames is independent from sending frames. That
-isolates :meth:`~protocol.WebSocketCommonProtocol.recv()`, which receives
+isolates :meth:`~protocol.WebSocketCommonProtocol.recv`, which receives
 frames, from the other methods, which send frames.
 
 Methods that send frames also support concurrent calls. While the connection

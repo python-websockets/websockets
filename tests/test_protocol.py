@@ -1074,6 +1074,31 @@ class CommonTests:
         # The keepalive ping task terminated.
         self.assertTrue(self.protocol.keepalive_ping_task.cancelled())
 
+    def test_keepalive_ping_does_not_crash_when_connection_lost(self):
+        self.restart_protocol_with_keepalive_ping()
+        # Clog incoming queue. This lets connection_lost() abort pending pings
+        # with a ConnectionClosed exception before transfer_data_task
+        # terminates and close_connection cancels keepalive_ping_task.
+        self.protocol.max_queue = 1
+        self.receive_frame(Frame(True, OP_TEXT, b"1"))
+        self.receive_frame(Frame(True, OP_TEXT, b"2"))
+        # Ping is sent at 3ms.
+        self.loop.run_until_complete(asyncio.sleep(4 * MS))
+        ping_waiter, = tuple(self.protocol.pings.values())
+        # Connection drops.
+        self.receive_eof()
+        self.loop.run_until_complete(self.protocol.wait_closed())
+
+        # The ping waiter receives a ConnectionClosed exception.
+        with self.assertRaises(ConnectionClosed):
+            ping_waiter.result()
+        # The keepalive ping task terminated properly.
+        self.assertIsNone(self.protocol.keepalive_ping_task.result())
+
+        # Unclog incoming queue to terminate the test quickly.
+        self.loop.run_until_complete(self.protocol.recv())
+        self.loop.run_until_complete(self.protocol.recv())
+
     def test_keepalive_ping_with_no_ping_interval(self):
         self.restart_protocol_with_keepalive_ping(ping_interval=None)
 

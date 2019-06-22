@@ -59,6 +59,9 @@ Also:
 * Improved support for sending fragmented messages by accepting asynchronous
   iterators in :meth:`~protocol.WebSocketCommonProtocol.send`.
 
+* Prevented spurious log messages about :exc:`~exceptions.ConnectionClosed`
+  exceptions in keepalive ping task.
+
 * Avoided a crash of a ``extra_headers`` callable returns ``None``.
 
 * Enabled readline in the interactive client.

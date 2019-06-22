@@ -980,6 +980,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         This coroutine exits when the connection terminates and one of the
         following happens:
+
         - :meth:`ping` raises :exc:`ConnectionClosed`, or
         - :meth:`close_connection` cancels :attr:`keepalive_ping_task`.
 
@@ -991,11 +992,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             while True:
                 await asyncio.sleep(self.ping_interval, loop=self.loop)
 
-                # ping() cannot raise ConnectionClosed, only CancelledError:
-                # - If the connection is CLOSING, keepalive_ping_task will be
-                #   canceled by close_connection() before ping() returns.
-                # - If the connection is CLOSED, keepalive_ping_task must be
-                #   canceled already.
+                # ping() raises CancelledError if the connection is closed,
+                # when close_connection() cancels self.keepalive_ping_task.
+
+                # ping() raises ConnectionClosed if the connection is lost,
+                # when connection_lost() calls abort_keepalive_pings().
+
                 ping_waiter = await self.ping()
 
                 if self.ping_timeout is not None:
@@ -1010,6 +1012,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         except asyncio.CancelledError:
             raise
+
+        except ConnectionClosed:
+            pass
 
         except Exception:
             logger.warning("Unexpected exception in keepalive ping task", exc_info=True)

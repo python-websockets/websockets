@@ -887,7 +887,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     while ping_id != frame.data:
                         ping_id, pong_waiter = self.pings.popitem(last=False)
                         ping_ids.append(ping_id)
-                        pong_waiter.set_result(None)
+                        if not pong_waiter.done():
+                            pong_waiter.set_result(None)
                     pong_hex = binascii.hexlify(frame.data).decode() or "[empty]"
                     logger.debug(
                         "%s - received solicited pong: %s", self.side, pong_hex

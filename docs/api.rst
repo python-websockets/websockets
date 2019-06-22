@@ -41,15 +41,15 @@ Server
 
     .. autoclass:: WebSocketServer
 
-        .. automethod:: close()
-        .. automethod:: wait_closed()
+        .. automethod:: close
+        .. automethod:: wait_closed
         .. autoattribute:: sockets
 
     .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None)
 
-        .. automethod:: handshake(origins=None, available_extensions=None, available_subprotocols=None, extra_headers=None)
-        .. automethod:: process_request(path, request_headers)
-        .. automethod:: select_subprotocol(client_subprotocols, server_subprotocols)
+        .. automethod:: handshake
+        .. automethod:: process_request
+        .. automethod:: select_subprotocol
 
 Client
 ......
@@ -61,7 +61,7 @@ Client
 
     .. autoclass:: WebSocketClientProtocol(*, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, origin=None, extensions=None, subprotocols=None, extra_headers=None)
 
-        .. automethod:: handshake(wsuri, origin=None, available_extensions=None, available_subprotocols=None, extra_headers=None)
+        .. automethod:: handshake
 
 Shared
 ......
@@ -70,14 +70,14 @@ Shared
 
     .. autoclass:: WebSocketCommonProtocol(*, host=None, port=None, secure=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None)
 
-        .. automethod:: close(code=1000, reason='')
-        .. automethod:: wait_closed()
+        .. automethod:: close
+        .. automethod:: wait_closed
 
-        .. automethod:: recv()
-        .. automethod:: send(data)
+        .. automethod:: recv
+        .. automethod:: send
 
-        .. automethod:: ping(data=None)
-        .. automethod:: pong(data=b'')
+        .. automethod:: ping
+        .. automethod:: pong
 
         .. autoattribute:: local_address
         .. autoattribute:: remote_address

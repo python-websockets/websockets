@@ -62,6 +62,8 @@ Also:
 * Prevented spurious log messages about :exc:`~exceptions.ConnectionClosed`
   exceptions in keepalive ping task.
 
+  If you were using ``ping_timeout=None`` as a workaround, you can remove it.
+
 * Avoided a crash of a ``extra_headers`` callable returns ``None``.
 
 * Enabled readline in the interactive client.

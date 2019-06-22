@@ -49,7 +49,6 @@ Server
 
         .. automethod:: handshake(origins=None, available_extensions=None, available_subprotocols=None, extra_headers=None)
         .. automethod:: process_request(path, request_headers)
-            :async:
         .. automethod:: select_subprotocol(client_subprotocols, server_subprotocols)
 
 Client

@@ -49,6 +49,7 @@ If you're new to ``websockets``, this is the place to start.
    :maxdepth: 2
 
    intro
+   faq
 
 How-to guides
 -------------

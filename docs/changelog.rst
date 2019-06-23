@@ -70,6 +70,8 @@ Also:
 
 * Added type hints (:pep:`484`).
 
+* Added a FAQ to the documentation.
+
 * Added documentation for extensions.
 
 * Documented how to optimize memory usage.

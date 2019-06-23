@@ -267,30 +267,40 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self, path: str, request_headers: Headers
     ) -> Optional[HTTPResponse]:
         """
-        Intercept the HTTP request and return an HTTP response if needed.
+        Intercept the HTTP request and return an HTTP response if appropriate.
 
-        ``request_headers`` is a :class:`~websockets.http.Headers` instance.
+        ``path`` is a :class:`str` and ``request_headers`` is a
+        :class:`~websockets.http.Headers` instance.
 
-        If this coroutine returns ``None``, the WebSocket handshake continues.
-        If it returns a status code, headers and a response body, that HTTP
-        response is sent and the connection is closed.
+        If ``process_request`` returns ``None``, the WebSocket handshake
+        continues. If it returns a status code, headers and a response body,
+        that HTTP response is sent and the connection is closed. In that case:
 
-        The HTTP status must be a :class:`~http.HTTPStatus`.
+        * The HTTP status must be a :class:`~http.HTTPStatus`.
+        * HTTP headers must be a :class:`~websockets.http.Headers` instance, a
+          :class:`~collections.abc.Mapping`, or an iterable of ``(name,
+          value)`` pairs.
+        * The HTTP response body must be :class:`bytes`. It may be empty.
 
-        HTTP headers must be a :class:`~websockets.http.Headers` instance, a
-        :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
-        pairs.
+        This coroutine may be overridden in a :class:`WebSocketServerProtocol`
+        subclass, for example:
 
-        The HTTP response body must be :class:`bytes`. It may be empty.
+        * to return a HTTP 200 :attr:`~http.HTTPStatus.OK` response on a given
+          path; then a load balancer can use this path for a health check;
+        * to authenticate the request and return a HTTP 401
+          :attr:`~http.HTTPStatus.UNAUTHORIZED` or a HTTP 403
+          :attr:`~http.HTTPStatus.FORBIDDEN` when authentication fails.
 
-        This coroutine may be overridden to check the request headers and set
-        a different status, for example to authenticate the request and return
-        :attr:`http.HTTPStatus.UNAUTHORIZED` or
-        :attr:`http.HTTPStatus.FORBIDDEN`.
+        Instead of subclassing, it is possible to pass a ``process_request``
+        argument to the :class:`WebSocketServerProtocol` constructor or the
+        :func:`serve` function. This is equivalent, except the
+        ``process_request`` corountine doesn't have access to the protocol
+        instance, so it can't store information for later use.
 
-        It may also be overridden by passing a ``process_request`` argument to
-        the :class:`WebSocketServerProtocol` constructor or the :func:`serve`
-        function.
+        ``process_request`` is expected to complete quickly. If it may run for
+        a long time, then it should await :meth:`wait_closed` and exit if
+        :meth:`wait_closed` completes, or else it could prevent the server
+        from shutting down.
 
         """
         if self._process_request is not None:

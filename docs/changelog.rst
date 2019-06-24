@@ -66,6 +66,8 @@ Also:
 
 * Avoided a crash of a ``extra_headers`` callable returns ``None``.
 
+* Improved error messages when HTTP parsing fails.
+
 * Enabled readline in the interactive client.
 
 * Added type hints (:pep:`484`).

@@ -39,6 +39,21 @@ MAX_LINE = 4096
 USER_AGENT = f"Python/{sys.version[:3]} websockets/{websockets_version}"
 
 
+class SecurityError(ValueError):
+    """
+    HTTP request or response exceeds security limits.
+
+    """
+
+
+def d(value: bytes) -> str:
+    """
+    Decode a bytestring for interpolating into an error message.
+
+    """
+    return value.decode(errors="backslashreplace")
+
+
 # See https://tools.ietf.org/html/rfc7230#appendix-B.
 
 # Regex for validating header names.
@@ -85,15 +100,20 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, "Headers"]:
     # version and because path isn't checked. Since WebSocket software tends
     # to implement HTTP/1.1 strictly, there's little need for lenient parsing.
 
-    request_line = await read_line(stream)
+    try:
+        request_line = await read_line(stream)
+    except EOFError as exc:
+        raise EOFError("connection closed while reading HTTP request line") from exc
 
-    # This may raise "ValueError: not enough values to unpack"
-    method, raw_path, version = request_line.split(b" ", 2)
+    try:
+        method, raw_path, version = request_line.split(b" ", 2)
+    except ValueError:  # not enough values to unpack (expected 3, got 1-2)
+        raise ValueError(f"invalid HTTP request line: {d(request_line)}") from None
 
     if method != b"GET":
-        raise ValueError("Unsupported HTTP method: %r" % method)
+        raise ValueError(f"unsupported HTTP method: {d(method)}")
     if version != b"HTTP/1.1":
-        raise ValueError("Unsupported HTTP version: %r" % version)
+        raise ValueError(f"unsupported HTTP version: {d(version)}")
     path = raw_path.decode("ascii", "surrogateescape")
 
     headers = await read_headers(stream)
@@ -125,19 +145,26 @@ async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, "Header
     # As in read_request, parsing is simple because a fixed value is expected
     # for version, status_code is a 3-digit number, and reason can be ignored.
 
-    status_line = await read_line(stream)
+    try:
+        status_line = await read_line(stream)
+    except EOFError as exc:
+        raise EOFError("connection closed while reading HTTP status line") from exc
 
-    # This may raise "ValueError: not enough values to unpack"
-    version, raw_status_code, raw_reason = status_line.split(b" ", 2)
+    try:
+        version, raw_status_code, raw_reason = status_line.split(b" ", 2)
+    except ValueError:  # not enough values to unpack (expected 3, got 1-2)
+        raise ValueError(f"invalid HTTP status line: {d(status_line)}") from None
 
     if version != b"HTTP/1.1":
-        raise ValueError("Unsupported HTTP version: %r" % version)
-    # This may raise "ValueError: invalid literal for int() with base 10"
-    status_code = int(raw_status_code)
+        raise ValueError(f"unsupported HTTP version: {d(version)}")
+    try:
+        status_code = int(raw_status_code)
+    except ValueError:  # invalid literal for int() with base 10
+        raise ValueError(f"invalid HTTP status code: {d(raw_status_code)}") from None
     if not 100 <= status_code < 1000:
-        raise ValueError("Unsupported HTTP status code: %d" % status_code)
+        raise ValueError(f"unsupported HTTP status code: {d(raw_status_code)}")
     if not _value_re.fullmatch(raw_reason):
-        raise ValueError("Invalid HTTP reason phrase: %r" % raw_reason)
+        raise ValueError(f"invalid HTTP reason phrase: {d(raw_reason)}")
     reason = raw_reason.decode()
 
     headers = await read_headers(stream)
@@ -162,24 +189,29 @@ async def read_headers(stream: asyncio.StreamReader) -> "Headers":
 
     headers = Headers()
     for _ in range(MAX_HEADERS + 1):
-        line = await read_line(stream)
+        try:
+            line = await read_line(stream)
+        except EOFError as exc:
+            raise EOFError("connection closed while reading HTTP headers") from exc
         if line == b"":
             break
 
-        # This may raise "ValueError: not enough values to unpack"
-        raw_name, raw_value = line.split(b":", 1)
+        try:
+            raw_name, raw_value = line.split(b":", 1)
+        except ValueError:  # not enough values to unpack (expected 2, got 1)
+            raise ValueError(f"invalid HTTP header line: {d(line)}") from None
         if not _token_re.fullmatch(raw_name):
-            raise ValueError("Invalid HTTP header name: %r" % raw_name)
+            raise ValueError(f"invalid HTTP header name: {d(raw_name)}")
         raw_value = raw_value.strip(b" \t")
         if not _value_re.fullmatch(raw_value):
-            raise ValueError("Invalid HTTP header value: %r" % raw_value)
+            raise ValueError(f"invalid HTTP header value: {d(raw_value)}")
 
         name = raw_name.decode("ascii")  # guaranteed to be ASCII at this point
         value = raw_value.decode("ascii", "surrogateescape")
         headers[name] = value
 
     else:
-        raise ValueError("Too many HTTP headers")
+        raise SecurityError("too many HTTP headers")
 
     return headers
 
@@ -197,10 +229,10 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     line = await stream.readline()
     # Security: this guarantees header values are small (hard-coded = 4 KiB)
     if len(line) > MAX_LINE:
-        raise ValueError("Line too long")
+        raise SecurityError("line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):
-        raise ValueError("Line without CRLF")
+        raise EOFError("line without CRLF")
     return line[:-2]
 
 

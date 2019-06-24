@@ -29,6 +29,33 @@ class HTTPAsyncTests(AsyncioTestCase):
         self.assertEqual(path, "/chat")
         self.assertEqual(headers["Upgrade"], "websocket")
 
+    def test_read_request_empty(self):
+        self.stream.feed_eof()
+        with self.assertRaisesRegex(
+            EOFError, "connection closed while reading HTTP request line"
+        ):
+            self.loop.run_until_complete(read_request(self.stream))
+
+    def test_read_request_invalid_request_line(self):
+        self.stream.feed_data(b"GET /\r\n\r\n")
+        with self.assertRaisesRegex(ValueError, "invalid HTTP request line: GET /"):
+            self.loop.run_until_complete(read_request(self.stream))
+
+    def test_read_request_unsupported_method(self):
+        self.stream.feed_data(b"OPTIONS * HTTP/1.1\r\n\r\n")
+        with self.assertRaisesRegex(ValueError, "unsupported HTTP method: OPTIONS"):
+            self.loop.run_until_complete(read_request(self.stream))
+
+    def test_read_request_unsupported_version(self):
+        self.stream.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
+        with self.assertRaisesRegex(ValueError, "unsupported HTTP version: HTTP/1.0"):
+            self.loop.run_until_complete(read_request(self.stream))
+
+    def test_read_request_invalid_header(self):
+        self.stream.feed_data(b"GET /chat HTTP/1.1\r\nOops\r\n")
+        with self.assertRaisesRegex(ValueError, "invalid HTTP header line: Oops"):
+            self.loop.run_until_complete(read_request(self.stream))
+
     def test_read_response(self):
         # Example from the protocol overview in RFC 6455
         self.stream.feed_data(
@@ -46,29 +73,41 @@ class HTTPAsyncTests(AsyncioTestCase):
         self.assertEqual(reason, "Switching Protocols")
         self.assertEqual(headers["Upgrade"], "websocket")
 
-    def test_request_method(self):
-        self.stream.feed_data(b"OPTIONS * HTTP/1.1\r\n\r\n")
-        with self.assertRaises(ValueError):
-            self.loop.run_until_complete(read_request(self.stream))
+    def test_read_response_empty(self):
+        self.stream.feed_eof()
+        with self.assertRaisesRegex(
+            EOFError, "connection closed while reading HTTP status line"
+        ):
+            self.loop.run_until_complete(read_response(self.stream))
 
-    def test_request_version(self):
-        self.stream.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
-        with self.assertRaises(ValueError):
-            self.loop.run_until_complete(read_request(self.stream))
+    def test_read_request_invalid_status_line(self):
+        self.stream.feed_data(b"Hello!\r\n")
+        with self.assertRaisesRegex(ValueError, "invalid HTTP status line: Hello!"):
+            self.loop.run_until_complete(read_response(self.stream))
 
-    def test_response_version(self):
+    def test_read_response_unsupported_version(self):
         self.stream.feed_data(b"HTTP/1.0 400 Bad Request\r\n\r\n")
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "unsupported HTTP version: HTTP/1.0"):
             self.loop.run_until_complete(read_response(self.stream))
 
-    def test_response_status(self):
+    def test_read_response_invalid_status(self):
+        self.stream.feed_data(b"HTTP/1.1 OMG WTF\r\n\r\n")
+        with self.assertRaisesRegex(ValueError, "invalid HTTP status code: OMG"):
+            self.loop.run_until_complete(read_response(self.stream))
+
+    def test_read_response_unsupported_status(self):
         self.stream.feed_data(b"HTTP/1.1 007 My name is Bond\r\n\r\n")
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "unsupported HTTP status code: 007"):
             self.loop.run_until_complete(read_response(self.stream))
 
-    def test_response_reason(self):
+    def test_read_response_invalid_reason(self):
         self.stream.feed_data(b"HTTP/1.1 200 \x7f\r\n\r\n")
-        with self.assertRaises(ValueError):
+        with self.assertRaisesRegex(ValueError, "invalid HTTP reason phrase: \\x7f"):
+            self.loop.run_until_complete(read_response(self.stream))
+
+    def test_read_response_invalid_header(self):
+        self.stream.feed_data(b"HTTP/1.1 500 Internal Server Error\r\nOops\r\n")
+        with self.assertRaisesRegex(ValueError, "invalid HTTP header line: Oops"):
             self.loop.run_until_complete(read_response(self.stream))
 
     def test_header_name(self):
@@ -94,7 +133,7 @@ class HTTPAsyncTests(AsyncioTestCase):
 
     def test_line_ending(self):
         self.stream.feed_data(b"foo: bar\n\n")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(EOFError):
             self.loop.run_until_complete(read_headers(self.stream))
 
 

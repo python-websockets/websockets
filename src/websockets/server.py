@@ -227,8 +227,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         try:
             path, headers = await read_request(self.reader)
-        except ValueError as exc:
-            raise InvalidMessage("Malformed HTTP message") from exc
+        except Exception as exc:
+            raise InvalidMessage("did not receive a valid HTTP request") from exc
 
         logger.debug("%s < GET %s HTTP/1.1", self.side, path)
         logger.debug("%s < %r", self.side, headers)

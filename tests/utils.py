@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import functools
 import logging
 import os
 import time
@@ -11,6 +12,32 @@ class AsyncioTestCase(unittest.TestCase):
     Base class for tests that sets up an isolated event loop for each test.
 
     """
+
+    def __init_subclass__(cls, **kwargs):
+        """
+        Convert test coroutines to test functions.
+
+        This supports asychronous tests transparently.
+
+        """
+        super().__init_subclass__(**kwargs)
+        for name in unittest.defaultTestLoader.getTestCaseNames(cls):
+            test = getattr(cls, name)
+            if asyncio.iscoroutinefunction(test):
+                setattr(cls, name, cls.convert_async_to_sync(test))
+
+    @staticmethod
+    def convert_async_to_sync(test):
+        """
+        Convert a test coroutine to a test function.
+
+        """
+
+        @functools.wraps(test)
+        def test_func(self, *args, **kwds):
+            return self.loop.run_until_complete(test(self, *args, **kwds))
+
+        return test_func
 
     def setUp(self):
         super().setUp()

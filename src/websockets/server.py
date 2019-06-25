@@ -500,8 +500,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         If provided, ``available_subprotocols`` is a list of supported
         subprotocols in order of decreasing preference.
 
-        If provided, ``extra_headers`` sets additional HTTP response headers.
-        It can be a :class:`~websockets.http.Headers` instance, a
+        If provided, ``extra_headers`` sets additional HTTP response headers
+        when the handshake succeeds. It can be a
+        :class:`~websockets.http.Headers` instance, a
         :class:`~collections.abc.Mapping`, an iterable of ``(name, value)``
         pairs, or a callable taking the request path and headers in arguments
         and returning one of the above.
@@ -779,11 +780,11 @@ class Serve:
       decreasing preference
     * ``subprotocols`` is a list of supported subprotocols in order of
       decreasing preference
-    * ``extra_headers`` sets additional HTTP response headers — it can be a
-      :class:`~websockets.http.Headers` instance, a
-      :class:`~collections.abc.Mapping`, an iterable of ``(name, value)``
-      pairs, or a callable taking the request path and headers in arguments
-      and returning one of the above
+    * ``extra_headers`` sets additional HTTP response headers  when the
+      handshake succeeds — it can be a :class:`~websockets.http.Headers`
+      instance, a :class:`~collections.abc.Mapping`, an iterable of ``(name,
+      value)`` pairs, or a callable taking the request path and headers in
+      arguments and returning one of the above
     * ``process_request`` is a coroutine taking the request path and headers
       in argument, see :meth:`~WebSocketServerProtocol.process_request` for
       details

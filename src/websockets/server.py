@@ -89,7 +89,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
-        **kwds: Any,
+        **kwargs: Any,
     ) -> None:
         # For backwards-compatibility with 6.0 or earlier.
         if origins is not None and "" in origins:
@@ -103,7 +103,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.extra_headers = extra_headers
         self._process_request = process_request
         self._select_subprotocol = select_subprotocol
-        super().__init__(**kwds)
+        super().__init__(**kwargs)
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """
@@ -852,7 +852,7 @@ class Serve:
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
-        **kwds: Any,
+        **kwargs: Any,
     ) -> None:
         # Backwards-compatibility: close_timeout used to be called timeout.
         if timeout is None:
@@ -877,7 +877,7 @@ class Serve:
 
         ws_server = WebSocketServer(loop)
 
-        secure = kwds.get("ssl") is not None
+        secure = kwargs.get("ssl") is not None
 
         if compression == "deflate":
             if extensions is None:
@@ -917,9 +917,9 @@ class Serve:
             # https://github.com/python/typeshed/pull/2763
             host = cast(str, host)
             port = cast(int, port)
-            creating_server = loop.create_server(factory, host, port, **kwds)
+            creating_server = loop.create_server(factory, host, port, **kwargs)
         else:
-            creating_server = loop.create_unix_server(factory, path, **kwds)
+            creating_server = loop.create_unix_server(factory, path, **kwargs)
 
         # This is a coroutine object.
         self._creating_server = creating_server

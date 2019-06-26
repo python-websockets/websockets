@@ -34,8 +34,8 @@ class AsyncioTestCase(unittest.TestCase):
         """
 
         @functools.wraps(test)
-        def test_func(self, *args, **kwds):
-            return self.loop.run_until_complete(test(self, *args, **kwds))
+        def test_func(self, *args, **kwargs):
+            return self.loop.run_until_complete(test(self, *args, **kwargs))
 
         return test_func
 

@@ -59,13 +59,13 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
-        **kwds: Any,
+        **kwargs: Any,
     ) -> None:
         self.origin = origin
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
-        super().__init__(**kwds)
+        super().__init__(**kwargs)
 
     def write_http_request(self, path: str, headers: Headers) -> None:
         """
@@ -387,7 +387,7 @@ class Connect:
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
-        **kwds: Any,
+        **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
         if timeout is None:
@@ -412,8 +412,8 @@ class Connect:
 
         self._wsuri = parse_uri(uri)
         if self._wsuri.secure:
-            kwds.setdefault("ssl", True)
-        elif kwds.get("ssl") is not None:
+            kwargs.setdefault("ssl", True)
+        elif kwargs.get("ssl") is not None:
             raise ValueError(
                 "connect() received a SSL context for a ws:// URI, "
                 "use a wss:// URI to enable TLS"
@@ -449,13 +449,13 @@ class Connect:
         self._extensions = extensions
         self._subprotocols = subprotocols
         self._extra_headers = extra_headers
-        self._kwds = kwds
+        self._kwargs = kwargs
 
     async def _creating_connection(
         self
     ) -> Tuple[asyncio.Transport, WebSocketClientProtocol]:
         if self._wsuri.secure:
-            self._kwds.setdefault("ssl", True)
+            self._kwargs.setdefault("ssl", True)
 
         factory = lambda: self._create_protocol(
             host=self._wsuri.host,
@@ -478,7 +478,7 @@ class Connect:
 
         host: Optional[str]
         port: Optional[int]
-        if self._kwds.get("sock") is None:
+        if self._kwargs.get("sock") is None:
             host, port = self._wsuri.host, self._wsuri.port
         else:
             # If sock is given, host and port mustn't be specified.
@@ -490,7 +490,7 @@ class Connect:
         # This is a coroutine object.
         # https://github.com/python/typeshed/pull/2756
         transport, protocol = await self._loop.create_connection(  # type: ignore
-            factory, host, port, **self._kwds
+            factory, host, port, **self._kwargs
         )
         transport = cast(asyncio.Transport, transport)
         protocol = cast(WebSocketClientProtocol, protocol)

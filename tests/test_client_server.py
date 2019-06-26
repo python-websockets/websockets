@@ -71,8 +71,8 @@ async def handler(ws, path):
 
 
 @contextlib.contextmanager
-def temp_test_server(test, **kwds):
-    test.start_server(**kwds)
+def temp_test_server(test, **kwargs):
+    test.start_server(**kwargs)
     try:
         yield
     finally:
@@ -91,15 +91,15 @@ def temp_test_redirecting_server(
 
 
 @contextlib.contextmanager
-def temp_test_client(test, *args, **kwds):
-    test.start_client(*args, **kwds)
+def temp_test_client(test, *args, **kwargs):
+    test.start_client(*args, **kwargs)
     try:
         yield
     finally:
         test.stop_client()
 
 
-def with_manager(manager, *args, **kwds):
+def with_manager(manager, *args, **kwargs):
     """
     Return a decorator that wraps a function with a context manager.
 
@@ -107,29 +107,29 @@ def with_manager(manager, *args, **kwds):
 
     def decorate(func):
         @functools.wraps(func)
-        def _decorate(self, *_args, **_kwds):
-            with manager(self, *args, **kwds):
-                return func(self, *_args, **_kwds)
+        def _decorate(self, *_args, **_kwargs):
+            with manager(self, *args, **kwargs):
+                return func(self, *_args, **_kwargs)
 
         return _decorate
 
     return decorate
 
 
-def with_server(**kwds):
+def with_server(**kwargs):
     """
     Return a decorator for TestCase methods that starts and stops a server.
 
     """
-    return with_manager(temp_test_server, **kwds)
+    return with_manager(temp_test_server, **kwargs)
 
 
-def with_client(*args, **kwds):
+def with_client(*args, **kwargs):
     """
     Return a decorator for TestCase methods that starts and stops a client.
 
     """
-    return with_manager(temp_test_client, *args, **kwds)
+    return with_manager(temp_test_client, *args, **kwargs)
 
 
 def get_server_uri(server, secure=False, resource_name="/", user_info=None):
@@ -240,14 +240,14 @@ class ClientServerTestsMixin:
     def server_context(self):
         return None
 
-    def start_server(self, expected_warning=None, **kwds):
+    def start_server(self, expected_warning=None, **kwargs):
         # Disable compression by default in tests.
-        kwds.setdefault("compression", None)
+        kwargs.setdefault("compression", None)
         # Disable pings by default in tests.
-        kwds.setdefault("ping_interval", None)
+        kwargs.setdefault("ping_interval", None)
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
-            start_server = serve(handler, "localhost", 0, **kwds)
+            start_server = serve(handler, "localhost", 0, **kwargs)
             self.server = self.loop.run_until_complete(start_server)
 
         if expected_warning is None:
@@ -280,18 +280,18 @@ class ClientServerTestsMixin:
         self.redirecting_server = self.loop.run_until_complete(start_server)
 
     def start_client(
-        self, resource_name="/", user_info=None, expected_warning=None, **kwds
+        self, resource_name="/", user_info=None, expected_warning=None, **kwargs
     ):
         # Disable compression by default in tests.
-        kwds.setdefault("compression", None)
+        kwargs.setdefault("compression", None)
         # Disable pings by default in tests.
-        kwds.setdefault("ping_interval", None)
-        secure = kwds.get("ssl") is not None
+        kwargs.setdefault("ping_interval", None)
+        secure = kwargs.get("ssl") is not None
         server = self.redirecting_server if self.redirecting_server else self.server
         server_uri = get_server_uri(server, secure, resource_name, user_info)
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
-            start_client = connect(server_uri, **kwds)
+            start_client = connect(server_uri, **kwargs)
             self.client = self.loop.run_until_complete(start_client)
 
         if expected_warning is None:
@@ -331,13 +331,13 @@ class ClientServerTestsMixin:
             self.redirecting_server = None
 
     @contextlib.contextmanager
-    def temp_server(self, **kwds):
-        with temp_test_server(self, **kwds):
+    def temp_server(self, **kwargs):
+        with temp_test_server(self, **kwargs):
             yield
 
     @contextlib.contextmanager
-    def temp_client(self, *args, **kwds):
-        with temp_test_client(self, *args, **kwds):
+    def temp_client(self, *args, **kwargs):
+        with temp_test_client(self, *args, **kwargs):
             yield
 
     def make_http_request(self, path="/", headers=None):
@@ -377,13 +377,13 @@ class SecureClientServerTestsMixin(ClientServerTestsMixin):
         ssl_context.load_verify_locations(testcert)
         return ssl_context
 
-    def start_server(self, **kwds):
-        kwds.setdefault("ssl", self.server_context)
-        super().start_server(**kwds)
+    def start_server(self, **kwargs):
+        kwargs.setdefault("ssl", self.server_context)
+        super().start_server(**kwargs)
 
-    def start_client(self, path="/", **kwds):
-        kwds.setdefault("ssl", self.client_context)
-        super().start_client(path, **kwds)
+    def start_client(self, path="/", **kwargs):
+        kwargs.setdefault("ssl", self.client_context)
+        super().start_client(path, **kwargs)
 
 
 class CommonClientServerTests:

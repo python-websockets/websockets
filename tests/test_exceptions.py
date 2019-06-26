@@ -9,8 +9,8 @@ class ExceptionsTests(unittest.TestCase):
         for exception, exception_str in [
             # fmt: off
             (
-                InvalidHandshake("Invalid request"),
-                "Invalid request",
+                InvalidHandshake("invalid request"),
+                "invalid request",
             ),
             (
                 AbortHandshake(200, Headers(), b"OK\n"),
@@ -18,70 +18,70 @@ class ExceptionsTests(unittest.TestCase):
             ),
             (
                 RedirectHandshake("wss://example.com"),
-                "Redirect to wss://example.com",
+                "redirect to wss://example.com",
             ),
             (
-                InvalidMessage("Malformed HTTP message"),
-                "Malformed HTTP message",
+                InvalidMessage("malformed HTTP message"),
+                "malformed HTTP message",
             ),
             (
                 InvalidHeader("Name"),
-                "Missing Name header",
+                "missing Name header",
             ),
             (
                 InvalidHeader("Name", None),
-                "Missing Name header",
+                "missing Name header",
             ),
             (
                 InvalidHeader("Name", ""),
-                "Empty Name header",
+                "empty Name header",
             ),
             (
                 InvalidHeader("Name", "Value"),
-                "Invalid Name header: Value",
+                "invalid Name header: Value",
             ),
             (
                 InvalidHeaderFormat(
                     "Sec-WebSocket-Protocol", "expected token", "a=|", 3
                 ),
-                "Invalid Sec-WebSocket-Protocol header: "
+                "invalid Sec-WebSocket-Protocol header: "
                 "expected token at 3 in a=|",
             ),
             (
                 InvalidHeaderValue("Sec-WebSocket-Version", "42"),
-                "Invalid Sec-WebSocket-Version header: 42",
+                "invalid Sec-WebSocket-Version header: 42",
             ),
             (
                 InvalidUpgrade("Upgrade"),
-                "Missing Upgrade header",
+                "missing Upgrade header",
             ),
             (
                 InvalidUpgrade("Connection", "websocket"),
-                "Invalid Connection header: websocket",
+                "invalid Connection header: websocket",
             ),
             (
                 InvalidOrigin("http://bad.origin"),
-                "Invalid Origin header: http://bad.origin",
+                "invalid Origin header: http://bad.origin",
             ),
             (
                 InvalidStatusCode(403),
-                "Status code not 101: 403",
+                "server rejected WebSocket connection: HTTP 403",
             ),
             (
-                NegotiationError("Unsupported subprotocol: spam"),
-                "Unsupported subprotocol: spam",
+                NegotiationError("unsupported subprotocol: spam"),
+                "unsupported subprotocol: spam",
             ),
             (
                 InvalidParameterName("|"),
-                "Invalid parameter name: |",
+                "invalid parameter name: |",
             ),
             (
                 InvalidParameterValue("a", "|"),
-                "Invalid value for parameter a: |",
+                "invalid value for parameter a: |",
             ),
             (
                 DuplicateParameter("a"),
-                "Duplicate parameter: a",
+                "duplicate parameter: a",
             ),
             (
                 InvalidState("WebSocket connection isn't established yet"),
@@ -122,12 +122,12 @@ class ExceptionsTests(unittest.TestCase):
                 "| isn't a valid URI",
             ),
             (
-                PayloadTooBig("Payload length exceeds limit: 2 > 1 bytes"),
-                "Payload length exceeds limit: 2 > 1 bytes",
+                PayloadTooBig("payload length exceeds limit: 2 > 1 bytes"),
+                "payload length exceeds limit: 2 > 1 bytes",
             ),
             (
-                WebSocketProtocolError("Invalid opcode: 7"),
-                "Invalid opcode: 7",
+                WebSocketProtocolError("invalid opcode: 7"),
+                "invalid opcode: 7",
             ),
             # fmt: on
         ]:

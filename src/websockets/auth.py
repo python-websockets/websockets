@@ -124,7 +124,7 @@ def basic_auth_protocol_factory(
 
     """
     if (credentials is None) == (check_credentials is None):
-        raise ValueError("Provide either credentials or check_credentials")
+        raise ValueError("provide either credentials or check_credentials")
 
     if credentials is not None:
         if is_credentials(credentials):
@@ -141,10 +141,10 @@ def basic_auth_protocol_factory(
                     return credentials_dict.get(username) == password
 
             else:
-                raise ValueError(f"Invalid credentials argument: {credentials}")
+                raise ValueError(f"invalid credentials argument: {credentials}")
 
         else:
-            raise ValueError(f"Invalid credentials argument: {credentials}")
+            raise ValueError(f"invalid credentials argument: {credentials}")
 
     return functools.partial(
         create_protocol, realm=realm, check_credentials=check_credentials

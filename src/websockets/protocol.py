@@ -630,7 +630,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         # Protect against duplicates if a payload is explicitly set.
         if data in self.pings:
-            raise ValueError("Already waiting for a pong with the same data")
+            raise ValueError("already waiting for a pong with the same data")
 
         # Generate a unique random payload otherwise.
         while data is None or data in self.pings:
@@ -793,7 +793,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         elif frame.opcode == OP_BINARY:
             text = False
         else:  # frame.opcode == OP_CONT
-            raise WebSocketProtocolError("Unexpected opcode")
+            raise WebSocketProtocolError("unexpected opcode")
 
         # Shortcut for the common case - no fragmentation
         if frame.fin:
@@ -838,9 +838,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         while not frame.fin:
             frame = await self.read_data_frame(max_size=max_size)
             if frame is None:
-                raise WebSocketProtocolError("Incomplete fragmented message")
+                raise WebSocketProtocolError("incomplete fragmented message")
             if frame.opcode != OP_CONT:
-                raise WebSocketProtocolError("Unexpected opcode")
+                raise WebSocketProtocolError("unexpected opcode")
             append(frame)
 
         # mypy cannot figure out that chunks have the proper type.

@@ -40,13 +40,13 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
         with self.assertRaises(ValueError) as raised:
             basic_auth_protocol_factory(realm="auth-tests", credentials=None)
         self.assertEqual(
-            str(raised.exception), "Provide either credentials or check_credentials"
+            str(raised.exception), "provide either credentials or check_credentials"
         )
 
     def test_basic_auth_server_bad_credentials(self):
         with self.assertRaises(ValueError) as raised:
             basic_auth_protocol_factory(realm="auth-tests", credentials=42)
-        self.assertEqual(str(raised.exception), "Invalid credentials argument: 42")
+        self.assertEqual(str(raised.exception), "invalid credentials argument: 42")
 
     create_protocol_multiple_credentials = basic_auth_protocol_factory(
         realm="auth-tests",
@@ -66,7 +66,7 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
             )
         self.assertEqual(
             str(raised.exception),
-            "Invalid credentials argument: [('hello', 'iloveyou'), 42]",
+            "invalid credentials argument: [('hello', 'iloveyou'), 42]",
         )
 
     async def check_credentials(username, password):

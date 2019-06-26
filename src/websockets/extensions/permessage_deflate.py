@@ -334,7 +334,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
         """
         if any(other.name == self.name for other in accepted_extensions):
-            raise NegotiationError(f"Received duplicate {self.name}")
+            raise NegotiationError(f"received duplicate {self.name}")
 
         # Request parameters are available in instance variables.
 
@@ -360,7 +360,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
         if self.server_no_context_takeover:
             if not server_no_context_takeover:
-                raise NegotiationError("Expected server_no_context_takeover")
+                raise NegotiationError("expected server_no_context_takeover")
 
         # client_no_context_takeover
         #
@@ -390,9 +390,9 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
         else:
             if server_max_window_bits is None:
-                raise NegotiationError("Expected server_max_window_bits")
+                raise NegotiationError("expected server_max_window_bits")
             elif server_max_window_bits > self.server_max_window_bits:
-                raise NegotiationError("Unsupported server_max_window_bits")
+                raise NegotiationError("unsupported server_max_window_bits")
 
         # client_max_window_bits
 
@@ -408,7 +408,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
         if self.client_max_window_bits is None:
             if client_max_window_bits is not None:
-                raise NegotiationError("Unexpected client_max_window_bits")
+                raise NegotiationError("unexpected client_max_window_bits")
 
         elif self.client_max_window_bits is True:
             pass
@@ -417,7 +417,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
             if client_max_window_bits is None:
                 client_max_window_bits = self.client_max_window_bits
             elif client_max_window_bits > self.client_max_window_bits:
-                raise NegotiationError("Unsupported client_max_window_bits")
+                raise NegotiationError("unsupported client_max_window_bits")
 
         return PerMessageDeflate(
             server_no_context_takeover,  # remote_no_context_takeover
@@ -491,7 +491,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
         """
         if any(other.name == self.name for other in accepted_extensions):
-            raise NegotiationError(f"Skipped duplicate {self.name}")
+            raise NegotiationError(f"skipped duplicate {self.name}")
 
         # Load request parameters in local variables.
         (
@@ -569,7 +569,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
         else:
             if client_max_window_bits is None:
-                raise NegotiationError("Required client_max_window_bits")
+                raise NegotiationError("required client_max_window_bits")
             elif client_max_window_bits is True:
                 client_max_window_bits = self.client_max_window_bits
             elif self.client_max_window_bits < client_max_window_bits:

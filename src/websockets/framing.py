@@ -133,7 +133,7 @@ class Frame(FrameData):
         opcode = head1 & 0b00001111
 
         if (True if head2 & 0b10000000 else False) != mask:
-            raise WebSocketProtocolError("Incorrect masking")
+            raise WebSocketProtocolError("incorrect masking")
 
         length = head2 & 0b01111111
         if length == 126:
@@ -144,7 +144,7 @@ class Frame(FrameData):
             length, = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
             raise PayloadTooBig(
-                f"Payload length exceeds size limit ({length} > {max_size} bytes)"
+                f"payload length exceeds size limit ({length} > {max_size} bytes)"
             )
         if mask:
             mask_bits = await reader(4)
@@ -252,17 +252,17 @@ class Frame(FrameData):
         # but it's the instance of class to which this method is bound.
 
         if frame.rsv1 or frame.rsv2 or frame.rsv3:
-            raise WebSocketProtocolError("Reserved bits must be 0")
+            raise WebSocketProtocolError("reserved bits must be 0")
 
         if frame.opcode in DATA_OPCODES:
             return
         elif frame.opcode in CTRL_OPCODES:
             if len(frame.data) > 125:
-                raise WebSocketProtocolError("Control frame too long")
+                raise WebSocketProtocolError("control frame too long")
             if not frame.fin:
-                raise WebSocketProtocolError("Fragmented control frame")
+                raise WebSocketProtocolError("fragmented control frame")
         else:
-            raise WebSocketProtocolError(f"Invalid opcode: {frame.opcode}")
+            raise WebSocketProtocolError(f"invalid opcode: {frame.opcode}")
 
 
 def prepare_data(data: Data) -> Tuple[int, bytes]:
@@ -338,7 +338,7 @@ def parse_close(data: bytes) -> Tuple[int, str]:
         return 1005, ""
     else:
         assert length == 1
-        raise WebSocketProtocolError("Close frame too short")
+        raise WebSocketProtocolError("close frame too short")
 
 
 def serialize_close(code: int, reason: str) -> bytes:
@@ -358,7 +358,7 @@ def check_close(code: int) -> None:
 
     """
     if not (code in EXTERNAL_CLOSE_CODES or 3000 <= code < 5000):
-        raise WebSocketProtocolError("Invalid status code")
+        raise WebSocketProtocolError("invalid status code")
 
 
 # at the bottom to allow circular import, because Extension depends on Frame

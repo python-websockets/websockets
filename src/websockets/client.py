@@ -12,6 +12,7 @@ from typing import Any, Generator, List, Optional, Sequence, Tuple, Type, cast
 
 from .exceptions import (
     InvalidHandshake,
+    InvalidHeader,
     InvalidMessage,
     InvalidStatusCode,
     NegotiationError,
@@ -146,7 +147,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if header_values:
 
             if available_extensions is None:
-                raise InvalidHandshake("No extensions supported")
+                raise InvalidHandshake("no extensions supported")
 
             parsed_header_values: List[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
@@ -203,7 +204,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if header_values:
 
             if available_subprotocols is None:
-                raise InvalidHandshake("No subprotocols supported")
+                raise InvalidHandshake("no subprotocols supported")
 
             parsed_header_values: Sequence[Subprotocol] = sum(
                 [parse_subprotocol(header_value) for header_value in header_values], []
@@ -211,12 +212,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
             if len(parsed_header_values) > 1:
                 subprotocols = ", ".join(parsed_header_values)
-                raise InvalidHandshake(f"Multiple subprotocols: {subprotocols}")
+                raise InvalidHandshake(f"multiple subprotocols: {subprotocols}")
 
             subprotocol = parsed_header_values[0]
 
             if subprotocol not in available_subprotocols:
-                raise NegotiationError(f"Unsupported subprotocol: {subprotocol}")
+                raise NegotiationError(f"unsupported subprotocol: {subprotocol}")
 
         return subprotocol
 
@@ -293,7 +294,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         status_code, response_headers = await self.read_http_response()
         if status_code in (301, 302, 303, 307, 308):
             if "Location" not in response_headers:
-                raise InvalidMessage("Redirect response missing Location")
+                raise InvalidHeader("Location")
             raise RedirectHandshake(response_headers["Location"])
         elif status_code != 101:
             raise InvalidStatusCode(status_code)
@@ -429,7 +430,7 @@ class Connect:
                     ClientPerMessageDeflateFactory(client_max_window_bits=True)
                 ]
         elif compression is not None:
-            raise ValueError(f"Unsupported compression: {compression}")
+            raise ValueError(f"unsupported compression: {compression}")
 
         self._create_protocol = create_protocol
         self._ping_interval = ping_interval
@@ -535,11 +536,11 @@ class Connect:
             except RedirectHandshake as e:
                 wsuri = parse_uri(e.uri)
                 if self._wsuri.secure and not wsuri.secure:
-                    raise InvalidHandshake("Redirect dropped TLS")
+                    raise InvalidHandshake("redirect dropped TLS")
                 self._wsuri = wsuri
                 continue  # redirection chain continues
         else:
-            raise InvalidHandshake("Maximum redirects exceeded")
+            raise InvalidHandshake("maximum redirects exceeded")
 
         self.ws_client = protocol
         return protocol

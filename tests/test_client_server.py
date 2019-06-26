@@ -18,7 +18,7 @@ from websockets.client import *
 from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
-    InvalidMessage,
+    InvalidHeader,
     InvalidStatusCode,
     NegotiationError,
 )
@@ -155,7 +155,7 @@ def get_server_uri(server, secure=False, resource_name="/", user_info=None):
         # The host and port are ignored when connecting to a Unix socket.
         host, port = "localhost", 0
     else:  # pragma: no cover
-        raise ValueError("Expected an IPv6, IPv4, or Unix socket")
+        raise ValueError("expected an IPv6, IPv4, or Unix socket")
 
     return f"{proto}://{user_info}{host}:{port}{resource_name}"
 
@@ -429,7 +429,7 @@ class CommonClientServerTests:
         with temp_test_redirecting_server(
             self, http.HTTPStatus.FOUND, include_location=False
         ):
-            with self.assertRaises(InvalidMessage):
+            with self.assertRaises(InvalidHeader):
                 with temp_test_client(self):
                     self.fail("Did not raise")  # pragma: no cover
 
@@ -1149,7 +1149,9 @@ class CommonClientServerTests:
         with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client()
         exception = raised.exception
-        self.assertEqual(str(exception), "Status code not 101: 503")
+        self.assertEqual(
+            str(exception), "server rejected WebSocket connection: HTTP 503"
+        )
         self.assertEqual(exception.status_code, 503)
 
     @with_server()
@@ -1197,7 +1199,9 @@ class CommonClientServerTests:
         with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client()
         exception = raised.exception
-        self.assertEqual(str(exception), "Status code not 101: 403")
+        self.assertEqual(
+            str(exception), "server rejected WebSocket connection: HTTP 403"
+        )
         self.assertEqual(exception.status_code, 403)
 
     @with_server()
@@ -1283,7 +1287,9 @@ class ClientServerOriginTests(AsyncioTestCase):
         server = self.loop.run_until_complete(
             serve(handler, "localhost", 0, origins=["http://localhost"])
         )
-        with self.assertRaisesRegex(InvalidHandshake, "Status code not 101: 403"):
+        with self.assertRaisesRegex(
+            InvalidHandshake, "server rejected WebSocket connection: HTTP 403"
+        ):
             self.loop.run_until_complete(
                 connect(get_server_uri(server), origin="http://otherhost")
             )
@@ -1295,7 +1301,9 @@ class ClientServerOriginTests(AsyncioTestCase):
         server = self.loop.run_until_complete(
             serve(handler, "localhost", 0, origins=["http://localhost"])
         )
-        with self.assertRaisesRegex(InvalidHandshake, "Status code not 101: 400"):
+        with self.assertRaisesRegex(
+            InvalidHandshake, "server rejected WebSocket connection: HTTP 400"
+        ):
             self.loop.run_until_complete(
                 connect(
                     get_server_uri(server),

@@ -62,7 +62,7 @@ class RedirectHandshake(InvalidHandshake):
         self.uri = uri
 
     def __str__(self) -> str:
-        return f"Redirect to {self.uri}"
+        return f"redirect to {self.uri}"
 
 
 class InvalidMessage(InvalidHandshake):
@@ -80,11 +80,11 @@ class InvalidHeader(InvalidHandshake):
 
     def __init__(self, name: str, value: Optional[str] = None) -> None:
         if value is None:
-            message = f"Missing {name} header"
+            message = f"missing {name} header"
         elif value == "":
-            message = f"Empty {name} header"
+            message = f"empty {name} header"
         else:
-            message = f"Invalid {name} header: {value}"
+            message = f"invalid {name} header: {value}"
         super().__init__(message)
 
 
@@ -133,7 +133,7 @@ class InvalidStatusCode(InvalidHandshake):
 
     def __init__(self, status_code: int) -> None:
         self.status_code = status_code
-        message = f"Status code not 101: {status_code}"
+        message = f"server rejected WebSocket connection: HTTP {status_code}"
         super().__init__(message)
 
 
@@ -152,7 +152,7 @@ class InvalidParameterName(NegotiationError):
 
     def __init__(self, name: str) -> None:
         self.name = name
-        message = f"Invalid parameter name: {name}"
+        message = f"invalid parameter name: {name}"
         super().__init__(message)
 
 
@@ -165,7 +165,7 @@ class InvalidParameterValue(NegotiationError):
     def __init__(self, name: str, value: Optional[str]) -> None:
         self.name = name
         self.value = value
-        message = f"Invalid value for parameter {name}: {value}"
+        message = f"invalid value for parameter {name}: {value}"
         super().__init__(message)
 
 
@@ -177,7 +177,7 @@ class DuplicateParameter(NegotiationError):
 
     def __init__(self, name: str) -> None:
         self.name = name
-        message = f"Duplicate parameter: {name}"
+        message = f"duplicate parameter: {name}"
         super().__init__(message)
 
 

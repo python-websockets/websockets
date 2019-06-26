@@ -27,11 +27,11 @@ if sys.platform == "win32":
 
         handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
         if handle == INVALID_HANDLE_VALUE:
-            raise RuntimeError("Unable to obtain stdout handle")
+            raise RuntimeError("unable to obtain stdout handle")
 
         cur_mode = ctypes.c_uint()
         if ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(cur_mode)) == 0:
-            raise RuntimeError("Unable to query current console mode")
+            raise RuntimeError("unable to query current console mode")
 
         # ctypes ints lack support for the required bit-OR operation.
         # Temporarily convert to Py int, do the OR and convert back.
@@ -39,7 +39,7 @@ if sys.platform == "win32":
         new_mode = ctypes.c_uint(py_int_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
 
         if ctypes.windll.kernel32.SetConsoleMode(handle, new_mode) == 0:
-            raise RuntimeError("Unable to set console mode")
+            raise RuntimeError("unable to set console mode")
 
 
 def exit_from_event_loop_thread(

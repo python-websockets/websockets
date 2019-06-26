@@ -147,28 +147,36 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     status, headers, body = (
                         http.HTTPStatus.FORBIDDEN,
                         Headers(),
-                        (str(exc) + "\n").encode(),
+                        f"Failed to open a WebSocket connection: {exc}.\n".encode(),
                     )
                 elif isinstance(exc, InvalidUpgrade):
                     logger.debug("Invalid upgrade", exc_info=True)
                     status, headers, body = (
                         http.HTTPStatus.UPGRADE_REQUIRED,
                         Headers([("Upgrade", "websocket")]),
-                        (str(exc) + "\n").encode(),
+                        (
+                            f"Failed to open a WebSocket connection: {exc}.\n"
+                            f"\n"
+                            f"You cannot access a WebSocket server directly "
+                            f"with a browser. You need a WebSocket client.\n"
+                        ).encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):
                     logger.debug("Invalid handshake", exc_info=True)
                     status, headers, body = (
                         http.HTTPStatus.BAD_REQUEST,
                         Headers(),
-                        (str(exc) + "\n").encode(),
+                        f"Failed to open a WebSocket connection: {exc}.\n".encode(),
                     )
                 else:
                     logger.warning("Error in opening handshake", exc_info=True)
                     status, headers, body = (
                         http.HTTPStatus.INTERNAL_SERVER_ERROR,
                         Headers(),
-                        b"See server log for more information.\n",
+                        (
+                            b"Failed to open a WebSocket connection.\n"
+                            b"See server log for more information.\n"
+                        ),
                     )
 
                 headers.setdefault("Date", email.utils.formatdate(usegmt=True))
@@ -880,7 +888,7 @@ class Serve:
             ):
                 extensions = list(extensions) + [ServerPerMessageDeflateFactory()]
         elif compression is not None:
-            raise ValueError(f"Unsupported compression: {compression}")
+            raise ValueError(f"unsupported compression: {compression}")
 
         factory = lambda: create_protocol(
             ws_handler,

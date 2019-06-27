@@ -6,6 +6,7 @@ The :mod:`websockets.server` module defines a simple WebSocket server API.
 import asyncio
 import collections.abc
 import email.utils
+import functools
 import http
 import logging
 import socket
@@ -890,7 +891,8 @@ class Serve:
         elif compression is not None:
             raise ValueError(f"unsupported compression: {compression}")
 
-        factory = lambda: create_protocol(
+        factory = functools.partial(
+            create_protocol,
             ws_handler,
             ws_server,
             host=host,
@@ -917,17 +919,18 @@ class Serve:
             # serve(..., host, port) must specify host and port parameters.
             # host can be None to listen on all interfaces; port cannot be None.
             assert port is not None
-            # https://github.com/python/typeshed/pull/2763
-            creating_server = loop.create_server(  # type: ignore
-                factory, host, port, **kwargs
+            create_server = functools.partial(
+                loop.create_server, factory, host, port, **kwargs
             )
         else:
             # unix_serve(path) must not specify host and port parameters.
             assert host is None and port is None
-            creating_server = loop.create_unix_server(factory, path, **kwargs)
+            create_server = functools.partial(
+                loop.create_unix_server, factory, path, **kwargs
+            )
 
-        # This is a coroutine object.
-        self._creating_server = creating_server
+        # This is a coroutine function.
+        self._create_server = create_server
         self.ws_server = ws_server
 
     # async with serve(...)
@@ -951,7 +954,7 @@ class Serve:
         return self.__await_impl__().__await__()
 
     async def __await_impl__(self) -> WebSocketServer:
-        server = await self._creating_server
+        server = await self._create_server()
         self.ws_server.wrap(server)
         return self.ws_server
 

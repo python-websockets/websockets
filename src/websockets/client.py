@@ -5,6 +5,7 @@ The :mod:`websockets.client` module defines a simple WebSocket client API.
 
 import asyncio
 import collections.abc
+import functools
 import logging
 import warnings
 from types import TracebackType
@@ -17,6 +18,7 @@ from .exceptions import (
     InvalidStatusCode,
     NegotiationError,
     RedirectHandshake,
+    SecurityError,
 )
 from .extensions.base import ClientExtensionFactory, Extension
 from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
@@ -410,8 +412,8 @@ class Connect:
         if loop is None:
             loop = asyncio.get_event_loop()
 
-        self._wsuri = parse_uri(uri)
-        if self._wsuri.secure:
+        wsuri = parse_uri(uri)
+        if wsuri.secure:
             kwargs.setdefault("ssl", True)
         elif kwargs.get("ssl") is not None:
             raise ValueError(
@@ -432,69 +434,65 @@ class Connect:
         elif compression is not None:
             raise ValueError(f"unsupported compression: {compression}")
 
-        self._create_protocol = create_protocol
-        self._ping_interval = ping_interval
-        self._ping_timeout = ping_timeout
-        self._close_timeout = close_timeout
-        self._max_size = max_size
-        self._max_queue = max_queue
-        self._read_limit = read_limit
-        self._write_limit = write_limit
-        self._loop = loop
-        self._legacy_recv = legacy_recv
-        self._klass = klass
-        self._timeout = timeout
-        self._compression = compression
-        self._origin = origin
-        self._extensions = extensions
-        self._subprotocols = subprotocols
-        self._extra_headers = extra_headers
-        self._kwargs = kwargs
-
-    async def _creating_connection(
-        self
-    ) -> Tuple[asyncio.Transport, WebSocketClientProtocol]:
-        if self._wsuri.secure:
-            self._kwargs.setdefault("ssl", True)
-
-        factory = lambda: self._create_protocol(
-            host=self._wsuri.host,
-            port=self._wsuri.port,
-            secure=self._wsuri.secure,
-            ping_interval=self._ping_interval,
-            ping_timeout=self._ping_timeout,
-            close_timeout=self._close_timeout,
-            max_size=self._max_size,
-            max_queue=self._max_queue,
-            read_limit=self._read_limit,
-            write_limit=self._write_limit,
-            loop=self._loop,
-            legacy_recv=self._legacy_recv,
-            origin=self._origin,
-            extensions=self._extensions,
-            subprotocols=self._subprotocols,
-            extra_headers=self._extra_headers,
+        factory = functools.partial(
+            create_protocol,
+            host=wsuri.host,
+            port=wsuri.port,
+            secure=wsuri.secure,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
+            close_timeout=close_timeout,
+            max_size=max_size,
+            max_queue=max_queue,
+            read_limit=read_limit,
+            write_limit=write_limit,
+            loop=loop,
+            legacy_recv=legacy_recv,
+            origin=origin,
+            extensions=extensions,
+            subprotocols=subprotocols,
+            extra_headers=extra_headers,
         )
 
         host: Optional[str]
         port: Optional[int]
-        if self._kwargs.get("sock") is None:
-            host, port = self._wsuri.host, self._wsuri.port
+        if kwargs.get("sock") is None:
+            host, port = wsuri.host, wsuri.port
         else:
-            # If sock is given, host and port mustn't be specified.
+            # If sock is given, host and port shouldn't be specified.
             host, port = None, None
 
-        self._wsuri = self._wsuri
-        self._origin = self._origin
-
-        # This is a coroutine object.
-        # https://github.com/python/typeshed/pull/2756
-        transport, protocol = await self._loop.create_connection(  # type: ignore
-            factory, host, port, **self._kwargs
+        # This is a coroutine function.
+        self._create_connection = functools.partial(
+            loop.create_connection, factory, host, port, **kwargs
         )
-        transport = cast(asyncio.Transport, transport)
-        protocol = cast(WebSocketClientProtocol, protocol)
-        return transport, protocol
+
+        self._wsuri = wsuri
+        self._origin = origin
+
+    def _redirect(self, uri: str) -> None:
+        old_wsuri = self._wsuri
+        factory, old_host, old_port = self._create_connection.args
+
+        new_wsuri = parse_uri(uri)
+        new_host, new_port = new_wsuri.host, new_wsuri.port
+        if old_wsuri.secure and not new_wsuri.secure:
+            raise SecurityError("redirect from WSS to WS")
+
+        # Replace the host and port argument passed to the protocol factory.
+        factory = self._create_connection.args[0]
+        factory_keywords = dict(factory.keywords, host=new_host, port=new_port)
+        factory = functools.partial(factory.func, *factory.args, **factory_keywords)
+
+        # Replace the host and port argument passed to create_connection.
+        create_connection_args = (factory, new_host, new_port)
+        self._create_connection = functools.partial(
+            self._create_connection.func,
+            *create_connection_args,
+            **self._create_connection.keywords,
+        )
+
+        self._wsuri = new_wsuri
 
     # async with connect(...)
 
@@ -517,7 +515,10 @@ class Connect:
 
     async def __await_impl__(self) -> WebSocketClientProtocol:
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):
-            transport, protocol = await self._creating_connection()
+            transport, protocol = await self._create_connection()
+            # https://github.com/python/typeshed/pull/2756
+            transport = cast(asyncio.Transport, transport)
+            protocol = cast(WebSocketClientProtocol, protocol)
 
             try:
                 try:
@@ -528,22 +529,17 @@ class Connect:
                         available_subprotocols=protocol.available_subprotocols,
                         extra_headers=protocol.extra_headers,
                     )
-                    break  # redirection chain ended
                 except Exception:
                     protocol.fail_connection()
                     await protocol.wait_closed()
                     raise
-            except RedirectHandshake as e:
-                wsuri = parse_uri(e.uri)
-                if self._wsuri.secure and not wsuri.secure:
-                    raise InvalidHandshake("redirect dropped TLS")
-                self._wsuri = wsuri
-                continue  # redirection chain continues
+                else:
+                    self.ws_client = protocol
+                    return protocol
+            except RedirectHandshake as exc:
+                self._redirect(exc.uri)
         else:
-            raise InvalidHandshake("maximum redirects exceeded")
-
-        self.ws_client = protocol
-        return protocol
+            raise SecurityError("too many redirects")
 
     # yield from connect(...)
 

@@ -39,13 +39,6 @@ MAX_LINE = 4096
 USER_AGENT = f"Python/{sys.version[:3]} websockets/{websockets_version}"
 
 
-class SecurityError(ValueError):
-    """
-    HTTP request or response exceeds security limits.
-
-    """
-
-
 def d(value: bytes) -> str:
     """
     Decode a bytestring for interpolating into an error message.
@@ -211,6 +204,8 @@ async def read_headers(stream: asyncio.StreamReader) -> "Headers":
         headers[name] = value
 
     else:
+        from .exceptions import SecurityError  # avoid circular import
+
         raise SecurityError("too many HTTP headers")
 
     return headers
@@ -229,6 +224,8 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     line = await stream.readline()
     # Security: this guarantees header values are small (hard-coded = 4 KiB)
     if len(line) > MAX_LINE:
+        from .exceptions import SecurityError  # avoid circular import
+
         raise SecurityError("line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):

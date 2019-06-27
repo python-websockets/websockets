@@ -1,6 +1,7 @@
 import asyncio
 import unittest
 
+from websockets.exceptions import SecurityError
 from websockets.http import *
 from websockets.http import read_headers
 
@@ -120,13 +121,13 @@ class HTTPAsyncTests(AsyncioTestCase):
 
     async def test_headers_limit(self):
         self.stream.feed_data(b"foo: bar\r\n" * 257 + b"\r\n")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(SecurityError):
             await read_headers(self.stream)
 
     async def test_line_limit(self):
         # Header line contains 5 + 4090 + 2 = 4097 bytes.
         self.stream.feed_data(b"foo: " + b"a" * 4090 + b"\r\n\r\n")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(SecurityError):
             await read_headers(self.stream)
 
     async def test_line_ending(self):

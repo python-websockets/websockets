@@ -17,6 +17,11 @@ class ExceptionsTests(unittest.TestCase):
                 "HTTP 200, 0 headers, 3 bytes",
             ),
             (
+                SecurityError("redirect from WSS to WS"),
+                "redirect from WSS to WS",
+
+            ),
+            (
                 RedirectHandshake("wss://example.com"),
                 "redirect to wss://example.com",
             ),

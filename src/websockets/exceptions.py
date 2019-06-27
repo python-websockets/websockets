@@ -25,6 +25,7 @@ __all__ = [
     "NegotiationError",
     "PayloadTooBig",
     "RedirectHandshake",
+    "SecurityError",
     "WebSocketProtocolError",
 ]
 
@@ -50,6 +51,13 @@ class AbortHandshake(InvalidHandshake):
         self.body = body
         message = f"HTTP {status}, {len(self.headers)} headers, {len(body)} bytes"
         super().__init__(message)
+
+
+class SecurityError(InvalidHandshake):
+    """
+    Exception raised when a HTTP request or response breaks security rules.
+
+    """
 
 
 class RedirectHandshake(InvalidHandshake):

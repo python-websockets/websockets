@@ -37,7 +37,7 @@ from .typing import Origin, Subprotocol
 from .uri import WebSocketURI, parse_uri
 
 
-__all__ = ["connect", "WebSocketClientProtocol"]
+__all__ = ["connect", "unix_connect", "WebSocketClientProtocol"]
 
 logger = logging.getLogger(__name__)
 
@@ -372,6 +372,7 @@ class Connect:
         self,
         uri: str,
         *,
+        path: Optional[str] = None,
         create_protocol: Optional[Type[WebSocketClientProtocol]] = None,
         ping_interval: float = 20,
         ping_timeout: float = 20,
@@ -454,19 +455,24 @@ class Connect:
             extra_headers=extra_headers,
         )
 
-        host: Optional[str]
-        port: Optional[int]
-        if kwargs.get("sock") is None:
-            host, port = wsuri.host, wsuri.port
+        if path is None:
+            host: Optional[str]
+            port: Optional[int]
+            if kwargs.get("sock") is None:
+                host, port = wsuri.host, wsuri.port
+            else:
+                # If sock is given, host and port shouldn't be specified.
+                host, port = None, None
+            create_connection = functools.partial(
+                loop.create_connection, factory, host, port, **kwargs
+            )
         else:
-            # If sock is given, host and port shouldn't be specified.
-            host, port = None, None
+            create_connection = functools.partial(
+                loop.create_unix_connection, factory, path, **kwargs
+            )
 
         # This is a coroutine function.
-        self._create_connection = functools.partial(
-            loop.create_connection, factory, host, port, **kwargs
-        )
-
+        self._create_connection = create_connection
         self._wsuri = wsuri
         self._origin = origin
 
@@ -547,3 +553,20 @@ class Connect:
 
 
 connect = Connect
+
+
+def unix_connect(path: str, uri: str = "ws://localhost/", **kwargs: Any) -> Connect:
+    """
+    Similar to :func:`connect`, but for connecting to a Unix socket.
+
+    ``path`` is the path to the Unix socket. ``uri`` is the WebSocket URI.
+
+    This function calls the event loop's
+    :meth:`~asyncio.AbstractEventLoop.create_unix_connection` method.
+
+    It is only available on Unix.
+
+    It's mainly useful for debugging servers listening on Unix sockets.
+
+    """
+    return connect(uri=uri, path=path, **kwargs)

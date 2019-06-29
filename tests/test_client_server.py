@@ -151,9 +151,6 @@ def get_server_uri(server, secure=False, resource_name="/", user_info=None):
         host = f"[{host}]"
     elif server_socket.family == socket.AF_INET:
         host, port = server_socket.getsockname()
-    elif server_socket.family == socket.AF_UNIX:
-        # The host and port are ignored when connecting to a Unix socket.
-        host, port = "localhost", 0
     else:  # pragma: no cover
         raise ValueError("expected an IPv6, IPv4, or Unix socket")
 
@@ -489,18 +486,17 @@ class CommonClientServerTests:
             # Like self.start_server() but with unix_serve().
             unix_server = unix_serve(handler, path)
             self.server = self.loop.run_until_complete(unix_server)
-
-            client_socket = socket.socket(socket.AF_UNIX)
-            client_socket.connect(path)
-
             try:
-                with self.temp_client(sock=client_socket):
+                # Like self.start_client() but with unix_connect()
+                unix_client = unix_connect(path)
+                self.client = self.loop.run_until_complete(unix_client)
+                try:
                     self.loop.run_until_complete(self.client.send("Hello!"))
                     reply = self.loop.run_until_complete(self.client.recv())
                     self.assertEqual(reply, "Hello!")
-
+                finally:
+                    self.stop_client()
             finally:
-                client_socket.close()
                 self.stop_server()
 
     async def process_request_OK(path, request_headers):

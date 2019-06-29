@@ -124,8 +124,8 @@ See `issue 414`_.
 
 .. _issue 414: https://github.com/aaugustin/websockets/issues/414
 
-How do I disable SSL certificate verification?
-..............................................
+How do I disable TLS/SSL certificate verification?
+..................................................
 
 Look at the ``ssl`` argument of :meth:`~asyncio.loop.create_connection`.
 

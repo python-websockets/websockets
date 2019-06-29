@@ -415,7 +415,7 @@ class Connect:
             kwargs.setdefault("ssl", True)
         elif kwargs.get("ssl") is not None:
             raise ValueError(
-                "connect() received a SSL context for a ws:// URI, "
+                "connect() received a ssl argument for a ws:// URI, "
                 "use a wss:// URI to enable TLS"
             )
 

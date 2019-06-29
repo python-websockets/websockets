@@ -1215,7 +1215,7 @@ class CommonClientServerTests:
         _read_http_request.side_effect = ConnectionError
 
         # This exception is currently platform-dependent. It was observed to
-        # be ConnectionResetError on Linux in the non-SSL case, and
+        # be ConnectionResetError on Linux in the non-TLS case, and
         # InvalidMessage otherwise (including both Linux and macOS). This
         # doesn't matter though since this test is primarily for testing a
         # code path on the server side.

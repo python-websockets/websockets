@@ -54,7 +54,8 @@ Secure WebSocket connections improve confidentiality and also reliability
 because they reduce the risk of interference by bad proxies.
 
 The WSS protocol is to WS what HTTPS is to HTTP: the connection is encrypted
-with TLS. WSS requires TLS certificates like HTTPS.
+with Transport Layer Security (TLS) — which is often referred to as Secure
+Sockets Layer (SSL). WSS requires TLS certificates like HTTPS.
 
 Here's how to adapt the server example to provide secure connections. See the
 documentation of the :mod:`ssl` module for configuring the context securely.

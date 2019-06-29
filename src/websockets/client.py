@@ -484,17 +484,23 @@ class Connect:
         self._wsuri = wsuri
         self._origin = origin
 
-    def _redirect(self, uri: str) -> None:
+    def handle_redirect(self, uri: str) -> None:
+        # Update the state of this instance to connect to a new URI.
         old_wsuri = self._wsuri
         new_wsuri = parse_uri(uri)
 
+        # Forbid TLS downgrade.
         if old_wsuri.secure and not new_wsuri.secure:
             raise SecurityError("redirect from WSS to WS")
 
-        # Only rewrite the host and port arguments is they change in the URI.
-        # This preserves connection overrides with the host, port, or sock
+        same_origin = (
+            old_wsuri.host == new_wsuri.host and old_wsuri.port == new_wsuri.port
+        )
+
+        # Rewrite the host and port arguments for cross-origin redirects.
+        # This preserves connection overrides with the host and port
         # arguments if the redirect points to the same host and port.
-        if old_wsuri.host != new_wsuri.host or old_wsuri.port != new_wsuri.port:
+        if not same_origin:
             # Replace the host and port argument passed to the protocol factory.
             factory = self._create_connection.args[0]
             factory = functools.partial(
@@ -509,6 +515,7 @@ class Connect:
                 **self._create_connection.keywords,
             )
 
+        # Set the new WebSocket URI. This suffices for same-origin redirects.
         self._wsuri = new_wsuri
 
     # async with connect(...)
@@ -554,7 +561,7 @@ class Connect:
                     self.ws_client = protocol
                     return protocol
             except RedirectHandshake as exc:
-                self._redirect(exc.uri)
+                self.handle_redirect(exc.uri)
         else:
             raise SecurityError("too many redirects")
 

@@ -914,11 +914,16 @@ class Serve:
         )
 
         if path is None:
+            # serve(..., host, port) must specify host and port parameters.
+            # host can be None to listen on all interfaces; port cannot be None.
+            assert port is not None
             # https://github.com/python/typeshed/pull/2763
-            host = cast(str, host)
-            port = cast(int, port)
-            creating_server = loop.create_server(factory, host, port, **kwargs)
+            creating_server = loop.create_server(  # type: ignore
+                factory, host, port, **kwargs
+            )
         else:
+            # unix_serve(path) must not specify host and port parameters.
+            assert host is None and port is None
             creating_server = loop.create_unix_server(factory, path, **kwargs)
 
         # This is a coroutine object.
@@ -965,6 +970,8 @@ def unix_serve(
 ) -> Serve:
     """
     Similar to :func:`serve()`, but for listening on Unix sockets.
+
+    ``path`` is the path to the Unix socket.
 
     This function calls the event loop's
     :meth:`~asyncio.AbstractEventLoop.create_unix_server` method.

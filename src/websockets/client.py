@@ -334,6 +334,11 @@ class Connect:
     a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
     ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
 
+    You can connect to a different host and port from those found in ``uri``
+    by setting ``host`` and ``port`` keyword arguments. This only changes the
+    destination of the TCP connection; the hostname from ``uri`` is still used
+    in the TLS handshake for secure connections and in the ``Host`` header.
+
     The behavior of the ``ping_interval``, ``ping_timeout``, ``close_timeout``,
     ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit`` optional
     arguments is described in the documentation of
@@ -463,6 +468,9 @@ class Connect:
             else:
                 # If sock is given, host and port shouldn't be specified.
                 host, port = None, None
+            # If host and port are given, override values from the URI.
+            host = kwargs.pop("host", host)
+            port = kwargs.pop("port", port)
             create_connection = functools.partial(
                 loop.create_connection, factory, host, port, **kwargs
             )
@@ -478,25 +486,28 @@ class Connect:
 
     def _redirect(self, uri: str) -> None:
         old_wsuri = self._wsuri
-        factory, old_host, old_port = self._create_connection.args
-
         new_wsuri = parse_uri(uri)
-        new_host, new_port = new_wsuri.host, new_wsuri.port
+
         if old_wsuri.secure and not new_wsuri.secure:
             raise SecurityError("redirect from WSS to WS")
 
-        # Replace the host and port argument passed to the protocol factory.
-        factory = self._create_connection.args[0]
-        factory_keywords = dict(factory.keywords, host=new_host, port=new_port)
-        factory = functools.partial(factory.func, *factory.args, **factory_keywords)
-
-        # Replace the host and port argument passed to create_connection.
-        create_connection_args = (factory, new_host, new_port)
-        self._create_connection = functools.partial(
-            self._create_connection.func,
-            *create_connection_args,
-            **self._create_connection.keywords,
-        )
+        # Only rewrite the host and port arguments is they change in the URI.
+        # This preserves connection overrides with the host, port, or sock
+        # arguments if the redirect points to the same host and port.
+        if old_wsuri.host != new_wsuri.host or old_wsuri.port != new_wsuri.port:
+            # Replace the host and port argument passed to the protocol factory.
+            factory = self._create_connection.args[0]
+            factory = functools.partial(
+                factory.func,
+                *factory.args,
+                **dict(factory.keywords, host=new_wsuri.host, port=new_wsuri.port),
+            )
+            # Replace the host and port argument passed to create_connection.
+            self._create_connection = functools.partial(
+                self._create_connection.func,
+                *(factory, new_wsuri.host, new_wsuri.port),
+                **self._create_connection.keywords,
+            )
 
         self._wsuri = new_wsuri
 

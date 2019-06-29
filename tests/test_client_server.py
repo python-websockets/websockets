@@ -31,6 +31,7 @@ from websockets.handshake import build_response
 from websockets.http import USER_AGENT, Headers, read_response
 from websockets.protocol import State
 from websockets.server import *
+from websockets.uri import parse_uri
 
 from .test_protocol import MS
 from .utils import AsyncioTestCase
@@ -284,8 +285,11 @@ class ClientServerTestsMixin:
         # Disable pings by default in tests.
         kwargs.setdefault("ping_interval", None)
         secure = kwargs.get("ssl") is not None
-        server = self.redirecting_server if self.redirecting_server else self.server
-        server_uri = get_server_uri(server, secure, resource_name, user_info)
+        try:
+            server_uri = kwargs.pop("uri")
+        except KeyError:
+            server = self.redirecting_server if self.redirecting_server else self.server
+            server_uri = get_server_uri(server, secure, resource_name, user_info)
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
             start_client = connect(server_uri, **kwargs)
@@ -436,6 +440,21 @@ class CommonClientServerTests:
                 self.loop.run_until_complete(self.client.send("Hello!"))
                 reply = self.loop.run_until_complete(self.client.recv())
                 self.assertEqual(reply, "Hello!")
+
+    @with_server()
+    def test_explicit_host_port(self):
+        uri = get_server_uri(self.server, self.secure)
+        wsuri = parse_uri(uri)
+
+        # Change host and port to invalid values.
+        changed_uri = uri.replace(wsuri.host, "example.com").replace(
+            str(wsuri.port), str(65535 - wsuri.port)
+        )
+
+        with self.temp_client(uri=changed_uri, host=wsuri.host, port=wsuri.port):
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            reply = self.loop.run_until_complete(self.client.recv())
+            self.assertEqual(reply, "Hello!")
 
     @with_server()
     def test_explicit_socket(self):

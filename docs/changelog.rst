@@ -56,6 +56,8 @@ Also:
 * :func:`~client.connect` handles redirects from the server during the
   handshake.
 
+* Added :func:`~client.unix_connect` for connecting to Unix sockets.
+
 * Improved support for sending fragmented messages by accepting asynchronous
   iterators in :meth:`~protocol.WebSocketCommonProtocol.send`.
 

@@ -1,6 +1,7 @@
 """
-The :mod:`websockets.protocol` module handles WebSocket control and data
-frames as specified in `sections 4 to 8 of RFC 6455`_.
+:mod:`websockets.protocol` handles WebSocket control and data frames.
+
+See `sections 4 to 8 of RFC 6455`_.
 
 .. _sections 4 to 8 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
 
@@ -62,16 +63,24 @@ class State(enum.IntEnum):
 
 class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     """
-    This class implements common parts of the WebSocket protocol.
+    :class:`~asyncio.Protocol` subclass implementing the data transfer phase.
 
-    It assumes that the WebSocket connection is established. The handshake is
-    managed in subclasses such as
-    :class:`~websockets.server.WebSocketServerProtocol` and
-    :class:`~websockets.client.WebSocketClientProtocol`.
+    Once the WebSocket connection is established, during the data transfer
+    phase, the protocol is almost symmetrical between the server side and the
+    client side. :class:`WebSocketCommonProtocol` implements logic that's
+    shared between servers and clients..
 
-    It runs a task that stores incoming data frames in a queue and deals with
-    control frames automatically. It sends outgoing data frames and performs
-    the closing handshake.
+    Subclasses such as :class:`~websockets.server.WebSocketServerProtocol` and
+    :class:`~websockets.client.WebSocketClientProtocol` implement the opening
+    handshake, which is different between servers and clients.
+
+    :class:`WebSocketCommonProtocol` performs four functions:
+
+    * It runs a task that stores incoming data frames in a queue and makes
+      them available with the :meth:`recv` coroutine.
+    * It sends outgoing data frames with the :meth:`send` coroutine.
+    * It deals with control frames automatically.
+    * It performs the closing handshake.
 
     :class:`WebSocketCommonProtocol` supports asynchronous iteration::
 
@@ -81,20 +90,23 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     The iterator yields incoming messages. It exits normally when the
     connection is closed with the close code 1000 (OK) or 1001 (going away).
     It raises a :exc:`~websockets.exceptions.ConnectionClosedError` exception
-    when the connection is closed with any other status code.
+    when the connection is closed with any other code.
 
-    The ``host``, ``port`` and ``secure`` parameters are simply stored as
-    attributes for handlers that need them.
+    When initializing a :class:`WebSocketCommonProtocol`, the ``host``,
+    ``port``, and ``secure`` parameters are stored as attributes for backwards
+    compatibility. Consider using :attr:`local_address` on the server side and
+    :attr:`remote_address` on the client side instead.
 
     Once the connection is open, a `Ping frame`_ is sent every
     ``ping_interval`` seconds. This serves as a keepalive. It helps keeping
     the connection open, especially in the presence of proxies with short
-    timeouts. Set ``ping_interval`` to ``None`` to disable this behavior.
+    timeouts on inactive connections. Set ``ping_interval`` to ``None`` to
+    disable this behavior.
 
     .. _Ping frame: https://tools.ietf.org/html/rfc6455#section-5.5.2
 
     If the corresponding `Pong frame`_ isn't received within ``ping_timeout``
-    seconds, the connection is considered unusable and is closed with status
+    seconds, the connection is considered unusable and is closed with
     code 1011. This ensures that the remote endpoint remains responsive. Set
     ``ping_timeout`` to ``None`` to disable this behavior.
 
@@ -102,11 +114,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     The ``close_timeout`` parameter defines a maximum wait time in seconds for
     completing the closing handshake and terminating the TCP connection.
-    :meth:`close()` completes in at most ``4 * close_timeout`` on the server
+    :meth:`close` completes in at most ``4 * close_timeout`` on the server
     side and ``5 * close_timeout`` on the client side.
 
     ``close_timeout`` needs to be a parameter of the protocol because
-    websockets usually calls :meth:`close()` implicitly:
+    websockets usually calls :meth:`close` implicitly:
 
     - on the server side, when the connection handler terminates,
     - on the client side, when exiting the context manager for the connection.
@@ -115,26 +127,26 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     The ``max_size`` parameter enforces the maximum size for incoming messages
     in bytes. The default value is 1 MiB. ``None`` disables the limit. If a
-    message larger than the maximum size is received, :meth:`recv()` will
+    message larger than the maximum size is received, :meth:`recv` will
     raise :exc:`~websockets.exceptions.ConnectionClosedError` and the
-    connection will be closed with status code 1009.
+    connection will be closed with code 1009.
 
     The ``max_queue`` parameter sets the maximum length of the queue that
     holds incoming messages. The default value is ``32``. ``None`` disables
     the limit. Messages are added to an in-memory queue when they're received;
-    then :meth:`recv()` pops from that queue. In order to prevent excessive
+    then :meth:`recv` pops from that queue. In order to prevent excessive
     memory consumption when messages are received faster than they can be
     processed, the queue must be bounded. If the queue fills up, the protocol
-    stops processing incoming data until :meth:`recv()` is called. In this
+    stops processing incoming data until :meth:`recv` is called. In this
     situation, various receive buffers (at least in ``asyncio`` and in the OS)
     will fill up, then the TCP receive window will shrink, slowing down
     transmission to avoid packet loss.
 
     Since Python can use up to 4 bytes of memory to represent a single
-    character, each websocket connection may use up to ``4 * max_size *
-    max_queue`` bytes of memory to store incoming messages. By default,
-    this is 128 MiB. You may want to lower the limits, depending on your
-    application's requirements.
+    character, each connection may use up to ``4 * max_size * max_queue``
+    bytes of memory to store incoming messages. By default, this is 128 MiB.
+    You may want to lower the limits, depending on your application's
+    requirements.
 
     The ``read_limit`` argument sets the high-water limit of the buffer for
     incoming bytes. The low-water limit is half the high-water limit. The
@@ -154,13 +166,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
       :attr:`request_headers` and :attr:`response_headers` attributes,
       which are :class:`~websockets.http.Headers` instances.
 
-    These attributes must be treated as immutable.
-
     If a subprotocol was negotiated, it's available in the :attr:`subprotocol`
     attribute.
 
-    Once the connection is closed, the status code is available in the
+    Once the connection is closed, the code is available in the
     :attr:`close_code` attribute and the reason in :attr:`close_reason`.
+
+    All these attributes must be treated as read-only.
 
     """
 
@@ -187,7 +199,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         legacy_recv: bool = False,
         timeout: Optional[float] = None,
     ) -> None:
-        # Backwards-compatibility: close_timeout used to be called timeout.
+        # Backwards compatibility: close_timeout used to be called timeout.
         if timeout is None:
             timeout = 10
         else:
@@ -229,7 +241,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.
         # Subclasses implement the opening handshake and, on success, execute
-        # :meth:`connection_open()` to change the state to OPEN.
+        # :meth:`connection_open` to change the state to OPEN.
         self.state = State.CONNECTING
         logger.debug("%s - state = CONNECTING", self.side)
 
@@ -248,7 +260,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.close_reason: str
 
         # Completed when the connection state becomes CLOSED. Translates the
-        # :meth:`connection_lost()` callback to a :class:`~asyncio.Future`
+        # :meth:`connection_lost` callback to a :class:`~asyncio.Future`
         # that can be awaited. (Other :class:`~asyncio.Protocol` callbacks are
         # translated by ``self.stream_reader``).
         self.connection_lost_waiter: asyncio.Future[None] = loop.create_future()
@@ -341,11 +353,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @property
     def open(self) -> bool:
         """
-        This property is ``True`` when the connection is usable.
+        ``True`` when the connection is usable.
 
-        It may be used to detect disconnections but this is discouraged per
-        the EAFP_ principle. When ``open`` is ``False``, using the connection
-        raises a :exc:`~websockets.exceptions.ConnectionClosed` exception.
+        It may be used to detect disconnections. However, this approach is
+        discouraged per the EAFP_ principle.
+
+        When ``open`` is ``False``, using the connection raises a
+        :exc:`~websockets.exceptions.ConnectionClosed` exception.
 
         .. _EAFP: https://docs.python.org/3/glossary.html#term-eafp
 
@@ -355,7 +369,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     @property
     def closed(self) -> bool:
         """
-        This property is ``True`` once the connection is closed.
+        ``True`` once the connection is closed.
 
         Be aware that both :attr:`open` and :attr:`closed` are ``False`` during
         the opening and closing sequences.
@@ -392,16 +406,16 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     async def recv(self) -> Data:
         """
-        This coroutine receives the next message.
+        Receive the next message.
 
-        It returns a :class:`str` for a text frame and :class:`bytes` for a
-        binary frame.
+        Return a :class:`str` for a text frame and :class:`bytes` for a binary
+        frame.
 
         When the end of the message stream is reached, :meth:`recv` raises
         :exc:`~websockets.exceptions.ConnectionClosed`. Specifically, it
         raises :exc:`~websockets.exceptions.ConnectionClosedOK` after a normal
         connection closure and
-        :exc:`~websockets.exceptions.ConnectionClosedError`after a protocol
+        :exc:`~websockets.exceptions.ConnectionClosedError` after a protocol
         error or a network failure.
 
         .. versionchanged:: 3.0
@@ -414,9 +428,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         makes it possible to enforce a timeout by wrapping :meth:`recv` in
         :func:`~asyncio.wait_for`.
 
-        .. versionchanged:: 7.0
-
-            Calling :meth:`recv` concurrently raises :exc:`RuntimeError`.
+        :raises ~websockets.exceptions.ConnectionClosed: when the
+            connection is closed
+        :raises RuntimeError: if two coroutines call :meth:`recv` concurrently
 
         """
         if self._pop_message_waiter is not None:
@@ -473,19 +487,21 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self, message: Union[Data, Iterable[Data], AsyncIterable[Data]]
     ) -> None:
         """
-        This coroutine sends a message.
+        Send a message.
 
-        It sends a string (:class:`str`) as a text frame and a bytes-like
-        object (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`)
-        as a binary frame.
+        A string (:class:`str`) is sent as a `Text frame`_. A bytestring or
+        bytes-like object (:class:`bytes`, :class:`bytearray`, or
+        :class:`memoryview`) is sent as a `Binary frame`_.
 
-        It also accepts an iterable or an asynchronous iterable of strings or
-        bytes-like objects. In that case the message is fragmented. Each item
-        is treated as a message fragment and sent in its own frame. All items
-        must be of the same type, or else :meth:`send` will raise a
-        :exc:`TypeError` and the connection will be closed.
+        .. _Text frame: https://tools.ietf.org/html/rfc6455#section-5.6
+        .. _Binary frame: https://tools.ietf.org/html/rfc6455#section-5.6
 
-        It raises a :exc:`TypeError` for other inputs.
+        :meth:`send` also accepts an iterable or an asynchronous iterable of
+        strings, bytestrings, or bytes-like objects. In that case the message
+        is fragmented. Each item is treated as a message fragment and sent in
+        its own frame. All items must be of the same type, or else
+        :meth:`send` will raise a :exc:`TypeError` and the connection will be
+        closed.
 
         Canceling :meth:`send` is discouraged. Instead, you should close the
         connection with :meth:`close`. Indeed, there only two situations where
@@ -497,6 +513,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         2. ``message`` is an asynchronous iterator. Stopping in the middle of
            a fragmented message will cause a protocol error. Closing the
            connection has the same effect.
+
+        :raises TypeError: for unsupported inputs
 
         """
         await self.ensure_open()
@@ -594,13 +612,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
     async def close(self, code: int = 1000, reason: str = "") -> None:
         """
-        This coroutine performs the closing handshake.
+        Perform the closing handshake.
 
-        It waits for the other end to complete the handshake and for the TCP
-        connection to terminate. As a consequence, there's no need to await
-        :meth:`wait_closed`; :meth:`close` already does it.
-
-        ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
+        :meth:`close` waits for the other end to complete the handshake and
+        for the TCP connection to terminate. As a consequence, there's no need
+        to await :meth:`wait_closed`; :meth:`close` already does it.
 
         :meth:`close` is idempotent: it doesn't do anything once the
         connection is closed.
@@ -611,6 +627,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         Canceling :meth:`close` is discouraged. If it takes too long, you can
         set a shorter ``close_timeout``. If you don't want to wait, let the
         Python process exit, then the OS will close the TCP connection.
+
+        :param code: WebSocket close code
+        :param reason: WebSocket close reason
 
         """
         try:
@@ -644,11 +663,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Wait for the close connection task to close the TCP connection.
         await asyncio.shield(self.close_connection_task)
 
-    async def ping(self, data: Optional[bytes] = None) -> Awaitable[None]:
+    async def ping(self, data: Optional[Data] = None) -> Awaitable[None]:
         """
-        This coroutine sends a ping.
+        Send a ping.
 
-        It returns a :class:`~asyncio.Future` which will be completed when the
+        Return a :class:`~asyncio.Future` which will be completed when the
         corresponding pong is received and which you may ignore if you don't
         want to wait.
 
@@ -658,7 +677,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             pong_waiter = await ws.ping()
             await pong_waiter   # only if you want to wait for the pong
 
-        By default, the ping contains four random bytes. The content may be
+        By default, the ping contains four random bytes. This payload may be
         overridden with the optional ``data`` argument which must be a string
         (which will be encoded to UTF-8) or a bytes-like object.
 
@@ -689,15 +708,14 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         return asyncio.shield(self.pings[data])
 
-    async def pong(self, data: bytes = b"") -> None:
+    async def pong(self, data: Data = b"") -> None:
         """
-        This coroutine sends a pong.
+        Send a pong.
 
         An unsolicited pong may serve as a unidirectional heartbeat.
 
-        The content may be overridden with the optional ``data`` argument
-        which must be a string (which will be encoded to UTF-8) or a
-        bytes-like object.
+        The payload may be set with the optional ``data`` argument which must
+        be a string (which will be encoded to UTF-8) or a bytes-like object.
 
         Canceling :meth:`pong` is discouraged for the same reason as
         :meth:`ping`.
@@ -744,7 +762,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         if self.state is State.CLOSING:
             # If we started the closing handshake, wait for its completion to
-            # get the proper close code and status. self.close_connection_task
+            # get the proper close code and reason. self.close_connection_task
             # will complete within 4 or 5 * close_timeout after close(). The
             # CLOSING state also occurs when failing the connection. In that
             # case self.close_connection_task will complete even faster.

@@ -1,6 +1,6 @@
 """
-The :mod:`websockets.extensions.permessage_deflate` module implements the
-Compression Extensions for WebSocket as specified in :rfc:`7692`.
+:mod:`websockets.extensions.permessage_deflate` implements the Compression
+Extensions for WebSocket as specified in :rfc:`7692`.
 
 """
 
@@ -257,22 +257,20 @@ def _extract_parameters(
 
 class ClientPerMessageDeflateFactory(ClientExtensionFactory):
     """
-    Client-side extension factory for Per-Message Deflate extension.
+    Client-side extension factory for the Per-Message Deflate extension.
 
-    These parameters behave as described in `section 7.1 of RFC 7692`_:
-
-    - ``server_no_context_takeover``
-    - ``client_no_context_takeover``
-    - ``server_max_window_bits``
-    - ``client_max_window_bits``
-
-    Set them to ``True`` to include them in the negotiation offer without a
-    value or to an integer value to include them with this value.
+    Parameters behave as described in `section 7.1 of RFC 7692`_. Set them to
+    ``True`` to include them in the negotiation offer without a value or to an
+    integer value to include them with this value.
 
     .. _section 7.1 of RFC 7692: https://tools.ietf.org/html/rfc7692#section-7.1
 
-    ``compress_settings`` is an optional :class:`dict` of keyword arguments
-    for :func:`zlib.compressobj`, excluding ``wbits``.
+    :param server_no_context_takeover: defaults to ``False``
+    :param client_no_context_takeover: defaults to ``False``
+    :param server_max_window_bits: optional, defaults to ``None``
+    :param client_max_window_bits: optional, defaults to ``None``
+    :param compress_settings: optional, keyword arguments for
+        :func:`zlib.compressobj`, excluding ``wbits``
 
     """
 
@@ -284,7 +282,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         client_no_context_takeover: bool = False,
         server_max_window_bits: Optional[int] = None,
         client_max_window_bits: Optional[Union[int, bool]] = None,
-        compress_settings: Optional[Dict[Any, Any]] = None,
+        compress_settings: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Configure the Per-Message Deflate extension factory.
@@ -432,20 +430,18 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
     """
     Server-side extension factory for the Per-Message Deflate extension.
 
-    These parameters behave as described in `section 7.1 of RFC 7692`_:
-
-    - ``server_no_context_takeover``
-    - ``client_no_context_takeover``
-    - ``server_max_window_bits``
-    - ``client_max_window_bits``
-
-    Set them to ``True`` to include them in the negotiation offer without a
-    value or to an integer value to include them with this value.
+    Parameters behave as described in `section 7.1 of RFC 7692`_. Set them to
+    ``True`` to include them in the negotiation offer without a value or to an
+    integer value to include them with this value.
 
     .. _section 7.1 of RFC 7692: https://tools.ietf.org/html/rfc7692#section-7.1
 
-    ``compress_settings`` is an optional :class:`dict` of keyword arguments
-    for :func:`zlib.compressobj`, excluding ``wbits``.
+    :param server_no_context_takeover: defaults to ``False``
+    :param client_no_context_takeover: defaults to ``False``
+    :param server_max_window_bits: optional, defaults to ``None``
+    :param client_max_window_bits: optional, defaults to ``None``
+    :param compress_settings: optional, keyword arguments for
+        :func:`zlib.compressobj`, excluding ``wbits``
 
     """
 
@@ -457,7 +453,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         client_no_context_takeover: bool = False,
         server_max_window_bits: Optional[int] = None,
         client_max_window_bits: Optional[int] = None,
-        compress_settings: Optional[Dict[Any, Any]] = None,
+        compress_settings: Optional[Dict[str, Any]] = None,
     ) -> None:
         """
         Configure the Per-Message Deflate extension factory.

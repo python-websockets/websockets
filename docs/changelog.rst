@@ -85,6 +85,8 @@ Also:
 
 * Documented how to optimize memory usage.
 
+* Improved API documentation.
+
 7.0
 ...
 

@@ -13,12 +13,11 @@ of low-level APIs reflecting the two phases of the WebSocket protocol:
 2. Data transfer, as framed messages, ending with a closing handshake.
 
 The first phase is designed to integrate with existing HTTP software.
-``websockets`` provides functions to build and validate the request and
-response headers.
+``websockets`` provides a minimal implementation to build, parse and validate
+HTTP requests and responses.
 
 The second phase is the core of the WebSocket protocol. ``websockets``
-provides a standalone implementation on top of ``asyncio`` with a very simple
-API.
+provides a complete implementation on top of ``asyncio`` with a simple API.
 
 For convenience, public APIs can be imported directly from the
 :mod:`websockets` package, unless noted otherwise. Anything that isn't listed

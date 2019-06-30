@@ -9,6 +9,8 @@ Bitcoin
 bufferbloat
 Bufferbloat
 bugfix
+bytestring
+bytestrings
 changelog
 cryptocurrency
 daemonize
@@ -22,6 +24,7 @@ MiB
 nginx
 permessage
 pong
+pongs
 Pythonic
 serializers
 subclassing
@@ -30,6 +33,7 @@ subprotocols
 TLS
 Unparse
 uple
+username
 websocket
 WebSocket
 websockets

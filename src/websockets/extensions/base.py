@@ -1,6 +1,8 @@
 """
-The :mod:`websockets.extensions.base` module defines abstract classes for
-implementing extensions as specified in `section 9 of RFC 6455`_.
+:mod:`websockets.extensions.base` defines abstract classes for implementing
+extensions.
+
+See `section 9 of RFC 6455`_.
 
 .. _section 9 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-9
 
@@ -32,8 +34,8 @@ class Extension:
         """
         Decode an incoming frame.
 
-        The ``frame`` parameter and the return value are
-        :class:`~websockets.framing.Frame` instances.
+        :param frame: incoming frame
+        :param max_size: maximum payload size in bytes
 
         """
 
@@ -41,8 +43,7 @@ class Extension:
         """
         Encode an outgoing frame.
 
-        The ``frame`` parameter and the return value are
-        :class:`~websockets.framing.Frame` instances.
+        :param frame: outgoing frame
 
         """
 
@@ -64,7 +65,7 @@ class ClientExtensionFactory:
         """
         Build request parameters.
 
-        Return a list of (name, value) pairs.
+        Return a list of ``(name, value)`` pairs.
 
         """
 
@@ -76,14 +77,10 @@ class ClientExtensionFactory:
         """
         Process response parameters received from the server.
 
-        ``params`` is a list of (name, value) pairs.
-
-        ``accepted_extensions`` is a list of previously accepted extensions.
-
-        If parameters are acceptable, return an extension: an instance of a
-        subclass of :class:`Extension`.
-
-        If they aren't, raise :exc:`~websockets.exceptions.NegotiationError`.
+        :param params: list of ``(name, value)`` pairs.
+        :param accepted_extensions: list of previously accepted extensions.
+        :raises ~websockets.exceptions.NegotiationError: if parameters aren't
+            acceptable
 
         """
 
@@ -109,16 +106,14 @@ class ServerExtensionFactory:
         """
         Process request parameters received from the client.
 
-        ``params`` is a list of (name, value) pairs.
-
-        ``accepted_extensions`` is a list of previously accepted extensions.
-
         To accept the offer, return a 2-uple containing:
 
-        - response parameters: a list of (name, value) pairs
+        - response parameters: a list of ``(name, value)`` pairs
         - an extension: an instance of a subclass of :class:`Extension`
 
-        To reject the offer, raise
-        :exc:`~websockets.exceptions.NegotiationError`.
+        :param params: list of ``(name, value)`` pairs.
+        :param accepted_extensions: list of previously accepted extensions.
+        :raises ~websockets.exceptions.NegotiationError: to reject the offer,
+            if parameters aren't acceptable
 
         """

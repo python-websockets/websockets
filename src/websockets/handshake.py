@@ -1,15 +1,9 @@
 """
-The :mod:`websockets.handshake` module deals with the WebSocket opening
-handshake according to `section 4 of RFC 6455`_.
+:mod:`websockets.handshake` provides helpers for the WebSocket handshake.
+
+See `section 4 of RFC 6455`_.
 
 .. _section 4 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
-
-Functions defined in this module manipulate HTTP headers. The ``headers``
-argument must implement ``get`` and ``__setitem__`` and ``get`` —  a small
-subset of the :class:`~collections.abc.MutableMapping` abstract base class.
-
-Headers names and values are :class:`str` objects containing only ASCII
-characters.
 
 Some checks cannot be performed because they depend too much on the
 context; instead, they're documented below.
@@ -50,7 +44,10 @@ def build_request(headers: Headers) -> str:
     """
     Build a handshake request to send to the server.
 
-    Return the ``key`` which must be passed to :func:`check_response`.
+    Update request headers passed in argument.
+
+    :param headers: request headers
+    :returns: ``key`` which must be passed to :func:`check_response`
 
     """
     raw_key = bytes(random.getrandbits(8) for _ in range(16))
@@ -66,16 +63,15 @@ def check_request(headers: Headers) -> str:
     """
     Check a handshake request received from the client.
 
-    If the handshake is valid, this function returns the ``key`` which must be
-    passed to :func:`build_response`.
-
-    Otherwise it raises an :exc:`~websockets.exceptions.InvalidHandshake`
-    exception and the server must return an error like 400 Bad Request.
-
     This function doesn't verify that the request is an HTTP/1.1 or higher GET
-    request and doesn't perform Host and Origin checks. These controls are
-    usually performed earlier in the HTTP request handling code. They're the
-    responsibility of the caller.
+    request and doesn't perform ``Host`` and ``Origin`` checks. These controls
+    are usually performed earlier in the HTTP request handling code. They're
+    the responsibility of the caller.
+
+    :param headers: request headers
+    :returns: ``key`` which must be passed to :func:`build_response`
+    :raises ~websockets.exceptions.InvalidHandshake: if the handshake request
+        is invalid; then the server must return 400 Bad Request error
 
     """
     connection = sum(
@@ -127,7 +123,10 @@ def build_response(headers: Headers, key: str) -> None:
     """
     Build a handshake response to send to the client.
 
-    ``key`` comes from :func:`check_request`.
+    Update response headers passed in argument.
+
+    :param headers: response headers
+    :param key: comes from :func:`check_request`
 
     """
     headers["Upgrade"] = "websocket"
@@ -139,16 +138,14 @@ def check_response(headers: Headers, key: str) -> None:
     """
     Check a handshake response received from the server.
 
-    ``key`` comes from :func:`build_request`.
-
-    If the handshake is valid, this function returns ``None``.
-
-    Otherwise it raises an :exc:`~websockets.exceptions.InvalidHandshake`
-    exception.
-
     This function doesn't verify that the response is an HTTP/1.1 or higher
     response with a 101 status code. These controls are the responsibility of
     the caller.
+
+    :param headers: response headers
+    :param key: comes from :func:`build_request`
+    :raises ~websockets.exceptions.InvalidHandshake: if the handshake response
+        is invalid
 
     """
     connection = sum(

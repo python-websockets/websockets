@@ -1,6 +1,6 @@
 """
-The :mod:`websockets.auth` module implements HTTP Basic Authentication as
-specified in :rfc:`7235` and :rfc:`7617`.
+:mod:`websockets.auth` provides HTTP Basic Authentication according to
+:rfc:`7235` and :rfc:`7617`.
 
 """
 
@@ -108,27 +108,32 @@ def basic_auth_protocol_factory(
             )
         )
 
-    ``realm`` indicates the scope of protection. It should be an ASCII-only
-    :class:`str` because the encoding of non-ASCII characters is undefined.
+    ``realm`` indicates the scope of protection. It should contain only ASCII
+    characters because the encoding of non-ASCII characters is undefined.
     Refer to section 2.2 of :rfc:`7235` for details.
 
-    One of ``credentials`` or ``check_credentials`` must be provided but not
-    both.
-
-    ``credentials`` defines hardcoded authorized credentials. It can be a
+    ``credentials`` defines hard coded authorized credentials. It can be a
     ``(username, password)`` pair or a list of such pairs.
 
     ``check_credentials`` defines a coroutine that checks whether credentials
     are authorized. This coroutine receives ``username`` and ``password``
     arguments and returns a :class:`bool`.
 
-    By default, ``basic_auth_protocol_factory`` creates instances of
-    :class:`BasicAuthWebSocketServerProtocol`. You can override this with the
-    ``create_protocol`` parameter.
+    One of ``credentials`` or ``check_credentials`` must be provided but not
+    both.
+
+    By default, ``basic_auth_protocol_factory`` creates a factory for building
+    :class:`BasicAuthWebSocketServerProtocol` instances. You can override this
+    with the ``create_protocol`` parameter.
+
+    :param realm: scope of protection
+    :param credentials: hard coded credentials
+    :param check_credentials: coroutine that verifies credentials
+    :raises TypeError: if the credentials argument has the wrong type
 
     """
     if (credentials is None) == (check_credentials is None):
-        raise ValueError("provide either credentials or check_credentials")
+        raise TypeError("provide either credentials or check_credentials")
 
     if credentials is not None:
         if is_credentials(credentials):
@@ -145,10 +150,10 @@ def basic_auth_protocol_factory(
                     return credentials_dict.get(username) == password
 
             else:
-                raise ValueError(f"invalid credentials argument: {credentials}")
+                raise TypeError(f"invalid credentials argument: {credentials}")
 
         else:
-            raise ValueError(f"invalid credentials argument: {credentials}")
+            raise TypeError(f"invalid credentials argument: {credentials}")
 
     return functools.partial(
         create_protocol, realm=realm, check_credentials=check_credentials

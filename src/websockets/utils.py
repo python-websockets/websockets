@@ -8,9 +8,8 @@ def apply_mask(data: bytes, mask: bytes) -> bytes:
     """
     Apply masking to the data of a WebSocket message.
 
-    ``data`` and ``mask`` are bytes-like objects.
-
-    Return :class:`bytes`.
+    :param data: Data to mask
+    :param mask: 4-bytes mask
 
     """
     if len(mask) != 4:

@@ -1,8 +1,8 @@
 """
-The :mod:`websockets.http` module provides basic HTTP parsing and
-serialization. It is merely adequate for WebSocket handshake messages.
+:mod:`websockets.http` module provides basic HTTP/1.1 support. It is merely
+:adequate for WebSocket handshake messages.
 
-Its functions cannot be imported from :mod:`websockets`. They must be imported
+These APIs cannot be imported from :mod:`websockets`. They must be imported
 from :mod:`websockets.http`.
 
 """
@@ -26,10 +26,10 @@ from .version import version as websockets_version
 
 
 __all__ = [
-    "Headers",
-    "MultipleValuesError",
     "read_request",
     "read_response",
+    "Headers",
+    "MultipleValuesError",
     "USER_AGENT",
 ]
 
@@ -69,22 +69,21 @@ _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 async def read_request(stream: asyncio.StreamReader) -> Tuple[str, "Headers"]:
     """
-    Read an HTTP/1.1 GET request from ``stream``.
-
-    ``stream`` is an :class:`~asyncio.StreamReader`.
-
-    Return ``(path, headers)`` where ``path`` is a :class:`str` and
-    ``headers`` is a :class:`Headers` instance.
+    Read an HTTP/1.1 GET request and returns ``(path, headers)``.
 
     ``path`` isn't URL-decoded or validated in any way.
 
-    Non-ASCII characters are represented with surrogate escapes.
+    ``path`` and ``headers`` are expected to contain only ASCII characters.
+    Other characters are represented with surrogate escapes.
 
-    Raise an exception if the request isn't well formatted.
+    :func:`read_request` doesn't attempt to read the request body because
+    WebSocket handshake requests don't have one. If the request contains a
+    body, it may be read from ``stream`` after this coroutine returns.
 
-    Don't attempt to read the request body because WebSocket handshake
-    requests don't have one. If the request contains a body, it may be
-    read from ``stream`` after this coroutine returns.
+    :param stream: input to read the request from
+    :raises EOFError: if the connection is closed without a full HTTP request
+    :raises SecurityError: if the request exceeds a security limit
+    :raises ValueError: if the request isn't well formatted
 
     """
     # https://tools.ietf.org/html/rfc7230#section-3.1.1
@@ -116,21 +115,19 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, "Headers"]:
 
 async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, "Headers"]:
     """
-    Read an HTTP/1.1 response from ``stream``.
+    Read an HTTP/1.1 response and returns ``(status_code, reason, headers)``.
 
-    ``stream`` is an :class:`~asyncio.StreamReader`.
+    ``reason`` and ``headers`` are expected to contain only ASCII characters.
+    Other characters are represented with surrogate escapes.
 
-    Return ``(status_code, reason, headers)`` where ``status_code`` is an
-    :class:`int`, ``reason`` is a :class:`str`, and ``headers`` is a
-    :class:`Headers` instance.
+    :func:`read_request` doesn't attempt to read the response body because
+    WebSocket handshake responses don't have one. If the response contains a
+    body, it may be read from ``stream`` after this coroutine returns.
 
-    Non-ASCII characters are represented with surrogate escapes.
-
-    Raise an exception if the response isn't well formatted.
-
-    Don't attempt to read the response body, because WebSocket handshake
-    responses don't have one. If the response contains a body, it may be
-    read from ``stream`` after this coroutine returns.
+    :param stream: input to read the response from
+    :raises EOFError: if the connection is closed without a full HTTP response
+    :raises SecurityError: if the response exceeds a security limit
+    :raises ValueError: if the response isn't well formatted
 
     """
     # https://tools.ietf.org/html/rfc7230#section-3.1.2
@@ -168,10 +165,6 @@ async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, "Header
 async def read_headers(stream: asyncio.StreamReader) -> "Headers":
     """
     Read HTTP headers from ``stream``.
-
-    ``stream`` is an :class:`~asyncio.StreamReader`.
-
-    Return a :class:`Headers` instance
 
     Non-ASCII characters are represented with surrogate escapes.
 
@@ -213,9 +206,7 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     """
     Read a single line from ``stream``.
 
-    ``stream`` is an :class:`~asyncio.StreamReader`.
-
-    Return :class:`bytes` without CRLF.
+    CRLF is stripped from the return value.
 
     """
     # Security: this is bounded by the StreamReader's limit (default = 32 KiB).
@@ -244,7 +235,7 @@ class MultipleValuesError(LookupError):
 
 class Headers(MutableMapping[str, str]):
     """
-    Data structure for working with HTTP headers efficiently.
+    Efficient data structure for manipulating HTTP headers.
 
     A :class:`list` of ``(name, values)`` is inefficient for lookups.
 
@@ -273,9 +264,10 @@ class Headers(MutableMapping[str, str]):
     As long as no header occurs multiple times, :class:`Headers` behaves like
     :class:`dict`, except keys are lower-cased to provide case-insensitivity.
 
-    :meth:`get_all()` returns a list of all values for a header and
-    :meth:`raw_items()` returns an iterator of ``(name, values)`` pairs,
-    similar to :meth:`http.client.HTTPMessage`.
+    Two methods support support manipulating multiple values explicitly:
+
+    - :meth:`get_all` returns a list of all values for a header;
+    - :meth:`raw_items` returns an iterator of ``(name, values)`` pairs.
 
     """
 
@@ -348,12 +340,14 @@ class Headers(MutableMapping[str, str]):
         """
         Return the (possibly empty) list of all values for a header.
 
+        :param key: header name
+
         """
         return self._dict.get(key.lower(), [])
 
     def raw_items(self) -> Iterator[Tuple[str, str]]:
         """
-        Return an iterator of (header name, header value).
+        Return an iterator of all values as ``(name, value)`` pairs.
 
         """
         return iter(self._list)

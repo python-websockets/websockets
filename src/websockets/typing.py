@@ -12,7 +12,7 @@ Types supported in a WebSocket message:
 - :class:`bytes` for binary messages
 
 """
-
+# Remove try / except when dropping support for Python < 3.7
 try:
     Data.__doc__ = Data__doc__  # type: ignore
 except AttributeError:  # pragma: no cover
@@ -20,9 +20,26 @@ except AttributeError:  # pragma: no cover
 
 
 Origin = NewType("Origin", str)
+Origin.__doc__ = """Value of a Origin header"""
+
 
 ExtensionParameter = Tuple[str, Optional[str]]
 
+ExtensionParameter__doc__ = """Parameter of a WebSocket extension"""
+try:
+    ExtensionParameter.__doc__ = ExtensionParameter__doc__  # type: ignore
+except AttributeError:  # pragma: no cover
+    pass
+
+
 ExtensionHeader = Tuple[str, List[ExtensionParameter]]
 
+ExtensionHeader__doc__ = """Item parsed in a Sec-WebSocket-Extensions header"""
+try:
+    ExtensionHeader.__doc__ = ExtensionHeader__doc__  # type: ignore
+except AttributeError:  # pragma: no cover
+    pass
+
+
 Subprotocol = NewType("Subprotocol", str)
+Subprotocol.__doc__ = """Items parsed in a Sec-WebSocket-Protocol header"""

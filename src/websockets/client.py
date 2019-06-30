@@ -1,5 +1,5 @@
 """
-The :mod:`websockets.client` module defines a simple WebSocket client API.
+:mod:`websockets.client` defines the WebSocket client APIs.
 
 """
 
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):
     """
-    Complete WebSocket client implementation as an :class:`asyncio.Protocol`.
+    :class:`~asyncio.Protocol` subclass implementing a WebSocket client.
 
     This class inherits most of its methods from
     :class:`~websockets.protocol.WebSocketCommonProtocol`.
@@ -91,12 +91,11 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         Read status line and headers from the HTTP response.
 
-        Raise :exc:`~websockets.exceptions.InvalidMessage` if the HTTP message
-        is malformed or isn't an HTTP/1.1 GET request.
+        If the response contains a body, it may be read from ``self.reader``
+        after this coroutine returns.
 
-        Don't attempt to read the response body because WebSocket handshake
-        responses don't have one. If the response contains a body, it may be
-        read from ``self.reader`` after this coroutine returns.
+        :raises ~websockets.exceptions.InvalidMessage: if the HTTP message is
+            malformed or isn't an HTTP/1.1 GET response
 
         """
         try:
@@ -234,21 +233,17 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         Perform the client side of the opening handshake.
 
-        If provided, ``origin`` sets the Origin HTTP header.
-
-        If provided, ``available_extensions`` is a list of supported
-        extensions in the order in which they should be used.
-
-        If provided, ``available_subprotocols`` is a list of supported
-        subprotocols in order of decreasing preference.
-
-        If provided, ``extra_headers`` sets additional HTTP request headers.
-        It must be a :class:`~websockets.http.Headers` instance, a
-        :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
-        pairs.
-
-        Raise :exc:`~websockets.exceptions.InvalidHandshake` if the handshake
-        fails.
+        :param origin: sets the Origin HTTP header
+        :param available_extensions: list of supported extensions in the order
+            in which they should be used
+        :param available_subprotocols: list of supported subprotocols in order
+            of decreasing preference
+        :param extra_headers: sets additional HTTP request headers; it must be
+            a :class:`~websockets.http.Headers` instance, a
+            :class:`~collections.abc.Mapping`, or an iterable of ``(name,
+            value)`` pairs
+        :raises ~websockets.exceptions.InvalidHandshake: if the handshake
+            fails
 
         """
         request_headers = Headers()
@@ -318,16 +313,15 @@ class Connect:
     """
     Connect to the WebSocket server at the given ``uri``.
 
-    :func:`connect` returns an awaitable. Awaiting it yields an instance of
-    :class:`WebSocketClientProtocol` which can then be used to send and
-    receive messages.
+    Awaiting :func:`connect` yields a :class:`WebSocketClientProtocol` which
+    can then be used to send and receive messages.
 
     :func:`connect` can also be used as a asynchronous context manager. In
     that case, the connection is closed when exiting the context.
 
     :func:`connect` is a wrapper around the event loop's
-    :meth:`~asyncio.BaseEventLoop.create_connection` method. Unknown keyword
-    arguments are passed to :meth:`~asyncio.BaseEventLoop.create_connection`.
+    :meth:`~asyncio.loop.create_connection` method. Unknown keyword arguments
+    are passed to :meth:`~asyncio.loop.create_connection`.
 
     For example, you can set the ``ssl`` keyword argument to a
     :class:`~ssl.SSLContext` to enforce some TLS settings. When connecting to
@@ -336,19 +330,20 @@ class Connect:
 
     You can connect to a different host and port from those found in ``uri``
     by setting ``host`` and ``port`` keyword arguments. This only changes the
-    destination of the TCP connection; the hostname from ``uri`` is still used
-    in the TLS handshake for secure connections and in the ``Host`` header.
+    destination of the TCP connection. The host name from ``uri`` is still
+    used in the TLS handshake for secure connections and in the ``Host`` HTTP
+    header.
 
-    The behavior of the ``ping_interval``, ``ping_timeout``, ``close_timeout``,
-    ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit`` optional
-    arguments is described in the documentation of
-    :class:`~websockets.protocol.WebSocketCommonProtocol`.
-
-    The ``create_protocol`` parameter allows customizing the asyncio protocol
-    that manages the connection. It should be a callable or class accepting
-    the same arguments as :class:`WebSocketClientProtocol` and returning a
-    :class:`WebSocketClientProtocol` instance. It defaults to
+    The ``create_protocol`` parameter allows customizing the
+    :class:`~asyncio.Protocol` that manages the connection. It should be a
+    callable or class accepting the same arguments as
+    :class:`WebSocketClientProtocol` and returning an instance of
+    :class:`WebSocketClientProtocol` or a subclass. It defaults to
     :class:`WebSocketClientProtocol`.
+
+    The behavior of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
+    ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit`` is
+    described in :class:`~websockets.protocol.WebSocketCommonProtocol`.
 
     :func:`connect` also accepts the following optional arguments:
 
@@ -360,14 +355,14 @@ class Connect:
       decreasing preference
     * ``subprotocols`` is a list of supported subprotocols in order of
       decreasing preference
-    * ``extra_headers`` sets additional HTTP request headers – it can be a
+    * ``extra_headers`` sets additional HTTP request headers; it can be a
       :class:`~websockets.http.Headers` instance, a
       :class:`~collections.abc.Mapping`, or an iterable of ``(name, value)``
       pairs
 
-    :func:`connect` raises :exc:`~websockets.uri.InvalidURI` if ``uri`` is
-    invalid and :exc:`~websockets.handshake.InvalidHandshake` if the opening
-    handshake fails.
+    :raises ~websockets.uri.InvalidURI: if ``uri`` is invalid
+    :raises ~websockets.handshake.InvalidHandshake: if the opening handshake
+        fails
 
     """
 
@@ -577,14 +572,15 @@ def unix_connect(path: str, uri: str = "ws://localhost/", **kwargs: Any) -> Conn
     """
     Similar to :func:`connect`, but for connecting to a Unix socket.
 
-    ``path`` is the path to the Unix socket. ``uri`` is the WebSocket URI.
-
     This function calls the event loop's
-    :meth:`~asyncio.AbstractEventLoop.create_unix_connection` method.
+    :meth:`~asyncio.loop.create_unix_connection` method.
 
     It is only available on Unix.
 
     It's mainly useful for debugging servers listening on Unix sockets.
+
+    :param path: file system path to the Unix socket
+    :param uri: WebSocket URI
 
     """
     return connect(uri=uri, path=path, **kwargs)

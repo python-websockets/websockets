@@ -204,9 +204,7 @@ async def read_headers(stream: asyncio.StreamReader) -> "Headers":
         headers[name] = value
 
     else:
-        from .exceptions import SecurityError  # avoid circular import
-
-        raise SecurityError("too many HTTP headers")
+        raise websockets.exceptions.SecurityError("too many HTTP headers")
 
     return headers
 
@@ -224,9 +222,7 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     line = await stream.readline()
     # Security: this guarantees header values are small (hard-coded = 4 KiB)
     if len(line) > MAX_LINE:
-        from .exceptions import SecurityError  # avoid circular import
-
-        raise SecurityError("line too long")
+        raise websockets.exceptions.SecurityError("line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):
         raise EOFError("line without CRLF")
@@ -364,3 +360,7 @@ class Headers(MutableMapping[str, str]):
 
 
 HeadersLike = Union[Headers, Mapping[str, str], Iterable[Tuple[str, str]]]
+
+
+# at the bottom to allow circular import, because AbortHandshake depends on HeadersLike
+import websockets.exceptions  # isort:skip # noqa

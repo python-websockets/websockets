@@ -476,13 +476,24 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         object (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`)
         as a binary frame.
 
-        It also accepts an iterable or an asynchronous iterator of strings or
-        bytes-like objects. Each item is treated as a message fragment and
-        sent in its own frame. All items must be of the same type, or else
-        :meth:`send` will raise a :exc:`TypeError` and the connection will be
-        closed.
+        It also accepts an iterable or an asynchronous iterable of strings or
+        bytes-like objects. In that case the message is fragmented. Each item
+        is treated as a message fragment and sent in its own frame. All items
+        must be of the same type, or else :meth:`send` will raise a
+        :exc:`TypeError` and the connection will be closed.
 
         It raises a :exc:`TypeError` for other inputs.
+
+        Canceling :meth:`send` is discouraged. Instead, you should close the
+        connection with :meth:`close`. Indeed, there only two situations where
+        :meth:`send` yields control to the event loop:
+
+        1. The write buffer is full. If you don't want to wait until enough
+           data is sent, your only alternative is to close the connection.
+           :meth:`close` will likely time out then abort the TCP connection.
+        2. ``message`` is an asynchronous iterator. Stopping in the middle of
+           a fragmented message will cause a protocol error. Closing the
+           connection has the same effect.
 
         """
         await self.ensure_open()
@@ -563,13 +574,17 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         connection to terminate. As a consequence, there's no need to await
         :meth:`wait_closed`; :meth:`close` already does it.
 
+        ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
+
         :meth:`close` is idempotent: it doesn't do anything once the
         connection is closed.
 
-        It's safe to wrap this coroutine in :func:`~asyncio.create_task` since
-        errors during connection termination aren't particularly useful.
+        Wrapping :func:`close` in :func:`~asyncio.create_task` is safe, given
+        that errors during connection termination aren't particularly useful.
 
-        ``code`` must be an :class:`int` and ``reason`` a :class:`str`.
+        Canceling :meth:`close` is discouraged. If it takes too long, you can
+        set a shorter ``close_timeout``. If you don't want to wait, let the
+        Python process exit, then the OS will close the TCP connection.
 
         """
         try:
@@ -622,6 +637,13 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         overridden with the optional ``data`` argument which must be a string
         (which will be encoded to UTF-8) or a bytes-like object.
 
+        Canceling :meth:`ping` is discouraged. If :meth:`ping` doesn't return
+        immediately, it means the write buffer is full. If you don't want to
+        wait, you should close the connection.
+
+        Canceling the :class:`~asyncio.Future` returned by :meth:`ping` has no
+        effect.
+
         """
         await self.ensure_open()
 
@@ -651,6 +673,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         The content may be overridden with the optional ``data`` argument
         which must be a string (which will be encoded to UTF-8) or a
         bytes-like object.
+
+        Canceling :meth:`pong` is discouraged for the same reason as
+        :meth:`ping`.
 
         """
         await self.ensure_open()

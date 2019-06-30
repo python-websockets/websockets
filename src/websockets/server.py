@@ -50,7 +50,7 @@ from .protocol import State, WebSocketCommonProtocol
 from .typing import Origin, Subprotocol
 
 
-__all__ = ["serve", "unix_serve", "WebSocketServerProtocol"]
+__all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
 
 logger = logging.getLogger(__name__)
 

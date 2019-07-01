@@ -794,10 +794,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # This shouldn't happen often because exceptions expected under
             # regular circumstances are handled above. If it does, consider
             # catching and handling more exceptions.
-            logger.error("Error in data transfer", exc_info=True)
+            reason = "Error in data transfer"
+            logger.error(reason, exc_info=True)
 
             self.transfer_data_exc = exc
-            self.fail_connection(1011)
+            self.fail_connection(1011, reason)
 
     async def read_message(self) -> Optional[Data]:
         """
@@ -1038,8 +1039,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                             ping_waiter, self.ping_timeout, loop=self.loop
                         )
                     except asyncio.TimeoutError:
-                        logger.debug("%s ! timed out waiting for pong", self.side)
-                        self.fail_connection(1011)
+                        reason = "timed out waiting for pong"
+                        logger.debug("%s ! %s", self.side, reason)
+                        self.fail_connection(1011, reason)
                         break
 
         except asyncio.CancelledError:

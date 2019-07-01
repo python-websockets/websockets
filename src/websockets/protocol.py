@@ -725,7 +725,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                     while len(self.messages) >= self.max_queue:
                         self._put_message_waiter = self.loop.create_future()
                         try:
-                            await self._put_message_waiter
+                            await asyncio.shield(self._put_message_waiter)
                         finally:
                             self._put_message_waiter = None
 

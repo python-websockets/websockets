@@ -459,12 +459,15 @@ class CommonTests:
         self.assertEqual(list(self.protocol.messages), ["café", b"tea"])
 
         self.loop.run_until_complete(self.protocol.recv())
+        self.run_loop_once()
         self.assertEqual(list(self.protocol.messages), [b"tea", b"milk"])
 
         self.loop.run_until_complete(self.protocol.recv())
+        self.run_loop_once()
         self.assertEqual(list(self.protocol.messages), [b"milk"])
 
         self.loop.run_until_complete(self.protocol.recv())
+        self.run_loop_once()
         self.assertEqual(list(self.protocol.messages), [])
 
     def test_recv_queue_no_limit(self):
@@ -518,6 +521,27 @@ class CommonTests:
         data = self.loop.run_until_complete(self.protocol.recv())
         # If we're getting "tea" there, it means "café" was swallowed (ha, ha).
         self.assertEqual(data, "café")
+
+    def test_recv_when_transfer_data_cancelled(self):
+        # Clog incoming queue.
+        self.protocol.max_queue = 1
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_BINARY, b"tea"))
+        self.run_loop_once()
+
+        # Flow control kicks in (check with an implementation detail).
+        self.assertFalse(self.protocol._put_message_waiter.done())
+
+        # Schedule recv().
+        recv = self.loop.create_task(self.protocol.recv())
+
+        # Cancel transfer_data_task (again, implementation detail).
+        self.protocol.fail_connection()
+        self.run_loop_once()
+        self.assertTrue(self.protocol.transfer_data_task.cancelled())
+
+        # recv() completes properly.
+        self.assertEqual(self.loop.run_until_complete(recv), "café")
 
     def test_recv_prevents_concurrent_calls(self):
         recv = self.loop.create_task(self.protocol.recv())

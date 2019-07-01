@@ -258,8 +258,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self._pop_message_waiter: Optional[asyncio.Future[None]] = None
         self._put_message_waiter: Optional[asyncio.Future[None]] = None
 
-        # Flag that protects sending fragmented messages.
-        self.sending_fragmented_message = False
+        # Protect sending fragmented messages.
+        self._fragmented_message_waiter: Optional[asyncio.Future[None]] = None
 
         # Mapping of ping IDs to waiters, in chronological order.
         self.pings: collections.OrderedDict[
@@ -490,12 +490,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         """
         await self.ensure_open()
 
-        # Prevent sending other messages until all fragments are sent.
-        if self.sending_fragmented_message:
-            raise RuntimeError(
-                "cannot call send while another coroutine "
-                "is sending a fragmented message"
-            )
+        # While sending a fragmented message, prevent sending other messages
+        # until all fragments are sent.
+        while self._fragmented_message_waiter is not None:
+            await asyncio.shield(self._fragmented_message_waiter)
 
         # Unfragmented message -- this case must be handled first because
         # strings and bytes-like objects are iterable.
@@ -512,66 +510,73 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             message = cast(Iterable[Data], message)
 
             iter_message = iter(message)
-
-            self.sending_fragmented_message = True
-
-            # First fragment.
             try:
                 message_chunk = next(iter_message)
             except StopIteration:
                 return
             opcode, data = prepare_data(message_chunk)
-            await self.write_frame(False, opcode, data)
 
-            # Other fragments.
-            for message_chunk in iter_message:
-                confirm_opcode, data = prepare_data(message_chunk)
-                if confirm_opcode != opcode:
-                    # We're half-way through a fragmented message and we can't
-                    # complete it. This makes the connection unusable.
-                    self.fail_connection(1011)
-                    raise TypeError("data contains inconsistent types")
-                await self.write_frame(False, OP_CONT, data)
+            self._fragmented_message_waiter = asyncio.Future()
+            try:
+                # First fragment.
+                await self.write_frame(False, opcode, data)
 
-            # write_frame() will write to the buffer before yielding control.
-            self.sending_fragmented_message = False
+                # Other fragments.
+                for message_chunk in iter_message:
+                    confirm_opcode, data = prepare_data(message_chunk)
+                    if confirm_opcode != opcode:
+                        raise TypeError("data contains inconsistent types")
+                    await self.write_frame(False, OP_CONT, data)
 
-            # Final fragment.
-            await self.write_frame(True, OP_CONT, b"")
+                # Final fragment.
+                await self.write_frame(True, OP_CONT, b"")
+
+            except Exception:
+                # We're half-way through a fragmented message and we can't
+                # complete it. This makes the connection unusable.
+                self.fail_connection(1011)
+                raise
+
+            finally:
+                self._fragmented_message_waiter.set_result(None)
+                self._fragmented_message_waiter = None
 
         # Fragmented message -- asynchronous iterator
 
         elif isinstance(message, AsyncIterable):
             # aiter_message = aiter(message) without aiter
             aiter_message = type(message).__aiter__(message)
-
-            # Prevent sending other messages until all fragments are sent.
-            self.sending_fragmented_message = True
-
-            # First fragment.
             try:
                 # message_chunk = anext(aiter_message) without anext
                 message_chunk = await type(aiter_message).__anext__(aiter_message)
             except StopAsyncIteration:
                 return
             opcode, data = prepare_data(message_chunk)
-            await self.write_frame(False, opcode, data)
 
-            # Other fragments.
-            async for message_chunk in aiter_message:
-                confirm_opcode, data = prepare_data(message_chunk)
-                if confirm_opcode != opcode:
-                    # We're half-way through a fragmented message and we can't
-                    # complete it. This makes the connection unusable.
-                    self.fail_connection(1011)
-                    raise TypeError("data contains inconsistent types")
-                await self.write_frame(False, OP_CONT, data)
+            self._fragmented_message_waiter = asyncio.Future()
+            try:
+                # First fragment.
+                await self.write_frame(False, opcode, data)
 
-            # write_frame() will write to the buffer before yielding control.
-            self.sending_fragmented_message = False
+                # Other fragments.
+                async for message_chunk in aiter_message:
+                    confirm_opcode, data = prepare_data(message_chunk)
+                    if confirm_opcode != opcode:
+                        raise TypeError("data contains inconsistent types")
+                    await self.write_frame(False, OP_CONT, data)
 
-            # Final fragment.
-            await self.write_frame(True, OP_CONT, b"")
+                # Final fragment.
+                await self.write_frame(True, OP_CONT, b"")
+
+            except Exception:
+                # We're half-way through a fragmented message and we can't
+                # complete it. This makes the connection unusable.
+                self.fail_connection(1011)
+                raise
+
+            finally:
+                self._fragmented_message_waiter.set_result(None)
+                self._fragmented_message_waiter = None
 
         else:
             raise TypeError("data must be bytes, str, or iterable")

@@ -638,17 +638,15 @@ class CommonTests:
         )
 
     def test_send_iterable_prevents_concurrent_send(self):
-        self.make_drain_slow()
-        send = self.loop.create_task(self.protocol.send(["ca", "fé"]))
-
-        with self.assertRaisesRegex(
-            RuntimeError,
-            "cannot call send while another coroutine "
-            "is sending a fragmented message",
-        ):
-            self.loop.run_until_complete(self.protocol.send("tea"))
-
-        send.cancel()
+        self.loop.run_until_complete(
+            asyncio.gather(self.protocol.send(["ca", "fé"]), self.protocol.send(b"tea"))
+        )
+        self.assertFramesSent(
+            (False, OP_TEXT, "ca".encode("utf-8")),
+            (False, OP_CONT, "fé".encode("utf-8")),
+            (True, OP_CONT, "".encode("utf-8")),
+            (True, OP_BINARY, b"tea"),
+        )
 
     def test_send_async_iterable_text(self):
         self.loop.run_until_complete(self.protocol.send(async_iterable(["ca", "fé"])))
@@ -710,17 +708,18 @@ class CommonTests:
         )
 
     def test_send_async_iterable_prevents_concurrent_send(self):
-        self.make_drain_slow()
-        send = self.loop.create_task(self.protocol.send(async_iterable(["ca", "fé"])))
-
-        with self.assertRaisesRegex(
-            RuntimeError,
-            "cannot call send while another coroutine "
-            "is sending a fragmented message",
-        ):
-            self.loop.run_until_complete(self.protocol.send("tea"))
-
-        send.cancel()
+        self.loop.run_until_complete(
+            asyncio.gather(
+                self.protocol.send(async_iterable(["ca", "fé"])),
+                self.protocol.send(b"tea"),
+            )
+        )
+        self.assertFramesSent(
+            (False, OP_TEXT, "ca".encode("utf-8")),
+            (False, OP_CONT, "fé".encode("utf-8")),
+            (True, OP_CONT, "".encode("utf-8")),
+            (True, OP_BINARY, b"tea"),
+        )
 
     def test_send_on_closing_connection_local(self):
         close_task = self.half_close_connection_local()

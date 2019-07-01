@@ -546,7 +546,11 @@ class CommonTests:
     def test_recv_prevents_concurrent_calls(self):
         recv = self.loop.create_task(self.protocol.recv())
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "cannot call recv while another coroutine "
+            "is already waiting for the next message",
+        ):
             self.loop.run_until_complete(self.protocol.recv())
 
         recv.cancel()
@@ -633,6 +637,19 @@ class CommonTests:
             (True, OP_CLOSE, serialize_close(1011, "")),
         )
 
+    def test_send_iterable_prevents_concurrent_send(self):
+        self.make_drain_slow()
+        send = self.loop.create_task(self.protocol.send(["ca", "fé"]))
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "cannot call send while another coroutine "
+            "is sending a fragmented message",
+        ):
+            self.loop.run_until_complete(self.protocol.send("tea"))
+
+        send.cancel()
+
     def test_send_async_iterable_text(self):
         self.loop.run_until_complete(self.protocol.send(async_iterable(["ca", "fé"])))
         self.assertFramesSent(
@@ -691,6 +708,19 @@ class CommonTests:
             (False, OP_TEXT, "café".encode("utf-8")),
             (True, OP_CLOSE, serialize_close(1011, "")),
         )
+
+    def test_send_async_iterable_prevents_concurrent_send(self):
+        self.make_drain_slow()
+        send = self.loop.create_task(self.protocol.send(async_iterable(["ca", "fé"])))
+
+        with self.assertRaisesRegex(
+            RuntimeError,
+            "cannot call send while another coroutine "
+            "is sending a fragmented message",
+        ):
+            self.loop.run_until_complete(self.protocol.send("tea"))
+
+        send.cancel()
 
     def test_send_on_closing_connection_local(self):
         close_task = self.half_close_connection_local()

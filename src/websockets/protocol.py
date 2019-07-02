@@ -1053,7 +1053,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 # when close_connection() cancels self.keepalive_ping_task.
 
                 # ping() raises ConnectionClosed if the connection is lost,
-                # when connection_lost() calls abort_keepalive_pings().
+                # when connection_lost() calls abort_pings().
 
                 ping_waiter = await self.ping()
 
@@ -1223,7 +1223,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if not hasattr(self, "close_connection_task"):
             self.close_connection_task = self.loop.create_task(self.close_connection())
 
-    def abort_keepalive_pings(self) -> None:
+    def abort_pings(self) -> None:
         """
         Raise ConnectionClosed in pending keepalive pings.
 
@@ -1235,6 +1235,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         for ping in self.pings.values():
             ping.set_exception(exc)
+            # If the exception is never retrieved, it will be logged when ping
+            # is garbage-collected. This is confusing for users.
+            # Given that ping is done (with an exception), canceling it does
+            # nothing, but it prevents logging the exception.
+            ping.cancel()
 
         if self.pings:
             pings_hex = ", ".join(
@@ -1312,7 +1317,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             self.close_code,
             self.close_reason or "[no reason]",
         )
-        self.abort_keepalive_pings()
+        self.abort_pings()
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;
         # - it must never be canceled.

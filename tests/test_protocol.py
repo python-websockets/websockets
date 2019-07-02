@@ -910,6 +910,16 @@ class CommonTests:
         self.assertTrue(ping.done())
         self.assertIsInstance(ping.exception(), ConnectionClosed)
 
+    def test_abort_ping_does_not_log_exception_if_not_retreived(self):
+        self.loop.run_until_complete(self.protocol.ping())
+        # Get the internal Future, which isn't directly returned by ping().
+        ping, = self.protocol.pings.values()
+        # Remove the frame from the buffer, else close_connection() complains.
+        self.last_sent_frame()
+        self.close_connection()
+        # Check a private attribute, for lack of a better solution.
+        self.assertFalse(ping._log_traceback)
+
     def test_acknowledge_previous_pings(self):
         pings = [
             (self.loop.run_until_complete(self.protocol.ping()), self.last_sent_frame())

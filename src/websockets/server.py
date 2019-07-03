@@ -46,7 +46,7 @@ from .headers import (
     parse_subprotocol,
 )
 from .http import USER_AGENT, Headers, HeadersLike, MultipleValuesError, read_request
-from .protocol import State, WebSocketCommonProtocol
+from .protocol import WebSocketCommonProtocol
 from .typing import Origin, Subprotocol
 
 
@@ -692,26 +692,22 @@ class WebSocketServer:
         # register(). See https://bugs.python.org/issue34852 for details.
         await asyncio.sleep(0)
 
-        # Close open connections. fail_connection() will cancel the transfer
-        # data task, which is expected to cause the handler task to terminate.
-        for websocket in self.websockets:
-            if websocket.state is State.OPEN:
-                websocket.fail_connection(1001)
+        # Close OPEN connections with status code 1001. Since the server was
+        # closed, handshake() closes OPENING conections with a HTTP 503 error.
+        # Wait until all connections are closed.
+
+        # asyncio.wait doesn't accept an empty first argument
+        if self.websockets:
+            await asyncio.wait(
+                [websocket.close(1001) for websocket in self.websockets], loop=self.loop
+            )
+
+        # Wait until all connection handlers are complete.
 
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:
-            # The connection handler can terminate before or after the
-            # connection closes. Wait until both are done to avoid leaking
-            # running tasks.
-            # TODO: it would be nicer to wait only for the connection handler
-            # and let the handler wait for the connection to close.
             await asyncio.wait(
-                [websocket.handler_task for websocket in self.websockets]
-                + [
-                    websocket.close_connection_task
-                    for websocket in self.websockets
-                    if websocket.state is State.OPEN
-                ],
+                [websocket.handler_task for websocket in self.websockets],
                 loop=self.loop,
             )
 

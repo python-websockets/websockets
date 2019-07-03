@@ -68,6 +68,9 @@ Also:
 
   If you were using ``ping_timeout=None`` as a workaround, you can remove it.
 
+* Changed :meth:`~server.WebSocketServer.close` to perform a proper closing
+  handshake instead of failing the connection.
+
 * Avoided a crash of a ``extra_headers`` callable returns ``None``.
 
 * Improved error messages when HTTP parsing fails.

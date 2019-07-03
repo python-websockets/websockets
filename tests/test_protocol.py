@@ -638,9 +638,16 @@ class CommonTests:
         )
 
     def test_send_iterable_prevents_concurrent_send(self):
-        self.loop.run_until_complete(
-            asyncio.gather(self.protocol.send(["ca", "fé"]), self.protocol.send(b"tea"))
-        )
+        self.make_drain_slow(2 * MS)
+
+        async def send_iterable():
+            await self.protocol.send(["ca", "fé"])
+
+        async def send_concurrent():
+            await asyncio.sleep(MS)
+            await self.protocol.send(b"tea")
+
+        self.loop.run_until_complete(asyncio.gather(send_iterable(), send_concurrent()))
         self.assertFramesSent(
             (False, OP_TEXT, "ca".encode("utf-8")),
             (False, OP_CONT, "fé".encode("utf-8")),
@@ -708,11 +715,17 @@ class CommonTests:
         )
 
     def test_send_async_iterable_prevents_concurrent_send(self):
+        self.make_drain_slow(2 * MS)
+
+        async def send_async_iterable():
+            await self.protocol.send(async_iterable(["ca", "fé"]))
+
+        async def send_concurrent():
+            await asyncio.sleep(MS)
+            await self.protocol.send(b"tea")
+
         self.loop.run_until_complete(
-            asyncio.gather(
-                self.protocol.send(async_iterable(["ca", "fé"])),
-                self.protocol.send(b"tea"),
-            )
+            asyncio.gather(send_async_iterable(), send_concurrent())
         )
         self.assertFramesSent(
             (False, OP_TEXT, "ca".encode("utf-8")),

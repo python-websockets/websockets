@@ -635,7 +635,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         try:
             # If close() is canceled during the wait, self.transfer_data_task
             # is canceled before the timeout elapses.
-            # This helps closing connections when shutting down a server.
             await asyncio.wait_for(
                 self.transfer_data_task, self.close_timeout, loop=self.loop
             )

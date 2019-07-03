@@ -98,7 +98,7 @@ Also:
 .. warning::
 
     **Version 7.0 changes how a server terminates connections when it's
-    closed with** :meth:`~websockets.server.WebSocketServer.close` **.**
+    closed with** :meth:`~server.WebSocketServer.close` **.**
 
     Previously, connections handlers were canceled. Now, connections are
     closed with close code 1001 (going away). From the perspective of the
@@ -223,7 +223,7 @@ Also:
     **Version 5.0 adds a** ``user_info`` **field to the return value of**
     :func:`~uri.parse_uri` **and** :class:`~uri.WebSocketURI` **.**
 
-    If you're unpacking :class:`~websockets.WebSocketURI` into four variables,
+    If you're unpacking :class:`~exceptions.WebSocketURI` into four variables,
     adjust your code to account for that fifth field.
 
 Also:

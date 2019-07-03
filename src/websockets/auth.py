@@ -75,7 +75,11 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
             )
 
         if not await self.check_credentials(username, password):
-            return (http.HTTPStatus.FORBIDDEN, [], b"Invalid credentials\n")
+            return (
+                http.HTTPStatus.UNAUTHORIZED,
+                [("WWW-Authenticate", build_www_authenticate_basic(self.realm))],
+                b"Invalid credentials\n",
+            )
 
         self.username = username
 

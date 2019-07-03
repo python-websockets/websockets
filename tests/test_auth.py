@@ -122,7 +122,7 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
     def test_basic_auth_invalid_credentials(self):
         with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client(user_info=("hello", "ihateyou"))
-        self.assertEqual(raised.exception.status_code, 403)
+        self.assertEqual(raised.exception.status_code, 401)
 
     @with_server(create_protocol=create_protocol)
     def test_basic_auth_invalid_credentials_details(self):
@@ -131,6 +131,9 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
             self.loop.run_until_complete(
                 self.make_http_request(headers={"Authorization": authorization})
             )
-        self.assertEqual(raised.exception.code, 403)
-        self.assertNotIn("WWW-Authenticate", raised.exception.headers)
+        self.assertEqual(raised.exception.code, 401)
+        self.assertEqual(
+            raised.exception.headers["WWW-Authenticate"],
+            'Basic realm="auth-tests", charset="UTF-8"',
+        )
         self.assertEqual(raised.exception.read().decode(), "Invalid credentials\n")

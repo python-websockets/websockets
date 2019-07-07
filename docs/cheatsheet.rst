@@ -60,6 +60,8 @@ Client
 * If you aren't using :func:`~client.connect` as a context manager, call
   :meth:`~protocol.WebSocketCommonProtocol.close` to terminate the connection.
 
+.. _debugging:
+
 Debugging
 ---------
 

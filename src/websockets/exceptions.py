@@ -117,9 +117,7 @@ class ConnectionClosed(WebSocketException):
     def __init__(self, code: int, reason: str) -> None:
         self.code = code
         self.reason = reason
-        message = "WebSocket connection is closed: "
-        message += format_close(code, reason)
-        super().__init__(message)
+        super().__init__(format_close(code, reason))
 
 
 class ConnectionClosedError(ConnectionClosed):

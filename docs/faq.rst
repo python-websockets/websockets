@@ -132,8 +132,8 @@ Look at the ``ssl`` argument of :meth:`~asyncio.loop.create_connection`.
 :func:`connect` accepts the same arguments as
 :meth:`~asyncio.loop.create_connection`.
 
-Architecture
-------------
+Both sides
+----------
 
 How do I do two things in parallel? How do I integrate with another coroutine?
 ..............................................................................
@@ -153,6 +153,56 @@ websockets doesn't have built-in publish / subscribe for these use cases.
 
 Depending on the scale of your service, a simple in-memory implementation may
 do the job or you may need an external publish / subscribe component.
+
+What does ``ConnectionClosedError: code = 1006`` mean?
+......................................................
+
+If you're seeing this traceback in the logs of a server:
+
+.. code-block:: pytb
+
+    Error in connection handler
+    Traceback (most recent call last):
+      ...
+    asyncio.streams.IncompleteReadError: 0 bytes read on a total of 2 expected bytes
+
+    The above exception was the direct cause of the following exception:
+
+    Traceback (most recent call last):
+      ...
+    websockets.exceptions.ConnectionClosedError: code = 1006 (connection closed abnormally [internal]), no reason
+
+or if a client crashes with this traceback:
+
+.. code-block:: pytb
+
+    Traceback (most recent call last):
+      ...
+    ConnectionResetError: [Errno 54] Connection reset by peer
+
+    The above exception was the direct cause of the following exception:
+
+    Traceback (most recent call last):
+      ...
+    websockets.exceptions.ConnectionClosedError: code = 1006 (connection closed abnormally [internal]), no reason
+
+it means that the TCP connection was lost. As a consequence, the WebSocket
+connection was closed without receiving a close frame, which is abnormal.
+
+You can catch and handle :exc:`~exceptions.ConnectionClosed` to prevent it
+from being logged.
+
+There are several reasons why long-lived connections may be lost:
+
+* End-user devices tend to lose network connectivity often and unpredictably
+  because they can move out of wireless network coverage, get unplugged from
+  a wired network, enter airplane mode, be put to sleep, etc.
+* HTTP load balancers or proxies that aren't configured for long-lived
+  connections may terminate connections after a short amount of time, usually
+  30 seconds.
+
+If you're facing a reproducible issue, :ref:`enable debug logs <debugging>` to
+see when and how connections are closed.
 
 Are there ``onopen``, ``onmessage``, ``onerror``, and ``onclose`` callbacks?
 ............................................................................

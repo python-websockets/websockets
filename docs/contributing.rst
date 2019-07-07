@@ -55,7 +55,7 @@ cryptocurrency trackers. I'm strongly opposed to Bitcoin's carbon footprint.
 
 Please stop heating the planet where my children are supposed to live, thanks.
 
-Since websockets is released under an open-source license, you can use it for
-any purpose you like. However, I won't spend any of my time to help.
+Since ``websockets`` is released under an open-source license, you can use it
+for any purpose you like. However, I won't spend any of my time to help.
 
 I will summarily close issues related to Bitcoin or cryptocurrency in any way.

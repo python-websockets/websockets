@@ -118,7 +118,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     side and ``5 * close_timeout`` on the client side.
 
     ``close_timeout`` needs to be a parameter of the protocol because
-    websockets usually calls :meth:`close` implicitly:
+    ``websockets`` usually calls :meth:`close` implicitly:
 
     - on the server side, when the connection handler terminates,
     - on the client side, when exiting the context manager for the connection.
@@ -1298,15 +1298,15 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
 
         See http://bugs.python.org/issue24539 for more information.
 
-        This is inappropriate for websockets for at least three reasons:
+        This is inappropriate for ``websockets`` for at least three reasons:
 
         1. The use case is to read data until EOF with self.reader.read(-1).
-           Since websockets is a TLV protocol, this never happens.
+           Since WebSocket is a TLV protocol, this never happens.
 
         2. It doesn't work on TLS connections. A falsy value must be
            returned to have the same behavior on TLS and plain connections.
 
-        3. The websockets protocol has its own closing handshake. Endpoints
+        3. The WebSocket protocol has its own closing handshake. Endpoints
            close the TCP connection after sending a close frame.
 
         As a consequence we revert to the previous, more useful behavior.

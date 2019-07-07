@@ -30,8 +30,8 @@ Then kill the first one with Ctrl-C.
 The test client or server shouldn't display any exceptions. The results are
 stored in reports/clients/index.html.
 
-Note that the Autobahn software only supports Python 2, while websockets only
-supports Python 3; you need two different environments.
+Note that the Autobahn software only supports Python 2, while ``websockets``
+only supports Python 3; you need two different environments.
 
 Conformance notes
 -----------------

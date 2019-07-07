@@ -138,8 +138,8 @@ Also:
 
 Also:
 
-* websockets sends Ping frames at regular intervals and closes the connection
-  if it doesn't receive a matching Pong frame. See
+* ``websockets`` sends Ping frames at regular intervals and closes the
+  connection if it doesn't receive a matching Pong frame. See
   :class:`~protocol.WebSocketCommonProtocol` for details.
 
 * Added ``process_request`` and ``select_subprotocol`` arguments to
@@ -217,7 +217,7 @@ Also:
 
     **Version 5.0 fixes a security issue introduced in version 4.0.**
 
-    websockets 4.0 was vulnerable to denial of service by memory exhaustion
+    Version 4.0 was vulnerable to denial of service by memory exhaustion
     because it didn't enforce ``max_size`` when decompressing compressed
     messages (`CVE-2018-1000518`_).
 

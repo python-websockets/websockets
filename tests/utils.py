@@ -69,6 +69,17 @@ class AsyncioTestCase(unittest.TestCase):
         level_name = logging.getLevelName(level)
         self.assertEqual(logs.output, [f"{level_name}:{logger}:dummy"])
 
+    def assertDeprecationWarnings(self, recorded_warnings, expected_warnings):
+        """
+        Check recorded deprecation warnings match a list of expected messages.
+
+        """
+        self.assertEqual(len(recorded_warnings), len(expected_warnings))
+        for recorded, expected in zip(recorded_warnings, expected_warnings):
+            actual = recorded.message
+            self.assertEqual(str(actual), expected)
+            self.assertEqual(type(actual), DeprecationWarning)
+
 
 # Unit for timeouts. May be increased on slow machines by setting the
 # WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.

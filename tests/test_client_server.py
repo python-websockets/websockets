@@ -51,7 +51,8 @@ testcert = bytes(pathlib.Path(__file__).with_name("test_localhost.pem"))
 
 
 async def handler(ws, path):
-    if path == "/attributes":
+    if path == "/deprecated_attributes":
+        await ws.recv()  # delay that allows catching warnings
         await ws.send(repr((ws.host, ws.port, ws.secure)))
     elif path == "/close_timeout":
         await ws.send(repr(ws.close_timeout))
@@ -238,7 +239,7 @@ class ClientServerTestsMixin:
     def server_context(self):
         return None
 
-    def start_server(self, expected_warning=None, **kwargs):
+    def start_server(self, deprecation_warnings=None, **kwargs):
         # Disable compression by default in tests.
         kwargs.setdefault("compression", None)
         # Disable pings by default in tests.
@@ -248,13 +249,8 @@ class ClientServerTestsMixin:
             start_server = serve(handler, "localhost", 0, **kwargs)
             self.server = self.loop.run_until_complete(start_server)
 
-        if expected_warning is None:
-            self.assertEqual(len(recorded_warnings), 0)
-        else:
-            self.assertEqual(len(recorded_warnings), 1)
-            actual_warning = recorded_warnings[0].message
-            self.assertEqual(str(actual_warning), expected_warning)
-            self.assertEqual(type(actual_warning), DeprecationWarning)
+        expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
+        self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def start_redirecting_server(
         self, status, include_location=True, force_insecure=False
@@ -278,7 +274,7 @@ class ClientServerTestsMixin:
         self.redirecting_server = self.loop.run_until_complete(start_server)
 
     def start_client(
-        self, resource_name="/", user_info=None, expected_warning=None, **kwargs
+        self, resource_name="/", user_info=None, deprecation_warnings=None, **kwargs
     ):
         # Disable compression by default in tests.
         kwargs.setdefault("compression", None)
@@ -295,13 +291,8 @@ class ClientServerTestsMixin:
             start_client = connect(server_uri, **kwargs)
             self.client = self.loop.run_until_complete(start_client)
 
-        if expected_warning is None:
-            self.assertEqual(len(recorded_warnings), 0)
-        else:
-            self.assertEqual(len(recorded_warnings), 1)
-            actual_warning = recorded_warnings[0].message
-            self.assertEqual(str(actual_warning), expected_warning)
-            self.assertEqual(type(actual_warning), DeprecationWarning)
+        expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
+        self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def stop_client(self):
         try:
@@ -539,10 +530,9 @@ class CommonClientServerTests:
         with contextlib.closing(response):
             self.assertEqual(response.code, 200)
 
-        self.assertEqual(len(recorded_warnings), 1)
-        warning = recorded_warnings[0].message
-        self.assertEqual(str(warning), "declare process_request as a coroutine")
-        self.assertEqual(type(warning), DeprecationWarning)
+        self.assertDeprecationWarnings(
+            recorded_warnings, ["declare process_request as a coroutine"]
+        )
 
     class ProcessRequestOKServerProtocol(WebSocketServerProtocol):
         async def process_request(self, path, request_headers):
@@ -567,10 +557,9 @@ class CommonClientServerTests:
         with contextlib.closing(response):
             self.assertEqual(response.code, 200)
 
-        self.assertEqual(len(recorded_warnings), 1)
-        warning = recorded_warnings[0].message
-        self.assertEqual(str(warning), "declare process_request as a coroutine")
-        self.assertEqual(type(warning), DeprecationWarning)
+        self.assertDeprecationWarnings(
+            recorded_warnings, ["declare process_request as a coroutine"]
+        )
 
     def select_subprotocol_chat(client_subprotocols, server_subprotocols):
         return "chat"
@@ -599,18 +588,37 @@ class CommonClientServerTests:
         self.assertEqual(self.client.subprotocol, "chat")
 
     @with_server()
-    @with_client("/attributes")
-    def test_protocol_attributes(self):
+    @with_client("/deprecated_attributes")
+    def test_protocol_deprecated_attributes(self):
         # The test could be connecting with IPv6 or IPv4.
         expected_client_attrs = [
             server_socket.getsockname()[:2] + (self.secure,)
             for server_socket in self.server.sockets
         ]
-        client_attrs = (self.client.host, self.client.port, self.client.secure)
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            client_attrs = (self.client.host, self.client.port, self.client.secure)
+        self.assertDeprecationWarnings(
+            recorded_warnings,
+            [
+                "use remote_address[0] instead of host",
+                "use remote_address[1] instead of port",
+                "don't use secure",
+            ],
+        )
         self.assertIn(client_attrs, expected_client_attrs)
 
         expected_server_attrs = ("localhost", 0, self.secure)
-        server_attrs = self.loop.run_until_complete(self.client.recv())
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            self.loop.run_until_complete(self.client.send(""))
+            server_attrs = self.loop.run_until_complete(self.client.recv())
+        self.assertDeprecationWarnings(
+            recorded_warnings,
+            [
+                "use local_address[0] instead of host",
+                "use local_address[1] instead of port",
+                "don't use secure",
+            ],
+        )
         self.assertEqual(server_attrs, repr(expected_server_attrs))
 
     @with_server()
@@ -770,7 +778,7 @@ class CommonClientServerTests:
 
     @with_server(
         klass=UnauthorizedServerProtocol,
-        expected_warning="rename klass to create_protocol",
+        deprecation_warnings=["rename klass to create_protocol"],
     )
     def test_server_klass_backwards_compatibility(self):
         self.assert_client_raises_code(401)
@@ -778,7 +786,7 @@ class CommonClientServerTests:
     @with_server(
         create_protocol=ForbiddenServerProtocol,
         klass=UnauthorizedServerProtocol,
-        expected_warning="rename klass to create_protocol",
+        deprecation_warnings=["rename klass to create_protocol"],
     )
     def test_server_create_protocol_over_klass(self):
         self.assert_client_raises_code(403)
@@ -800,7 +808,7 @@ class CommonClientServerTests:
     @with_client(
         "/path",
         klass=FooClientProtocol,
-        expected_warning="rename klass to create_protocol",
+        deprecation_warnings=["rename klass to create_protocol"],
     )
     def test_client_klass(self):
         self.assertIsInstance(self.client, FooClientProtocol)
@@ -810,7 +818,7 @@ class CommonClientServerTests:
         "/path",
         create_protocol=BarClientProtocol,
         klass=FooClientProtocol,
-        expected_warning="rename klass to create_protocol",
+        deprecation_warnings=["rename klass to create_protocol"],
     )
     def test_client_create_protocol_over_klass(self):
         self.assertIsInstance(self.client, BarClientProtocol)
@@ -821,14 +829,16 @@ class CommonClientServerTests:
         close_timeout = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(eval(close_timeout), 7)
 
-    @with_server(timeout=6, expected_warning="rename timeout to close_timeout")
+    @with_server(timeout=6, deprecation_warnings=["rename timeout to close_timeout"])
     @with_client("/close_timeout")
     def test_server_timeout_backwards_compatibility(self):
         close_timeout = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(eval(close_timeout), 6)
 
     @with_server(
-        close_timeout=7, timeout=6, expected_warning="rename timeout to close_timeout"
+        close_timeout=7,
+        timeout=6,
+        deprecation_warnings=["rename timeout to close_timeout"],
     )
     @with_client("/close_timeout")
     def test_server_close_timeout_over_timeout(self):
@@ -842,7 +852,9 @@ class CommonClientServerTests:
 
     @with_server()
     @with_client(
-        "/close_timeout", timeout=6, expected_warning="rename timeout to close_timeout"
+        "/close_timeout",
+        timeout=6,
+        deprecation_warnings=["rename timeout to close_timeout"],
     )
     def test_client_timeout_backwards_compatibility(self):
         self.assertEqual(self.client.close_timeout, 6)
@@ -852,7 +864,7 @@ class CommonClientServerTests:
         "/close_timeout",
         close_timeout=7,
         timeout=6,
-        expected_warning="rename timeout to close_timeout",
+        deprecation_warnings=["rename timeout to close_timeout"],
     )
     def test_client_close_timeout_over_timeout(self):
         self.assertEqual(self.client.close_timeout, 7)
@@ -1352,10 +1364,9 @@ class ClientServerOriginTests(AsyncioTestCase):
             )
             client = self.loop.run_until_complete(connect(get_server_uri(server)))
 
-        self.assertEqual(len(recorded_warnings), 1)
-        warning = recorded_warnings[0].message
-        self.assertEqual(str(warning), "use None instead of '' in origins")
-        self.assertEqual(type(warning), DeprecationWarning)
+        self.assertDeprecationWarnings(
+            recorded_warnings, ["use None instead of '' in origins"]
+        )
 
         self.loop.run_until_complete(client.send("Hello!"))
         self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")

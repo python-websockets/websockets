@@ -437,9 +437,6 @@ class Connect:
 
         factory = functools.partial(
             create_protocol,
-            host=wsuri.host,
-            port=wsuri.port,
-            secure=wsuri.secure,
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,
             close_timeout=close_timeout,
@@ -448,6 +445,9 @@ class Connect:
             read_limit=read_limit,
             write_limit=write_limit,
             loop=loop,
+            host=wsuri.host,
+            port=wsuri.port,
+            secure=wsuri.secure,
             legacy_recv=legacy_recv,
             origin=origin,
             extensions=extensions,

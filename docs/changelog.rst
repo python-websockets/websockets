@@ -35,6 +35,15 @@ Changelog
 
 .. note::
 
+    **Version 8.0 deprecates the** ``host`` **,** ``port`` **, and** ``secure``
+    **attributes of** :class:`~protocol.WebSocketCommonProtocol`.
+
+    Use :attr:`~protocol.WebSocketCommonProtocol.local_address` in servers and
+    :attr:`~protocol.WebSocketCommonProtocol.remote_address` in clients
+    instead of ``host`` and ``port``.
+
+.. note::
+
     **Version 8.0 renames the** ``WebSocketProtocolError`` **exception**
     :exc:`ProtocolError` **.**
 

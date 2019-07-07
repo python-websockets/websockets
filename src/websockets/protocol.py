@@ -92,11 +92,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     It raises a :exc:`~websockets.exceptions.ConnectionClosedError` exception
     when the connection is closed with any other code.
 
-    When initializing a :class:`WebSocketCommonProtocol`, the ``host``,
-    ``port``, and ``secure`` parameters are stored as attributes for backwards
-    compatibility. Consider using :attr:`local_address` on the server side and
-    :attr:`remote_address` on the client side instead.
-
     Once the connection is open, a `Ping frame`_ is sent every
     ``ping_interval`` seconds. This serves as a keepalive. It helps keeping
     the connection open, especially in the presence of proxies with short
@@ -185,9 +180,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
     def __init__(
         self,
         *,
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        secure: Optional[bool] = None,
         ping_interval: float = 20,
         ping_timeout: float = 20,
         close_timeout: Optional[float] = None,
@@ -196,6 +188,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         read_limit: int = 2 ** 16,
         write_limit: int = 2 ** 16,
         loop: Optional[asyncio.AbstractEventLoop] = None,
+        # The following arguments are kept only for backwards compatibility.
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        secure: Optional[bool] = None,
         legacy_recv: bool = False,
         timeout: Optional[float] = None,
     ) -> None:
@@ -208,9 +204,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         if close_timeout is None:
             close_timeout = timeout
 
-        self.host = host
-        self.port = port
-        self.secure = secure
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
@@ -225,6 +218,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             loop = asyncio.get_event_loop()
         self.loop = loop
 
+        self._host = host
+        self._port = port
+        self._secure = secure
         self.legacy_recv = legacy_recv
 
         # Configure read buffer limits. The high-water limit is defined by
@@ -319,6 +315,23 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.keepalive_ping_task = self.loop.create_task(self.keepalive_ping())
         # Start the task that eventually closes the TCP connection.
         self.close_connection_task = self.loop.create_task(self.close_connection())
+
+    @property
+    def host(self) -> Optional[str]:
+        alternative = "remote_address" if self.is_client else "local_address"
+        warnings.warn(f"use {alternative}[0] instead of host", DeprecationWarning)
+        return self._host
+
+    @property
+    def port(self) -> Optional[int]:
+        alternative = "remote_address" if self.is_client else "local_address"
+        warnings.warn(f"use {alternative}[1] instead of port", DeprecationWarning)
+        return self._port
+
+    @property
+    def secure(self) -> Optional[bool]:
+        warnings.warn(f"don't use secure", DeprecationWarning)
+        return self._secure
 
     # Public API
 
@@ -1144,7 +1157,12 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # If connection_lost() was called, the TCP connection is closed.
             # However, if TLS is enabled, the transport still needs closing.
             # Else asyncio complains: ResourceWarning: unclosed transport.
-            if self.connection_lost_waiter.done() and not self.secure:
+            try:
+                writer_is_closing = self.writer.is_closing  # type: ignore
+            except AttributeError:  # pragma: no cover
+                # Python < 3.7
+                writer_is_closing = self.writer.transport.is_closing
+            if self.connection_lost_waiter.done() and writer_is_closing():
                 return
 
             # Close the TCP connection. Buffers are flushed asynchronously.

@@ -1,3 +1,5 @@
+.PHONY: default style test coverage build clean
+
 export PYTHONASYNCIODEBUG=1
 export PYTHONPATH=src
 
@@ -15,6 +17,9 @@ coverage:
 	python -W default -m coverage run -m unittest
 	python -m coverage html
 	python -m coverage report --show-missing --fail-under=100
+
+build:
+	python setup.py build_ext --inplace
 
 clean:
 	find . -name '*.pyc' -o -name '*.so' -delete

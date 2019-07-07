@@ -423,7 +423,7 @@ words, they must be shielded from cancellation.
 the queue or for :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`
 to terminate, whichever comes first. It relies on :func:`~asyncio.wait` for
 waiting on two futures in parallel. As a consequence, even though it's waiting
-on a :class:`~asyncio.Future` signalling the next message and on
+on a :class:`~asyncio.Future` signaling the next message and on
 :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`, it doesn't
 propagate cancellation to them.
 

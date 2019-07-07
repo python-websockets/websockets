@@ -9,21 +9,46 @@ class ExceptionsTests(unittest.TestCase):
         for exception, exception_str in [
             # fmt: off
             (
+                WebSocketException("something went wrong"),
+                "something went wrong",
+            ),
+            (
+                ConnectionClosed(1000, ""),
+                "WebSocket connection is closed: code = 1000 "
+                "(OK), no reason",
+            ),
+            (
+                ConnectionClosed(1006, None),
+                "WebSocket connection is closed: code = 1006 "
+                "(connection closed abnormally [internal]), no reason"
+            ),
+            (
+                ConnectionClosed(3000, None),
+                "WebSocket connection is closed: code = 3000 "
+                "(registered), no reason"
+            ),
+            (
+                ConnectionClosed(4000, None),
+                "WebSocket connection is closed: code = 4000 "
+                "(private use), no reason"
+            ),
+            (
+                ConnectionClosedError(1016, None),
+                "WebSocket connection is closed: code = 1016 "
+                "(unknown), no reason"
+            ),
+            (
+                ConnectionClosedOK(1001, "bye"),
+                "WebSocket connection is closed: code = 1001 "
+                "(going away), reason = bye",
+            ),
+            (
                 InvalidHandshake("invalid request"),
                 "invalid request",
             ),
             (
-                AbortHandshake(200, Headers(), b"OK\n"),
-                "HTTP 200, 0 headers, 3 bytes",
-            ),
-            (
                 SecurityError("redirect from WSS to WS"),
                 "redirect from WSS to WS",
-
-            ),
-            (
-                RedirectHandshake("wss://example.com"),
-                "redirect to wss://example.com",
             ),
             (
                 InvalidMessage("malformed HTTP message"),
@@ -57,16 +82,16 @@ class ExceptionsTests(unittest.TestCase):
                 "invalid Sec-WebSocket-Version header: 42",
             ),
             (
+                InvalidOrigin("http://bad.origin"),
+                "invalid Origin header: http://bad.origin",
+            ),
+            (
                 InvalidUpgrade("Upgrade"),
                 "missing Upgrade header",
             ),
             (
                 InvalidUpgrade("Connection", "websocket"),
                 "invalid Connection header: websocket",
-            ),
-            (
-                InvalidOrigin("http://bad.origin"),
-                "invalid Origin header: http://bad.origin",
             ),
             (
                 InvalidStatusCode(403),
@@ -77,50 +102,36 @@ class ExceptionsTests(unittest.TestCase):
                 "unsupported subprotocol: spam",
             ),
             (
+                DuplicateParameter("a"),
+                "duplicate parameter: a",
+            ),
+            (
                 InvalidParameterName("|"),
                 "invalid parameter name: |",
+            ),
+            (
+                InvalidParameterValue("a", None),
+                "missing value for parameter a",
+            ),
+            (
+                InvalidParameterValue("a", ""),
+                "empty value for parameter a",
             ),
             (
                 InvalidParameterValue("a", "|"),
                 "invalid value for parameter a: |",
             ),
             (
-                DuplicateParameter("a"),
-                "duplicate parameter: a",
+                AbortHandshake(200, Headers(), b"OK\n"),
+                "HTTP 200, 0 headers, 3 bytes",
+            ),
+            (
+                RedirectHandshake("wss://example.com"),
+                "redirect to wss://example.com",
             ),
             (
                 InvalidState("WebSocket connection isn't established yet"),
                 "WebSocket connection isn't established yet",
-            ),
-            (
-                ConnectionClosed(1000, ""),
-                "WebSocket connection is closed: code = 1000 "
-                "(OK), no reason",
-            ),
-            (
-                ConnectionClosedOK(1001, "bye"),
-                "WebSocket connection is closed: code = 1001 "
-                "(going away), reason = bye",
-            ),
-            (
-                ConnectionClosed(1006, None),
-                "WebSocket connection is closed: code = 1006 "
-                "(connection closed abnormally [internal]), no reason"
-            ),
-            (
-                ConnectionClosedError(1016, None),
-                "WebSocket connection is closed: code = 1016 "
-                "(unknown), no reason"
-            ),
-            (
-                ConnectionClosed(3000, None),
-                "WebSocket connection is closed: code = 3000 "
-                "(registered), no reason"
-            ),
-            (
-                ConnectionClosed(4000, None),
-                "WebSocket connection is closed: code = 4000 "
-                "(private use), no reason"
             ),
             (
                 InvalidURI("|"),
@@ -131,7 +142,7 @@ class ExceptionsTests(unittest.TestCase):
                 "payload length exceeds limit: 2 > 1 bytes",
             ),
             (
-                WebSocketProtocolError("invalid opcode: 7"),
+                ProtocolError("invalid opcode: 7"),
                 "invalid opcode: 7",
             ),
             # fmt: on

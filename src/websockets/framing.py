@@ -15,7 +15,7 @@ import random
 import struct
 from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence, Tuple
 
-from .exceptions import PayloadTooBig, WebSocketProtocolError
+from .exceptions import PayloadTooBig, ProtocolError
 from .typing import Data
 
 
@@ -113,7 +113,7 @@ class Frame(FrameData):
             in reverse order
         :raises ~websockets.exceptions.PayloadTooBig: if the frame exceeds
             ``max_size``
-        :raises ~websockets.exceptions.WebSocketProtocolError: if the frame
+        :raises ~websockets.exceptions.ProtocolError: if the frame
             contains incorrect values
 
         """
@@ -129,7 +129,7 @@ class Frame(FrameData):
         opcode = head1 & 0b00001111
 
         if (True if head2 & 0b10000000 else False) != mask:
-            raise WebSocketProtocolError("incorrect masking")
+            raise ProtocolError("incorrect masking")
 
         length = head2 & 0b01111111
         if length == 126:
@@ -178,7 +178,7 @@ class Frame(FrameData):
         :param extensions: list of classes with an ``encode()`` method that
             transform the frame and return a new frame; extensions are applied
             in order
-        :raises ~websockets.exceptions.WebSocketProtocolError: if the frame
+        :raises ~websockets.exceptions.ProtocolError: if the frame
             contains incorrect values
 
         """
@@ -235,7 +235,7 @@ class Frame(FrameData):
         """
         Check that reserved bits and opcode have acceptable values.
 
-        :raises ~websockets.exceptions.WebSocketProtocolError: if a reserved
+        :raises ~websockets.exceptions.ProtocolError: if a reserved
             bit or the opcode is invalid
 
         """
@@ -243,17 +243,17 @@ class Frame(FrameData):
         # but it's the instance of class to which this method is bound.
 
         if frame.rsv1 or frame.rsv2 or frame.rsv3:
-            raise WebSocketProtocolError("reserved bits must be 0")
+            raise ProtocolError("reserved bits must be 0")
 
         if frame.opcode in DATA_OPCODES:
             return
         elif frame.opcode in CTRL_OPCODES:
             if len(frame.data) > 125:
-                raise WebSocketProtocolError("control frame too long")
+                raise ProtocolError("control frame too long")
             if not frame.fin:
-                raise WebSocketProtocolError("fragmented control frame")
+                raise ProtocolError("fragmented control frame")
         else:
-            raise WebSocketProtocolError(f"invalid opcode: {frame.opcode}")
+            raise ProtocolError(f"invalid opcode: {frame.opcode}")
 
 
 def prepare_data(data: Data) -> Tuple[int, bytes]:
@@ -314,7 +314,7 @@ def parse_close(data: bytes) -> Tuple[int, str]:
 
     Return ``(code, reason)``.
 
-    :raises ~websockets.exceptions.WebSocketProtocolError: if data is ill-formed
+    :raises ~websockets.exceptions.ProtocolError: if data is ill-formed
     :raises UnicodeDecodeError: if the reason isn't valid UTF-8
 
     """
@@ -328,7 +328,7 @@ def parse_close(data: bytes) -> Tuple[int, str]:
         return 1005, ""
     else:
         assert length == 1
-        raise WebSocketProtocolError("close frame too short")
+        raise ProtocolError("close frame too short")
 
 
 def serialize_close(code: int, reason: str) -> bytes:
@@ -346,12 +346,12 @@ def check_close(code: int) -> None:
     """
     Check that the close code has an acceptable value for a close frame.
 
-    :raises ~websockets.exceptions.WebSocketProtocolError: if the close code
+    :raises ~websockets.exceptions.ProtocolError: if the close code
         is invalid
 
     """
     if not (code in EXTERNAL_CLOSE_CODES or 3000 <= code < 5000):
-        raise WebSocketProtocolError("invalid status code")
+        raise ProtocolError("invalid status code")
 
 
 # at the bottom to allow circular import, because Extension depends on Frame

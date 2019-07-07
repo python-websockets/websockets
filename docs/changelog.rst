@@ -35,6 +35,13 @@ Changelog
 
 .. note::
 
+    **Version 8.0 renames the** ``WebSocketProtocolError`` **exception**
+    :exc:`ProtocolError` **.**
+
+    For backwards compatibility, a ``WebSocketProtocolError`` is provided.
+
+.. note::
+
     **Version 8.0 adds the reason phrase to the return type of the low-level
     API** :func:`~http.read_response` **.**
 

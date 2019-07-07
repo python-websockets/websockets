@@ -35,7 +35,7 @@ from .exceptions import (
     ConnectionClosedOK,
     InvalidState,
     PayloadTooBig,
-    WebSocketProtocolError,
+    ProtocolError,
 )
 from .extensions.base import Extension
 from .framing import *
@@ -811,7 +811,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             # twice and failing the connection again.
             raise
 
-        except WebSocketProtocolError as exc:
+        except ProtocolError as exc:
             self.transfer_data_exc = exc
             self.fail_connection(1002)
 
@@ -861,7 +861,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         elif frame.opcode == OP_BINARY:
             text = False
         else:  # frame.opcode == OP_CONT
-            raise WebSocketProtocolError("unexpected opcode")
+            raise ProtocolError("unexpected opcode")
 
         # Shortcut for the common case - no fragmentation
         if frame.fin:
@@ -906,9 +906,9 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         while not frame.fin:
             frame = await self.read_data_frame(max_size=max_size)
             if frame is None:
-                raise WebSocketProtocolError("incomplete fragmented message")
+                raise ProtocolError("incomplete fragmented message")
             if frame.opcode != OP_CONT:
-                raise WebSocketProtocolError("unexpected opcode")
+                raise ProtocolError("unexpected opcode")
             append(frame)
 
         # mypy cannot figure out that chunks have the proper type.

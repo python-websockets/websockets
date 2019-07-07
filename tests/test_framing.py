@@ -3,7 +3,7 @@ import codecs
 import unittest
 import unittest.mock
 
-from websockets.exceptions import PayloadTooBig, WebSocketProtocolError
+from websockets.exceptions import PayloadTooBig, ProtocolError
 from websockets.framing import *
 
 from .utils import AsyncioTestCase
@@ -112,7 +112,7 @@ class FramingTests(AsyncioTestCase):
     def test_bad_reserved_bits(self):
         for encoded in [b"\xc0\x00", b"\xa0\x00", b"\x90\x00"]:
             with self.subTest(encoded=encoded):
-                with self.assertRaises(WebSocketProtocolError):
+                with self.assertRaises(ProtocolError):
                     self.decode(encoded)
 
     def test_good_opcode(self):
@@ -125,26 +125,26 @@ class FramingTests(AsyncioTestCase):
         for opcode in list(range(0x03, 0x08)) + list(range(0x0B, 0x10)):
             encoded = bytes([0x80 | opcode, 0])
             with self.subTest(encoded=encoded):
-                with self.assertRaises(WebSocketProtocolError):
+                with self.assertRaises(ProtocolError):
                     self.decode(encoded)
 
     def test_mask_flag(self):
         # Mask flag correctly set.
         self.decode(b"\x80\x80\x00\x00\x00\x00", mask=True)
         # Mask flag incorrectly unset.
-        with self.assertRaises(WebSocketProtocolError):
+        with self.assertRaises(ProtocolError):
             self.decode(b"\x80\x80\x00\x00\x00\x00")
         # Mask flag correctly unset.
         self.decode(b"\x80\x00")
         # Mask flag incorrectly set.
-        with self.assertRaises(WebSocketProtocolError):
+        with self.assertRaises(ProtocolError):
             self.decode(b"\x80\x00", mask=True)
 
     def test_control_frame_max_length(self):
         # At maximum allowed length.
         self.decode(b"\x88\x7e\x00\x7d" + 125 * b"a")
         # Above maximum allowed length.
-        with self.assertRaises(WebSocketProtocolError):
+        with self.assertRaises(ProtocolError):
             self.decode(b"\x88\x7e\x00\x7e" + 126 * b"a")
 
     def test_prepare_data_str(self):
@@ -201,7 +201,7 @@ class FramingTests(AsyncioTestCase):
         # Fin bit correctly set.
         self.decode(b"\x88\x00")
         # Fin bit incorrectly unset.
-        with self.assertRaises(WebSocketProtocolError):
+        with self.assertRaises(ProtocolError):
             self.decode(b"\x08\x00")
 
     def test_parse_close_and_serialize_close(self):
@@ -212,15 +212,15 @@ class FramingTests(AsyncioTestCase):
         self.assertEqual(parse_close(b""), (1005, ""))
 
     def test_parse_close_errors(self):
-        with self.assertRaises(WebSocketProtocolError):
+        with self.assertRaises(ProtocolError):
             parse_close(b"\x03")
-        with self.assertRaises(WebSocketProtocolError):
+        with self.assertRaises(ProtocolError):
             parse_close(b"\x03\xe7")
         with self.assertRaises(UnicodeDecodeError):
             parse_close(b"\x03\xe8\xff\xff")
 
     def test_serialize_close_errors(self):
-        with self.assertRaises(WebSocketProtocolError):
+        with self.assertRaises(ProtocolError):
             serialize_close(999, "")
 
     def test_extensions(self):

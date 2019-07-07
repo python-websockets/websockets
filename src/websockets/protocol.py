@@ -8,7 +8,6 @@ See `sections 4 to 8 of RFC 6455`_.
 """
 
 import asyncio
-import binascii
 import codecs
 import collections
 import enum
@@ -22,6 +21,7 @@ from typing import (
     AsyncIterator,
     Awaitable,
     Deque,
+    Dict,
     Iterable,
     List,
     Optional,
@@ -274,9 +274,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self._fragmented_message_waiter: Optional[asyncio.Future[None]] = None
 
         # Mapping of ping IDs to waiters, in chronological order.
-        self.pings: collections.OrderedDict[
-            bytes, asyncio.Future[None]
-        ] = collections.OrderedDict()
+        self.pings: Dict[bytes, asyncio.Future[None]] = {}
 
         # Task running the data transfer.
         self.transfer_data_task: asyncio.Task[None]
@@ -954,23 +952,29 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             elif frame.opcode == OP_PONG:
                 # Acknowledge pings on solicited pongs.
                 if frame.data in self.pings:
+                    logger.debug(
+                        "%s - received solicited pong: %s",
+                        self.side,
+                        frame.data.hex() or "[empty]",
+                    )
                     # Acknowledge all pings up to the one matching this pong.
                     ping_id = None
                     ping_ids = []
-                    while ping_id != frame.data:
-                        ping_id, pong_waiter = self.pings.popitem(last=False)
+                    for ping_id, ping in self.pings.items():
                         ping_ids.append(ping_id)
-                        if not pong_waiter.done():
-                            pong_waiter.set_result(None)
-                    pong_hex = binascii.hexlify(frame.data).decode() or "[empty]"
-                    logger.debug(
-                        "%s - received solicited pong: %s", self.side, pong_hex
-                    )
+                        if not ping.done():
+                            ping.set_result(None)
+                        if ping_id == frame.data:
+                            break
+                    else:  # pragma: no cover
+                        assert False, "ping_id is in self.pings"
+                    # Remove acknowledged pings from self.pings.
+                    for ping_id in ping_ids:
+                        del self.pings[ping_id]
                     ping_ids = ping_ids[:-1]
                     if ping_ids:
                         pings_hex = ", ".join(
-                            binascii.hexlify(ping_id).decode() or "[empty]"
-                            for ping_id in ping_ids
+                            ping_id.hex() or "[empty]" for ping_id in ping_ids
                         )
                         plural = "s" if len(ping_ids) > 1 else ""
                         logger.debug(
@@ -980,9 +984,10 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                             pings_hex,
                         )
                 else:
-                    pong_hex = binascii.hexlify(frame.data).decode() or "[empty]"
                     logger.debug(
-                        "%s - received unsolicited pong: %s", self.side, pong_hex
+                        "%s - received unsolicited pong: %s",
+                        self.side,
+                        frame.data.hex() or "[empty]",
                     )
 
             # 5.6. Data Frames
@@ -1259,10 +1264,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             ping.cancel()
 
         if self.pings:
-            pings_hex = ", ".join(
-                binascii.hexlify(ping_id).decode() or "[empty]"
-                for ping_id in self.pings
-            )
+            pings_hex = ", ".join(ping_id.hex() or "[empty]" for ping_id in self.pings)
             plural = "s" if len(self.pings) > 1 else ""
             logger.debug(
                 "%s - aborted pending ping%s: %s", self.side, plural, pings_hex

@@ -23,8 +23,8 @@ Changelog
     :meth:`~protocol.WebSocketServerProtocol.process_request` in a subclass,
     define it with ``async def`` instead of ``def``.
 
-    For backwards compatibility, functions are still supported. However, in
-    some inheritance scenarios, mixing functions and coroutines won't work.
+    For backwards compatibility, functions are still mostly supported, but
+    mixing functions and coroutines won't work in some inheritance scenarios.
 
 .. note::
 
@@ -45,9 +45,9 @@ Changelog
 .. note::
 
     **Version 8.0 renames the** ``WebSocketProtocolError`` **exception**
-    :exc:`ProtocolError` **.**
+    to :exc:`ProtocolError` **.**
 
-    For backwards compatibility, a ``WebSocketProtocolError`` is provided.
+    A ``WebSocketProtocolError`` alias provides backwards compatibility.
 
 .. note::
 
@@ -66,7 +66,7 @@ Also:
   :exc:`~exceptions.ConnectionClosed` to tell apart normal connection
   termination from errors.
 
-* Added :func:`~auth.basic_auth_protocol_factory` to provide HTTP Basic Auth
+* Added :func:`~auth.basic_auth_protocol_factory` to enforce HTTP Basic Auth
   on the server side.
 
 * :func:`~client.connect` handles redirects from the server during the
@@ -80,14 +80,13 @@ Also:
   iterators in :meth:`~protocol.WebSocketCommonProtocol.send`.
 
 * Prevented spurious log messages about :exc:`~exceptions.ConnectionClosed`
-  exceptions in keepalive ping task.
+  exceptions in keepalive ping task. If you were using ``ping_timeout=None``
+  as a workaround, you can remove it.
 
-  If you were using ``ping_timeout=None`` as a workaround, you can remove it.
+* Changed :meth:`WebSocketServer.close() <server.WebSocketServer.close>` to
+  perform a proper closing handshake instead of failing the connection.
 
-* Changed :meth:`~server.WebSocketServer.close` to perform a proper closing
-  handshake instead of failing the connection.
-
-* Avoided a crash of a ``extra_headers`` callable returns ``None``.
+* Avoided a crash when a ``extra_headers`` callable returns ``None``.
 
 * Improved error messages when HTTP parsing fails.
 

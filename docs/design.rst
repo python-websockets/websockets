@@ -9,7 +9,7 @@ with the specification of the WebSocket protocol in :rfc:`6455`.
 It's primarily intended at maintainers. It may also be useful for users who
 wish to understand what happens under the hood.
 
-.. warning:
+.. warning::
 
     Internals described in this document may change at any time.
 
@@ -43,7 +43,7 @@ Transitions happen in the following places:
   close frame, this does the right thing regardless of which side started the
   :ref:`closing handshake <closing-handshake>`; also in
   :meth:`~protocol.WebSocketCommonProtocol.fail_connection` which duplicates
-  a few lines of code from `write_close_frame()` and `write_frame()`;
+  a few lines of code from ``write_close_frame()`` and ``write_frame()``;
 - ``* -> CLOSED``: in
   :meth:`~protocol.WebSocketCommonProtocol.connection_lost` which is always
   called exactly once when the TCP connection is closed.
@@ -231,15 +231,17 @@ happens naturally in many use cases, it cannot be relied upon.
 
 Then :meth:`~protocol.WebSocketCommonProtocol.recv` fetches the next message
 from the :attr:`~protocol.WebSocketCommonProtocol.messages` queue, with some
-complexity added for handling termination correctly.
+complexity added for handling backpressure and termination correctly.
 
 Sending data
 ............
 
 The right side of the diagram shows how ``websockets`` sends data.
 
-:meth:`~protocol.WebSocketCommonProtocol.send` writes a single data frame
-containing the message. Fragmentation isn't supported at this time.
+:meth:`~protocol.WebSocketCommonProtocol.send` writes one or several data
+frames containing the message. While sending a fragmented message, concurrent
+calls to :meth:`~protocol.WebSocketCommonProtocol.send` are put on hold until
+all fragments are sent. This makes concurrent calls safe.
 
 :meth:`~protocol.WebSocketCommonProtocol.ping` writes a ping frame and
 yields a :class:`~asyncio.Future` which will be completed when a matching pong
@@ -420,8 +422,10 @@ words, they must be shielded from cancellation.
 :meth:`~protocol.WebSocketCommonProtocol.recv` waits for the next message in
 the queue or for :attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`
 to terminate, whichever comes first. It relies on :func:`~asyncio.wait` for
-waiting on two tasks in parallel. As a consequence, even though it's waiting
-on the transfer data task, it doesn't propagate cancellation to that task.
+waiting on two futures in parallel. As a consequence, even though it's waiting
+on a :class:`~asyncio.Future` signalling the next message and on
+:attr:`~protocol.WebSocketCommonProtocol.transfer_data_task`, it doesn't
+propagate cancellation to them.
 
 :meth:`~protocol.WebSocketCommonProtocol.ensure_open` is called by
 :meth:`~protocol.WebSocketCommonProtocol.send`,
@@ -535,18 +539,33 @@ For each connection, the sending side contains these buffers:
 Concurrency
 -----------
 
-Calling any combination of :meth:`~protocol.WebSocketCommonProtocol.recv`,
+Awaiting any combination of :meth:`~protocol.WebSocketCommonProtocol.recv`,
 :meth:`~protocol.WebSocketCommonProtocol.send`,
 :meth:`~protocol.WebSocketCommonProtocol.close`
 :meth:`~protocol.WebSocketCommonProtocol.ping`, or
-:meth:`~protocol.WebSocketCommonProtocol.pong` concurrently is safe,
-including multiple calls to the same method.
+:meth:`~protocol.WebSocketCommonProtocol.pong` concurrently is safe, including
+multiple calls to the same method, with one exception and one limitation.
 
-As shown above, receiving frames is independent from sending frames. That
-isolates :meth:`~protocol.WebSocketCommonProtocol.recv`, which receives
-frames, from the other methods, which send frames.
+* **Only one coroutine can receive messages at a time.** This constraint
+  avoids non-deterministic behavior (and simplifies the implementation). If a
+  coroutine is awaiting :meth:`~protocol.WebSocketCommonProtocol.recv`,
+  awaiting it again in another coroutine raises :exc:`RuntimeError`.
 
-Methods that send frames also support concurrent calls. While the connection
-is open, each frame is sent with a single write. Combined with the concurrency
-model of :mod:`asyncio`, this enforces serialization. After the connection is
-closed, sending a frame raises :exc:`~websockets.exceptions.ConnectionClosed`.
+* **Sending a fragmented message forces serialization.** Indeed, the WebSocket
+  protocol doesn't support multiplexing messages. If a coroutine is awaiting
+  :meth:`~protocol.WebSocketCommonProtocol.send` to send a fragmented message,
+  awaiting it again in another coroutine waits until the first call completes.
+  This will be transparent in many cases. It may be a concern if the
+  fragmented message is generated slowly by an asynchronous iterator.
+
+Receiving frames is independent from sending frames. This isolates
+:meth:`~protocol.WebSocketCommonProtocol.recv`, which receives frames, from
+the other methods, which send frames.
+
+While the connection is open, each frame is sent with a single write. Combined
+with the concurrency model of :mod:`asyncio`, this enforces serialization. The
+only other requirement is to prevent interleaving other data frames in the
+middle of a fragmented message.
+
+After the connection is closed, sending a frame raises
+:exc:`~websockets.exceptions.ConnectionClosed`, which is safe.

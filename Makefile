@@ -3,6 +3,8 @@
 export PYTHONASYNCIODEBUG=1
 export PYTHONPATH=src
 
+default: coverage style
+
 style:
 	isort --recursive src tests
 	black src tests

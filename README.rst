@@ -87,9 +87,7 @@ Does that look good?
     <p align="center"><i>Tidelift gives software development teams a single source for purchasing and maintaining their software, with professional grade assurances from the experts who know it best, while seamlessly integrating with existing tools.</i></p>
     <p align="center"><b><i><a href="https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme">Get supported websockets with the Tidelift Subscription</a></i></b></p>
     <hr>
-
-(If you contribute to ``websockets`` and would like to become an official
-support provider, `let me know <https://fractalideas.com/>`_.)
+    <p>(If you contribute to ``websockets`` and would like to become an official support provider, <a href="https://fractalideas.com/">let me know</a>.)</p>
 
 Why should I use ``websockets``?
 --------------------------------

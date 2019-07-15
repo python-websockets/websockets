@@ -57,6 +57,7 @@ __all__ = [
     "InvalidURI",
     "PayloadTooBig",
     "ProtocolError",
+    "WebSocketProtocolError",
 ]
 
 

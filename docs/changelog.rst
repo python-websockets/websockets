@@ -8,6 +8,12 @@ Changelog
 
 *In development*
 
+8.0.1
+.....
+
+* Restored the ability to import ``WebSocketProtocolError`` from
+  ``websockets``.
+
 8.0
 ...
 

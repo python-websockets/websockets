@@ -928,9 +928,6 @@ class Serve:
         )
 
         if path is None:
-            # serve(..., host, port) must specify host and port parameters.
-            # host can be None to listen on all interfaces; port cannot be None.
-            assert port is not None
             create_server = functools.partial(
                 loop.create_server, factory, host, port, **kwargs
             )

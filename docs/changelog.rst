@@ -8,6 +8,12 @@ Changelog
 
 *In development*
 
+8.0.2
+.....
+
+* Restored the ability to pass a socket with the ``sock`` parameter of
+  :func:`~server.serve`.
+
 8.0.1
 .....
 

@@ -479,7 +479,6 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 if self.legacy_recv:
                     return None  # type: ignore
                 else:
-                    assert self.state in [State.CLOSING, State.CLOSED]
                     # Wait until the connection is closed to raise
                     # ConnectionClosed with the correct code and reason.
                     await self.ensure_open()
@@ -760,8 +759,8 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # Handle cases from most common to least common for performance.
         if self.state is State.OPEN:
             # If self.transfer_data_task exited without a closing handshake,
-            # self.close_connection_task may be closing it, going straight
-            # from OPEN to CLOSED.
+            # self.close_connection_task may be closing the connection, going
+            # straight from OPEN to CLOSED.
             if self.transfer_data_task.done():
                 await asyncio.shield(self.close_connection_task)
                 raise self.connection_closed_exc()

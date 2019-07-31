@@ -14,6 +14,8 @@ Changelog
 * Restored the ability to pass a socket with the ``sock`` parameter of
   :func:`~server.serve`.
 
+* Removed an incorrect assertion when a connection drops.
+
 8.0.1
 .....
 

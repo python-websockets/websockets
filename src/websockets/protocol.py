@@ -895,6 +895,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 def append(frame: Frame) -> None:
                     nonlocal chunks, max_size
                     chunks.append(decoder.decode(frame.data, frame.fin))
+                    assert isinstance(max_size, int)
                     max_size -= len(frame.data)
 
         else:
@@ -909,6 +910,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 def append(frame: Frame) -> None:
                     nonlocal chunks, max_size
                     chunks.append(frame.data)
+                    assert isinstance(max_size, int)
                     max_size -= len(frame.data)
 
         append(frame)
@@ -924,7 +926,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         # mypy cannot figure out that chunks have the proper type.
         return ("" if text else b"").join(chunks)  # type: ignore
 
-    async def read_data_frame(self, max_size: int) -> Optional[Frame]:
+    async def read_data_frame(self, max_size: Optional[int]) -> Optional[Frame]:
         """
         Read a single data frame from the connection.
 
@@ -1006,7 +1008,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
             else:
                 return frame
 
-    async def read_frame(self, max_size: int) -> Frame:
+    async def read_frame(self, max_size: Optional[int]) -> Frame:
         """
         Read a single frame from the connection.
 

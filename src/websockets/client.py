@@ -325,8 +325,8 @@ class Connect:
 
     For example, you can set the ``ssl`` keyword argument to a
     :class:`~ssl.SSLContext` to enforce some TLS settings. When connecting to
-    a ``wss://`` URI, if this argument isn't provided explicitly, it's set to
-    ``True``, which means Python's default :class:`~ssl.SSLContext` is used.
+    a ``wss://`` URI, if this argument isn't provided explicitly,
+    :func:`ssl.create_default_context` is called to create a context.
 
     You can connect to a different host and port from those found in ``uri``
     by setting ``host`` and ``port`` keyword arguments. This only changes the

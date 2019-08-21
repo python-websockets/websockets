@@ -15,7 +15,7 @@ from ..exceptions import (
     PayloadTooBig,
 )
 from ..framing import CTRL_OPCODES, OP_CONT, Frame
-from ..typing import ExtensionParameter
+from ..typing import ExtensionName, ExtensionParameter
 from .base import ClientExtensionFactory, Extension, ServerExtensionFactory
 
 
@@ -36,7 +36,7 @@ class PerMessageDeflate(Extension):
 
     """
 
-    name = "permessage-deflate"
+    name = ExtensionName("permessage-deflate")
 
     def __init__(
         self,
@@ -274,7 +274,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
     """
 
-    name = "permessage-deflate"
+    name = ExtensionName("permessage-deflate")
 
     def __init__(
         self,
@@ -445,7 +445,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
     """
 
-    name = "permessage-deflate"
+    name = ExtensionName("permessage-deflate")
 
     def __init__(
         self,

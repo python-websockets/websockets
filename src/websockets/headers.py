@@ -13,7 +13,7 @@ import re
 from typing import Callable, List, NewType, Optional, Sequence, Tuple, TypeVar, cast
 
 from .exceptions import InvalidHeaderFormat, InvalidHeaderValue
-from .typing import ExtensionHeader, ExtensionParameter, Subprotocol
+from .typing import ExtensionHeader, ExtensionName, ExtensionParameter, Subprotocol
 
 
 __all__ = [
@@ -313,7 +313,7 @@ def parse_extension_item(
         pos = parse_OWS(header, pos + 1)
         parameter, pos = parse_extension_item_param(header, pos, header_name)
         parameters.append(parameter)
-    return (name, parameters), pos
+    return (cast(ExtensionName, name), parameters), pos
 
 
 def parse_extension(header: str) -> List[ExtensionHeader]:
@@ -344,7 +344,9 @@ def parse_extension(header: str) -> List[ExtensionHeader]:
 parse_extension_list = parse_extension  # alias for backwards compatibility
 
 
-def build_extension_item(name: str, parameters: List[ExtensionParameter]) -> str:
+def build_extension_item(
+    name: ExtensionName, parameters: List[ExtensionParameter]
+) -> str:
     """
     Build an extension definition.
 
@@ -352,7 +354,7 @@ def build_extension_item(name: str, parameters: List[ExtensionParameter]) -> str
 
     """
     return "; ".join(
-        [name]
+        [cast(str, name)]
         + [
             # Quoted strings aren't necessary because values are always tokens.
             name if value is None else f"{name}={value}"

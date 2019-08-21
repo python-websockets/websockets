@@ -11,7 +11,7 @@ See `section 9 of RFC 6455`_.
 from typing import List, Optional, Sequence, Tuple
 
 from ..framing import Frame
-from ..typing import ExtensionParameter
+from ..typing import ExtensionName, ExtensionParameter
 
 
 __all__ = ["Extension", "ClientExtensionFactory", "ServerExtensionFactory"]
@@ -24,7 +24,7 @@ class Extension:
     """
 
     @property
-    def name(self) -> str:
+    def name(self) -> ExtensionName:
         """
         Extension identifier.
 
@@ -55,7 +55,7 @@ class ClientExtensionFactory:
     """
 
     @property
-    def name(self) -> str:
+    def name(self) -> ExtensionName:
         """
         Extension identifier.
 
@@ -92,7 +92,7 @@ class ServerExtensionFactory:
     """
 
     @property
-    def name(self) -> str:
+    def name(self) -> ExtensionName:
         """
         Extension identifier.
 

@@ -23,6 +23,10 @@ Origin = NewType("Origin", str)
 Origin.__doc__ = """Value of a Origin header"""
 
 
+ExtensionName = NewType("ExtensionName", str)
+ExtensionName.__doc__ = """Name of a WebSocket extension"""
+
+
 ExtensionParameter = Tuple[str, Optional[str]]
 
 ExtensionParameter__doc__ = """Parameter of a WebSocket extension"""
@@ -32,7 +36,7 @@ except AttributeError:  # pragma: no cover
     pass
 
 
-ExtensionHeader = Tuple[str, List[ExtensionParameter]]
+ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
 
 ExtensionHeader__doc__ = """Item parsed in a Sec-WebSocket-Extensions header"""
 try:

@@ -69,7 +69,7 @@ _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 async def read_request(stream: asyncio.StreamReader) -> Tuple[str, "Headers"]:
     """
-    Read an HTTP/1.1 GET request and returns ``(path, headers)``.
+    Read an HTTP/1.1 GET request and return ``(path, headers)``.
 
     ``path`` isn't URL-decoded or validated in any way.
 
@@ -115,7 +115,7 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, "Headers"]:
 
 async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, "Headers"]:
     """
-    Read an HTTP/1.1 response and returns ``(status_code, reason, headers)``.
+    Read an HTTP/1.1 response and return ``(status_code, reason, headers)``.
 
     ``reason`` and ``headers`` are expected to contain only ASCII characters.
     Other characters are represented with surrogate escapes.

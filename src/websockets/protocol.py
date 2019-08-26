@@ -20,7 +20,6 @@ from typing import (
     AsyncIterable,
     AsyncIterator,
     Awaitable,
-    Deque,
     Dict,
     Iterable,
     List,
@@ -262,7 +261,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.connection_lost_waiter: asyncio.Future[None] = loop.create_future()
 
         # Queue of received messages.
-        self.messages: Deque[Data] = collections.deque()
+        self.messages: deque = collections.deque()
         self._pop_message_waiter: Optional[asyncio.Future[None]] = None
         self._put_message_waiter: Optional[asyncio.Future[None]] = None
 

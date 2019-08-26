@@ -261,7 +261,7 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
         self.connection_lost_waiter: asyncio.Future[None] = loop.create_future()
 
         # Queue of received messages.
-        self.messages = collections.deque()
+        self.messages: collections.deque = collections.deque()
         self._pop_message_waiter: Optional[asyncio.Future[None]] = None
         self._put_message_waiter: Optional[asyncio.Future[None]] = None
 

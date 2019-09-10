@@ -465,7 +465,11 @@ class WebSocketCommonProtocol(asyncio.StreamReaderProtocol):
                 # If asyncio.wait() is canceled, it doesn't cancel
                 # pop_message_waiter and self.transfer_data_task.
                 await asyncio.wait(
-                    [f for f in [pop_message_waiter, self.transfer_data_task] if f is not None],
+                    [
+                        f
+                        for f in [pop_message_waiter, self.transfer_data_task]
+                        if f is not None
+                    ],
                     loop=self.loop,
                     return_when=asyncio.FIRST_COMPLETED,
                 )

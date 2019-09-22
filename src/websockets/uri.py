@@ -20,27 +20,25 @@ __all__ = ["parse_uri", "WebSocketURI"]
 
 
 class WebSocketURI(NamedTuple):
+    """
+    WebSocket URI.
+
+    :param bool secure: secure flag
+    :param str host: lower-case host
+    :param int port: port, always set even if it's the default
+    :param str resource_name: path and optional query
+    :param str user_info: ``(username, password)`` tuple when the URI contains
+      `User Information`_, else ``None``.
+
+    .. _User Information: https://tools.ietf.org/html/rfc3986#section-3.2.1
+    """
+
     secure: bool
     host: str
     port: int
     resource_name: str
     user_info: Optional[Tuple[str, str]]
 
-
-# Declare the docstring normally when dropping support for Python < 3.6.1.
-
-WebSocketURI.__doc__ = """
-WebSocket URI.
-
-:param bool secure: secure flag
-:param str host: lower-case host
-:param int port: port, always set even if it's the default
-:param str resource_name: path and optional query
-:param str user_info: ``(username, password)`` tuple when the URI contains
-  `User Information`_, else ``None``.
-
-.. _User Information: https://tools.ietf.org/html/rfc3986#section-3.2.1
-"""
 
 # Work around https://bugs.python.org/issue19931
 

@@ -49,22 +49,10 @@ CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0A
 EXTERNAL_CLOSE_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
 
 
-# Remove FrameData when dropping support for Python < 3.6.1 — the first
-# version where NamedTuple supports default values, methods, and docstrings.
-
 # Consider converting to a dataclass when dropping support for Python < 3.7.
 
 
-class FrameData(NamedTuple):
-    fin: bool
-    opcode: int
-    data: bytes
-    rsv1: bool
-    rsv2: bool
-    rsv3: bool
-
-
-class Frame(FrameData):
+class Frame(NamedTuple):
     """
     WebSocket frame.
 
@@ -80,16 +68,12 @@ class Frame(FrameData):
 
     """
 
-    def __new__(
-        cls,
-        fin: bool,
-        opcode: int,
-        data: bytes,
-        rsv1: bool = False,
-        rsv2: bool = False,
-        rsv3: bool = False,
-    ) -> "Frame":
-        return FrameData.__new__(cls, fin, opcode, data, rsv1, rsv2, rsv3)
+    fin: bool
+    opcode: int
+    data: bytes
+    rsv1: bool = False
+    rsv2: bool = False
+    rsv3: bool = False
 
     @classmethod
     async def read(

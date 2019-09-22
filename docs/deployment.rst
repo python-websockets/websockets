@@ -32,10 +32,15 @@ with the object returned by :func:`~server.serve`:
 
 On Unix systems, shutdown is usually triggered by sending a signal.
 
-Here's a full example (Unix-only):
+Here's a full example for handling SIGTERM on Unix:
 
 .. literalinclude:: ../example/shutdown.py
     :emphasize-lines: 13,17-19
+
+This example is easily adapted to handle other signals. If you override the
+default handler for SIGINT, which raises :exc:`KeyboardInterrupt`, be aware
+that you won't be able to interrupt a program with Ctrl-C anymore when it's
+stuck in a loop.
 
 It's more difficult to achieve the same effect on Windows. Some third-party
 projects try to help with this problem.

@@ -67,6 +67,61 @@ class TransportMock(unittest.mock.Mock):
         self.loop.call_soon(self.protocol.connection_lost, None)
 
 
+class ProtocolLoggerAdapterTests(unittest.TestCase):
+    def test_logging_without_connection(self):
+        # Works the same for clients but a is_client value is required, pick
+        # server arbitrarily.
+        protocol = WebSocketCommonProtocol()
+        protocol.is_client = False
+
+        with self.assertLogs(level="INFO", logger="websockets.protocol") as logs:
+            protocol.adapter.info("Test log")
+        self.assertIn(str(id(protocol)), logs.output[0])
+
+    def test_client_logging(self):
+        protocol1 = WebSocketCommonProtocol()
+        protocol1.is_client = True
+        protocol1.side = "client"
+        protocol1.transport = TransportMock()
+        protocol2 = WebSocketCommonProtocol()
+        protocol2.is_client = True
+        protocol2.side = "client"
+        protocol2.transport = TransportMock()
+
+        get_extra_info = unittest.mock.Mock(return_value=("host", 4312))
+        protocol1.transport.get_extra_info = get_extra_info
+        protocol2.transport.get_extra_info = get_extra_info
+
+        with self.assertLogs(level="INFO", logger="websockets.protocol") as logs:
+            protocol1.adapter.info("Test log")
+            protocol2.adapter.info("Test log")
+
+        get_extra_info.assert_called_with("peername")
+        self.assertIn("host", logs.output[0])
+        self.assertIn("host", logs.output[1])
+        self.assertIn(str(id(protocol1)), logs.output[0])
+        self.assertIn(str(id(protocol2)), logs.output[1])
+        # Assert logs are different even though we've got two connections from
+        # the same client.
+        self.assertNotEqual(logs.output[0], logs.output[1])
+
+    def test_server_logging(self):
+        protocol = WebSocketCommonProtocol()
+        protocol.is_client = False
+        protocol.side = "server"
+        protocol.transport = TransportMock()
+
+        get_extra_info = unittest.mock.Mock(return_value=("host", 4312))
+        protocol.transport.get_extra_info = get_extra_info
+
+        with self.assertLogs(level="INFO", logger="websockets.protocol") as logs:
+            protocol.adapter.info("Test log")
+
+        get_extra_info.assert_called_with("sockname")
+        self.assertIn("host", logs.output[0])
+        self.assertIn(str(id(protocol)), logs.output[0])
+
+
 class CommonTests:
     """
     Mixin that defines most tests but doesn't inherit unittest.TestCase.

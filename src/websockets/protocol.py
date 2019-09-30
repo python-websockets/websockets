@@ -325,7 +325,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         """
         # 4.1. The WebSocket Connection is Established.
-        assert self.state is State.CONNECTING
+        assert self.state is State.CONNECTING, "wrong state %r" % self.state
         self.state = State.OPEN
         logger.debug("%s - state = OPEN", self.side)
         # Start the task that receives incoming WebSocket messages.
@@ -812,7 +812,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             raise self.connection_closed_exc()
 
         # Control may only reach this point in buggy third-party subclasses.
-        assert self.state is State.CONNECTING
+        assert self.state is State.CONNECTING, "wrong state %r" % self.state
         raise InvalidState("WebSocket connection isn't established yet")
 
     async def transfer_data(self) -> None:
@@ -1303,7 +1303,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         They'll never receive a pong once the connection is closed.
 
         """
-        assert self.state is State.CLOSED
+        assert self.state is State.CLOSED, "wrong state %r" % self.state
         exc = self.connection_closed_exc()
 
         for ping in self.pings.values():

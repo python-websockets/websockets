@@ -8,6 +8,8 @@ Changelog
 
 *In development*
 
+* Added compatibility with Python 3.8.
+
 8.0.2
 .....
 

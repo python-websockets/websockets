@@ -366,9 +366,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         been established yet.
 
         """
-        if self.transport is None:
+        try:
+            transport = self.transport
+        except AttributeError:
             return None
-        return self.transport.get_extra_info("sockname")
+        else:
+            return transport.get_extra_info("sockname")
 
     @property
     def remote_address(self) -> Any:
@@ -379,9 +382,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         been established yet.
 
         """
-        if self.transport is None:
+        try:
+            transport = self.transport
+        except AttributeError:
             return None
-        return self.transport.get_extra_info("peername")
+        else:
+            return transport.get_extra_info("peername")
 
     @property
     def open(self) -> bool:

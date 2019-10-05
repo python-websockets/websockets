@@ -94,16 +94,16 @@ class CommonTests:
     # Utilities for writing tests.
 
     def make_drain_slow(self, delay=MS):
-        # Process connection_made in order to initialize self.protocol.writer.
+        # Process connection_made in order to initialize self.protocol.transport.
         self.run_loop_once()
 
-        original_drain = self.protocol.writer.drain
+        original_drain = self.protocol._drain
 
         async def delayed_drain():
             await asyncio.sleep(delay, loop=self.loop)
             await original_drain()
 
-        self.protocol.writer.drain = delayed_drain
+        self.protocol._drain = delayed_drain
 
     close_frame = Frame(True, OP_CLOSE, serialize_close(1000, "close"))
     local_close = Frame(True, OP_CLOSE, serialize_close(1000, "local"))
@@ -321,32 +321,32 @@ class CommonTests:
         self.transport.get_extra_info = get_extra_info
 
         self.assertEqual(self.protocol.local_address, ("host", 4312))
-        get_extra_info.assert_called_with("sockname", None)
+        get_extra_info.assert_called_with("sockname")
 
     def test_local_address_before_connection(self):
         # Emulate the situation before connection_open() runs.
-        self.protocol.writer, _writer = None, self.protocol.writer
+        self.protocol.transport, _transport = None, self.protocol.transport
 
         try:
             self.assertEqual(self.protocol.local_address, None)
         finally:
-            self.protocol.writer = _writer
+            self.protocol.transport = _transport
 
     def test_remote_address(self):
         get_extra_info = unittest.mock.Mock(return_value=("host", 4312))
         self.transport.get_extra_info = get_extra_info
 
         self.assertEqual(self.protocol.remote_address, ("host", 4312))
-        get_extra_info.assert_called_with("peername", None)
+        get_extra_info.assert_called_with("peername")
 
     def test_remote_address_before_connection(self):
         # Emulate the situation before connection_open() runs.
-        self.protocol.writer, _writer = None, self.protocol.writer
+        self.protocol.transport, _transport = None, self.protocol.transport
 
         try:
             self.assertEqual(self.protocol.remote_address, None)
         finally:
-            self.protocol.writer = _writer
+            self.protocol.transport = _transport
 
     def test_open(self):
         self.assertTrue(self.protocol.open)

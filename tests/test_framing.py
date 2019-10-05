@@ -27,15 +27,15 @@ class FramingTests(AsyncioTestCase):
         return frame
 
     def encode(self, frame, mask=False, extensions=None):
-        writer = unittest.mock.Mock()
-        frame.write(writer, mask=mask, extensions=extensions)
-        # Ensure the entire frame is sent with a single call to writer().
+        write = unittest.mock.Mock()
+        frame.write(write, mask=mask, extensions=extensions)
+        # Ensure the entire frame is sent with a single call to write().
         # Multiple calls cause TCP fragmentation and degrade performance.
-        self.assertEqual(writer.call_count, 1)
+        self.assertEqual(write.call_count, 1)
         # The frame data is the single positional argument of that call.
-        self.assertEqual(len(writer.call_args[0]), 1)
-        self.assertEqual(len(writer.call_args[1]), 0)
-        return writer.call_args[0][0]
+        self.assertEqual(len(write.call_args[0]), 1)
+        self.assertEqual(len(write.call_args[1]), 0)
+        return write.call_args[0][0]
 
     def round_trip(self, message, expected, mask=False, extensions=None):
         decoded = self.decode(message, mask, extensions=extensions)

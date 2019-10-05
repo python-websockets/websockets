@@ -114,9 +114,9 @@ class CommonTests:
         Make the protocol receive a frame.
 
         """
-        writer = self.protocol.data_received
+        write = self.protocol.data_received
         mask = not self.protocol.is_client
-        frame.write(writer, mask=mask)
+        frame.write(write, mask=mask)
 
     def receive_eof(self):
         """

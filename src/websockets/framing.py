@@ -147,7 +147,7 @@ class Frame(NamedTuple):
 
     def write(
         frame,
-        writer: Callable[[bytes], Any],
+        write: Callable[[bytes], Any],
         *,
         mask: bool,
         extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
@@ -156,7 +156,7 @@ class Frame(NamedTuple):
         Write a WebSocket frame.
 
         :param frame: frame to write
-        :param writer: function that writes bytes
+        :param write: function that writes bytes
         :param mask: whether the frame should be masked i.e. whether the write
             happens on the client side
         :param extensions: list of classes with an ``encode()`` method that
@@ -210,10 +210,10 @@ class Frame(NamedTuple):
 
         # Send the frame.
 
-        # The frame is written in a single call to writer in order to prevent
+        # The frame is written in a single call to write in order to prevent
         # TCP fragmentation. See #68 for details. This also makes it safe to
         # send frames concurrently from multiple coroutines.
-        writer(output.getvalue())
+        write(output.getvalue())
 
     def check(frame) -> None:
         """

@@ -62,12 +62,6 @@ class State(enum.IntEnum):
 
 
 class FlowControlMixin(asyncio.Protocol):
-    """Reusable flow control logic for StreamWriter.drain().
-    This implements the protocol methods pause_writing(),
-    resume_writing() and connection_lost().  If the subclass overrides
-    these it must call the super methods.
-    StreamWriter.drain() must wait for _drain_helper() coroutine.
-    """
 
     def __init__(self, loop=None):
         if loop is None:
@@ -81,14 +75,10 @@ class FlowControlMixin(asyncio.Protocol):
     def pause_writing(self):
         assert not self._paused
         self._paused = True
-        if self._loop.get_debug():
-            logger.debug("%r pauses writing", self)
 
     def resume_writing(self):
         assert self._paused
         self._paused = False
-        if self._loop.get_debug():
-            logger.debug("%r resumes writing", self)
 
         waiter = self._drain_waiter
         if waiter is not None:
@@ -125,12 +115,6 @@ class FlowControlMixin(asyncio.Protocol):
 
 
 class StreamReaderProtocol(FlowControlMixin, asyncio.Protocol):
-    """Helper class to adapt between Protocol and StreamReader.
-    (This is a helper class instead of making StreamReader itself a
-    Protocol subclass, because the StreamReader has other potential
-    uses, and to prevent the user of the StreamReader to accidentally
-    call inappropriate methods of the protocol.)
-    """
 
     def __init__(self, stream_reader, client_connected_cb=None, loop=None):
         super().__init__(loop=loop)

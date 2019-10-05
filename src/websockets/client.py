@@ -24,7 +24,6 @@ from .extensions.base import ClientExtensionFactory, Extension
 from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
 from .handshake import build_request, check_response
 from .headers import (
-    ExtensionHeader,
     build_authorization_basic,
     build_extension,
     build_subprotocol,
@@ -33,7 +32,7 @@ from .headers import (
 )
 from .http import USER_AGENT, Headers, HeadersLike, read_response
 from .protocol import WebSocketCommonProtocol
-from .typing import Origin, Subprotocol
+from .typing import ExtensionHeader, Origin, Subprotocol
 from .uri import WebSocketURI, parse_uri
 
 

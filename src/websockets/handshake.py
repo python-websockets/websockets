@@ -29,9 +29,10 @@ import base64
 import binascii
 import hashlib
 import random
+from typing import List
 
 from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
-from .headers import parse_connection, parse_upgrade
+from .headers import ConnectionOption, UpgradeProtocol, parse_connection, parse_upgrade
 from .http import Headers, MultipleValuesError
 
 
@@ -74,14 +75,16 @@ def check_request(headers: Headers) -> str:
         is invalid; then the server must return 400 Bad Request error
 
     """
-    connection = sum(
+    connection: List[ConnectionOption] = sum(
         [parse_connection(value) for value in headers.get_all("Connection")], []
     )
 
     if not any(value.lower() == "upgrade" for value in connection):
         raise InvalidUpgrade("Connection", ", ".join(connection))
 
-    upgrade = sum([parse_upgrade(value) for value in headers.get_all("Upgrade")], [])
+    upgrade: List[UpgradeProtocol] = sum(
+        [parse_upgrade(value) for value in headers.get_all("Upgrade")], []
+    )
 
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.
@@ -148,14 +151,16 @@ def check_response(headers: Headers, key: str) -> None:
         is invalid
 
     """
-    connection = sum(
+    connection: List[ConnectionOption] = sum(
         [parse_connection(value) for value in headers.get_all("Connection")], []
     )
 
     if not any(value.lower() == "upgrade" for value in connection):
         raise InvalidUpgrade("Connection", " ".join(connection))
 
-    upgrade = sum([parse_upgrade(value) for value in headers.get_all("Upgrade")], [])
+    upgrade: List[UpgradeProtocol] = sum(
+        [parse_upgrade(value) for value in headers.get_all("Upgrade")], []
+    )
 
     # For compatibility with non-strict implementations, ignore case when
     # checking the Upgrade header. It's supposed to be 'WebSocket'.

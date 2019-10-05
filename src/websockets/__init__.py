@@ -1,12 +1,13 @@
 # This relies on each of the submodules having an __all__ variable.
 
-from .auth import *
-from .client import *
-from .exceptions import *
-from .protocol import *
-from .server import *
-from .typing import *
-from .uri import *
+from . import auth, client, exceptions, protocol, server, typing, uri
+from .auth import *  # noqa
+from .client import *  # noqa
+from .exceptions import *  # noqa
+from .protocol import *  # noqa
+from .server import *  # noqa
+from .typing import *  # noqa
+from .uri import *  # noqa
 from .version import version as __version__  # noqa
 
 

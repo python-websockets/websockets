@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import logging
 import sys
 import unittest
 import unittest.mock
@@ -11,10 +10,6 @@ from websockets.framing import *
 from websockets.protocol import State, WebSocketCommonProtocol
 
 from .utils import MS, AsyncioTestCase
-
-
-# Avoid displaying stack traces at the ERROR logging level.
-logging.basicConfig(level=logging.CRITICAL)
 
 
 async def async_iterable(iterable):

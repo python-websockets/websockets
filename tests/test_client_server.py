@@ -2,7 +2,6 @@ import asyncio
 import contextlib
 import functools
 import http
-import logging
 import pathlib
 import random
 import socket
@@ -35,10 +34,6 @@ from websockets.uri import parse_uri
 
 from .test_protocol import MS
 from .utils import AsyncioTestCase
-
-
-# Avoid displaying stack traces at the ERROR logging level.
-logging.basicConfig(level=logging.CRITICAL)
 
 
 # Generate TLS certificate with:

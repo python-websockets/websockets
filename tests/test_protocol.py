@@ -323,8 +323,8 @@ class CommonTests:
 
     def test_local_address_before_connection(self):
         # Emulate the situation before connection_open() runs.
-        self.protocol.transport, _transport = None, self.protocol.transport
-
+        _transport = self.protocol.transport
+        del self.protocol.transport
         try:
             self.assertEqual(self.protocol.local_address, None)
         finally:
@@ -339,8 +339,8 @@ class CommonTests:
 
     def test_remote_address_before_connection(self):
         # Emulate the situation before connection_open() runs.
-        self.protocol.transport, _transport = None, self.protocol.transport
-
+        _transport = self.protocol.transport
+        del self.protocol.transport
         try:
             self.assertEqual(self.protocol.remote_address, None)
         finally:

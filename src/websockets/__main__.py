@@ -6,8 +6,8 @@ import sys
 import threading
 from typing import Any, Set
 
-import websockets
-from websockets.exceptions import format_close
+from .client import connect
+from .exceptions import ConnectionClosed, format_close
 
 
 if sys.platform == "win32":
@@ -95,7 +95,7 @@ async def run_client(
     stop: "asyncio.Future[None]",
 ) -> None:
     try:
-        websocket = await websockets.connect(uri)
+        websocket = await connect(uri)
     except Exception as exc:
         print_over_input(f"Failed to connect to {uri}: {exc}.")
         exit_from_event_loop_thread(loop, stop)
@@ -122,7 +122,7 @@ async def run_client(
             if incoming in done:
                 try:
                     message = incoming.result()
-                except websockets.ConnectionClosed:
+                except ConnectionClosed:
                     break
                 else:
                     if isinstance(message, str):

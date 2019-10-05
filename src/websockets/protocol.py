@@ -601,10 +601,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         elif isinstance(message, AsyncIterable):
             # aiter_message = aiter(message) without aiter
-            aiter_message = type(message).__aiter__(message)
+            # https://github.com/python/mypy/issues/5738
+            aiter_message = type(message).__aiter__(message)  # type: ignore
             try:
                 # message_chunk = anext(aiter_message) without anext
-                message_chunk = await type(aiter_message).__anext__(aiter_message)
+                # https://github.com/python/mypy/issues/5738
+                message_chunk = await type(aiter_message).__anext__(  # type: ignore
+                    aiter_message
+                )
             except StopAsyncIteration:
                 return
             opcode, data = prepare_data(message_chunk)
@@ -615,7 +619,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 await self.write_frame(False, opcode, data)
 
                 # Other fragments.
-                async for message_chunk in aiter_message:
+                # https://github.com/python/mypy/issues/5738
+                async for message_chunk in aiter_message:  # type: ignore
                     confirm_opcode, data = prepare_data(message_chunk)
                     if confirm_opcode != opcode:
                         raise TypeError("data contains inconsistent types")
@@ -899,8 +904,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         max_size = self.max_size
         if text:
             decoder_factory = codecs.getincrementaldecoder("utf-8")
-            # https://github.com/python/typeshed/pull/2752
-            decoder = decoder_factory(errors="strict")  # type: ignore
+            decoder = decoder_factory(errors="strict")
             if max_size is None:
 
                 def append(frame: Frame) -> None:

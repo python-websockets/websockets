@@ -39,15 +39,10 @@ from .exceptions import (
 from .extensions.base import Extension, ServerExtensionFactory
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from .handshake import build_response, check_request
-from .headers import (
-    ExtensionHeader,
-    build_extension,
-    parse_extension,
-    parse_subprotocol,
-)
+from .headers import build_extension, parse_extension, parse_subprotocol
 from .http import USER_AGENT, Headers, HeadersLike, MultipleValuesError, read_request
 from .protocol import WebSocketCommonProtocol
-from .typing import Origin, Subprotocol
+from .typing import ExtensionHeader, Origin, Subprotocol
 
 
 __all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
@@ -662,7 +657,7 @@ class WebSocketServer:
         """
         try:
             # Python ≥ 3.7
-            return self.server.is_serving()  # type: ignore
+            return self.server.is_serving()
         except AttributeError:  # pragma: no cover
             # Python < 3.7
             return self.server.sockets is not None

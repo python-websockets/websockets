@@ -61,35 +61,7 @@ class State(enum.IntEnum):
 # between the check and the assignment.
 
 
-class StreamReaderProtocol(asyncio.Protocol):
-    def __init__(self):
-        self._paused = False
-        self._drain_waiter = None
-        self._connection_lost = False
-
-        self._over_ssl = False
-        self._closed = self.loop.create_future()
-
-    async def _drain_helper(self):
-        if self._connection_lost:
-            raise ConnectionResetError("Connection lost")
-        if not self._paused:
-            return
-        waiter = self._drain_waiter
-        assert waiter is None or waiter.cancelled()
-        waiter = self.loop.create_future()
-        self._drain_waiter = waiter
-        await waiter
-
-    def __del__(self):
-        # Prevent reports about unhandled exceptions.
-        # Better than self._closed._log_traceback = False hack
-        closed = self._closed
-        if closed.done() and not closed.cancelled():
-            closed.exception()
-
-
-class WebSocketCommonProtocol(StreamReaderProtocol):
+class WebSocketCommonProtocol(asyncio.Protocol):
     """
     :class:`~asyncio.Protocol` subclass implementing the data transfer phase.
 
@@ -259,7 +231,14 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
         self.writer: asyncio.StreamWriter
         self._drain_lock = asyncio.Lock(loop=loop)
 
-        super().__init__()
+        # Copied from asyncio.FlowControlMixin
+        self._paused = False
+        self._drain_waiter: Optional[asyncio.Future[None]] = None
+        self._connection_lost = False
+
+        # Copied from asyncio.StreamReaderProtocol
+        self._over_ssl = False
+        self._closed = self.loop.create_future()
 
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.
@@ -310,6 +289,26 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
 
         # Task closing the TCP connection.
         self.close_connection_task: asyncio.Task[None]
+
+    # Copied from asyncio.StreamReaderProtocol
+    def __del__(self) -> None:
+        # Prevent reports about unhandled exceptions.
+        # Better than self._closed._log_traceback = False hack
+        closed = self._closed
+        if closed.done() and not closed.cancelled():
+            closed.exception()
+
+    # Copied from asyncio.FlowControlMixin
+    async def _drain_helper(self) -> None:
+        if self._connection_lost:
+            raise ConnectionResetError("Connection lost")
+        if not self._paused:
+            return
+        waiter = self._drain_waiter
+        assert waiter is None or waiter.cancelled()
+        waiter = self.loop.create_future()
+        self._drain_waiter = waiter
+        await waiter
 
     def connection_open(self) -> None:
         """

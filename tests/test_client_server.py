@@ -173,7 +173,7 @@ class HealthCheckServerProtocol(WebSocketServerProtocol):
             return http.HTTPStatus.OK, [("X-Access", "OK")], b"status = green\n"
 
 
-class SlowServerProtocol(WebSocketServerProtocol):
+class SlowOpeningHandshakeProtocol(WebSocketServerProtocol):
     async def process_request(self, path, request_headers):
         await asyncio.sleep(10 * MS)
 
@@ -1165,7 +1165,7 @@ class CommonClientServerTests:
         # The server should stop properly anyway. It used to hang because the
         # task handling the connection was waiting for the opening handshake.
 
-    @with_server(create_protocol=SlowServerProtocol)
+    @with_server(create_protocol=SlowOpeningHandshakeProtocol)
     def test_server_shuts_down_during_opening_handshake(self):
         self.loop.call_later(5 * MS, self.server.close)
         with self.assertRaises(InvalidStatusCode) as raised:
@@ -1187,20 +1187,6 @@ class CommonClientServerTests:
         # Websocket connection closes properly with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
         self.assertEqual(server_ws.close_code, 1001)
-
-    @with_server()
-    @unittest.mock.patch("websockets.server.WebSocketServerProtocol.close")
-    def test_server_shuts_down_during_connection_close(self, _close):
-        _close.side_effect = asyncio.CancelledError
-
-        self.server.closing = True
-        with self.temp_client():
-            self.loop.run_until_complete(self.client.send("Hello!"))
-            reply = self.loop.run_until_complete(self.client.recv())
-            self.assertEqual(reply, "Hello!")
-
-        # Websocket connection terminates abnormally.
-        self.assertEqual(self.client.close_code, 1006)
 
     @with_server()
     def test_server_shuts_down_waits_until_handlers_terminate(self):

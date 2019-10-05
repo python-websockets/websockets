@@ -235,9 +235,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self._paused = False
         self._drain_waiter: Optional[asyncio.Future[None]] = None
 
-        # Copied from asyncio.StreamReaderProtocol
-        self._over_ssl = False
-
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.
         # Subclasses implement the opening handshake and, on success, execute
@@ -1318,7 +1315,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # Copied from asyncio.StreamReaderProtocol
         self.reader.set_transport(transport)
-        self._over_ssl = transport.get_extra_info("sslcontext") is not None
         self.writer = asyncio.StreamWriter(transport, self, self.reader, self.loop)
 
     def connection_lost(self, exc: Optional[Exception]) -> None:

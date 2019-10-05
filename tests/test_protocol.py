@@ -1,6 +1,7 @@
 import asyncio
 import contextlib
 import logging
+import sys
 import unittest
 import unittest.mock
 import warnings
@@ -100,7 +101,9 @@ class CommonTests:
         original_drain = self.protocol._drain
 
         async def delayed_drain():
-            await asyncio.sleep(delay, loop=self.loop)
+            await asyncio.sleep(
+                delay, loop=self.loop if sys.version_info[:2] < (3, 8) else None
+            )
             await original_drain()
 
         self.protocol._drain = delayed_drain

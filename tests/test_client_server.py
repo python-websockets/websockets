@@ -1381,13 +1381,16 @@ class YieldFromTests(AsyncioTestCase):
         start_server = serve(handler, "localhost", 0)
         server = self.loop.run_until_complete(start_server)
 
-        @asyncio.coroutine
-        def run_client():
-            # Yield from connect.
-            client = yield from connect(get_server_uri(server))
-            self.assertEqual(client.state, State.OPEN)
-            yield from client.close()
-            self.assertEqual(client.state, State.CLOSED)
+        # @asyncio.coroutine is deprecated on Python ≥ 3.8
+        with warnings.catch_warnings(record=True):
+
+            @asyncio.coroutine
+            def run_client():
+                # Yield from connect.
+                client = yield from connect(get_server_uri(server))
+                self.assertEqual(client.state, State.OPEN)
+                yield from client.close()
+                self.assertEqual(client.state, State.CLOSED)
 
         self.loop.run_until_complete(run_client())
 
@@ -1395,14 +1398,17 @@ class YieldFromTests(AsyncioTestCase):
         self.loop.run_until_complete(server.wait_closed())
 
     def test_server(self):
-        @asyncio.coroutine
-        def run_server():
-            # Yield from serve.
-            server = yield from serve(handler, "localhost", 0)
-            self.assertTrue(server.sockets)
-            server.close()
-            yield from server.wait_closed()
-            self.assertFalse(server.sockets)
+        # @asyncio.coroutine is deprecated on Python ≥ 3.8
+        with warnings.catch_warnings(record=True):
+
+            @asyncio.coroutine
+            def run_server():
+                # Yield from serve.
+                server = yield from serve(handler, "localhost", 0)
+                self.assertTrue(server.sockets)
+                server.close()
+                yield from server.wait_closed()
+                self.assertFalse(server.sockets)
 
         self.loop.run_until_complete(run_server())
 

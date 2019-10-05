@@ -63,14 +63,13 @@ class State(enum.IntEnum):
 
 class StreamReaderProtocol(asyncio.Protocol):
 
-    def __init__(self, stream_reader, client_connected_cb=None):
+    def __init__(self, stream_reader):
         self._paused = False
         self._drain_waiter = None
         self._connection_lost = False
 
         self._stream_reader = stream_reader
         self._stream_writer = None
-        self._client_connected_cb = client_connected_cb
         self._over_ssl = False
         self._closed = self.loop.create_future()
 
@@ -102,13 +101,11 @@ class StreamReaderProtocol(asyncio.Protocol):
     def connection_made(self, transport):
         self._stream_reader.set_transport(transport)
         self._over_ssl = transport.get_extra_info("sslcontext") is not None
-        if self._client_connected_cb is not None:
-            self._stream_writer = asyncio.StreamWriter(
-                transport, self, self._stream_reader, self.loop
-            )
-            res = self._client_connected_cb(self._stream_reader, self._stream_writer)
-            if asyncio.iscoroutine(res):
-                self.loop.create_task(res)
+        self._stream_writer = asyncio.StreamWriter(
+            transport, self, self._stream_reader, self.loop
+        )
+        self.reader = self._stream_reader
+        self.writer = self._stream_writer
 
     def connection_lost(self, exc):
         if self._stream_reader is not None:
@@ -325,7 +322,7 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
         # limit and half the buffer limit of :class:`~asyncio.StreamReader`.
         # That's why it must be set to half of ``self.read_limit``.
         stream_reader = asyncio.StreamReader(limit=read_limit // 2, loop=loop)
-        super().__init__(stream_reader, self.client_connected)
+        super().__init__(stream_reader)
 
         self.reader: asyncio.StreamReader
         self.writer: asyncio.StreamWriter
@@ -380,20 +377,6 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
 
         # Task closing the TCP connection.
         self.close_connection_task: asyncio.Task[None]
-
-    def client_connected(
-        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
-    ) -> None:
-        """
-        Callback when the TCP connection is established.
-
-        Record references to the stream reader and the stream writer to avoid
-        using private attributes ``_stream_reader`` and ``_stream_writer`` of
-        :class:`~asyncio.StreamReaderProtocol`.
-
-        """
-        self.reader = reader
-        self.writer = writer
 
     def connection_open(self) -> None:
         """

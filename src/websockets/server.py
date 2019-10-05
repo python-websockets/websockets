@@ -211,7 +211,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         except Exception:
             # Last-ditch attempt to avoid leaking connections on errors.
             try:
-                self.writer.close()
+                self.transport.close()
             except Exception:  # pragma: no cover
                 pass
 
@@ -265,11 +265,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response = f"HTTP/1.1 {status.value} {status.phrase}\r\n"
         response += str(headers)
 
-        self.writer.write(response.encode())
+        self.transport.write(response.encode())
 
         if body is not None:
             logger.debug("%s > body (%d bytes)", self.side, len(body))
-            self.writer.write(body)
+            self.transport.write(body)
 
     async def process_request(
         self, path: str, request_headers: Headers

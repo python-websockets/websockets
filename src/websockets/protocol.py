@@ -228,7 +228,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.reader: asyncio.StreamReader = asyncio.StreamReader(
             limit=read_limit // 2, loop=loop
         )
-        self.writer: asyncio.StreamWriter
+
+        self.transport: asyncio.Transport
         self._drain_lock = asyncio.Lock(loop=loop)
 
         # Copied from asyncio.FlowControlMixin
@@ -285,11 +286,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Task closing the TCP connection.
         self.close_connection_task: asyncio.Task[None]
 
-    # asyncio.StreamWriter expects this attribute on the Protocol
-    @property
-    def _closed(self) -> Any:  # pragma: no cover
-        return self.connection_lost_waiter
-
     # Copied from asyncio.FlowControlMixin
     async def _drain_helper(self) -> None:  # pragma: no cover
         if self.connection_lost_waiter.done():
@@ -301,6 +297,23 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         waiter = self.loop.create_future()
         self._drain_waiter = waiter
         await waiter
+
+    # Copied from asyncio.StreamWriter
+    async def _drain(self) -> None:  # pragma: no cover
+        if self.reader is not None:
+            exc = self.reader.exception()
+            if exc is not None:
+                raise exc
+        if self.transport is not None:
+            if self.transport.is_closing():
+                # Yield to the event loop so connection_lost() may be
+                # called.  Without this, _drain_helper() would return
+                # immediately, and code that calls
+                #     write(...); yield from drain()
+                # in a loop would never call connection_lost(), so it
+                # would not see an error when the socket is closed.
+                await asyncio.sleep(0)
+        await self._drain_helper()
 
     def connection_open(self) -> None:
         """
@@ -348,9 +361,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         been established yet.
 
         """
-        if self.writer is None:
+        if self.transport is None:
             return None
-        return self.writer.get_extra_info("sockname")
+        return self.transport.get_extra_info("sockname")
 
     @property
     def remote_address(self) -> Any:
@@ -361,9 +374,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         been established yet.
 
         """
-        if self.writer is None:
+        if self.transport is None:
             return None
-        return self.writer.get_extra_info("peername")
+        return self.transport.get_extra_info("peername")
 
     @property
     def open(self) -> bool:
@@ -1037,7 +1050,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         frame = Frame(fin, opcode, data)
         logger.debug("%s > %r", self.side, frame)
-        frame.write(self.writer.write, mask=self.is_client, extensions=self.extensions)
+        frame.write(
+            self.transport.write, mask=self.is_client, extensions=self.extensions
+        )
 
         try:
             # drain() cannot be called concurrently by multiple coroutines:
@@ -1045,7 +1060,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # version of Python where this bugs exists is supported anymore.
             async with self._drain_lock:
                 # Handle flow control automatically.
-                await self.writer.drain()
+                await self._drain()
         except ConnectionError:
             # Terminate the connection if the socket died.
             self.fail_connection()
@@ -1147,9 +1162,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 logger.debug("%s ! timed out waiting for TCP close", self.side)
 
             # Half-close the TCP connection if possible (when there's no TLS).
-            if self.writer.can_write_eof():
+            if self.transport.can_write_eof():
                 logger.debug("%s x half-closing TCP connection", self.side)
-                self.writer.write_eof()
+                self.transport.write_eof()
 
                 if await self.wait_for_connection_lost():
                     return
@@ -1162,17 +1177,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # If connection_lost() was called, the TCP connection is closed.
             # However, if TLS is enabled, the transport still needs closing.
             # Else asyncio complains: ResourceWarning: unclosed transport.
-            try:
-                writer_is_closing = self.writer.is_closing  # type: ignore
-            except AttributeError:  # pragma: no cover
-                # Python < 3.7
-                writer_is_closing = self.writer.transport.is_closing
-            if self.connection_lost_waiter.done() and writer_is_closing():
+            if self.connection_lost_waiter.done() and self.transport.is_closing():
                 return
 
             # Close the TCP connection. Buffers are flushed asynchronously.
             logger.debug("%s x closing TCP connection", self.side)
-            self.writer.close()
+            self.transport.close()
 
             if await self.wait_for_connection_lost():
                 return
@@ -1180,8 +1190,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
             # Abort the TCP connection. Buffers are discarded.
             logger.debug("%s x aborting TCP connection", self.side)
-            # mypy thinks self.writer.transport is a BaseTransport, not a Transport.
-            self.writer.transport.abort()  # type: ignore
+            self.transport.abort()
 
             # connection_lost() is called quickly after aborting.
             await self.wait_for_connection_lost()
@@ -1261,7 +1270,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             frame = Frame(True, OP_CLOSE, frame_data)
             logger.debug("%s > %r", self.side, frame)
             frame.write(
-                self.writer.write, mask=self.is_client, extensions=self.extensions
+                self.transport.write, mask=self.is_client, extensions=self.extensions
             )
 
         # Start close_connection_task if the opening handshake didn't succeed.
@@ -1310,12 +1319,13 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         """
         logger.debug("%s - event = connection_made(%s)", self.side, transport)
-        # mypy thinks transport is a BaseTransport, not a Transport.
-        transport.set_write_buffer_limits(self.write_limit)  # type: ignore
+
+        transport = cast(asyncio.Transport, transport)
+        transport.set_write_buffer_limits(self.write_limit)
+        self.transport = transport
 
         # Copied from asyncio.StreamReaderProtocol
         self.reader.set_transport(transport)
-        self.writer = asyncio.StreamWriter(transport, self, self.reader, self.loop)
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
         """

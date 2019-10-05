@@ -85,7 +85,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         request = f"GET {path} HTTP/1.1\r\n"
         request += str(headers)
 
-        self.writer.write(request.encode())
+        self.transport.write(request.encode())
 
     async def read_http_response(self) -> Tuple[int, Headers]:
         """

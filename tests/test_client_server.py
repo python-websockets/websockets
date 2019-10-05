@@ -1166,7 +1166,7 @@ class CommonClientServerTests:
     def test_client_closes_connection_before_handshake(self, handshake):
         # We have mocked the handshake() method to prevent the client from
         # performing the opening handshake. Force it to close the connection.
-        self.client.writer.close()
+        self.client.transport.close()
         # The server should stop properly anyway. It used to hang because the
         # task handling the connection was waiting for the opening handshake.
 

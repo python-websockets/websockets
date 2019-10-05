@@ -10,6 +10,7 @@ import functools
 import http
 import logging
 import socket
+import sys
 import warnings
 from types import TracebackType
 from typing import (
@@ -698,7 +699,9 @@ class WebSocketServer:
 
         # Wait until all accepted connections reach connection_made() and call
         # register(). See https://bugs.python.org/issue34852 for details.
-        await asyncio.sleep(0)
+        await asyncio.sleep(
+            0, loop=self.loop if sys.version_info[:2] < (3, 8) else None
+        )
 
         # Close OPEN connections with status code 1001. Since the server was
         # closed, handshake() closes OPENING conections with a HTTP 503 error.
@@ -707,7 +710,8 @@ class WebSocketServer:
         # asyncio.wait doesn't accept an empty first argument
         if self.websockets:
             await asyncio.wait(
-                [websocket.close(1001) for websocket in self.websockets], loop=self.loop
+                [websocket.close(1001) for websocket in self.websockets],
+                loop=self.loop if sys.version_info[:2] < (3, 8) else None,
             )
 
         # Wait until all connection handlers are complete.
@@ -716,7 +720,7 @@ class WebSocketServer:
         if self.websockets:
             await asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets],
-                loop=self.loop,
+                loop=self.loop if sys.version_info[:2] < (3, 8) else None,
             )
 
         # Tell wait_closed() to return.

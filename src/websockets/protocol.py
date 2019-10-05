@@ -234,11 +234,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Copied from asyncio.FlowControlMixin
         self._paused = False
         self._drain_waiter: Optional[asyncio.Future[None]] = None
-        self._connection_lost = False
 
         # Copied from asyncio.StreamReaderProtocol
         self._over_ssl = False
-        self._closed = self.loop.create_future()
 
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.
@@ -290,17 +288,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Task closing the TCP connection.
         self.close_connection_task: asyncio.Task[None]
 
-    # Copied from asyncio.StreamReaderProtocol
-    def __del__(self) -> None:
-        # Prevent reports about unhandled exceptions.
-        # Better than self._closed._log_traceback = False hack
-        closed = self._closed
-        if closed.done() and not closed.cancelled():
-            closed.exception()
+    # asyncio.StreamWriter expects this attribute on the Protocol
+    @property
+    def _closed(self) -> asyncio.Future:
+        return self.connection_lost_waiter
 
     # Copied from asyncio.FlowControlMixin
     async def _drain_helper(self) -> None:
-        if self._connection_lost:
+        if self.connection_lost_waiter.done():
             raise ConnectionResetError("Connection lost")
         if not self._paused:
             return
@@ -1356,14 +1351,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 self.reader.feed_eof()
             else:
                 self.reader.set_exception(exc)
-        if not self._closed.done():
-            if exc is None:
-                self._closed.set_result(None)
-            else:
-                self._closed.set_exception(exc)
 
         # Copied from asyncio.FlowControlMixin
-        self._connection_lost = True
         # Wake up the writer if currently paused.
         if not self._paused:
             return

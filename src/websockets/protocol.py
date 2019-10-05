@@ -63,11 +63,7 @@ class State(enum.IntEnum):
 
 class StreamReaderProtocol(asyncio.Protocol):
 
-    def __init__(self, stream_reader, client_connected_cb=None, loop=None):
-        if loop is None:
-            self._loop = asyncio.get_event_loop()
-        else:
-            self._loop = loop
+    def __init__(self, stream_reader, client_connected_cb=None):
         self._paused = False
         self._drain_waiter = None
         self._connection_lost = False
@@ -76,7 +72,7 @@ class StreamReaderProtocol(asyncio.Protocol):
         self._stream_writer = None
         self._client_connected_cb = client_connected_cb
         self._over_ssl = False
-        self._closed = self._loop.create_future()
+        self._closed = self.loop.create_future()
 
     def pause_writing(self):
         assert not self._paused
@@ -99,7 +95,7 @@ class StreamReaderProtocol(asyncio.Protocol):
             return
         waiter = self._drain_waiter
         assert waiter is None or waiter.cancelled()
-        waiter = self._loop.create_future()
+        waiter = self.loop.create_future()
         self._drain_waiter = waiter
         await waiter
 
@@ -108,11 +104,11 @@ class StreamReaderProtocol(asyncio.Protocol):
         self._over_ssl = transport.get_extra_info("sslcontext") is not None
         if self._client_connected_cb is not None:
             self._stream_writer = asyncio.StreamWriter(
-                transport, self, self._stream_reader, self._loop
+                transport, self, self._stream_reader, self.loop
             )
             res = self._client_connected_cb(self._stream_reader, self._stream_writer)
             if asyncio.iscoroutine(res):
-                self._loop.create_task(res)
+                self.loop.create_task(res)
 
     def connection_lost(self, exc):
         if self._stream_reader is not None:
@@ -315,8 +311,6 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
         self.read_limit = read_limit
         self.write_limit = write_limit
 
-        # Store a reference to loop to avoid relying on self._loop, a private
-        # attribute of StreamReaderProtocol, inherited from FlowControlMixin.
         if loop is None:
             loop = asyncio.get_event_loop()
         self.loop = loop
@@ -331,7 +325,7 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
         # limit and half the buffer limit of :class:`~asyncio.StreamReader`.
         # That's why it must be set to half of ``self.read_limit``.
         stream_reader = asyncio.StreamReader(limit=read_limit // 2, loop=loop)
-        super().__init__(stream_reader, self.client_connected, loop)
+        super().__init__(stream_reader, self.client_connected)
 
         self.reader: asyncio.StreamReader
         self.writer: asyncio.StreamWriter

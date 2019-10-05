@@ -287,11 +287,11 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     # asyncio.StreamWriter expects this attribute on the Protocol
     @property
-    def _closed(self) -> asyncio.Future:
+    def _closed(self) -> Any:  # pragma: no cover
         return self.connection_lost_waiter
 
     # Copied from asyncio.FlowControlMixin
-    async def _drain_helper(self) -> None:
+    async def _drain_helper(self) -> None:  # pragma: no cover
         if self.connection_lost_waiter.done():
             raise ConnectionResetError("Connection lost")
         if not self._paused:
@@ -1341,36 +1341,35 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # - it must never be canceled.
         self.connection_lost_waiter.set_result(None)
 
-        # Copied from asyncio.StreamReaderProtocol
-        if self.reader is not None:
+        if True:  # pragma: no cover
+
+            # Copied from asyncio.StreamReaderProtocol
+            if self.reader is not None:
+                if exc is None:
+                    self.reader.feed_eof()
+                else:
+                    self.reader.set_exception(exc)
+
+            # Copied from asyncio.FlowControlMixin
+            # Wake up the writer if currently paused.
+            if not self._paused:
+                return
+            waiter = self._drain_waiter
+            if waiter is None:
+                return
+            self._drain_waiter = None
+            if waiter.done():
+                return
             if exc is None:
-                self.reader.feed_eof()
+                waiter.set_result(None)
             else:
-                self.reader.set_exception(exc)
+                waiter.set_exception(exc)
 
-        # Copied from asyncio.FlowControlMixin
-        # Wake up the writer if currently paused.
-        if not self._paused:
-            return
-        waiter = self._drain_waiter
-        if waiter is None:
-            return
-        self._drain_waiter = None
-        if waiter.done():
-            return
-        if exc is None:
-            waiter.set_result(None)
-        else:
-            waiter.set_exception(exc)
-
-        del self.reader
-        del self.writer
-
-    def pause_writing(self) -> None:
+    def pause_writing(self) -> None:  # pragma: no cover
         assert not self._paused
         self._paused = True
 
-    def resume_writing(self) -> None:
+    def resume_writing(self) -> None:  # pragma: no cover
         assert self._paused
         self._paused = False
 

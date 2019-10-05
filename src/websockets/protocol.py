@@ -226,18 +226,15 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # ``self.read_limit``. The ``limit`` argument controls the line length
         # limit and half the buffer limit of :class:`~asyncio.StreamReader`.
         # That's why it must be set to half of ``self.read_limit``.
-        self.reader: asyncio.StreamReader = asyncio.StreamReader(
-            limit=read_limit // 2, loop=loop
-        )
-
-        self.transport: asyncio.Transport
-        self._drain_lock = asyncio.Lock(
-            loop=loop if sys.version_info[:2] < (3, 8) else None
-        )
+        self.reader = asyncio.StreamReader(limit=read_limit // 2, loop=loop)
 
         # Copied from asyncio.FlowControlMixin
         self._paused = False
         self._drain_waiter: Optional[asyncio.Future[None]] = None
+
+        self._drain_lock = asyncio.Lock(
+            loop=loop if sys.version_info[:2] < (3, 8) else None
+        )
 
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.

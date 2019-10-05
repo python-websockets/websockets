@@ -61,9 +61,9 @@ class State(enum.IntEnum):
 # between the check and the assignment.
 
 
-class FlowControlMixin(asyncio.Protocol):
+class StreamReaderProtocol(asyncio.Protocol):
 
-    def __init__(self, loop=None):
+    def __init__(self, stream_reader, client_connected_cb=None, loop=None):
         if loop is None:
             self._loop = asyncio.get_event_loop()
         else:
@@ -71,6 +71,12 @@ class FlowControlMixin(asyncio.Protocol):
         self._paused = False
         self._drain_waiter = None
         self._connection_lost = False
+
+        self._stream_reader = stream_reader
+        self._stream_writer = None
+        self._client_connected_cb = client_connected_cb
+        self._over_ssl = False
+        self._closed = self._loop.create_future()
 
     def pause_writing(self):
         assert not self._paused
@@ -86,22 +92,6 @@ class FlowControlMixin(asyncio.Protocol):
             if not waiter.done():
                 waiter.set_result(None)
 
-    def connection_lost(self, exc):
-        self._connection_lost = True
-        # Wake up the writer if currently paused.
-        if not self._paused:
-            return
-        waiter = self._drain_waiter
-        if waiter is None:
-            return
-        self._drain_waiter = None
-        if waiter.done():
-            return
-        if exc is None:
-            waiter.set_result(None)
-        else:
-            waiter.set_exception(exc)
-
     async def _drain_helper(self):
         if self._connection_lost:
             raise ConnectionResetError("Connection lost")
@@ -112,17 +102,6 @@ class FlowControlMixin(asyncio.Protocol):
         waiter = self._loop.create_future()
         self._drain_waiter = waiter
         await waiter
-
-
-class StreamReaderProtocol(FlowControlMixin, asyncio.Protocol):
-
-    def __init__(self, stream_reader, client_connected_cb=None, loop=None):
-        super().__init__(loop=loop)
-        self._stream_reader = stream_reader
-        self._stream_writer = None
-        self._client_connected_cb = client_connected_cb
-        self._over_ssl = False
-        self._closed = self._loop.create_future()
 
     def connection_made(self, transport):
         self._stream_reader.set_transport(transport)
@@ -146,7 +125,22 @@ class StreamReaderProtocol(FlowControlMixin, asyncio.Protocol):
                 self._closed.set_result(None)
             else:
                 self._closed.set_exception(exc)
-        super().connection_lost(exc)
+
+        self._connection_lost = True
+        # Wake up the writer if currently paused.
+        if not self._paused:
+            return
+        waiter = self._drain_waiter
+        if waiter is None:
+            return
+        self._drain_waiter = None
+        if waiter.done():
+            return
+        if exc is None:
+            waiter.set_result(None)
+        else:
+            waiter.set_exception(exc)
+
         self._stream_reader = None
         self._stream_writer = None
 

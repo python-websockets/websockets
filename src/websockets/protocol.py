@@ -62,14 +62,11 @@ class State(enum.IntEnum):
 
 
 class StreamReaderProtocol(asyncio.Protocol):
-
-    def __init__(self, stream_reader):
+    def __init__(self):
         self._paused = False
         self._drain_waiter = None
         self._connection_lost = False
 
-        self._stream_reader = stream_reader
-        self._stream_writer = None
         self._over_ssl = False
         self._closed = self.loop.create_future()
 
@@ -99,20 +96,16 @@ class StreamReaderProtocol(asyncio.Protocol):
         await waiter
 
     def connection_made(self, transport):
-        self._stream_reader.set_transport(transport)
+        self.reader.set_transport(transport)
         self._over_ssl = transport.get_extra_info("sslcontext") is not None
-        self._stream_writer = asyncio.StreamWriter(
-            transport, self, self._stream_reader, self.loop
-        )
-        self.reader = self._stream_reader
-        self.writer = self._stream_writer
+        self.writer = asyncio.StreamWriter(transport, self, self.reader, self.loop)
 
     def connection_lost(self, exc):
-        if self._stream_reader is not None:
+        if self.reader is not None:
             if exc is None:
-                self._stream_reader.feed_eof()
+                self.reader.feed_eof()
             else:
-                self._stream_reader.set_exception(exc)
+                self.reader.set_exception(exc)
         if not self._closed.done():
             if exc is None:
                 self._closed.set_result(None)
@@ -134,14 +127,14 @@ class StreamReaderProtocol(asyncio.Protocol):
         else:
             waiter.set_exception(exc)
 
-        self._stream_reader = None
-        self._stream_writer = None
+        del self.reader
+        del self.writer
 
     def data_received(self, data):
-        self._stream_reader.feed_data(data)
+        self.reader.feed_data(data)
 
     def eof_received(self):
-        self._stream_reader.feed_eof()
+        self.reader.feed_eof()
         if self._over_ssl:
             # Prevent a warning in SSLProtocol.eof_received:
             # "returning true from eof_received()
@@ -321,12 +314,13 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
         # ``self.read_limit``. The ``limit`` argument controls the line length
         # limit and half the buffer limit of :class:`~asyncio.StreamReader`.
         # That's why it must be set to half of ``self.read_limit``.
-        stream_reader = asyncio.StreamReader(limit=read_limit // 2, loop=loop)
-        super().__init__(stream_reader)
-
-        self.reader: asyncio.StreamReader
+        self.reader: asyncio.StreamReader = asyncio.StreamReader(
+            limit=read_limit // 2, loop=loop
+        )
         self.writer: asyncio.StreamWriter
         self._drain_lock = asyncio.Lock(loop=loop)
+
+        super().__init__()
 
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.

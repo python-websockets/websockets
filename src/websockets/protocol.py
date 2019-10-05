@@ -70,20 +70,6 @@ class StreamReaderProtocol(asyncio.Protocol):
         self._over_ssl = False
         self._closed = self.loop.create_future()
 
-    def pause_writing(self):
-        assert not self._paused
-        self._paused = True
-
-    def resume_writing(self):
-        assert self._paused
-        self._paused = False
-
-        waiter = self._drain_waiter
-        if waiter is not None:
-            self._drain_waiter = None
-            if not waiter.done():
-                waiter.set_result(None)
-
     async def _drain_helper(self):
         if self._connection_lost:
             raise ConnectionResetError("Connection lost")
@@ -94,53 +80,6 @@ class StreamReaderProtocol(asyncio.Protocol):
         waiter = self.loop.create_future()
         self._drain_waiter = waiter
         await waiter
-
-    def connection_made(self, transport):
-        self.reader.set_transport(transport)
-        self._over_ssl = transport.get_extra_info("sslcontext") is not None
-        self.writer = asyncio.StreamWriter(transport, self, self.reader, self.loop)
-
-    def connection_lost(self, exc):
-        if self.reader is not None:
-            if exc is None:
-                self.reader.feed_eof()
-            else:
-                self.reader.set_exception(exc)
-        if not self._closed.done():
-            if exc is None:
-                self._closed.set_result(None)
-            else:
-                self._closed.set_exception(exc)
-
-        self._connection_lost = True
-        # Wake up the writer if currently paused.
-        if not self._paused:
-            return
-        waiter = self._drain_waiter
-        if waiter is None:
-            return
-        self._drain_waiter = None
-        if waiter.done():
-            return
-        if exc is None:
-            waiter.set_result(None)
-        else:
-            waiter.set_exception(exc)
-
-        del self.reader
-        del self.writer
-
-    def data_received(self, data):
-        self.reader.feed_data(data)
-
-    def eof_received(self):
-        self.reader.feed_eof()
-        if self._over_ssl:
-            # Prevent a warning in SSLProtocol.eof_received:
-            # "returning true from eof_received()
-            # has no effect when using ssl"
-            return False
-        return True
 
     def __del__(self):
         # Prevent reports about unhandled exceptions.
@@ -1363,7 +1302,7 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
                 "%s - aborted pending ping%s: %s", self.side, plural, pings_hex
             )
 
-    # asyncio.StreamReaderProtocol methods
+    # asyncio.Protocol methods
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """
@@ -1382,34 +1321,11 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
         logger.debug("%s - event = connection_made(%s)", self.side, transport)
         # mypy thinks transport is a BaseTransport, not a Transport.
         transport.set_write_buffer_limits(self.write_limit)  # type: ignore
-        super().connection_made(transport)
 
-    def eof_received(self) -> bool:
-        """
-        Close the transport after receiving EOF.
-
-        Since Python 3.5, `:meth:~StreamReaderProtocol.eof_received` returns
-        ``True`` on non-TLS connections.
-
-        See http://bugs.python.org/issue24539 for more information.
-
-        This is inappropriate for ``websockets`` for at least three reasons:
-
-        1. The use case is to read data until EOF with self.reader.read(-1).
-           Since WebSocket is a TLV protocol, this never happens.
-
-        2. It doesn't work on TLS connections. A falsy value must be
-           returned to have the same behavior on TLS and plain connections.
-
-        3. The WebSocket protocol has its own closing handshake. Endpoints
-           close the TCP connection after sending a close frame.
-
-        As a consequence we revert to the previous, more useful behavior.
-
-        """
-        logger.debug("%s - event = eof_received()", self.side)
-        super().eof_received()
-        return False
+        # Copied from asyncio.StreamReaderProtocol
+        self.reader.set_transport(transport)
+        self._over_ssl = transport.get_extra_info("sslcontext") is not None
+        self.writer = asyncio.StreamWriter(transport, self, self.reader, self.loop)
 
     def connection_lost(self, exc: Optional[Exception]) -> None:
         """
@@ -1434,4 +1350,68 @@ class WebSocketCommonProtocol(StreamReaderProtocol):
         # - it's set only here in connection_lost() which is called only once;
         # - it must never be canceled.
         self.connection_lost_waiter.set_result(None)
-        super().connection_lost(exc)
+
+        # Copied from asyncio.StreamReaderProtocol
+        if self.reader is not None:
+            if exc is None:
+                self.reader.feed_eof()
+            else:
+                self.reader.set_exception(exc)
+        if not self._closed.done():
+            if exc is None:
+                self._closed.set_result(None)
+            else:
+                self._closed.set_exception(exc)
+
+        # Copied from asyncio.FlowControlMixin
+        self._connection_lost = True
+        # Wake up the writer if currently paused.
+        if not self._paused:
+            return
+        waiter = self._drain_waiter
+        if waiter is None:
+            return
+        self._drain_waiter = None
+        if waiter.done():
+            return
+        if exc is None:
+            waiter.set_result(None)
+        else:
+            waiter.set_exception(exc)
+
+        del self.reader
+        del self.writer
+
+    def pause_writing(self) -> None:
+        assert not self._paused
+        self._paused = True
+
+    def resume_writing(self) -> None:
+        assert self._paused
+        self._paused = False
+
+        waiter = self._drain_waiter
+        if waiter is not None:
+            self._drain_waiter = None
+            if not waiter.done():
+                waiter.set_result(None)
+
+    def data_received(self, data: bytes) -> None:
+        logger.debug("%s - event = data_received(<%d bytes>)", self.side, len(data))
+        self.reader.feed_data(data)
+
+    def eof_received(self) -> None:
+        """
+        Close the transport after receiving EOF.
+
+        The WebSocket protocol has its own closing handshake: endpoints close
+        the TCP or TLS connection after sending and receiving a close frame.
+
+        As a consequence, they never need to write after receiving EOF, so
+        there's no reason to keep the transport open by returning ``True``.
+
+        Besides, that doesn't work on TLS connections.
+
+        """
+        logger.debug("%s - event = eof_received()", self.side)
+        self.reader.feed_eof()

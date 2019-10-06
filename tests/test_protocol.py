@@ -6,7 +6,16 @@ import unittest.mock
 import warnings
 
 from websockets.exceptions import ConnectionClosed, InvalidState
-from websockets.framing import *
+from websockets.frames import (
+    OP_BINARY,
+    OP_CLOSE,
+    OP_CONT,
+    OP_PING,
+    OP_PONG,
+    OP_TEXT,
+    serialize_close,
+)
+from websockets.framing import Frame
 from websockets.protocol import State, WebSocketCommonProtocol
 
 from .utils import MS, AsyncioTestCase

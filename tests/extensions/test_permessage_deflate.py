@@ -9,7 +9,7 @@ from websockets.exceptions import (
     PayloadTooBig,
 )
 from websockets.extensions.permessage_deflate import *
-from websockets.framing import (
+from websockets.frames import (
     OP_BINARY,
     OP_CLOSE,
     OP_CONT,

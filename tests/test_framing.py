@@ -2,8 +2,10 @@ import asyncio
 import codecs
 import unittest
 import unittest.mock
+import warnings
 
 from websockets.exceptions import PayloadTooBig, ProtocolError
+from websockets.frames import OP_BINARY, OP_CLOSE, OP_PING, OP_PONG, OP_TEXT
 from websockets.framing import *
 
 from .utils import AsyncioTestCase
@@ -11,24 +13,26 @@ from .utils import AsyncioTestCase
 
 class FramingTests(AsyncioTestCase):
     def decode(self, message, mask=False, max_size=None, extensions=None):
-        self.stream = asyncio.StreamReader(loop=self.loop)
-        self.stream.feed_data(message)
-        self.stream.feed_eof()
-        frame = self.loop.run_until_complete(
-            Frame.read(
-                self.stream.readexactly,
-                mask=mask,
-                max_size=max_size,
-                extensions=extensions,
+        stream = asyncio.StreamReader(loop=self.loop)
+        stream.feed_data(message)
+        stream.feed_eof()
+        with warnings.catch_warnings(record=True):
+            frame = self.loop.run_until_complete(
+                Frame.read(
+                    stream.readexactly,
+                    mask=mask,
+                    max_size=max_size,
+                    extensions=extensions,
+                )
             )
-        )
         # Make sure all the data was consumed.
-        self.assertTrue(self.stream.at_eof())
+        self.assertTrue(stream.at_eof())
         return frame
 
     def encode(self, frame, mask=False, extensions=None):
         write = unittest.mock.Mock()
-        frame.write(write, mask=mask, extensions=extensions)
+        with warnings.catch_warnings(record=True):
+            frame.write(write, mask=mask, extensions=extensions)
         # Ensure the entire frame is sent with a single call to write().
         # Multiple calls cause TCP fragmentation and degrade performance.
         self.assertEqual(write.call_count, 1)
@@ -46,12 +50,6 @@ class FramingTests(AsyncioTestCase):
             self.assertEqual(decoded, expected)
         else:  # deterministic encoding
             self.assertEqual(encoded, message)
-
-    def round_trip_close(self, data, code, reason):
-        parsed = parse_close(data)
-        self.assertEqual(parsed, (code, reason))
-        serialized = serialize_close(code, reason)
-        self.assertEqual(serialized, data)
 
     def test_text(self):
         self.round_trip(b"\x81\x04Spam", Frame(True, OP_TEXT, b"Spam"))
@@ -147,81 +145,12 @@ class FramingTests(AsyncioTestCase):
         with self.assertRaises(ProtocolError):
             self.decode(b"\x88\x7e\x00\x7e" + 126 * b"a")
 
-    def test_prepare_data_str(self):
-        self.assertEqual(prepare_data("café"), (OP_TEXT, b"caf\xc3\xa9"))
-
-    def test_prepare_data_bytes(self):
-        self.assertEqual(prepare_data(b"tea"), (OP_BINARY, b"tea"))
-
-    def test_prepare_data_bytearray(self):
-        self.assertEqual(
-            prepare_data(bytearray(b"tea")), (OP_BINARY, bytearray(b"tea"))
-        )
-
-    def test_prepare_data_memoryview(self):
-        self.assertEqual(
-            prepare_data(memoryview(b"tea")), (OP_BINARY, memoryview(b"tea"))
-        )
-
-    def test_prepare_data_non_contiguous_memoryview(self):
-        self.assertEqual(prepare_data(memoryview(b"tteeaa")[::2]), (OP_BINARY, b"tea"))
-
-    def test_prepare_data_list(self):
-        with self.assertRaises(TypeError):
-            prepare_data([])
-
-    def test_prepare_data_none(self):
-        with self.assertRaises(TypeError):
-            prepare_data(None)
-
-    def test_encode_data_str(self):
-        self.assertEqual(encode_data("café"), b"caf\xc3\xa9")
-
-    def test_encode_data_bytes(self):
-        self.assertEqual(encode_data(b"tea"), b"tea")
-
-    def test_encode_data_bytearray(self):
-        self.assertEqual(encode_data(bytearray(b"tea")), b"tea")
-
-    def test_encode_data_memoryview(self):
-        self.assertEqual(encode_data(memoryview(b"tea")), b"tea")
-
-    def test_encode_data_non_contiguous_memoryview(self):
-        self.assertEqual(encode_data(memoryview(b"tteeaa")[::2]), b"tea")
-
-    def test_encode_data_list(self):
-        with self.assertRaises(TypeError):
-            encode_data([])
-
-    def test_encode_data_none(self):
-        with self.assertRaises(TypeError):
-            encode_data(None)
-
     def test_fragmented_control_frame(self):
         # Fin bit correctly set.
         self.decode(b"\x88\x00")
         # Fin bit incorrectly unset.
         with self.assertRaises(ProtocolError):
             self.decode(b"\x08\x00")
-
-    def test_parse_close_and_serialize_close(self):
-        self.round_trip_close(b"\x03\xe8", 1000, "")
-        self.round_trip_close(b"\x03\xe8OK", 1000, "OK")
-
-    def test_parse_close_empty(self):
-        self.assertEqual(parse_close(b""), (1005, ""))
-
-    def test_parse_close_errors(self):
-        with self.assertRaises(ProtocolError):
-            parse_close(b"\x03")
-        with self.assertRaises(ProtocolError):
-            parse_close(b"\x03\xe7")
-        with self.assertRaises(UnicodeDecodeError):
-            parse_close(b"\x03\xe8\xff\xff")
-
-    def test_serialize_close_errors(self):
-        with self.assertRaises(ProtocolError):
-            serialize_close(999, "")
 
     def test_extensions(self):
         class Rot13:

@@ -40,8 +40,19 @@ from .exceptions import (
     ProtocolError,
 )
 from .extensions.base import Extension
-from .framing import *
-from .handshake_legacy import *
+from .frames import (
+    OP_BINARY,
+    OP_CLOSE,
+    OP_CONT,
+    OP_PING,
+    OP_PONG,
+    OP_TEXT,
+    parse_close,
+    prepare_ctrl,
+    prepare_data,
+    serialize_close,
+)
+from .framing import Frame
 from .typing import Data
 
 
@@ -732,7 +743,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         await self.ensure_open()
 
         if data is not None:
-            data = encode_data(data)
+            data = prepare_ctrl(data)
 
         # Protect against duplicates if a payload is explicitly set.
         if data in self.pings:
@@ -763,7 +774,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         await self.ensure_open()
 
-        data = encode_data(data)
+        data = prepare_ctrl(data)
 
         await self.write_frame(True, OP_PONG, data)
 

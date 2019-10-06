@@ -10,7 +10,7 @@ See `section 9 of RFC 6455`_.
 
 from typing import List, Optional, Sequence, Tuple
 
-from ..framing import Frame
+from ..frames import Frame
 from ..typing import ExtensionName, ExtensionParameter
 
 

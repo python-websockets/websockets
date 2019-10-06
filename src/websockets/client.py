@@ -476,7 +476,6 @@ class Connect:
         # This is a coroutine function.
         self._create_connection = create_connection
         self._wsuri = wsuri
-        self._origin = origin
 
     def handle_redirect(self, uri: str) -> None:
         # Update the state of this instance to connect to a new URI.
@@ -542,7 +541,7 @@ class Connect:
                 try:
                     await protocol.handshake(
                         self._wsuri,
-                        origin=self._origin,
+                        origin=protocol.origin,
                         available_extensions=protocol.available_extensions,
                         available_subprotocols=protocol.available_subprotocols,
                         extra_headers=protocol.extra_headers,

@@ -130,12 +130,6 @@ Exceptions
 Low-level
 ---------
 
-Opening handshake
-.................
-
-.. automodule:: websockets.handshake
-    :members:
-
 Data transfer
 .............
 
@@ -152,7 +146,4 @@ Utilities
 .........
 
 .. automodule:: websockets.headers
-    :members:
-
-.. automodule:: websockets.http
     :members:

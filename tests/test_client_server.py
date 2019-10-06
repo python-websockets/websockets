@@ -27,8 +27,9 @@ from websockets.extensions.permessage_deflate import (
     PerMessageDeflate,
     ServerPerMessageDeflateFactory,
 )
-from websockets.handshake import build_response
-from websockets.http import USER_AGENT, read_response
+from websockets.handshake_legacy import build_response
+from websockets.http import USER_AGENT
+from websockets.http_legacy import read_response
 from websockets.protocol import State
 from websockets.server import *
 from websockets.uri import parse_uri

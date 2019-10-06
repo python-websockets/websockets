@@ -41,7 +41,7 @@ from .exceptions import (
 )
 from .extensions.base import Extension
 from .framing import *
-from .handshake import *
+from .handshake_legacy import *
 from .typing import Data
 
 

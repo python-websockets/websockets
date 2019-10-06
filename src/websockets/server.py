@@ -40,9 +40,10 @@ from .exceptions import (
 )
 from .extensions.base import Extension, ServerExtensionFactory
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
-from .handshake import build_response, check_request
+from .handshake_legacy import build_response, check_request
 from .headers import build_extension, parse_extension, parse_subprotocol
-from .http import USER_AGENT, read_request
+from .http import USER_AGENT
+from .http_legacy import read_request
 from .protocol import WebSocketCommonProtocol
 from .typing import ExtensionHeader, Origin, Subprotocol
 

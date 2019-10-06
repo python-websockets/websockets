@@ -28,7 +28,6 @@ ExtensionName.__doc__ = """Name of a WebSocket extension"""
 
 
 ExtensionParameter = Tuple[str, Optional[str]]
-
 ExtensionParameter__doc__ = """Parameter of a WebSocket extension"""
 try:
     ExtensionParameter.__doc__ = ExtensionParameter__doc__
@@ -37,8 +36,7 @@ except AttributeError:  # pragma: no cover
 
 
 ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
-
-ExtensionHeader__doc__ = """Item parsed in a Sec-WebSocket-Extensions header"""
+ExtensionHeader__doc__ = """Extension in a Sec-WebSocket-Extensions header"""
 try:
     ExtensionHeader.__doc__ = ExtensionHeader__doc__
 except AttributeError:  # pragma: no cover
@@ -46,4 +44,12 @@ except AttributeError:  # pragma: no cover
 
 
 Subprotocol = NewType("Subprotocol", str)
-Subprotocol.__doc__ = """Items parsed in a Sec-WebSocket-Protocol header"""
+Subprotocol.__doc__ = """Subprotocol value in a Sec-WebSocket-Protocol header"""
+
+
+ConnectionOption = NewType("ConnectionOption", str)
+ConnectionOption.__doc__ = """Connection option in a Connection header"""
+
+
+UpgradeProtocol = NewType("UpgradeProtocol", str)
+UpgradeProtocol.__doc__ = """Upgrade protocol in an Upgrade header"""

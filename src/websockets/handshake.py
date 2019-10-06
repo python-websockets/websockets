@@ -6,9 +6,6 @@ from .datastructures import Headers
 __all__ = ["build_request", "check_request", "build_response", "check_response"]
 
 
-GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
-
-
 # Backwards compatibility with previously documented public APIs
 
 

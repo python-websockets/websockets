@@ -1,7 +1,23 @@
+import base64
+import hashlib
 import itertools
 
 
-__all__ = ["apply_mask"]
+__all__ = ["accept_key", "apply_mask"]
+
+
+GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+
+def accept_key(key: str) -> str:
+    """
+    Compute the value of the Sec-WebSocket-Accept header.
+
+    :param key: value of the Sec-WebSocket-Key header
+
+    """
+    sha1 = hashlib.sha1((key + GUID).encode()).digest()
+    return base64.b64encode(sha1).decode()
 
 
 def apply_mask(data: bytes, mask: bytes) -> bytes:

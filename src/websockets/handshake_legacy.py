@@ -27,15 +27,14 @@ To open a connection, a client must:
 
 import base64
 import binascii
-import hashlib
 import random
 from typing import List
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
-from .handshake import GUID
 from .headers import parse_connection, parse_upgrade
 from .typing import ConnectionOption, UpgradeProtocol
+from .utils import accept_key as accept
 
 
 __all__ = ["build_request", "check_request", "build_response", "check_response"]
@@ -180,8 +179,3 @@ def check_response(headers: Headers, key: str) -> None:
 
     if s_w_accept != accept(key):
         raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)
-
-
-def accept(key: str) -> str:
-    sha1 = hashlib.sha1((key + GUID).encode()).digest()
-    return base64.b64encode(sha1).decode()

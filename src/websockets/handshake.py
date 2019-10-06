@@ -31,9 +31,9 @@ import hashlib
 import random
 from typing import List
 
+from .datastructures import Headers, MultipleValuesError
 from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
 from .headers import ConnectionOption, UpgradeProtocol, parse_connection, parse_upgrade
-from .http import Headers, MultipleValuesError
 
 
 __all__ = ["build_request", "check_request", "build_response", "check_response"]

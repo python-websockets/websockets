@@ -1,6 +1,7 @@
 import contextlib
 import unittest
 
+from websockets.datastructures import Headers
 from websockets.exceptions import (
     InvalidHandshake,
     InvalidHeader,
@@ -9,7 +10,6 @@ from websockets.exceptions import (
 )
 from websockets.handshake import *
 from websockets.handshake import accept  # private API
-from websockets.http import Headers
 
 
 class HandshakeTests(unittest.TestCase):

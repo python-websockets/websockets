@@ -11,6 +11,7 @@ import warnings
 from types import TracebackType
 from typing import Any, Generator, List, Optional, Sequence, Tuple, Type, cast
 
+from .datastructures import Headers, HeadersLike
 from .exceptions import (
     InvalidHandshake,
     InvalidHeader,
@@ -30,7 +31,7 @@ from .headers import (
     parse_extension,
     parse_subprotocol,
 )
-from .http import USER_AGENT, Headers, HeadersLike, read_response
+from .http import USER_AGENT, read_response
 from .protocol import WebSocketCommonProtocol
 from .typing import ExtensionHeader, Origin, Subprotocol
 from .uri import WebSocketURI, parse_uri

@@ -1,7 +1,7 @@
 import unittest
 
+from websockets.datastructures import Headers
 from websockets.exceptions import *
-from websockets.http import Headers
 
 
 class ExceptionsTests(unittest.TestCase):

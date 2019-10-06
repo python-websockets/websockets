@@ -3,10 +3,20 @@ Changelog
 
 .. currentmodule:: websockets
 
-8.2
+9.0
 ...
 
 *In development*
+
+.. note::
+
+    **Version 9.0 moves or deprecates several low-level APIs.**
+
+    * Import :class:`~datastructures.Headers` and
+      :exc:`~datastructures.MultipleValuesError` from
+      :mod:`websockets.datastructures` instead of :mod:`websockets.http`.
+
+    Aliases provide backwards compatibility for all previously public APIs.
 
 8.1
 ...

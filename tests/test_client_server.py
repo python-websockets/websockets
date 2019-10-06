@@ -14,6 +14,7 @@ import urllib.request
 import warnings
 
 from websockets.client import *
+from websockets.datastructures import Headers
 from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
@@ -27,7 +28,7 @@ from websockets.extensions.permessage_deflate import (
     ServerPerMessageDeflateFactory,
 )
 from websockets.handshake import build_response
-from websockets.http import USER_AGENT, Headers, read_response
+from websockets.http import USER_AGENT, read_response
 from websockets.protocol import State
 from websockets.server import *
 from websockets.uri import parse_uri

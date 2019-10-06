@@ -2,6 +2,7 @@
 
 from .auth import *  # noqa
 from .client import *  # noqa
+from .datastructures import *  # noqa
 from .exceptions import *  # noqa
 from .protocol import *  # noqa
 from .server import *  # noqa

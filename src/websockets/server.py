@@ -28,6 +28,7 @@ from typing import (
     cast,
 )
 
+from .datastructures import Headers, HeadersLike, MultipleValuesError
 from .exceptions import (
     AbortHandshake,
     InvalidHandshake,
@@ -41,7 +42,7 @@ from .extensions.base import Extension, ServerExtensionFactory
 from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
 from .handshake import build_response, check_request
 from .headers import build_extension, parse_extension, parse_subprotocol
-from .http import USER_AGENT, Headers, HeadersLike, MultipleValuesError, read_request
+from .http import USER_AGENT, read_request
 from .protocol import WebSocketCommonProtocol
 from .typing import ExtensionHeader, Origin, Subprotocol
 

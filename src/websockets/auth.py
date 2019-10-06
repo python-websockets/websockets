@@ -9,9 +9,9 @@ import functools
 import http
 from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, Type, Union
 
+from .datastructures import Headers
 from .exceptions import InvalidHeader
 from .headers import build_www_authenticate_basic, parse_authorization_basic
-from .http import Headers
 from .server import HTTPResponse, WebSocketServerProtocol
 
 

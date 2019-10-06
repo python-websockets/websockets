@@ -115,6 +115,12 @@ HTTP Basic Auth
 
         .. automethod:: process_request
 
+Data structures
+...............
+
+.. automodule:: websockets.datastructures
+    :members:
+
 Exceptions
 ..........
 

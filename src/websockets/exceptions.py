@@ -30,7 +30,7 @@
 import http
 from typing import Optional
 
-from .http import Headers, HeadersLike
+from .datastructures import Headers, HeadersLike
 
 
 __all__ = [

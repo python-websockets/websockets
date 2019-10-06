@@ -10,28 +10,15 @@ from :mod:`websockets.http`.
 import asyncio
 import re
 import sys
-from typing import (
-    Any,
-    Dict,
-    Iterable,
-    Iterator,
-    List,
-    Mapping,
-    MutableMapping,
-    Tuple,
-    Union,
-)
+from typing import Tuple
 
+# For backwards compatibility - should be deprecated
+from .datastructures import Headers, MultipleValuesError  # noqa
+from .exceptions import SecurityError
 from .version import version as websockets_version
 
 
-__all__ = [
-    "read_request",
-    "read_response",
-    "Headers",
-    "MultipleValuesError",
-    "USER_AGENT",
-]
+__all__ = ["read_request", "read_response", "USER_AGENT"]
 
 MAX_HEADERS = 256
 MAX_LINE = 4096
@@ -68,7 +55,7 @@ _token_re = re.compile(rb"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 
-async def read_request(stream: asyncio.StreamReader) -> Tuple[str, "Headers"]:
+async def read_request(stream: asyncio.StreamReader) -> Tuple[str, Headers]:
     """
     Read an HTTP/1.1 GET request and return ``(path, headers)``.
 
@@ -114,7 +101,7 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, "Headers"]:
     return path, headers
 
 
-async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, "Headers"]:
+async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, Headers]:
     """
     Read an HTTP/1.1 response and return ``(status_code, reason, headers)``.
 
@@ -163,7 +150,7 @@ async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, "Header
     return status_code, reason, headers
 
 
-async def read_headers(stream: asyncio.StreamReader) -> "Headers":
+async def read_headers(stream: asyncio.StreamReader) -> Headers:
     """
     Read HTTP headers from ``stream``.
 
@@ -198,7 +185,7 @@ async def read_headers(stream: asyncio.StreamReader) -> "Headers":
         headers[name] = value
 
     else:
-        raise websockets.exceptions.SecurityError("too many HTTP headers")
+        raise SecurityError("too many HTTP headers")
 
     return headers
 
@@ -214,148 +201,8 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     line = await stream.readline()
     # Security: this guarantees header values are small (hard-coded = 4 KiB)
     if len(line) > MAX_LINE:
-        raise websockets.exceptions.SecurityError("line too long")
+        raise SecurityError("line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):
         raise EOFError("line without CRLF")
     return line[:-2]
-
-
-class MultipleValuesError(LookupError):
-    """
-    Exception raised when :class:`Headers` has more than one value for a key.
-
-    """
-
-    def __str__(self) -> str:
-        # Implement the same logic as KeyError_str in Objects/exceptions.c.
-        if len(self.args) == 1:
-            return repr(self.args[0])
-        return super().__str__()
-
-
-class Headers(MutableMapping[str, str]):
-    """
-    Efficient data structure for manipulating HTTP headers.
-
-    A :class:`list` of ``(name, values)`` is inefficient for lookups.
-
-    A :class:`dict` doesn't suffice because header names are case-insensitive
-    and multiple occurrences of headers with the same name are possible.
-
-    :class:`Headers` stores HTTP headers in a hybrid data structure to provide
-    efficient insertions and lookups while preserving the original data.
-
-    In order to account for multiple values with minimal hassle,
-    :class:`Headers` follows this logic:
-
-    - When getting a header with ``headers[name]``:
-        - if there's no value, :exc:`KeyError` is raised;
-        - if there's exactly one value, it's returned;
-        - if there's more than one value, :exc:`MultipleValuesError` is raised.
-
-    - When setting a header with ``headers[name] = value``, the value is
-      appended to the list of values for that header.
-
-    - When deleting a header with ``del headers[name]``, all values for that
-      header are removed (this is slow).
-
-    Other methods for manipulating headers are consistent with this logic.
-
-    As long as no header occurs multiple times, :class:`Headers` behaves like
-    :class:`dict`, except keys are lower-cased to provide case-insensitivity.
-
-    Two methods support support manipulating multiple values explicitly:
-
-    - :meth:`get_all` returns a list of all values for a header;
-    - :meth:`raw_items` returns an iterator of ``(name, values)`` pairs.
-
-    """
-
-    __slots__ = ["_dict", "_list"]
-
-    def __init__(self, *args: Any, **kwargs: str) -> None:
-        self._dict: Dict[str, List[str]] = {}
-        self._list: List[Tuple[str, str]] = []
-        # MutableMapping.update calls __setitem__ for each (name, value) pair.
-        self.update(*args, **kwargs)
-
-    def __str__(self) -> str:
-        return "".join(f"{key}: {value}\r\n" for key, value in self._list) + "\r\n"
-
-    def __repr__(self) -> str:
-        return f"{self.__class__.__name__}({self._list!r})"
-
-    def copy(self) -> "Headers":
-        copy = self.__class__()
-        copy._dict = self._dict.copy()
-        copy._list = self._list.copy()
-        return copy
-
-    # Collection methods
-
-    def __contains__(self, key: object) -> bool:
-        return isinstance(key, str) and key.lower() in self._dict
-
-    def __iter__(self) -> Iterator[str]:
-        return iter(self._dict)
-
-    def __len__(self) -> int:
-        return len(self._dict)
-
-    # MutableMapping methods
-
-    def __getitem__(self, key: str) -> str:
-        value = self._dict[key.lower()]
-        if len(value) == 1:
-            return value[0]
-        else:
-            raise MultipleValuesError(key)
-
-    def __setitem__(self, key: str, value: str) -> None:
-        self._dict.setdefault(key.lower(), []).append(value)
-        self._list.append((key, value))
-
-    def __delitem__(self, key: str) -> None:
-        key_lower = key.lower()
-        self._dict.__delitem__(key_lower)
-        # This is inefficent. Fortunately deleting HTTP headers is uncommon.
-        self._list = [(k, v) for k, v in self._list if k.lower() != key_lower]
-
-    def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Headers):
-            return NotImplemented
-        return self._list == other._list
-
-    def clear(self) -> None:
-        """
-        Remove all headers.
-
-        """
-        self._dict = {}
-        self._list = []
-
-    # Methods for handling multiple values
-
-    def get_all(self, key: str) -> List[str]:
-        """
-        Return the (possibly empty) list of all values for a header.
-
-        :param key: header name
-
-        """
-        return self._dict.get(key.lower(), [])
-
-    def raw_items(self) -> Iterator[Tuple[str, str]]:
-        """
-        Return an iterator of all values as ``(name, value)`` pairs.
-
-        """
-        return iter(self._list)
-
-
-HeadersLike = Union[Headers, Mapping[str, str], Iterable[Tuple[str, str]]]
-
-
-# at the bottom to allow circular import, because AbortHandshake depends on HeadersLike
-import websockets.exceptions  # isort:skip # noqa

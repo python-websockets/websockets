@@ -30,6 +30,7 @@ from typing import (
     cast,
 )
 
+from .datastructures import Headers
 from .exceptions import (
     ConnectionClosed,
     ConnectionClosedError,
@@ -41,7 +42,6 @@ from .exceptions import (
 from .extensions.base import Extension
 from .framing import *
 from .handshake import *
-from .http import Headers
 from .typing import Data
 
 

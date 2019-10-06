@@ -14,7 +14,7 @@ from ..exceptions import (
     NegotiationError,
     PayloadTooBig,
 )
-from ..framing import CTRL_OPCODES, OP_CONT, Frame
+from ..frames import CTRL_OPCODES, OP_CONT, Frame
 from ..typing import ExtensionName, ExtensionParameter
 from .base import ClientExtensionFactory, Extension, ServerExtensionFactory
 

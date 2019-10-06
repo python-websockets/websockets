@@ -20,6 +20,8 @@ Changelog
 
     * :mod:`websockets.http` is deprecated.
 
+    * :mod:`websocket.framing` is deprecated.
+
     Aliases provide backwards compatibility for all previously public APIs.
 
 8.1

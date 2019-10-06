@@ -10,10 +10,17 @@ from :mod:`websockets.headers`.
 import base64
 import binascii
 import re
-from typing import Callable, List, NewType, Optional, Sequence, Tuple, TypeVar, cast
+from typing import Callable, List, Optional, Sequence, Tuple, TypeVar, cast
 
 from .exceptions import InvalidHeaderFormat, InvalidHeaderValue
-from .typing import ExtensionHeader, ExtensionName, ExtensionParameter, Subprotocol
+from .typing import (
+    ConnectionOption,
+    ExtensionHeader,
+    ExtensionName,
+    ExtensionParameter,
+    Subprotocol,
+    UpgradeProtocol,
+)
 
 
 __all__ = [
@@ -30,9 +37,6 @@ __all__ = [
 
 
 T = TypeVar("T")
-
-ConnectionOption = NewType("ConnectionOption", str)
-UpgradeProtocol = NewType("UpgradeProtocol", str)
 
 
 # To avoid a dependency on a parsing library, we implement manually the ABNF

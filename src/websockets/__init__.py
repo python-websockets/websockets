@@ -1,6 +1,5 @@
 # This relies on each of the submodules having an __all__ variable.
 
-from . import auth, client, exceptions, protocol, server, typing, uri
 from .auth import *  # noqa
 from .client import *  # noqa
 from .exceptions import *  # noqa
@@ -11,12 +10,46 @@ from .uri import *  # noqa
 from .version import version as __version__  # noqa
 
 
-__all__ = (
-    auth.__all__
-    + client.__all__
-    + exceptions.__all__
-    + protocol.__all__
-    + server.__all__
-    + typing.__all__
-    + uri.__all__
-)
+__all__ = [
+    "AbortHandshake",
+    "basic_auth_protocol_factory",
+    "BasicAuthWebSocketServerProtocol",
+    "connect",
+    "ConnectionClosed",
+    "ConnectionClosedError",
+    "ConnectionClosedOK",
+    "Data",
+    "DuplicateParameter",
+    "ExtensionHeader",
+    "ExtensionParameter",
+    "InvalidHandshake",
+    "InvalidHeader",
+    "InvalidHeaderFormat",
+    "InvalidHeaderValue",
+    "InvalidMessage",
+    "InvalidOrigin",
+    "InvalidParameterName",
+    "InvalidParameterValue",
+    "InvalidState",
+    "InvalidStatusCode",
+    "InvalidUpgrade",
+    "InvalidURI",
+    "NegotiationError",
+    "Origin",
+    "parse_uri",
+    "PayloadTooBig",
+    "ProtocolError",
+    "RedirectHandshake",
+    "SecurityError",
+    "serve",
+    "Subprotocol",
+    "unix_connect",
+    "unix_serve",
+    "WebSocketClientProtocol",
+    "WebSocketCommonProtocol",
+    "WebSocketException",
+    "WebSocketProtocolError",
+    "WebSocketServer",
+    "WebSocketServerProtocol",
+    "WebSocketURI",
+]

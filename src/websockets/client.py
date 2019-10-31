@@ -252,7 +252,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         else:
             request_headers["Host"] = f"{wsuri.host}:{wsuri.port}"
 
-        if wsuri.user_info:
+        if wsuri.user_info[0] or wsuri.user_info[1]:
             request_headers["Authorization"] = build_authorization_basic(
                 *wsuri.user_info
             )

@@ -5,10 +5,10 @@ from websockets.uri import *
 
 
 VALID_URIS = [
-    ("ws://localhost/", (False, "localhost", 80, "/", None)),
-    ("wss://localhost/", (True, "localhost", 443, "/", None)),
-    ("ws://localhost/path?query", (False, "localhost", 80, "/path?query", None)),
-    ("WS://LOCALHOST/PATH?QUERY", (False, "localhost", 80, "/PATH?QUERY", None)),
+    ("ws://localhost/", (False, "localhost", 80, "/", (None, None))),
+    ("wss://localhost/", (True, "localhost", 443, "/", (None, None))),
+    ("ws://localhost/path?query", (False, "localhost", 80, "/path?query", (None, None))),
+    ("WS://LOCALHOST/PATH?QUERY", (False, "localhost", 80, "/PATH?QUERY", (None, None))),
     ("ws://user:pass@localhost/", (False, "localhost", 80, "/", ("user", "pass"))),
 ]
 

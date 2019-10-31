@@ -501,7 +501,7 @@ def parse_authorization_basic(header: str) -> Tuple[str, str]:
     return username, password
 
 
-def build_authorization_basic(username: str, password: str) -> str:
+def build_authorization_basic(username: Optional[str], password: Optional[str]) -> str:
     """
     Build an ``Authorization`` header for HTTP Basic Auth.
 
@@ -509,7 +509,8 @@ def build_authorization_basic(username: str, password: str) -> str:
 
     """
     # https://tools.ietf.org/html/rfc7617#section-2
-    assert ":" not in username
-    user_pass = f"{username}:{password}"
+    assert username is None or ":" not in username
+    parts = [x if x is not None else "" for x in [username, password]]
+    user_pass = ":".join(parts)
     basic_credentials = base64.b64encode(user_pass.encode()).decode()
     return "Basic " + basic_credentials

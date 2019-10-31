@@ -37,7 +37,7 @@ class WebSocketURI(NamedTuple):
     host: str
     port: int
     resource_name: str
-    user_info: Optional[Tuple[str, str]]
+    user_info: Tuple[Optional[str], Optional[str]]
 
 
 # Work around https://bugs.python.org/issue19931
@@ -71,7 +71,5 @@ def parse_uri(uri: str) -> WebSocketURI:
     resource_name = parsed.path or "/"
     if parsed.query:
         resource_name += "?" + parsed.query
-    user_info = None
-    if parsed.username or parsed.password:
-        user_info = (parsed.username, parsed.password)
+    user_info = (parsed.username, parsed.password)
     return WebSocketURI(secure, host, port, resource_name, user_info)

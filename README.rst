@@ -87,7 +87,7 @@ Does that look good?
     <p align="center"><i>Available as part of the Tidelift Subscription</i></p>
     <p align="center"><i>The maintainers of websockets and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. <a href="https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme">Learn more.</a></i></p>
     <hr>
-    <p>(If you contribute to `websockets` and would like to become an official support provider, <a href="https://fractalideas.com/">let me know</a>.)</p>
+    <p>(If you contribute to <code>websockets</code> and would like to become an official support provider, <a href="https://fractalideas.com/">let me know</a>.)</p>
 
 Why should I use ``websockets``?
 --------------------------------

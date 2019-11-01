@@ -16,6 +16,7 @@ INVALID_URIS = [
     "http://localhost/",
     "https://localhost/",
     "ws://localhost/path#fragment",
+    "ws://user@localhost/",
 ]
 
 

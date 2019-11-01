@@ -72,6 +72,10 @@ def parse_uri(uri: str) -> WebSocketURI:
     if parsed.query:
         resource_name += "?" + parsed.query
     user_info = None
-    if parsed.username or parsed.password:
+    if parsed.username is not None:
+        # urllib.parse.urlparse accepts URLs with a username but without a
+        # password. This doesn't make sense for HTTP Basic Auth credentials.
+        if parsed.password is None:
+            raise InvalidURI(uri)
         user_info = (parsed.username, parsed.password)
     return WebSocketURI(secure, host, port, resource_name, user_info)

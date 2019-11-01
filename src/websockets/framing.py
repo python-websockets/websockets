@@ -118,10 +118,10 @@ class Frame(NamedTuple):
         length = head2 & 0b01111111
         if length == 126:
             data = await reader(2)
-            length, = struct.unpack("!H", data)
+            (length,) = struct.unpack("!H", data)
         elif length == 127:
             data = await reader(8)
-            length, = struct.unpack("!Q", data)
+            (length,) = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
             raise PayloadTooBig(
                 f"payload length exceeds size limit ({length} > {max_size} bytes)"
@@ -304,7 +304,7 @@ def parse_close(data: bytes) -> Tuple[int, str]:
     """
     length = len(data)
     if length >= 2:
-        code, = struct.unpack("!H", data[:2])
+        (code,) = struct.unpack("!H", data[:2])
         check_close(code)
         reason = data[2:].decode("utf-8")
         return code, reason

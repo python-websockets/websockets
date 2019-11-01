@@ -911,7 +911,7 @@ class CommonTests:
     def test_abort_ping_does_not_log_exception_if_not_retreived(self):
         self.loop.run_until_complete(self.protocol.ping())
         # Get the internal Future, which isn't directly returned by ping().
-        ping, = self.protocol.pings.values()
+        (ping,) = self.protocol.pings.values()
         # Remove the frame from the buffer, else close_connection() complains.
         self.last_sent_frame()
         self.close_connection()
@@ -1126,13 +1126,13 @@ class CommonTests:
 
         # Ping is sent at 3ms and acknowledged at 4ms.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
-        ping_1, = tuple(self.protocol.pings)
+        (ping_1,) = tuple(self.protocol.pings)
         self.assertOneFrameSent(True, OP_PING, ping_1)
         self.receive_frame(Frame(True, OP_PONG, ping_1))
 
         # Next ping is sent at 7ms.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
-        ping_2, = tuple(self.protocol.pings)
+        (ping_2,) = tuple(self.protocol.pings)
         self.assertOneFrameSent(True, OP_PING, ping_2)
 
         # The keepalive ping task goes on.
@@ -1143,7 +1143,7 @@ class CommonTests:
 
         # Ping is sent at 3ms and not acknowleged.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
-        ping_1, = tuple(self.protocol.pings)
+        (ping_1,) = tuple(self.protocol.pings)
         self.assertOneFrameSent(True, OP_PING, ping_1)
 
         # Connection is closed at 6ms.
@@ -1183,7 +1183,7 @@ class CommonTests:
         self.receive_frame(Frame(True, OP_TEXT, b"2"))
         # Ping is sent at 3ms.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
-        ping_waiter, = tuple(self.protocol.pings.values())
+        (ping_waiter,) = tuple(self.protocol.pings.values())
         # Connection drops.
         self.receive_eof()
         self.loop.run_until_complete(self.protocol.wait_closed())
@@ -1210,7 +1210,7 @@ class CommonTests:
 
         # Ping is sent at 3ms and not acknowleged.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
-        ping_1, = tuple(self.protocol.pings)
+        (ping_1,) = tuple(self.protocol.pings)
         self.assertOneFrameSent(True, OP_PING, ping_1)
 
         # Next ping is sent at 7ms anyway.

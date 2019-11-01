@@ -3,10 +3,13 @@ Changelog
 
 .. currentmodule:: websockets
 
-8.1
+8.2
 ...
 
 *In development*
+
+8.1
+...
 
 * Added compatibility with Python 3.8.
 

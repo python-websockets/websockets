@@ -123,7 +123,7 @@ Here's the corresponding WebSocket client example.
 
 .. literalinclude:: ../example/broadcast_client.py
 
-It listens until the user exits with crtl^c.
+It listens until the user exits with ctrl^c.
 
 Common patterns
 ---------------

@@ -109,6 +109,22 @@ Then open this HTML file in several browsers.
 .. literalinclude:: ../example/counter.html
    :language: html
 
+Broadcast example
+-----------------
+
+Here's a WebSocket broadcast server example.
+
+The server keeps track of the current clients. It broadcasts the current time
+every two seconds.
+
+.. literalinclude:: ../example/broadcast_server.py
+
+Here's the corresponding WebSocket client example.
+
+.. literalinclude:: ../example/broadcast_client.py
+
+It listens until the user exits with crtl^c.
+
 Common patterns
 ---------------
 

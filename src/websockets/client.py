@@ -99,6 +99,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         try:
             status_code, reason, headers = await read_response(self.reader)
+        except asyncio.CancelledError:  # pragma: no cover
+            raise
         except Exception as exc:
             raise InvalidMessage("did not receive a valid HTTP response") from exc
 

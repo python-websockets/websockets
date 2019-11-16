@@ -133,6 +133,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     available_subprotocols=self.available_subprotocols,
                     extra_headers=self.extra_headers,
                 )
+            except asyncio.CancelledError:  # pragma: no cover
+                raise
             except ConnectionError:
                 logger.debug("Connection error in opening handshake", exc_info=True)
                 raise
@@ -231,6 +233,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         try:
             path, headers = await read_request(self.reader)
+        except asyncio.CancelledError:  # pragma: no cover
+            raise
         except Exception as exc:
             raise InvalidMessage("did not receive a valid HTTP request") from exc
 

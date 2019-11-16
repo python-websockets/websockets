@@ -357,10 +357,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def local_address(self) -> Any:
         """
-        Local address of the connection.
+        Local address of the connection as a ``(host, port)`` tuple.
 
-        This is a ``(host, port)`` tuple or ``None`` if the connection hasn't
-        been established yet.
+        When the connection isn't open, ``local_address`` is ``None``.
 
         """
         try:
@@ -373,10 +372,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def remote_address(self) -> Any:
         """
-        Remote address of the connection.
+        Remote address of the connection as a ``(host, port)`` tuple.
 
-        This is a ``(host, port)`` tuple or ``None`` if the connection hasn't
-        been established yet.
+        When the connection isn't open, ``remote_address`` is ``None``.
 
         """
         try:

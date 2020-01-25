@@ -1,12 +1,22 @@
 import base64
 import hashlib
 import itertools
+import random
 
 
 __all__ = ["accept_key", "apply_mask"]
 
 
 GUID = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11"
+
+
+def generate_key() -> str:
+    """
+    Generate a random key for the Sec-WebSocket-Key header.
+
+    """
+    key = bytes(random.getrandbits(8) for _ in range(16))
+    return base64.b64encode(key).decode()
 
 
 def accept_key(key: str) -> str:

@@ -27,14 +27,13 @@ To open a connection, a client must:
 
 import base64
 import binascii
-import random
 from typing import List
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
 from .headers import parse_connection, parse_upgrade
 from .typing import ConnectionOption, UpgradeProtocol
-from .utils import accept_key as accept
+from .utils import accept_key as accept, generate_key
 
 
 __all__ = ["build_request", "check_request", "build_response", "check_response"]
@@ -50,8 +49,7 @@ def build_request(headers: Headers) -> str:
     :returns: ``key`` which must be passed to :func:`check_response`
 
     """
-    raw_key = bytes(random.getrandbits(8) for _ in range(16))
-    key = base64.b64encode(raw_key).decode()
+    key = generate_key()
     headers["Upgrade"] = "websocket"
     headers["Connection"] = "Upgrade"
     headers["Sec-WebSocket-Key"] = key

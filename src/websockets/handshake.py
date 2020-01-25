@@ -87,7 +87,8 @@ def check_request(headers: Headers) -> str:
     )
 
     # For compatibility with non-strict implementations, ignore case when
-    # checking the Upgrade header. It's supposed to be 'WebSocket'.
+    # checking the Upgrade header. The RFC always uses "websocket", except
+    # in section 11.2. (IANA registration) where it uses "WebSocket".
     if not (len(upgrade) == 1 and upgrade[0].lower() == "websocket"):
         raise InvalidUpgrade("Upgrade", ", ".join(upgrade))
 
@@ -163,7 +164,8 @@ def check_response(headers: Headers, key: str) -> None:
     )
 
     # For compatibility with non-strict implementations, ignore case when
-    # checking the Upgrade header. It's supposed to be 'WebSocket'.
+    # checking the Upgrade header. The RFC always uses "websocket", except
+    # in section 11.2. (IANA registration) where it uses "WebSocket".
     if not (len(upgrade) == 1 and upgrade[0].lower() == "websocket"):
         raise InvalidUpgrade("Upgrade", ", ".join(upgrade))
 

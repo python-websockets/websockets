@@ -9,10 +9,10 @@ import functools
 import http
 from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, Type, Union
 
+from .asyncio_server import HTTPResponse, WebSocketServerProtocol
 from .datastructures import Headers
 from .exceptions import InvalidHeader
 from .headers import build_www_authenticate_basic, parse_authorization_basic
-from .server import HTTPResponse, WebSocketServerProtocol
 
 
 __all__ = ["BasicAuthWebSocketServerProtocol", "basic_auth_protocol_factory"]

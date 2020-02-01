@@ -6,7 +6,7 @@ from websockets.auth import is_credentials
 from websockets.exceptions import InvalidStatusCode
 from websockets.headers import build_authorization_basic
 
-from .test_client_server import ClientServerTestsMixin, with_client, with_server
+from .test_asyncio_client_server import ClientServerTestsMixin, with_client, with_server
 from .utils import AsyncioTestCase
 
 

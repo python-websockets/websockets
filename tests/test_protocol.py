@@ -553,13 +553,13 @@ class CommonTests:
     def test_recv_prevents_concurrent_calls(self):
         recv = self.loop.create_task(self.protocol.recv())
 
-        with self.assertRaisesRegex(
-            RuntimeError,
+        with self.assertRaises(RuntimeError) as raised:
+            self.loop.run_until_complete(self.protocol.recv())
+        self.assertEqual(
+            str(raised.exception),
             "cannot call recv while another coroutine "
             "is already waiting for the next message",
-        ):
-            self.loop.run_until_complete(self.protocol.recv())
-
+        )
         recv.cancel()
 
     # Test the send coroutine.

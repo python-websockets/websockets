@@ -1,10 +1,14 @@
 import asyncio
 import contextlib
+import email.utils
 import functools
 import logging
 import os
 import time
 import unittest
+
+
+DATE = email.utils.formatdate(usegmt=True)
 
 
 class GeneratorTestCase(unittest.TestCase):

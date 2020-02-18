@@ -53,6 +53,9 @@ Bitcoin users
 websockets appears to be quite popular for interfacing with Bitcoin or other
 cryptocurrency trackers. I'm strongly opposed to Bitcoin's carbon footprint.
 
+I'm aware of efforts to build proof-of-stake models. I'll care once the total
+carbon footprint of all cryptocurrencies drops to a non-bullshit level.
+
 Please stop heating the planet where my children are supposed to live, thanks.
 
 Since ``websockets`` is released under an open-source license, you can use it

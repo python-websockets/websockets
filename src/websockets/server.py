@@ -369,7 +369,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         server configuration. If no match is found, the extension is ignored.
 
         If several variants of the same extension are proposed by the client,
-        it may be accepted severel times, which won't make sense in general.
+        it may be accepted several times, which won't make sense in general.
         Extensions must implement their own requirements. For this purpose,
         the list of previously accepted extensions is provided.
 

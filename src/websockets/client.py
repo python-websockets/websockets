@@ -134,7 +134,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         client configuration. If no match is found, an exception is raised.
 
         If several variants of the same extension are accepted by the server,
-        it may be configured severel times, which won't make sense in general.
+        it may be configured several times, which won't make sense in general.
         Extensions must implement their own requirements. For this purpose,
         the list of previously accepted extensions is provided.
 

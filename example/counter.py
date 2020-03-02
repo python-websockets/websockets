@@ -58,7 +58,7 @@ async def counter(websocket, path):
                 STATE["value"] += 1
                 await notify_state()
             else:
-                logging.error("unsupported event: {}", data)
+                logging.error("unsupported event: %s", data)
     finally:
         await unregister(websocket)
 

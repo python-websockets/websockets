@@ -397,7 +397,9 @@ class Connect:
         if timeout is None:
             timeout = 10
         else:
-            warnings.warn("rename timeout to close_timeout", DeprecationWarning)
+            warnings.warn(
+                "rename timeout to close_timeout", DeprecationWarning, stacklevel=2
+            )
         # If both are specified, timeout is ignored.
         if close_timeout is None:
             close_timeout = timeout
@@ -406,7 +408,9 @@ class Connect:
         if klass is None:
             klass = WebSocketClientProtocol
         else:
-            warnings.warn("rename klass to create_protocol", DeprecationWarning)
+            warnings.warn(
+                "rename klass to create_protocol", DeprecationWarning, stacklevel=2
+            )
         # If both are specified, klass is ignored.
         if create_protocol is None:
             create_protocol = klass

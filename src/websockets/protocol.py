@@ -200,7 +200,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         if timeout is None:
             timeout = 10
         else:
-            warnings.warn("rename timeout to close_timeout", DeprecationWarning)
+            warnings.warn(
+                "rename timeout to close_timeout", DeprecationWarning, stacklevel=2
+            )
         # If both are specified, timeout is ignored.
         if close_timeout is None:
             close_timeout = timeout
@@ -338,18 +340,22 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def host(self) -> Optional[str]:
         alternative = "remote_address" if self.is_client else "local_address"
-        warnings.warn(f"use {alternative}[0] instead of host", DeprecationWarning)
+        warnings.warn(
+            f"use {alternative}[0] instead of host", DeprecationWarning, stacklevel=2
+        )
         return self._host
 
     @property
     def port(self) -> Optional[int]:
         alternative = "remote_address" if self.is_client else "local_address"
-        warnings.warn(f"use {alternative}[1] instead of port", DeprecationWarning)
+        warnings.warn(
+            f"use {alternative}[1] instead of port", DeprecationWarning, stacklevel=2
+        )
         return self._port
 
     @property
     def secure(self) -> Optional[bool]:
-        warnings.warn(f"don't use secure", DeprecationWarning)
+        warnings.warn(f"don't use secure", DeprecationWarning, stacklevel=2)
         return self._secure
 
     # Public API

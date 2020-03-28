@@ -90,7 +90,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     ) -> None:
         # For backwards compatibility with 6.0 or earlier.
         if origins is not None and "" in origins:
-            warnings.warn("use None instead of '' in origins", DeprecationWarning)
+            warnings.warn(
+                "use None instead of '' in origins", DeprecationWarning, stacklevel=2
+            )
             origins = [None if origin == "" else origin for origin in origins]
         self.ws_handler = ws_handler
         self.ws_server = ws_server
@@ -874,7 +876,9 @@ class Serve:
         if timeout is None:
             timeout = 10
         else:
-            warnings.warn("rename timeout to close_timeout", DeprecationWarning)
+            warnings.warn(
+                "rename timeout to close_timeout", DeprecationWarning, stacklevel=2
+            )
         # If both are specified, timeout is ignored.
         if close_timeout is None:
             close_timeout = timeout
@@ -883,7 +887,9 @@ class Serve:
         if klass is None:
             klass = WebSocketServerProtocol
         else:
-            warnings.warn("rename klass to create_protocol", DeprecationWarning)
+            warnings.warn(
+                "rename klass to create_protocol", DeprecationWarning, stacklevel=2
+            )
         # If both are specified, klass is ignored.
         if create_protocol is None:
             create_protocol = klass

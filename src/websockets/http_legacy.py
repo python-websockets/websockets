@@ -9,7 +9,7 @@ from .exceptions import SecurityError
 __all__ = ["read_request", "read_response"]
 
 MAX_HEADERS = 256
-MAX_LINE = 4096
+MAX_LINE = 4107
 
 
 def d(value: bytes) -> str:

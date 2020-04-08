@@ -34,7 +34,7 @@ __all__ = [
 ]
 
 MAX_HEADERS = 256
-MAX_LINE = 4096
+MAX_LINE = 4107
 
 PYTHON_VERSION = "{}.{}".format(*sys.version_info)
 USER_AGENT = f"Python/{PYTHON_VERSION} websockets/{websockets_version}"

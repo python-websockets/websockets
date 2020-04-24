@@ -31,7 +31,7 @@ jobs:
       - run: tox -e py37
   py38:
     docker:
-      - image: circleci/python:3.8.0rc1
+      - image: circleci/python:3.8
     steps:
       # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
       - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc

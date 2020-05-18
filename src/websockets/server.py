@@ -714,7 +714,10 @@ class WebSocketServer:
         # asyncio.wait doesn't accept an empty first argument
         if self.websockets:
             await asyncio.wait(
-                [websocket.close(1001) for websocket in self.websockets],
+                [
+                    asyncio.ensure_future(websocket.close(1001))
+                    for websocket in self.websockets
+                ],
                 loop=self.loop if sys.version_info[:2] < (3, 8) else None,
             )
 

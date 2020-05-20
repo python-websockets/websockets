@@ -28,7 +28,6 @@ from typing import (
     cast,
 )
 
-from .compatibility import asyncio_create_task
 from .exceptions import (
     AbortHandshake,
     InvalidHandshake,
@@ -716,7 +715,7 @@ class WebSocketServer:
         if self.websockets:
             await asyncio.wait(
                 [
-                    asyncio_create_task(websocket.close(1001))
+                    asyncio.ensure_future(websocket.close(1001))
                     for websocket in self.websockets
                 ],
                 loop=self.loop if sys.version_info[:2] < (3, 8) else None,

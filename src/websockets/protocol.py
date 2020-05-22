@@ -349,7 +349,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     @property
     def secure(self) -> Optional[bool]:
-        warnings.warn(f"don't use secure", DeprecationWarning)
+        warnings.warn("don't use secure", DeprecationWarning)
         return self._secure
 
     # Public API

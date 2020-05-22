@@ -31,13 +31,22 @@ jobs:
       - run: tox -e py37
   py38:
     docker:
-      - image: circleci/python:3.8.0rc1
+      - image: circleci/python:3.8.3
     steps:
       # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
       - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
       - checkout
       - run: sudo pip install tox
       - run: tox -e py38
+  py39:
+    docker:
+      - image: circleci/python:3.9.0a5
+    steps:
+      # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
+      - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
+      - checkout
+      - run: sudo pip install tox
+      - run: tox -e pyNightly
 
 workflows:
   version: 2
@@ -51,5 +60,8 @@ workflows:
           requires:
             - main
       - py38:
+          requires:
+            - main
+      - py39:
           requires:
             - main

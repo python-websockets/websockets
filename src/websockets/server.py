@@ -340,8 +340,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         # per https://tools.ietf.org/html/rfc6454#section-7.3.
         try:
             origin = cast(Origin, headers.get("Origin"))
-        except MultipleValuesError:
-            raise InvalidHeader("Origin", "more than one Origin header found")
+        except MultipleValuesError as exc:
+            raise InvalidHeader("Origin", "more than one Origin header found") from exc
         if origins is not None:
             if origin not in origins:
                 raise InvalidOrigin(origin)

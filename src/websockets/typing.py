@@ -14,7 +14,7 @@ Types supported in a WebSocket message:
 """
 # Remove try / except when dropping support for Python < 3.7
 try:
-    Data.__doc__ = Data__doc__  # type: ignore
+    Data.__doc__ = Data__doc__
 except AttributeError:  # pragma: no cover
     pass
 
@@ -31,7 +31,7 @@ ExtensionParameter = Tuple[str, Optional[str]]
 
 ExtensionParameter__doc__ = """Parameter of a WebSocket extension"""
 try:
-    ExtensionParameter.__doc__ = ExtensionParameter__doc__  # type: ignore
+    ExtensionParameter.__doc__ = ExtensionParameter__doc__
 except AttributeError:  # pragma: no cover
     pass
 
@@ -40,7 +40,7 @@ ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
 
 ExtensionHeader__doc__ = """Item parsed in a Sec-WebSocket-Extensions header"""
 try:
-    ExtensionHeader.__doc__ = ExtensionHeader__doc__  # type: ignore
+    ExtensionHeader.__doc__ = ExtensionHeader__doc__
 except AttributeError:  # pragma: no cover
     pass
 

@@ -49,10 +49,10 @@ def exit_from_event_loop_thread(
     if not stop.done():
         # When exiting the thread that runs the event loop, raise
         # KeyboardInterrupt in the main thread to exit the program.
-        try:
-            ctrl_c = signal.CTRL_C_EVENT  # Windows
-        except AttributeError:
-            ctrl_c = signal.SIGINT  # POSIX
+        if sys.platform == "win32":
+            ctrl_c = signal.CTRL_C_EVENT
+        else:
+            ctrl_c = signal.SIGINT
         os.kill(os.getpid(), ctrl_c)
 
 

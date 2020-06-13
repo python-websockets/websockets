@@ -94,28 +94,28 @@ def check_request(headers: Headers) -> str:
 
     try:
         s_w_key = headers["Sec-WebSocket-Key"]
-    except KeyError:
-        raise InvalidHeader("Sec-WebSocket-Key")
-    except MultipleValuesError:
+    except KeyError as exc:
+        raise InvalidHeader("Sec-WebSocket-Key") from exc
+    except MultipleValuesError as exc:
         raise InvalidHeader(
             "Sec-WebSocket-Key", "more than one Sec-WebSocket-Key header found"
-        )
+        ) from exc
 
     try:
         raw_key = base64.b64decode(s_w_key.encode(), validate=True)
-    except binascii.Error:
-        raise InvalidHeaderValue("Sec-WebSocket-Key", s_w_key)
+    except binascii.Error as exc:
+        raise InvalidHeaderValue("Sec-WebSocket-Key", s_w_key) from exc
     if len(raw_key) != 16:
         raise InvalidHeaderValue("Sec-WebSocket-Key", s_w_key)
 
     try:
         s_w_version = headers["Sec-WebSocket-Version"]
-    except KeyError:
-        raise InvalidHeader("Sec-WebSocket-Version")
-    except MultipleValuesError:
+    except KeyError as exc:
+        raise InvalidHeader("Sec-WebSocket-Version") from exc
+    except MultipleValuesError as exc:
         raise InvalidHeader(
             "Sec-WebSocket-Version", "more than one Sec-WebSocket-Version header found"
-        )
+        ) from exc
 
     if s_w_version != "13":
         raise InvalidHeaderValue("Sec-WebSocket-Version", s_w_version)
@@ -171,12 +171,12 @@ def check_response(headers: Headers, key: str) -> None:
 
     try:
         s_w_accept = headers["Sec-WebSocket-Accept"]
-    except KeyError:
-        raise InvalidHeader("Sec-WebSocket-Accept")
-    except MultipleValuesError:
+    except KeyError as exc:
+        raise InvalidHeader("Sec-WebSocket-Accept") from exc
+    except MultipleValuesError as exc:
         raise InvalidHeader(
             "Sec-WebSocket-Accept", "more than one Sec-WebSocket-Accept header found"
-        )
+        ) from exc
 
     if s_w_accept != accept(key):
         raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)

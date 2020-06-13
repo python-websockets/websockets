@@ -31,9 +31,9 @@ import hashlib
 import random
 from typing import List
 
-from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
+from .exceptions import InvalidHeaderValue, InvalidUpgrade
 from .headers import ConnectionOption, UpgradeProtocol, parse_connection, parse_upgrade
-from .http import Headers, MultipleValuesError
+from .http import Headers
 
 
 __all__ = ["build_request", "check_request", "build_response", "check_response"]
@@ -92,14 +92,7 @@ def check_request(headers: Headers) -> str:
     if not (len(upgrade) == 1 and upgrade[0].lower() == "websocket"):
         raise InvalidUpgrade("Upgrade", ", ".join(upgrade))
 
-    try:
-        s_w_key = headers["Sec-WebSocket-Key"]
-    except KeyError as exc:
-        raise InvalidHeader("Sec-WebSocket-Key") from exc
-    except MultipleValuesError as exc:
-        raise InvalidHeader(
-            "Sec-WebSocket-Key", "more than one Sec-WebSocket-Key header found"
-        ) from exc
+    s_w_key = headers.get_safe("Sec-WebSocket-Key")
 
     try:
         raw_key = base64.b64decode(s_w_key.encode(), validate=True)
@@ -108,14 +101,7 @@ def check_request(headers: Headers) -> str:
     if len(raw_key) != 16:
         raise InvalidHeaderValue("Sec-WebSocket-Key", s_w_key)
 
-    try:
-        s_w_version = headers["Sec-WebSocket-Version"]
-    except KeyError as exc:
-        raise InvalidHeader("Sec-WebSocket-Version") from exc
-    except MultipleValuesError as exc:
-        raise InvalidHeader(
-            "Sec-WebSocket-Version", "more than one Sec-WebSocket-Version header found"
-        ) from exc
+    s_w_version = headers.get_safe("Sec-WebSocket-Version")
 
     if s_w_version != "13":
         raise InvalidHeaderValue("Sec-WebSocket-Version", s_w_version)
@@ -169,14 +155,7 @@ def check_response(headers: Headers, key: str) -> None:
     if not (len(upgrade) == 1 and upgrade[0].lower() == "websocket"):
         raise InvalidUpgrade("Upgrade", ", ".join(upgrade))
 
-    try:
-        s_w_accept = headers["Sec-WebSocket-Accept"]
-    except KeyError as exc:
-        raise InvalidHeader("Sec-WebSocket-Accept") from exc
-    except MultipleValuesError as exc:
-        raise InvalidHeader(
-            "Sec-WebSocket-Accept", "more than one Sec-WebSocket-Accept header found"
-        ) from exc
+    s_w_accept = headers.get_safe("Sec-WebSocket-Accept")
 
     if s_w_accept != accept(key):
         raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)

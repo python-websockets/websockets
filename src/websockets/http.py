@@ -292,6 +292,16 @@ class Headers(MutableMapping[str, str]):
         copy._list = self._list.copy()
         return copy
 
+    def get_safe(self, header: str) -> str:
+        from .exceptions import InvalidHeader
+
+        try:
+            return self[header]
+        except KeyError as exc:
+            raise InvalidHeader(header) from exc
+        except MultipleValuesError as exc:
+            raise InvalidHeader(header, f"more than one {header} header found") from exc
+
     # Collection methods
 
     def __contains__(self, key: object) -> bool:

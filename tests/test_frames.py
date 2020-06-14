@@ -1,5 +1,4 @@
 import codecs
-import struct
 import unittest
 import unittest.mock
 
@@ -26,8 +25,8 @@ class FrameTests(GeneratorTestCase):
 
         # Make masking deterministic by reusing the same "random" mask.
         # This has an effect only when mask is True.
-        randbits = struct.unpack("!I", data[2:6])[0] if mask else 0
-        with unittest.mock.patch("random.getrandbits", return_value=randbits):
+        mask_bytes = data[2:6] if mask else b""
+        with unittest.mock.patch("secrets.token_bytes", return_value=mask_bytes):
             serialized = parsed.serialize(mask=mask, extensions=extensions)
         self.assertEqual(serialized, data)
 

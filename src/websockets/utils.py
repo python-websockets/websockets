@@ -1,7 +1,7 @@
 import base64
 import hashlib
 import itertools
-import random
+import secrets
 
 
 __all__ = ["accept_key", "apply_mask"]
@@ -15,7 +15,7 @@ def generate_key() -> str:
     Generate a random key for the Sec-WebSocket-Key header.
 
     """
-    key = bytes(random.getrandbits(8) for _ in range(16))
+    key = secrets.token_bytes(16)
     return base64.b64encode(key).decode()
 
 

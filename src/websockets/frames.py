@@ -4,7 +4,7 @@ Parse and serialize WebSocket frames.
 """
 
 import io
-import random
+import secrets
 import struct
 from typing import Callable, Generator, NamedTuple, Optional, Sequence, Tuple
 
@@ -120,12 +120,12 @@ class Frame(NamedTuple):
                 f"payload length exceeds size limit ({length} > {max_size} bytes)"
             )
         if mask:
-            mask_bits = yield from read_exact(4)
+            mask_bytes = yield from read_exact(4)
 
         # Read the data.
         data = yield from read_exact(length)
         if mask:
-            data = apply_mask(data, mask_bits)
+            data = apply_mask(data, mask_bytes)
 
         frame = cls(fin, opcode, data, rsv1, rsv2, rsv3)
 
@@ -186,12 +186,12 @@ class Frame(NamedTuple):
             output.write(struct.pack("!BBQ", head1, head2 | 127, length))
 
         if mask:
-            mask_bits = struct.pack("!I", random.getrandbits(32))
-            output.write(mask_bits)
+            mask_bytes = secrets.token_bytes(4)
+            output.write(mask_bytes)
 
         # Prepare the data.
         if mask:
-            data = apply_mask(self.data, mask_bits)
+            data = apply_mask(self.data, mask_bytes)
         else:
             data = self.data
         output.write(data)

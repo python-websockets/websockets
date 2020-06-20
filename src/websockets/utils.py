@@ -1,7 +1,10 @@
+import contextvars
 import itertools
+import logging
 
 
 __all__ = ["apply_mask"]
+logging_contextvar = contextvars.ContextVar("websockets_logging_context", default=None)
 
 
 def apply_mask(data: bytes, mask: bytes) -> bytes:
@@ -16,3 +19,17 @@ def apply_mask(data: bytes, mask: bytes) -> bytes:
         raise ValueError("mask must contain 4 bytes")
 
     return bytes(b ^ m for b, m in zip(data, itertools.cycle(mask)))
+
+
+class ContextLoggerAdapter(logging.LoggerAdapter):
+    def __init__(self, logger, extra={}):
+        super().__init__(logger, extra)
+
+    def process(self, msg, kwargs):
+        context = logging_contextvar.get()
+        formatted_msg = f"[{context}] {msg}" if context else msg
+        return formatted_msg, kwargs
+
+
+def set_logging_contextvar(value):
+    logging_contextvar.set(value)

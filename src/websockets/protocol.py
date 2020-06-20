@@ -43,11 +43,12 @@ from .framing import *
 from .handshake import *
 from .http import Headers
 from .typing import Data
+from .utils import ContextLoggerAdapter
 
 
 __all__ = ["WebSocketCommonProtocol"]
 
-logger = logging.getLogger(__name__)
+logger = ContextLoggerAdapter(logging.getLogger(__name__))
 
 
 # A WebSocket connection goes through the following four states, in order:

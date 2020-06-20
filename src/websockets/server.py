@@ -44,11 +44,11 @@ from .headers import build_extension, parse_extension, parse_subprotocol
 from .http import USER_AGENT, Headers, HeadersLike, MultipleValuesError, read_request
 from .protocol import WebSocketCommonProtocol
 from .typing import ExtensionHeader, Origin, Subprotocol
-
+from .utils import ContextLoggerAdapter
 
 __all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
 
-logger = logging.getLogger(__name__)
+logger = ContextLoggerAdapter(logging.getLogger(__name__))
 
 
 HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]]

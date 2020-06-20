@@ -34,11 +34,12 @@ from .http import USER_AGENT, Headers, HeadersLike, read_response
 from .protocol import WebSocketCommonProtocol
 from .typing import ExtensionHeader, Origin, Subprotocol
 from .uri import WebSocketURI, parse_uri
+from .utils import ContextLoggerAdapter
 
 
 __all__ = ["connect", "unix_connect", "WebSocketClientProtocol"]
 
-logger = logging.getLogger(__name__)
+logger = ContextLoggerAdapter(logging.getLogger(__name__))
 
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):

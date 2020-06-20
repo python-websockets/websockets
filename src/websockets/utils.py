@@ -1,10 +1,16 @@
-import contextvars
 import itertools
 import logging
 
+try:
+    import contextvars
+
+    logging_contextvar = contextvars.ContextVar(
+        "websockets_logging_context", default=None
+    )
+except ImportError:
+    logging_contextvar = None
 
 __all__ = ["apply_mask"]
-logging_contextvar = contextvars.ContextVar("websockets_logging_context", default=None)
 
 
 def apply_mask(data: bytes, mask: bytes) -> bytes:
@@ -26,10 +32,13 @@ class ContextLoggerAdapter(logging.LoggerAdapter):
         super().__init__(logger, extra)
 
     def process(self, msg, kwargs):
-        context = logging_contextvar.get()
+        context = logging_contextvar.get() if logging_contextvar else None
         formatted_msg = f"[{context}] {msg}" if context else msg
         return formatted_msg, kwargs
 
 
 def set_logging_contextvar(value):
-    logging_contextvar.set(value)
+    if logging_contextvar:
+        logging_contextvar.set(value)
+    else:
+        raise ModuleNotFoundError("contextvars module not present")

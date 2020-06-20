@@ -7,7 +7,7 @@ try:
     logging_contextvar = contextvars.ContextVar(
         "websockets_logging_context", default=None
     )
-except ImportError:
+except ModuleNotFoundError:
     logging_contextvar = None
 
 __all__ = ["apply_mask"]

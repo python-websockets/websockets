@@ -127,6 +127,9 @@ class Response(NamedTuple):
     headers: Headers
     body: Optional[bytes] = None
 
+    # If processing the response triggers an exception, it's stored here.
+    exception: Optional[Exception] = None
+
     @classmethod
     def parse(
         cls,

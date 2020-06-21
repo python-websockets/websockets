@@ -5,7 +5,6 @@ from typing import Generator, List, Optional, Sequence
 from .asyncio_client import WebSocketClientProtocol, connect, unix_connect
 from .connection import CLIENT, CONNECTING, OPEN, Connection
 from .datastructures import Headers, HeadersLike, MultipleValuesError
-from .events import Accept, Connect, Event, Reject
 from .exceptions import (
     InvalidHandshake,
     InvalidHeader,
@@ -67,9 +66,9 @@ class ClientConnection(Connection):
         self.extra_headers = extra_headers
         self.key = generate_key()
 
-    def connect(self) -> Connect:
+    def connect(self) -> Request:
         """
-        Create a Connect event to send to the server.
+        Create a WebSocket handshake request event to send to the server.
 
         """
         headers = Headers()
@@ -114,8 +113,7 @@ class ClientConnection(Connection):
 
         headers.setdefault("User-Agent", USER_AGENT)
 
-        request = Request(self.wsuri.resource_name, headers)
-        return Connect(request)
+        return Request(self.wsuri.resource_name, headers)
 
     def process_response(self, response: Response) -> None:
         """
@@ -153,13 +151,13 @@ class ClientConnection(Connection):
 
         try:
             s_w_accept = headers["Sec-WebSocket-Accept"]
-        except KeyError:
-            raise InvalidHeader("Sec-WebSocket-Accept")
-        except MultipleValuesError:
+        except KeyError as exc:
+            raise InvalidHeader("Sec-WebSocket-Accept") from exc
+        except MultipleValuesError as exc:
             raise InvalidHeader(
                 "Sec-WebSocket-Accept",
                 "more than one Sec-WebSocket-Accept header found",
-            )
+            ) from exc
 
         if s_w_accept != accept_key(self.key):
             raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)
@@ -273,11 +271,11 @@ class ClientConnection(Connection):
 
         return subprotocol
 
-    def send_in_connecting_state(self, event: Event) -> bytes:
-        assert isinstance(event, Connect)
+    def send_request(self, request: Request) -> bytes:
+        """
+        Convert a WebSocket handshake request to bytes to send to the server.
 
-        request = event.request
-
+        """
         logger.debug("%s > GET %s HTTP/1.1", self.side, request.path)
         logger.debug("%s > %r", self.side, request.headers)
 
@@ -291,9 +289,10 @@ class ClientConnection(Connection):
         try:
             self.process_response(response)
         except InvalidHandshake as exc:
-            self.events.append(Reject(response, exc))
-            return
+            response = response._replace(exception=exc)
+            logger.debug("Invalid handshake", exc_info=True)
         else:
-            self.events.append(Accept(response))
             self.state = OPEN
+        finally:
+            self.events.append(response)
         yield from super().parse()

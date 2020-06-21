@@ -1,12 +1,16 @@
 import enum
-from typing import Generator, Iterable, List, Tuple
+from typing import Generator, List, Tuple, Union
 
-from .events import Event
 from .exceptions import InvalidState
+from .frames import Frame
+from .http11 import Request, Response
 from .streams import StreamReader
 
 
 __all__ = ["Connection"]
+
+
+Event = Union[Request, Response, Frame]
 
 
 # A WebSocket connection is either a server or a client.
@@ -46,43 +50,38 @@ class Connection:
 
     # Public APIs for receiving data and producing events
 
-    def receive_data(self, data: bytes) -> Tuple[Iterable[Event], bytes]:
+    def receive_data(self, data: bytes) -> Tuple[List[Event], List[bytes]]:
         self.reader.feed_data(data)
         return self.receive()
 
-    def receive_eof(self) -> Tuple[Iterable[Event], bytes]:
+    def receive_eof(self) -> Tuple[List[Event], List[bytes]]:
         self.reader.feed_eof()
         return self.receive()
 
     # Public APIs for receiving events and producing data
 
-    def send(self, event: Event) -> bytes:
+    def send_frame(self, frame: Frame) -> bytes:
         """
-        Send an event to the remote endpoint.
+        Convert a WebSocket handshake response to bytes to send.
 
         """
-        if self.state == OPEN:
-            raise NotImplementedError  # not implemented yet
-        elif self.state == CONNECTING:
-            return self.send_in_connecting_state(event)
-        else:
+        # Defensive assertion for protocol compliance.
+        if self.state != OPEN:
             raise InvalidState(
                 f"Cannot write to a WebSocket in the {self.state.name} state"
             )
+        raise NotImplementedError  # not implemented yet
 
     # Private APIs
 
-    def send_in_connecting_state(self, event: Event) -> bytes:
-        raise NotImplementedError
-
-    def receive(self) -> Tuple[List[Event], bytes]:
+    def receive(self) -> Tuple[List[Event], List[bytes]]:
         # Run parser until more data is needed or EOF
         try:
             next(self.parser)
         except StopIteration:
             pass
         events, self.events = self.events, []
-        return events, b""
+        return events, []
 
     def parse(self) -> Generator[None, None, None]:
         yield  # not implemented yet

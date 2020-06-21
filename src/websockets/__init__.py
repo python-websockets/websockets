@@ -1,5 +1,7 @@
 # This relies on each of the submodules having an __all__ variable.
 
+import logging
+
 from .auth import *  # noqa
 from .client import *  # noqa
 from .exceptions import *  # noqa
@@ -8,6 +10,9 @@ from .server import *  # noqa
 from .typing import *  # noqa
 from .uri import *  # noqa
 from .version import version as __version__  # noqa
+
+
+logging.getLogger(__name__).addHandler(logging.NullHandler())
 
 
 __all__ = [

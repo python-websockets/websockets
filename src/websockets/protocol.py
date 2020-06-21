@@ -53,7 +53,7 @@ from .frames import (
     serialize_close,
 )
 from .framing import Frame
-from .typing import Data
+from .typing import Data, Subprotocol
 
 
 __all__ = ["WebSocketCommonProtocol"]
@@ -261,7 +261,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # WebSocket protocol parameters.
         self.extensions: List[Extension] = []
-        self.subprotocol: Optional[str] = None
+        self.subprotocol: Optional[Subprotocol] = None
 
         # The close code and reason are set when receiving a close frame or
         # losing the TCP connection.

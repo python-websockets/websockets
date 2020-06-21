@@ -9,7 +9,6 @@ from typing import Callable, Generator, List, Optional, Sequence, Tuple, Union, 
 from .asyncio_server import WebSocketServer, WebSocketServerProtocol, serve, unix_serve
 from .connection import CONNECTING, OPEN, SERVER, Connection
 from .datastructures import Headers, HeadersLike, MultipleValuesError
-from .events import Accept, Connect, Event, Reject
 from .exceptions import (
     InvalidHandshake,
     InvalidHeader,
@@ -69,15 +68,17 @@ class ServerConnection(Connection):
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
 
-    def accept(self, connect: Connect) -> Union[Accept, Reject]:
+    def accept(self, request: Request) -> Response:
         """
-        Create an ``Accept`` or ``Reject`` event to send to the client.
+        Create a WebSocket handshake response event to send to the client.
 
-        If the connection cannot be established, this method returns a
-        :class:`~websockets.events.Reject` event, which may be unexpected.
+        If the connection cannot be established, the response rejects the
+        connection, which may be unexpected.
 
         """
-        request = connect.request
+        # TODO: when changing Request to a dataclass, set the exception
+        # attribute on the request rather than the Response, which will
+        # be semantically more correct.
         try:
             key, extensions_header, protocol_header = self.process_request(request)
         except InvalidOrigin as exc:
@@ -85,8 +86,7 @@ class ServerConnection(Connection):
             return self.reject(
                 http.HTTPStatus.FORBIDDEN,
                 f"Failed to open a WebSocket connection: {exc}.\n",
-                exception=exc,
-            )
+            )._replace(exception=exc)
         except InvalidUpgrade as exc:
             logger.debug("Invalid upgrade", exc_info=True)
             return self.reject(
@@ -98,15 +98,13 @@ class ServerConnection(Connection):
                     f"with a browser. You need a WebSocket client.\n"
                 ),
                 headers=Headers([("Upgrade", "websocket")]),
-                exception=exc,
-            )
+            )._replace(exception=exc)
         except InvalidHandshake as exc:
             logger.debug("Invalid handshake", exc_info=True)
             return self.reject(
                 http.HTTPStatus.BAD_REQUEST,
                 f"Failed to open a WebSocket connection: {exc}.\n",
-                exception=exc,
-            )
+            )._replace(exception=exc)
         except Exception as exc:
             logger.warning("Error in opening handshake", exc_info=True)
             return self.reject(
@@ -115,8 +113,7 @@ class ServerConnection(Connection):
                     "Failed to open a WebSocket connection.\n"
                     "See server log for more information.\n"
                 ),
-                exception=exc,
-            )
+            )._replace(exception=exc)
 
         headers = Headers()
 
@@ -146,8 +143,7 @@ class ServerConnection(Connection):
         headers.setdefault("Date", email.utils.formatdate(usegmt=True))
         headers.setdefault("Server", USER_AGENT)
 
-        response = Response(101, "Switching Protocols", headers)
-        return Accept(response)
+        return Response(101, "Switching Protocols", headers)
 
     def process_request(
         self, request: Request
@@ -189,29 +185,29 @@ class ServerConnection(Connection):
 
         try:
             key = headers["Sec-WebSocket-Key"]
-        except KeyError:
-            raise InvalidHeader("Sec-WebSocket-Key")
-        except MultipleValuesError:
+        except KeyError as exc:
+            raise InvalidHeader("Sec-WebSocket-Key") from exc
+        except MultipleValuesError as exc:
             raise InvalidHeader(
                 "Sec-WebSocket-Key", "more than one Sec-WebSocket-Key header found"
-            )
+            ) from exc
 
         try:
             raw_key = base64.b64decode(key.encode(), validate=True)
-        except binascii.Error:
-            raise InvalidHeaderValue("Sec-WebSocket-Key", key)
+        except binascii.Error as exc:
+            raise InvalidHeaderValue("Sec-WebSocket-Key", key) from exc
         if len(raw_key) != 16:
             raise InvalidHeaderValue("Sec-WebSocket-Key", key)
 
         try:
             version = headers["Sec-WebSocket-Version"]
-        except KeyError:
-            raise InvalidHeader("Sec-WebSocket-Version")
-        except MultipleValuesError:
+        except KeyError as exc:
+            raise InvalidHeader("Sec-WebSocket-Version") from exc
+        except MultipleValuesError as exc:
             raise InvalidHeader(
                 "Sec-WebSocket-Version",
                 "more than one Sec-WebSocket-Version header found",
-            )
+            ) from exc
 
         if version != "13":
             raise InvalidHeaderValue("Sec-WebSocket-Version", version)
@@ -389,9 +385,9 @@ class ServerConnection(Connection):
         text: str,
         headers: Optional[Headers] = None,
         exception: Optional[Exception] = None,
-    ) -> Reject:
+    ) -> Response:
         """
-        Create a ``Reject`` event to send to the client.
+        Create a HTTP response event to send to the client.
 
         A short plain text response is the best fallback when failing to
         establish a WebSocket connection.
@@ -405,16 +401,15 @@ class ServerConnection(Connection):
         headers.setdefault("Content-Length", str(len(body)))
         headers.setdefault("Content-Type", "text/plain; charset=utf-8")
         headers.setdefault("Connection", "close")
-        response = Response(status.value, status.phrase, headers, body)
-        return Reject(response, exception)
+        return Response(status.value, status.phrase, headers, body)
 
-    def send_in_connecting_state(self, event: Event) -> bytes:
-        assert isinstance(event, (Accept, Reject))
+    def send_response(self, response: Response) -> bytes:
+        """
+        Convert a WebSocket handshake response to bytes to send to the client.
 
-        if isinstance(event, Accept):
+        """
+        if response.status_code == 101:
             self.state = OPEN
-
-        response = event.response
 
         logger.debug(
             "%s > HTTP/1.1 %d %s",
@@ -431,5 +426,5 @@ class ServerConnection(Connection):
     def parse(self) -> Generator[None, None, None]:
         request = yield from Request.parse(self.reader.read_line)
         assert self.state == CONNECTING
-        self.events.append(Connect(request))
+        self.events.append(request)
         yield from super().parse()

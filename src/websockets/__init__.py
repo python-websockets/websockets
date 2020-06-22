@@ -12,6 +12,7 @@ from .version import version as __version__  # noqa
 
 __all__ = [
     "AbortHandshake",
+    "AuthenticationRequest",
     "basic_auth_protocol_factory",
     "BasicAuthWebSocketServerProtocol",
     "connect",

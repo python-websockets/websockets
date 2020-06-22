@@ -8,10 +8,12 @@ import collections.abc
 import functools
 import logging
 import warnings
+from python_digest import parse_digest_challenge, build_authorization_request 
 from types import TracebackType
 from typing import Any, Generator, List, Optional, Sequence, Tuple, Type, cast
 
 from .exceptions import (
+    AuthenticationRequest,
     InvalidHandshake,
     InvalidHeader,
     InvalidMessage,
@@ -254,7 +256,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         else:
             request_headers["Host"] = f"{wsuri.host}:{wsuri.port}"
 
-        if wsuri.user_info:
+        if wsuri.user_info and "Authorization" not in request_headers:
             request_headers["Authorization"] = build_authorization_basic(
                 *wsuri.user_info
             )
@@ -294,6 +296,10 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if "Location" not in response_headers:
                 raise InvalidHeader("Location")
             raise RedirectHandshake(response_headers["Location"])
+        elif status_code == 401:
+            if "WWW-Authenticate" not in response_headers:
+                raise InvalidHeader("WWW-Authenticate")
+            raise AuthenticationRequest(response_headers["WWW-Authenticate"])
         elif status_code != 101:
             raise InvalidStatusCode(status_code)
 
@@ -479,6 +485,18 @@ class Connect:
         self._create_connection = create_connection
         self._wsuri = wsuri
 
+    def handle_digest_auth(self, response: str) -> None:
+        wsuri = self._wsuri
+        challenge = parse_digest_challenge(response)
+        if challenge is None:
+            raise AuthenticationRequest(response)
+        kd = build_authorization_request(wsuri.user_info[0],
+                                         'GET', wsuri.resource_name, 1,
+                                         challenge,
+                                         password=wsuri.user_info[1])
+        return kd
+        
+        
     def handle_redirect(self, uri: str) -> None:
         # Update the state of this instance to connect to a new URI.
         old_wsuri = self._wsuri
@@ -533,11 +551,17 @@ class Connect:
         return self.__await_impl__().__await__()
 
     async def __await_impl__(self) -> WebSocketClientProtocol:
+        auth_header = None
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):
             transport, protocol = await self._create_connection()
             # https://github.com/python/typeshed/pull/2756
             transport = cast(asyncio.Transport, transport)
             protocol = cast(WebSocketClientProtocol, protocol)
+
+            if auth_header is not None:
+                if protocol.extra_headers is None:
+                    protocol.extra_headers = {}
+                protocol.extra_headers['Authorization'] = auth_header
 
             try:
                 try:
@@ -557,6 +581,8 @@ class Connect:
                     return protocol
             except RedirectHandshake as exc:
                 self.handle_redirect(exc.uri)
+            except AuthenticationRequest as exc:
+                auth_header = self.handle_digest_auth(exc.authresponse)
         else:
             raise SecurityError("too many redirects")
 

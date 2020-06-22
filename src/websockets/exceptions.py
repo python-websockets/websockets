@@ -20,6 +20,7 @@
             * :exc:`InvalidParameterValue`
         * :exc:`AbortHandshake`
         * :exc:`RedirectHandshake`
+        * :exc:`AuthenticationRequest`
     * :exc:`InvalidState`
     * :exc:`InvalidURI`
     * :exc:`PayloadTooBig`
@@ -53,6 +54,7 @@ __all__ = [
     "InvalidParameterValue",
     "AbortHandshake",
     "RedirectHandshake",
+    "AuthenticationRequest",
     "InvalidState",
     "InvalidURI",
     "PayloadTooBig",
@@ -325,6 +327,20 @@ class RedirectHandshake(InvalidHandshake):
     def __str__(self) -> str:
         return f"redirect to {self.uri}"
 
+
+class AuthenticationRequest(InvalidHandshake):
+    """ 
+    Raised when a 401 Unauthorized response is received.
+    Another implementation detail, to allow e.g., Digest authentication
+
+    """
+    def __init__(self, details : str) -> None:
+        self.authresponse = details
+
+    def __str__(self) -> str:
+        return f"WWW-Authenticate: {self.authresponse}"
+            
+    
 
 class InvalidState(WebSocketException, AssertionError):
     """

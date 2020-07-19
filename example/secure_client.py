@@ -7,7 +7,7 @@ import pathlib
 import ssl
 import websockets
 
-ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
 localhost_pem = pathlib.Path(__file__).with_name("localhost.pem")
 ssl_context.load_verify_locations(localhost_pem)
 

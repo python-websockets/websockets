@@ -181,7 +181,7 @@ static PyMethodDef speedups_methods[] = {
         "apply_mask",
         (PyCFunction)apply_mask,
         METH_VARARGS | METH_KEYWORDS,
-        "Apply masking to websocket message.",
+        "Apply masking to the data of a WebSocket message.",
     },
     {NULL, NULL, 0, NULL},      /* Sentinel */
 };

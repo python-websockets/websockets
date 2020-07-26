@@ -7,7 +7,7 @@
 
 import functools
 import http
-from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, Type, Union
+from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, Union, cast
 
 from .asyncio_server import HTTPResponse, WebSocketServerProtocol
 from .datastructures import Headers
@@ -90,9 +90,7 @@ def basic_auth_protocol_factory(
     realm: str,
     credentials: Optional[Union[Credentials, Iterable[Credentials]]] = None,
     check_credentials: Optional[Callable[[str, str], Awaitable[bool]]] = None,
-    create_protocol: Type[
-        BasicAuthWebSocketServerProtocol
-    ] = BasicAuthWebSocketServerProtocol,
+    create_protocol: Optional[Callable[[Any], BasicAuthWebSocketServerProtocol]] = None,
 ) -> Callable[[Any], BasicAuthWebSocketServerProtocol]:
     """
     Protocol factory that enforces HTTP Basic Auth.
@@ -154,6 +152,13 @@ def basic_auth_protocol_factory(
 
         else:
             raise TypeError(f"invalid credentials argument: {credentials}")
+
+    if create_protocol is None:
+        # Not sure why mypy cannot figure this out.
+        create_protocol = cast(
+            Callable[[Any], BasicAuthWebSocketServerProtocol],
+            BasicAuthWebSocketServerProtocol,
+        )
 
     return functools.partial(
         create_protocol, realm=realm, check_credentials=check_credentials

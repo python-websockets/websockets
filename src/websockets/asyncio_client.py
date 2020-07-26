@@ -9,7 +9,7 @@ import functools
 import logging
 import warnings
 from types import TracebackType
-from typing import Any, Generator, List, Optional, Sequence, Tuple, Type, cast
+from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple, Type, cast
 
 from .datastructures import Headers, HeadersLike
 from .exceptions import (
@@ -373,7 +373,7 @@ class Connect:
         uri: str,
         *,
         path: Optional[str] = None,
-        create_protocol: Optional[Type[WebSocketClientProtocol]] = None,
+        create_protocol: Optional[Callable[[Any], WebSocketClientProtocol]] = None,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
         close_timeout: Optional[float] = None,

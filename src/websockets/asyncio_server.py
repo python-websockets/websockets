@@ -850,7 +850,7 @@ class Serve:
         port: Optional[int] = None,
         *,
         path: Optional[str] = None,
-        create_protocol: Optional[Type[WebSocketServerProtocol]] = None,
+        create_protocol: Optional[Callable[[Any], WebSocketServerProtocol]] = None,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
         close_timeout: Optional[float] = None,

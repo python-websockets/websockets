@@ -19,6 +19,12 @@ class AuthTests(unittest.TestCase):
         self.assertFalse(is_credentials("username"))
 
 
+class CustomWebSocketServerProtocol(BasicAuthWebSocketServerProtocol):
+    async def process_request(self, path, request_headers):
+        type(self).used = True
+        return await super().process_request(path, request_headers)
+
+
 class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
 
     create_protocol = basic_auth_protocol_factory(
@@ -73,12 +79,26 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
         return password == "iloveyou"
 
     create_protocol_check_credentials = basic_auth_protocol_factory(
-        realm="auth-tests", check_credentials=check_credentials
+        realm="auth-tests", check_credentials=check_credentials,
     )
 
     @with_server(create_protocol=create_protocol_check_credentials)
     @with_client(user_info=("hello", "iloveyou"))
     def test_basic_auth_check_credentials(self):
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        self.loop.run_until_complete(self.client.recv())
+
+    create_protocol_custom_protocol = basic_auth_protocol_factory(
+        realm="auth-tests",
+        credentials=[("hello", "iloveyou")],
+        create_protocol=CustomWebSocketServerProtocol,
+    )
+
+    @with_server(create_protocol=create_protocol_custom_protocol)
+    @with_client(user_info=("hello", "iloveyou"))
+    def test_basic_auth_custom_protocol(self):
+        self.assertTrue(CustomWebSocketServerProtocol.used)
+        del CustomWebSocketServerProtocol.used
         self.loop.run_until_complete(self.client.send("Hello!"))
         self.loop.run_until_complete(self.client.recv())
 

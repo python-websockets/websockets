@@ -7,7 +7,7 @@ skip_branch_with_pr: true
 environment:
 # websockets only works on Python >= 3.6.
   CIBW_BUILD: cp36-* cp37-* cp38-*
-  CIBW_TEST_COMMAND: python -W default -m unittest
+  CIBW_TEST_COMMAND: python -W default -m unittest discover -s {project}
   WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
 
 install:

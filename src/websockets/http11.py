@@ -6,7 +6,7 @@ from .exceptions import SecurityError
 
 
 MAX_HEADERS = 256
-MAX_LINE = 4107
+MAX_LINE = 4110
 
 
 def d(value: bytes) -> str:

@@ -260,8 +260,8 @@ class HeadersTests(GeneratorTestCase):
             next(self.parse_headers())
 
     def test_parse_too_long_line(self):
-        # Header line contains 5 + 4101 + 2 = 4108 bytes.
-        self.reader.feed_data(b"foo: " + b"a" * 4101 + b"\r\n\r\n")
+        # Header line contains 5 + 4104 + 2 = 4111 bytes.
+        self.reader.feed_data(b"foo: " + b"a" * 4104 + b"\r\n\r\n")
         with self.assertRaises(SecurityError):
             next(self.parse_headers())
 

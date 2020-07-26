@@ -6,7 +6,7 @@ export PYTHONPATH=src
 default: coverage style
 
 style:
-	isort --recursive src tests
+	isort src tests
 	black src tests
 	flake8 src tests
 	mypy --strict src

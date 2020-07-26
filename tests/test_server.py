@@ -22,7 +22,7 @@ from .utils import DATE
 class ConnectTests(unittest.TestCase):
     def test_receive_connect(self):
         server = ServerConnection()
-        [request], bytes_to_send = server.receive_data(
+        server.receive_data(
             (
                 f"GET /test HTTP/1.1\r\n"
                 f"Host: example.com\r\n"
@@ -34,12 +34,12 @@ class ConnectTests(unittest.TestCase):
                 f"\r\n"
             ).encode(),
         )
+        [request] = server.events_received()
         self.assertIsInstance(request, Request)
-        self.assertEqual(bytes_to_send, [])
 
     def test_connect_request(self):
         server = ServerConnection()
-        [request], bytes_to_send = server.receive_data(
+        server.receive_data(
             (
                 f"GET /test HTTP/1.1\r\n"
                 f"Host: example.com\r\n"
@@ -51,6 +51,7 @@ class ConnectTests(unittest.TestCase):
                 f"\r\n"
             ).encode(),
         )
+        [request] = server.events_received()
         self.assertEqual(request.path, "/test")
         self.assertEqual(
             request.headers,
@@ -88,18 +89,18 @@ class AcceptRejectTests(unittest.TestCase):
         with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
             response = server.accept(self.make_request())
         self.assertIsInstance(response, Response)
-        bytes_to_send = server.send_response(response)
+        server.send_response(response)
         self.assertEqual(
-            bytes_to_send,
-            (
+            server.bytes_to_send(),
+            [
                 f"HTTP/1.1 101 Switching Protocols\r\n"
                 f"Upgrade: websocket\r\n"
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Accept: {ACCEPT}\r\n"
                 f"Date: {DATE}\r\n"
                 f"Server: {USER_AGENT}\r\n"
-                f"\r\n"
-            ).encode(),
+                f"\r\n".encode()
+            ],
         )
         self.assertEqual(server.state, OPEN)
 
@@ -108,10 +109,10 @@ class AcceptRejectTests(unittest.TestCase):
         with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
             response = server.reject(http.HTTPStatus.NOT_FOUND, "Sorry folks.\n")
         self.assertIsInstance(response, Response)
-        bytes_to_send = server.send_response(response)
+        server.send_response(response)
         self.assertEqual(
-            bytes_to_send,
-            (
+            server.bytes_to_send(),
+            [
                 f"HTTP/1.1 404 Not Found\r\n"
                 f"Date: {DATE}\r\n"
                 f"Server: {USER_AGENT}\r\n"
@@ -119,8 +120,8 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Content-Type: text/plain; charset=utf-8\r\n"
                 f"Connection: close\r\n"
                 f"\r\n"
-                f"Sorry folks.\n"
-            ).encode(),
+                f"Sorry folks.\n".encode()
+            ],
         )
         self.assertEqual(server.state, CONNECTING)
 

@@ -1,6 +1,6 @@
 import collections
 import logging
-from typing import Generator, List, Optional, Sequence
+from typing import Any, Generator, List, Optional, Sequence
 
 from .asyncio_client import WebSocketClientProtocol, connect, unix_connect
 from .connection import CLIENT, CONNECTING, OPEN, Connection
@@ -47,9 +47,6 @@ logger = logging.getLogger(__name__)
 
 
 class ClientConnection(Connection):
-
-    side = CLIENT
-
     def __init__(
         self,
         uri: str,
@@ -57,8 +54,9 @@ class ClientConnection(Connection):
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
+        **kwargs: Any,
     ):
-        super().__init__(state=CONNECTING)
+        super().__init__(side=CLIENT, state=CONNECTING, **kwargs)
         self.wsuri = parse_uri(uri)
         self.origin = origin
         self.available_extensions = extensions
@@ -271,15 +269,15 @@ class ClientConnection(Connection):
 
         return subprotocol
 
-    def send_request(self, request: Request) -> bytes:
+    def send_request(self, request: Request) -> None:
         """
-        Convert a WebSocket handshake request to bytes to send to the server.
+        Send a WebSocket handshake request to the server.
 
         """
         logger.debug("%s > GET %s HTTP/1.1", self.side, request.path)
         logger.debug("%s > %r", self.side, request.headers)
 
-        return request.serialize()
+        self.writes.append(request.serialize())
 
     def parse(self) -> Generator[None, None, None]:
         response = yield from Response.parse(
@@ -292,7 +290,7 @@ class ClientConnection(Connection):
             response = response._replace(exception=exc)
             logger.debug("Invalid handshake", exc_info=True)
         else:
-            self.state = OPEN
+            self.set_state(OPEN)
         finally:
             self.events.append(response)
         yield from super().parse()

@@ -4,7 +4,17 @@ import collections
 import email.utils
 import http
 import logging
-from typing import Callable, Generator, List, Optional, Sequence, Tuple, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Union,
+    cast,
+)
 
 from .asyncio_server import WebSocketServer, WebSocketServerProtocol, serve, unix_serve
 from .connection import CONNECTING, OPEN, SERVER, Connection
@@ -61,8 +71,9 @@ class ServerConnection(Connection):
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
+        **kwargs: Any,
     ):
-        super().__init__(state=CONNECTING)
+        super().__init__(SERVER, CONNECTING, **kwargs)
         self.origins = origins
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
@@ -403,13 +414,13 @@ class ServerConnection(Connection):
         headers.setdefault("Connection", "close")
         return Response(status.value, status.phrase, headers, body)
 
-    def send_response(self, response: Response) -> bytes:
+    def send_response(self, response: Response) -> None:
         """
-        Convert a WebSocket handshake response to bytes to send to the client.
+        Send a WebSocket handshake response to the client.
 
         """
         if response.status_code == 101:
-            self.state = OPEN
+            self.set_state(OPEN)
 
         logger.debug(
             "%s > HTTP/1.1 %d %s",
@@ -421,7 +432,7 @@ class ServerConnection(Connection):
         if response.body is not None:
             logger.debug("%s > body (%d bytes)", self.side, len(response.body))
 
-        return response.serialize()
+        self.writes.append(response.serialize())
 
     def parse(self) -> Generator[None, None, None]:
         request = yield from Request.parse(self.reader.read_line)

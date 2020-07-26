@@ -584,6 +584,11 @@ class CommonTests:
         self.loop.run_until_complete(self.protocol.send(memoryview(b"tteeaa")[::2]))
         self.assertOneFrameSent(True, OP_BINARY, b"tea")
 
+    def test_send_dict(self):
+        with self.assertRaises(TypeError):
+            self.loop.run_until_complete(self.protocol.send({"not": "encoded"}))
+        self.assertNoFrameSent()
+
     def test_send_type_error(self):
         with self.assertRaises(TypeError):
             self.loop.run_until_complete(self.protocol.send(42))

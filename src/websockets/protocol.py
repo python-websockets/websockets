@@ -25,6 +25,7 @@ from typing import (
     Dict,
     Iterable,
     List,
+    Mapping,
     Optional,
     Union,
     cast,
@@ -548,6 +549,10 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         :meth:`send` will raise a :exc:`TypeError` and the connection will be
         closed.
 
+        :meth:`send` rejects dict-like objects because this is often an error.
+        If you wish to send the keys of a dict-like object as fragments, call
+        its :meth:`~dict.keys` method and pass the result to :meth:`send`.
+
         Canceling :meth:`send` is discouraged. Instead, you should close the
         connection with :meth:`close`. Indeed, there only two situations where
         :meth:`send` yields control to the event loop:
@@ -575,6 +580,11 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         if isinstance(message, (str, bytes, bytearray, memoryview)):
             opcode, data = prepare_data(message)
             await self.write_frame(True, opcode, data)
+
+        # Catch a common mistake -- passing a dict to send().
+
+        elif isinstance(message, Mapping):
+            raise TypeError("data is a dict-like object")
 
         # Fragmented message -- regular iterator.
 

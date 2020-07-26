@@ -47,6 +47,7 @@ from .frames import (
     OP_PING,
     OP_PONG,
     OP_TEXT,
+    Opcode,
     parse_close,
     prepare_ctrl,
     prepare_data,
@@ -1071,7 +1072,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 f"Cannot write to a WebSocket in the {self.state.name} state"
             )
 
-        frame = Frame(fin, opcode, data)
+        frame = Frame(fin, Opcode(opcode), data)
         logger.debug("%s > %r", self.side, frame)
         frame.write(
             self.transport.write, mask=self.is_client, extensions=self.extensions

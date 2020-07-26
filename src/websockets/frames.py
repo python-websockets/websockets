@@ -3,6 +3,7 @@ Parse and serialize WebSocket frames.
 
 """
 
+import enum
 import io
 import secrets
 import struct
@@ -19,14 +20,15 @@ except ImportError:  # pragma: no cover
 
 
 __all__ = [
-    "DATA_OPCODES",
-    "CTRL_OPCODES",
+    "Opcode",
     "OP_CONT",
     "OP_TEXT",
     "OP_BINARY",
     "OP_CLOSE",
     "OP_PING",
     "OP_PONG",
+    "DATA_OPCODES",
+    "CTRL_OPCODES",
     "Frame",
     "prepare_data",
     "prepare_ctrl",
@@ -34,8 +36,21 @@ __all__ = [
     "serialize_close",
 ]
 
-DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY = 0x00, 0x01, 0x02
-CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG = 0x08, 0x09, 0x0A
+
+class Opcode(enum.IntEnum):
+    CONT, TEXT, BINARY = 0x00, 0x01, 0x02
+    CLOSE, PING, PONG = 0x08, 0x09, 0x0A
+
+
+OP_CONT = Opcode.CONT
+OP_TEXT = Opcode.TEXT
+OP_BINARY = Opcode.BINARY
+OP_CLOSE = Opcode.CLOSE
+OP_PING = Opcode.PING
+OP_PONG = Opcode.PONG
+
+DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY
+CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG
 
 # Close code that are allowed in a close frame.
 # Using a list optimizes `code in EXTERNAL_CLOSE_CODES`.
@@ -62,7 +77,7 @@ class Frame(NamedTuple):
     """
 
     fin: bool
-    opcode: int
+    opcode: Opcode
     data: bytes
     rsv1: bool = False
     rsv2: bool = False
@@ -103,7 +118,11 @@ class Frame(NamedTuple):
         rsv1 = True if head1 & 0b01000000 else False
         rsv2 = True if head1 & 0b00100000 else False
         rsv3 = True if head1 & 0b00010000 else False
-        opcode = head1 & 0b00001111
+
+        try:
+            opcode = Opcode(head1 & 0b00001111)
+        except ValueError as exc:
+            raise ProtocolError("invalid opcode") from exc
 
         if (True if head2 & 0b10000000 else False) != mask:
             raise ProtocolError("incorrect masking")
@@ -116,9 +135,7 @@ class Frame(NamedTuple):
             data = yield from read_exact(8)
             (length,) = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
-            raise PayloadTooBig(
-                f"payload length exceeds size limit ({length} > {max_size} bytes)"
-            )
+            raise PayloadTooBig(f"over size limit ({length} > {max_size} bytes)")
         if mask:
             mask_bytes = yield from read_exact(4)
 
@@ -209,15 +226,11 @@ class Frame(NamedTuple):
         if self.rsv1 or self.rsv2 or self.rsv3:
             raise ProtocolError("reserved bits must be 0")
 
-        if self.opcode in DATA_OPCODES:
-            return
-        elif self.opcode in CTRL_OPCODES:
+        if self.opcode in CTRL_OPCODES:
             if len(self.data) > 125:
                 raise ProtocolError("control frame too long")
             if not self.fin:
                 raise ProtocolError("fragmented control frame")
-        else:
-            raise ProtocolError(f"invalid opcode: {self.opcode}")
 
 
 def prepare_data(data: Data) -> Tuple[int, bytes]:

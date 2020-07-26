@@ -358,7 +358,7 @@ class PayloadTooBig(WebSocketException):
 
 class ProtocolError(WebSocketException):
     """
-    Raised when the other side breaks the protocol.
+    Raised when a frame breaks the protocol.
 
     """
 

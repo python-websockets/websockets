@@ -4,17 +4,7 @@ import collections
 import email.utils
 import http
 import logging
-from typing import (
-    Any,
-    Callable,
-    Generator,
-    List,
-    Optional,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Callable, Generator, List, Optional, Sequence, Tuple, Union, cast
 
 from .asyncio_server import WebSocketServer, WebSocketServerProtocol, serve, unix_serve
 from .connection import CONNECTING, OPEN, SERVER, Connection
@@ -71,9 +61,9 @@ class ServerConnection(Connection):
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
-        **kwargs: Any,
+        max_size: Optional[int] = 2 ** 20,
     ):
-        super().__init__(SERVER, CONNECTING, **kwargs)
+        super().__init__(side=SERVER, state=CONNECTING, max_size=max_size)
         self.origins = origins
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols

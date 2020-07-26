@@ -31,7 +31,7 @@ from .headers import (
     parse_extension,
     parse_subprotocol,
 )
-from .http import USER_AGENT
+from .http import USER_AGENT, build_host
 from .http_legacy import read_response
 from .protocol import WebSocketCommonProtocol
 from .typing import ExtensionHeader, Origin, Subprotocol
@@ -251,10 +251,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         request_headers = Headers()
 
-        if wsuri.port == (443 if wsuri.secure else 80):  # pragma: no cover
-            request_headers["Host"] = wsuri.host
-        else:
-            request_headers["Host"] = f"{wsuri.host}:{wsuri.port}"
+        request_headers["Host"] = build_host(wsuri.host, wsuri.port, wsuri.secure)
 
         if wsuri.user_info:
             request_headers["Authorization"] = build_authorization_basic(

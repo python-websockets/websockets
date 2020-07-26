@@ -23,7 +23,7 @@ from .headers import (
     parse_subprotocol,
     parse_upgrade,
 )
-from .http import USER_AGENT
+from .http import USER_AGENT, build_host
 from .http11 import Request, Response
 from .typing import (
     ConnectionOption,
@@ -71,10 +71,9 @@ class ClientConnection(Connection):
         """
         headers = Headers()
 
-        if self.wsuri.port == (443 if self.wsuri.secure else 80):
-            headers["Host"] = self.wsuri.host
-        else:
-            headers["Host"] = f"{self.wsuri.host}:{self.wsuri.port}"
+        headers["Host"] = build_host(
+            self.wsuri.host, self.wsuri.port, self.wsuri.secure
+        )
 
         if self.wsuri.user_info:
             headers["Authorization"] = build_authorization_basic(*self.wsuri.user_info)

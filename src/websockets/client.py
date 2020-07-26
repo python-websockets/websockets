@@ -1,6 +1,6 @@
 import collections
 import logging
-from typing import Any, Generator, List, Optional, Sequence
+from typing import Generator, List, Optional, Sequence
 
 from .asyncio_client import WebSocketClientProtocol, connect, unix_connect
 from .connection import CLIENT, CONNECTING, OPEN, Connection
@@ -54,9 +54,9 @@ class ClientConnection(Connection):
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
-        **kwargs: Any,
+        max_size: Optional[int] = 2 ** 20,
     ):
-        super().__init__(side=CLIENT, state=CONNECTING, **kwargs)
+        super().__init__(side=CLIENT, state=CONNECTING, max_size=max_size)
         self.wsuri = parse_uri(uri)
         self.origin = origin
         self.available_extensions = extensions

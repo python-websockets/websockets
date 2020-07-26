@@ -243,7 +243,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
             ),
         )
 
-    # Frames aren't decoded beyond max_length.
+    # Frames aren't decoded beyond max_size.
 
     def test_decompress_max_size(self):
         frame = Frame(True, OP_TEXT, ("a" * 20).encode("utf-8"))

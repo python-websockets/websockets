@@ -15,7 +15,7 @@ import warnings
 from typing import Any, Awaitable, Callable, Optional, Sequence
 
 from .exceptions import PayloadTooBig, ProtocolError
-from .frames import Frame as NewFrame
+from .frames import Frame as NewFrame, Opcode
 
 
 try:
@@ -64,7 +64,11 @@ class Frame(NewFrame):
         rsv1 = True if head1 & 0b01000000 else False
         rsv2 = True if head1 & 0b00100000 else False
         rsv3 = True if head1 & 0b00010000 else False
-        opcode = head1 & 0b00001111
+
+        try:
+            opcode = Opcode(head1 & 0b00001111)
+        except ValueError as exc:
+            raise ProtocolError("invalid opcode") from exc
 
         if (True if head2 & 0b10000000 else False) != mask:
             raise ProtocolError("incorrect masking")
@@ -77,9 +81,7 @@ class Frame(NewFrame):
             data = await reader(8)
             (length,) = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
-            raise PayloadTooBig(
-                f"payload length exceeds size limit ({length} > {max_size} bytes)"
-            )
+            raise PayloadTooBig(f"over size limit ({length} > {max_size} bytes)")
         if mask:
             mask_bits = await reader(4)
 

@@ -128,9 +128,7 @@ class PerMessageDeflate(Extension):
         max_length = 0 if max_size is None else max_size
         data = self.decoder.decompress(data, max_length)
         if self.decoder.unconsumed_tail:
-            raise PayloadTooBig(
-                f"Uncompressed payload length exceeds size limit (? > {max_size} bytes)"
-            )
+            raise PayloadTooBig(f"over size limit (? > {max_size} bytes)")
 
         # Allow garbage collection of the decoder if it won't be reused.
         if frame.fin and self.remote_no_context_takeover:

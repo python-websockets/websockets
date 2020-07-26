@@ -204,6 +204,13 @@ There are several reasons why long-lived connections may be lost:
 If you're facing a reproducible issue, :ref:`enable debug logs <debugging>` to
 see when and how connections are closed.
 
+Why do I get the error: ``module 'websockets' has no attribute '...'``?
+.......................................................................
+
+Often, this is because you created a script called ``websockets.py`` in your
+current working directory. Then ``import websockets`` imports this module
+instead of the websockets library.
+
 Are there ``onopen``, ``onmessage``, ``onerror``, and ``onclose`` callbacks?
 ............................................................................
 

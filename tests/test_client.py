@@ -25,10 +25,10 @@ class ConnectTests(unittest.TestCase):
             client = ClientConnection("wss://example.com/test")
         request = client.connect()
         self.assertIsInstance(request, Request)
-        bytes_to_send = client.send_request(request)
+        client.send_request(request)
         self.assertEqual(
-            bytes_to_send,
-            (
+            client.bytes_to_send(),
+            [
                 f"GET /test HTTP/1.1\r\n"
                 f"Host: example.com\r\n"
                 f"Upgrade: websocket\r\n"
@@ -36,8 +36,8 @@ class ConnectTests(unittest.TestCase):
                 f"Sec-WebSocket-Key: {KEY}\r\n"
                 f"Sec-WebSocket-Version: 13\r\n"
                 f"User-Agent: {USER_AGENT}\r\n"
-                f"\r\n"
-            ).encode(),
+                f"\r\n".encode()
+            ],
         )
 
     def test_connect_request(self):
@@ -134,7 +134,7 @@ class AcceptRejectTests(unittest.TestCase):
         with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
             client = ClientConnection("ws://example.com/test")
         client.connect()
-        [response], bytes_to_send = client.receive_data(
+        client.receive_data(
             (
                 f"HTTP/1.1 101 Switching Protocols\r\n"
                 f"Upgrade: websocket\r\n"
@@ -145,15 +145,15 @@ class AcceptRejectTests(unittest.TestCase):
                 f"\r\n"
             ).encode(),
         )
+        [response] = client.events_received()
         self.assertIsInstance(response, Response)
-        self.assertEqual(bytes_to_send, [])
         self.assertEqual(client.state, OPEN)
 
     def test_receive_reject(self):
         with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
             client = ClientConnection("ws://example.com/test")
         client.connect()
-        [response], bytes_to_send = client.receive_data(
+        client.receive_data(
             (
                 f"HTTP/1.1 404 Not Found\r\n"
                 f"Date: {DATE}\r\n"
@@ -165,15 +165,15 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Sorry folks.\n"
             ).encode(),
         )
+        [response] = client.events_received()
         self.assertIsInstance(response, Response)
-        self.assertEqual(bytes_to_send, [])
         self.assertEqual(client.state, CONNECTING)
 
     def test_accept_response(self):
         with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
             client = ClientConnection("ws://example.com/test")
         client.connect()
-        [response], _bytes_to_send = client.receive_data(
+        client.receive_data(
             (
                 f"HTTP/1.1 101 Switching Protocols\r\n"
                 f"Upgrade: websocket\r\n"
@@ -184,6 +184,7 @@ class AcceptRejectTests(unittest.TestCase):
                 f"\r\n"
             ).encode(),
         )
+        [response] = client.events_received()
         self.assertEqual(response.status_code, 101)
         self.assertEqual(response.reason_phrase, "Switching Protocols")
         self.assertEqual(
@@ -204,7 +205,7 @@ class AcceptRejectTests(unittest.TestCase):
         with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
             client = ClientConnection("ws://example.com/test")
         client.connect()
-        [response], _bytes_to_send = client.receive_data(
+        client.receive_data(
             (
                 f"HTTP/1.1 404 Not Found\r\n"
                 f"Date: {DATE}\r\n"
@@ -216,6 +217,7 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Sorry folks.\n"
             ).encode(),
         )
+        [response] = client.events_received()
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.reason_phrase, "Not Found")
         self.assertEqual(
@@ -251,7 +253,8 @@ class AcceptRejectTests(unittest.TestCase):
     def test_basic(self):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
 
@@ -259,7 +262,8 @@ class AcceptRejectTests(unittest.TestCase):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
         del response.headers["Connection"]
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
@@ -271,7 +275,8 @@ class AcceptRejectTests(unittest.TestCase):
         response = self.make_accept_response(client)
         del response.headers["Connection"]
         response.headers["Connection"] = "close"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
@@ -282,7 +287,8 @@ class AcceptRejectTests(unittest.TestCase):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
         del response.headers["Upgrade"]
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
@@ -294,7 +300,8 @@ class AcceptRejectTests(unittest.TestCase):
         response = self.make_accept_response(client)
         del response.headers["Upgrade"]
         response.headers["Upgrade"] = "h2c"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
@@ -305,7 +312,8 @@ class AcceptRejectTests(unittest.TestCase):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
         del response.headers["Sec-WebSocket-Accept"]
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
@@ -316,7 +324,8 @@ class AcceptRejectTests(unittest.TestCase):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Accept"] = ACCEPT
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
@@ -332,7 +341,8 @@ class AcceptRejectTests(unittest.TestCase):
         response = self.make_accept_response(client)
         del response.headers["Sec-WebSocket-Accept"]
         response.headers["Sec-WebSocket-Accept"] = ACCEPT
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
@@ -344,7 +354,8 @@ class AcceptRejectTests(unittest.TestCase):
     def test_no_extensions(self):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.extensions, [])
@@ -355,7 +366,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-op; op"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.extensions, [OpExtension()])
@@ -366,7 +378,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-rsv2"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.extensions, [Rsv2Extension()])
@@ -375,7 +388,8 @@ class AcceptRejectTests(unittest.TestCase):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-op; op"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
@@ -388,7 +402,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-op; op"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
@@ -404,7 +419,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-op; op=this"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.extensions, [OpExtension("this")])
@@ -415,7 +431,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-op; op=that"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
@@ -435,7 +452,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-op; op=that"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.extensions, [OpExtension("that")])
@@ -448,7 +466,8 @@ class AcceptRejectTests(unittest.TestCase):
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-op; op"
         response.headers["Sec-WebSocket-Extensions"] = "x-rsv2"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.extensions, [OpExtension(), Rsv2Extension()])
@@ -461,7 +480,8 @@ class AcceptRejectTests(unittest.TestCase):
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Extensions"] = "x-rsv2"
         response.headers["Sec-WebSocket-Extensions"] = "x-op; op"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.extensions, [Rsv2Extension(), OpExtension()])
@@ -469,7 +489,8 @@ class AcceptRejectTests(unittest.TestCase):
     def test_no_subprotocols(self):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertIsNone(client.subprotocol)
@@ -477,7 +498,8 @@ class AcceptRejectTests(unittest.TestCase):
     def test_no_subprotocol(self):
         client = ClientConnection("wss://example.com/", subprotocols=["chat"])
         response = self.make_accept_response(client)
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertIsNone(client.subprotocol)
@@ -486,7 +508,8 @@ class AcceptRejectTests(unittest.TestCase):
         client = ClientConnection("wss://example.com/", subprotocols=["chat"])
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Protocol"] = "chat"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.subprotocol, "chat")
@@ -495,7 +518,8 @@ class AcceptRejectTests(unittest.TestCase):
         client = ClientConnection("wss://example.com/")
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Protocol"] = "chat"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
@@ -509,7 +533,8 @@ class AcceptRejectTests(unittest.TestCase):
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Protocol"] = "superchat"
         response.headers["Sec-WebSocket-Protocol"] = "chat"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
@@ -524,7 +549,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Protocol"] = "chat"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, OPEN)
         self.assertEqual(client.subprotocol, "chat")
@@ -535,7 +561,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         response = self.make_accept_response(client)
         response.headers["Sec-WebSocket-Protocol"] = "otherchat"
-        [response], _bytes_to_send = client.receive_data(response.serialize())
+        client.receive_data(response.serialize())
+        [response] = client.events_received()
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:

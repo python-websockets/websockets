@@ -53,8 +53,21 @@ DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY
 CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG
 
 # Close code that are allowed in a close frame.
-# Using a list optimizes `code in EXTERNAL_CLOSE_CODES`.
-EXTERNAL_CLOSE_CODES = [1000, 1001, 1002, 1003, 1007, 1008, 1009, 1010, 1011]
+# Using a set optimizes `code in EXTERNAL_CLOSE_CODES`.
+EXTERNAL_CLOSE_CODES = {
+    1000,
+    1001,
+    1002,
+    1003,
+    1007,
+    1008,
+    1009,
+    1010,
+    1011,
+    1012,
+    1013,
+    1014,
+}
 
 
 # Consider converting to a dataclass when dropping support for Python < 3.7.

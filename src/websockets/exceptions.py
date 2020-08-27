@@ -68,6 +68,8 @@ class WebSocketException(Exception):
     """
 
 
+# https://www.iana.org/assignments/websocket/websocket.xhtml
+# see "WebSocket Close Code Number Registry" section for details
 CLOSE_CODES = {
     1000: "OK",
     1001: "going away",
@@ -81,6 +83,9 @@ CLOSE_CODES = {
     1009: "message too big",
     1010: "extension required",
     1011: "unexpected error",
+    1012: "service restart",
+    1013: "service overload",
+    1014: "bad gateway",
     1015: "TLS failure [internal]",
 }
 

@@ -56,6 +56,26 @@ See also Python's documentation about `running blocking code`_.
 
 .. _running blocking code: https://docs.python.org/3/library/asyncio-dev.html#running-blocking-code
 
+How can I pass additional arguments to the connection handler?
+..............................................................
+
+You can bind additional arguments to the connection handler with
+:func:`functools.partial`::
+
+    import asyncio
+    import functools
+    import websockets
+
+    async def handler(websocket, path, extra_argument):
+        ...
+
+    bound_handler = functools.partial(handler, extra_argument='spam')
+    start_server = websockets.serve(bound_handler, ...)
+
+Another way to achieve this result is to define the ``handler`` coroutine in
+a scope where the ``extra_argument`` variable exists instead of injecting it
+through an argument.
+
 How do I get access HTTP headers, for example cookies?
 ......................................................
 

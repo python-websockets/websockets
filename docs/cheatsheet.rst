@@ -85,25 +85,3 @@ in particular. Fortunately Python's official documentation provides advice to
 
 .. _develop with asyncio: https://docs.python.org/3/library/asyncio-dev.html
 
-Passing additional arguments to the connection handler
-------------------------------------------------------
-
-When writing a server, if you need to pass additional arguments to the
-connection handler, you can bind them with :func:`functools.partial`::
-
-    import asyncio
-    import functools
-    import websockets
-
-    async def handler(websocket, path, extra_argument):
-        ...
-
-    bound_handler = functools.partial(handler, extra_argument='spam')
-    start_server = websockets.serve(bound_handler, '127.0.0.1', 8765)
-
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
-
-Another way to achieve this result is to define the ``handler`` coroutine in
-a scope where the ``extra_argument`` variable exists instead of injecting it
-through an argument.

@@ -222,6 +222,26 @@ There are several reasons why long-lived connections may be lost:
 If you're facing a reproducible issue, :ref:`enable debug logs <debugging>` to
 see when and how connections are closed.
 
+How can I pass additional arguments to a custom protocol subclass?
+..................................................................
+
+You can bind additional arguments to the protocol factory with
+:func:`functools.partial`::
+
+    import asyncio
+    import functools
+    import websockets
+
+    class MyServerProtocol(websockets.WebSocketServerProtocol):
+        def __init__(self, extra_argument, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # do something with extra_argument
+
+    create_protocol = functools.partial(MyServerProtocol, extra_argument='spam')
+    start_server = websockets.serve(..., create_protocol=create_protocol)
+
+This example was for a server. The same pattern applies on a client.
+
 Why do I get the error: ``module 'websockets' has no attribute '...'``?
 .......................................................................
 

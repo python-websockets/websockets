@@ -206,6 +206,10 @@ def main() -> None:
     # Wait for the event loop to terminate.
     thread.join()
 
+    # For reasons unclear, even though the loop is closed in the thread,
+    # it still thinks it's running here.
+    loop.close()
+
 
 if __name__ == "__main__":
     main()

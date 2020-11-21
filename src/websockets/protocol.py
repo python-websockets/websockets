@@ -877,10 +877,11 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             self.transfer_data_exc = exc
             self.fail_connection(1002)
 
-        except (ConnectionError, EOFError) as exc:
+        except (ConnectionError, TimeoutError, EOFError) as exc:
             # Reading data with self.reader.readexactly may raise:
             # - most subclasses of ConnectionError if the TCP connection
             #   breaks, is reset, or is aborted;
+            # - TimeoutError if the TCP connection times out;
             # - IncompleteReadError, a subclass of EOFError, if fewer
             #   bytes are available than requested.
             self.transfer_data_exc = exc

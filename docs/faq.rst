@@ -85,8 +85,6 @@ To access HTTP headers during the WebSocket handshake, you can override
     async def process_request(self, path, request_headers):
         cookies = request_header["Cookie"]
 
-See
-
 Once the connection is established, they're available in
 :attr:`~protocol.WebSocketServerProtocol.request_headers`::
 

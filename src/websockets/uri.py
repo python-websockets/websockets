@@ -49,6 +49,10 @@ WebSocketURI.resource_name.__doc__ = ""
 WebSocketURI.user_info.__doc__ = ""
 
 
+# All characters from the gen-delims and sub-delims sets in RFC 3987.
+DELIMS = ":/?#[]@!$&'()*+,;="
+
+
 def parse_uri(uri: str) -> WebSocketURI:
     """
     Parse and validate a WebSocket URI.
@@ -78,4 +82,18 @@ def parse_uri(uri: str) -> WebSocketURI:
         if parsed.password is None:
             raise InvalidURI(uri)
         user_info = (parsed.username, parsed.password)
+
+    try:
+        uri.encode("ascii")
+    except UnicodeEncodeError:
+        # Input contains non-ASCII characters.
+        # It must be an IRI. Convert it to a URI.
+        host = host.encode("idna").decode()
+        resource_name = urllib.parse.quote(resource_name, safe=DELIMS)
+        if user_info is not None:
+            user_info = (
+                urllib.parse.quote(user_info[0], safe=DELIMS),
+                urllib.parse.quote(user_info[1], safe=DELIMS),
+            )
+
     return WebSocketURI(secure, host, port, resource_name, user_info)

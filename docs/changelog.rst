@@ -24,6 +24,8 @@ Changelog
 
     Aliases provide backwards compatibility for all previously public APIs.
 
+* Added support for IRIs in addition to URIs.
+
 8.1
 ...
 

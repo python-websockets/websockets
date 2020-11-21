@@ -10,6 +10,11 @@ VALID_URIS = [
     ("ws://localhost/path?query", (False, "localhost", 80, "/path?query", None)),
     ("WS://LOCALHOST/PATH?QUERY", (False, "localhost", 80, "/PATH?QUERY", None)),
     ("ws://user:pass@localhost/", (False, "localhost", 80, "/", ("user", "pass"))),
+    ("ws://høst/", (False, "xn--hst-0na", 80, "/", None)),
+    (
+        "ws://üser:påss@høst/πass",
+        (False, "xn--hst-0na", 80, "/%CF%80ass", ("%C3%BCser", "p%C3%A5ss")),
+    ),
 ]
 
 INVALID_URIS = [

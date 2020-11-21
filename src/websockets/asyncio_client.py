@@ -101,6 +101,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         try:
             status_code, reason, headers = await read_response(self.reader)
+        # Remove this branch when dropping support for Python < 3.8
+        # because CancelledError no longer inherits Exception.
         except asyncio.CancelledError:  # pragma: no cover
             raise
         except Exception as exc:

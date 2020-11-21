@@ -1169,6 +1169,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                         self.fail_connection(1011)
                         break
 
+        # Remove this branch when dropping support for Python < 3.8
+        # because CancelledError no longer inherits Exception.
         except asyncio.CancelledError:
             raise
 

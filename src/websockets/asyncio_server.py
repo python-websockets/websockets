@@ -135,6 +135,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     available_subprotocols=self.available_subprotocols,
                     extra_headers=self.extra_headers,
                 )
+            # Remove this branch when dropping support for Python < 3.8
+            # because CancelledError no longer inherits Exception.
             except asyncio.CancelledError:  # pragma: no cover
                 raise
             except ConnectionError:

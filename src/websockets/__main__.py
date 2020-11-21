@@ -176,8 +176,13 @@ def main() -> None:
     # Create an event loop that will run in a background thread.
     loop = asyncio.new_event_loop()
 
+    # Due to zealous removal of the loop parameter in the Queue constructor,
+    # we need a factory coroutine to run in the freshly created event loop.
+    async def queue_factory() -> asyncio.Queue[str]:
+        return asyncio.Queue()
+
     # Create a queue of user inputs. There's no need to limit its size.
-    inputs: asyncio.Queue[str] = asyncio.Queue(loop=loop)
+    inputs: asyncio.Queue[str] = loop.run_until_complete(queue_factory())
 
     # Create a stop condition when receiving SIGINT or SIGTERM.
     stop: asyncio.Future[None] = loop.create_future()

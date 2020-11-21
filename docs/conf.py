@@ -111,6 +111,7 @@ html_theme_options = {
     'logo': 'websockets.svg',
     'description': 'A library for building WebSocket servers and clients in Python with a focus on correctness and simplicity.',
     'github_button': True,
+    'github_type': 'star',
     'github_user': 'aaugustin',
     'github_repo': 'websockets',
     'tidelift_url': 'https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=docs',

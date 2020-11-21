@@ -282,7 +282,7 @@ class Connection:
             self.parser_exc = exc
             raise
         except Exception as exc:
-            logger.exception("unexpected exception in parser")
+            logger.error("unexpected exception in parser", exc_info=True)
             # Don't include exception details, which may be security-sensitive.
             self.fail_connection(1011)
             self.parser_exc = exc

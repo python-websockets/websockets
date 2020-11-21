@@ -31,6 +31,8 @@ Changelog
 
 * Added compatibility with Python 3.8.
 
+* Added close codes 1012, 1013, and 1014.
+
 8.0.2
 .....
 

@@ -54,7 +54,14 @@ from .frames import (
     prepare_data,
     serialize_close,
 )
-from .framing import Frame
+
+
+with warnings.catch_warnings():
+    warnings.filterwarnings(
+        "ignore", "websockets.framing is deprecated", DeprecationWarning
+    )
+    from .framing import Frame
+
 from .typing import Data, Subprotocol
 
 

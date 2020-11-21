@@ -63,7 +63,10 @@ SEND_EOF = b""
 
 class Connection:
     def __init__(
-        self, side: Side, state: State = OPEN, max_size: Optional[int] = 2 ** 20,
+        self,
+        side: Side,
+        state: State = OPEN,
+        max_size: Optional[int] = 2 ** 20,
     ) -> None:
         # Connection side. CLIENT or SERVER.
         self.side = side

@@ -37,32 +37,45 @@ class RequestTests(GeneratorTestCase):
         with self.assertRaises(EOFError) as raised:
             next(self.parse())
         self.assertEqual(
-            str(raised.exception), "connection closed while reading HTTP request line"
+            str(raised.exception),
+            "connection closed while reading HTTP request line",
         )
 
     def test_parse_invalid_request_line(self):
         self.reader.feed_data(b"GET /\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "invalid HTTP request line: GET /")
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP request line: GET /",
+        )
 
     def test_parse_unsupported_method(self):
         self.reader.feed_data(b"OPTIONS * HTTP/1.1\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "unsupported HTTP method: OPTIONS")
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported HTTP method: OPTIONS",
+        )
 
     def test_parse_unsupported_version(self):
         self.reader.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "unsupported HTTP version: HTTP/1.0")
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported HTTP version: HTTP/1.0",
+        )
 
     def test_parse_invalid_header(self):
         self.reader.feed_data(b"GET /chat HTTP/1.1\r\nOops\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "invalid HTTP header line: Oops")
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP header line: Oops",
+        )
 
     def test_serialize(self):
         # Example from the protocol overview in RFC 6455
@@ -101,7 +114,7 @@ class ResponseTests(GeneratorTestCase):
 
     def parse(self):
         return Response.parse(
-            self.reader.read_line, self.reader.read_exact, self.reader.read_to_eof,
+            self.reader.read_line, self.reader.read_exact, self.reader.read_to_eof
         )
 
     def test_parse(self):
@@ -132,37 +145,55 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"Hello!\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "invalid HTTP status line: Hello!")
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP status line: Hello!",
+        )
 
     def test_parse_unsupported_version(self):
         self.reader.feed_data(b"HTTP/1.0 400 Bad Request\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "unsupported HTTP version: HTTP/1.0")
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported HTTP version: HTTP/1.0",
+        )
 
     def test_parse_invalid_status(self):
         self.reader.feed_data(b"HTTP/1.1 OMG WTF\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "invalid HTTP status code: OMG")
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP status code: OMG",
+        )
 
     def test_parse_unsupported_status(self):
         self.reader.feed_data(b"HTTP/1.1 007 My name is Bond\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "unsupported HTTP status code: 007")
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported HTTP status code: 007",
+        )
 
     def test_parse_invalid_reason(self):
         self.reader.feed_data(b"HTTP/1.1 200 \x7f\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "invalid HTTP reason phrase: \x7f")
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP reason phrase: \x7f",
+        )
 
     def test_parse_invalid_header(self):
         self.reader.feed_data(b"HTTP/1.1 500 Internal Server Error\r\nOops\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "invalid HTTP header line: Oops")
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP header line: Oops",
+        )
 
     def test_parse_body_with_content_length(self):
         self.reader.feed_data(
@@ -183,7 +214,10 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")
         with self.assertRaises(NotImplementedError) as raised:
             next(self.parse())
-        self.assertEqual(str(raised.exception), "transfer codings aren't supported")
+        self.assertEqual(
+            str(raised.exception),
+            "transfer codings aren't supported",
+        )
 
     def test_parse_body_no_content(self):
         self.reader.feed_data(b"HTTP/1.1 204 No Content\r\n\r\n")

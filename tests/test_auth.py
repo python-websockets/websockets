@@ -79,7 +79,8 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
         return password == "iloveyou"
 
     create_protocol_check_credentials = basic_auth_protocol_factory(
-        realm="auth-tests", check_credentials=check_credentials,
+        realm="auth-tests",
+        check_credentials=check_credentials,
     )
 
     @with_server(create_protocol=create_protocol_check_credentials)

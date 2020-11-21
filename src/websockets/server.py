@@ -242,7 +242,8 @@ class ServerConnection(Connection):
         return origin
 
     def process_extensions(
-        self, headers: Headers,
+        self,
+        headers: Headers,
     ) -> Tuple[Optional[str], List[Extension]]:
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.

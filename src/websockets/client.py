@@ -280,7 +280,7 @@ class ClientConnection(Connection):
 
     def parse(self) -> Generator[None, None, None]:
         response = yield from Response.parse(
-            self.reader.read_line, self.reader.read_exact, self.reader.read_to_eof,
+            self.reader.read_line, self.reader.read_exact, self.reader.read_to_eof
         )
         assert self.state == CONNECTING
         try:

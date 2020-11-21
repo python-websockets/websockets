@@ -22,7 +22,7 @@ class FramesTestCase(GeneratorTestCase):
         reader.feed_data(data)
         reader.feed_eof()
         parser = Frame.parse(
-            reader.read_exact, mask=mask, max_size=max_size, extensions=extensions,
+            reader.read_exact, mask=mask, max_size=max_size, extensions=extensions
         )
         return self.assertGeneratorReturns(parser)
 
@@ -47,7 +47,9 @@ class FramesTestCase(GeneratorTestCase):
 class FrameTests(FramesTestCase):
     def test_text_unmasked(self):
         self.assertFrameData(
-            Frame(True, OP_TEXT, b"Spam"), b"\x81\x04Spam", mask=False,
+            Frame(True, OP_TEXT, b"Spam"),
+            b"\x81\x04Spam",
+            mask=False,
         )
 
     def test_text_masked(self):
@@ -59,7 +61,9 @@ class FrameTests(FramesTestCase):
 
     def test_binary_unmasked(self):
         self.assertFrameData(
-            Frame(True, OP_BINARY, b"Eggs"), b"\x82\x04Eggs", mask=False,
+            Frame(True, OP_BINARY, b"Eggs"),
+            b"\x82\x04Eggs",
+            mask=False,
         )
 
     def test_binary_masked(self):
@@ -84,13 +88,25 @@ class FrameTests(FramesTestCase):
         )
 
     def test_close(self):
-        self.assertFrameData(Frame(True, OP_CLOSE, b""), b"\x88\x00", mask=False)
+        self.assertFrameData(
+            Frame(True, OP_CLOSE, b""),
+            b"\x88\x00",
+            mask=False,
+        )
 
     def test_ping(self):
-        self.assertFrameData(Frame(True, OP_PING, b"ping"), b"\x89\x04ping", mask=False)
+        self.assertFrameData(
+            Frame(True, OP_PING, b"ping"),
+            b"\x89\x04ping",
+            mask=False,
+        )
 
     def test_pong(self):
-        self.assertFrameData(Frame(True, OP_PONG, b"pong"), b"\x8a\x04pong", mask=False)
+        self.assertFrameData(
+            Frame(True, OP_PONG, b"pong"),
+            b"\x8a\x04pong",
+            mask=False,
+        )
 
     def test_long(self):
         self.assertFrameData(
@@ -179,23 +195,34 @@ class FrameTests(FramesTestCase):
 
 class PrepareDataTests(unittest.TestCase):
     def test_prepare_data_str(self):
-        self.assertEqual(prepare_data("café"), (OP_TEXT, b"caf\xc3\xa9"))
+        self.assertEqual(
+            prepare_data("café"),
+            (OP_TEXT, b"caf\xc3\xa9"),
+        )
 
     def test_prepare_data_bytes(self):
-        self.assertEqual(prepare_data(b"tea"), (OP_BINARY, b"tea"))
+        self.assertEqual(
+            prepare_data(b"tea"),
+            (OP_BINARY, b"tea"),
+        )
 
     def test_prepare_data_bytearray(self):
         self.assertEqual(
-            prepare_data(bytearray(b"tea")), (OP_BINARY, bytearray(b"tea"))
+            prepare_data(bytearray(b"tea")),
+            (OP_BINARY, bytearray(b"tea")),
         )
 
     def test_prepare_data_memoryview(self):
         self.assertEqual(
-            prepare_data(memoryview(b"tea")), (OP_BINARY, memoryview(b"tea"))
+            prepare_data(memoryview(b"tea")),
+            (OP_BINARY, memoryview(b"tea")),
         )
 
     def test_prepare_data_non_contiguous_memoryview(self):
-        self.assertEqual(prepare_data(memoryview(b"tteeaa")[::2]), (OP_BINARY, b"tea"))
+        self.assertEqual(
+            prepare_data(memoryview(b"tteeaa")[::2]),
+            (OP_BINARY, b"tea"),
+        )
 
     def test_prepare_data_list(self):
         with self.assertRaises(TypeError):

@@ -302,7 +302,10 @@ class AbortHandshake(InvalidHandshake):
     """
 
     def __init__(
-        self, status: http.HTTPStatus, headers: HeadersLike, body: bytes = b""
+        self,
+        status: http.HTTPStatus,
+        headers: HeadersLike,
+        body: bytes = b"",
     ) -> None:
         self.status = status
         self.headers = Headers(headers)

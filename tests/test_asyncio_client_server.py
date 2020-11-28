@@ -34,6 +34,11 @@ from websockets.http_legacy import read_response
 from websockets.protocol import State
 from websockets.uri import parse_uri
 
+from .extensions.test_base import (
+    ClientNoOpExtensionFactory,
+    NoOpExtension,
+    ServerNoOpExtensionFactory,
+)
 from .test_protocol import MS
 from .utils import AsyncioTestCase
 
@@ -186,41 +191,6 @@ class FooClientProtocol(WebSocketClientProtocol):
 
 class BarClientProtocol(WebSocketClientProtocol):
     pass
-
-
-class ClientNoOpExtensionFactory:
-    name = "x-no-op"
-
-    def get_request_params(self):
-        return []
-
-    def process_response_params(self, params, accepted_extensions):
-        if params:
-            raise NegotiationError()
-        return NoOpExtension()
-
-
-class ServerNoOpExtensionFactory:
-    name = "x-no-op"
-
-    def __init__(self, params=None):
-        self.params = params or []
-
-    def process_request_params(self, params, accepted_extensions):
-        return self.params, NoOpExtension()
-
-
-class NoOpExtension:
-    name = "x-no-op"
-
-    def __repr__(self):
-        return "NoOpExtension()"
-
-    def decode(self, frame, *, max_size=None):
-        return frame
-
-    def encode(self, frame):
-        return frame
 
 
 class ClientServerTestsMixin:
@@ -972,32 +942,6 @@ class CommonClientServerTests:
         self.assertEqual(
             repr(self.client.extensions),
             repr([PerMessageDeflate(False, False, 15, 15)]),
-        )
-
-    @with_server(
-        extensions=[
-            ServerPerMessageDeflateFactory(
-                client_no_context_takeover=True, server_max_window_bits=10
-            )
-        ],
-        compression="deflate",  # overridden by explicit config
-    )
-    @with_client(
-        "/extensions",
-        extensions=[
-            ClientPerMessageDeflateFactory(
-                server_no_context_takeover=True, client_max_window_bits=12
-            )
-        ],
-        compression="deflate",  # overridden by explicit config
-    )
-    def test_compression_deflate_and_explicit_config(self):
-        server_extensions = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(
-            server_extensions, repr([PerMessageDeflate(True, True, 12, 10)])
-        )
-        self.assertEqual(
-            repr(self.client.extensions), repr([PerMessageDeflate(True, True, 10, 12)])
         )
 
     def test_compression_unsupported_server(self):

@@ -39,7 +39,7 @@ from .exceptions import (
     NegotiationError,
 )
 from .extensions.base import Extension, ServerExtensionFactory
-from .extensions.permessage_deflate import ServerPerMessageDeflateFactory
+from .extensions.permessage_deflate import enable_server_permessage_deflate
 from .handshake_legacy import build_response, check_request
 from .headers import build_extension, parse_extension, parse_subprotocol
 from .http import USER_AGENT
@@ -903,13 +903,7 @@ class Serve:
         secure = kwargs.get("ssl") is not None
 
         if compression == "deflate":
-            if extensions is None:
-                extensions = []
-            if not any(
-                ext_factory.name == ServerPerMessageDeflateFactory.name
-                for ext_factory in extensions
-            ):
-                extensions = list(extensions) + [ServerPerMessageDeflateFactory()]
+            extensions = enable_server_permessage_deflate(extensions)
         elif compression is not None:
             raise ValueError(f"unsupported compression: {compression}")
 

@@ -22,7 +22,9 @@ from .base import ClientExtensionFactory, Extension, ServerExtensionFactory
 __all__ = [
     "PerMessageDeflate",
     "ClientPerMessageDeflateFactory",
+    "enable_client_permessage_deflate",
     "ServerPerMessageDeflateFactory",
+    "enable_server_permessage_deflate",
 ]
 
 _EMPTY_UNCOMPRESSED_BLOCK = b"\x00\x00\xff\xff"
@@ -424,6 +426,29 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         )
 
 
+def enable_client_permessage_deflate(
+    extensions: Optional[Sequence[ClientExtensionFactory]],
+) -> Sequence[ClientExtensionFactory]:
+    """
+    Enable Per-Message Deflate with default settings in client extensions.
+
+    If the extension is already present, perhaps with non-default settings,
+    the configuration isn't changed.
+
+
+    """
+    if extensions is None:
+        extensions = []
+    if not any(
+        extension_factory.name == ClientPerMessageDeflateFactory.name
+        for extension_factory in extensions
+    ):
+        extensions = list(extensions) + [
+            ClientPerMessageDeflateFactory(client_max_window_bits=True)
+        ]
+    return extensions
+
+
 class ServerPerMessageDeflateFactory(ServerExtensionFactory):
     """
     Server-side extension factory for the Per-Message Deflate extension.
@@ -584,3 +609,23 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
                 self.compress_settings,
             ),
         )
+
+
+def enable_server_permessage_deflate(
+    extensions: Optional[Sequence[ServerExtensionFactory]],
+) -> Sequence[ServerExtensionFactory]:
+    """
+    Enable Per-Message Deflate with default settings in server extensions.
+
+    If the extension is already present, perhaps with non-default settings,
+    the configuration isn't changed.
+
+    """
+    if extensions is None:
+        extensions = []
+    if not any(
+        ext_factory.name == ServerPerMessageDeflateFactory.name
+        for ext_factory in extensions
+    ):
+        extensions = list(extensions) + [ServerPerMessageDeflateFactory()]
+    return extensions

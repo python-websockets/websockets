@@ -20,6 +20,8 @@ from websockets.frames import (
     serialize_close,
 )
 
+from .test_base import ClientNoOpExtensionFactory, ServerNoOpExtensionFactory
+
 
 class ExtensionTestsMixin:
     def assertExtensionEqual(self, extension1, extension2):
@@ -500,6 +502,52 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
                 [], [PerMessageDeflate(False, False, 15, 15)]
             )
 
+    def test_enable_client_permessage_deflate(self):
+        for extensions, (
+            expected_len,
+            expected_position,
+            expected_compress_settings,
+        ) in [
+            (
+                None,
+                (1, 0, None),
+            ),
+            (
+                [],
+                (1, 0, None),
+            ),
+            (
+                [ClientNoOpExtensionFactory()],
+                (2, 1, None),
+            ),
+            (
+                [ClientPerMessageDeflateFactory(compress_settings={"level": 1})],
+                (1, 0, {"level": 1}),
+            ),
+            (
+                [
+                    ClientPerMessageDeflateFactory(compress_settings={"level": 1}),
+                    ClientNoOpExtensionFactory(),
+                ],
+                (2, 0, {"level": 1}),
+            ),
+            (
+                [
+                    ClientNoOpExtensionFactory(),
+                    ClientPerMessageDeflateFactory(compress_settings={"level": 1}),
+                ],
+                (2, 1, {"level": 1}),
+            ),
+        ]:
+            with self.subTest(extensions=extensions):
+                extensions = enable_client_permessage_deflate(extensions)
+                self.assertEqual(len(extensions), expected_len)
+                extension = extensions[expected_position]
+                self.assertIsInstance(extension, ClientPerMessageDeflateFactory)
+                self.assertEqual(
+                    extension.compress_settings, expected_compress_settings
+                )
+
 
 class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin):
     def test_name(self):
@@ -790,3 +838,49 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
             factory.process_request_params(
                 [], [PerMessageDeflate(False, False, 15, 15)]
             )
+
+    def test_enable_server_permessage_deflate(self):
+        for extensions, (
+            expected_len,
+            expected_position,
+            expected_compress_settings,
+        ) in [
+            (
+                None,
+                (1, 0, None),
+            ),
+            (
+                [],
+                (1, 0, None),
+            ),
+            (
+                [ServerNoOpExtensionFactory()],
+                (2, 1, None),
+            ),
+            (
+                [ServerPerMessageDeflateFactory(compress_settings={"level": 1})],
+                (1, 0, {"level": 1}),
+            ),
+            (
+                [
+                    ServerPerMessageDeflateFactory(compress_settings={"level": 1}),
+                    ServerNoOpExtensionFactory(),
+                ],
+                (2, 0, {"level": 1}),
+            ),
+            (
+                [
+                    ServerNoOpExtensionFactory(),
+                    ServerPerMessageDeflateFactory(compress_settings={"level": 1}),
+                ],
+                (2, 1, {"level": 1}),
+            ),
+        ]:
+            with self.subTest(extensions=extensions):
+                extensions = enable_server_permessage_deflate(extensions)
+                self.assertEqual(len(extensions), expected_len)
+                extension = extensions[expected_position]
+                self.assertIsInstance(extension, ServerPerMessageDeflateFactory)
+                self.assertEqual(
+                    extension.compress_settings, expected_compress_settings
+                )

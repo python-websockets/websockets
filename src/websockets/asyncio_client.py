@@ -22,7 +22,7 @@ from .exceptions import (
     SecurityError,
 )
 from .extensions.base import ClientExtensionFactory, Extension
-from .extensions.permessage_deflate import ClientPerMessageDeflateFactory
+from .extensions.permessage_deflate import enable_client_permessage_deflate
 from .handshake_legacy import build_request, check_response
 from .headers import (
     build_authorization_basic,
@@ -425,15 +425,7 @@ class Connect:
             )
 
         if compression == "deflate":
-            if extensions is None:
-                extensions = []
-            if not any(
-                extension_factory.name == ClientPerMessageDeflateFactory.name
-                for extension_factory in extensions
-            ):
-                extensions = list(extensions) + [
-                    ClientPerMessageDeflateFactory(client_max_window_bits=True)
-                ]
+            extensions = enable_client_permessage_deflate(extensions)
         elif compression is not None:
             raise ValueError(f"unsupported compression: {compression}")
 

@@ -126,7 +126,7 @@ class Connection:
 
         After calling this method:
 
-        - You must call :meth:`bytes_to_send` and send this data.
+        - You must call :meth:`data_to_send` and send this data.
         - You should call :meth:`events_received` and process these events.
 
         """
@@ -139,7 +139,7 @@ class Connection:
 
         After calling this method:
 
-        - You must call :meth:`bytes_to_send` and send this data.
+        - You must call :meth:`data_to_send` and send this data.
         - You shouldn't call :meth:`events_received` as it won't
           return any new events.
 
@@ -228,7 +228,7 @@ class Connection:
 
     # Public API for getting outgoing data after receiving data or sending events.
 
-    def bytes_to_send(self) -> List[bytes]:
+    def data_to_send(self) -> List[bytes]:
         """
         Return data to write to the connection.
 

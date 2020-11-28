@@ -35,7 +35,7 @@ class ConnectionTestCase(FramesTestCase):
                 mask=connection.side is Side.CLIENT,
                 extensions=connection.extensions,
             )
-            for write in connection.bytes_to_send()
+            for write in connection.data_to_send()
         ]
         frames_expected = [] if frame is None else [frame]
         if eof:
@@ -101,12 +101,12 @@ class MaskingTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\xff\x00\xff"):
             client.send_text(b"Spam", True)
-        self.assertEqual(client.bytes_to_send(), [self.masked_text_frame_data])
+        self.assertEqual(client.data_to_send(), [self.masked_text_frame_data])
 
     def test_server_sends_unmasked_frame(self):
         server = Connection(Side.SERVER)
         server.send_text(b"Spam", True)
-        self.assertEqual(server.bytes_to_send(), [self.unmasked_text_frame_date])
+        self.assertEqual(server.data_to_send(), [self.unmasked_text_frame_date])
 
     def test_client_receives_unmasked_frame(self):
         client = Connection(Side.CLIENT)
@@ -178,7 +178,7 @@ class ContinuationTests(ConnectionTestCase):
         # this is the same test as test_client_sends_unexpected_continuation.
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(1001)
-        self.assertEqual(client.bytes_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
+        self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         with self.assertRaises(ProtocolError) as raised:
             client.send_continuation(b"", fin=False)
         self.assertEqual(str(raised.exception), "unexpected continuation frame")
@@ -189,7 +189,7 @@ class ContinuationTests(ConnectionTestCase):
         # this is the same test as test_server_sends_unexpected_continuation.
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
         with self.assertRaises(ProtocolError) as raised:
             server.send_continuation(b"", fin=False)
         self.assertEqual(str(raised.exception), "unexpected continuation frame")
@@ -222,13 +222,13 @@ class TextTests(ConnectionTestCase):
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_text("😀".encode())
         self.assertEqual(
-            client.bytes_to_send(), [b"\x81\x84\x00\x00\x00\x00\xf0\x9f\x98\x80"]
+            client.data_to_send(), [b"\x81\x84\x00\x00\x00\x00\xf0\x9f\x98\x80"]
         )
 
     def test_server_sends_text(self):
         server = Connection(Side.SERVER)
         server.send_text("😀".encode())
-        self.assertEqual(server.bytes_to_send(), [b"\x81\x04\xf0\x9f\x98\x80"])
+        self.assertEqual(server.data_to_send(), [b"\x81\x04\xf0\x9f\x98\x80"])
 
     def test_client_receives_text(self):
         client = Connection(Side.CLIENT)
@@ -280,24 +280,24 @@ class TextTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_text("😀".encode()[:2], fin=False)
-        self.assertEqual(client.bytes_to_send(), [b"\x01\x82\x00\x00\x00\x00\xf0\x9f"])
+        self.assertEqual(client.data_to_send(), [b"\x01\x82\x00\x00\x00\x00\xf0\x9f"])
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_continuation("😀😀".encode()[2:6], fin=False)
         self.assertEqual(
-            client.bytes_to_send(), [b"\x00\x84\x00\x00\x00\x00\x98\x80\xf0\x9f"]
+            client.data_to_send(), [b"\x00\x84\x00\x00\x00\x00\x98\x80\xf0\x9f"]
         )
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_continuation("😀".encode()[2:], fin=True)
-        self.assertEqual(client.bytes_to_send(), [b"\x80\x82\x00\x00\x00\x00\x98\x80"])
+        self.assertEqual(client.data_to_send(), [b"\x80\x82\x00\x00\x00\x00\x98\x80"])
 
     def test_server_sends_fragmented_text(self):
         server = Connection(Side.SERVER)
         server.send_text("😀".encode()[:2], fin=False)
-        self.assertEqual(server.bytes_to_send(), [b"\x01\x02\xf0\x9f"])
+        self.assertEqual(server.data_to_send(), [b"\x01\x02\xf0\x9f"])
         server.send_continuation("😀😀".encode()[2:6], fin=False)
-        self.assertEqual(server.bytes_to_send(), [b"\x00\x04\x98\x80\xf0\x9f"])
+        self.assertEqual(server.data_to_send(), [b"\x00\x04\x98\x80\xf0\x9f"])
         server.send_continuation("😀".encode()[2:], fin=True)
-        self.assertEqual(server.bytes_to_send(), [b"\x80\x02\x98\x80"])
+        self.assertEqual(server.data_to_send(), [b"\x80\x02\x98\x80"])
 
     def test_client_receives_fragmented_text(self):
         client = Connection(Side.CLIENT)
@@ -437,14 +437,14 @@ class TextTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(1001)
-        self.assertEqual(client.bytes_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
+        self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         with self.assertRaises(InvalidState):
             client.send_text(b"")
 
     def test_server_sends_text_after_sending_close(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
         with self.assertRaises(InvalidState):
             server.send_text(b"")
 
@@ -476,13 +476,13 @@ class BinaryTests(ConnectionTestCase):
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_binary(b"\x01\x02\xfe\xff")
         self.assertEqual(
-            client.bytes_to_send(), [b"\x82\x84\x00\x00\x00\x00\x01\x02\xfe\xff"]
+            client.data_to_send(), [b"\x82\x84\x00\x00\x00\x00\x01\x02\xfe\xff"]
         )
 
     def test_server_sends_binary(self):
         server = Connection(Side.SERVER)
         server.send_binary(b"\x01\x02\xfe\xff")
-        self.assertEqual(server.bytes_to_send(), [b"\x82\x04\x01\x02\xfe\xff"])
+        self.assertEqual(server.data_to_send(), [b"\x82\x04\x01\x02\xfe\xff"])
 
     def test_client_receives_binary(self):
         client = Connection(Side.CLIENT)
@@ -518,24 +518,24 @@ class BinaryTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_binary(b"\x01\x02", fin=False)
-        self.assertEqual(client.bytes_to_send(), [b"\x02\x82\x00\x00\x00\x00\x01\x02"])
+        self.assertEqual(client.data_to_send(), [b"\x02\x82\x00\x00\x00\x00\x01\x02"])
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_continuation(b"\xee\xff\x01\x02", fin=False)
         self.assertEqual(
-            client.bytes_to_send(), [b"\x00\x84\x00\x00\x00\x00\xee\xff\x01\x02"]
+            client.data_to_send(), [b"\x00\x84\x00\x00\x00\x00\xee\xff\x01\x02"]
         )
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_continuation(b"\xee\xff", fin=True)
-        self.assertEqual(client.bytes_to_send(), [b"\x80\x82\x00\x00\x00\x00\xee\xff"])
+        self.assertEqual(client.data_to_send(), [b"\x80\x82\x00\x00\x00\x00\xee\xff"])
 
     def test_server_sends_fragmented_binary(self):
         server = Connection(Side.SERVER)
         server.send_binary(b"\x01\x02", fin=False)
-        self.assertEqual(server.bytes_to_send(), [b"\x02\x02\x01\x02"])
+        self.assertEqual(server.data_to_send(), [b"\x02\x02\x01\x02"])
         server.send_continuation(b"\xee\xff\x01\x02", fin=False)
-        self.assertEqual(server.bytes_to_send(), [b"\x00\x04\xee\xff\x01\x02"])
+        self.assertEqual(server.data_to_send(), [b"\x00\x04\xee\xff\x01\x02"])
         server.send_continuation(b"\xee\xff", fin=True)
-        self.assertEqual(server.bytes_to_send(), [b"\x80\x02\xee\xff"])
+        self.assertEqual(server.data_to_send(), [b"\x80\x02\xee\xff"])
 
     def test_client_receives_fragmented_binary(self):
         client = Connection(Side.CLIENT)
@@ -639,14 +639,14 @@ class BinaryTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(1001)
-        self.assertEqual(client.bytes_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
+        self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         with self.assertRaises(InvalidState):
             client.send_binary(b"")
 
     def test_server_sends_binary_after_sending_close(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
         with self.assertRaises(InvalidState):
             server.send_binary(b"")
 
@@ -677,13 +677,13 @@ class CloseTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x3c\x3c\x3c\x3c"):
             client.send_close()
-        self.assertEqual(client.bytes_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
+        self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
         self.assertIs(client.state, State.CLOSING)
 
     def test_server_sends_close(self):
         server = Connection(Side.SERVER)
         server.send_close()
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x00", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x00", b""])
         self.assertIs(server.state, State.CLOSING)
 
     def test_client_receives_close(self):
@@ -691,14 +691,14 @@ class CloseTests(ConnectionTestCase):
         with self.enforce_mask(b"\x3c\x3c\x3c\x3c"):
             client.receive_data(b"\x88\x00")
         self.assertEqual(client.events_received(), [Frame(True, OP_CLOSE, b"")])
-        self.assertEqual(client.bytes_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
+        self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
         self.assertIs(client.state, State.CLOSING)
 
     def test_server_receives_close(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
         self.assertEqual(server.events_received(), [Frame(True, OP_CLOSE, b"")])
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x00", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x00", b""])
         self.assertIs(server.state, State.CLOSING)
 
     def test_client_sends_close_then_receives_close(self):
@@ -761,13 +761,13 @@ class CloseTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(1001)
-        self.assertEqual(client.bytes_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
+        self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         self.assertIs(client.state, State.CLOSING)
 
     def test_server_sends_close_with_code(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
         self.assertIs(server.state, State.CLOSING)
 
     def test_client_receives_close_with_code(self):
@@ -787,14 +787,14 @@ class CloseTests(ConnectionTestCase):
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(1001, "going away")
         self.assertEqual(
-            client.bytes_to_send(), [b"\x88\x8c\x00\x00\x00\x00\x03\xe9going away"]
+            client.data_to_send(), [b"\x88\x8c\x00\x00\x00\x00\x03\xe9going away"]
         )
         self.assertIs(client.state, State.CLOSING)
 
     def test_server_sends_close_with_code_and_reason(self):
         server = Connection(Side.SERVER)
         server.send_close(1000, "OK")
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x04\x03\xe8OK", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x04\x03\xe8OK", b""])
         self.assertIs(server.state, State.CLOSING)
 
     def test_client_receives_close_with_code_and_reason(self):
@@ -870,12 +870,12 @@ class PingTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x44\x88\xcc"):
             client.send_ping(b"")
-        self.assertEqual(client.bytes_to_send(), [b"\x89\x80\x00\x44\x88\xcc"])
+        self.assertEqual(client.data_to_send(), [b"\x89\x80\x00\x44\x88\xcc"])
 
     def test_server_sends_ping(self):
         server = Connection(Side.SERVER)
         server.send_ping(b"")
-        self.assertEqual(server.bytes_to_send(), [b"\x89\x00"])
+        self.assertEqual(server.data_to_send(), [b"\x89\x00"])
 
     def test_client_receives_ping(self):
         client = Connection(Side.CLIENT)
@@ -906,13 +906,13 @@ class PingTests(ConnectionTestCase):
         with self.enforce_mask(b"\x00\x44\x88\xcc"):
             client.send_ping(b"\x22\x66\xaa\xee")
         self.assertEqual(
-            client.bytes_to_send(), [b"\x89\x84\x00\x44\x88\xcc\x22\x22\x22\x22"]
+            client.data_to_send(), [b"\x89\x84\x00\x44\x88\xcc\x22\x22\x22\x22"]
         )
 
     def test_server_sends_ping_with_data(self):
         server = Connection(Side.SERVER)
         server.send_ping(b"\x22\x66\xaa\xee")
-        self.assertEqual(server.bytes_to_send(), [b"\x89\x04\x22\x66\xaa\xee"])
+        self.assertEqual(server.data_to_send(), [b"\x89\x04\x22\x66\xaa\xee"])
 
     def test_client_receives_ping_with_data(self):
         client = Connection(Side.CLIENT)
@@ -970,7 +970,7 @@ class PingTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(1001)
-        self.assertEqual(client.bytes_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
+        self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         # The spec says: "An endpoint MAY send a Ping frame any time (...)
         # before the connection is closed" but websockets doesn't support
         # sending a Ping frame after a Close frame.
@@ -983,7 +983,7 @@ class PingTests(ConnectionTestCase):
     def test_server_sends_ping_after_sending_close(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
         # The spec says: "An endpoint MAY send a Ping frame any time (...)
         # before the connection is closed" but websockets doesn't support
         # sending a Ping frame after a Close frame.
@@ -1026,12 +1026,12 @@ class PongTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x44\x88\xcc"):
             client.send_pong(b"")
-        self.assertEqual(client.bytes_to_send(), [b"\x8a\x80\x00\x44\x88\xcc"])
+        self.assertEqual(client.data_to_send(), [b"\x8a\x80\x00\x44\x88\xcc"])
 
     def test_server_sends_pong(self):
         server = Connection(Side.SERVER)
         server.send_pong(b"")
-        self.assertEqual(server.bytes_to_send(), [b"\x8a\x00"])
+        self.assertEqual(server.data_to_send(), [b"\x8a\x00"])
 
     def test_client_receives_pong(self):
         client = Connection(Side.CLIENT)
@@ -1054,13 +1054,13 @@ class PongTests(ConnectionTestCase):
         with self.enforce_mask(b"\x00\x44\x88\xcc"):
             client.send_pong(b"\x22\x66\xaa\xee")
         self.assertEqual(
-            client.bytes_to_send(), [b"\x8a\x84\x00\x44\x88\xcc\x22\x22\x22\x22"]
+            client.data_to_send(), [b"\x8a\x84\x00\x44\x88\xcc\x22\x22\x22\x22"]
         )
 
     def test_server_sends_pong_with_data(self):
         server = Connection(Side.SERVER)
         server.send_pong(b"\x22\x66\xaa\xee")
-        self.assertEqual(server.bytes_to_send(), [b"\x8a\x04\x22\x66\xaa\xee"])
+        self.assertEqual(server.data_to_send(), [b"\x8a\x04\x22\x66\xaa\xee"])
 
     def test_client_receives_pong_with_data(self):
         client = Connection(Side.CLIENT)
@@ -1110,7 +1110,7 @@ class PongTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(1001)
-        self.assertEqual(client.bytes_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
+        self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         # websockets doesn't support sending a Pong frame after a Close frame.
         with self.assertRaises(InvalidState):
             client.send_pong(b"")
@@ -1118,7 +1118,7 @@ class PongTests(ConnectionTestCase):
     def test_server_sends_pong_after_sending_close(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.bytes_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
         # websockets doesn't support sending a Pong frame after a Close frame.
         with self.assertRaises(InvalidState):
             server.send_pong(b"")
@@ -1465,13 +1465,13 @@ class ExtensionsTests(ConnectionTestCase):
         client.extensions = [Rsv2Extension()]
         with self.enforce_mask(b"\x00\x44\x88\xcc"):
             client.send_ping(b"")
-        self.assertEqual(client.bytes_to_send(), [b"\xa9\x80\x00\x44\x88\xcc"])
+        self.assertEqual(client.data_to_send(), [b"\xa9\x80\x00\x44\x88\xcc"])
 
     def test_server_extension_encodes_frame(self):
         server = Connection(Side.SERVER)
         server.extensions = [Rsv2Extension()]
         server.send_ping(b"")
-        self.assertEqual(server.bytes_to_send(), [b"\xa9\x00"])
+        self.assertEqual(server.data_to_send(), [b"\xa9\x00"])
 
     def test_client_extension_decodes_frame(self):
         client = Connection(Side.CLIENT)

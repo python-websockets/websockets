@@ -91,7 +91,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertIsInstance(response, Response)
         server.send_response(response)
         self.assertEqual(
-            server.bytes_to_send(),
+            server.data_to_send(),
             [
                 f"HTTP/1.1 101 Switching Protocols\r\n"
                 f"Upgrade: websocket\r\n"
@@ -111,7 +111,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertIsInstance(response, Response)
         server.send_response(response)
         self.assertEqual(
-            server.bytes_to_send(),
+            server.data_to_send(),
             [
                 f"HTTP/1.1 404 Not Found\r\n"
                 f"Date: {DATE}\r\n"

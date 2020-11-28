@@ -27,7 +27,7 @@ class ConnectTests(unittest.TestCase):
         self.assertIsInstance(request, Request)
         client.send_request(request)
         self.assertEqual(
-            client.bytes_to_send(),
+            client.data_to_send(),
             [
                 f"GET /test HTTP/1.1\r\n"
                 f"Host: example.com\r\n"

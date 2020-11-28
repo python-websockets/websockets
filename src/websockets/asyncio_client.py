@@ -517,7 +517,7 @@ class Connect:
         exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
     ) -> None:
-        await self.ws_client.close()
+        await self.protocol.close()
 
     # await connect(...)
 
@@ -546,7 +546,7 @@ class Connect:
                     await protocol.wait_closed()
                     raise
                 else:
-                    self.ws_client = protocol
+                    self.protocol = protocol
                     return protocol
             except RedirectHandshake as exc:
                 self.handle_redirect(exc.uri)

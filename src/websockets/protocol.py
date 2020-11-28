@@ -291,7 +291,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Protect sending fragmented messages.
         self._fragmented_message_waiter: Optional[asyncio.Future[None]] = None
 
-        # Mapping of ping IDs to waiters, in chronological order.
+        # Mapping of ping IDs to pong waiters, in chronological order.
         self.pings: Dict[bytes, asyncio.Future[None]] = {}
 
         # Task running the data transfer.
@@ -736,15 +736,15 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         Send a ping.
 
-        Return a :class:`~asyncio.Future` which will be completed when the
-        corresponding pong is received and which you may ignore if you don't
-        want to wait.
+        Return a :class:`~asyncio.Future` that will be completed when the
+        corresponding pong is received. You can ignore it if you don't intend
+        to wait.
 
         A ping may serve as a keepalive or as a check that the remote endpoint
         received all messages up to this point::
 
             pong_waiter = await ws.ping()
-            await pong_waiter   # only if you want to wait for the pong
+            await pong_waiter  # only if you want to wait for the pong
 
         By default, the ping contains four random bytes. This payload may be
         overridden with the optional ``data`` argument which must be a string
@@ -1155,12 +1155,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 # ping() raises ConnectionClosed if the connection is lost,
                 # when connection_lost() calls abort_pings().
 
-                ping_waiter = await self.ping()
+                pong_waiter = await self.ping()
 
                 if self.ping_timeout is not None:
                     try:
                         await asyncio.wait_for(
-                            ping_waiter,
+                            pong_waiter,
                             self.ping_timeout,
                             loop=self.loop if sys.version_info[:2] < (3, 8) else None,
                         )

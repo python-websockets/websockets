@@ -47,7 +47,7 @@ async def read_request(
     stream: asyncio.StreamReader,
 ) -> Tuple[str, Headers]:  # pragma: no cover
     warnings.warn("websockets.http.read_request is deprecated", DeprecationWarning)
-    from .http_legacy import read_request
+    from .legacy.http import read_request
 
     return await read_request(stream)
 
@@ -56,6 +56,6 @@ async def read_response(
     stream: asyncio.StreamReader,
 ) -> Tuple[int, str, Headers]:  # pragma: no cover
     warnings.warn("websockets.http.read_response is deprecated", DeprecationWarning)
-    from .http_legacy import read_response
+    from .legacy.http import read_response
 
     return await read_response(stream)

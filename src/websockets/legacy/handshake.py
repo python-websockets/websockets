@@ -1,5 +1,5 @@
 """
-:mod:`websockets.handshake` provides helpers for the WebSocket handshake.
+:mod:`websockets.legacy.handshake` provides helpers for the WebSocket handshake.
 
 See `section 4 of RFC 6455`_.
 
@@ -29,11 +29,11 @@ import base64
 import binascii
 from typing import List
 
-from .datastructures import Headers, MultipleValuesError
-from .exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
-from .headers import parse_connection, parse_upgrade
-from .typing import ConnectionOption, UpgradeProtocol
-from .utils import accept_key as accept, generate_key
+from ..datastructures import Headers, MultipleValuesError
+from ..exceptions import InvalidHeader, InvalidHeaderValue, InvalidUpgrade
+from ..headers import parse_connection, parse_upgrade
+from ..typing import ConnectionOption, UpgradeProtocol
+from ..utils import accept_key as accept, generate_key
 
 
 __all__ = ["build_request", "check_request", "build_response", "check_response"]

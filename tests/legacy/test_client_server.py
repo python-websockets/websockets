@@ -13,8 +13,6 @@ import urllib.error
 import urllib.request
 import warnings
 
-from websockets.asyncio_client import *
-from websockets.asyncio_server import *
 from websockets.datastructures import Headers
 from websockets.exceptions import (
     ConnectionClosed,
@@ -28,19 +26,20 @@ from websockets.extensions.permessage_deflate import (
     PerMessageDeflate,
     ServerPerMessageDeflateFactory,
 )
-from websockets.handshake_legacy import build_response
 from websockets.http import USER_AGENT
-from websockets.http_legacy import read_response
-from websockets.protocol import State
+from websockets.legacy.client import *
+from websockets.legacy.handshake import build_response
+from websockets.legacy.http import read_response
+from websockets.legacy.protocol import State
+from websockets.legacy.server import *
 from websockets.uri import parse_uri
 
-from .extensions.test_base import (
+from ..extensions.test_base import (
     ClientNoOpExtensionFactory,
     NoOpExtension,
     ServerNoOpExtensionFactory,
 )
-from .test_protocol import MS
-from .utils import AsyncioTestCase
+from .utils import MS, AsyncioTestCase
 
 
 # Generate TLS certificate with:
@@ -49,7 +48,7 @@ from .utils import AsyncioTestCase
 # $ cat test_localhost.key test_localhost.crt > test_localhost.pem
 # $ rm test_localhost.key test_localhost.crt
 
-testcert = bytes(pathlib.Path(__file__).with_name("test_localhost.pem"))
+testcert = bytes(pathlib.Path(__file__).parent.with_name("test_localhost.pem"))
 
 
 async def handler(ws, path):
@@ -1016,7 +1015,7 @@ class CommonClientServerTests:
         self.run_loop_once()
 
     @with_server()
-    @unittest.mock.patch("websockets.asyncio_server.read_request")
+    @unittest.mock.patch("websockets.legacy.server.read_request")
     def test_server_receives_malformed_request(self, _read_request):
         _read_request.side_effect = ValueError("read_request failed")
 
@@ -1024,7 +1023,7 @@ class CommonClientServerTests:
             self.start_client()
 
     @with_server()
-    @unittest.mock.patch("websockets.asyncio_client.read_response")
+    @unittest.mock.patch("websockets.legacy.client.read_response")
     def test_client_receives_malformed_response(self, _read_response):
         _read_response.side_effect = ValueError("read_response failed")
 
@@ -1033,7 +1032,7 @@ class CommonClientServerTests:
         self.run_loop_once()
 
     @with_server()
-    @unittest.mock.patch("websockets.asyncio_client.build_request")
+    @unittest.mock.patch("websockets.legacy.client.build_request")
     def test_client_sends_invalid_handshake_request(self, _build_request):
         def wrong_build_request(headers):
             return "42"
@@ -1044,7 +1043,7 @@ class CommonClientServerTests:
             self.start_client()
 
     @with_server()
-    @unittest.mock.patch("websockets.asyncio_server.build_response")
+    @unittest.mock.patch("websockets.legacy.server.build_response")
     def test_server_sends_invalid_handshake_response(self, _build_response):
         def wrong_build_response(headers, key):
             return build_response(headers, "42")
@@ -1055,7 +1054,7 @@ class CommonClientServerTests:
             self.start_client()
 
     @with_server()
-    @unittest.mock.patch("websockets.asyncio_client.read_response")
+    @unittest.mock.patch("websockets.legacy.client.read_response")
     def test_server_does_not_switch_protocols(self, _read_response):
         async def wrong_read_response(stream):
             status_code, reason, headers = await read_response(stream)
@@ -1069,7 +1068,7 @@ class CommonClientServerTests:
 
     @with_server()
     @unittest.mock.patch(
-        "websockets.asyncio_server.WebSocketServerProtocol.process_request"
+        "websockets.legacy.server.WebSocketServerProtocol.process_request"
     )
     def test_server_error_in_handshake(self, _process_request):
         _process_request.side_effect = Exception("process_request crashed")
@@ -1078,7 +1077,7 @@ class CommonClientServerTests:
             self.start_client()
 
     @with_server()
-    @unittest.mock.patch("websockets.asyncio_server.WebSocketServerProtocol.send")
+    @unittest.mock.patch("websockets.legacy.server.WebSocketServerProtocol.send")
     def test_server_handler_crashes(self, send):
         send.side_effect = ValueError("send failed")
 
@@ -1091,7 +1090,7 @@ class CommonClientServerTests:
         self.assertEqual(self.client.close_code, 1011)
 
     @with_server()
-    @unittest.mock.patch("websockets.asyncio_server.WebSocketServerProtocol.close")
+    @unittest.mock.patch("websockets.legacy.server.WebSocketServerProtocol.close")
     def test_server_close_crashes(self, close):
         close.side_effect = ValueError("close failed")
 
@@ -1164,10 +1163,10 @@ class CommonClientServerTests:
 
     @with_server()
     @unittest.mock.patch(
-        "websockets.server.WebSocketServerProtocol.write_http_response"
+        "websockets.legacy.server.WebSocketServerProtocol.write_http_response"
     )
     @unittest.mock.patch(
-        "websockets.asyncio_server.WebSocketServerProtocol.read_http_request"
+        "websockets.legacy.server.WebSocketServerProtocol.read_http_request"
     )
     def test_connection_error_during_opening_handshake(
         self, _read_http_request, _write_http_response
@@ -1186,7 +1185,7 @@ class CommonClientServerTests:
         _write_http_response.assert_not_called()
 
     @with_server()
-    @unittest.mock.patch("websockets.asyncio_server.WebSocketServerProtocol.close")
+    @unittest.mock.patch("websockets.legacy.server.WebSocketServerProtocol.close")
     def test_connection_error_during_closing_handshake(self, close):
         close.side_effect = ConnectionError
 

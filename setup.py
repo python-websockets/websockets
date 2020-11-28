@@ -24,7 +24,7 @@ exec((root_dir / 'src' / 'websockets' / 'version.py').read_text(encoding='utf-8'
 if sys.version_info[:3] < (3, 6, 1):
     raise Exception("websockets requires Python >= 3.6.1.")
 
-packages = ['websockets', 'websockets/extensions']
+packages = ['websockets', 'websockets/legacy', 'websockets/extensions']
 
 ext_modules = [
     setuptools.Extension(

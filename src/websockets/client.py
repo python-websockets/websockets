@@ -2,7 +2,6 @@ import collections
 import logging
 from typing import Generator, List, Optional, Sequence
 
-from .asyncio_client import WebSocketClientProtocol, connect, unix_connect
 from .connection import CLIENT, CONNECTING, OPEN, Connection
 from .datastructures import Headers, HeadersLike, MultipleValuesError
 from .exceptions import (
@@ -25,6 +24,7 @@ from .headers import (
 )
 from .http import USER_AGENT, build_host
 from .http11 import Request, Response
+from .legacy.client import WebSocketClientProtocol, connect, unix_connect  # noqa
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
@@ -36,12 +36,7 @@ from .uri import parse_uri
 from .utils import accept_key, generate_key
 
 
-__all__ = [
-    "connect",
-    "unix_connect",
-    "ClientConnection",
-    "WebSocketClientProtocol",
-]
+__all__ = ["ClientConnection"]
 
 logger = logging.getLogger(__name__)
 
@@ -64,7 +59,7 @@ class ClientConnection(Connection):
         self.extra_headers = extra_headers
         self.key = generate_key()
 
-    def connect(self) -> Request:
+    def connect(self) -> Request:  # noqa: F811
         """
         Create a WebSocket handshake request event to send to the server.
 

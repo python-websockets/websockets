@@ -80,13 +80,13 @@ How do I get access HTTP headers, for example cookies?
 ......................................................
 
 To access HTTP headers during the WebSocket handshake, you can override
-:attr:`~server.WebSocketServerProtocol.process_request`::
+:attr:`~legacy.server.WebSocketServerProtocol.process_request`::
 
     async def process_request(self, path, request_headers):
         cookies = request_header["Cookie"]
 
 Once the connection is established, they're available in
-:attr:`~protocol.WebSocketServerProtocol.request_headers`::
+:attr:`~legacy.protocol.WebSocketServerProtocol.request_headers`::
 
     async def handler(websocket, path):
         cookies = websocket.request_headers["Cookie"]
@@ -94,7 +94,7 @@ Once the connection is established, they're available in
 How do I get the IP address of the client connecting to my server?
 ..................................................................
 
-It's available in :attr:`~protocol.WebSocketCommonProtocol.remote_address`::
+It's available in :attr:`~legacy.protocol.WebSocketCommonProtocol.remote_address`::
 
     async def handler(websocket, path):
         remote_ip = websocket.remote_address[0]
@@ -121,7 +121,7 @@ Providing a HTTP server is out of scope for websockets. It only aims at
 providing a WebSocket server.
 
 There's limited support for returning HTTP responses with the
-:attr:`~server.WebSocketServerProtocol.process_request` hook.
+:attr:`~legacy.server.WebSocketServerProtocol.process_request` hook.
 If you need more, pick a HTTP server and run it separately.
 
 Client side

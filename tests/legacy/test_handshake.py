@@ -8,7 +8,7 @@ from websockets.exceptions import (
     InvalidHeaderValue,
     InvalidUpgrade,
 )
-from websockets.handshake_legacy import *
+from websockets.legacy.handshake import *
 from websockets.utils import accept_key
 
 

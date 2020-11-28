@@ -6,8 +6,8 @@ import sys
 import threading
 from typing import Any, Set
 
-from .client import connect
 from .exceptions import ConnectionClosed, format_close
+from .legacy.client import connect
 
 
 if sys.platform == "win32":

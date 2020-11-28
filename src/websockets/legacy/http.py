@@ -2,8 +2,8 @@ import asyncio
 import re
 from typing import Tuple
 
-from .datastructures import Headers
-from .exceptions import SecurityError
+from ..datastructures import Headers
+from ..exceptions import SecurityError
 
 
 __all__ = ["read_request", "read_response"]

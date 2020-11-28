@@ -6,7 +6,6 @@ import http
 import logging
 from typing import Callable, Generator, List, Optional, Sequence, Tuple, Union, cast
 
-from .asyncio_server import WebSocketServer, WebSocketServerProtocol, serve, unix_serve
 from .connection import CONNECTING, OPEN, SERVER, Connection
 from .datastructures import Headers, HeadersLike, MultipleValuesError
 from .exceptions import (
@@ -27,6 +26,12 @@ from .headers import (
 )
 from .http import USER_AGENT
 from .http11 import Request, Response
+from .legacy.server import (  # noqa
+    WebSocketServer,
+    WebSocketServerProtocol,
+    serve,
+    unix_serve,
+)
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
@@ -37,13 +42,7 @@ from .typing import (
 from .utils import accept_key
 
 
-__all__ = [
-    "serve",
-    "unix_serve",
-    "ServerConnection",
-    "WebSocketServerProtocol",
-    "WebSocketServer",
-]
+__all__ = ["ServerConnection"]
 
 logger = logging.getLogger(__name__)
 

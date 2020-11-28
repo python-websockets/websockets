@@ -1,5 +1,5 @@
 """
-:mod:`websockets.client` defines the WebSocket client APIs.
+:mod:`websockets.legacy.client` defines the WebSocket client APIs.
 
 """
 
@@ -11,8 +11,8 @@ import warnings
 from types import TracebackType
 from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple, Type, cast
 
-from .datastructures import Headers, HeadersLike
-from .exceptions import (
+from ..datastructures import Headers, HeadersLike
+from ..exceptions import (
     InvalidHandshake,
     InvalidHeader,
     InvalidMessage,
@@ -21,21 +21,21 @@ from .exceptions import (
     RedirectHandshake,
     SecurityError,
 )
-from .extensions.base import ClientExtensionFactory, Extension
-from .extensions.permessage_deflate import enable_client_permessage_deflate
-from .handshake_legacy import build_request, check_response
-from .headers import (
+from ..extensions.base import ClientExtensionFactory, Extension
+from ..extensions.permessage_deflate import enable_client_permessage_deflate
+from ..headers import (
     build_authorization_basic,
     build_extension,
     build_subprotocol,
     parse_extension,
     parse_subprotocol,
 )
-from .http import USER_AGENT, build_host
-from .http_legacy import read_response
+from ..http import USER_AGENT, build_host
+from ..typing import ExtensionHeader, Origin, Subprotocol
+from ..uri import WebSocketURI, parse_uri
+from .handshake import build_request, check_response
+from .http import read_response
 from .protocol import WebSocketCommonProtocol
-from .typing import ExtensionHeader, Origin, Subprotocol
-from .uri import WebSocketURI, parse_uri
 
 
 __all__ = ["connect", "unix_connect", "WebSocketClientProtocol"]

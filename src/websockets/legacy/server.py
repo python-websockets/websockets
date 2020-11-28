@@ -1,5 +1,5 @@
 """
-:mod:`websockets.server` defines the WebSocket server APIs.
+:mod:`websockets.legacy.server` defines the WebSocket server APIs.
 
 """
 
@@ -28,8 +28,8 @@ from typing import (
     cast,
 )
 
-from .datastructures import Headers, HeadersLike, MultipleValuesError
-from .exceptions import (
+from ..datastructures import Headers, HeadersLike, MultipleValuesError
+from ..exceptions import (
     AbortHandshake,
     InvalidHandshake,
     InvalidHeader,
@@ -38,14 +38,14 @@ from .exceptions import (
     InvalidUpgrade,
     NegotiationError,
 )
-from .extensions.base import Extension, ServerExtensionFactory
-from .extensions.permessage_deflate import enable_server_permessage_deflate
-from .handshake_legacy import build_response, check_request
-from .headers import build_extension, parse_extension, parse_subprotocol
-from .http import USER_AGENT
-from .http_legacy import read_request
+from ..extensions.base import Extension, ServerExtensionFactory
+from ..extensions.permessage_deflate import enable_server_permessage_deflate
+from ..headers import build_extension, parse_extension, parse_subprotocol
+from ..http import USER_AGENT
+from ..typing import ExtensionHeader, Origin, Subprotocol
+from .handshake import build_response, check_request
+from .http import read_request
 from .protocol import WebSocketCommonProtocol
-from .typing import ExtensionHeader, Origin, Subprotocol
 
 
 __all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
@@ -598,7 +598,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
 class WebSocketServer:
     """
-    WebSocket server returned by :func:`~websockets.server.serve`.
+    WebSocket server returned by :func:`serve`.
 
     This class provides the same interface as
     :class:`~asyncio.AbstractServer`, namely the
@@ -770,9 +770,9 @@ class Serve:
     performs the closing handshake and closes the connection.
 
     Awaiting :func:`serve` yields a :class:`WebSocketServer`. This instance
-    provides :meth:`~websockets.server.WebSocketServer.close` and
-    :meth:`~websockets.server.WebSocketServer.wait_closed` methods for
-    terminating the server and cleaning up its resources.
+    provides :meth:`~WebSocketServer.close` and
+    :meth:`~WebSocketServer.wait_closed` methods for terminating the server
+    and cleaning up its resources.
 
     When a server is closed with :meth:`~WebSocketServer.close`, it closes all
     connections with close code 1001 (going away). Connections handlers, which
@@ -835,11 +835,11 @@ class Serve:
       :meth:`~WebSocketServerProtocol.select_subprotocol` for details
 
     Since there's no useful way to propagate exceptions triggered in handlers,
-    they're sent to the ``'websockets.asyncio_server'`` logger instead.
+    they're sent to the ``'websockets.legacy.server'`` logger instead.
     Debugging is much easier if you configure logging to print them::
 
         import logging
-        logger = logging.getLogger("websockets.asyncio_server")
+        logger = logging.getLogger("websockets.legacy.server")
         logger.setLevel(logging.ERROR)
         logger.addHandler(logging.StreamHandler())
 

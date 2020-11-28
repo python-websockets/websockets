@@ -29,7 +29,7 @@ High-level
 Server
 ......
 
-.. automodule:: websockets.server
+.. automodule:: websockets.legacy.server
 
     .. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, compression='deflate', origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, **kwds)
         :async:
@@ -53,7 +53,7 @@ Server
 Client
 ......
 
-.. automodule:: websockets.client
+.. automodule:: websockets.legacy.client
 
     .. autofunction:: connect(uri, *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None, compression='deflate', origin=None, extensions=None, subprotocols=None, extra_headers=None, **kwds)
         :async:
@@ -68,7 +68,7 @@ Client
 Shared
 ......
 
-.. automodule:: websockets.protocol
+.. automodule:: websockets.legacy.protocol
 
     .. autoclass:: WebSocketCommonProtocol(*, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, loop=None)
 
@@ -107,7 +107,7 @@ Per-Message Deflate Extension
 HTTP Basic Auth
 ...............
 
-.. automodule:: websockets.auth
+.. automodule:: websockets.legacy.auth
 
     .. autofunction:: basic_auth_protocol_factory
 

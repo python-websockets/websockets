@@ -9,24 +9,24 @@ Server
 * Write a coroutine that handles a single connection. It receives a WebSocket
   protocol instance and the URI path in argument.
 
-  * Call :meth:`~protocol.WebSocketCommonProtocol.recv` and
-    :meth:`~protocol.WebSocketCommonProtocol.send` to receive and send
+  * Call :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` and
+    :meth:`~legacy.protocol.WebSocketCommonProtocol.send` to receive and send
     messages at any time.
 
-  * When :meth:`~protocol.WebSocketCommonProtocol.recv` or
-    :meth:`~protocol.WebSocketCommonProtocol.send` raises
+  * When :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` or
+    :meth:`~legacy.protocol.WebSocketCommonProtocol.send` raises
     :exc:`~exceptions.ConnectionClosed`, clean up and exit. If you started
     other :class:`asyncio.Task`, terminate them before exiting.
 
-  * If you aren't awaiting :meth:`~protocol.WebSocketCommonProtocol.recv`,
-    consider awaiting :meth:`~protocol.WebSocketCommonProtocol.wait_closed`
+  * If you aren't awaiting :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`,
+    consider awaiting :meth:`~legacy.protocol.WebSocketCommonProtocol.wait_closed`
     to detect quickly when the connection is closed.
 
-  * You may :meth:`~protocol.WebSocketCommonProtocol.ping` or
-    :meth:`~protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
+  * You may :meth:`~legacy.protocol.WebSocketCommonProtocol.ping` or
+    :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
     needed in general.
 
-* Create a server with :func:`~server.serve` which is similar to asyncio's
+* Create a server with :func:`~legacy.server.serve` which is similar to asyncio's
   :meth:`~asyncio.AbstractEventLoop.create_server`. You can also use it as an
   asynchronous context manager.
 
@@ -35,30 +35,30 @@ Server
     handler exits normally or with an exception.
 
   * For advanced customization, you may subclass
-    :class:`~server.WebSocketServerProtocol` and pass either this subclass or
+    :class:`~legacy.server.WebSocketServerProtocol` and pass either this subclass or
     a factory function as the ``create_protocol`` argument.
 
 Client
 ------
 
-* Create a client with :func:`~client.connect` which is similar to asyncio's
+* Create a client with :func:`~legacy.client.connect` which is similar to asyncio's
   :meth:`~asyncio.BaseEventLoop.create_connection`. You can also use it as an
   asynchronous context manager.
 
   * For advanced customization, you may subclass
-    :class:`~server.WebSocketClientProtocol` and pass either this subclass or
+    :class:`~legacy.server.WebSocketClientProtocol` and pass either this subclass or
     a factory function as the ``create_protocol`` argument.
 
-* Call :meth:`~protocol.WebSocketCommonProtocol.recv` and
-  :meth:`~protocol.WebSocketCommonProtocol.send` to receive and send messages
+* Call :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` and
+  :meth:`~legacy.protocol.WebSocketCommonProtocol.send` to receive and send messages
   at any time.
 
-* You may :meth:`~protocol.WebSocketCommonProtocol.ping` or
-  :meth:`~protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
+* You may :meth:`~legacy.protocol.WebSocketCommonProtocol.ping` or
+  :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
   needed in general.
 
-* If you aren't using :func:`~client.connect` as a context manager, call
-  :meth:`~protocol.WebSocketCommonProtocol.close` to terminate the connection.
+* If you aren't using :func:`~legacy.client.connect` as a context manager, call
+  :meth:`~legacy.protocol.WebSocketCommonProtocol.close` to terminate the connection.
 
 .. _debugging:
 

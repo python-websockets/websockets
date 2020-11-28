@@ -301,7 +301,7 @@ class AbortHandshake(InvalidHandshake):
 
     This exception is an implementation detail.
 
-    The public API is :meth:`~server.WebSocketServerProtocol.process_request`.
+    The public API is :meth:`~legacy.server.WebSocketServerProtocol.process_request`.
 
     """
 

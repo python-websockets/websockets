@@ -1,11 +1,13 @@
 # This relies on each of the submodules having an __all__ variable.
 
-from .auth import *  # noqa
-from .client import *  # noqa
+from .client import *
 from .datastructures import *  # noqa
 from .exceptions import *  # noqa
-from .protocol import *  # noqa
-from .server import *  # noqa
+from .legacy.auth import *  # noqa
+from .legacy.client import *  # noqa
+from .legacy.protocol import *  # noqa
+from .legacy.server import *  # noqa
+from .server import *
 from .typing import *  # noqa
 from .uri import *  # noqa
 from .version import version as __version__  # noqa

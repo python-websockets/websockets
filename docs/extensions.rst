@@ -14,8 +14,9 @@ Per-Message Deflate, specified in :rfc:`7692`.
 Per-Message Deflate
 -------------------
 
-:func:`~server.serve()` and :func:`~client.connect` enable the Per-Message
-Deflate extension by default. You can disable this with ``compression=None``.
+:func:`~legacy.server.serve()` and :func:`~legacy.client.connect` enable the
+Per-Message Deflate extension by default. You can disable this with
+``compression=None``.
 
 You can also configure the Per-Message Deflate extension explicitly if you
 want to customize its parameters.

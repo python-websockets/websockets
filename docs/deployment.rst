@@ -24,7 +24,7 @@ Graceful shutdown
 
 You may want to close connections gracefully when shutting down the server,
 perhaps after executing some cleanup logic. There are two ways to achieve this
-with the object returned by :func:`~server.serve`:
+with the object returned by :func:`~legacy.server.serve`:
 
 - using it as a asynchronous context manager, or
 - calling its ``close()`` method, then waiting for its ``wait_closed()``
@@ -132,7 +132,7 @@ Under high load, if a server receives more messages than it can process,
 bufferbloat can result in excessive memory use.
 
 By default ``websockets`` has generous limits. It is strongly recommended to
-adapt them to your application. When you call :func:`~server.serve`:
+adapt them to your application. When you call :func:`~legacy.server.serve`:
 
 - Set ``max_size`` (default: 1 MiB, UTF-8 encoded) to the maximum size of
   messages your application generates.
@@ -155,7 +155,7 @@ The author of ``websockets`` doesn't think that's a good idea, due to the
 widely different operational characteristics of HTTP and WebSocket.
 
 ``websockets`` provide minimal support for responding to HTTP requests with
-the :meth:`~server.WebSocketServerProtocol.process_request` hook. Typical
+the :meth:`~legacy.server.WebSocketServerProtocol.process_request` hook. Typical
 use cases include health checks. Here's an example:
 
 .. literalinclude:: ../example/health_check_server.py

@@ -143,7 +143,7 @@ For getting messages from a ``producer`` coroutine and sending them::
 In this example, ``producer`` represents your business logic for generating
 messages to send on the WebSocket connection.
 
-:meth:`~protocol.WebSocketCommonProtocol.send` raises a
+:meth:`~legacy.protocol.WebSocketCommonProtocol.send` raises a
 :exc:`~exceptions.ConnectionClosed` exception when the client disconnects,
 which breaks out of the ``while True`` loop.
 

@@ -4,10 +4,12 @@ import websockets
 
 
 combined_exports = (
-    websockets.auth.__all__
+    websockets.legacy.auth.__all__
+    + websockets.legacy.client.__all__
+    + websockets.legacy.protocol.__all__
+    + websockets.legacy.server.__all__
     + websockets.client.__all__
     + websockets.exceptions.__all__
-    + websockets.protocol.__all__
     + websockets.server.__all__
     + websockets.typing.__all__
     + websockets.uri.__all__

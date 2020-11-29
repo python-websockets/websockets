@@ -29,35 +29,53 @@ fixing regressions shortly after a release.
 
     **Version 9.0 moves or deprecates several APIs.**
 
-    * Import :class:`~datastructures.Headers` and
-      :exc:`~datastructures.MultipleValuesError` from
-      :mod:`websockets.datastructures` instead of :mod:`websockets.http`.
+    * :class:`~datastructures.Headers` and
+      :exc:`~datastructures.MultipleValuesError` were moved from
+      ``websockets.http`` to :mod:`websockets.datastructures`.
 
-    * :mod:`websockets.client`, :mod:`websockets.server,`
-      :mod:`websockets.protocol`, and :mod:`websockets.auth` were moved to
-      :mod:`websockets.legacy.client`, :mod:`websockets.legacy.server`,
-      :mod:`websockets.legacy.protocol`, and :mod:`websockets.legacy.auth`
-      respectively.
+    * ``websockets.client``, ``websockets.server``, ``websockets.protocol``,
+      and ``websockets.auth`` were moved to :mod:`websockets.legacy.client`,
+      :mod:`websockets.legacy.server`, :mod:`websockets.legacy.protocol`, and
+      :mod:`websockets.legacy.auth` respectively.
 
-    * :mod:`websockets.handshake` is deprecated.
+    * ``websockets.handshake`` is deprecated.
 
-    * :mod:`websockets.http` is deprecated.
+    * ``websockets.http`` is deprecated.
 
-    * :mod:`websockets.framing` is deprecated.
+    * ``websockets.framing`` is deprecated.
 
     Aliases provide backwards compatibility for all previously public APIs.
 
+* Added compatibility with Python 3.9.
+
 * Added support for IRIs in addition to URIs.
+
+* Added close codes 1012, 1013, and 1014.
+
+* Raised an error when passing a :class:`dict` to
+  :meth:`~legacy.protocol.WebSocketCommonProtocol.send`.
+
+* Fixed ``Host`` header sent when connecting to an IPv6 address.
+
+* Aligned maximum cookie size with popular web browsers.
+
+* Ensured cancellation always propagates, even on Python versions where
+  :exc:`~asyncio.CancelledError` inherits :exc:`Exception`.
+
+* Improved error reporting.
+
 
 8.1
 ...
 
-* Added compatibility with Python 3.8.
+*November 1, 2019*
 
-* Added close codes 1012, 1013, and 1014.
+* Added compatibility with Python 3.8.
 
 8.0.2
 .....
+
+*July 31, 2019*
 
 * Restored the ability to pass a socket with the ``sock`` parameter of
   :func:`~legacy.server.serve`.
@@ -67,11 +85,15 @@ fixing regressions shortly after a release.
 8.0.1
 .....
 
+*July 21, 2019*
+
 * Restored the ability to import ``WebSocketProtocolError`` from
   ``websockets``.
 
 8.0
 ...
+
+*July 7, 2019*
 
 .. warning::
 
@@ -83,7 +105,8 @@ fixing regressions shortly after a release.
 
     Previously, it could be a function or a coroutine.
 
-    If you're passing a ``process_request`` argument to :func:`~legacy.server.serve`
+    If you're passing a ``process_request`` argument to
+    :func:`~legacy.server.serve`
     or :class:`~legacy.server.WebSocketServerProtocol`, or if you're overriding
     :meth:`~legacy.server.WebSocketServerProtocol.process_request` in a subclass,
     define it with ``async def`` instead of ``def``.
@@ -103,36 +126,38 @@ fixing regressions shortly after a release.
     **Version 8.0 deprecates the** ``host`` **,** ``port`` **, and** ``secure``
     **attributes of** :class:`~legacy.protocol.WebSocketCommonProtocol`.
 
-    Use :attr:`~legacy.protocol.WebSocketCommonProtocol.local_address` in servers and
+    Use :attr:`~legacy.protocol.WebSocketCommonProtocol.local_address` in
+    servers and
     :attr:`~legacy.protocol.WebSocketCommonProtocol.remote_address` in clients
     instead of ``host`` and ``port``.
 
 .. note::
 
     **Version 8.0 renames the** ``WebSocketProtocolError`` **exception**
-    to :exc:`ProtocolError` **.**
+    to :exc:`~exceptions.ProtocolError` **.**
 
     A ``WebSocketProtocolError`` alias provides backwards compatibility.
 
 .. note::
 
     **Version 8.0 adds the reason phrase to the return type of the low-level
-    API** :func:`~http.read_response` **.**
+    API** ``read_response()`` **.**
 
 Also:
 
 * :meth:`~legacy.protocol.WebSocketCommonProtocol.send`,
   :meth:`~legacy.protocol.WebSocketCommonProtocol.ping`, and
-  :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` support bytes-like types
-  :class:`bytearray` and :class:`memoryview` in addition to :class:`bytes`.
+  :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` support bytes-like
+  types :class:`bytearray` and :class:`memoryview` in addition to
+  :class:`bytes`.
 
 * Added :exc:`~exceptions.ConnectionClosedOK` and
   :exc:`~exceptions.ConnectionClosedError` subclasses of
   :exc:`~exceptions.ConnectionClosed` to tell apart normal connection
   termination from errors.
 
-* Added :func:`~legacy.auth.basic_auth_protocol_factory` to enforce HTTP Basic Auth
-  on the server side.
+* Added :func:`~legacy.auth.basic_auth_protocol_factory` to enforce HTTP
+  Basic Auth on the server side.
 
 * :func:`~legacy.client.connect` handles redirects from the server during the
   handshake.
@@ -148,8 +173,9 @@ Also:
   exceptions in keepalive ping task. If you were using ``ping_timeout=None``
   as a workaround, you can remove it.
 
-* Changed :meth:`WebSocketServer.close() <server.WebSocketServer.close>` to
-  perform a proper closing handshake instead of failing the connection.
+* Changed :meth:`WebSocketServer.close()
+  <legacy.server.WebSocketServer.close>` to perform a proper closing handshake
+  instead of failing the connection.
 
 * Avoided a crash when a ``extra_headers`` callable returns ``None``.
 
@@ -170,20 +196,20 @@ Also:
 7.0
 ...
 
-.. warning::
-
-    **Version 7.0 renames the** ``timeout`` **argument of**
-    :func:`~legacy.server.serve()` **and** :func:`~legacy.client.connect` **to**
-    ``close_timeout`` **.**
-
-    This prevents confusion with ``ping_timeout``.
-
-    For backwards compatibility, ``timeout`` is still supported.
+*November 1, 2018*
 
 .. warning::
 
-    **Version 7.0 changes how a server terminates connections when it's
-    closed with** :meth:`~legacy.server.WebSocketServer.close` **.**
+    ``websockets`` **now sends Ping frames at regular intervals and closes the
+    connection if it doesn't receive a matching Pong frame.**
+
+    See :class:`~legacy.protocol.WebSocketCommonProtocol` for details.
+
+.. warning::
+
+    **Version 7.0 changes how a server terminates connections when it's closed
+    with** :meth:`WebSocketServer.close()
+    <legacy.server.WebSocketServer.close>` **.**
 
     Previously, connections handlers were canceled. Now, connections are
     closed with close code 1001 (going away). From the perspective of the
@@ -200,8 +226,19 @@ Also:
 
 .. note::
 
-    **Version 7.0 changes how a** :meth:`~legacy.protocol.WebSocketCommonProtocol.ping`
-    **that hasn't received a pong yet behaves when the connection is closed.**
+    **Version 7.0 renames the** ``timeout`` **argument of**
+    :func:`~legacy.server.serve` **and** :func:`~legacy.client.connect` **to**
+    ``close_timeout`` **.**
+
+    This prevents confusion with ``ping_timeout``.
+
+    For backwards compatibility, ``timeout`` is still supported.
+
+.. note::
+
+    **Version 7.0 changes how a**
+    :meth:`~legacy.protocol.WebSocketCommonProtocol.ping` **that hasn't
+    received a pong yet behaves when the connection is closed.**
 
     The ping — as in ``ping = await websocket.ping()`` — used to be canceled
     when the connection is closed, so that ``await ping`` raised
@@ -211,34 +248,33 @@ Also:
 .. note::
 
     **Version 7.0 raises a** :exc:`RuntimeError` **exception if two coroutines
-    call** :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` **concurrently.**
+    call** :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`
+    **concurrently.**
 
     Concurrent calls lead to non-deterministic behavior because there are no
     guarantees about which coroutine will receive which message.
 
 Also:
 
-* ``websockets`` sends Ping frames at regular intervals and closes the
-  connection if it doesn't receive a matching Pong frame. See
-  :class:`~legacy.protocol.WebSocketCommonProtocol` for details.
-
 * Added ``process_request`` and ``select_subprotocol`` arguments to
-  :func:`~legacy.server.serve` and :class:`~legacy.server.WebSocketServerProtocol` to
-  customize :meth:`~legacy.server.WebSocketServerProtocol.process_request` and
+  :func:`~legacy.server.serve` and
+  :class:`~legacy.server.WebSocketServerProtocol` to customize
+  :meth:`~legacy.server.WebSocketServerProtocol.process_request` and
   :meth:`~legacy.server.WebSocketServerProtocol.select_subprotocol` without
   subclassing :class:`~legacy.server.WebSocketServerProtocol`.
 
 * Added support for sending fragmented messages.
 
-* Added the :meth:`~legacy.protocol.WebSocketCommonProtocol.wait_closed` method to
-  protocols.
+* Added the :meth:`~legacy.protocol.WebSocketCommonProtocol.wait_closed`
+  method to protocols.
 
 * Added an interactive client: ``python -m websockets <uri>``.
 
 * Changed the ``origins`` argument to represent the lack of an origin with
   ``None`` rather than ``''``.
 
-* Fixed a data loss bug in :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`:
+* Fixed a data loss bug in
+  :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`:
   canceling it at the wrong time could result in messages being dropped.
 
 * Improved handling of multiple HTTP headers with the same name.
@@ -248,36 +284,37 @@ Also:
 6.0
 ...
 
+*July 16, 2018*
+
 .. warning::
 
-    **Version 6.0 introduces the** :class:`~http.Headers` **class for managing
-    HTTP headers and changes several public APIs:**
+    **Version 6.0 introduces the** :class:`~datastructures.Headers` **class
+    for managing HTTP headers and changes several public APIs:**
 
-    * :meth:`~legacy.server.WebSocketServerProtocol.process_request` now receives a
-      :class:`~http.Headers` instead of a :class:`~http.client.HTTPMessage` in
-      the ``request_headers`` argument.
+    * :meth:`~legacy.server.WebSocketServerProtocol.process_request` now
+      receives a :class:`~datastructures.Headers` instead of a
+      ``http.client.HTTPMessage`` in the ``request_headers`` argument.
 
-    * The :attr:`~legacy.protocol.WebSocketCommonProtocol.request_headers` and
-      :attr:`~legacy.protocol.WebSocketCommonProtocol.response_headers` attributes of
-      :class:`~legacy.protocol.WebSocketCommonProtocol` are :class:`~http.Headers`
-      instead of :class:`~http.client.HTTPMessage`.
+    * The ``request_headers`` and ``response_headers`` attributes of
+      :class:`~legacy.protocol.WebSocketCommonProtocol` are
+      :class:`~datastructures.Headers` instead of ``http.client.HTTPMessage``.
 
-    * The :attr:`~legacy.protocol.WebSocketCommonProtocol.raw_request_headers` and
-      :attr:`~legacy.protocol.WebSocketCommonProtocol.raw_response_headers`
-      attributes of :class:`~legacy.protocol.WebSocketCommonProtocol` are removed.
-      Use :meth:`~http.Headers.raw_items` instead.
+    * The ``raw_request_headers`` and ``raw_response_headers`` attributes of
+      :class:`~legacy.protocol.WebSocketCommonProtocol` are removed. Use
+      :meth:`~datastructures.Headers.raw_items` instead.
 
-    * Functions defined in the :mod:`~handshake` module now receive
-      :class:`~http.Headers` in argument instead of ``get_header`` or
-      ``set_header`` functions. This affects libraries that rely on
+    * Functions defined in the ``handshake`` module now receive
+      :class:`~datastructures.Headers` in argument instead of ``get_header``
+      or ``set_header`` functions. This affects libraries that rely on
       low-level APIs.
 
-    * Functions defined in the :mod:`~http` module now return HTTP headers as
-      :class:`~http.Headers` instead of lists of ``(name, value)`` pairs.
+    * Functions defined in the ``http`` module now return HTTP headers as
+      :class:`~datastructures.Headers` instead of lists of ``(name, value)``
+      pairs.
 
-    Since :class:`~http.Headers` and :class:`~http.client.HTTPMessage` provide
-    similar APIs, this change won't affect most of the code dealing with HTTP
-    headers.
+    Since :class:`~datastructures.Headers` and ``http.client.HTTPMessage``
+    provide similar APIs, this change won't affect most of the code dealing
+    with HTTP headers.
 
 
 Also:
@@ -287,11 +324,15 @@ Also:
 5.0.1
 .....
 
-* Fixed a regression in the 5.0 release that broke some invocations of
-  :func:`~legacy.server.serve()` and :func:`~legacy.client.connect`.
+*May 24, 2018*
+
+* Fixed a regression in 5.0 that broke some invocations of
+  :func:`~legacy.server.serve` and :func:`~legacy.client.connect`.
 
 5.0
 ...
+
+*May 22, 2018*
 
 .. note::
 
@@ -308,8 +349,8 @@ Also:
     **Version 5.0 adds a** ``user_info`` **field to the return value of**
     :func:`~uri.parse_uri` **and** :class:`~uri.WebSocketURI` **.**
 
-    If you're unpacking :class:`~exceptions.WebSocketURI` into four variables,
-    adjust your code to account for that fifth field.
+    If you're unpacking :class:`~uri.WebSocketURI` into four variables, adjust
+    your code to account for that fifth field.
 
 Also:
 
@@ -322,14 +363,14 @@ Also:
 * A plain HTTP request now receives a 426 Upgrade Required response and
   doesn't log a stack trace.
 
-* :func:`~legacy.server.unix_serve` can be used as an asynchronous context manager on
-  Python ≥ 3.5.1.
+* :func:`~legacy.server.unix_serve` can be used as an asynchronous context
+  manager on Python ≥ 3.5.1.
 
-* Added the :attr:`~legacy.protocol.WebSocketCommonProtocol.closed` property to
-  protocols.
+* Added the :attr:`~legacy.protocol.WebSocketCommonProtocol.closed` property
+  to protocols.
 
-* If a :meth:`~legacy.protocol.WebSocketCommonProtocol.ping` doesn't receive a pong,
-  it's canceled when the connection is closed.
+* If a :meth:`~legacy.protocol.WebSocketCommonProtocol.ping` doesn't receive a
+  pong, it's canceled when the connection is closed.
 
 * Reported the cause of :exc:`~exceptions.ConnectionClosed` exceptions.
 
@@ -355,12 +396,20 @@ Also:
 4.0.1
 .....
 
+*November 2, 2017*
+
 * Fixed issues with the packaging of the 4.0 release.
 
 4.0
 ...
 
+*November 2, 2017*
+
 .. warning::
+
+    **Version 4.0 drops compatibility with Python 3.3.**
+
+.. note::
 
     **Version 4.0 enables compression with the permessage-deflate extension.**
 
@@ -369,11 +418,7 @@ Also:
     Compression should improve performance but it increases RAM and CPU use.
 
     If you want to disable compression, add ``compression=None`` when calling
-    :func:`~legacy.server.serve()` or :func:`~legacy.client.connect`.
-
-.. warning::
-
-    **Version 4.0 drops compatibility with Python 3.3.**
+    :func:`~legacy.server.serve` or :func:`~legacy.client.connect`.
 
 .. note::
 
@@ -388,8 +433,8 @@ Also:
 
 * Added :func:`~legacy.server.unix_serve` for listening on Unix sockets.
 
-* Added the :attr:`~legacy.server.WebSocketServer.sockets` attribute to the return
-  value of :func:`~legacy.server.serve`.
+* Added the :attr:`~legacy.server.WebSocketServer.sockets` attribute to the
+  return value of :func:`~legacy.server.serve`.
 
 * Reorganized and extended documentation.
 
@@ -407,12 +452,14 @@ Also:
 3.4
 ...
 
-* Renamed :func:`~legacy.server.serve()` and :func:`~legacy.client.connect`'s ``klass``
-  argument to ``create_protocol`` to reflect that it can also be a callable.
-  For backwards compatibility, ``klass`` is still supported.
+*August 20, 2017*
 
-* :func:`~legacy.server.serve` can be used as an asynchronous context manager on
-  Python ≥ 3.5.1.
+* Renamed :func:`~legacy.server.serve` and :func:`~legacy.client.connect`'s
+  ``klass`` argument to ``create_protocol`` to reflect that it can also be a
+  callable. For backwards compatibility, ``klass`` is still supported.
+
+* :func:`~legacy.server.serve` can be used as an asynchronous context manager
+  on Python ≥ 3.5.1.
 
 * Added support for customizing handling of incoming connections with
   :meth:`~legacy.server.WebSocketServerProtocol.process_request`.
@@ -423,14 +470,16 @@ Also:
 
 * Added an optional C extension to speed up low-level operations.
 
-* An invalid response status code during :func:`~legacy.client.connect` now raises
-  :class:`~exceptions.InvalidStatusCode` with a ``code`` attribute.
+* An invalid response status code during :func:`~legacy.client.connect` now
+  raises :class:`~exceptions.InvalidStatusCode` with a ``code`` attribute.
 
 * Providing a ``sock`` argument to :func:`~legacy.client.connect` no longer
   crashes.
 
 3.3
 ...
+
+*March 29, 2017*
 
 * Ensured compatibility with Python 3.6.
 
@@ -441,13 +490,17 @@ Also:
 3.2
 ...
 
+*August 17, 2016*
+
 * Added ``timeout``, ``max_size``, and ``max_queue`` arguments to
-  :func:`~legacy.client.connect()` and :func:`~legacy.server.serve`.
+  :func:`~legacy.client.connect` and :func:`~legacy.server.serve`.
 
 * Made server shutdown more robust.
 
 3.1
 ...
+
+*April 21, 2016*
 
 * Avoided a warning when closing a connection before the opening handshake.
 
@@ -456,6 +509,8 @@ Also:
 3.0
 ...
 
+*December 25, 2015*
+
 .. warning::
 
     **Version 3.0 introduces a backwards-incompatible change in the**
@@ -463,9 +518,9 @@ Also:
 
     **If you're upgrading from 2.x or earlier, please read this carefully.**
 
-    :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` used to return ``None``
-    when the connection was closed. This required checking the return value of
-    every call::
+    :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` used to return
+    ``None`` when the connection was closed. This required checking the return
+    value of every call::
 
         message = await websocket.recv()
         if message is None:
@@ -484,13 +539,13 @@ Also:
     previous behavior can be restored by passing ``legacy_recv=True`` to
     :func:`~legacy.server.serve`, :func:`~legacy.client.connect`,
     :class:`~legacy.server.WebSocketServerProtocol`, or
-    :class:`~legacy.client.WebSocketClientProtocol`. ``legacy_recv`` isn't documented
-    in their signatures but isn't scheduled for deprecation either.
+    :class:`~legacy.client.WebSocketClientProtocol`. ``legacy_recv`` isn't
+    documented in their signatures but isn't scheduled for deprecation either.
 
 Also:
 
-* :func:`~legacy.client.connect` can be used as an asynchronous context manager on
-  Python ≥ 3.5.1.
+* :func:`~legacy.client.connect` can be used as an asynchronous context
+  manager on Python ≥ 3.5.1.
 
 * Updated documentation with ``await`` and ``async`` syntax from Python 3.5.
 
@@ -498,7 +553,8 @@ Also:
   :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` support data passed as
   :class:`str` in addition to :class:`bytes`.
 
-* Worked around an asyncio bug affecting connection termination under load.
+* Worked around an :mod:`asyncio` bug affecting connection termination under
+  load.
 
 * Made ``state_name`` attribute on protocols a public API.
 
@@ -507,12 +563,16 @@ Also:
 2.7
 ...
 
+*November 18, 2015*
+
 * Added compatibility with Python 3.5.
 
 * Refreshed documentation.
 
 2.6
 ...
+
+*August 18, 2015*
 
 * Added ``local_address`` and ``remote_address`` attributes on protocols.
 
@@ -523,19 +583,21 @@ Also:
 2.5
 ...
 
+*July 28, 2015*
+
 * Improved documentation.
 
 * Provided access to handshake request and response HTTP headers.
 
 * Allowed customizing handshake request and response HTTP headers.
 
-* Supported running on a non-default event loop.
+* Added support for running on a non-default event loop.
 
 * Returned a 403 status code instead of 400 when the request Origin isn't
   allowed.
 
-* Canceling :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` no longer drops
-  the next message.
+* Canceling :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` no longer
+  drops the next message.
 
 * Clarified that the closing handshake can be initiated by the client.
 
@@ -548,9 +610,9 @@ Also:
 2.4
 ...
 
-* Added support for subprotocols.
+*January 31, 2015*
 
-* Supported non-default event loop.
+* Added support for subprotocols.
 
 * Added ``loop`` argument to :func:`~legacy.client.connect` and
   :func:`~legacy.server.serve`.
@@ -558,15 +620,21 @@ Also:
 2.3
 ...
 
+*November 3, 2014*
+
 * Improved compliance of close codes.
 
 2.2
 ...
 
+*July 28, 2014*
+
 * Added support for limiting message size.
 
 2.1
 ...
+
+*April 26, 2014*
 
 * Added ``host``, ``port`` and ``secure`` attributes on protocols.
 
@@ -576,6 +644,8 @@ Also:
 
 2.0
 ...
+
+*February 16, 2014*
 
 .. warning::
 
@@ -602,5 +672,7 @@ Also:
 
 1.0
 ...
+
+*November 14, 2013*
 
 * Initial public release.

@@ -26,12 +26,7 @@ from .headers import (
 )
 from .http import USER_AGENT
 from .http11 import Request, Response
-from .legacy.server import (  # noqa
-    WebSocketServer,
-    WebSocketServerProtocol,
-    serve,
-    unix_serve,
-)
+from .imports import lazy_import
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
@@ -40,6 +35,17 @@ from .typing import (
     UpgradeProtocol,
 )
 from .utils import accept_key
+
+
+lazy_import(
+    globals(),
+    aliases={
+        "serve": ".legacy.server",
+        "unix_serve": ".legacy.server",
+        "WebSocketServerProtocol": ".legacy.server",
+        "WebSocketServer": ".legacy.server",
+    },
+)
 
 
 __all__ = ["ServerConnection"]

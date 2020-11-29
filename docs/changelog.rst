@@ -3,6 +3,23 @@ Changelog
 
 .. currentmodule:: websockets
 
+Backwards-compatibility policy
+..............................
+
+``websockets`` is intended for production use. Therefore, stability is a goal.
+
+``websockets`` also aims at providing the best API for WebSocket in Python.
+
+While we value stability, we value progress more. When an improvement requires
+changing the API, we make the change and document it below.
+
+When possible with reasonable effort, we preserve backwards-compatibility for
+five years after the release that introduced the change.
+
+When a release contains backwards-incompatible API changes, the major version
+is increased, else the minor version is increased. Patch versions are only for
+fixing regressions shortly after a release.
+
 9.0
 ...
 

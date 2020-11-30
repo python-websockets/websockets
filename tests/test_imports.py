@@ -1,3 +1,4 @@
+import sys
 import types
 import unittest
 import warnings
@@ -11,18 +12,30 @@ bar = object()
 
 
 class ImportsTests(unittest.TestCase):
-    def test_get_alias(self):
-        mod = types.ModuleType("tests.test_imports.test_alias")
-        lazy_import(vars(mod), aliases={"foo": ".."})
+    def setUp(self):
+        self.mod = types.ModuleType("tests.test_imports.test_alias")
+        self.mod.__package__ = self.mod.__name__
 
-        self.assertEqual(mod.foo, foo)
+    def test_get_alias(self):
+        lazy_import(
+            vars(self.mod),
+            aliases={"foo": "...test_imports"},
+        )
+
+        self.assertEqual(self.mod.foo, foo)
 
     def test_get_deprecated_alias(self):
-        mod = types.ModuleType("tests.test_imports.test_alias")
-        lazy_import(vars(mod), deprecated_aliases={"bar": ".."})
+        lazy_import(
+            vars(self.mod),
+            deprecated_aliases={"bar": "...test_imports"},
+        )
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
-            self.assertEqual(mod.bar, bar)
+            self.assertEqual(self.mod.bar, bar)
+
+        # No warnings raised on pre-PEP 526 Python.
+        if sys.version_info[:2] < (3, 7):  # pragma: no cover
+            return
 
         self.assertEqual(len(recorded_warnings), 1)
         warning = recorded_warnings[0].message
@@ -32,20 +45,22 @@ class ImportsTests(unittest.TestCase):
         self.assertEqual(type(warning), DeprecationWarning)
 
     def test_dir(self):
-        mod = types.ModuleType("tests.test_imports.test_alias")
-        lazy_import(vars(mod), aliases={"foo": ".."}, deprecated_aliases={"bar": ".."})
+        lazy_import(
+            vars(self.mod),
+            aliases={"foo": "...test_imports"},
+            deprecated_aliases={"bar": "...test_imports"},
+        )
 
         self.assertEqual(
-            [item for item in dir(mod) if not item[:2] == item[-2:] == "__"],
+            [item for item in dir(self.mod) if not item[:2] == item[-2:] == "__"],
             ["bar", "foo"],
         )
 
     def test_attribute_error(self):
-        mod = types.ModuleType("tests.test_imports.test_alias")
-        lazy_import(vars(mod))
+        lazy_import(vars(self.mod))
 
         with self.assertRaises(AttributeError) as raised:
-            mod.foo
+            self.mod.foo
 
         self.assertEqual(
             str(raised.exception),

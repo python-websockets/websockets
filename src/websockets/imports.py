@@ -1,10 +1,30 @@
-import importlib
 import sys
 import warnings
 from typing import Any, Dict, Iterable, Optional
 
 
 __all__ = ["lazy_import"]
+
+
+def import_name(name: str, source: str, namespace: Dict[str, Any]) -> Any:
+    """
+    Import <name> from <source> in <namespace>.
+
+    There are two cases:
+
+    - <name> is an object defined in <source>
+    - <name> is a submodule of source
+
+    Neither __import__ nor importlib.import_module does exactly this.
+    __import__ is closer to the intended behavior.
+
+    """
+    level = 0
+    while source[level] == ".":
+        level += 1
+        assert level < len(source), "importing from parent isn't supported"
+    module = __import__(source[level:], namespace, None, [name], level)
+    return getattr(module, name)
 
 
 def lazy_import(
@@ -58,8 +78,7 @@ def lazy_import(
             except KeyError:
                 pass
             else:
-                module = importlib.import_module(source, package)
-                return getattr(module, name)
+                return import_name(name, source, namespace)
 
             assert deprecated_aliases is not None  # mypy cannot figure this out
             try:
@@ -72,8 +91,7 @@ def lazy_import(
                     DeprecationWarning,
                     stacklevel=2,
                 )
-                module = importlib.import_module(source, package)
-                return getattr(module, name)
+                return import_name(name, source, namespace)
 
             raise AttributeError(f"module {package!r} has no attribute {name!r}")
 
@@ -87,9 +105,7 @@ def lazy_import(
     else:  # pragma: no cover
 
         for name, source in aliases.items():
-            module = importlib.import_module(source, package)
-            namespace[name] = getattr(module, name)
+            namespace[name] = import_name(name, source, namespace)
 
         for name, source in deprecated_aliases.items():
-            module = importlib.import_module(source, package)
-            namespace[name] = getattr(module, name)
+            namespace[name] = import_name(name, source, namespace)

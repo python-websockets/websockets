@@ -218,12 +218,6 @@ class PrepareDataTests(unittest.TestCase):
             (OP_BINARY, memoryview(b"tea")),
         )
 
-    def test_prepare_data_non_contiguous_memoryview(self):
-        self.assertEqual(
-            prepare_data(memoryview(b"tteeaa")[::2]),
-            (OP_BINARY, b"tea"),
-        )
-
     def test_prepare_data_list(self):
         with self.assertRaises(TypeError):
             prepare_data([])
@@ -245,9 +239,6 @@ class PrepareCtrlTests(unittest.TestCase):
 
     def test_prepare_ctrl_memoryview(self):
         self.assertEqual(prepare_ctrl(memoryview(b"tea")), b"tea")
-
-    def test_prepare_ctrl_non_contiguous_memoryview(self):
-        self.assertEqual(prepare_ctrl(memoryview(b"tteeaa")[::2]), b"tea")
 
     def test_prepare_ctrl_list(self):
         with self.assertRaises(TypeError):

@@ -43,21 +43,18 @@ class ApplyMaskTests(unittest.TestCase):
                     self.assertEqual(result, data_out)
 
     def test_apply_mask_memoryview(self):
-        for data_type, mask_type in self.apply_mask_type_combos:
+        for mask_type in [bytes, bytearray]:
             for data_in, mask, data_out in self.apply_mask_test_values:
-                data_in, mask = data_type(data_in), mask_type(mask)
-                data_in, mask = memoryview(data_in), memoryview(mask)
+                data_in, mask = memoryview(data_in), mask_type(mask)
 
                 with self.subTest(data_in=data_in, mask=mask):
                     result = self.apply_mask(data_in, mask)
                     self.assertEqual(result, data_out)
 
     def test_apply_mask_non_contiguous_memoryview(self):
-        for data_type, mask_type in self.apply_mask_type_combos:
+        for mask_type in [bytes, bytearray]:
             for data_in, mask, data_out in self.apply_mask_test_values:
-                data_in, mask = data_type(data_in), mask_type(mask)
-                data_in, mask = memoryview(data_in), memoryview(mask)
-                data_in, mask = data_in[::-1], mask[::-1]
+                data_in, mask = memoryview(data_in)[::-1], mask_type(mask)[::-1]
                 data_out = data_out[::-1]
 
                 with self.subTest(data_in=data_in, mask=mask):
@@ -92,16 +89,3 @@ else:
         @staticmethod
         def apply_mask(*args, **kwargs):
             return c_apply_mask(*args, **kwargs)
-
-        def test_apply_mask_non_contiguous_memoryview(self):
-            for data_type, mask_type in self.apply_mask_type_combos:
-                for data_in, mask, data_out in self.apply_mask_test_values:
-                    data_in, mask = data_type(data_in), mask_type(mask)
-                    data_in, mask = memoryview(data_in), memoryview(mask)
-                    data_in, mask = data_in[::-1], mask[::-1]
-                    data_out = data_out[::-1]
-
-                    with self.subTest(data_in=data_in, mask=mask):
-                        # The C extension only supports contiguous memoryviews.
-                        with self.assertRaises(TypeError):
-                            self.apply_mask(data_in, mask)

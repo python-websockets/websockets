@@ -263,13 +263,8 @@ def prepare_data(data: Data) -> Tuple[int, bytes]:
     """
     if isinstance(data, str):
         return OP_TEXT, data.encode("utf-8")
-    elif isinstance(data, (bytes, bytearray)):
+    elif isinstance(data, (bytes, bytearray, memoryview)):
         return OP_BINARY, data
-    elif isinstance(data, memoryview):
-        if data.c_contiguous:
-            return OP_BINARY, data
-        else:
-            return OP_BINARY, data.tobytes()
     else:
         raise TypeError("data must be bytes-like or str")
 
@@ -290,10 +285,8 @@ def prepare_ctrl(data: Data) -> bytes:
     """
     if isinstance(data, str):
         return data.encode("utf-8")
-    elif isinstance(data, (bytes, bytearray)):
+    elif isinstance(data, (bytes, bytearray, memoryview)):
         return bytes(data)
-    elif isinstance(data, memoryview):
-        return data.tobytes()
     else:
         raise TypeError("data must be bytes-like or str")
 

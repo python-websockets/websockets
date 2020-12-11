@@ -555,15 +555,15 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         its :meth:`~dict.keys` method and pass the result to :meth:`send`.
 
         Canceling :meth:`send` is discouraged. Instead, you should close the
-        connection with :meth:`close`. Indeed, there only two situations where
-        :meth:`send` yields control to the event loop:
+        connection with :meth:`close`. Indeed, there are only two situations
+        where :meth:`send` may yield control to the event loop:
 
         1. The write buffer is full. If you don't want to wait until enough
            data is sent, your only alternative is to close the connection.
            :meth:`close` will likely time out then abort the TCP connection.
-        2. ``message`` is an asynchronous iterator. Stopping in the middle of
-           a fragmented message will cause a protocol error. Closing the
-           connection has the same effect.
+        2. ``message`` is an asynchronous iterator that yields control.
+           Stopping in the middle of a fragmented message will cause a
+           protocol error. Closing the connection has the same effect.
 
         :raises TypeError: for unsupported inputs
 

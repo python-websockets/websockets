@@ -100,7 +100,7 @@ class PerMessageDeflate(Extension):
             return frame
 
         # Handle continuation data frames:
-        # - skip if the initial data frame wasn't encoded
+        # - skip if the message isn't encoded
         # - reset "decode continuation data" flag if it's a final frame
         if frame.opcode == OP_CONT:
             if not self.decode_cont_data:
@@ -109,21 +109,23 @@ class PerMessageDeflate(Extension):
                 self.decode_cont_data = False
 
         # Handle text and binary data frames:
-        # - skip if the frame isn't encoded
+        # - skip if the message isn't encoded
+        # - unset the rsv1 flag on the first frame of a compressed message
         # - set "decode continuation data" flag if it's a non-final frame
         else:
             if not frame.rsv1:
                 return frame
-            if not frame.fin:  # frame.rsv1 is True at this point
+            frame = frame._replace(rsv1=False)
+            if not frame.fin:
                 self.decode_cont_data = True
 
             # Re-initialize per-message decoder.
             if self.remote_no_context_takeover:
                 self.decoder = zlib.decompressobj(wbits=-self.remote_max_window_bits)
 
-        # Uncompress compressed frames. Protect against zip bombs by
-        # preventing zlib from decompressing more than max_length bytes
-        # (except when the limit is disabled with max_size = None).
+        # Uncompress data. Protect against zip bombs by preventing zlib from
+        # decompressing more than max_length bytes (except when the limit is
+        # disabled with max_size = None).
         data = frame.data
         if frame.fin:
             data += _EMPTY_UNCOMPRESSED_BLOCK
@@ -136,7 +138,7 @@ class PerMessageDeflate(Extension):
         if frame.fin and self.remote_no_context_takeover:
             del self.decoder
 
-        return frame._replace(data=data, rsv1=False)
+        return frame._replace(data=data)
 
     def encode(self, frame: Frame) -> Frame:
         """
@@ -147,17 +149,19 @@ class PerMessageDeflate(Extension):
         if frame.opcode in CTRL_OPCODES:
             return frame
 
-        # Since we always encode and never fragment messages, there's no logic
-        # similar to decode() here at this time.
+        # Since we always encode messages, there's no "encode continuation
+        # data" flag similar to "decode continuation data" at this time.
 
         if frame.opcode != OP_CONT:
+            # Set the rsv1 flag on the first frame of a compressed message.
+            frame = frame._replace(rsv1=True)
             # Re-initialize per-message decoder.
             if self.local_no_context_takeover:
                 self.encoder = zlib.compressobj(
                     wbits=-self.local_max_window_bits, **self.compress_settings
                 )
 
-        # Compress data frames.
+        # Compress data.
         data = self.encoder.compress(frame.data) + self.encoder.flush(zlib.Z_SYNC_FLUSH)
         if frame.fin and data.endswith(_EMPTY_UNCOMPRESSED_BLOCK):
             data = data[:-4]
@@ -166,7 +170,7 @@ class PerMessageDeflate(Extension):
         if frame.fin and self.local_no_context_takeover:
             del self.encoder
 
-        return frame._replace(data=data, rsv1=True)
+        return frame._replace(data=data)
 
 
 def _build_parameters(

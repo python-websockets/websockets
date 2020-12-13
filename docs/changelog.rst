@@ -55,6 +55,8 @@ fixing regressions shortly after a release.
 * Raised an error when passing a :class:`dict` to
   :meth:`~legacy.protocol.WebSocketCommonProtocol.send`.
 
+* Fixed sending fragmented, compressed messages.
+
 * Fixed ``Host`` header sent when connecting to an IPv6 address.
 
 * Aligned maximum cookie size with popular web browsers.

@@ -135,10 +135,12 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         enc_frame2 = self.extension.encode(frame2)
 
         self.assertEqual(
-            enc_frame1, frame1._replace(rsv1=True, data=b"*IMT\x00\x00\x00\x00\xff\xff")
+            enc_frame1,
+            frame1._replace(rsv1=True, data=b"*IMT\x00\x00\x00\x00\xff\xff"),
         )
         self.assertEqual(
-            enc_frame2, frame2._replace(data=b"*\xc9\xccM\x05\x00")
+            enc_frame2,
+            frame2._replace(data=b"*\xc9\xccM\x05\x00"),
         )
 
         dec_frame1 = self.extension.decode(enc_frame1)

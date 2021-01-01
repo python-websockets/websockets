@@ -875,6 +875,7 @@ class Serve:
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
+        unix: bool = False,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
@@ -931,15 +932,15 @@ class Serve:
             select_subprotocol=select_subprotocol,
         )
 
-        if path is None:
-            create_server = functools.partial(
-                loop.create_server, factory, host, port, **kwargs
-            )
-        else:
+        if unix:
             # unix_serve(path) must not specify host and port parameters.
             assert host is None and port is None
             create_server = functools.partial(
                 loop.create_unix_server, factory, path, **kwargs
+            )
+        else:
+            create_server = functools.partial(
+                loop.create_server, factory, host, port, **kwargs
             )
 
         # This is a coroutine function.
@@ -981,7 +982,7 @@ serve = Serve
 
 def unix_serve(
     ws_handler: Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
-    path: str,
+    path: Optional[str] = None,
     **kwargs: Any,
 ) -> Serve:
     """
@@ -997,4 +998,4 @@ def unix_serve(
     :param path: file system path to the Unix socket
 
     """
-    return serve(ws_handler, path=path, **kwargs)
+    return serve(ws_handler, path=path, unix=True, **kwargs)

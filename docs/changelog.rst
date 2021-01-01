@@ -59,6 +59,8 @@ fixing regressions shortly after a release.
 
 * Fixed ``Host`` header sent when connecting to an IPv6 address.
 
+* Fixed starting a Unix server listening on an existing socket.
+
 * Aligned maximum cookie size with popular web browsers.
 
 * Ensured cancellation always propagates, even on Python versions where

@@ -4,7 +4,7 @@ import os
 import signal
 import sys
 import threading
-from typing import Any, Set
+from typing import Any, Set, Optional
 import ssl
 
 from .exceptions import ConnectionClosed, format_close
@@ -94,7 +94,8 @@ async def run_client(
     loop: asyncio.AbstractEventLoop,
     inputs: "asyncio.Queue[str]",
     stop: "asyncio.Future[None]",
-    insecure: bool = False
+    insecure: bool = False,
+    cacert: Optional[str] = None
 ) -> None:
 
     if insecure:
@@ -102,6 +103,9 @@ async def run_client(
         ssl_context = ssl.SSLContext()
         ssl_context.verify_mode = ssl.CERT_NONE
         ssl_context.check_hostname = False
+    elif cacert:
+        ssl_context = ssl.SSLContext()
+        ssl_context.load_verify_locations(cacert)
     else:
         ssl_context = True # default
 
@@ -182,7 +186,11 @@ def main() -> None:
         add_help=True,
     )
     parser.add_argument("uri", metavar="<uri>")
-    parser.add_argument('-k', '--insecure', action="store_true", help="Proceed with connection when server's certificate is untrusted")
+
+    sec_grp = parser.add_mutually_exclusive_group(required=False)
+    sec_grp.add_argument('-k', '--insecure', action="store_true", help="Proceed with connection when server's certificate is untrusted")
+    sec_grp.add_argument('--cacert', help="Specify a .pem certificate file to use as root authority")
+
     args = parser.parse_args()
 
     # Create an event loop that will run in a background thread.
@@ -200,7 +208,7 @@ def main() -> None:
     stop: asyncio.Future[None] = loop.create_future()
 
     # Schedule the task that will manage the connection.
-    asyncio.ensure_future(run_client(args.uri, loop, inputs, stop, args.insecure), loop=loop)
+    asyncio.ensure_future(run_client(args.uri, loop, inputs, stop, args.insecure, args.cacert), loop=loop)
 
     # Start the event loop in a background thread.
     thread = threading.Thread(target=loop.run_forever)

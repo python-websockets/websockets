@@ -5,6 +5,7 @@ import signal
 import sys
 import threading
 from typing import Any, Set
+import ssl
 
 from .exceptions import ConnectionClosed, format_close
 from .legacy.client import connect
@@ -93,9 +94,19 @@ async def run_client(
     loop: asyncio.AbstractEventLoop,
     inputs: "asyncio.Queue[str]",
     stop: "asyncio.Future[None]",
+    insecure: bool = False
 ) -> None:
+
+    if insecure:
+        print_during_input("Warning: Connection is not secure")
+        ssl_context = ssl.SSLContext()
+        ssl_context.verify_mode = ssl.CERT_NONE
+        ssl_context.check_hostname = False
+    else:
+        ssl_context = True # default
+
     try:
-        websocket = await connect(uri)
+        websocket = await connect(uri, ssl=ssl_context)
     except Exception as exc:
         print_over_input(f"Failed to connect to {uri}: {exc}.")
         exit_from_event_loop_thread(loop, stop)
@@ -168,9 +179,10 @@ def main() -> None:
     parser = argparse.ArgumentParser(
         prog="python -m websockets",
         description="Interactive WebSocket client.",
-        add_help=False,
+        add_help=True,
     )
     parser.add_argument("uri", metavar="<uri>")
+    parser.add_argument('-k', '--insecure', action="store_true", help="Proceed with connection when server's certificate is untrusted")
     args = parser.parse_args()
 
     # Create an event loop that will run in a background thread.
@@ -178,7 +190,7 @@ def main() -> None:
 
     # Due to zealous removal of the loop parameter in the Queue constructor,
     # we need a factory coroutine to run in the freshly created event loop.
-    async def queue_factory() -> asyncio.Queue[str]:
+    async def queue_factory(): # -> asyncio.Queue[str]:
         return asyncio.Queue()
 
     # Create a queue of user inputs. There's no need to limit its size.
@@ -188,7 +200,7 @@ def main() -> None:
     stop: asyncio.Future[None] = loop.create_future()
 
     # Schedule the task that will manage the connection.
-    asyncio.ensure_future(run_client(args.uri, loop, inputs, stop), loop=loop)
+    asyncio.ensure_future(run_client(args.uri, loop, inputs, stop, args.insecure), loop=loop)
 
     # Start the event loop in a background thread.
     thread = threading.Thread(target=loop.run_forever)

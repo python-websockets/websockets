@@ -207,3 +207,7 @@ One more thing...
 ``websockets`` provides an interactive client::
 
     $ python -m websockets wss://echo.websocket.org/
+
+To see the usage options, run
+
+    $ python -m websockets --help

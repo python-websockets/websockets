@@ -990,7 +990,15 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         # 6.2. Receiving Data
         while True:
-            frame = await self.read_frame(max_size)
+            try:
+                frame = await self.read_frame(max_size)
+            except (ConnectionError, EOFError) as exc:
+                # Reading data with self.reader.readexactly may raise:
+                # - most subclasses of ConnectionError if the TCP connection
+                #   breaks, is reset, or is aborted;
+                # - IncompleteReadError, a subclass of EOFError, if fewer
+                #   bytes are available than requested.
+                return None
 
             # 5.5. Control Frames
             if frame.opcode == OP_CLOSE:

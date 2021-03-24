@@ -992,7 +992,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         while True:
             try:
                 frame = await self.read_frame(max_size)
-            except (ConnectionError, EOFError) as exc:
+            except (ConnectionError, EOFError):
+                logger.warning("Unexpected exception in read_data_frame", exc_info=True)
                 # Reading data with self.reader.readexactly may raise:
                 # - most subclasses of ConnectionError if the TCP connection
                 #   breaks, is reset, or is aborted;

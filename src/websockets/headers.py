@@ -2,9 +2,6 @@
 :mod:`websockets.headers` provides parsers and serializers for HTTP headers
 used in WebSocket handshake messages.
 
-These APIs cannot be imported from :mod:`websockets`. They must be imported
-from :mod:`websockets.headers`.
-
 """
 
 import base64

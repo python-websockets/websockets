@@ -96,11 +96,11 @@ lazy_import(
         "ExtensionHeader": ".typing",
         "ExtensionParameter": ".typing",
         "Subprotocol": ".typing",
-        "parse_uri": ".uri",
-        "WebSocketURI": ".uri",
     },
     deprecated_aliases={
         "framing": ".legacy",
         "handshake": ".legacy",
+        "parse_uri": ".uri",
+        "WebSocketURI": ".uri",
     },
 )

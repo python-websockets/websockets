@@ -48,10 +48,11 @@ They may change at any time.
       upgrade for most uses when it's available. The legacy implementation
       will be preserved according to the `backwards-compatibility policy`_.
 
-    * The ``handshake``, ``http``, and ``framing`` modules in the
-      ``websockets`` package are deprecated. These modules provided low-level
-      APIs for reuse by other WebSocket implementations, but that never
-      happened and keeping these APIs public prevents improvements.
+    * The ``framing``, ``handshake``, ``headers``, ``http``, and ``uri``
+      modules in the ``websockets`` package are deprecated. These modules
+      provided low-level APIs for reuse by other WebSocket implementations,
+      but that never happened. Keeping these APIs public makes it more
+      difficult to improve websockets for no actual benefit.
 
 * Added compatibility with Python 3.9.
 

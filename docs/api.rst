@@ -23,11 +23,8 @@ For convenience, public APIs can be imported directly from the
 :mod:`websockets` package, unless noted otherwise. Anything that isn't listed
 in this document is a private API.
 
-High-level
-----------
-
 Server
-......
+------
 
 .. automodule:: websockets.legacy.server
 
@@ -51,7 +48,7 @@ Server
         .. automethod:: select_subprotocol
 
 Client
-......
+------
 
 .. automodule:: websockets.legacy.client
 
@@ -66,7 +63,7 @@ Client
         .. automethod:: handshake
 
 Shared
-......
+------
 
 .. automodule:: websockets.legacy.protocol
 
@@ -88,7 +85,7 @@ Shared
         .. autoattribute:: closed
 
 Types
-.....
+-----
 
 .. automodule:: websockets.typing
 
@@ -96,7 +93,7 @@ Types
 
 
 Per-Message Deflate Extension
-.............................
+-----------------------------
 
 .. automodule:: websockets.extensions.permessage_deflate
 
@@ -105,7 +102,7 @@ Per-Message Deflate Extension
     .. autoclass:: ClientPerMessageDeflateFactory
 
 HTTP Basic Auth
-...............
+---------------
 
 .. automodule:: websockets.legacy.auth
 
@@ -116,34 +113,13 @@ HTTP Basic Auth
         .. automethod:: process_request
 
 Data structures
-...............
+---------------
 
 .. automodule:: websockets.datastructures
     :members:
 
 Exceptions
-..........
+----------
 
 .. automodule:: websockets.exceptions
-    :members:
-
-Low-level
----------
-
-Data transfer
-.............
-
-.. automodule:: websockets.framing
-    :members:
-
-URI parser
-..........
-
-.. automodule:: websockets.uri
-    :members:
-
-Utilities
-.........
-
-.. automodule:: websockets.headers
     :members:

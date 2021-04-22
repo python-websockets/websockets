@@ -11,7 +11,7 @@ Backwards-compatibility policy
 ``websockets`` also aims at providing the best API for WebSocket in Python.
 
 While we value stability, we value progress more. When an improvement requires
-changing the API, we make the change and document it below.
+changing a public API, we make the change and document it in this changelog.
 
 When possible with reasonable effort, we preserve backwards-compatibility for
 five years after the release that introduced the change.
@@ -19,6 +19,9 @@ five years after the release that introduced the change.
 When a release contains backwards-incompatible API changes, the major version
 is increased, else the minor version is increased. Patch versions are only for
 fixing regressions shortly after a release.
+
+Only documented APIs are public. Undocumented APIs are considered private.
+They may change at any time.
 
 9.0
 ...

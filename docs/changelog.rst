@@ -3,6 +3,8 @@ Changelog
 
 .. currentmodule:: websockets
 
+.. _backwards-compatibility policy:
+
 Backwards-compatibility policy
 ..............................
 
@@ -32,22 +34,24 @@ They may change at any time.
 
     **Version 9.0 moves or deprecates several APIs.**
 
+    Aliases provide backwards compatibility for all previously public APIs.
+
     * :class:`~datastructures.Headers` and
       :exc:`~datastructures.MultipleValuesError` were moved from
-      ``websockets.http`` to :mod:`websockets.datastructures`.
+      ``websockets.http`` to :mod:`websockets.datastructures`. If you're using
+      them, you should adjust the import path.
 
-    * ``websockets.client``, ``websockets.server``, ``websockets.protocol``,
-      and ``websockets.auth`` were moved to :mod:`websockets.legacy.client`,
-      :mod:`websockets.legacy.server`, :mod:`websockets.legacy.protocol`, and
-      :mod:`websockets.legacy.auth` respectively.
+    * The ``client``, ``server``, ``protocol``, and ``auth`` modules were
+      moved from the ``websockets`` package to ``websockets.legacy``
+      sub-package, as part of an upcoming refactoring. Despite the name,
+      they're still fully supported. The refactoring should be a transparent
+      upgrade for most uses when it's available. The legacy implementation
+      will be preserved according to the `backwards-compatibility policy`_.
 
-    * ``websockets.handshake`` is deprecated.
-
-    * ``websockets.http`` is deprecated.
-
-    * ``websockets.framing`` is deprecated.
-
-    Aliases provide backwards compatibility for all previously public APIs.
+    * The ``handshake``, ``http``, and ``framing`` modules in the
+      ``websockets`` package are deprecated. These modules provided low-level
+      APIs for reuse by other WebSocket implementations, but that never
+      happened and keeping these APIs public prevents improvements.
 
 * Added compatibility with Python 3.9.
 

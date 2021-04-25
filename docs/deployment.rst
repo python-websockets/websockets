@@ -66,6 +66,8 @@ Memory usage of a single connection is the sum of:
 Baseline
 ........
 
+.. _compression-settings:
+
 Compression settings are the main factor affecting the baseline amount of
 memory used by each connection.
 

@@ -1,12 +1,12 @@
 Extensions
 ==========
 
-.. currentmodule:: websockets
+.. currentmodule:: websockets.extensions
 
 The WebSocket protocol supports extensions_.
 
-At the time of writing, there's only one `registered extension`_, WebSocket
-Per-Message Deflate, specified in :rfc:`7692`.
+At the time of writing, there's only one `registered extension`_ with a public
+specification, WebSocket Per-Message Deflate, specified in :rfc:`7692`.
 
 .. _extensions: https://tools.ietf.org/html/rfc6455#section-9
 .. _registered extension: https://www.iana.org/assignments/websocket/websocket.xhtml#extension-name
@@ -14,32 +14,23 @@ Per-Message Deflate, specified in :rfc:`7692`.
 Per-Message Deflate
 -------------------
 
-:func:`~legacy.server.serve()` and :func:`~legacy.client.connect` enable the
-Per-Message Deflate extension by default. You can disable this with
-``compression=None``.
+:func:`~websockets.legacy.client.connect` and
+:func:`~websockets.legacy.server.serve` enable the Per-Message Deflate
+extension by default.
 
-You can also configure the Per-Message Deflate extension explicitly if you
-want to customize its parameters.
+If you want to disable it, set ``compression=None``::
+
+    import websockets
+
+    websockets.connect(..., compression=None)
+
+    websockets.serve(..., compression=None)
+
 
 .. _per-message-deflate-configuration-example:
 
-Here's an example on the server side::
-
-    import websockets
-    from websockets.extensions import permessage_deflate
-
-    websockets.serve(
-        ...,
-        extensions=[
-            permessage_deflate.ServerPerMessageDeflateFactory(
-                server_max_window_bits=11,
-                client_max_window_bits=11,
-                compress_settings={'memLevel': 4},
-            ),
-        ],
-    )
-
-Here's an example on the client side::
+You can also configure the Per-Message Deflate extension explicitly if you
+want to customize compression settings::
 
     import websockets
     from websockets.extensions import permessage_deflate
@@ -55,34 +46,54 @@ Here's an example on the client side::
         ],
     )
 
+    websockets.serve(
+        ...,
+        extensions=[
+            permessage_deflate.ServerPerMessageDeflateFactory(
+                server_max_window_bits=11,
+                client_max_window_bits=11,
+                compress_settings={'memLevel': 4},
+            ),
+        ],
+    )
+
+The window bits and memory level values chosen in these examples reduce memory
+usage. You can read more about :ref:`optimizing compression settings
+<compression-settings>`.
+
 Refer to the API documentation of
-:class:`~extensions.permessage_deflate.ServerPerMessageDeflateFactory` and
-:class:`~extensions.permessage_deflate.ClientPerMessageDeflateFactory` for
-details.
+:class:`~permessage_deflate.ClientPerMessageDeflateFactory` and
+:class:`~permessage_deflate.ServerPerMessageDeflateFactory` for details.
 
 Writing an extension
 --------------------
 
 During the opening handshake, WebSocket clients and servers negotiate which
 extensions will be used with which parameters. Then each frame is processed by
-extensions before it's sent and after it's received.
+extensions before being sent or after being received.
 
-As a consequence writing an extension requires implementing several classes:
+As a consequence, writing an extension requires implementing several classes:
 
-1. Extension Factory: it negotiates parameters and instantiates the extension.
-   Clients and servers require separate extension factories with distinct APIs.
+* Extension Factory: it negotiates parameters and instantiates the extension.
 
-2. Extension: it decodes incoming frames and encodes outgoing frames. If the
-   extension is symmetrical, clients and servers can use the same class.
+  Clients and servers require separate extension factories with distinct APIs.
+
+  Extension factories are the public API of an extension.
+
+* Extension: it decodes incoming frames and encodes outgoing frames.
+
+  If the extension is symmetrical, clients and servers can use the same
+  class.
+
+  Extensions are initialized by extension factories, so they don't need to be
+  part of the public API of an extension.
 
 ``websockets`` provides abstract base classes for extension factories and
-extensions.
+extensions. See the API documentation for details on their methods:
 
-.. autoclass:: websockets.extensions.base.ServerExtensionFactory
-    :members:
+* :class:`~base.ClientExtensionFactory` and
+  :class:`~base.ServerExtensionFactory` for extension factories,
 
-.. autoclass:: websockets.extensions.base.ClientExtensionFactory
-    :members:
+* :class:`~base.Extension` for extensions.
 
-.. autoclass:: websockets.extensions.base.Extension
-    :members:
+

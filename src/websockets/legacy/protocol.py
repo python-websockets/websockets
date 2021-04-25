@@ -530,6 +530,30 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         return message
 
+    async def prepare_message(
+            self, message: Union[Data, Iterable[Data], AsyncIterable[Data]]
+    ) -> bytes:
+
+        if isinstance(message, (str, bytes, bytearray, memoryview)):
+            opcode, data = prepare_data(message)
+            return self.serialize_frame(True, opcode, data)
+
+        else:
+            raise TypeError("data must be bytes or str")
+
+    async def send_prepared_message(
+            self, prepared_message: bytes
+    ) -> None:
+        await self.ensure_open()
+
+        while self._fragmented_message_waiter is not None:
+            await asyncio.shield(self._fragmented_message_waiter)
+
+        if isinstance(prepared_message, bytes):
+            await self.write_serialized_frame(prepared_message)
+        else:
+            raise TypeError("prepared message must be bytes")
+
     async def send(
         self, message: Union[Data, Iterable[Data], AsyncIterable[Data]]
     ) -> None:
@@ -1075,21 +1099,21 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         logger.debug("%s < %r", self.side, frame)
         return frame
 
-    async def write_frame(
-        self, fin: bool, opcode: int, data: bytes, *, _expected_state: int = State.OPEN
-    ) -> None:
+    def serialize_frame(
+            self, fin: bool, opcode: int, data: bytes, *, _expected_state: int = State.OPEN
+    ) -> bytes:
+        frame = Frame(fin, Opcode(opcode), data)
+        return frame.serialize(mask=self.is_client, extensions=self.extensions)
+
+    async def write_serialized_frame(
+            self, serialized_frame: bytes, *, _expected_state: int = State.OPEN):
         # Defensive assertion for protocol compliance.
         if self.state is not _expected_state:  # pragma: no cover
             raise InvalidState(
                 f"Cannot write to a WebSocket in the {self.state.name} state"
             )
 
-        frame = Frame(fin, Opcode(opcode), data)
-        logger.debug("%s > %r", self.side, frame)
-        frame.write(
-            self.transport.write, mask=self.is_client, extensions=self.extensions
-        )
-
+        self.transport.write(serialized_frame)
         try:
             # drain() cannot be called concurrently by multiple coroutines:
             # http://bugs.python.org/issue29930. Remove this lock when no
@@ -1103,6 +1127,19 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # Wait until the connection is closed to raise ConnectionClosed
             # with the correct code and reason.
             await self.ensure_open()
+
+    async def write_frame(
+            self, fin: bool, opcode: int, data: bytes, *, _expected_state: int = State.OPEN
+    ) -> None:
+        # Defensive assertion for protocol compliance.
+        if self.state is not _expected_state:  # pragma: no cover
+            raise InvalidState(
+                f"Cannot write to a WebSocket in the {self.state.name} state"
+            )
+
+        frame = Frame(fin, Opcode(opcode), data)
+        logger.debug("%s > %r", self.side, frame)
+        await self.write_serialized_frame(frame.serialize(mask=self.is_client, extensions=self.extensions))
 
     async def write_close_frame(self, data: bytes = b"") -> None:
         """

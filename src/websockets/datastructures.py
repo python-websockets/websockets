@@ -1,5 +1,5 @@
 """
-This module defines a data structure for manipulating HTTP headers.
+:mod:`websockets.datastructures` defines a class for manipulating HTTP headers.
 
 """
 
@@ -16,7 +16,7 @@ from typing import (
 )
 
 
-__all__ = ["Headers", "MultipleValuesError"]
+__all__ = ["Headers", "HeadersLike", "MultipleValuesError"]
 
 
 class MultipleValuesError(LookupError):
@@ -63,7 +63,7 @@ class Headers(MutableMapping[str, str]):
     As long as no header occurs multiple times, :class:`Headers` behaves like
     :class:`dict`, except keys are lower-cased to provide case-insensitivity.
 
-    Two methods support support manipulating multiple values explicitly:
+    Two methods support manipulating multiple values explicitly:
 
     - :meth:`get_all` returns a list of all values for a header;
     - :meth:`raw_items` returns an iterator of ``(name, values)`` pairs.
@@ -157,3 +157,9 @@ class Headers(MutableMapping[str, str]):
 
 
 HeadersLike = Union[Headers, Mapping[str, str], Iterable[Tuple[str, str]]]
+HeadersLike__doc__ = """Types accepted wherever :class:`Headers` is expected"""
+# Remove try / except when dropping support for Python < 3.7
+try:
+    HeadersLike.__doc__ = HeadersLike__doc__
+except AttributeError:  # pragma: no cover
+    pass

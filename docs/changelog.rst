@@ -67,7 +67,7 @@ They may change at any time.
 
 * Fixed ``Host`` header sent when connecting to an IPv6 address.
 
-* Fixed starting a Unix server listening on an existing socket.
+* Fixed creating a client or a server with an existing Unix socket.
 
 * Aligned maximum cookie size with popular web browsers.
 

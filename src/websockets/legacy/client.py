@@ -450,8 +450,12 @@ class Connect:
             extra_headers=extra_headers,
         )
 
-        path: Optional[str] = kwargs.pop("path", None)
-        if path is None:
+        if kwargs.pop("unix", False):
+            path: Optional[str] = kwargs.pop("path", None)
+            create_connection = functools.partial(
+                loop.create_unix_connection, factory, path, **kwargs
+            )
+        else:
             host: Optional[str]
             port: Optional[int]
             if kwargs.get("sock") is None:
@@ -464,10 +468,6 @@ class Connect:
             port = kwargs.pop("port", port)
             create_connection = functools.partial(
                 loop.create_connection, factory, host, port, **kwargs
-            )
-        else:
-            create_connection = functools.partial(
-                loop.create_unix_connection, factory, path, **kwargs
             )
 
         # This is a coroutine function.
@@ -563,7 +563,9 @@ class Connect:
 connect = Connect
 
 
-def unix_connect(path: str, uri: str = "ws://localhost/", **kwargs: Any) -> Connect:
+def unix_connect(
+    path: Optional[str], uri: str = "ws://localhost/", **kwargs: Any
+) -> Connect:
     """
     Similar to :func:`connect`, but for connecting to a Unix socket.
 
@@ -578,4 +580,4 @@ def unix_connect(path: str, uri: str = "ws://localhost/", **kwargs: Any) -> Conn
     :param uri: WebSocket URI
 
     """
-    return connect(uri=uri, path=path, **kwargs)
+    return connect(uri=uri, path=path, unix=True, **kwargs)

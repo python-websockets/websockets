@@ -142,6 +142,17 @@ See `issue 414`_.
 
 .. _issue 414: https://github.com/aaugustin/websockets/issues/414
 
+How do I stop a client that is continuously processing messages?
+................................................................
+
+You can close the connection.
+
+Here's an example that terminates cleanly when it receives SIGTERM on Unix:
+
+.. literalinclude:: ../example/shutdown_client.py
+    :emphasize-lines: 10-13
+
+
 How do I disable TLS/SSL certificate verification?
 ..................................................
 

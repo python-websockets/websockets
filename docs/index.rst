@@ -72,7 +72,7 @@ Find all the details you could ask for, and then some.
 .. toctree::
    :maxdepth: 2
 
-   api
+   api/index
 
 Discussions
 -----------

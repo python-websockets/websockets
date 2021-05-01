@@ -52,9 +52,6 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
         """
         Check HTTP Basic Auth and return a HTTP 401 or 403 response if needed.
 
-        If authentication succeeds, the username of the authenticated user is
-        stored in the ``username`` attribute.
-
         """
         try:
             authorization = request_headers["Authorization"]

@@ -13,7 +13,7 @@ wish to understand what happens under the hood.
 
     Internals described in this document may change at any time.
 
-    Backwards compatibility is only guaranteed for `public APIs <api>`_.
+    Backwards compatibility is only guaranteed for `public APIs <api/index>`_.
 
 
 Lifecycle
@@ -404,8 +404,8 @@ don't involve inversion of control.
 Library
 .......
 
-Most :doc:`public APIs <api>` of ``websockets`` are coroutines. They may be
-canceled, for example if the user starts a task that calls these coroutines
+Most :doc:`public APIs <api/index>` of ``websockets`` are coroutines. They may
+be canceled, for example if the user starts a task that calls these coroutines
 and cancels the task later. ``websockets`` must handle this situation.
 
 Cancellation during the opening handshake is handled like any other exception:

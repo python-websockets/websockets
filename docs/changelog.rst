@@ -25,10 +25,15 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented APIs are considered private.
 They may change at any time.
 
-9.0
+9.1
 ...
 
 *In development*
+
+9.0
+...
+
+*May 1, 2021*
 
 .. note::
 

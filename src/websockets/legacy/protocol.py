@@ -466,11 +466,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         :exc:`~websockets.exceptions.ConnectionClosedError` after a protocol
         error or a network failure.
 
-        .. versionchanged:: 3.0
-
-            :meth:`recv` used to return ``None`` instead. Refer to the
-            changelog for details.
-
         Canceling :meth:`recv` is safe. There's no risk of losing the next
         message. The next invocation of :meth:`recv` will return it. This
         makes it possible to enforce a timeout by wrapping :meth:`recv` in

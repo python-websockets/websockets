@@ -33,7 +33,6 @@ async def main():
 
     while True:
         user_input = await inputter()
-        print(user_input)
         await user_input_queue.put(user_input)
 
     await recv_task

@@ -50,7 +50,7 @@ from .protocol import WebSocketCommonProtocol
 
 __all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("websockets.server")
 
 
 HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]]

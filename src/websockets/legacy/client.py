@@ -40,7 +40,7 @@ from .protocol import WebSocketCommonProtocol
 
 __all__ = ["connect", "unix_connect", "WebSocketClientProtocol"]
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("websockets.server")
 
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):

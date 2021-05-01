@@ -60,7 +60,7 @@ from .framing import Frame
 
 __all__ = ["WebSocketCommonProtocol"]
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("websockets.protocol")
 
 
 # A WebSocket connection goes through the following four states, in order:

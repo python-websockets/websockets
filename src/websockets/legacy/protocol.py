@@ -549,7 +549,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
                 # Other fragments.
                 # https://github.com/python/mypy/issues/5738
-                async for message_chunk in aiter_message:  # type: ignore
+                # coverage reports this code as not covered, but it is
+                # exercised by tests - changing it breaks the tests!
+                async for message_chunk in aiter_message:  # type: ignore  # pragma: no cover  # noqa
                     confirm_opcode, data = prepare_data(message_chunk)
                     if confirm_opcode != opcode:
                         raise TypeError("data contains inconsistent types")

@@ -851,7 +851,6 @@ class Serve:
         host: Optional[Union[str, Sequence[str]]] = None,
         port: Optional[int] = None,
         *,
-        path: Optional[str] = None,
         create_protocol: Optional[Callable[[Any], WebSocketServerProtocol]] = None,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
@@ -861,9 +860,6 @@ class Serve:
         read_limit: int = 2 ** 16,
         write_limit: int = 2 ** 16,
         loop: Optional[asyncio.AbstractEventLoop] = None,
-        legacy_recv: bool = False,
-        klass: Optional[Type[WebSocketServerProtocol]] = None,
-        timeout: Optional[float] = None,
         compression: Optional[str] = "deflate",
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
@@ -875,10 +871,10 @@ class Serve:
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
-        unix: bool = False,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
+        timeout: Optional[float] = kwargs.pop("timeout", None)
         if timeout is None:
             timeout = 10
         else:
@@ -888,6 +884,7 @@ class Serve:
             close_timeout = timeout
 
         # Backwards compatibility: create_protocol used to be called klass.
+        klass: Optional[Type[WebSocketServerProtocol]] = kwargs.pop("klass", None)
         if klass is None:
             klass = WebSocketServerProtocol
         else:
@@ -895,6 +892,9 @@ class Serve:
         # If both are specified, klass is ignored.
         if create_protocol is None:
             create_protocol = klass
+
+        # Backwards compatibility: recv() used to return None on closed connections
+        legacy_recv: bool = kwargs.pop("legacy_recv", False)
 
         if loop is None:
             loop = asyncio.get_event_loop()
@@ -932,7 +932,8 @@ class Serve:
             select_subprotocol=select_subprotocol,
         )
 
-        if unix:
+        if kwargs.pop("unix", False):
+            path: Optional[str] = kwargs.pop("path", None)
             # unix_serve(path) must not specify host and port parameters.
             assert host is None and port is None
             create_server = functools.partial(

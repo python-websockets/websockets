@@ -374,7 +374,6 @@ class Connect:
         self,
         uri: str,
         *,
-        path: Optional[str] = None,
         create_protocol: Optional[Callable[[Any], WebSocketClientProtocol]] = None,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
@@ -384,9 +383,6 @@ class Connect:
         read_limit: int = 2 ** 16,
         write_limit: int = 2 ** 16,
         loop: Optional[asyncio.AbstractEventLoop] = None,
-        legacy_recv: bool = False,
-        klass: Optional[Type[WebSocketClientProtocol]] = None,
-        timeout: Optional[float] = None,
         compression: Optional[str] = "deflate",
         origin: Optional[Origin] = None,
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
@@ -395,6 +391,7 @@ class Connect:
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
+        timeout: Optional[float] = kwargs.pop("timeout", None)
         if timeout is None:
             timeout = 10
         else:
@@ -404,6 +401,7 @@ class Connect:
             close_timeout = timeout
 
         # Backwards compatibility: create_protocol used to be called klass.
+        klass: Optional[Type[WebSocketClientProtocol]] = kwargs.pop("klass", None)
         if klass is None:
             klass = WebSocketClientProtocol
         else:
@@ -411,6 +409,9 @@ class Connect:
         # If both are specified, klass is ignored.
         if create_protocol is None:
             create_protocol = klass
+
+        # Backwards compatibility: recv() used to return None on closed connections
+        legacy_recv: bool = kwargs.pop("legacy_recv", False)
 
         if loop is None:
             loop = asyncio.get_event_loop()
@@ -449,6 +450,7 @@ class Connect:
             extra_headers=extra_headers,
         )
 
+        path: Optional[str] = kwargs.pop("path", None)
         if path is None:
             host: Optional[str]
             port: Optional[int]

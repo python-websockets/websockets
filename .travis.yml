@@ -1,7 +1,7 @@
 env:
   global:
   # websockets only works on Python >= 3.6.
-    - CIBW_BUILD="cp36-* cp37-* cp38-*"
+    - CIBW_BUILD="cp36-* cp37-* cp38-* cp39-*""
     - CIBW_TEST_COMMAND="python3 -W default -m unittest"
     - WEBSOCKETS_TESTS_TIMEOUT_FACTOR=100
 

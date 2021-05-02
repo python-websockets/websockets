@@ -465,6 +465,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
            Stopping in the middle of a fragmented message will cause a
            protocol error. Closing the connection has the same effect.
 
+        :raises ~websockets.exceptions.ConnectionClosed: when the
+            connection is closed
         :raises TypeError: for unsupported inputs
 
         """
@@ -653,6 +655,11 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         Canceling the :class:`~asyncio.Future` returned by :meth:`ping` has no
         effect.
 
+        :raises ~websockets.exceptions.ConnectionClosed: when the
+            connection is closed
+        :raises ValueError: if another ping was sent with the same data and
+            the corresponding pong wasn't received yet
+
         """
         await self.ensure_open()
 
@@ -684,6 +691,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         Canceling :meth:`pong` is discouraged for the same reason as
         :meth:`ping`.
+
+        :raises ~websockets.exceptions.ConnectionClosed: when the
+            connection is closed
 
         """
         await self.ensure_open()

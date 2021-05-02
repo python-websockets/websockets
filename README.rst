@@ -45,15 +45,14 @@ Here's how a client sends and receives messages:
     #!/usr/bin/env python
 
     import asyncio
-    import websockets
+    from websockets import connect
 
     async def hello(uri):
-        async with websockets.connect(uri) as websocket:
+        async with connect(uri) as websocket:
             await websocket.send("Hello world!")
             await websocket.recv()
 
-    asyncio.get_event_loop().run_until_complete(
-        hello('ws://localhost:8765'))
+    asyncio.run(hello('ws://localhost:8765'))
 
 And here's an echo server:
 
@@ -62,15 +61,15 @@ And here's an echo server:
     #!/usr/bin/env python
 
     import asyncio
-    import websockets
+    from websockets import serve
 
     async def echo(websocket, path):
         async for message in websocket:
             await websocket.send(message)
 
-    asyncio.get_event_loop().run_until_complete(
-        websockets.serve(echo, 'localhost', 8765))
-    asyncio.get_event_loop().run_forever()
+    async def main():
+        async with serve(echo, 'localhost', 8765):
+            await asyncio.Future()  # run forever
 
 Does that look good?
 

@@ -18,10 +18,12 @@ async def echo(ws, path):
         await ws.send(msg)
 
 
-start_server = websockets.serve(echo, HOST, PORT, max_size=2 ** 25, max_queue=1)
+async def main():
+    with websockets.serve(echo, HOST, PORT, max_size=2 ** 25, max_queue=1):
+        try:
+            await asyncio.Future()
+        except KeyboardInterrupt:
+            pass
 
-try:
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
-except KeyboardInterrupt:
-    pass
+
+asyncio.run(main)

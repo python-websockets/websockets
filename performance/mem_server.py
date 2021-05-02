@@ -31,7 +31,11 @@ async def handler(ws, path):
     await asyncio.sleep(CLIENTS * INTERVAL)
 
 
-async def mem_server(stop):
+async def mem_server():
+    loop = asyncio.get_running_loop()
+    stop = loop.create_future()
+    # Set the stop condition when receiving SIGTERM.
+    loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
     async with websockets.serve(
         handler,
         "localhost",
@@ -44,19 +48,14 @@ async def mem_server(stop):
             )
         ],
     ):
+        tracemalloc.start()
         await stop
 
 
-loop = asyncio.get_event_loop()
+asyncio.run(mem_server())
 
-stop = loop.create_future()
-loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
 
-tracemalloc.start()
-
-loop.run_until_complete(mem_server(stop))
-
-# First connection incurs non-representative setup costs.
+# First connection may incur non-representative setup costs.
 del MEM_SIZE[0]
 
 print(f"µ = {statistics.mean(MEM_SIZE) / 1024:.1f} KiB")

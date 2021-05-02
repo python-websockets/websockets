@@ -43,7 +43,7 @@ async def mem_client(client):
         await asyncio.sleep(CLIENTS * INTERVAL)
 
 
-asyncio.get_event_loop().run_until_complete(
+asyncio.run(
     asyncio.gather(*[mem_client(client) for client in range(CLIENTS + 1)])
 )
 

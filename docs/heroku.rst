@@ -52,10 +52,11 @@ Here's the implementation of the app, an echo server. Save it in a file called
         async for message in websocket:
             await websocket.send(message)
 
-    start_server = websockets.serve(echo, "", int(os.environ["PORT"]))
+    async def main():
+        async with websockets.serve(echo, "", int(os.environ["PORT"])):
+            await asyncio.Future()  # run forever
 
-    asyncio.get_event_loop().run_until_complete(start_server)
-    asyncio.get_event_loop().run_forever()
+    asyncio.run(main)
 
 The server relies on the ``$PORT`` environment variable to tell on which port
 it will listen, according to Heroku's conventions.

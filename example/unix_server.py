@@ -15,8 +15,9 @@ async def hello(websocket, path):
     await websocket.send(greeting)
     print(f"> {greeting}")
 
-socket_path = os.path.join(os.path.dirname(__file__), "socket")
-start_server = websockets.unix_serve(hello, socket_path)
+async def main():
+    socket_path = os.path.join(os.path.dirname(__file__), "socket")
+    async with websockets.unix_serve(hello, socket_path):
+        await asyncio.Future()  # run forever
 
-asyncio.get_event_loop().run_until_complete(start_server)
-asyncio.get_event_loop().run_forever()
+asyncio.run(main)

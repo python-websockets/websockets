@@ -1,4 +1,3 @@
-import sys
 import warnings
 from typing import Any, Dict, Iterable, Optional
 
@@ -50,9 +49,6 @@ def lazy_import(
 
     This function defines __getattr__ and __dir__ per PEP 562.
 
-    On Python 3.6 and earlier, it falls back to non-lazy imports and doesn't
-    raise deprecation warnings.
-
     """
     if aliases is None:
         aliases = {}
@@ -69,43 +65,33 @@ def lazy_import(
 
     package = namespace["__name__"]
 
-    if sys.version_info[:2] >= (3, 7):
+    def __getattr__(name: str) -> Any:
+        assert aliases is not None  # mypy cannot figure this out
+        try:
+            source = aliases[name]
+        except KeyError:
+            pass
+        else:
+            return import_name(name, source, namespace)
 
-        def __getattr__(name: str) -> Any:
-            assert aliases is not None  # mypy cannot figure this out
-            try:
-                source = aliases[name]
-            except KeyError:
-                pass
-            else:
-                return import_name(name, source, namespace)
+        assert deprecated_aliases is not None  # mypy cannot figure this out
+        try:
+            source = deprecated_aliases[name]
+        except KeyError:
+            pass
+        else:
+            warnings.warn(
+                f"{package}.{name} is deprecated",
+                DeprecationWarning,
+                stacklevel=2,
+            )
+            return import_name(name, source, namespace)
 
-            assert deprecated_aliases is not None  # mypy cannot figure this out
-            try:
-                source = deprecated_aliases[name]
-            except KeyError:
-                pass
-            else:
-                warnings.warn(
-                    f"{package}.{name} is deprecated",
-                    DeprecationWarning,
-                    stacklevel=2,
-                )
-                return import_name(name, source, namespace)
+        raise AttributeError(f"module {package!r} has no attribute {name!r}")
 
-            raise AttributeError(f"module {package!r} has no attribute {name!r}")
+    namespace["__getattr__"] = __getattr__
 
-        namespace["__getattr__"] = __getattr__
+    def __dir__() -> Iterable[str]:
+        return sorted(namespace_set | aliases_set | deprecated_aliases_set)
 
-        def __dir__() -> Iterable[str]:
-            return sorted(namespace_set | aliases_set | deprecated_aliases_set)
-
-        namespace["__dir__"] = __dir__
-
-    else:  # pragma: no cover
-
-        for name, source in aliases.items():
-            namespace[name] = import_name(name, source, namespace)
-
-        for name, source in deprecated_aliases.items():
-            namespace[name] = import_name(name, source, namespace)
+    namespace["__dir__"] = __dir__

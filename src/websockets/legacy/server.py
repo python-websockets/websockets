@@ -760,12 +760,7 @@ class WebSocketServer:
         Tell whether the server is accepting new connections or shutting down.
 
         """
-        try:
-            # Python ≥ 3.7
-            return self.server.is_serving()
-        except AttributeError:  # pragma: no cover
-            # Python < 3.7
-            return self.server.sockets is not None
+        return self.server.is_serving()
 
     def close(self) -> None:
         """
@@ -815,7 +810,7 @@ class WebSocketServer:
         if self.websockets:
             await asyncio.wait(
                 [
-                    asyncio.ensure_future(websocket.close(1001))
+                    asyncio.create_task(websocket.close(1001))
                     for websocket in self.websockets
                 ],
                 loop=self.loop if sys.version_info[:2] < (3, 8) else None,

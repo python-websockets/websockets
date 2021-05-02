@@ -1,6 +1,5 @@
 import pathlib
 import re
-import sys
 
 import setuptools
 
@@ -20,9 +19,6 @@ long_description = re.sub(
 )
 
 exec((root_dir / 'src' / 'websockets' / 'version.py').read_text(encoding='utf-8'))
-
-if sys.version_info[:3] < (3, 6, 1):
-    raise Exception("websockets requires Python >= 3.6.1.")
 
 packages = ['websockets', 'websockets/legacy', 'websockets/extensions']
 
@@ -51,7 +47,6 @@ setuptools.setup(
         'Operating System :: OS Independent',
         'Programming Language :: Python',
         'Programming Language :: Python :: 3',
-        'Programming Language :: Python :: 3.6',
         'Programming Language :: Python :: 3.7',
         'Programming Language :: Python :: 3.8',
         'Programming Language :: Python :: 3.9',
@@ -62,6 +57,6 @@ setuptools.setup(
     ext_modules=ext_modules,
     include_package_data=True,
     zip_safe=False,
-    python_requires='>=3.6.1',
+    python_requires='>=3.7',
     test_loader='unittest:TestLoader',
 )

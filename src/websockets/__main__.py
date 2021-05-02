@@ -105,8 +105,8 @@ async def run_client(
 
     try:
         while True:
-            incoming: asyncio.Future[Any] = asyncio.ensure_future(websocket.recv())
-            outgoing: asyncio.Future[Any] = asyncio.ensure_future(inputs.get())
+            incoming: asyncio.Future[Any] = asyncio.create_task(websocket.recv())
+            outgoing: asyncio.Future[Any] = asyncio.create_task(inputs.get())
             done: Set[asyncio.Future[Any]]
             pending: Set[asyncio.Future[Any]]
             done, pending = await asyncio.wait(
@@ -188,7 +188,7 @@ def main() -> None:
     stop: asyncio.Future[None] = loop.create_future()
 
     # Schedule the task that will manage the connection.
-    asyncio.ensure_future(run_client(args.uri, loop, inputs, stop), loop=loop)
+    loop.create_task(run_client(args.uri, loop, inputs, stop))
 
     # Start the event loop in a background thread.
     thread = threading.Thread(target=loop.run_forever)

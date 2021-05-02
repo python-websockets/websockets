@@ -50,7 +50,7 @@ jobs:
       uses: joerick/cibuildwheel@v1.11.0
       env:
         CIBW_ARCHS_LINUX: auto aarch64
-        CIBW_BUILD: cp36-* cp37-* cp38-* cp39-*
+        CIBW_BUILD: cp37-* cp38-* cp39-*
     - name: Save wheels
       uses: actions/upload-artifact@v2
       with:

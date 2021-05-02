@@ -25,10 +25,14 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented APIs are considered private.
 They may change at any time.
 
-9.1
-...
+10.0
+....
 
 *In development*
+
+.. warning::
+
+    **Version 10.0 drops compatibility with Python 3.6.**
 
 9.0.1
 .....

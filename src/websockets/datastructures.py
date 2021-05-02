@@ -158,8 +158,4 @@ class Headers(MutableMapping[str, str]):
 
 HeadersLike = Union[Headers, Mapping[str, str], Iterable[Tuple[str, str]]]
 HeadersLike__doc__ = """Types accepted wherever :class:`Headers` is expected"""
-# Remove try / except when dropping support for Python < 3.7
-try:
-    HeadersLike.__doc__ = HeadersLike__doc__
-except AttributeError:  # pragma: no cover
-    pass
+HeadersLike.__doc__ = HeadersLike__doc__

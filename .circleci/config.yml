@@ -4,6 +4,8 @@ jobs:
   main:
     docker:
       - image: circleci/python:3.7
+    environment:
+      WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
     steps:
       # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
       - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
@@ -14,6 +16,8 @@ jobs:
   py36:
     docker:
       - image: circleci/python:3.6
+    environment:
+      WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
     steps:
       # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
       - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
@@ -23,6 +27,8 @@ jobs:
   py37:
     docker:
       - image: circleci/python:3.7
+    environment:
+      WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
     steps:
       # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
       - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
@@ -32,6 +38,8 @@ jobs:
   py38:
     docker:
       - image: circleci/python:3.8
+    environment:
+      WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
     steps:
       # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
       - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc
@@ -41,6 +49,8 @@ jobs:
   py39:
     docker:
       - image: circleci/python:3.9
+    environment:
+      WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 100
     steps:
       # Remove IPv6 entry for localhost in Circle CI containers because it doesn't work anyway.
       - run: sudo cp /etc/hosts /tmp; sudo sed -i '/::1/d' /tmp/hosts; sudo cp /tmp/hosts /etc

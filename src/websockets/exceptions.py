@@ -314,7 +314,7 @@ class AbortHandshake(InvalidHandshake):
         self.status = status
         self.headers = Headers(headers)
         self.body = body
-        message = f"HTTP {status}, {len(self.headers)} headers, {len(body)} bytes"
+        message = f"HTTP {status:d}, {len(self.headers)} headers, {len(body)} bytes"
         super().__init__(message)
 
 

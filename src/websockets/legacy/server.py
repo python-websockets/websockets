@@ -10,7 +10,6 @@ import functools
 import http
 import logging
 import socket
-import sys
 import warnings
 from types import TracebackType
 from typing import (
@@ -43,6 +42,7 @@ from ..extensions.permessage_deflate import enable_server_permessage_deflate
 from ..headers import build_extension, parse_extension, parse_subprotocol
 from ..http import USER_AGENT
 from ..typing import ExtensionHeader, Origin, Subprotocol
+from .compatibility import asyncio_get_running_loop, loop_if_py_lt_38
 from .handshake import build_response, check_request
 from .http import read_request
 from .protocol import WebSocketCommonProtocol
@@ -798,9 +798,7 @@ class WebSocketServer:
 
         # Wait until all accepted connections reach connection_made() and call
         # register(). See https://bugs.python.org/issue34852 for details.
-        await asyncio.sleep(
-            0, loop=self.loop if sys.version_info[:2] < (3, 8) else None
-        )
+        await asyncio.sleep(0, **loop_if_py_lt_38(self.loop))
 
         # Close OPEN connections with status code 1001. Since the server was
         # closed, handshake() closes OPENING conections with a HTTP 503 error.
@@ -813,7 +811,7 @@ class WebSocketServer:
                     asyncio.create_task(websocket.close(1001))
                     for websocket in self.websockets
                 ],
-                loop=self.loop if sys.version_info[:2] < (3, 8) else None,
+                **loop_if_py_lt_38(self.loop),
             )
 
         # Wait until all connection handlers are complete.
@@ -822,7 +820,7 @@ class WebSocketServer:
         if self.websockets:
             await asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets],
-                loop=self.loop if sys.version_info[:2] < (3, 8) else None,
+                **loop_if_py_lt_38(self.loop),
             )
 
         # Tell wait_closed() to return.
@@ -953,7 +951,6 @@ class Serve:
         max_queue: Optional[int] = 2 ** 5,
         read_limit: int = 2 ** 16,
         write_limit: int = 2 ** 16,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
         compression: Optional[str] = "deflate",
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
@@ -990,10 +987,14 @@ class Serve:
         # Backwards compatibility: recv() used to return None on closed connections
         legacy_recv: bool = kwargs.pop("legacy_recv", False)
 
+        # Backwards compatibility: the loop parameter used to be supported.
+        loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
         if loop is None:
-            loop = asyncio.get_event_loop()
+            loop = asyncio_get_running_loop()
+        else:
+            warnings.warn("remove loop argument", DeprecationWarning)
 
-        ws_server = WebSocketServer(loop)
+        ws_server = WebSocketServer(loop=loop)
 
         secure = kwargs.get("ssl") is not None
 

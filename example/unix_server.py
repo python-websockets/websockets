@@ -20,4 +20,4 @@ async def main():
     async with websockets.unix_serve(hello, socket_path):
         await asyncio.Future()  # run forever
 
-asyncio.run(main)
+asyncio.run(main())

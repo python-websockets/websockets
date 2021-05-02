@@ -14,7 +14,6 @@ import enum
 import logging
 import random
 import struct
-import sys
 import warnings
 from typing import (
     Any,
@@ -55,6 +54,7 @@ from ..frames import (
     serialize_close,
 )
 from ..typing import Data, Subprotocol
+from .compatibility import loop_if_py_lt_38
 from .framing import Frame
 
 
@@ -107,13 +107,13 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         max_queue: Optional[int] = 2 ** 5,
         read_limit: int = 2 ** 16,
         write_limit: int = 2 ** 16,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
         # The following arguments are kept only for backwards compatibility.
         host: Optional[str] = None,
         port: Optional[int] = None,
         secure: Optional[bool] = None,
-        legacy_recv: bool = False,
         timeout: Optional[float] = None,
+        legacy_recv: bool = False,
+        loop: Optional[asyncio.AbstractEventLoop] = None,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
         if timeout is None:
@@ -132,8 +132,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.read_limit = read_limit
         self.write_limit = write_limit
 
-        if loop is None:
-            loop = asyncio.get_event_loop()
+        assert loop is not None
+        # Remove when dropping Python < 3.10 - use get_running_loop instead.
         self.loop = loop
 
         self._host = host
@@ -151,9 +151,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self._paused = False
         self._drain_waiter: Optional[asyncio.Future[None]] = None
 
-        self._drain_lock = asyncio.Lock(
-            loop=loop if sys.version_info[:2] < (3, 8) else None
-        )
+        self._drain_lock = asyncio.Lock(**loop_if_py_lt_38(loop))
 
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.
@@ -231,9 +229,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 #     write(...); yield from drain()
                 # in a loop would never call connection_lost(), so it
                 # would not see an error when the socket is closed.
-                await asyncio.sleep(
-                    0, loop=self.loop if sys.version_info[:2] < (3, 8) else None
-                )
+                await asyncio.sleep(0, **loop_if_py_lt_38(self.loop))
         await self._drain_helper()
 
     def connection_open(self) -> None:
@@ -403,8 +399,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 # pop_message_waiter and self.transfer_data_task.
                 await asyncio.wait(
                     [pop_message_waiter, self.transfer_data_task],
-                    loop=self.loop if sys.version_info[:2] < (3, 8) else None,
                     return_when=asyncio.FIRST_COMPLETED,
+                    **loop_if_py_lt_38(self.loop),
                 )
             finally:
                 self._pop_message_waiter = None
@@ -601,7 +597,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             await asyncio.wait_for(
                 self.write_close_frame(serialize_close(code, reason)),
                 self.close_timeout,
-                loop=self.loop if sys.version_info[:2] < (3, 8) else None,
+                **loop_if_py_lt_38(self.loop),
             )
         except asyncio.TimeoutError:
             # If the close frame cannot be sent because the send buffers
@@ -622,7 +618,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             await asyncio.wait_for(
                 self.transfer_data_task,
                 self.close_timeout,
-                loop=self.loop if sys.version_info[:2] < (3, 8) else None,
+                **loop_if_py_lt_38(self.loop),
             )
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
@@ -1052,7 +1048,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             while True:
                 await asyncio.sleep(
                     self.ping_interval,
-                    loop=self.loop if sys.version_info[:2] < (3, 8) else None,
+                    **loop_if_py_lt_38(self.loop),
                 )
 
                 # ping() raises CancelledError if the connection is closed,
@@ -1068,7 +1064,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                         await asyncio.wait_for(
                             pong_waiter,
                             self.ping_timeout,
-                            loop=self.loop if sys.version_info[:2] < (3, 8) else None,
+                            **loop_if_py_lt_38(self.loop),
                         )
                     except asyncio.TimeoutError:
                         logger.debug("%s ! timed out waiting for pong", self.side)
@@ -1168,7 +1164,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 await asyncio.wait_for(
                     asyncio.shield(self.connection_lost_waiter),
                     self.close_timeout,
-                    loop=self.loop if sys.version_info[:2] < (3, 8) else None,
+                    **loop_if_py_lt_38(self.loop),
                 )
             except asyncio.TimeoutError:
                 pass

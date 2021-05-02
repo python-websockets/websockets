@@ -26,4 +26,4 @@ async def main():
             pass
 
 
-asyncio.run(main)
+asyncio.run(main())

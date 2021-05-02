@@ -17,4 +17,4 @@ async def main():
     async with websockets.serve(time, "localhost", 5678):
         await asyncio.Future()  # run forever
 
-asyncio.run(main)
+asyncio.run(main())

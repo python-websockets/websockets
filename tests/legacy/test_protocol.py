@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import sys
 import unittest
 import unittest.mock
 import warnings
@@ -15,6 +14,7 @@ from websockets.frames import (
     OP_TEXT,
     serialize_close,
 )
+from websockets.legacy.compatibility import loop_if_py_lt_38
 from websockets.legacy.framing import Frame
 from websockets.legacy.protocol import State, WebSocketCommonProtocol
 
@@ -87,7 +87,7 @@ class CommonTests:
     def setUp(self):
         super().setUp()
         # Disable pings to make it easier to test what frames are sent exactly.
-        self.protocol = WebSocketCommonProtocol(ping_interval=None)
+        self.protocol = WebSocketCommonProtocol(ping_interval=None, loop=self.loop)
         self.transport = TransportMock()
         self.transport.setup_mock(self.loop, self.protocol)
 
@@ -105,9 +105,7 @@ class CommonTests:
         original_drain = self.protocol._drain
 
         async def delayed_drain():
-            await asyncio.sleep(
-                delay, loop=self.loop if sys.version_info[:2] < (3, 8) else None
-            )
+            await asyncio.sleep(delay, **loop_if_py_lt_38(self.loop))
             await original_drain()
 
         self.protocol._drain = delayed_drain
@@ -312,14 +310,13 @@ class CommonTests:
 
     def test_timeout_backwards_compatibility(self):
         with warnings.catch_warnings(record=True) as recorded_warnings:
-            protocol = WebSocketCommonProtocol(timeout=5)
+            protocol = WebSocketCommonProtocol(timeout=5, loop=self.loop)
 
         self.assertEqual(protocol.close_timeout, 5)
 
-        self.assertEqual(len(recorded_warnings), 1)
-        warning = recorded_warnings[0].message
-        self.assertEqual(str(warning), "rename timeout to close_timeout")
-        self.assertEqual(type(warning), DeprecationWarning)
+        self.assertDeprecationWarnings(
+            recorded_warnings, ["rename timeout to close_timeout"]
+        )
 
     # Test public attributes.
 
@@ -647,7 +644,14 @@ class CommonTests:
             await asyncio.sleep(MS)
             await self.protocol.send(b"tea")
 
-        self.loop.run_until_complete(asyncio.gather(send_iterable(), send_concurrent()))
+        async def run_concurrently():
+            await asyncio.gather(
+                send_iterable(),
+                send_concurrent(),
+            )
+
+        self.loop.run_until_complete(run_concurrently())
+
         self.assertFramesSent(
             (False, OP_TEXT, "ca".encode("utf-8")),
             (False, OP_CONT, "fé".encode("utf-8")),
@@ -714,9 +718,14 @@ class CommonTests:
             await asyncio.sleep(MS)
             await self.protocol.send(b"tea")
 
-        self.loop.run_until_complete(
-            asyncio.gather(send_async_iterable(), send_concurrent())
-        )
+        async def run_concurrently():
+            await asyncio.gather(
+                send_async_iterable(),
+                send_concurrent(),
+            )
+
+        self.loop.run_until_complete(run_concurrently())
+
         self.assertFramesSent(
             (False, OP_TEXT, "ca".encode("utf-8")),
             (False, OP_CONT, "fé".encode("utf-8")),
@@ -1098,7 +1107,9 @@ class CommonTests:
         self.loop.run_until_complete(self.protocol.close())
         # copied from setUp, but enables keepalive pings
         self.protocol = WebSocketCommonProtocol(
-            ping_interval=ping_interval, ping_timeout=ping_timeout
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
+            loop=self.loop,
         )
         self.transport = TransportMock()
         self.transport.setup_mock(self.loop, self.protocol)

@@ -6,6 +6,7 @@ import pathlib
 import random
 import socket
 import ssl
+import sys
 import tempfile
 import unittest
 import unittest.mock
@@ -51,7 +52,7 @@ from .utils import MS, AsyncioTestCase
 testcert = bytes(pathlib.Path(__file__).parent.with_name("test_localhost.pem"))
 
 
-async def handler(ws, path):
+async def default_handler(ws, path):
     if path == "/deprecated_attributes":
         await ws.recv()  # delay that allows catching warnings
         await ws.send(repr((ws.host, ws.port, ws.secure)))
@@ -84,9 +85,9 @@ def temp_test_server(test, **kwargs):
 
 @contextlib.contextmanager
 def temp_test_redirecting_server(
-    test, status, include_location=True, force_insecure=False
+    test, status, include_location=True, force_insecure=False, **kwargs
 ):
-    test.start_redirecting_server(status, include_location, force_insecure)
+    test.start_redirecting_server(status, include_location, force_insecure, **kwargs)
     try:
         yield
     finally:
@@ -206,21 +207,36 @@ class ClientServerTestsMixin:
         return None
 
     def start_server(self, deprecation_warnings=None, **kwargs):
+        handler = kwargs.pop("handler", default_handler)
         # Disable compression by default in tests.
         kwargs.setdefault("compression", None)
         # Disable pings by default in tests.
         kwargs.setdefault("ping_interval", None)
+        # Python 3.10 dislikes not having a running event loop
+        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
+            kwargs.setdefault("loop", self.loop)
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
             start_server = serve(handler, "localhost", 0, **kwargs)
             self.server = self.loop.run_until_complete(start_server)
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
+        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
+            expected_warnings += ["remove loop argument"]
         self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def start_redirecting_server(
-        self, status, include_location=True, force_insecure=False
+        self,
+        status,
+        include_location=True,
+        force_insecure=False,
+        deprecation_warnings=None,
+        **kwargs,
     ):
+        # Python 3.10 dislikes not having a running event loop
+        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
+            kwargs.setdefault("loop", self.loop)
+
         async def process_request(path, headers):
             server_uri = get_server_uri(self.server, self.secure, path)
             if force_insecure:
@@ -228,16 +244,23 @@ class ClientServerTestsMixin:
             headers = {"Location": server_uri} if include_location else []
             return status, headers, b""
 
-        start_server = serve(
-            handler,
-            "localhost",
-            0,
-            compression=None,
-            ping_interval=None,
-            process_request=process_request,
-            ssl=self.server_context,
-        )
-        self.redirecting_server = self.loop.run_until_complete(start_server)
+        with warnings.catch_warnings(record=True) as recorded_warnings:
+            start_server = serve(
+                default_handler,
+                "localhost",
+                0,
+                compression=None,
+                ping_interval=None,
+                process_request=process_request,
+                ssl=self.server_context,
+                **kwargs,
+            )
+            self.redirecting_server = self.loop.run_until_complete(start_server)
+
+        expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
+        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
+            expected_warnings += ["remove loop argument"]
+        self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def start_client(
         self, resource_name="/", user_info=None, deprecation_warnings=None, **kwargs
@@ -246,6 +269,10 @@ class ClientServerTestsMixin:
         kwargs.setdefault("compression", None)
         # Disable pings by default in tests.
         kwargs.setdefault("ping_interval", None)
+        # Python 3.10 dislikes not having a running event loop
+        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
+            kwargs.setdefault("loop", self.loop)
+
         secure = kwargs.get("ssl") is not None
         try:
             server_uri = kwargs.pop("uri")
@@ -258,6 +285,8 @@ class ClientServerTestsMixin:
             self.client = self.loop.run_until_complete(start_client)
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
+        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
+            expected_warnings += ["remove loop argument"]
         self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def stop_client(self):
@@ -376,7 +405,12 @@ class CommonClientServerTests:
                     self.assertEqual(reply, "Hello!")
 
     def test_infinite_redirect(self):
-        with temp_test_redirecting_server(self, http.HTTPStatus.FOUND):
+        with temp_test_redirecting_server(
+            self,
+            http.HTTPStatus.FOUND,
+            loop=self.loop,
+            deprecation_warnings=["remove loop argument"],
+        ):
             self.server = self.redirecting_server
             with self.assertRaises(InvalidHandshake):
                 with temp_test_client(self):
@@ -385,15 +419,23 @@ class CommonClientServerTests:
     @with_server()
     def test_redirect_missing_location(self):
         with temp_test_redirecting_server(
-            self, http.HTTPStatus.FOUND, include_location=False
+            self,
+            http.HTTPStatus.FOUND,
+            include_location=False,
+            loop=self.loop,
+            deprecation_warnings=["remove loop argument"],
         ):
             with self.assertRaises(InvalidHeader):
                 with temp_test_client(self):
                     self.fail("Did not raise")  # pragma: no cover
 
     def test_explicit_event_loop(self):
-        with self.temp_server(loop=self.loop):
-            with self.temp_client(loop=self.loop):
+        with self.temp_server(
+            loop=self.loop, deprecation_warnings=["remove loop argument"]
+        ):
+            with self.temp_client(
+                loop=self.loop, deprecation_warnings=["remove loop argument"]
+            ):
                 self.loop.run_until_complete(self.client.send("Hello!"))
                 reply = self.loop.run_until_complete(self.client.recv())
                 self.assertEqual(reply, "Hello!")
@@ -460,12 +502,19 @@ class CommonClientServerTests:
             path = bytes(pathlib.Path(temp_dir) / "websockets")
 
             # Like self.start_server() but with unix_serve().
-            unix_server = unix_serve(handler, path)
-            self.server = self.loop.run_until_complete(unix_server)
+            with warnings.catch_warnings(record=True) as recorded_warnings:
+                unix_server = unix_serve(default_handler, path, loop=self.loop)
+                self.server = self.loop.run_until_complete(unix_server)
+            self.assertDeprecationWarnings(recorded_warnings, ["remove loop argument"])
+
             try:
                 # Like self.start_client() but with unix_connect()
-                unix_client = unix_connect(path)
-                self.client = self.loop.run_until_complete(unix_client)
+                with warnings.catch_warnings(record=True) as recorded_warnings:
+                    unix_client = unix_connect(path, loop=self.loop)
+                    self.client = self.loop.run_until_complete(unix_client)
+                self.assertDeprecationWarnings(
+                    recorded_warnings, ["remove loop argument"]
+                )
                 try:
                     self.loop.run_until_complete(self.client.send("Hello!"))
                     reply = self.loop.run_until_complete(self.client.recv())
@@ -1214,7 +1263,9 @@ class SecureClientServerTests(
     @with_server()
     def test_ws_uri_is_rejected(self):
         with self.assertRaises(ValueError):
-            connect(get_server_uri(self.server, secure=False), ssl=self.client_context)
+            self.start_client(
+                uri=get_server_uri(self.server, secure=False), ssl=self.client_context
+            )
 
     @with_server()
     def test_redirect_insecure(self):
@@ -1226,106 +1277,58 @@ class SecureClientServerTests(
                     self.fail("Did not raise")  # pragma: no cover
 
 
-class ClientServerOriginTests(AsyncioTestCase):
+class ClientServerOriginTests(ClientServerTestsMixin, AsyncioTestCase):
+    @with_server(origins=["http://localhost"])
+    @with_client(origin="http://localhost")
     def test_checking_origin_succeeds(self):
-        server = self.loop.run_until_complete(
-            serve(handler, "localhost", 0, origins=["http://localhost"])
-        )
-        client = self.loop.run_until_complete(
-            connect(get_server_uri(server), origin="http://localhost")
-        )
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        self.assertEqual(self.loop.run_until_complete(self.client.recv()), "Hello!")
 
-        self.loop.run_until_complete(client.send("Hello!"))
-        self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")
-
-        self.loop.run_until_complete(client.close())
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
-
+    @with_server(origins=["http://localhost"])
     def test_checking_origin_fails(self):
-        server = self.loop.run_until_complete(
-            serve(handler, "localhost", 0, origins=["http://localhost"])
-        )
         with self.assertRaisesRegex(
             InvalidHandshake, "server rejected WebSocket connection: HTTP 403"
         ):
-            self.loop.run_until_complete(
-                connect(get_server_uri(server), origin="http://otherhost")
-            )
+            self.start_client(origin="http://otherhost")
 
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
-
+    @with_server(origins=["http://localhost"])
     def test_checking_origins_fails_with_multiple_headers(self):
-        server = self.loop.run_until_complete(
-            serve(handler, "localhost", 0, origins=["http://localhost"])
-        )
         with self.assertRaisesRegex(
             InvalidHandshake, "server rejected WebSocket connection: HTTP 400"
         ):
-            self.loop.run_until_complete(
-                connect(
-                    get_server_uri(server),
-                    origin="http://localhost",
-                    extra_headers=[("Origin", "http://otherhost")],
-                )
+            self.start_client(
+                origin="http://localhost",
+                extra_headers=[("Origin", "http://otherhost")],
             )
 
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
-
+    @with_server(origins=[None])
+    @with_client()
     def test_checking_lack_of_origin_succeeds(self):
-        server = self.loop.run_until_complete(
-            serve(handler, "localhost", 0, origins=[None])
-        )
-        client = self.loop.run_until_complete(connect(get_server_uri(server)))
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        self.assertEqual(self.loop.run_until_complete(self.client.recv()), "Hello!")
 
-        self.loop.run_until_complete(client.send("Hello!"))
-        self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")
-
-        self.loop.run_until_complete(client.close())
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
-
+    @with_server(origins=[""])
+    @with_client(deprecation_warnings=["use None instead of '' in origins"])
     def test_checking_lack_of_origin_succeeds_backwards_compatibility(self):
-        with warnings.catch_warnings(record=True) as recorded_warnings:
-            server = self.loop.run_until_complete(
-                serve(handler, "localhost", 0, origins=[""])
-            )
-            client = self.loop.run_until_complete(connect(get_server_uri(server)))
-
-        self.assertDeprecationWarnings(
-            recorded_warnings, ["use None instead of '' in origins"]
-        )
-
-        self.loop.run_until_complete(client.send("Hello!"))
-        self.assertEqual(self.loop.run_until_complete(client.recv()), "Hello!")
-
-        self.loop.run_until_complete(client.close())
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        self.assertEqual(self.loop.run_until_complete(self.client.recv()), "Hello!")
 
 
-class YieldFromTests(AsyncioTestCase):
+class YieldFromTests(ClientServerTestsMixin, AsyncioTestCase):
+    @with_server()
     def test_client(self):
-        start_server = serve(handler, "localhost", 0)
-        server = self.loop.run_until_complete(start_server)
-
         # @asyncio.coroutine is deprecated on Python ≥ 3.8
         with warnings.catch_warnings(record=True):
 
             @asyncio.coroutine
             def run_client():
                 # Yield from connect.
-                client = yield from connect(get_server_uri(server))
+                client = yield from connect(get_server_uri(self.server))
                 self.assertEqual(client.state, State.OPEN)
                 yield from client.close()
                 self.assertEqual(client.state, State.CLOSED)
 
         self.loop.run_until_complete(run_client())
-
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
 
     def test_server(self):
         # @asyncio.coroutine is deprecated on Python ≥ 3.8
@@ -1334,7 +1337,7 @@ class YieldFromTests(AsyncioTestCase):
             @asyncio.coroutine
             def run_server():
                 # Yield from serve.
-                server = yield from serve(handler, "localhost", 0)
+                server = yield from serve(default_handler, "localhost", 0)
                 self.assertTrue(server.sockets)
                 server.close()
                 yield from server.wait_closed()
@@ -1343,27 +1346,22 @@ class YieldFromTests(AsyncioTestCase):
         self.loop.run_until_complete(run_server())
 
 
-class AsyncAwaitTests(AsyncioTestCase):
+class AsyncAwaitTests(ClientServerTestsMixin, AsyncioTestCase):
+    @with_server()
     def test_client(self):
-        start_server = serve(handler, "localhost", 0)
-        server = self.loop.run_until_complete(start_server)
-
         async def run_client():
             # Await connect.
-            client = await connect(get_server_uri(server))
+            client = await connect(get_server_uri(self.server))
             self.assertEqual(client.state, State.OPEN)
             await client.close()
             self.assertEqual(client.state, State.CLOSED)
 
         self.loop.run_until_complete(run_client())
 
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
-
     def test_server(self):
         async def run_server():
             # Await serve.
-            server = await serve(handler, "localhost", 0)
+            server = await serve(default_handler, "localhost", 0)
             self.assertTrue(server.sockets)
             server.close()
             await server.wait_closed()
@@ -1372,14 +1370,12 @@ class AsyncAwaitTests(AsyncioTestCase):
         self.loop.run_until_complete(run_server())
 
 
-class ContextManagerTests(AsyncioTestCase):
+class ContextManagerTests(ClientServerTestsMixin, AsyncioTestCase):
+    @with_server()
     def test_client(self):
-        start_server = serve(handler, "localhost", 0)
-        server = self.loop.run_until_complete(start_server)
-
         async def run_client():
             # Use connect as an asynchronous context manager.
-            async with connect(get_server_uri(server)) as client:
+            async with connect(get_server_uri(self.server)) as client:
                 self.assertEqual(client.state, State.OPEN)
 
             # Check that exiting the context manager closed the connection.
@@ -1387,13 +1383,10 @@ class ContextManagerTests(AsyncioTestCase):
 
         self.loop.run_until_complete(run_client())
 
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
-
     def test_server(self):
         async def run_server():
             # Use serve as an asynchronous context manager.
-            async with serve(handler, "localhost", 0) as server:
+            async with serve(default_handler, "localhost", 0) as server:
                 self.assertTrue(server.sockets)
 
             # Check that exiting the context manager closed the server.
@@ -1404,7 +1397,7 @@ class ContextManagerTests(AsyncioTestCase):
     @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
     def test_unix_server(self):
         async def run_server(path):
-            async with unix_serve(handler, path) as server:
+            async with unix_serve(default_handler, path) as server:
                 self.assertTrue(server.sockets)
 
             # Check that exiting the context manager closed the server.
@@ -1415,26 +1408,24 @@ class ContextManagerTests(AsyncioTestCase):
             self.loop.run_until_complete(run_server(path))
 
 
-class AsyncIteratorTests(AsyncioTestCase):
+class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
 
     # This is a protocol-level feature, but since it's a high-level API, it is
     # much easier to exercise at the client or server level.
 
     MESSAGES = ["3", "2", "1", "Fire!"]
 
+    async def echo_handler(ws, path):
+        for message in AsyncIteratorTests.MESSAGES:
+            await ws.send(message)
+
+    @with_server(handler=echo_handler)
     def test_iterate_on_messages(self):
-        async def handler(ws, path):
-            for message in self.MESSAGES:
-                await ws.send(message)
-
-        start_server = serve(handler, "localhost", 0)
-        server = self.loop.run_until_complete(start_server)
-
         messages = []
 
         async def run_client():
             nonlocal messages
-            async with connect(get_server_uri(server)) as ws:
+            async with connect(get_server_uri(self.server)) as ws:
                 async for message in ws:
                     messages.append(message)
 
@@ -1442,23 +1433,18 @@ class AsyncIteratorTests(AsyncioTestCase):
 
         self.assertEqual(messages, self.MESSAGES)
 
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
+    async def echo_handler_1001(ws, path):
+        for message in AsyncIteratorTests.MESSAGES:
+            await ws.send(message)
+        await ws.close(1001)
 
+    @with_server(handler=echo_handler_1001)
     def test_iterate_on_messages_going_away_exit_ok(self):
-        async def handler(ws, path):
-            for message in self.MESSAGES:
-                await ws.send(message)
-            await ws.close(1001)
-
-        start_server = serve(handler, "localhost", 0)
-        server = self.loop.run_until_complete(start_server)
-
         messages = []
 
         async def run_client():
             nonlocal messages
-            async with connect(get_server_uri(server)) as ws:
+            async with connect(get_server_uri(self.server)) as ws:
                 async for message in ws:
                     messages.append(message)
 
@@ -1466,23 +1452,18 @@ class AsyncIteratorTests(AsyncioTestCase):
 
         self.assertEqual(messages, self.MESSAGES)
 
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())
+    async def echo_handler_1011(ws, path):
+        for message in AsyncIteratorTests.MESSAGES:
+            await ws.send(message)
+        await ws.close(1011)
 
+    @with_server(handler=echo_handler_1011)
     def test_iterate_on_messages_internal_error_exit_not_ok(self):
-        async def handler(ws, path):
-            for message in self.MESSAGES:
-                await ws.send(message)
-            await ws.close(1011)
-
-        start_server = serve(handler, "localhost", 0)
-        server = self.loop.run_until_complete(start_server)
-
         messages = []
 
         async def run_client():
             nonlocal messages
-            async with connect(get_server_uri(server)) as ws:
+            async with connect(get_server_uri(self.server)) as ws:
                 async for message in ws:
                     messages.append(message)
 
@@ -1490,6 +1471,3 @@ class AsyncIteratorTests(AsyncioTestCase):
             self.loop.run_until_complete(run_client())
 
         self.assertEqual(messages, self.MESSAGES)
-
-        server.close()
-        self.loop.run_until_complete(server.wait_closed())

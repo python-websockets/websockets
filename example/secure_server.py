@@ -26,4 +26,4 @@ async def main():
     ):
         await asyncio.Future()  # run forever
 
-asyncio.run(main)
+asyncio.run(main())

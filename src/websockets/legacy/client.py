@@ -33,6 +33,7 @@ from ..headers import (
 from ..http import USER_AGENT, build_host
 from ..typing import ExtensionHeader, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
+from .compatibility import asyncio_get_running_loop
 from .handshake import build_request, check_response
 from .http import read_response
 from .protocol import WebSocketCommonProtocol
@@ -472,7 +473,6 @@ class Connect:
         max_queue: Optional[int] = 2 ** 5,
         read_limit: int = 2 ** 16,
         write_limit: int = 2 ** 16,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
         compression: Optional[str] = "deflate",
         origin: Optional[Origin] = None,
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
@@ -503,8 +503,12 @@ class Connect:
         # Backwards compatibility: recv() used to return None on closed connections
         legacy_recv: bool = kwargs.pop("legacy_recv", False)
 
+        # Backwards compatibility: the loop parameter used to be supported.
+        loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
         if loop is None:
-            loop = asyncio.get_event_loop()
+            loop = asyncio_get_running_loop()
+        else:
+            warnings.warn("remove loop argument", DeprecationWarning)
 
         wsuri = parse_uri(uri)
         if wsuri.secure:

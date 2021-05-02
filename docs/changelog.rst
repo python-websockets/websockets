@@ -34,6 +34,14 @@ They may change at any time.
 
     **Version 10.0 drops compatibility with Python 3.6.**
 
+.. note::
+
+    **Version 10.0 deprecates the** ``loop`` **parameter from all APIs for the
+    same reasons the same change was made in Python 3.8. See the release notes
+    of Python 3.10 for details.**
+
+* Added compatibility with Python 3.10.
+
 9.0.1
 .....
 

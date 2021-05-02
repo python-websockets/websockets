@@ -30,6 +30,13 @@ They may change at any time.
 
 *In development*
 
+9.0.1
+.....
+
+*May 2, 2021*
+
+* Fixed issues with the packaging of the 9.0 release.
+
 9.0
 ...
 

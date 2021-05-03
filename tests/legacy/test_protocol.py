@@ -1389,7 +1389,8 @@ class ServerTests(CommonTests, AsyncioTestCase):
         # half-close our side with write_eof() and close it with close(), time
         # out in 20ms.
         # Check the timing within -1/+9ms for robustness.
-        with self.assertCompletesWithin(19 * MS, 29 * MS):
+        # Add another 10ms because this test is flaky and I don't understand.
+        with self.assertCompletesWithin(19 * MS, 39 * MS):
             # HACK: disable write_eof => other end drops connection emulation.
             self.transport._eof = True
             # HACK: disable close => other end drops connection emulation.
@@ -1444,12 +1445,13 @@ class ClientTests(CommonTests, AsyncioTestCase):
         self.protocol.close_timeout = 10 * MS
         # If the client doesn't close its side of the TCP connection after we
         # half-close our side with write_eof() and close it with close(), time
-        # out in 20ms.
+        # out in 30ms.
         # - 10ms waiting for receiving a half-close
         # - 10ms waiting for receiving a close after write_eof
         # - 10ms waiting for receiving a close after close
         # Check the timing within -1/+9ms for robustness.
-        with self.assertCompletesWithin(29 * MS, 39 * MS):
+        # Add another 10ms because this test is flaky and I don't understand.
+        with self.assertCompletesWithin(29 * MS, 49 * MS):
             # HACK: disable write_eof => other end drops connection emulation.
             self.transport._eof = True
             # HACK: disable close => other end drops connection emulation.

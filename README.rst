@@ -52,7 +52,7 @@ Here's how a client sends and receives messages:
             await websocket.send("Hello world!")
             await websocket.recv()
 
-    asyncio.run(hello('ws://localhost:8765'))
+    asyncio.run(hello("ws://localhost:8765"))
 
 And here's an echo server:
 
@@ -68,8 +68,10 @@ And here's an echo server:
             await websocket.send(message)
 
     async def main():
-        async with serve(echo, 'localhost', 8765):
+        async with serve(echo, "localhost", 8765):
             await asyncio.Future()  # run forever
+
+    asyncio.run(main())
 
 Does that look good?
 

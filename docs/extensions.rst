@@ -91,9 +91,8 @@ As a consequence, writing an extension requires implementing several classes:
 ``websockets`` provides abstract base classes for extension factories and
 extensions. See the API documentation for details on their methods:
 
-* :class:`~base.ClientExtensionFactory` and
-  :class:`~base.ServerExtensionFactory` for extension factories,
-
-* :class:`~base.Extension` for extensions.
+* :class:`ClientExtensionFactory` and class:`ServerExtensionFactory` for
+  :extension factories,
+* :class:`Extension` for extensions.
 
 

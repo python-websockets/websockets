@@ -103,7 +103,7 @@ class Frame(NamedTuple):
         *,
         mask: bool,
         max_size: Optional[int] = None,
-        extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
+        extensions: Optional[Sequence["extensions.Extension"]] = None,
     ) -> Generator[None, None, "Frame"]:
         """
         Read a WebSocket frame.
@@ -172,7 +172,7 @@ class Frame(NamedTuple):
         self,
         *,
         mask: bool,
-        extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
+        extensions: Optional[Sequence["extensions.Extension"]] = None,
     ) -> bytes:
         """
         Write a WebSocket frame.
@@ -338,4 +338,4 @@ def check_close(code: int) -> None:
 
 
 # at the bottom to allow circular import, because Extension depends on Frame
-import websockets.extensions.base  # isort:skip # noqa
+from . import extensions  # isort:skip # noqa

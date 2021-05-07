@@ -26,7 +26,6 @@ from .headers import (
 )
 from .http import USER_AGENT
 from .http11 import Request, Response
-from .imports import lazy_import
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
@@ -37,15 +36,8 @@ from .typing import (
 from .utils import accept_key
 
 
-lazy_import(
-    globals(),
-    aliases={
-        "serve": ".legacy.server",
-        "unix_serve": ".legacy.server",
-        "WebSocketServerProtocol": ".legacy.server",
-        "WebSocketServer": ".legacy.server",
-    },
-)
+# See #940 for why lazy_import isn't used here for backwards compatibility.
+from .legacy.server import *  # isort:skip  # noqa
 
 
 __all__ = ["ServerConnection"]

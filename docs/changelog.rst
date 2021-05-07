@@ -37,6 +37,8 @@ They may change at any time.
 
 * Restored compatibility of ``python -m websockets`` with Python < 3.9.
 
+* Restored compatibility with mypy.
+
 9.0.1
 .....
 
@@ -72,6 +74,20 @@ They may change at any time.
       provided low-level APIs for reuse by other WebSocket implementations,
       but that never happened. Keeping these APIs public makes it more
       difficult to improve websockets for no actual benefit.
+
+.. note::
+
+    **Version 9.0 may require changes if you use static code analysis tools.**
+
+    Convenience imports from the ``websockets`` module are performed lazily.
+    While this is supported by Python, static code analysis tools such as mypy
+    are unable to understand the behavior.
+
+    If you depend on such tools, use the real import path, which can be found
+    in the API documentation::
+
+        from websockets.client import connect
+        from websockets.server import serve
 
 * Added compatibility with Python 3.9.
 

@@ -1,7 +1,7 @@
 Client
 ======
 
-.. automodule:: websockets.legacy.client
+.. automodule:: websockets.client
 
     Opening a connection
     --------------------

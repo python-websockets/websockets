@@ -1,7 +1,7 @@
 Server
 ======
 
-.. automodule:: websockets.legacy.server
+.. automodule:: websockets.server
 
     Starting a server
     -----------------
@@ -90,7 +90,7 @@ Server
 Basic authentication
 --------------------
 
-.. automodule:: websockets.legacy.auth
+.. automodule:: websockets.auth
 
     .. autofunction:: basic_auth_protocol_factory
 

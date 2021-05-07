@@ -13,7 +13,7 @@ Per-Message Deflate
 Abstract classes
 ----------------
 
-.. automodule:: websockets.extensions.base
+.. automodule:: websockets.extensions
 
     .. autoclass:: Extension
         :members:

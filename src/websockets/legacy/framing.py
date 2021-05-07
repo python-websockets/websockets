@@ -31,7 +31,7 @@ class Frame(NewFrame):
         *,
         mask: bool,
         max_size: Optional[int] = None,
-        extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
+        extensions: Optional[Sequence["extensions.Extension"]] = None,
     ) -> "Frame":
         """
         Read a WebSocket frame.
@@ -102,7 +102,7 @@ class Frame(NewFrame):
         write: Callable[[bytes], Any],
         *,
         mask: bool,
-        extensions: Optional[Sequence["websockets.extensions.base.Extension"]] = None,
+        extensions: Optional[Sequence["extensions.Extension"]] = None,
     ) -> None:
         """
         Write a WebSocket frame.
@@ -132,4 +132,4 @@ from ..frames import serialize_close  # isort:skip # noqa
 
 
 # at the bottom to allow circular import, because Extension depends on Frame
-import websockets.extensions.base  # isort:skip # noqa
+from .. import extensions  # isort:skip # noqa

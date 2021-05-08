@@ -144,6 +144,22 @@ If you need more, pick a HTTP server and run it separately.
 Client side
 -----------
 
+Why does my client close the connection prematurely?
+....................................................
+
+You're exiting the context manager prematurely. Wait for the work to be
+finished before exiting.
+
+For example, if your code has a structure similar to::
+
+    async with connect(...) as websocket:
+        asyncio.create_task(do_some_work())
+
+change it to::
+
+    async with connect(...) as websocket:
+        await do_some_work()
+
 How do I close a connection properly?
 .....................................
 

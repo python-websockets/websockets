@@ -346,6 +346,8 @@ Is there a Python 2 version?
 
 No, there isn't.
 
-websockets builds upon asyncio which requires Python 3.
+Python 2 reached end of life on January 1st, 2020.
+
+Before that date, websockets required asyncio and therefore Python 3.
 
 

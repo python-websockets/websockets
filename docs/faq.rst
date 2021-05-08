@@ -14,6 +14,23 @@ FAQ
 Server side
 -----------
 
+Why does my server close the connection prematurely?
+....................................................
+
+Your connection handler exits prematurely. Wait for the work to be finished
+before returning.
+
+For example, if your handler has a structure similar to::
+
+    async def handler(websocket, path):
+        ...
+        asyncio.create_task(do_some_work())
+
+change it to::
+
+    async def handler(websocket, path):
+        await do_some_work()
+
 Why does the server close the connection after processing one message?
 ......................................................................
 

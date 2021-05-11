@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import asyncio
 import os
@@ -91,8 +93,8 @@ def print_over_input(string: str) -> None:
 async def run_client(
     uri: str,
     loop: asyncio.AbstractEventLoop,
-    inputs: "asyncio.Queue[str]",
-    stop: "asyncio.Future[None]",
+    inputs: asyncio.Queue[str],
+    stop: asyncio.Future[None],
 ) -> None:
     try:
         websocket = await connect(uri)

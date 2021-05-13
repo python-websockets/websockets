@@ -46,5 +46,10 @@ both in the client API and server API.
    utilities
 
 All public APIs can be imported from the :mod:`websockets` package, unless
-noted otherwise. Anything that isn't listed in this API documentation is a
-private API, with no guarantees of behavior or backwards-compatibility.
+noted otherwise. This convenience feature is incompatible with static code
+analysis tools such as mypy_, though.
+
+.. _mypy: https://github.com/python/mypy
+
+Anything that isn't listed in this API documentation is a private API. There's
+no guarantees of behavior or backwards-compatibility for private APIs.

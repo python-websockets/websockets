@@ -14,9 +14,8 @@ specification, WebSocket Per-Message Deflate, specified in :rfc:`7692`.
 Per-Message Deflate
 -------------------
 
-:func:`~websockets.legacy.client.connect` and
-:func:`~websockets.legacy.server.serve` enable the Per-Message Deflate
-extension by default.
+:func:`~websockets.client.connect` and :func:`~websockets.server.serve` enable
+the Per-Message Deflate extension by default.
 
 If you want to disable it, set ``compression=None``::
 

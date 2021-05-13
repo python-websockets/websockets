@@ -13,7 +13,7 @@ wish to understand what happens under the hood.
 
     Internals described in this document may change at any time.
 
-    Backwards compatibility is only guaranteed for `public APIs <api/index>`_.
+    Backwards compatibility is only guaranteed for :doc:`public APIs <api/index>`.
 
 
 Lifecycle

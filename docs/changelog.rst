@@ -30,6 +30,13 @@ They may change at any time.
 
 *In development*
 
+9.0.2
+.....
+
+*In development*
+
+* Restored compatibility of ``python -m websockets`` with Python < 3.9.
+
 9.0.1
 .....
 

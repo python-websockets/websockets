@@ -448,7 +448,11 @@ def enable_client_permessage_deflate(
         for extension_factory in extensions
     ):
         extensions = list(extensions) + [
-            ClientPerMessageDeflateFactory(client_max_window_bits=True)
+            ClientPerMessageDeflateFactory(
+                server_max_window_bits=12,
+                client_max_window_bits=12,
+                compress_settings={"memLevel": 5},
+            )
         ]
     return extensions
 
@@ -631,5 +635,11 @@ def enable_server_permessage_deflate(
         ext_factory.name == ServerPerMessageDeflateFactory.name
         for ext_factory in extensions
     ):
-        extensions = list(extensions) + [ServerPerMessageDeflateFactory()]
+        extensions = list(extensions) + [
+            ServerPerMessageDeflateFactory(
+                server_max_window_bits=12,
+                client_max_window_bits=12,
+                compress_settings={"memLevel": 5},
+            )
+        ]
     return extensions

@@ -8,8 +8,10 @@ import websockets
 from websockets.extensions import permessage_deflate
 
 
-CLIENTS = 10
+CLIENTS = 20
 INTERVAL = 1 / 10  # seconds
+
+WB, ML = 12, 5
 
 MEM_SIZE = []
 
@@ -24,9 +26,9 @@ async def mem_client(client):
         "ws://localhost:8765",
         extensions=[
             permessage_deflate.ClientPerMessageDeflateFactory(
-                server_max_window_bits=10,
-                client_max_window_bits=10,
-                compress_settings={"memLevel": 3},
+                server_max_window_bits=WB,
+                client_max_window_bits=WB,
+                compress_settings={"memLevel": ML},
             )
         ],
     ) as ws:
@@ -43,9 +45,12 @@ async def mem_client(client):
         await asyncio.sleep(CLIENTS * INTERVAL)
 
 
-asyncio.run(
-    asyncio.gather(*[mem_client(client) for client in range(CLIENTS + 1)])
-)
+async def mem_clients():
+    await asyncio.gather(*[mem_client(client) for client in range(CLIENTS + 1)])
+
+
+asyncio.run(mem_clients())
+
 
 # First connection incurs non-representative setup costs.
 del MEM_SIZE[0]

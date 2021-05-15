@@ -42,6 +42,8 @@ They may change at any time.
 
 * Added compatibility with Python 3.10.
 
+* Optimized default compression settings to reduce memory usage.
+
 9.0.2
 .....
 

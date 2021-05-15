@@ -5,6 +5,7 @@
 .mypy_cache
 .tox
 build/
+benchmark/corpus.pkl
 compliance/reports/
 dist/
 docs/_build/

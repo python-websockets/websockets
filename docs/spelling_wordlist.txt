@@ -31,6 +31,7 @@ lifecycle
 Lifecycle
 lookups
 MiB
+mypy
 nginx
 parsers
 permessage

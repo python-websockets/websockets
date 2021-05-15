@@ -1,3 +1,4 @@
+import logging
 import unittest
 import unittest.mock
 
@@ -568,3 +569,11 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidHandshake) as raised:
             raise response.exception
         self.assertEqual(str(raised.exception), "unsupported subprotocol: otherchat")
+
+
+class MiscTests(unittest.TestCase):
+    def test_custom_logger(self):
+        logger = logging.getLogger("test")
+        with self.assertLogs("test", logging.DEBUG) as logs:
+            ClientConnection("wss://example.com/test", logger=logger)
+        self.assertEqual(len(logs.records), 1)

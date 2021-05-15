@@ -18,7 +18,7 @@ from .frames import (
 )
 from .http11 import Request, Response
 from .streams import StreamReader
-from .typing import Origin, Subprotocol
+from .typing import LoggerLike, Origin, Subprotocol
 
 
 __all__ = [
@@ -27,8 +27,6 @@ __all__ = [
     "State",
     "SEND_EOF",
 ]
-
-logger = logging.getLogger(__name__)
 
 Event = Union[Request, Response, Frame]
 
@@ -68,6 +66,7 @@ class Connection:
         side: Side,
         state: State = OPEN,
         max_size: Optional[int] = 2 ** 20,
+        logger: Optional[LoggerLike] = None,
     ) -> None:
         # Unique identifier. For logs.
         self.id = uuid.uuid4()
@@ -76,11 +75,18 @@ class Connection:
         self.side = side
 
         # Connnection state. CONNECTING and CLOSED states are handled in subclasses.
-        logger.debug("%s - initial state: %s", self.side, state.name)
         self.state = state
 
         # Maximum size of incoming messages in bytes.
         self.max_size = max_size
+
+        # Logger or LoggerAdapter for this connection.
+        if logger is None:
+            logger = logging.getLogger(f"websockets.{side.name.lower()}")
+        self.logger = logger
+
+        # Must wait until we have the logger to log the initial state!
+        self.logger.debug("%s - initial state: %s", self.side, state.name)
 
         # Current size of incoming message in bytes. Only set while reading a
         # fragmented message i.e. a data frames with the FIN bit not set.
@@ -117,7 +123,7 @@ class Connection:
         self.parser_exc: Optional[Exception] = None
 
     def set_state(self, state: State) -> None:
-        logger.debug(
+        self.logger.debug(
             "%s - state change: %s > %s", self.side, self.state.name, state.name
         )
         self.state = state
@@ -286,7 +292,7 @@ class Connection:
             self.parser_exc = exc
             raise
         except Exception as exc:
-            logger.error("unexpected exception in parser", exc_info=True)
+            self.logger.error("unexpected exception in parser", exc_info=True)
             # Don't include exception details, which may be security-sensitive.
             self.fail_connection(1011)
             self.parser_exc = exc
@@ -401,7 +407,7 @@ class Connection:
                 f"cannot write to a WebSocket in the {self.state.name} state"
             )
 
-        logger.debug("%s > %r", self.side, frame)
+        self.logger.debug("%s > %r", self.side, frame)
         self.writes.append(
             frame.serialize(mask=self.side is CLIENT, extensions=self.extensions)
         )
@@ -409,5 +415,5 @@ class Connection:
     def send_eof(self) -> None:
         assert not self.eof_sent
         self.eof_sent = True
-        logger.debug("%s > EOF", self.side)
+        self.logger.debug("%s > EOF", self.side)
         self.writes.append(SEND_EOF)

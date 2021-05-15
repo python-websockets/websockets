@@ -31,7 +31,7 @@ from ..headers import (
     parse_subprotocol,
 )
 from ..http import USER_AGENT, build_host
-from ..typing import ExtensionHeader, Origin, Subprotocol
+from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
 from .compatibility import asyncio_get_running_loop
 from .handshake import build_request, check_response
@@ -40,8 +40,6 @@ from .protocol import WebSocketCommonProtocol
 
 
 __all__ = ["connect", "unix_connect", "WebSocketClientProtocol"]
-
-logger = logging.getLogger("websockets.server")
 
 
 class WebSocketClientProtocol(WebSocketCommonProtocol):
@@ -152,13 +150,16 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
+        logger: Optional[LoggerLike] = None,
         **kwargs: Any,
     ) -> None:
+        if logger is None:
+            logger = logging.getLogger("websockets.client")
+        super().__init__(logger=logger, **kwargs)
         self.origin = origin
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
-        super().__init__(**kwargs)
 
     def write_http_request(self, path: str, headers: Headers) -> None:
         """
@@ -168,8 +169,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.path = path
         self.request_headers = headers
 
-        logger.debug("%s > GET %s HTTP/1.1", self.side, path)
-        logger.debug("%s > %r", self.side, headers)
+        self.logger.debug("%s > GET %s HTTP/1.1", self.side, path)
+        self.logger.debug("%s > %r", self.side, headers)
 
         # Since the path and headers only contain ASCII characters,
         # we can keep this simple.
@@ -198,8 +199,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         except Exception as exc:
             raise InvalidMessage("did not receive a valid HTTP response") from exc
 
-        logger.debug("%s < HTTP/1.1 %d %s", self.side, status_code, reason)
-        logger.debug("%s < %r", self.side, headers)
+        self.logger.debug("%s < HTTP/1.1 %d %s", self.side, status_code, reason)
+        self.logger.debug("%s < %r", self.side, headers)
 
         self.response_headers = headers
 
@@ -478,6 +479,7 @@ class Connect:
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
+        logger: Optional[LoggerLike] = None,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
@@ -542,6 +544,7 @@ class Connect:
             extensions=extensions,
             subprotocols=subprotocols,
             extra_headers=extra_headers,
+            logger=logger,
         )
 
         if kwargs.pop("unix", False):

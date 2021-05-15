@@ -985,11 +985,11 @@ class CommonClientServerTests:
     def test_compression_deflate(self):
         server_extensions = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(
-            server_extensions, repr([PerMessageDeflate(False, False, 15, 15)])
+            server_extensions, repr([PerMessageDeflate(False, False, 12, 12)])
         )
         self.assertEqual(
             repr(self.client.extensions),
-            repr([PerMessageDeflate(False, False, 15, 15)]),
+            repr([PerMessageDeflate(False, False, 12, 12)]),
         )
 
     def test_compression_unsupported_server(self):

@@ -512,33 +512,33 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
         ) in [
             (
                 None,
-                (1, 0, None),
+                (1, 0, {"memLevel": 5}),
             ),
             (
                 [],
-                (1, 0, None),
+                (1, 0, {"memLevel": 5}),
             ),
             (
                 [ClientNoOpExtensionFactory()],
-                (2, 1, None),
+                (2, 1, {"memLevel": 5}),
             ),
             (
-                [ClientPerMessageDeflateFactory(compress_settings={"level": 1})],
-                (1, 0, {"level": 1}),
-            ),
-            (
-                [
-                    ClientPerMessageDeflateFactory(compress_settings={"level": 1}),
-                    ClientNoOpExtensionFactory(),
-                ],
-                (2, 0, {"level": 1}),
+                [ClientPerMessageDeflateFactory(compress_settings={"memLevel": 7})],
+                (1, 0, {"memLevel": 7}),
             ),
             (
                 [
+                    ClientPerMessageDeflateFactory(compress_settings={"memLevel": 7}),
                     ClientNoOpExtensionFactory(),
-                    ClientPerMessageDeflateFactory(compress_settings={"level": 1}),
                 ],
-                (2, 1, {"level": 1}),
+                (2, 0, {"memLevel": 7}),
+            ),
+            (
+                [
+                    ClientNoOpExtensionFactory(),
+                    ClientPerMessageDeflateFactory(compress_settings={"memLevel": 7}),
+                ],
+                (2, 1, {"memLevel": 7}),
             ),
         ]:
             with self.subTest(extensions=extensions):
@@ -849,33 +849,33 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
         ) in [
             (
                 None,
-                (1, 0, None),
+                (1, 0, {"memLevel": 5}),
             ),
             (
                 [],
-                (1, 0, None),
+                (1, 0, {"memLevel": 5}),
             ),
             (
                 [ServerNoOpExtensionFactory()],
-                (2, 1, None),
+                (2, 1, {"memLevel": 5}),
             ),
             (
-                [ServerPerMessageDeflateFactory(compress_settings={"level": 1})],
-                (1, 0, {"level": 1}),
-            ),
-            (
-                [
-                    ServerPerMessageDeflateFactory(compress_settings={"level": 1}),
-                    ServerNoOpExtensionFactory(),
-                ],
-                (2, 0, {"level": 1}),
+                [ServerPerMessageDeflateFactory(compress_settings={"memLevel": 7})],
+                (1, 0, {"memLevel": 7}),
             ),
             (
                 [
+                    ServerPerMessageDeflateFactory(compress_settings={"memLevel": 7}),
                     ServerNoOpExtensionFactory(),
-                    ServerPerMessageDeflateFactory(compress_settings={"level": 1}),
                 ],
-                (2, 1, {"level": 1}),
+                (2, 0, {"memLevel": 7}),
+            ),
+            (
+                [
+                    ServerNoOpExtensionFactory(),
+                    ServerPerMessageDeflateFactory(compress_settings={"memLevel": 7}),
+                ],
+                (2, 1, {"memLevel": 7}),
             ),
         ]:
             with self.subTest(extensions=extensions):

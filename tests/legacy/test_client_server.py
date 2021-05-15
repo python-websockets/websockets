@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import functools
 import http
+import logging
 import pathlib
 import random
 import socket
@@ -1471,3 +1472,18 @@ class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
             self.loop.run_until_complete(run_client())
 
         self.assertEqual(messages, self.MESSAGES)
+
+
+class LoggerTests(ClientServerTestsMixin, AsyncioTestCase):
+    def test_logger_client(self):
+        with self.assertLogs("test.server", logging.DEBUG) as server_logs:
+            self.start_server(logger=logging.getLogger("test.server"))
+            with self.assertLogs("test.client", logging.DEBUG) as client_logs:
+                self.start_client(logger=logging.getLogger("test.client"))
+                self.loop.run_until_complete(self.client.send("Hello!"))
+                self.loop.run_until_complete(self.client.recv())
+                self.stop_client()
+            self.stop_server()
+
+        self.assertGreater(len(server_logs.records), 0)
+        self.assertGreater(len(client_logs.records), 0)

@@ -47,7 +47,7 @@ They may change at any time.
 9.0.2
 .....
 
-*In development*
+*May 15, 2021*
 
 * Restored compatibility of ``python -m websockets`` with Python < 3.9.
 

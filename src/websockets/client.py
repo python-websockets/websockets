@@ -1,5 +1,4 @@
 import collections
-import logging
 from typing import Generator, List, Optional, Sequence
 
 from .connection import CLIENT, CONNECTING, OPEN, Connection
@@ -27,6 +26,7 @@ from .http11 import Request, Response
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
+    LoggerLike,
     Origin,
     Subprotocol,
     UpgradeProtocol,
@@ -41,8 +41,6 @@ from .legacy.client import *  # isort:skip  # noqa
 
 __all__ = ["ClientConnection"]
 
-logger = logging.getLogger(__name__)
-
 
 class ClientConnection(Connection):
     def __init__(
@@ -53,8 +51,14 @@ class ClientConnection(Connection):
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
         max_size: Optional[int] = 2 ** 20,
+        logger: Optional[LoggerLike] = None,
     ):
-        super().__init__(side=CLIENT, state=CONNECTING, max_size=max_size)
+        super().__init__(
+            side=CLIENT,
+            state=CONNECTING,
+            max_size=max_size,
+            logger=logger,
+        )
         self.wsuri = parse_uri(uri)
         self.origin = origin
         self.available_extensions = extensions
@@ -271,8 +275,8 @@ class ClientConnection(Connection):
         Send a WebSocket handshake request to the server.
 
         """
-        logger.debug("%s > GET %s HTTP/1.1", self.side, request.path)
-        logger.debug("%s > %r", self.side, request.headers)
+        self.logger.debug("%s > GET %s HTTP/1.1", self.side, request.path)
+        self.logger.debug("%s > %r", self.side, request.headers)
 
         self.writes.append(request.serialize())
 
@@ -285,7 +289,7 @@ class ClientConnection(Connection):
             self.process_response(response)
         except InvalidHandshake as exc:
             response = response._replace(exception=exc)
-            logger.debug("Invalid handshake", exc_info=True)
+            self.logger.debug("Invalid handshake", exc_info=True)
         else:
             self.set_state(OPEN)
         finally:

@@ -1,4 +1,5 @@
 import http
+import logging
 import unittest
 import unittest.mock
 
@@ -625,3 +626,11 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 101)
         self.assertEqual(response.headers["Server"], "Other")
+
+
+class MiscTests(unittest.TestCase):
+    def test_custom_logger(self):
+        logger = logging.getLogger("test")
+        with self.assertLogs("test", logging.DEBUG) as logs:
+            ServerConnection(logger=logger)
+        self.assertEqual(len(logs.records), 1)

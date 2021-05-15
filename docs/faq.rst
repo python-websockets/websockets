@@ -23,7 +23,6 @@ before returning.
 For example, if your handler has a structure similar to::
 
     async def handler(websocket, path):
-        ...
         asyncio.create_task(do_some_work())
 
 change it to::
@@ -185,7 +184,6 @@ Here's an example that terminates cleanly when it receives SIGTERM on Unix:
 .. literalinclude:: ../example/shutdown_client.py
     :emphasize-lines: 10-13
 
-
 How do I disable TLS/SSL certificate verification?
 ..................................................
 
@@ -194,27 +192,50 @@ Look at the ``ssl`` argument of :meth:`~asyncio.loop.create_connection`.
 :func:`connect` accepts the same arguments as
 :meth:`~asyncio.loop.create_connection`.
 
-Both sides
-----------
+asyncio usage
+-------------
 
 How do I do two things in parallel? How do I integrate with another coroutine?
 ..............................................................................
 
 You must start two tasks, which the event loop will run concurrently. You can
-achieve this with :func:`asyncio.gather` or :func:`asyncio.wait`.
-
-This is also part of learning asyncio and not specific to websockets.
+achieve this with :func:`asyncio.gather` or :func:`asyncio.create_task`.
 
 Keep track of the tasks and make sure they terminate or you cancel them when
 the connection terminates.
 
-How do I create channels or topics?
-...................................
+Why does my program never receives any messages?
+................................................
 
-websockets doesn't have built-in publish / subscribe for these use cases.
+Your program runs a coroutine that never yield control to the event loop. The
+coroutine that receives messages never gets a chance to run.
 
-Depending on the scale of your service, a simple in-memory implementation may
-do the job or you may need an external publish / subscribe component.
+Putting an ``await`` statement in a ``for`` or a ``while`` loop isn't enough
+to yield control. Awaiting a coroutine may yield control, but there's no
+guarantee that it will.
+
+For example, ``send()`` only yields control when send buffers are full, which
+never happens in most practical cases.
+
+If you run a loop that contains only synchronous operations and a ``send()``
+call, you must yield control explicitly with :func:`asyncio.sleep`::
+
+    async def producer(websocket):
+        message = generate_next_message()
+        await websocket.send(message)
+        await asyncio.sleep(0)  # yield control to the event loop
+
+:func:`asyncio.sleep` always suspends the current task, allowing other tasks
+to run. This behavior is documented precisely because it isn't expected from
+every coroutine.
+
+See `issue 867`_.
+
+.. _issue 867: https://github.com/aaugustin/websockets/issues/867
+
+
+Both sides
+----------
 
 What does ``ConnectionClosedError: code = 1006`` mean?
 ......................................................
@@ -314,6 +335,14 @@ If this turns out to be impractical, you should use another library.
 
 Miscellaneous
 -------------
+
+How do I create channels or topics?
+...................................
+
+websockets doesn't have built-in publish / subscribe for these use cases.
+
+Depending on the scale of your service, a simple in-memory implementation may
+do the job or you may need an external publish / subscribe component.
 
 How do I set a timeout on ``recv()``?
 .....................................

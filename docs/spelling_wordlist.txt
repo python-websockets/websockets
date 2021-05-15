@@ -31,6 +31,7 @@ KiB
 lifecycle
 lookups
 MiB
+mypy
 nginx
 onmessage
 parsers

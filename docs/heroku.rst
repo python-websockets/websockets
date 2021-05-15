@@ -16,10 +16,10 @@ Deploying to Heroku requires a git repository. Let's initialize one:
 
     $ mkdir websockets-echo
     $ cd websockets-echo
-    $ git init .
+    $ git init -b main
     Initialized empty Git repository in websockets-echo/.git/
     $ git commit --allow-empty -m "Initial commit."
-    [master (root-commit) 1e7947d] Initial commit.
+    [main (root-commit) 1e7947d] Initial commit.
 
 Follow the `set-up instructions`_ to install the Heroku CLI and to log in, if
 you haven't done that yet.
@@ -32,7 +32,7 @@ you'll have to pick a different name because I'm already using
 
 .. code:: console
 
-    $ $ heroku create websockets-echo
+    $ heroku create websockets-echo
     Creating ⬢ websockets-echo... done
     https://websockets-echo.herokuapp.com/ | https://git.heroku.com/websockets-echo.git
 
@@ -86,7 +86,7 @@ Confirm that you created the correct files and commit them to git:
     Procfile         app.py           requirements.txt
     $ git add .
     $ git commit -m "Deploy echo server to Heroku."
-    [master 8418c62] Deploy echo server to Heroku.
+    [main 8418c62] Deploy echo server to Heroku.
      3 files changed, 19 insertions(+)
      create mode 100644 Procfile
      create mode 100644 app.py
@@ -99,7 +99,7 @@ Our app is ready. Let's deploy it!
 
 .. code:: console
 
-    $ git push heroku master
+    $ git push heroku main
 
     ... lots of output...
 
@@ -109,7 +109,7 @@ Our app is ready. Let's deploy it!
     remote:
     remote: Verifying deploy... done.
     To https://git.heroku.com/websockets-echo.git
-     * [new branch]      master -> master
+     * [new branch]      main -> main
 
 Validate deployment
 -------------------

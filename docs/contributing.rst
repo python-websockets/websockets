@@ -10,7 +10,7 @@ This project and everyone participating in it is governed by the `Code of
 Conduct`_. By participating, you are expected to uphold this code. Please
 report inappropriate behavior to aymeric DOT augustin AT fractalideas DOT com.
 
-.. _Code of Conduct: https://github.com/aaugustin/websockets/blob/master/CODE_OF_CONDUCT.md
+.. _Code of Conduct: https://github.com/aaugustin/websockets/blob/main/CODE_OF_CONDUCT.md
 
 *(If I'm the person with the inappropriate behavior, please accept my
 apologies. I know I can mess up. I can't expect you to tell me, but if you

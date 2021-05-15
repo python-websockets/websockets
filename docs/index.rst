@@ -21,8 +21,8 @@ websockets
 ``websockets`` is a library for building WebSocket servers_ and clients_ in
 Python with a focus on correctness and simplicity.
 
-.. _servers: https://github.com/aaugustin/websockets/blob/master/example/server.py
-.. _clients: https://github.com/aaugustin/websockets/blob/master/example/client.py
+.. _servers: https://github.com/aaugustin/websockets/blob/main/example/server.py
+.. _clients: https://github.com/aaugustin/websockets/blob/main/example/client.py
 
 Built on top of :mod:`asyncio`, Python's standard asynchronous I/O framework,
 it provides an elegant coroutine-based API.

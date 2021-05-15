@@ -28,8 +28,8 @@ What is ``websockets``?
 ``websockets`` is a library for building WebSocket servers_ and clients_ in
 Python with a focus on correctness and simplicity.
 
-.. _servers: https://github.com/aaugustin/websockets/blob/master/example/server.py
-.. _clients: https://github.com/aaugustin/websockets/blob/master/example/client.py
+.. _servers: https://github.com/aaugustin/websockets/blob/main/example/server.py
+.. _clients: https://github.com/aaugustin/websockets/blob/main/example/client.py
 
 Built on top of ``asyncio``, Python's standard asynchronous I/O framework, it
 provides an elegant coroutine-based API.
@@ -80,7 +80,7 @@ Does that look good?
 .. raw:: html
 
     <hr>
-    <img align="left" height="150" width="150" src="https://raw.githubusercontent.com/aaugustin/websockets/master/logo/tidelift.png">
+    <img align="left" height="150" width="150" src="https://raw.githubusercontent.com/aaugustin/websockets/main/logo/tidelift.png">
     <h3 align="center"><i>websockets for enterprise</i></h3>
     <p align="center"><i>Available as part of the Tidelift Subscription</i></p>
     <p align="center"><i>The maintainers of websockets and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. <a href="https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme">Learn more.</a></i></p>
@@ -113,7 +113,7 @@ Docs`_ and see for yourself.
 
 .. _Read the Docs: https://websockets.readthedocs.io/
 .. _handle backpressure correctly: https://vorpus.org/blog/some-thoughts-on-asynchronous-api-design-in-a-post-asyncawait-world/#websocket-servers
-.. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/master/compliance/README.rst
+.. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/main/compliance/README.rst
 
 Why shouldn't I use ``websockets``?
 -----------------------------------
@@ -145,8 +145,8 @@ For anything else, please open an issue_ or send a `pull request`_.
 
 Participants must uphold the `Contributor Covenant code of conduct`_.
 
-.. _Contributor Covenant code of conduct: https://github.com/aaugustin/websockets/blob/master/CODE_OF_CONDUCT.md
+.. _Contributor Covenant code of conduct: https://github.com/aaugustin/websockets/blob/main/CODE_OF_CONDUCT.md
 
 ``websockets`` is released under the `BSD license`_.
 
-.. _BSD license: https://github.com/aaugustin/websockets/blob/master/LICENSE
+.. _BSD license: https://github.com/aaugustin/websockets/blob/main/LICENSE

@@ -1,9 +1,11 @@
 Deploy to Heroku
 ================
 
-This guide describes how to deploy a websockets server to Heroku_. We're going
-to deploy a very simple app. The process would be identical for a more
-realistic app. It would be similar on other Platform as a Service providers.
+This guide describes how to deploy a websockets server to Heroku_. The same
+principles should apply to other Platform as a Service providers.
+
+We're going to deploy a very simple app. The process would be identical for a
+more realistic app.
 
 .. _Heroku: https://www.heroku.com/
 
@@ -41,8 +43,17 @@ Here's the implementation of the app, an echo server. Save it in a file called
 
 .. literalinclude:: ../../example/deployment/heroku/app.py
 
-The server relies on the ``$PORT`` environment variable to tell on which port
-it will listen, according to Heroku's conventions.
+Heroku expects the server to `listen on a specific port`_, which is provided
+in the ``$PORT`` environment variable. The app reads it and passes it to
+:func:`~websockets.server.serve`.
+
+.. _listen on a specific port: https://devcenter.heroku.com/articles/preparing-a-codebase-for-heroku-deployment#4-listen-on-the-correct-port
+
+Heroku sends a ``SIGTERM`` signal to all processes when `shutting down a
+dyno`_. When the app receives this signal, it closes connections and exits
+cleanly.
+
+.. _shutting down a dyno: https://devcenter.heroku.com/articles/dynos#shutdown
 
 Configure deployment
 --------------------
@@ -70,7 +81,7 @@ Confirm that you created the correct files and commit them to git:
     $ git add .
     $ git commit -m "Deploy echo server to Heroku."
     [main 8418c62] Deploy echo server to Heroku.
-     3 files changed, 19 insertions(+)
+     3 files changed, 32 insertions(+)
      create mode 100644 Procfile
      create mode 100644 app.py
      create mode 100644 requirements.txt
@@ -78,7 +89,7 @@ Confirm that you created the correct files and commit them to git:
 Deploy
 ------
 
-Our app is ready. Let's deploy it!
+The app is ready. Let's deploy it!
 
 .. code:: console
 
@@ -87,7 +98,7 @@ Our app is ready. Let's deploy it!
     ... lots of output...
 
     remote: -----> Launching...
-    remote:        Released v3
+    remote:        Released v1
     remote:        https://websockets-echo.herokuapp.com/ deployed to Heroku
     remote:
     remote: Verifying deploy... done.
@@ -97,9 +108,9 @@ Our app is ready. Let's deploy it!
 Validate deployment
 -------------------
 
-Of course we'd like to confirm that our application is running as expected!
+Of course you'd like to confirm that your application is running as expected!
 
-Since it's a WebSocket server, we need a WebSocket client, such as the
+Since it's a WebSocket server, you need a WebSocket client, such as the
 interactive client that comes with websockets.
 
 If you're currently building a websockets server, perhaps you're already in a
@@ -121,7 +132,7 @@ Connect the interactive client — using the name of your Heroku app instead of
     Connected to wss://websockets-echo.herokuapp.com/.
     >
 
-Great! Our app is running!
+Great! Your app is running!
 
 In this example, I used a secure connection (``wss://``). It worked because
 Heroku served a valid TLS certificate for ``websockets-echo.herokuapp.com``.
@@ -135,3 +146,32 @@ then press Ctrl-D to terminate the connection:
     > Hello!
     < Hello!
     Connection closed: code = 1000 (OK), no reason.
+
+You can also confirm that your application shuts down gracefully. Connect an
+interactive client again — remember to replace ``websockets-echo`` with your app:
+
+.. code:: console
+
+    $ python -m websockets wss://websockets-echo.herokuapp.com/
+    Connected to wss://websockets-echo.herokuapp.com/.
+    >
+
+In another shell, restart the dyno — again, replace ``websockets-echo`` with your app:
+
+.. code:: console
+
+    $ heroku dyno:restart -a websockets-echo
+    Restarting dynos on ⬢ websockets-echo... done
+
+Go back to the first shell. The connection is closed with code 1001 (going
+away).
+
+.. code:: console
+
+    $ python -m websockets wss://websockets-echo.herokuapp.com/
+    Connected to wss://websockets-echo.herokuapp.com/.
+    Connection closed: code = 1001 (going away), no reason.
+
+If graceful shutdown wasn't working, the server wouldn't perform a closing
+handshake and the connection would be closed with code 1006 (connection closed
+abnormally).

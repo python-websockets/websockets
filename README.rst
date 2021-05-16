@@ -2,25 +2,25 @@
    :width: 480px
    :alt: websockets
 
-|rtd| |pypi-v| |pypi-pyversions| |pypi-l| |pypi-wheel| |tests|
+|licence| |version| |pyversions| |wheel| |tests| |docs|
 
-.. |rtd| image:: https://readthedocs.org/projects/websockets/badge/?version=latest
-   :target: https://websockets.readthedocs.io/
-
-.. |pypi-v| image:: https://img.shields.io/pypi/v/websockets.svg
+.. |licence| image:: https://img.shields.io/pypi/l/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |pypi-pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
+.. |version| image:: https://img.shields.io/pypi/v/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |pypi-l| image:: https://img.shields.io/pypi/l/websockets.svg
+.. |pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |pypi-wheel| image:: https://img.shields.io/pypi/wheel/websockets.svg
+.. |wheel| image:: https://img.shields.io/pypi/wheel/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |tests| image:: https://github.com/aaugustin/websockets/actions/workflows/tests.yml/badge.svg
+.. |tests| image:: https://img.shields.io/github/checks-status/aaugustin/websockets/main
    :target: https://github.com/aaugustin/websockets/actions/workflows/tests.yml
+
+.. |docs| image:: https://img.shields.io/readthedocs/websockets.svg
+   :target: https://websockets.readthedocs.io/
 
 What is ``websockets``?
 -----------------------

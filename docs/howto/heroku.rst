@@ -1,9 +1,9 @@
-Deploying to Heroku
-===================
+Deploy to Heroku
+================
 
 This guide describes how to deploy a websockets server to Heroku_. We're going
 to deploy a very simple app. The process would be identical for a more
-realistic app.
+realistic app. It would be similiar on other Platorm as a Service providers.
 
 .. _Heroku: https://www.heroku.com/
 
@@ -39,24 +39,7 @@ you'll have to pick a different name because I'm already using
 Here's the implementation of the app, an echo server. Save it in a file called
 ``app.py``:
 
-.. code:: python
-
-    #!/usr/bin/env python
-
-    import asyncio
-    import os
-
-    import websockets
-
-    async def echo(websocket, path):
-        async for message in websocket:
-            await websocket.send(message)
-
-    async def main():
-        async with websockets.serve(echo, "", int(os.environ["PORT"])):
-            await asyncio.Future()  # run forever
-
-    asyncio.run(main())
+.. literalinclude:: ../../example/deployment/heroku/app.py
 
 The server relies on the ``$PORT`` environment variable to tell on which port
 it will listen, according to Heroku's conventions.

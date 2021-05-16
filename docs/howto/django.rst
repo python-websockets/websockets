@@ -1,5 +1,5 @@
-Using websockets with Django
-============================
+Integrate with Django
+=====================
 
 If you're looking at adding real-time capabilities to a Django project with
 WebSocket, you have two main options.

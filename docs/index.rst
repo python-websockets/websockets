@@ -60,7 +60,7 @@ These guides will help you build and deploy a ``websockets`` application.
    deployment
    extensions
    howto/django
-   heroku
+   howto/heroku
 
 Reference
 ---------

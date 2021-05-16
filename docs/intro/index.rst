@@ -6,7 +6,7 @@ Getting started
 Requirements
 ------------
 
-``websockets`` requires Python ≥ 3.7.
+websockets requires Python ≥ 3.7.
 
 You should use the latest version of Python if possible. If you're using an
 older version, be aware that for each minor version (3.x), only the latest
@@ -15,7 +15,7 @@ bugfix release (3.x.y) is officially supported.
 Installation
 ------------
 
-Install ``websockets`` with::
+Install websockets with::
 
     pip install websockets
 
@@ -28,19 +28,19 @@ Here's a WebSocket server example.
 
 It reads a name from the client, sends a greeting, and closes the connection.
 
-.. literalinclude:: ../example/server.py
-    :emphasize-lines: 8,17
+.. literalinclude:: ../../example/server.py
+    :emphasize-lines: 8,18
 
 .. _client-example:
 
-On the server side, ``websockets`` executes the handler coroutine ``hello``
-once for each WebSocket connection. It closes the connection when the handler
+On the server side, websockets executes the handler coroutine ``hello`` once
+for each WebSocket connection. It closes the connection when the handler
 coroutine returns.
 
 Here's a corresponding WebSocket client example.
 
-.. literalinclude:: ../example/client.py
-    :emphasize-lines: 8,10
+.. literalinclude:: ../../example/client.py
+    :emphasize-lines: 10
 
 Using :func:`connect` as an asynchronous context manager ensures the
 connection is closed before exiting the ``hello`` coroutine.
@@ -60,13 +60,13 @@ Sockets Layer (SSL). WSS requires TLS certificates like HTTPS.
 Here's how to adapt the server example to provide secure connections. See the
 documentation of the :mod:`ssl` module for configuring the context securely.
 
-.. literalinclude:: ../example/secure_server.py
-    :emphasize-lines: 19,23-25
+.. literalinclude:: ../../example/secure_server.py
+    :emphasize-lines: 19-21,26
 
 Here's how to adapt the client.
 
-.. literalinclude:: ../example/secure_client.py
-    :emphasize-lines: 10,15-18
+.. literalinclude:: ../../example/secure_client.py
+    :emphasize-lines: 10-12,18
 
 This client needs a context because the server uses a self-signed certificate.
 
@@ -81,11 +81,11 @@ Here's an example of how to run a WebSocket server and connect from a browser.
 
 Run this script in a console:
 
-.. literalinclude:: ../example/show_time.py
+.. literalinclude:: ../../example/show_time.py
 
 Then open this HTML file in a browser.
 
-.. literalinclude:: ../example/show_time.html
+.. literalinclude:: ../../example/show_time.html
    :language: html
 
 Synchronization example
@@ -102,11 +102,11 @@ serialized.
 
 Run this script in a console:
 
-.. literalinclude:: ../example/counter.py
+.. literalinclude:: ../../example/counter.py
 
 Then open this HTML file in several browsers.
 
-.. literalinclude:: ../example/counter.html
+.. literalinclude:: ../../example/counter.html
    :language: html
 
 Common patterns
@@ -147,8 +147,8 @@ messages to send on the WebSocket connection.
 :exc:`~exceptions.ConnectionClosed` exception when the client disconnects,
 which breaks out of the ``while True`` loop.
 
-Both
-....
+Both sides
+..........
 
 You can read and write messages on the same connection by combining the two
 patterns shown above and running the two tasks in parallel::
@@ -194,16 +194,16 @@ handler may subscribe to some channels on a message broker, for example.
 That's all!
 -----------
 
-The design of the ``websockets`` API was driven by simplicity.
+The design of the websockets API was driven by simplicity.
 
 You don't have to worry about performing the opening or the closing handshake,
 answering pings, or any other behavior required by the specification.
 
-``websockets`` handles all this under the hood so you don't have to.
+websockets handles all this under the hood so you don't have to.
 
 One more thing...
 -----------------
 
-``websockets`` provides an interactive client::
+websockets provides an interactive client::
 
     $ python -m websockets wss://echo.websocket.org/

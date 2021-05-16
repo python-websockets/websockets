@@ -3,7 +3,7 @@ Deploy to Heroku
 
 This guide describes how to deploy a websockets server to Heroku_. We're going
 to deploy a very simple app. The process would be identical for a more
-realistic app. It would be similiar on other Platorm as a Service providers.
+realistic app. It would be similar on other Platform as a Service providers.
 
 .. _Heroku: https://www.heroku.com/
 

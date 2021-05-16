@@ -1,8 +1,8 @@
-API
-===
+Reference
+=========
 
-``websockets`` provides complete client and server implementations, as shown
-in the :doc:`getting started guide <../intro>`.
+websockets provides complete client and server implementations, as shown in
+the :doc:`getting started guide <../intro/index>`.
 
 The process for opening and closing a WebSocket connection depends on which
 side you're implementing.
@@ -44,6 +44,7 @@ both in the client API and server API.
    server
    extensions
    utilities
+   limitations
 
 All public APIs can be imported from the :mod:`websockets` package, unless
 noted otherwise. This convenience feature is incompatible with static code

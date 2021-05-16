@@ -65,7 +65,7 @@ Client
 Debugging
 ---------
 
-If you don't understand what ``websockets`` is doing, enable logging::
+If you don't understand what websockets is doing, enable logging::
 
     import logging
     logger = logging.getLogger('websockets')
@@ -79,8 +79,8 @@ The logs contain:
 * All frames at the ``DEBUG`` level — this can be very verbose
 
 If you're new to ``asyncio``, you will certainly encounter issues that are
-related to asynchronous programming in general rather than to ``websockets``
-in particular. Fortunately Python's official documentation provides advice to
+related to asynchronous programming in general rather than to websockets in
+particular. Fortunately Python's official documentation provides advice to
 `develop with asyncio`_. Check it out: it's invaluable!
 
 .. _develop with asyncio: https://docs.python.org/3/library/asyncio-dev.html

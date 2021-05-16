@@ -181,7 +181,7 @@ You can close the connection.
 
 Here's an example that terminates cleanly when it receives SIGTERM on Unix:
 
-.. literalinclude:: ../example/shutdown_client.py
+.. literalinclude:: ../../example/shutdown_client.py
     :emphasize-lines: 10-13
 
 How do I disable TLS/SSL certificate verification?
@@ -324,8 +324,8 @@ coroutines make it easier to manage control flow in concurrent code.
 
 If you prefer callback-based APIs, you should use another library.
 
-Can I use ``websockets`` synchronously, without ``async`` / ``await``?
-......................................................................
+Can I use websockets synchronously, without ``async`` / ``await``?
+..................................................................
 
 You can convert every asynchronous call to a synchronous call by wrapping it
 in ``asyncio.get_event_loop().run_until_complete(...)``. Unfortunately, this

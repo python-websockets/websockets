@@ -1,25 +1,28 @@
 websockets
 ==========
 
-|pypi-v| |pypi-pyversions| |pypi-l| |pypi-wheel| |tests|
+|licence| |version| |pyversions| |wheel| |tests| |docs|
 
-.. |pypi-v| image:: https://img.shields.io/pypi/v/websockets.svg
+.. |licence| image:: https://img.shields.io/pypi/l/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |pypi-pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
+.. |version| image:: https://img.shields.io/pypi/v/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |pypi-l| image:: https://img.shields.io/pypi/l/websockets.svg
+.. |pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |pypi-wheel| image:: https://img.shields.io/pypi/wheel/websockets.svg
+.. |wheel| image:: https://img.shields.io/pypi/wheel/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |tests| image:: https://github.com/aaugustin/websockets/actions/workflows/tests.yml/badge.svg
+.. |tests| image:: https://img.shields.io/github/checks-status/aaugustin/websockets/main
    :target: https://github.com/aaugustin/websockets/actions/workflows/tests.yml
 
-``websockets`` is a library for building WebSocket servers_ and clients_ in
-Python with a focus on correctness and simplicity.
+.. |docs| image:: https://img.shields.io/readthedocs/websockets.svg
+   :target: https://websockets.readthedocs.io/
+
+websockets is a library for building WebSocket servers_ and clients_ in Python
+with a focus on correctness and simplicity.
 
 .. _servers: https://github.com/aaugustin/websockets/blob/main/example/server.py
 .. _clients: https://github.com/aaugustin/websockets/blob/main/example/client.py
@@ -40,27 +43,22 @@ Do you like it? Let's dive in!
 Tutorials
 ---------
 
-If you're new to ``websockets``, this is the place to start.
+If you're new to websockets, this is the place to start.
 
 .. toctree::
    :maxdepth: 2
 
-   intro
-   faq
+   intro/index
 
 How-to guides
 -------------
 
-These guides will help you build and deploy a ``websockets`` application.
+These guides will help you build and deploy a websockets application.
 
 .. toctree::
    :maxdepth: 2
 
-   cheatsheet
-   deployment
-   extensions
-   howto/django
-   howto/heroku
+   howto/index
 
 Reference
 ---------
@@ -70,19 +68,17 @@ Find all the details you could ask for, and then some.
 .. toctree::
    :maxdepth: 2
 
-   api/index
+   reference/index
 
-Discussions
------------
+Topics
+------
 
-Get a deeper understanding of how ``websockets`` is built and why.
+Get a deeper understanding of how websockets is built and why.
 
 .. toctree::
    :maxdepth: 2
 
-   design
-   limitations
-   security
+   topics/index
 
 Project
 -------
@@ -92,7 +88,4 @@ This is about websockets-the-project rather than websockets-the-software.
 .. toctree::
    :maxdepth: 2
 
-   changelog
-   contributing
-   license
-   For enterprise <tidelift>
+   project/index

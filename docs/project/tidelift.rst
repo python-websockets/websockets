@@ -4,7 +4,7 @@ websockets for enterprise
 Available as part of the Tidelift Subscription
 ----------------------------------------------
 
-.. image:: _static/tidelift.png
+.. image:: ../_static/tidelift.png
    :height: 150px
    :width: 150px
    :align: left

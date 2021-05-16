@@ -9,9 +9,9 @@ async def echo(websocket, path):
         await websocket.send(message)
 
 async def server():
+    # Set the stop condition when receiving SIGTERM.
     loop = asyncio.get_running_loop()
     stop = loop.create_future()
-    # Set the stop condition when receiving SIGTERM.
     loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
     async with websockets.serve(echo, "localhost", 8765):
         await stop

@@ -1,5 +1,5 @@
 Changelog
----------
+=========
 
 .. currentmodule:: websockets
 
@@ -8,9 +8,9 @@ Changelog
 Backwards-compatibility policy
 ..............................
 
-``websockets`` is intended for production use. Therefore, stability is a goal.
+websockets is intended for production use. Therefore, stability is a goal.
 
-``websockets`` also aims at providing the best API for WebSocket in Python.
+websockets also aims at providing the best API for WebSocket in Python.
 
 While we value stability, we value progress more. When an improvement requires
 changing a public API, we make the change and document it in this changelog.
@@ -77,25 +77,25 @@ They may change at any time.
       them, you should adjust the import path.
 
     * The ``client``, ``server``, ``protocol``, and ``auth`` modules were
-      moved from the ``websockets`` package to ``websockets.legacy``
-      sub-package, as part of an upcoming refactoring. Despite the name,
-      they're still fully supported. The refactoring should be a transparent
-      upgrade for most uses when it's available. The legacy implementation
-      will be preserved according to the `backwards-compatibility policy`_.
+      moved from the websockets package to ``websockets.legacy`` sub-package,
+      as part of an upcoming refactoring. Despite the name, they're still
+      fully supported. The refactoring should be a transparent upgrade for
+      most uses when it's available. The legacy implementation will be
+      preserved according to the `backwards-compatibility policy`_.
 
     * The ``framing``, ``handshake``, ``headers``, ``http``, and ``uri``
-      modules in the ``websockets`` package are deprecated. These modules
-      provided low-level APIs for reuse by other WebSocket implementations,
-      but that never happened. Keeping these APIs public makes it more
-      difficult to improve websockets for no actual benefit.
+      modules in the websockets package are deprecated. These modules provided
+      low-level APIs for reuse by other WebSocket implementations, but that
+      never happened. Keeping these APIs public makes it more difficult to
+      improve websockets for no actual benefit.
 
 .. note::
 
     **Version 9.0 may require changes if you use static code analysis tools.**
 
-    Convenience imports from the ``websockets`` module are performed lazily.
-    While this is supported by Python, static code analysis tools such as mypy
-    are unable to understand the behavior.
+    Convenience imports from the websockets module are performed lazily. While
+    this is supported by Python, static code analysis tools such as mypy are
+    unable to understand the behavior.
 
     If you depend on such tools, use the real import path, which can be found
     in the API documentation::
@@ -148,8 +148,7 @@ They may change at any time.
 
 *July 21, 2019*
 
-* Restored the ability to import ``WebSocketProtocolError`` from
-  ``websockets``.
+* Restored the ability to import ``WebSocketProtocolError`` from websockets.
 
 8.0
 ...
@@ -261,7 +260,7 @@ Also:
 
 .. warning::
 
-    ``websockets`` **now sends Ping frames at regular intervals and closes the
+    websockets **now sends Ping frames at regular intervals and closes the
     connection if it doesn't receive a matching Pong frame.**
 
     See :class:`~legacy.protocol.WebSocketCommonProtocol` for details.

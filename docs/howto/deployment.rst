@@ -34,8 +34,8 @@ On Unix systems, shutdown is usually triggered by sending a signal.
 
 Here's a full example for handling SIGTERM on Unix:
 
-.. literalinclude:: ../example/shutdown_server.py
-    :emphasize-lines: 13,17-19
+.. literalinclude:: ../../example/shutdown_server.py
+    :emphasize-lines: 12-15,17
 
 This example is easily adapted to handle other signals. If you override the
 default handler for SIGINT, which raises :exc:`KeyboardInterrupt`, be aware
@@ -151,8 +151,8 @@ Under normal circumstances, buffers are almost always empty.
 Under high load, if a server receives more messages than it can process,
 bufferbloat can result in excessive memory use.
 
-By default ``websockets`` has generous limits. It is strongly recommended to
-adapt them to your application. When you call :func:`~legacy.server.serve`:
+By default websockets has generous limits. It is strongly recommended to adapt
+them to your application. When you call :func:`~legacy.server.serve`:
 
 - Set ``max_size`` (default: 1 MiB, UTF-8 encoded) to the maximum size of
   messages your application generates.
@@ -171,12 +171,12 @@ Port sharing
 The WebSocket protocol is an extension of HTTP/1.1. It can be tempting to
 serve both HTTP and WebSocket on the same port.
 
-The author of ``websockets`` doesn't think that's a good idea, due to the
-widely different operational characteristics of HTTP and WebSocket.
+The author of websockets doesn't think that's a good idea, due to the widely
+different operational characteristics of HTTP and WebSocket.
 
-``websockets`` provide minimal support for responding to HTTP requests with
-the :meth:`~legacy.server.WebSocketServerProtocol.process_request` hook. Typical
+websockets provide minimal support for responding to HTTP requests with the
+:meth:`~legacy.server.WebSocketServerProtocol.process_request` hook. Typical
 use cases include health checks. Here's an example:
 
-.. literalinclude:: ../example/health_check_server.py
-    :emphasize-lines: 9-11,17-19
+.. literalinclude:: ../../example/health_check_server.py
+    :emphasize-lines: 9-11,20

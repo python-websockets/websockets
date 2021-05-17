@@ -33,3 +33,4 @@ optimized, and secure setup.
    deployment
    compression
    heroku
+   kubernetes

@@ -55,8 +55,8 @@ cleanly.
 
 .. _shutting down a dyno: https://devcenter.heroku.com/articles/dynos#shutdown
 
-Configure deployment
---------------------
+Deploy application
+------------------
 
 In order to build the app, Heroku needs to know that it depends on websockets.
 Create a ``requirements.txt`` file containing this line:
@@ -85,9 +85,6 @@ Confirm that you created the correct files and commit them to git:
      create mode 100644 Procfile
      create mode 100644 app.py
      create mode 100644 requirements.txt
-
-Deploy
-------
 
 The app is ready. Let's deploy it!
 

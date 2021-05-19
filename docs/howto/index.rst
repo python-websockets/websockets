@@ -34,3 +34,4 @@ optimized, and secure setup.
    compression
    heroku
    kubernetes
+   supervisor

@@ -35,22 +35,44 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
 
     """
 
+    realm = ""
+
     def __init__(
         self,
         *args: Any,
-        realm: str,
-        check_credentials: Callable[[str, str], Awaitable[bool]],
+        realm: Optional[str] = None,
+        check_credentials: Optional[Callable[[str, str], Awaitable[bool]]] = None,
         **kwargs: Any,
     ) -> None:
-        self.realm = realm
-        self.check_credentials = check_credentials
+        if realm is not None:
+            self.realm = realm  # shadow class attribute
+        self._check_credentials = check_credentials
         super().__init__(*args, **kwargs)
 
+    async def check_credentials(self, username: str, password: str) -> bool:
+        """
+        Check whether credentials are authorized.
+
+        If ``check_credentials`` returns ``True``, the WebSocket handshake
+        continues. If it returns ``False``, the handshake fails with a HTTP
+        401 error.
+
+        This coroutine may be overridden in a subclass, for example to
+        authenticate against a database or an external service.
+
+        """
+        if self._check_credentials is not None:
+            return await self._check_credentials(username, password)
+
+        return False
+
     async def process_request(
-        self, path: str, request_headers: Headers
+        self,
+        path: str,
+        request_headers: Headers,
     ) -> Optional[HTTPResponse]:
         """
-        Check HTTP Basic Auth and return a HTTP 401 or 403 response if needed.
+        Check HTTP Basic Auth and return a HTTP 401 response if needed.
 
         """
         try:
@@ -84,7 +106,7 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
 
 
 def basic_auth_protocol_factory(
-    realm: str,
+    realm: Optional[str] = None,
     credentials: Optional[Union[Credentials, Iterable[Credentials]]] = None,
     check_credentials: Optional[Callable[[str, str], Awaitable[bool]]] = None,
     create_protocol: Optional[Callable[[Any], BasicAuthWebSocketServerProtocol]] = None,

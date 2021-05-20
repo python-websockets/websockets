@@ -96,10 +96,15 @@ Basic authentication
 
     .. autoclass:: BasicAuthWebSocketServerProtocol
 
-        .. automethod:: process_request
+        .. attribute:: realm
+
+            Scope of protection.
+
+            If provided, it should contain only ASCII characters because the
+            encoding of non-ASCII characters is undefined.
 
         .. attribute:: username
 
             Username of the authenticated user.
 
-
+        .. automethod:: check_credentials

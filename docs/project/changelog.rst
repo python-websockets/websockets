@@ -45,6 +45,9 @@ They may change at any time.
 
 * Optimized default compression settings to reduce memory usage.
 
+* Made it easier to customize authentication with
+  :meth:`~auth.BasicAuthWebSocketServerProtocol.check_credentials`.
+
 9.0.2
 .....
 

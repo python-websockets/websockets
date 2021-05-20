@@ -25,6 +25,11 @@ class CustomWebSocketServerProtocol(BasicAuthWebSocketServerProtocol):
         return await super().process_request(path, request_headers)
 
 
+class CheckWebSocketServerProtocol(BasicAuthWebSocketServerProtocol):
+    async def check_credentials(self, username, password):
+        return password == "letmein"
+
+
 class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
 
     create_protocol = basic_auth_protocol_factory(
@@ -102,6 +107,19 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
         del CustomWebSocketServerProtocol.used
         self.loop.run_until_complete(self.client.send("Hello!"))
         self.loop.run_until_complete(self.client.recv())
+
+    @with_server(create_protocol=CheckWebSocketServerProtocol)
+    @with_client(user_info=("hello", "letmein"))
+    def test_basic_auth_custom_protocol_subclass(self):
+        self.loop.run_until_complete(self.client.send("Hello!"))
+        self.loop.run_until_complete(self.client.recv())
+
+    # CustomWebSocketServerProtocol doesn't override check_credentials
+    @with_server(create_protocol=CustomWebSocketServerProtocol)
+    def test_basic_auth_defaults_to_deny_all(self):
+        with self.assertRaises(InvalidStatusCode) as raised:
+            self.start_client(user_info=("hello", "iloveyou"))
+        self.assertEqual(raised.exception.status_code, 401)
 
     @with_server(create_protocol=create_protocol)
     def test_basic_auth_missing_credentials(self):

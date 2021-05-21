@@ -10,9 +10,7 @@ import websockets
 django.setup()
 
 from django.contrib.contenttypes.models import ContentType
-
-# Reuse our custom protocol to authenticate connections
-from authentication import ServerProtocol
+from sesame.utils import get_user
 
 
 CONNECTIONS = {}
@@ -31,8 +29,14 @@ def get_content_types(user):
 
 
 async def handler(websocket, path):
-    """Register connection in CONNECTIONS dict, until it's closed."""
-    ct_ids = await asyncio.to_thread(get_content_types, websocket.user)
+    """Authenticate user and register connection in CONNECTIONS."""
+    sesame = await websocket.recv()
+    user = await asyncio.to_thread(get_user, sesame)
+    if user is None:
+        await websocket.close(1011, "authentication failed")
+        return
+
+    ct_ids = await asyncio.to_thread(get_content_types, user)
     CONNECTIONS[websocket] = {"content_type_ids": ct_ids}
     try:
         await websocket.wait_closed()
@@ -57,12 +61,7 @@ async def process_events():
 
 
 async def main():
-    async with websockets.serve(
-        handler,
-        "localhost",
-        8888,
-        create_protocol=ServerProtocol,
-    ):
+    async with websockets.serve(handler, "localhost", 8888):
         await process_events()  # runs forever
 
 

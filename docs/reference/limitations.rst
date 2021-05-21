@@ -29,7 +29,7 @@ There is no way to control compression of outgoing frames on a per-frame basis
 .. _issue 538: https://github.com/aaugustin/websockets/issues/538
 
 There is no way to receive each fragment of a fragmented messages as it
-arrives (`issue 479`_). websockets always reassembles framented messages
+arrives (`issue 479`_). websockets always reassembles fragmented messages
 before returning them.
 
 .. _issue 479: https://github.com/aaugustin/websockets/issues/479

@@ -36,9 +36,10 @@ They may change at any time.
 
 .. note::
 
-    **Version 10.0 deprecates the** ``loop`` **parameter from all APIs for the
-    same reasons the same change was made in Python 3.8. See the release notes
-    of Python 3.10 for details.**
+    **Version 10.0 deprecates the** ``loop`` **parameter from all APIs.**
+
+    This reflects a decision made in Python 3.8. See the release notes of
+    Python 3.10 for details.
 
 * Added compatibility with Python 3.10.
 

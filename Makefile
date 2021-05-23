@@ -2,6 +2,7 @@
 
 export PYTHONASYNCIODEBUG=1
 export PYTHONPATH=src
+export PYTHONWARNINGS=default
 
 default: coverage style
 
@@ -12,13 +13,13 @@ style:
 	mypy --strict src
 
 test:
-	python -W default -m unittest
+	python -m unittest
 
 coverage:
-	python -m coverage erase
-	python -W default -m coverage run -m unittest
-	python -m coverage html
-	python -m coverage report --show-missing --fail-under=100
+	coverage erase
+	coverage run -m unittest
+	coverage html
+	coverage report --show-missing --fail-under=100
 
 build:
 	python setup.py build_ext --inplace

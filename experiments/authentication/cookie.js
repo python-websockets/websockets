@@ -1,36 +1,23 @@
-// wait for "load" rather than "DOMContentLoaded"
-// to ensure that the iframe has finished loading
-window.addEventListener("load", () => {
-    // create message channel to communicate
-    // with the iframe
-    const channel = new MessageChannel();
-    const port1 = channel.port1;
+// send token to iframe
+window.addEventListener("DOMContentLoaded", () => {
+    const iframe = document.querySelector("iframe");
+    iframe.addEventListener("load", () => {
+        iframe.contentWindow.postMessage(token, "http://localhost:8003");
+    });
+});
 
-    // receive WebSocket events from the iframe
-    const expected = getExpectedEvents();
-    var actual = [];
-    port1.onmessage = ({ data }) => {
-        // respond to messages
-        if (data.type == "message") {
-            port1.postMessage({
-                type: "message",
-                message: `Goodbye ${data.data.slice(6, -1)}.`,
-            });
-        }
-        // run tests
-        actual.push(data);
-        testStep(expected, actual);
+// once iframe has set cookie, open WebSocket connection
+window.addEventListener("message", ({ origin }) => {
+    if (origin !== "http://localhost:8003") {
+        return;
+    }
+
+    const websocket = new WebSocket("ws://localhost:8003/");
+
+    websocket.onmessage = ({ data }) => {
+        // event.data is expected to be "Hello <user>!"
+        websocket.send(`Goodbye ${data.slice(6, -1)}.`);
     };
 
-    // send message channel to the iframe
-    const iframe = document.querySelector("iframe");
-    const origin = "http://localhost:8003";
-    const ports = [channel.port2];
-    iframe.contentWindow.postMessage("", origin, ports);
-
-    // send token to the iframe
-    port1.postMessage({
-        type: "open",
-        token: token,
-    });
+    runTest(websocket);
 });

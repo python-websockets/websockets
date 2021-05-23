@@ -6,6 +6,7 @@
 
 
 import functools
+import hmac
 import http
 from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, Union, cast
 
@@ -132,23 +133,22 @@ def basic_auth_protocol_factory(
 
     if credentials is not None:
         if is_credentials(credentials):
-
-            async def check_credentials(username: str, password: str) -> bool:
-                return (username, password) == credentials
-
+            credentials_list = [cast(Credentials, credentials)]
         elif isinstance(credentials, Iterable):
             credentials_list = list(credentials)
-            if all(is_credentials(item) for item in credentials_list):
-                credentials_dict = dict(credentials_list)
-
-                async def check_credentials(username: str, password: str) -> bool:
-                    return credentials_dict.get(username) == password
-
-            else:
+            if not all(is_credentials(item) for item in credentials_list):
                 raise TypeError(f"invalid credentials argument: {credentials}")
-
         else:
             raise TypeError(f"invalid credentials argument: {credentials}")
+
+        credentials_dict = dict(credentials_list)
+
+        async def check_credentials(username: str, password: str) -> bool:
+            try:
+                expected_password = credentials_dict[username]
+            except KeyError:
+                return False
+            return hmac.compare_digest(expected_password, password)
 
     if create_protocol is None:
         # Not sure why mypy cannot figure this out.
@@ -158,5 +158,7 @@ def basic_auth_protocol_factory(
         )
 
     return functools.partial(
-        create_protocol, realm=realm, check_credentials=check_credentials
+        create_protocol,
+        realm=realm,
+        check_credentials=check_credentials,
     )

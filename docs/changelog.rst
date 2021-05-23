@@ -30,6 +30,12 @@ They may change at any time.
 
 *In development*
 
+.. note::
+
+    **Version 9.1 fixes a security issue introduced in version 8.0.**
+
+    Version 8.0 was vulnerable to timing attacks on HTTP Basic Auth passwords.
+
 9.0.2
 .....
 

@@ -1,3 +1,4 @@
+import hmac
 import unittest
 import urllib.error
 
@@ -76,7 +77,7 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
         )
 
     async def check_credentials(username, password):
-        return password == "iloveyou"
+        return hmac.compare_digest(password, "iloveyou")
 
     create_protocol_check_credentials = basic_auth_protocol_factory(
         realm="auth-tests",
@@ -140,7 +141,13 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
         self.assertEqual(raised.exception.read().decode(), "Unsupported credentials\n")
 
     @with_server(create_protocol=create_protocol)
-    def test_basic_auth_invalid_credentials(self):
+    def test_basic_auth_invalid_username(self):
+        with self.assertRaises(InvalidStatusCode) as raised:
+            self.start_client(user_info=("goodbye", "iloveyou"))
+        self.assertEqual(raised.exception.status_code, 401)
+
+    @with_server(create_protocol=create_protocol)
+    def test_basic_auth_invalid_password(self):
         with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client(user_info=("hello", "ihateyou"))
         self.assertEqual(raised.exception.status_code, 401)

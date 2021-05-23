@@ -25,6 +25,7 @@ datastructures
 django
 dyno
 fractalideas
+iframe
 IPv
 iterable
 keepalive
@@ -65,3 +66,4 @@ websocket
 websockets
 ws
 wss
+www

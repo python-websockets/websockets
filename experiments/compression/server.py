@@ -34,7 +34,7 @@ async def handler(ws, path):
     await asyncio.sleep(CLIENTS * INTERVAL)
 
 
-async def mem_server():
+async def server():
     loop = asyncio.get_running_loop()
     stop = loop.create_future()
 
@@ -60,7 +60,7 @@ async def mem_server():
         await stop
 
 
-asyncio.run(mem_server())
+asyncio.run(server())
 
 
 # First connection may incur non-representative setup costs.

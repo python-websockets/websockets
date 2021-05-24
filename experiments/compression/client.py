@@ -16,7 +16,7 @@ WB, ML = 12, 5
 MEM_SIZE = []
 
 
-async def mem_client(client):
+async def client(client):
     # Space out connections to make them sequential.
     await asyncio.sleep(client * INTERVAL)
 
@@ -45,11 +45,11 @@ async def mem_client(client):
         await asyncio.sleep(CLIENTS * INTERVAL)
 
 
-async def mem_clients():
-    await asyncio.gather(*[mem_client(client) for client in range(CLIENTS + 1)])
+async def clients():
+    await asyncio.gather(*[client(client) for client in range(CLIENTS + 1)])
 
 
-asyncio.run(mem_clients())
+asyncio.run(clients())
 
 
 # First connection incurs non-representative setup costs.

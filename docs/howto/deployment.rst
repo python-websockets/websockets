@@ -66,82 +66,11 @@ Memory usage of a single connection is the sum of:
 Baseline
 ........
 
-.. _compression-settings:
-
 Compression settings are the main factor affecting the baseline amount of
 memory used by each connection.
 
-If you'd like to customize compression settings, here are the main knobs.
-
-- Context Takeover is necessary to get good performance for almost all
-  applications. It should remain enabled.
-- Window Bits is a trade-off between memory usage and compression rate.
-  It should be an integer between 9 (lowest memory usage) and 15 (highest
-  compression rate). Setting it to 8 is possible but triggers a bug in some
-  versions of zlib.
-- Memory Level is a trade-off between memory usage and compression speed.
-  However, a lower memory level can increase speed thanks to memory locality,
-  even if the CPU does more work! It should be an integer between 1 (lowest
-  memory usage) and 9 (highest compression speed in theory, not in practice).
-
-By default, websockets enables compression with conservative settings that
-optimize memory usage at the cost of a slightly worse compression rate: Window
-Bits = 12 and Memory Level = 5. This strikes a good balance for small messages
-that are typical of WebSocket servers.
-
-If you'd like to configure different compression settings, see this
-:ref:`example <per-message-deflate-configuration-example>`. If you don't set
-limits on Window Bits and neither does the remote endpoint, it defaults to the
-maximum value of 15. If you don't set Memory Level, it defaults to 8 — more
-accurately, to ``zlib.DEF_MEM_LEVEL`` which is 8.
-
-Here's how various compression settings affect memory usage of a single
-connection on a 64-bit system, as well a benchmark of compressed size and
-compression time for a corpus of small JSON documents.
-
-+-------------+-------------+--------------+--------------+------------------+------------------+
-| Compression | Window Bits | Memory Level | Memory usage | Size vs. default | Time vs. default |
-+=============+=============+==============+==============+==================+==================+
-|             | 15          | 8            | 322 KiB      | -4.0%            | +15%             +
-+-------------+-------------+--------------+--------------+------------------+------------------+
-|             | 14          | 7            | 178 KiB      | -2.6%            | +10%             |
-+-------------+-------------+--------------+--------------+------------------+------------------+
-|             | 13          | 6            | 106 KiB      | -1.4%            | +5%              |
-+-------------+-------------+--------------+--------------+------------------+------------------+
-| *default*   | 12          | 5            | 70 KiB       | =                | =                |
-+-------------+-------------+--------------+--------------+------------------+------------------+
-|             | 11          | 4            | 52 KiB       | +3.7%            | -5%              |
-+-------------+-------------+--------------+--------------+------------------+------------------+
-|             | 10          | 3            | 43 KiB       | +90%             | +50%             |
-+-------------+-------------+--------------+--------------+------------------+------------------+
-|             | 9           | 2            | 39 KiB       | +160%            | +100%            |
-+-------------+-------------+--------------+--------------+------------------+------------------+
-| *disabled*  | N/A         | N/A          | 19 KiB       | N/A              | N/A              |
-+-------------+-------------+--------------+--------------+------------------+------------------+
-
-*Don't assume this example is representative! Compressed size and compression
-time depend heavily on the kind of messages exchanged by the application!*
-
-You can adapt the `compression.py`_ benchmark for your application by creating
-a list of typical messages and passing it to the ``_benchmark`` function.
-
-.. _compression.py: https://github.com/aaugustin/websockets/blob/main/performance/compression.py
-
-This `blog post by Ilya Grigorik`_ provides more details about how compression
-settings affect memory usage and how to optimize them.
-
-.. _blog post by Ilya Grigorik: https://www.igvita.com/2013/11/27/configuring-and-optimizing-websocket-compression/
-
-This `experiment by Peter Thorson`_ suggests Window Bits = 11 and Memory Level =
-4 as a sweet spot for optimizing memory usage.
-
-.. _experiment by Peter Thorson: https://www.ietf.org/mail-archive/web/hybi/current/msg10222.html
-
-websockets defaults to Window Bits = 12 and Memory Level = 5 in order to stay
-away from Window Bits = 10 or Memory Level = 3, where performance craters in
-the benchmark. This raises doubts on what could happen at Window Bits = 11 and
-Memory Level = 4 on a different set of messages. The defaults needs to be safe
-for all applications, hence a more conservative choice.
+Read to the topic guide on :doc:`../topics/compression` to learn more about
+tuning compression settings.
 
 Buffers
 .......

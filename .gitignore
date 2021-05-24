@@ -5,8 +5,8 @@
 .mypy_cache
 .tox
 build/
-benchmark/corpus.pkl
 compliance/reports/
+experiments/compression/corpus.pkl
 dist/
 docs/_build/
 htmlcov/

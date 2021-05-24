@@ -49,7 +49,7 @@ def corpus():
         pickle.dump(data, handle)
 
 
-def _benchmark(data):
+def _run(data):
     size = {}
     duration = {}
 
@@ -149,15 +149,15 @@ def _benchmark(data):
     print()
 
 
-def benchmark():
+def run():
     with open(CORPUS_FILE, "rb") as handle:
         data = pickle.load(handle)
-    _benchmark(data)
+    _run(data)
 
 
 try:
     run = globals()[sys.argv[1]]
 except (KeyError, IndexError):
-    print(f"Usage: {sys.argv[0]} [corpus|benchmark]")
+    print(f"Usage: {sys.argv[0]} [corpus|run]")
 else:
     run()

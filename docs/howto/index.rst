@@ -31,7 +31,6 @@ optimized, and secure setup.
    :maxdepth: 2
 
    deployment
-   compression
    heroku
    kubernetes
    supervisor

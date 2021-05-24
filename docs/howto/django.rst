@@ -169,6 +169,11 @@ following code in the JavaScript console of the browser:
     websocket.onopen = (event) => websocket.send("<your token>");
     websocket.onmessage = (event) => console.log(event.data);
 
+If you don't want to import your entire Django project into the websockets
+server, you can build a separate Django project with ``django.contrib.auth``,
+``django-sesame``, a suitable ``User`` model, and a subset of the settings of
+the main project.
+
 Stream events
 -------------
 

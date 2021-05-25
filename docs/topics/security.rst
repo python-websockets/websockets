@@ -24,8 +24,8 @@ With the default settings, opening a connection uses 70 KiB of memory.
 Sending some highly compressed messages could use up to 128 MiB of memory
 with an amplification factor of 1000 between network traffic and memory use.
 
-Configuring a server to :ref:`optimize memory usage <memory-usage>` will
-improve security in addition to improving performance.
+Configuring a server to :doc:`memory` will improve security in addition to
+improving performance.
 
 Other limits
 ------------

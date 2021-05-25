@@ -24,13 +24,13 @@ features, which websockets supports fully.
 
    extensions
 
-Once your application is ready, learn how to deploy it with a convenient,
-optimized, and secure setup.
+.. _deployment-howto:
+
+Once your application is ready, learn how to deploy it on various platforms.
 
 .. toctree::
    :maxdepth: 2
 
-   deployment
    heroku
    kubernetes
    supervisor

@@ -131,13 +131,17 @@ websockets takes care of closing the connection when the handler exits.
 How do I run a HTTP server and WebSocket server on the same port?
 .................................................................
 
-This isn't supported.
+You don't.
+
+HTTP and WebSockets have widely different operational characteristics.
+Running them on the same server is a bad idea.
 
 Providing a HTTP server is out of scope for websockets. It only aims at
 providing a WebSocket server.
 
 There's limited support for returning HTTP responses with the
 :attr:`~legacy.server.WebSocketServerProtocol.process_request` hook.
+
 If you need more, pick a HTTP server and run it separately.
 
 Client side
@@ -287,6 +291,18 @@ There are several reasons why long-lived connections may be lost:
 If you're facing a reproducible issue, :ref:`enable debug logs <debugging>` to
 see when and how connections are closed.
 
+How do I set a timeout on ``recv()``?
+.....................................
+
+Use :func:`~asyncio.wait_for`::
+
+    await asyncio.wait_for(websocket.recv(), timeout=10)
+
+This technique works for most APIs, except for asynchronous context managers.
+See `issue 574`_.
+
+.. _issue 574: https://github.com/aaugustin/websockets/issues/574
+
 How can I pass additional arguments to a custom protocol subclass?
 ..................................................................
 
@@ -307,55 +323,6 @@ You can bind additional arguments to the protocol factory with
 
 This example was for a server. The same pattern applies on a client.
 
-Why do I get the error: ``module 'websockets' has no attribute '...'``?
-.......................................................................
-
-Often, this is because you created a script called ``websockets.py`` in your
-current working directory. Then ``import websockets`` imports this module
-instead of the websockets library.
-
-Are there ``onopen``, ``onmessage``, ``onerror``, and ``onclose`` callbacks?
-............................................................................
-
-No, there aren't.
-
-websockets provides high-level, coroutine-based APIs. Compared to callbacks,
-coroutines make it easier to manage control flow in concurrent code.
-
-If you prefer callback-based APIs, you should use another library.
-
-Can I use websockets synchronously, without ``async`` / ``await``?
-..................................................................
-
-You can convert every asynchronous call to a synchronous call by wrapping it
-in ``asyncio.get_event_loop().run_until_complete(...)``. Unfortunately, this
-is deprecated as of Python 3.10.
-
-If this turns out to be impractical, you should use another library.
-
-Miscellaneous
--------------
-
-How do I create channels or topics?
-...................................
-
-websockets doesn't have built-in publish / subscribe for these use cases.
-
-Depending on the scale of your service, a simple in-memory implementation may
-do the job or you may need an external publish / subscribe component.
-
-How do I set a timeout on ``recv()``?
-.....................................
-
-Use :func:`~asyncio.wait_for`::
-
-    await asyncio.wait_for(websocket.recv(), timeout=10)
-
-This technique works for most APIs, except for asynchronous context managers.
-See `issue 574`_.
-
-.. _issue 574: https://github.com/aaugustin/websockets/issues/574
-
 How do I keep idle connections open?
 ....................................
 
@@ -370,6 +337,36 @@ How do I respond to pings?
 
 websockets takes care of responding to pings with pongs.
 
+Miscellaneous
+-------------
+
+How do I create channels or topics?
+...................................
+
+websockets doesn't have built-in publish / subscribe for these use cases.
+
+Depending on the scale of your service, a simple in-memory implementation may
+do the job or you may need an external publish / subscribe component.
+
+Can I use websockets synchronously, without ``async`` / ``await``?
+..................................................................
+
+You can convert every asynchronous call to a synchronous call by wrapping it
+in ``asyncio.get_event_loop().run_until_complete(...)``. Unfortunately, this
+is deprecated as of Python 3.10.
+
+If this turns out to be impractical, you should use another library.
+
+Are there ``onopen``, ``onmessage``, ``onerror``, and ``onclose`` callbacks?
+............................................................................
+
+No, there aren't.
+
+websockets provides high-level, coroutine-based APIs. Compared to callbacks,
+coroutines make it easier to manage control flow in concurrent code.
+
+If you prefer callback-based APIs, you should use another library.
+
 Is there a Python 2 version?
 ............................
 
@@ -379,4 +376,16 @@ Python 2 reached end of life on January 1st, 2020.
 
 Before that date, websockets required asyncio and therefore Python 3.
 
+Why do I get the error: ``module 'websockets' has no attribute '...'``?
+.......................................................................
 
+Often, this is because you created a script called ``websockets.py`` in your
+current working directory. Then ``import websockets`` imports this module
+instead of the websockets library.
+
+I'm having problems with threads
+................................
+
+You shouldn't use threads. Use tasks instead.
+
+:func:`~asyncio.AbstractEventLoop.call_soon_threadsafe` may help.

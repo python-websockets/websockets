@@ -27,6 +27,7 @@ django
 dyno
 fractalideas
 gunicorn
+haproxy
 hypercorn
 iframe
 IPv
@@ -48,6 +49,7 @@ permessage
 pid
 pong
 pongs
+proxying
 pythonic
 redis
 runtime

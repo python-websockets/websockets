@@ -69,7 +69,7 @@ one of these three buckets:
 
 3. Running N processes on a server:
 
-   * preferrably via a process manager or supervisor
+   * preferably via a process manager or supervisor
 
 Option 1 is easiest of you have access to such a platform.
 

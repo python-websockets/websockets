@@ -35,3 +35,4 @@ Once your application is ready, learn how to deploy it on various platforms.
    kubernetes
    supervisor
    nginx
+   haproxy

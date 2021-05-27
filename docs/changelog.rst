@@ -28,7 +28,7 @@ They may change at any time.
 9.1
 ...
 
-*In development*
+*May 27, 2021*
 
 .. note::
 

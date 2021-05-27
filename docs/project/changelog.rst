@@ -59,8 +59,6 @@ They may change at any time.
 
     Version 8.0 was vulnerable to timing attacks on HTTP Basic Auth passwords.
 
-    .. _CVE-2018-1000518: https://nvd.nist.gov/vuln/detail/CVE-2018-1000518
-
 9.0.2
 .....
 

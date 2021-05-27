@@ -45,10 +45,21 @@ They may change at any time.
 
 * Optimized default compression settings to reduce memory usage.
 
-* Protected against timing attacks on HTTP Basic Auth.
-
 * Made it easier to customize authentication with
   :meth:`~auth.BasicAuthWebSocketServerProtocol.check_credentials`.
+
+9.1
+...
+
+*May 27, 2021*
+
+.. note::
+
+    **Version 9.1 fixes a security issue introduced in version 8.0.**
+
+    Version 8.0 was vulnerable to timing attacks on HTTP Basic Auth passwords.
+
+    .. _CVE-2018-1000518: https://nvd.nist.gov/vuln/detail/CVE-2018-1000518
 
 9.0.2
 .....

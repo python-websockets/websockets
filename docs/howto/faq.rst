@@ -11,6 +11,9 @@ FAQ
 
     .. _developing with asyncio: https://docs.python.org/3/library/asyncio-dev.html
 
+.. contents::
+   :local:
+
 Server side
 -----------
 

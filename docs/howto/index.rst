@@ -15,6 +15,7 @@ The following guides will help you integrate websockets into a broader system.
    :maxdepth: 2
 
    django
+   logging
 
 The WebSocket protocol makes provisions for extending or specializing its
 features, which websockets supports fully.

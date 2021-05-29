@@ -124,12 +124,11 @@ class Frame(NewFrame):
         write(self.serialize(mask=mask, extensions=extensions))
 
 
-# Backwards compatibility with previously documented public APIs
-from ..frames import parse_close  # isort:skip # noqa
-from ..frames import prepare_ctrl as encode_data  # isort:skip # noqa
-from ..frames import prepare_data  # isort:skip # noqa
-from ..frames import serialize_close  # isort:skip # noqa
-
-
 # at the bottom to allow circular import, because Extension depends on Frame
-from .. import extensions  # isort:skip # noqa
+from .. import extensions  # noqa
+
+# Backwards compatibility with previously documented public APIs
+from ..frames import parse_close  # noqa
+from ..frames import prepare_data  # noqa
+from ..frames import serialize_close  # noqa
+from ..frames import prepare_ctrl as encode_data  # noqa

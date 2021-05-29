@@ -338,4 +338,4 @@ def check_close(code: int) -> None:
 
 
 # at the bottom to allow circular import, because Extension depends on Frame
-from . import extensions  # isort:skip # noqa
+from . import extensions  # noqa

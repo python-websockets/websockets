@@ -6,7 +6,8 @@ import sys
 import threading
 from typing import Any, Set
 
-from .exceptions import ConnectionClosed, format_close
+from .exceptions import ConnectionClosed
+from .frames import format_close
 from .legacy.client import connect
 
 

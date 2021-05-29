@@ -52,6 +52,28 @@ OP_PONG = Opcode.PONG
 DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY
 CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG
 
+
+# See https://www.iana.org/assignments/websocket/websocket.xhtml
+CLOSE_CODES = {
+    1000: "OK",
+    1001: "going away",
+    1002: "protocol error",
+    1003: "unsupported type",
+    # 1004 is reserved
+    1005: "no status code [internal]",
+    1006: "connection closed abnormally [internal]",
+    1007: "invalid data",
+    1008: "policy violation",
+    1009: "message too big",
+    1010: "extension required",
+    1011: "unexpected error",
+    1012: "service restart",
+    1013: "try again later",
+    1014: "bad gateway",
+    1015: "TLS failure [internal]",
+}
+
+
 # Close code that are allowed in a close frame.
 # Using a set optimizes `code in EXTERNAL_CLOSE_CODES`.
 EXTERNAL_CLOSE_CODES = {
@@ -95,6 +117,52 @@ class Frame(NamedTuple):
     rsv1: bool = False
     rsv2: bool = False
     rsv3: bool = False
+
+    def __str__(self) -> str:
+        """
+        Return a human-readable represention of a frame.
+
+        """
+        coding = None
+        length = f"{len(self.data)} byte{'' if len(self.data) == 1 else 's'}"
+        non_final = "" if self.fin else "continued"
+
+        if self.opcode is OP_TEXT:
+            # Decoding only the beginning and the end is needlessly hard.
+            # Decode the entire payload then elide later if necessary.
+            data = self.data.decode()
+        elif self.opcode is OP_BINARY:
+            # We'll show at most the first 16 bytes and the last 8 bytes.
+            # Encode just what we need, plus two dummy bytes to elide later.
+            binary = self.data
+            if len(binary) > 25:
+                binary = binary[:16] + b"\x00\x00" + binary[-8:]
+            data = " ".join(f"{byte:02x}" for byte in binary)
+        elif self.opcode is OP_CLOSE:
+            code, reason = parse_close(self.data)
+            data = format_close(code, reason)
+        elif self.data:
+            # We don't know if a Continuation frame contains text or binary.
+            # Ping and Pong frames could contain UTF-8. Attempt to decode as
+            # UTF-8 and display it as text; fallback to binary.
+            try:
+                data = self.data.decode()
+                coding = "text"
+            except UnicodeDecodeError:
+                binary = self.data
+                if len(binary) > 25:
+                    binary = binary[:16] + b"\x00\x00" + binary[-8:]
+                data = " ".join(f"{byte:02x}" for byte in binary)
+                coding = "binary"
+        else:
+            data = ""
+
+        if len(data) > 75:
+            data = data[:48] + "..." + data[-24:]
+
+        metadata = ", ".join(filter(None, [coding, length, non_final]))
+
+        return f"{self.opcode.name} {data} [{metadata}]"
 
     @classmethod
     def parse(
@@ -335,6 +403,27 @@ def check_close(code: int) -> None:
     """
     if not (code in EXTERNAL_CLOSE_CODES or 3000 <= code < 5000):
         raise ProtocolError("invalid status code")
+
+
+def format_close(code: int, reason: str) -> str:
+    """
+    Display a human-readable version of the close code and reason.
+
+    """
+    if 3000 <= code < 4000:
+        explanation = "registered"
+    elif 4000 <= code < 5000:
+        explanation = "private use"
+    else:
+        explanation = CLOSE_CODES.get(code, "unknown")
+    result = f"code = {code} ({explanation}), "
+
+    if reason:
+        result += f"reason = {reason}"
+    else:
+        result += "no reason"
+
+    return result
 
 
 # at the bottom to allow circular import, because Extension depends on Frame

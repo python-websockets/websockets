@@ -193,6 +193,132 @@ class FrameTests(FramesTestCase):
         )
 
 
+class StrTests(unittest.TestCase):
+    def test_cont_text(self):
+        self.assertEqual(
+            str(Frame(False, OP_CONT, b" cr\xc3\xa8me")),
+            "CONT  crème [text, 7 bytes, continued]",
+        )
+
+    def test_cont_binary(self):
+        self.assertEqual(
+            str(Frame(False, OP_CONT, b"\xfc\xfd\xfe\xff")),
+            "CONT fc fd fe ff [binary, 4 bytes, continued]",
+        )
+
+    def test_cont_final_text(self):
+        self.assertEqual(
+            str(Frame(True, OP_CONT, b" cr\xc3\xa8me")),
+            "CONT  crème [text, 7 bytes]",
+        )
+
+    def test_cont_final_binary(self):
+        self.assertEqual(
+            str(Frame(True, OP_CONT, b"\xfc\xfd\xfe\xff")),
+            "CONT fc fd fe ff [binary, 4 bytes]",
+        )
+
+    def test_cont_text_truncated(self):
+        self.assertEqual(
+            str(Frame(False, OP_CONT, b"caf\xc3\xa9 " * 16)),
+            "CONT café café café café café café café café café caf..."
+            "afé café café café café  [text, 96 bytes, continued]",
+        )
+
+    def test_cont_binary_truncated(self):
+        self.assertEqual(
+            str(Frame(False, OP_CONT, bytes(range(256)))),
+            "CONT 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
+            " f8 f9 fa fb fc fd fe ff [binary, 256 bytes, continued]",
+        )
+
+    def test_text(self):
+        self.assertEqual(
+            str(Frame(True, OP_TEXT, b"caf\xc3\xa9")),
+            "TEXT café [5 bytes]",
+        )
+
+    def test_text_non_final(self):
+        self.assertEqual(
+            str(Frame(False, OP_TEXT, b"caf\xc3\xa9")),
+            "TEXT café [5 bytes, continued]",
+        )
+
+    def test_text_truncated(self):
+        self.assertEqual(
+            str(Frame(True, OP_TEXT, b"caf\xc3\xa9 " * 16)),
+            "TEXT café café café café café café café café café caf..."
+            "afé café café café café  [96 bytes]",
+        )
+
+    def test_binary(self):
+        self.assertEqual(
+            str(Frame(True, OP_BINARY, b"\x00\x01\x02\x03")),
+            "BINARY 00 01 02 03 [4 bytes]",
+        )
+
+    def test_binary_non_final(self):
+        self.assertEqual(
+            str(Frame(False, OP_BINARY, b"\x00\x01\x02\x03")),
+            "BINARY 00 01 02 03 [4 bytes, continued]",
+        )
+
+    def test_binary_truncated(self):
+        self.assertEqual(
+            str(Frame(True, OP_BINARY, bytes(range(256)))),
+            "BINARY 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
+            " f8 f9 fa fb fc fd fe ff [256 bytes]",
+        )
+
+    def test_close(self):
+        self.assertEqual(
+            str(Frame(True, OP_CLOSE, b"\x03\xe8")),
+            "CLOSE code = 1000 (OK), no reason [2 bytes]",
+        )
+
+    def test_close_reason(self):
+        self.assertEqual(
+            str(Frame(True, OP_CLOSE, b"\x03\xe9Bye!")),
+            "CLOSE code = 1001 (going away), reason = Bye! [6 bytes]",
+        )
+
+    def test_ping(self):
+        self.assertEqual(
+            str(Frame(True, OP_PING, b"")),
+            "PING  [0 bytes]",
+        )
+
+    def test_ping_text(self):
+        self.assertEqual(
+            str(Frame(True, OP_PING, b"ping")),
+            "PING ping [text, 4 bytes]",
+        )
+
+    def test_ping_binary(self):
+        self.assertEqual(
+            str(Frame(True, OP_PING, b"\xff\x00\xff\x00")),
+            "PING ff 00 ff 00 [binary, 4 bytes]",
+        )
+
+    def test_pong(self):
+        self.assertEqual(
+            str(Frame(True, OP_PONG, b"")),
+            "PONG  [0 bytes]",
+        )
+
+    def test_pong_text(self):
+        self.assertEqual(
+            str(Frame(True, OP_PONG, b"pong")),
+            "PONG pong [text, 4 bytes]",
+        )
+
+    def test_pong_binary(self):
+        self.assertEqual(
+            str(Frame(True, OP_PONG, b"\xff\x00\xff\x00")),
+            "PONG ff 00 ff 00 [binary, 4 bytes]",
+        )
+
+
 class PrepareDataTests(unittest.TestCase):
     def test_prepare_data_str(self):
         self.assertEqual(

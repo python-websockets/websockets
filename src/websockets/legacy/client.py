@@ -169,8 +169,10 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.path = path
         self.request_headers = headers
 
-        self.logger.debug("%s > GET %s HTTP/1.1", self.side, path)
-        self.logger.debug("%s > %r", self.side, headers)
+        if self.debug:
+            self.logger.debug("> GET %s HTTP/1.1", path)
+            for key, value in headers.raw_items():
+                self.logger.debug("> %s: %s", key, value)
 
         # Since the path and headers only contain ASCII characters,
         # we can keep this simple.
@@ -199,8 +201,10 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         except Exception as exc:
             raise InvalidMessage("did not receive a valid HTTP response") from exc
 
-        self.logger.debug("%s < HTTP/1.1 %d %s", self.side, status_code, reason)
-        self.logger.debug("%s < %r", self.side, headers)
+        if self.debug:
+            self.logger.debug("< HTTP/1.1 %d %s", status_code, reason)
+            for key, value in headers.raw_items():
+                self.logger.debug("< %s: %s", key, value)
 
         self.response_headers = headers
 

@@ -275,21 +275,33 @@ class ClientConnection(Connection):
         Send a WebSocket handshake request to the server.
 
         """
-        self.logger.debug("%s > GET %s HTTP/1.1", self.side, request.path)
-        self.logger.debug("%s > %r", self.side, request.headers)
+        if self.debug:
+            self.logger.debug("> GET %s HTTP/1.1", request.path)
+            for key, value in request.headers.raw_items():
+                self.logger.debug("> %s: %s", key, value)
 
         self.writes.append(request.serialize())
 
     def parse(self) -> Generator[None, None, None]:
         response = yield from Response.parse(
-            self.reader.read_line, self.reader.read_exact, self.reader.read_to_eof
+            self.reader.read_line,
+            self.reader.read_exact,
+            self.reader.read_to_eof,
         )
+
+        if self.debug:
+            code, phrase = response.status_code, response.reason_phrase
+            self.logger.debug("< HTTP/1.1 %d %s", code, phrase)
+            for key, value in response.headers.raw_items():
+                self.logger.debug("< %s: %s", key, value)
+            if response.body is not None:
+                self.logger.debug("< [body] (%d bytes)", len(response.body))
+
         assert self.state == CONNECTING
         try:
             self.process_response(response)
         except InvalidHandshake as exc:
             response = response._replace(exception=exc)
-            self.logger.debug("Invalid handshake", exc_info=True)
         else:
             self.set_state(OPEN)
         finally:

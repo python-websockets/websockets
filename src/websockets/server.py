@@ -84,13 +84,15 @@ class ServerConnection(Connection):
         try:
             key, extensions_header, protocol_header = self.process_request(request)
         except InvalidOrigin as exc:
-            self.logger.debug("Invalid origin", exc_info=True)
+            if self.debug:
+                self.logger.debug("! invalid origin", exc_info=True)
             return self.reject(
                 http.HTTPStatus.FORBIDDEN,
                 f"Failed to open a WebSocket connection: {exc}.\n",
             )._replace(exception=exc)
         except InvalidUpgrade as exc:
-            self.logger.debug("Invalid upgrade", exc_info=True)
+            if self.debug:
+                self.logger.debug("! invalid upgrade", exc_info=True)
             return self.reject(
                 http.HTTPStatus.UPGRADE_REQUIRED,
                 (
@@ -102,13 +104,14 @@ class ServerConnection(Connection):
                 headers=Headers([("Upgrade", "websocket")]),
             )._replace(exception=exc)
         except InvalidHandshake as exc:
-            self.logger.debug("Invalid handshake", exc_info=True)
+            if self.debug:
+                self.logger.debug("! invalid handshake", exc_info=True)
             return self.reject(
                 http.HTTPStatus.BAD_REQUEST,
                 f"Failed to open a WebSocket connection: {exc}.\n",
             )._replace(exception=exc)
         except Exception as exc:
-            self.logger.warning("Error in opening handshake", exc_info=True)
+            self.logger.error("opening handshake failed", exc_info=True)
             return self.reject(
                 http.HTTPStatus.INTERNAL_SERVER_ERROR,
                 (
@@ -145,6 +148,7 @@ class ServerConnection(Connection):
         headers.setdefault("Date", email.utils.formatdate(usegmt=True))
         headers.setdefault("Server", USER_AGENT)
 
+        self.logger.info("connection open")
         return Response(101, "Switching Protocols", headers)
 
     def process_request(
@@ -404,6 +408,7 @@ class ServerConnection(Connection):
         headers.setdefault("Content-Length", str(len(body)))
         headers.setdefault("Content-Type", "text/plain; charset=utf-8")
         headers.setdefault("Connection", "close")
+        self.logger.info("connection failed (%d %s)", status.value, status.phrase)
         return Response(status.value, status.phrase, headers, body)
 
     def send_response(self, response: Response) -> None:
@@ -414,20 +419,24 @@ class ServerConnection(Connection):
         if response.status_code == 101:
             self.set_state(OPEN)
 
-        self.logger.debug(
-            "%s > HTTP/1.1 %d %s",
-            self.side,
-            response.status_code,
-            response.reason_phrase,
-        )
-        self.logger.debug("%s > %r", self.side, response.headers)
-        if response.body is not None:
-            self.logger.debug("%s > body (%d bytes)", self.side, len(response.body))
+        if self.debug:
+            code, phrase = response.status_code, response.reason_phrase
+            self.logger.debug("> HTTP/1.1 %d %s", code, phrase)
+            for key, value in response.headers.raw_items():
+                self.logger.debug("> %s: %s", key, value)
+            if response.body is not None:
+                self.logger.debug("> [body] (%d bytes)", len(response.body))
 
         self.writes.append(response.serialize())
 
     def parse(self) -> Generator[None, None, None]:
         request = yield from Request.parse(self.reader.read_line)
+
+        if self.debug:
+            self.logger.debug("< GET %s HTTP/1.1", request.path)
+            for key, value in request.headers.raw_items():
+                self.logger.debug("< %s: %s", key, value)
+
         assert self.state == CONNECTING
         self.events.append(request)
         yield from super().parse()

@@ -132,7 +132,9 @@ class ResponseTests(GeneratorTestCase):
 
     def parse(self):
         return Response.parse(
-            self.reader.read_line, self.reader.read_exact, self.reader.read_to_eof
+            self.reader.read_line,
+            self.reader.read_exact,
+            self.reader.read_to_eof,
         )
 
     def test_parse(self):

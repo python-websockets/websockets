@@ -27,6 +27,12 @@ Server
 
     .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None)
 
+        .. attribute:: id
+
+            UUID for the connection.
+
+            Useful for identifying connections in logs.
+
         .. autoattribute:: local_address
 
         .. autoattribute:: remote_address

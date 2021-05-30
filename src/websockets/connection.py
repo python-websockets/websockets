@@ -1,5 +1,6 @@
 import enum
 import logging
+import uuid
 from typing import Generator, List, Optional, Union
 
 from .exceptions import InvalidState, PayloadTooBig, ProtocolError
@@ -68,6 +69,9 @@ class Connection:
         state: State = OPEN,
         max_size: Optional[int] = 2 ** 20,
     ) -> None:
+        # Unique identifier. For logs.
+        self.id = uuid.uuid4()
+
         # Connection side. CLIENT or SERVER.
         self.side = side
 

@@ -14,6 +14,7 @@ import enum
 import logging
 import random
 import struct
+import uuid
 import warnings
 from typing import (
     Any,
@@ -131,6 +132,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.max_queue = max_queue
         self.read_limit = read_limit
         self.write_limit = write_limit
+
+        # Unique identifier. For logs.
+        self.id = uuid.uuid4()
 
         assert loop is not None
         # Remove when dropping Python < 3.10 - use get_running_loop instead.

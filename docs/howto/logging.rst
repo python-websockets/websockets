@@ -73,8 +73,8 @@ Here's how to enable debug logs for development::
         level=logging.DEBUG,
     )
 
-Furthermore, websockets adds a ``websocket`` attribute to every log record, so
-you can include additional information about connections in logs.
+Furthermore, websockets adds a ``websocket`` attribute to log records, so you
+can include additional information about the current connection in logs.
 
 You could attempt to add information with a formatter::
 
@@ -85,11 +85,11 @@ You could attempt to add information with a formatter::
         style="{",
     )
 
-However, this technique has two downsides:
+However, this technique runs into two problems:
 
 * The formatter applies to all records. It will crash if it receives a record
-  that doesn't have a ``websocket`` attribute. You could configure logging to
-  work around this problem but that could get complicated quickly.
+  without a ``websocket`` attribute. For example, this happens when logging
+  that the server starts because there is no current connection.
 
 * Even with :meth:`str.format` style, you're restricted to attribute and index
   lookups, which isn't enough to implement some fairly simple requirements.
@@ -208,7 +208,8 @@ Here's what websockets logs at each level.
 :attr:`~logging.INFO`
 .....................
 
-* Connections opened and closed in servers
+* Server starting and stopping
+* Server establishing and closing connections
 
 :attr:`~logging.DEBUG`
 ......................

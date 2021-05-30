@@ -725,9 +725,15 @@ class WebSocketServer:
 
     """
 
-    def __init__(self, loop: asyncio.AbstractEventLoop) -> None:
+    def __init__(
+        self, loop: asyncio.AbstractEventLoop, logger: Optional[LoggerLike] = None
+    ) -> None:
         # Store a reference to loop to avoid relying on self.server._loop.
         self.loop = loop
+
+        if logger is None:
+            logger = logging.getLogger("websockets.server")
+        self.logger = logger
 
         # Keep track of active connections.
         self.websockets: Set[WebSocketServerProtocol] = set()
@@ -753,6 +759,19 @@ class WebSocketServer:
 
         """
         self.server = server
+        assert server.sockets is not None
+        for sock in server.sockets:
+            if sock.family == socket.AF_INET:
+                name = "%s:%d" % sock.getsockname()
+            elif sock.family == socket.AF_INET6:
+                name = "[%s]:%d" % sock.getsockname()[:2]
+            elif sock.family == socket.AF_UNIX:
+                name = sock.getsockname()
+            # In the unlikely event that someone runs websockets over a
+            # protocol other than IP or Unix sockets, avoid crashing.
+            else:  # pragma: no cover
+                name = str(sock.getsockname())
+            self.logger.info("server listening on %s", name)
 
     def register(self, protocol: WebSocketServerProtocol) -> None:
         """
@@ -803,6 +822,8 @@ class WebSocketServer:
         then closes open connections with close code 1001.
 
         """
+        self.logger.info("server closing")
+
         # Stop accepting new connections.
         self.server.close()
 
@@ -838,6 +859,8 @@ class WebSocketServer:
 
         # Tell wait_closed() to return.
         self.closed_waiter.set_result(None)
+
+        self.logger.info("server closed")
 
     async def wait_closed(self) -> None:
         """
@@ -1008,7 +1031,7 @@ class Serve:
         else:
             warnings.warn("remove loop argument", DeprecationWarning)
 
-        ws_server = WebSocketServer(loop=loop)
+        ws_server = WebSocketServer(logger=logger, loop=loop)
 
         secure = kwargs.get("ssl") is not None
 

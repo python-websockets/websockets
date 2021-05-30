@@ -73,14 +73,55 @@ Here's how to enable debug logs for development::
         level=logging.DEBUG,
     )
 
-You can select a different :class:`~logging.Logger` with the ``logger``
-argument::
+Furthermore, websockets adds a ``websocket`` attribute to every log record, so
+you can include additional information about connections in logs.
 
-    import websockets
+You could attempt to add information with a formatter::
+
+    # this doesn't work!
+    logging.basicConfig(
+        format="{asctime} {websocket.id} {websocket.remote_address[0]} {message}",
+        level=logging.INFO,
+        style="{",
+    )
+
+However, this technique has two downsides:
+
+* The formatter applies to all records. It will crash if it receives a record
+  that doesn't have a ``websocket`` attribute. You could configure logging to
+  work around this problem but that could get complicated quickly.
+
+* Even with :meth:`str.format` style, you're restricted to attribute and index
+  lookups, which isn't enough to implement some fairly simple requirements.
+
+There's a better way. :func:`~server.serve` accepts a ``logger`` argument to
+override the default :class:`~logging.Logger`. You can set ``logger`` to
+a :class:`~logging.LoggerAdapter` that enriches logs.
+
+For example, if the server is behind a reverse proxy, ``remote_address`` gives
+the IP address of the proxy, which isn't useful. IP addresses of clients are
+generally available in a HTTP header set by the proxy.
+
+Here's how to include them in logs, assuming they're in the
+``X-Forwarded-For`` header::
+
+    logging.basicConfig(
+        format="%(asctime)s %(message)s",
+        level=logging.INFO,
+    )
+
+    class LoggerAdapter(logging.LoggerAdapter):
+        def process(self, msg, kwargs):
+            try:
+                websocket = kwargs["extra"]["websocket"]
+            except KeyError:
+                return msg, kwargs
+            xff = websocket.request_headers.get("X-Forwarded-For")
+            return f"{websocket.id} {xff} {msg}", kwargs
 
     async with websockets.serve(
         ...,
-        logger=logging.getLogger("interface.websocket"),
+        logger=LoggerAdapter(logging.getLogger("websockets.server")),
     ):
         ...
 

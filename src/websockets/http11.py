@@ -99,6 +99,14 @@ class Request(NamedTuple):
 
         headers = yield from parse_headers(read_line)
 
+        # https://tools.ietf.org/html/rfc7230#section-3.3.3
+
+        if "Transfer-Encoding" in headers:
+            raise NotImplementedError("transfer codings aren't supported")
+
+        if "Content-Length" in headers:
+            raise ValueError("unsupported request body")
+
         return cls(path, headers)
 
     def serialize(self) -> bytes:

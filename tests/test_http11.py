@@ -77,6 +77,24 @@ class RequestTests(GeneratorTestCase):
             "invalid HTTP header line: Oops",
         )
 
+    def test_parse_body(self):
+        self.reader.feed_data(b"GET / HTTP/1.1\r\nContent-Length: 3\r\n\r\nYo\n")
+        with self.assertRaises(ValueError) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported request body",
+        )
+
+    def test_parse_body_with_transfer_encoding(self):
+        self.reader.feed_data(b"GET / HTTP/1.1\r\nTransfer-Encoding: chunked\r\n\r\n")
+        with self.assertRaises(NotImplementedError) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "transfer codings aren't supported",
+        )
+
     def test_serialize(self):
         # Example from the protocol overview in RFC 6455
         request = Request(

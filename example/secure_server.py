@@ -9,12 +9,12 @@ import websockets
 
 async def hello(websocket, path):
     name = await websocket.recv()
-    print(f"< {name}")
+    print(f"<<< {name}")
 
     greeting = f"Hello {name}!"
 
     await websocket.send(greeting)
-    print(f"> {greeting}")
+    print(f">>> {greeting}")
 
 ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
 localhost_pem = pathlib.Path(__file__).with_name("localhost.pem")

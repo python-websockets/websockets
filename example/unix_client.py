@@ -11,9 +11,9 @@ async def hello():
     async with websockets.unix_connect(socket_path) as websocket:
         name = input("What's your name? ")
         await websocket.send(name)
-        print(f"> {name}")
+        print(f">>> {name}")
 
         greeting = await websocket.recv()
-        print(f"< {greeting}")
+        print(f"<<< {greeting}")
 
 asyncio.run(hello())

@@ -71,22 +71,22 @@ class Connection:
         # Unique identifier. For logs.
         self.id = uuid.uuid4()
 
-        # Connection side. CLIENT or SERVER.
-        self.side = side
-
-        # Connnection state. CONNECTING and CLOSED states are handled in subclasses.
-        self.state = state
-
-        # Maximum size of incoming messages in bytes.
-        self.max_size = max_size
-
         # Logger or LoggerAdapter for this connection.
         if logger is None:
             logger = logging.getLogger(f"websockets.{side.name.lower()}")
         self.logger = logger
 
-        # Must wait until we have the logger to log the initial state!
-        self.logger.debug("%s - initial state: %s", self.side, state.name)
+        # Track if DEBUG is enabled. Shortcut logging calls if it isn't.
+        self.debug = logger.isEnabledFor(logging.DEBUG)
+
+        # Connection side. CLIENT or SERVER.
+        self.side = side
+
+        # Connnection state. CONNECTING and CLOSED states are handled in subclasses.
+        self.set_state(state)
+
+        # Maximum size of incoming messages in bytes.
+        self.max_size = max_size
 
         # Current size of incoming message in bytes. Only set while reading a
         # fragmented message i.e. a data frames with the FIN bit not set.
@@ -123,9 +123,8 @@ class Connection:
         self.parser_exc: Optional[Exception] = None
 
     def set_state(self, state: State) -> None:
-        self.logger.debug(
-            "%s - state change: %s > %s", self.side, self.state.name, state.name
-        )
+        if self.debug:
+            self.logger.debug("= connection is %s", state.name)
         self.state = state
 
     # Public APIs for receiving data.
@@ -273,7 +272,7 @@ class Connection:
             # EOF because receive_data() or receive_eof() would fail earlier.)
             assert self.parser_exc is not None
             raise RuntimeError(
-                "cannot receive data or EOF after an error"
+                "parser cannot receive data or EOF after an error"
             ) from self.parser_exc
         except ProtocolError as exc:
             self.fail_connection(1002, str(exc))
@@ -292,7 +291,7 @@ class Connection:
             self.parser_exc = exc
             raise
         except Exception as exc:
-            self.logger.error("unexpected exception in parser", exc_info=True)
+            self.logger.error("parser failed", exc_info=True)
             # Don't include exception details, which may be security-sensitive.
             self.fail_connection(1011)
             self.parser_exc = exc
@@ -302,6 +301,8 @@ class Connection:
         while True:
             eof = yield from self.reader.at_eof()
             if eof:
+                if self.debug:
+                    self.logger.debug("< EOF")
                 if self.close_frame_received:
                     if not self.eof_sent:
                         self.send_eof()
@@ -329,6 +330,9 @@ class Connection:
                 max_size=max_size,
                 extensions=self.extensions,
             )
+
+            if self.debug:
+                self.logger.debug("< %s", frame)
 
             if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
                 # 5.5.1 Close: "The application MUST NOT send any more data
@@ -407,7 +411,8 @@ class Connection:
                 f"cannot write to a WebSocket in the {self.state.name} state"
             )
 
-        self.logger.debug("%s > %r", self.side, frame)
+        if self.debug:
+            self.logger.debug("> %s", frame)
         self.writes.append(
             frame.serialize(mask=self.side is CLIENT, extensions=self.extensions)
         )
@@ -415,5 +420,6 @@ class Connection:
     def send_eof(self) -> None:
         assert not self.eof_sent
         self.eof_sent = True
-        self.logger.debug("%s > EOF", self.side)
+        if self.debug:
+            self.logger.debug("> EOF")
         self.writes.append(SEND_EOF)

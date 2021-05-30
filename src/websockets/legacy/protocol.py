@@ -131,12 +131,17 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.max_queue = max_queue
         self.read_limit = read_limit
         self.write_limit = write_limit
+
+        # Unique identifier. For logs.
+        self.id = uuid.uuid4()
+
+        # Logger or LoggerAdapter for this connection.
         if logger is None:
             logger = logging.getLogger("websockets.protocol")
         self.logger = logger
 
-        # Unique identifier. For logs.
-        self.id = uuid.uuid4()
+        # Track if DEBUG is enabled. Shortcut logging calls if it isn't.
+        self.debug = logger.isEnabledFor(logging.DEBUG)
 
         assert loop is not None
         # Remove when dropping Python < 3.10 - use get_running_loop instead.
@@ -164,7 +169,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Subclasses implement the opening handshake and, on success, execute
         # :meth:`connection_open` to change the state to OPEN.
         self.state = State.CONNECTING
-        self.logger.debug("%s - state = CONNECTING", self.side)
+        if self.debug:
+            self.logger.debug("= connection is CONNECTING")
 
         # HTTP protocol parameters.
         self.path: str
@@ -248,7 +254,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # 4.1. The WebSocket Connection is Established.
         assert self.state is State.CONNECTING
         self.state = State.OPEN
-        self.logger.debug("%s - state = OPEN", self.side)
+        if self.debug:
+            self.logger.debug("= connection is OPEN")
         # Start the task that receives incoming WebSocket messages.
         self.transfer_data_task = self.loop.create_task(self.transfer_data())
         # Start the task that sends pings at regular intervals.
@@ -814,7 +821,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # This shouldn't happen often because exceptions expected under
             # regular circumstances are handled above. If it does, consider
             # catching and handling more exceptions.
-            self.logger.error("Error in data transfer", exc_info=True)
+            self.logger.error("data transfer failed", exc_info=True)
 
             self.transfer_data_exc = exc
             self.fail_connection(1011)
@@ -925,20 +932,20 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             elif frame.opcode == OP_PING:
                 # Answer pings.
                 ping_hex = frame.data.hex() or "[empty]"
-                self.logger.debug(
-                    "%s - received ping, sending pong: %s", self.side, ping_hex
-                )
+                if self.debug:
+                    self.logger.debug("%% received ping, sending pong: %s", ping_hex)
                 await self.pong(frame.data)
 
             elif frame.opcode == OP_PONG:
                 # Acknowledge pings on solicited pongs.
                 if frame.data in self.pings:
-                    self.logger.debug(
-                        "%s - received solicited pong: %s",
-                        self.side,
-                        frame.data.hex() or "[empty]",
-                    )
+                    if self.debug:
+                        self.logger.debug(
+                            "%% received solicited pong: %s",
+                            frame.data.hex() or "[empty]",
+                        )
                     # Acknowledge all pings up to the one matching this pong.
+                    # Sending a pong for only the most recent ping is legal.
                     ping_id = None
                     ping_ids = []
                     for ping_id, ping in self.pings.items():
@@ -952,24 +959,25 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     # Remove acknowledged pings from self.pings.
                     for ping_id in ping_ids:
                         del self.pings[ping_id]
-                    ping_ids = ping_ids[:-1]
-                    if ping_ids:
-                        pings_hex = ", ".join(
-                            ping_id.hex() or "[empty]" for ping_id in ping_ids
-                        )
-                        plural = "s" if len(ping_ids) > 1 else ""
-                        self.logger.debug(
-                            "%s - acknowledged previous ping%s: %s",
-                            self.side,
-                            plural,
-                            pings_hex,
-                        )
+                    # Log previous pings acknowledged.
+                    if self.debug:
+                        ping_ids = ping_ids[:-1]
+                        if ping_ids:
+                            pings_hex = ", ".join(
+                                ping_id.hex() or "[empty]" for ping_id in ping_ids
+                            )
+                            plural = "s" if len(ping_ids) > 1 else ""
+                            self.logger.debug(
+                                "%% acknowledged previous ping%s: %s",
+                                plural,
+                                pings_hex,
+                            )
                 else:
-                    self.logger.debug(
-                        "%s - received unsolicited pong: %s",
-                        self.side,
-                        frame.data.hex() or "[empty]",
-                    )
+                    if self.debug:
+                        self.logger.debug(
+                            "%% received unsolicited pong: %s",
+                            frame.data.hex() or "[empty]",
+                        )
 
             # 5.6. Data Frames
             else:
@@ -986,7 +994,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             max_size=max_size,
             extensions=self.extensions,
         )
-        self.logger.debug("%s < %r", self.side, frame)
+        if self.debug:
+            self.logger.debug("< %s", frame)
         return frame
 
     async def write_frame(
@@ -999,9 +1008,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             )
 
         frame = Frame(fin, Opcode(opcode), data)
-        self.logger.debug("%s > %r", self.side, frame)
+        if self.debug:
+            self.logger.debug("> %s", frame)
         frame.write(
-            self.transport.write, mask=self.is_client, extensions=self.extensions
+            self.transport.write,
+            mask=self.is_client,
+            extensions=self.extensions,
         )
 
         try:
@@ -1031,7 +1043,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         if self.state is State.OPEN:
             # 7.1.3. The WebSocket Closing Handshake is Started
             self.state = State.CLOSING
-            self.logger.debug("%s - state = CLOSING", self.side)
+            if self.debug:
+                self.logger.debug("= connection is CLOSING")
 
             # 7.1.2. Start the WebSocket Closing Handshake
             await self.write_frame(True, OP_CLOSE, data, _expected_state=State.CLOSING)
@@ -1073,7 +1086,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                             **loop_if_py_lt_38(self.loop),
                         )
                     except asyncio.TimeoutError:
-                        self.logger.debug("%s ! timed out waiting for pong", self.side)
+                        if self.debug:
+                            self.logger.debug("! timed out waiting for pong")
                         self.fail_connection(1011)
                         break
 
@@ -1086,9 +1100,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             pass
 
         except Exception:
-            self.logger.warning(
-                "Unexpected exception in keepalive ping task", exc_info=True
-            )
+            self.logger.error("keepalive ping failed", exc_info=True)
 
     async def close_connection(self) -> None:
         """
@@ -1120,18 +1132,21 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     # Coverage marks this line as a partially executed branch.
                     # I supect a bug in coverage. Ignore it for now.
                     return  # pragma: no cover
-                self.logger.debug("%s ! timed out waiting for TCP close", self.side)
+                if self.debug:
+                    self.logger.debug("! timed out waiting for TCP close")
 
             # Half-close the TCP connection if possible (when there's no TLS).
             if self.transport.can_write_eof():
-                self.logger.debug("%s x half-closing TCP connection", self.side)
+                if self.debug:
+                    self.logger.debug("x half-closing TCP connection")
                 self.transport.write_eof()
 
                 if await self.wait_for_connection_lost():
                     # Coverage marks this line as a partially executed branch.
                     # I supect a bug in coverage. Ignore it for now.
                     return  # pragma: no cover
-                self.logger.debug("%s ! timed out waiting for TCP close", self.side)
+                if self.debug:
+                    self.logger.debug("! timed out waiting for TCP close")
 
         finally:
             # The try/finally ensures that the transport never remains open,
@@ -1144,15 +1159,18 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 return
 
             # Close the TCP connection. Buffers are flushed asynchronously.
-            self.logger.debug("%s x closing TCP connection", self.side)
+            if self.debug:
+                self.logger.debug("x closing TCP connection")
             self.transport.close()
 
             if await self.wait_for_connection_lost():
                 return
-            self.logger.debug("%s ! timed out waiting for TCP close", self.side)
+            if self.debug:
+                self.logger.debug("! timed out waiting for TCP close")
 
             # Abort the TCP connection. Buffers are discarded.
-            self.logger.debug("%s x aborting TCP connection", self.side)
+            if self.debug:
+                self.logger.debug("x aborting TCP connection")
             self.transport.abort()
 
             # connection_lost() is called quickly after aborting.
@@ -1200,12 +1218,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         (The specification describes these steps in the opposite order.)
 
         """
-        self.logger.debug(
-            "%s ! failing %s WebSocket connection with code %d",
-            self.side,
-            self.state.name,
-            code,
-        )
+        if self.debug:
+            self.logger.debug("! failing connection with code %d", code)
 
         # Cancel transfer_data_task if the opening handshake succeeded.
         # cancel() is idempotent and ignored if the task is done already.
@@ -1230,12 +1244,16 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # and write_frame().
 
             self.state = State.CLOSING
-            self.logger.debug("%s - state = CLOSING", self.side)
+            if self.debug:
+                self.logger.debug("= connection is CLOSING")
 
             frame = Frame(True, OP_CLOSE, frame_data)
-            self.logger.debug("%s > %r", self.side, frame)
+            if self.debug:
+                self.logger.debug("> %s", frame)
             frame.write(
-                self.transport.write, mask=self.is_client, extensions=self.extensions
+                self.transport.write,
+                mask=self.is_client,
+                extensions=self.extensions,
             )
 
         # Start close_connection_task if the opening handshake didn't succeed.
@@ -1260,12 +1278,13 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # nothing, but it prevents logging the exception.
             ping.cancel()
 
-        if self.pings:
-            pings_hex = ", ".join(ping_id.hex() or "[empty]" for ping_id in self.pings)
-            plural = "s" if len(self.pings) > 1 else ""
-            self.logger.debug(
-                "%s - aborted pending ping%s: %s", self.side, plural, pings_hex
-            )
+        if self.debug:
+            if self.pings:
+                pings_hex = ", ".join(
+                    ping_id.hex() or "[empty]" for ping_id in self.pings
+                )
+                plural = "s" if len(self.pings) > 1 else ""
+                self.logger.debug("% aborted pending ping%s: %s", plural, pings_hex)
 
     # asyncio.Protocol methods
 
@@ -1283,8 +1302,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         which means it's the best point for configuring it.
 
         """
-        self.logger.debug("%s - event = connection_made(%s)", self.side, transport)
-
         transport = cast(asyncio.Transport, transport)
         transport.set_write_buffer_limits(self.write_limit)
         self.transport = transport
@@ -1297,20 +1314,19 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         7.1.4. The WebSocket Connection is Closed.
 
         """
-        self.logger.debug("%s - event = connection_lost(%s)", self.side, exc)
         self.state = State.CLOSED
-        self.logger.debug("%s - state = CLOSED", self.side)
         if not hasattr(self, "close_code"):
             self.close_code = 1006
         if not hasattr(self, "close_reason"):
             self.close_reason = ""
         self.logger.debug(
-            "%s x code = %d, reason = %s",
-            self.side,
+            "= connection is CLOSED - code = %d, reason = %s",
             self.close_code,
             self.close_reason or "[no reason]",
         )
+
         self.abort_pings()
+
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;
         # - it must never be canceled.
@@ -1355,9 +1371,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 waiter.set_result(None)
 
     def data_received(self, data: bytes) -> None:
-        self.logger.debug(
-            "%s - event = data_received(<%d bytes>)", self.side, len(data)
-        )
         self.reader.feed_data(data)
 
     def eof_received(self) -> None:
@@ -1373,5 +1386,4 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         Besides, that doesn't work on TLS connections.
 
         """
-        self.logger.debug("%s - event = eof_received()", self.side)
         self.reader.feed_eof()

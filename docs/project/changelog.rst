@@ -43,6 +43,8 @@ They may change at any time.
 
 * Added compatibility with Python 3.10.
 
+* Improved logging.
+
 * Optimized default compression settings to reduce memory usage.
 
 * Made it easier to customize authentication with

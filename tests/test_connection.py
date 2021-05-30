@@ -1356,7 +1356,7 @@ class EOFTests(ConnectionTestCase):
         with self.assertRaises(RuntimeError) as raised:
             client.receive_data(b"\x00\x00")
         self.assertEqual(
-            str(raised.exception), "cannot receive data or EOF after an error"
+            str(raised.exception), "parser cannot receive data or EOF after an error"
         )
 
     def test_server_receives_data_after_exception(self):
@@ -1367,7 +1367,7 @@ class EOFTests(ConnectionTestCase):
         with self.assertRaises(RuntimeError) as raised:
             server.receive_data(b"\x00\x00")
         self.assertEqual(
-            str(raised.exception), "cannot receive data or EOF after an error"
+            str(raised.exception), "parser cannot receive data or EOF after an error"
         )
 
     def test_client_receives_eof_after_exception(self):
@@ -1378,7 +1378,7 @@ class EOFTests(ConnectionTestCase):
         with self.assertRaises(RuntimeError) as raised:
             client.receive_eof()
         self.assertEqual(
-            str(raised.exception), "cannot receive data or EOF after an error"
+            str(raised.exception), "parser cannot receive data or EOF after an error"
         )
 
     def test_server_receives_eof_after_exception(self):
@@ -1389,7 +1389,7 @@ class EOFTests(ConnectionTestCase):
         with self.assertRaises(RuntimeError) as raised:
             server.receive_eof()
         self.assertEqual(
-            str(raised.exception), "cannot receive data or EOF after an error"
+            str(raised.exception), "parser cannot receive data or EOF after an error"
         )
 
     def test_client_receives_data_after_eof(self):

@@ -237,22 +237,21 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             except asyncio.CancelledError:  # pragma: no cover
                 raise
             except ConnectionError:
-                self.logger.debug(
-                    "Connection error in opening handshake", exc_info=True
-                )
                 raise
             except Exception as exc:
                 if isinstance(exc, AbortHandshake):
                     status, headers, body = exc.status, exc.headers, exc.body
                 elif isinstance(exc, InvalidOrigin):
-                    self.logger.debug("Invalid origin", exc_info=True)
+                    if self.debug:
+                        self.logger.debug("! invalid origin", exc_info=True)
                     status, headers, body = (
                         http.HTTPStatus.FORBIDDEN,
                         Headers(),
                         f"Failed to open a WebSocket connection: {exc}.\n".encode(),
                     )
                 elif isinstance(exc, InvalidUpgrade):
-                    self.logger.debug("Invalid upgrade", exc_info=True)
+                    if self.debug:
+                        self.logger.debug("! invalid upgrade", exc_info=True)
                     status, headers, body = (
                         http.HTTPStatus.UPGRADE_REQUIRED,
                         Headers([("Upgrade", "websocket")]),
@@ -264,14 +263,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                         ).encode(),
                     )
                 elif isinstance(exc, InvalidHandshake):
-                    self.logger.debug("Invalid handshake", exc_info=True)
+                    if self.debug:
+                        self.logger.debug("! invalid handshake", exc_info=True)
                     status, headers, body = (
                         http.HTTPStatus.BAD_REQUEST,
                         Headers(),
                         f"Failed to open a WebSocket connection: {exc}.\n".encode(),
                     )
                 else:
-                    self.logger.warning("Error in opening handshake", exc_info=True)
+                    self.logger.error("opening handshake failed", exc_info=True)
                     status, headers, body = (
                         http.HTTPStatus.INTERNAL_SERVER_ERROR,
                         Headers(),
@@ -288,6 +288,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 headers.setdefault("Connection", "close")
 
                 self.write_http_response(status, headers, body)
+                self.logger.info(
+                    "connection failed (%d %s)", status.value, status.phrase
+                )
                 self.fail_connection()
                 await self.wait_closed()
                 return
@@ -295,7 +298,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             try:
                 await self.ws_handler(self, path)
             except Exception:
-                self.logger.error("Error in connection handler", exc_info=True)
+                self.logger.error("connection handler failed", exc_info=True)
                 if not self.closed:
                     self.fail_connection(1011)
                 raise
@@ -303,12 +306,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             try:
                 await self.close()
             except ConnectionError:
-                self.logger.debug(
-                    "Connection error in closing handshake", exc_info=True
-                )
                 raise
             except Exception:
-                self.logger.warning("Error in closing handshake", exc_info=True)
+                self.logger.error("closing handshake failed", exc_info=True)
                 raise
 
         except Exception:
@@ -324,6 +324,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             # task because the server waits for tasks attached to registered
             # connections before terminating.
             self.ws_server.unregister(self)
+            self.logger.info("connection closed")
 
     async def read_http_request(self) -> Tuple[str, Headers]:
         """
@@ -343,8 +344,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         except Exception as exc:
             raise InvalidMessage("did not receive a valid HTTP request") from exc
 
-        self.logger.debug("%s < GET %s HTTP/1.1", self.side, path)
-        self.logger.debug("%s < %r", self.side, headers)
+        if self.debug:
+            self.logger.debug("< GET %s HTTP/1.1", path)
+            for key, value in headers.raw_items():
+                self.logger.debug("< %s: %s", key, value)
 
         self.path = path
         self.request_headers = headers
@@ -362,8 +365,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         self.response_headers = headers
 
-        self.logger.debug("%s > HTTP/1.1 %d %s", self.side, status.value, status.phrase)
-        self.logger.debug("%s > %r", self.side, headers)
+        if self.debug:
+            self.logger.debug("> HTTP/1.1 %d %s", status.value, status.phrase)
+            for key, value in headers.raw_items():
+                self.logger.debug("> %s: %s", key, value)
+            if body is not None:
+                self.logger.debug("> [body] (%d bytes)", len(body))
 
         # Since the status line and headers only contain ASCII characters,
         # we can keep this simple.
@@ -373,7 +380,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.transport.write(response.encode())
 
         if body is not None:
-            self.logger.debug("%s > body (%d bytes)", self.side, len(body))
             self.transport.write(body)
 
     async def process_request(
@@ -691,6 +697,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         response_headers.setdefault("Server", USER_AGENT)
 
         self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
+
+        self.logger.info("connection open")
 
         self.connection_open()
 

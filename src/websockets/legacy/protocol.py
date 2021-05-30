@@ -138,7 +138,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Logger or LoggerAdapter for this connection.
         if logger is None:
             logger = logging.getLogger("websockets.protocol")
-        self.logger = logger
+        # https://github.com/python/typeshed/issues/5561
+        logger = cast(logging.Logger, logger)
+        self.logger = logging.LoggerAdapter(logger, {"websocket": self})
 
         # Track if DEBUG is enabled. Shortcut logging calls if it isn't.
         self.debug = logger.isEnabledFor(logging.DEBUG)

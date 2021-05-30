@@ -25,6 +25,7 @@ daemonize
 datastructures
 django
 dyno
+formatter
 fractalideas
 gunicorn
 haproxy

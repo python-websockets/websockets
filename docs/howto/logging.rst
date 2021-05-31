@@ -125,6 +125,46 @@ Here's how to include them in logs, assuming they're in the
     ):
         ...
 
+Logging to JSON
+---------------
+
+Even though :mod:`logging` predates structured logging, it's still possible to
+output logs as JSON with a bit of effort.
+
+First, we need a :class:`~logging.Formatter` that renders JSON:
+
+.. literalinclude:: ../../example/json_log_formatter.py
+
+Then, we configure logging to apply this formatter::
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    logger = logging.getLogger()
+    logger.addHandler(handler)
+    logger.setLevel(logging.INFO)
+
+Finally, we populate the ``event_data`` custom attribute in log records with
+a :class:`~logging.LoggerAdapter`::
+
+    class LoggerAdapter(logging.LoggerAdapter):
+        def process(self, msg, kwargs):
+            try:
+                websocket = kwargs["extra"]["websocket"]
+            except KeyError:
+                return msg, kwargs
+            kwargs["extra"]["event_data"] = {
+                "connection_id": str(websocket.id),
+                "remote_addr": websocket.request_headers.get("X-Forwarded-For"),
+            }
+            return msg, kwargs
+
+    async with websockets.serve(
+        ...,
+        logger=LoggerAdapter(logging.getLogger("websockets.server")),
+    ):
+        ...
+
 Disable logging
 ---------------
 

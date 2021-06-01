@@ -1127,32 +1127,38 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         finally:
             # The try/finally ensures that the transport never remains open,
             # even if this coroutine is canceled (for example).
+            await self.close_transport()
 
-            # If connection_lost() was called, the TCP connection is closed.
-            # However, if TLS is enabled, the transport still needs closing.
-            # Else asyncio complains: ResourceWarning: unclosed transport.
-            if self.connection_lost_waiter.done() and self.transport.is_closing():
-                return
+    async def close_transport(self) -> None:
+        """
+        Close the TCP connection.
 
-            # Close the TCP connection. Buffers are flushed asynchronously.
-            if self.debug:
-                self.logger.debug("x closing TCP connection")
-            self.transport.close()
+        """
+        # If connection_lost() was called, the TCP connection is closed.
+        # However, if TLS is enabled, the transport still needs closing.
+        # Else asyncio complains: ResourceWarning: unclosed transport.
+        if self.connection_lost_waiter.done() and self.transport.is_closing():
+            return
 
-            if await self.wait_for_connection_lost():
-                return
-            if self.debug:
-                self.logger.debug("! timed out waiting for TCP close")
+        # Close the TCP connection. Buffers are flushed asynchronously.
+        if self.debug:
+            self.logger.debug("x closing TCP connection")
+        self.transport.close()
 
-            # Abort the TCP connection. Buffers are discarded.
-            if self.debug:
-                self.logger.debug("x aborting TCP connection")
-            self.transport.abort()
+        if await self.wait_for_connection_lost():
+            return
+        if self.debug:
+            self.logger.debug("! timed out waiting for TCP close")
 
-            # connection_lost() is called quickly after aborting.
-            # Coverage marks this line as a partially executed branch.
-            # I supect a bug in coverage. Ignore it for now.
-            await self.wait_for_connection_lost()  # pragma: no cover
+        # Abort the TCP connection. Buffers are discarded.
+        if self.debug:
+            self.logger.debug("x aborting TCP connection")
+        self.transport.abort()
+
+        # connection_lost() is called quickly after aborting.
+        # Coverage marks this line as a partially executed branch.
+        # I supect a bug in coverage. Ignore it for now.
+        await self.wait_for_connection_lost()  # pragma: no cover
 
     async def wait_for_connection_lost(self) -> bool:
         """

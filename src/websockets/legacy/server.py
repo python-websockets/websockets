@@ -291,8 +291,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 self.logger.info(
                     "connection failed (%d %s)", status.value, status.phrase
                 )
-                self.fail_connection()
-                await self.wait_closed()
+                await self.close_transport()
                 return
 
             try:

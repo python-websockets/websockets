@@ -933,21 +933,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
             elif frame.opcode == OP_PING:
                 # Answer pings.
-                ping_hex = frame.data.hex() or "[empty]"
-                if self.debug:
-                    self.logger.debug("%% received ping, sending pong: %s", ping_hex)
                 await self.pong(frame.data)
 
             elif frame.opcode == OP_PONG:
-                # Acknowledge pings on solicited pongs.
                 if frame.data in self.pings:
-                    if self.debug:
-                        self.logger.debug(
-                            "%% received solicited pong: %s",
-                            frame.data.hex() or "[empty]",
-                        )
-                    # Acknowledge all pings up to the one matching this pong.
                     # Sending a pong for only the most recent ping is legal.
+                    # Acknowledge all previous pings too in that case.
                     ping_id = None
                     ping_ids = []
                     for ping_id, ping in self.pings.items():
@@ -961,25 +952,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     # Remove acknowledged pings from self.pings.
                     for ping_id in ping_ids:
                         del self.pings[ping_id]
-                    # Log previous pings acknowledged.
-                    if self.debug:
-                        ping_ids = ping_ids[:-1]
-                        if ping_ids:
-                            pings_hex = ", ".join(
-                                ping_id.hex() or "[empty]" for ping_id in ping_ids
-                            )
-                            plural = "s" if len(ping_ids) > 1 else ""
-                            self.logger.debug(
-                                "%% acknowledged previous ping%s: %s",
-                                plural,
-                                pings_hex,
-                            )
-                else:
-                    if self.debug:
-                        self.logger.debug(
-                            "%% received unsolicited pong: %s",
-                            frame.data.hex() or "[empty]",
-                        )
 
             # 5.6. Data Frames
             else:
@@ -1078,6 +1050,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 # ping() raises ConnectionClosed if the connection is lost,
                 # when connection_lost() calls abort_pings().
 
+                self.logger.debug("%% sending keepalive ping")
                 pong_waiter = await self.ping()
 
                 if self.ping_timeout is not None:
@@ -1087,9 +1060,10 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                             self.ping_timeout,
                             **loop_if_py_lt_38(self.loop),
                         )
+                        self.logger.debug("%% received keepalive pong")
                     except asyncio.TimeoutError:
                         if self.debug:
-                            self.logger.debug("! timed out waiting for pong")
+                            self.logger.debug("! timed out waiting for keepalive pong")
                         self.fail_connection(1011)
                         break
 

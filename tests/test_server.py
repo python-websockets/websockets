@@ -634,7 +634,7 @@ class MiscTests(unittest.TestCase):
         server = ServerConnection(state=OPEN)
         server.receive_data(b"\x81\x86\x00\x00\x00\x00Hello!")
         [frame] = server.events_received()
-        self.assertEqual(frame, Frame(True, OP_TEXT, b"Hello!"))
+        self.assertEqual(frame, Frame(OP_TEXT, b"Hello!"))
 
     def test_custom_logger(self):
         logger = logging.getLogger("test")

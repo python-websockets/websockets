@@ -166,7 +166,7 @@ class Connection:
         if not self.expect_continuation_frame:
             raise ProtocolError("unexpected continuation frame")
         self.expect_continuation_frame = not fin
-        self.send_frame(Frame(fin, OP_CONT, data))
+        self.send_frame(Frame(OP_CONT, data, fin))
 
     def send_text(self, data: bytes, fin: bool = True) -> None:
         """
@@ -176,7 +176,7 @@ class Connection:
         if self.expect_continuation_frame:
             raise ProtocolError("expected a continuation frame")
         self.expect_continuation_frame = not fin
-        self.send_frame(Frame(fin, OP_TEXT, data))
+        self.send_frame(Frame(OP_TEXT, data, fin))
 
     def send_binary(self, data: bytes, fin: bool = True) -> None:
         """
@@ -186,7 +186,7 @@ class Connection:
         if self.expect_continuation_frame:
             raise ProtocolError("expected a continuation frame")
         self.expect_continuation_frame = not fin
-        self.send_frame(Frame(fin, OP_BINARY, data))
+        self.send_frame(Frame(OP_BINARY, data, fin))
 
     def send_close(self, code: Optional[int] = None, reason: str = "") -> None:
         """
@@ -201,7 +201,7 @@ class Connection:
             data = b""
         else:
             data = serialize_close(code, reason)
-        self.send_frame(Frame(True, OP_CLOSE, data))
+        self.send_frame(Frame(OP_CLOSE, data))
         # send_frame() guarantees that self.state is OPEN at this point.
         # 7.1.3. The WebSocket Closing Handshake is Started
         self.set_state(CLOSING)
@@ -213,14 +213,14 @@ class Connection:
         Send a ping frame.
 
         """
-        self.send_frame(Frame(True, OP_PING, data))
+        self.send_frame(Frame(OP_PING, data))
 
     def send_pong(self, data: bytes) -> None:
         """
         Send a pong frame.
 
         """
-        self.send_frame(Frame(True, OP_PONG, data))
+        self.send_frame(Frame(OP_PONG, data))
 
     # Public API for getting incoming events after receiving data.
 
@@ -257,7 +257,7 @@ class Connection:
         # sent if it's CLOSING), except when failing the connection because of
         # an error reading from or writing to the network.
         if code != 1006 and self.state is OPEN:
-            self.send_frame(Frame(True, OP_CLOSE, serialize_close(code, reason)))
+            self.send_frame(Frame(OP_CLOSE, serialize_close(code, reason)))
             self.set_state(CLOSING)
         if not self.eof_sent:
             self.send_eof()
@@ -365,7 +365,7 @@ class Connection:
                 # send a Pong frame in response, unless it already received a
                 # Close frame."
                 if not self.close_frame_received:
-                    pong_frame = Frame(True, OP_PONG, frame.data)
+                    pong_frame = Frame(OP_PONG, frame.data)
                     self.send_frame(pong_frame)
 
             elif frame.opcode is OP_PONG:
@@ -391,7 +391,7 @@ class Connection:
                     # serialize_close() because that fails when the close frame
                     # is empty and parse_close() synthetizes a 1005 close code.
                     # The rest is identical to send_close().
-                    self.send_frame(Frame(True, OP_CLOSE, frame.data))
+                    self.send_frame(Frame(OP_CLOSE, frame.data))
                     self.set_state(CLOSING)
                     if self.side is SERVER:
                         self.send_eof()

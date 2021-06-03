@@ -110,9 +110,9 @@ class Frame:
 
     """
 
-    fin: bool
     opcode: Opcode
     data: bytes
+    fin: bool = True
     rsv1: bool = False
     rsv2: bool = False
     rsv3: bool = False
@@ -224,7 +224,7 @@ class Frame:
         if mask:
             data = apply_mask(data, mask_bytes)
 
-        frame = cls(fin, opcode, data, rsv1, rsv2, rsv3)
+        frame = cls(opcode, data, fin, rsv1, rsv2, rsv3)
 
         if extensions is None:
             extensions = []

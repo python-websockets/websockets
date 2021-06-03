@@ -35,9 +35,9 @@ class Frame(NamedTuple):
     @property
     def new_frame(self) -> NewFrame:
         return NewFrame(
-            self.fin,
             self.opcode,
             self.data,
+            self.fin,
             self.rsv1,
             self.rsv2,
             self.rsv3,
@@ -111,7 +111,7 @@ class Frame(NamedTuple):
         if mask:
             data = apply_mask(data, mask_bits)
 
-        new_frame = NewFrame(fin, opcode, data, rsv1, rsv2, rsv3)
+        new_frame = NewFrame(opcode, data, fin, rsv1, rsv2, rsv3)
 
         if extensions is None:
             extensions = []

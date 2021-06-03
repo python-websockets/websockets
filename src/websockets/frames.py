@@ -106,7 +106,7 @@ class Frame:
     :param bytes data: payload data
 
     Only these fields are needed. The MASK bit, payload length and masking-key
-    are handled on the fly by :func:`parse_frame` and :meth:`serialize_frame`.
+    are handled on the fly by :meth:`parse` and :meth:`serialize`.
 
     """
 

@@ -302,7 +302,7 @@ class ClientConnection(Connection):
             try:
                 self.process_response(response)
             except InvalidHandshake as exc:
-                response = response._replace(exception=exc)
+                response.exception = exc
             else:
                 assert self.state == CONNECTING
                 self.set_state(OPEN)

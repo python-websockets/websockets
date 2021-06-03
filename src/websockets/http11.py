@@ -1,5 +1,6 @@
+import dataclasses
 import re
-from typing import Callable, Generator, NamedTuple, Optional
+from typing import Callable, Generator, Optional
 
 from .datastructures import Headers
 from .exceptions import SecurityError
@@ -37,10 +38,8 @@ _token_re = re.compile(rb"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 
-# Consider converting to dataclasses when dropping support for Python < 3.7.
-
-
-class Request(NamedTuple):
+@dataclasses.dataclass
+class Request:
     """
     WebSocket handshake request.
 
@@ -51,6 +50,9 @@ class Request(NamedTuple):
     path: str
     headers: Headers
     # body isn't useful is the context of this library
+
+    # If processing the request triggers an exception, it's stored here.
+    exception: Optional[Exception] = None
 
     @classmethod
     def parse(
@@ -121,10 +123,8 @@ class Request(NamedTuple):
         return request
 
 
-# Consider converting to dataclasses when dropping support for Python < 3.7.
-
-
-class Response(NamedTuple):
+@dataclasses.dataclass
+class Response:
     """
     WebSocket handshake response.
 

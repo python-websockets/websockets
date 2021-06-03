@@ -43,6 +43,7 @@ class FramingTests(AsyncioTestCase):
 
     def round_trip(self, message, expected, mask=False, extensions=None):
         decoded = self.decode(message, mask, extensions=extensions)
+        decoded.check()
         self.assertEqual(decoded, expected)
         encoded = self.encode(decoded, mask, extensions=extensions)
         if mask:  # non-deterministic encoding

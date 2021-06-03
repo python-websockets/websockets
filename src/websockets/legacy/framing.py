@@ -11,7 +11,7 @@ See `section 5 of RFC 6455`_.
 """
 
 import struct
-from typing import Any, Awaitable, Callable, Optional, Sequence
+from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence
 
 from ..exceptions import PayloadTooBig, ProtocolError
 from ..frames import Frame as NewFrame, Opcode
@@ -23,7 +23,32 @@ except ImportError:  # pragma: no cover
     from ..utils import apply_mask
 
 
-class Frame(NewFrame):
+class Frame(NamedTuple):
+
+    fin: bool
+    opcode: Opcode
+    data: bytes
+    rsv1: bool = False
+    rsv2: bool = False
+    rsv3: bool = False
+
+    @property
+    def new_frame(self) -> NewFrame:
+        return NewFrame(
+            self.fin,
+            self.opcode,
+            self.data,
+            self.rsv1,
+            self.rsv2,
+            self.rsv3,
+        )
+
+    def __str__(self) -> str:
+        return str(self.new_frame)
+
+    def check(self) -> None:
+        return self.new_frame.check()
+
     @classmethod
     async def read(
         cls,
@@ -86,16 +111,23 @@ class Frame(NewFrame):
         if mask:
             data = apply_mask(data, mask_bits)
 
-        frame = cls(fin, opcode, data, rsv1, rsv2, rsv3)
+        new_frame = NewFrame(fin, opcode, data, rsv1, rsv2, rsv3)
 
         if extensions is None:
             extensions = []
         for extension in reversed(extensions):
-            frame = cls(*extension.decode(frame, max_size=max_size))
+            new_frame = extension.decode(new_frame, max_size=max_size)
 
-        frame.check()
+        new_frame.check()
 
-        return frame
+        return cls(
+            new_frame.fin,
+            new_frame.opcode,
+            new_frame.data,
+            new_frame.rsv1,
+            new_frame.rsv2,
+            new_frame.rsv3,
+        )
 
     def write(
         self,
@@ -121,7 +153,7 @@ class Frame(NewFrame):
         # The frame is written in a single call to write in order to prevent
         # TCP fragmentation. See #68 for details. This also makes it safe to
         # send frames concurrently from multiple coroutines.
-        write(self.serialize(mask=mask, extensions=extensions))
+        write(self.new_frame.serialize(mask=mask, extensions=extensions))
 
 
 # at the bottom to allow circular import, because Extension depends on Frame

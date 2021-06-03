@@ -1143,7 +1143,9 @@ class CommonTests:
 
         # Connection is closed at 6ms.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
-        self.assertOneFrameSent(True, OP_CLOSE, serialize_close(1011, ""))
+        self.assertOneFrameSent(
+            True, OP_CLOSE, serialize_close(1011, "keepalive ping timeout")
+        )
 
         # The keepalive ping task is complete.
         self.assertEqual(self.protocol.keepalive_ping_task.result(), None)

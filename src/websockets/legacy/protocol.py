@@ -1064,7 +1064,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     except asyncio.TimeoutError:
                         if self.debug:
                             self.logger.debug("! timed out waiting for keepalive pong")
-                        self.fail_connection(1011)
+                        self.fail_connection(1011, "keepalive ping timeout")
                         break
 
         # Remove this branch when dropping support for Python < 3.8

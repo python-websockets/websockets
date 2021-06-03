@@ -79,19 +79,18 @@ class ServerConnection(Connection):
         connection, which may be unexpected.
 
         """
-        # TODO: when changing Request to a dataclass, set the exception
-        # attribute on the request rather than the Response, which will
-        # be semantically more correct.
         try:
             key, extensions_header, protocol_header = self.process_request(request)
         except InvalidOrigin as exc:
+            request.exception = exc
             if self.debug:
                 self.logger.debug("! invalid origin", exc_info=True)
             return self.reject(
                 http.HTTPStatus.FORBIDDEN,
                 f"Failed to open a WebSocket connection: {exc}.\n",
-            )._replace(exception=exc)
+            )
         except InvalidUpgrade as exc:
+            request.exception = exc
             if self.debug:
                 self.logger.debug("! invalid upgrade", exc_info=True)
             return self.reject(
@@ -103,15 +102,17 @@ class ServerConnection(Connection):
                     f"with a browser. You need a WebSocket client.\n"
                 ),
                 headers=Headers([("Upgrade", "websocket")]),
-            )._replace(exception=exc)
+            )
         except InvalidHandshake as exc:
+            request.exception = exc
             if self.debug:
                 self.logger.debug("! invalid handshake", exc_info=True)
             return self.reject(
                 http.HTTPStatus.BAD_REQUEST,
                 f"Failed to open a WebSocket connection: {exc}.\n",
-            )._replace(exception=exc)
+            )
         except Exception as exc:
+            request.exception = exc
             self.logger.error("opening handshake failed", exc_info=True)
             return self.reject(
                 http.HTTPStatus.INTERNAL_SERVER_ERROR,
@@ -119,7 +120,7 @@ class ServerConnection(Connection):
                     "Failed to open a WebSocket connection.\n"
                     "See server log for more information.\n"
                 ),
-            )._replace(exception=exc)
+            )
 
         headers = Headers()
 

@@ -7,8 +7,9 @@ See `section 3 of RFC 6455`_.
 
 """
 
+import dataclasses
 import urllib.parse
-from typing import NamedTuple, Optional, Tuple
+from typing import Optional, Tuple
 
 from .exceptions import InvalidURI
 
@@ -16,10 +17,8 @@ from .exceptions import InvalidURI
 __all__ = ["parse_uri", "WebSocketURI"]
 
 
-# Consider converting to a dataclass when dropping support for Python < 3.7.
-
-
-class WebSocketURI(NamedTuple):
+@dataclasses.dataclass
+class WebSocketURI:
     """
     WebSocket URI.
 
@@ -37,16 +36,7 @@ class WebSocketURI(NamedTuple):
     host: str
     port: int
     resource_name: str
-    user_info: Optional[Tuple[str, str]]
-
-
-# Work around https://bugs.python.org/issue19931
-
-WebSocketURI.secure.__doc__ = ""
-WebSocketURI.host.__doc__ = ""
-WebSocketURI.port.__doc__ = ""
-WebSocketURI.resource_name.__doc__ = ""
-WebSocketURI.user_info.__doc__ = ""
+    user_info: Optional[Tuple[str, str]] = None
 
 
 # All characters from the gen-delims and sub-delims sets in RFC 3987.

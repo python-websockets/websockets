@@ -56,21 +56,21 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
     # Control frames aren't encoded or decoded.
 
     def test_no_encode_decode_ping_frame(self):
-        frame = Frame(True, OP_PING, b"")
+        frame = Frame(OP_PING, b"")
 
         self.assertEqual(self.extension.encode(frame), frame)
 
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_encode_decode_pong_frame(self):
-        frame = Frame(True, OP_PONG, b"")
+        frame = Frame(OP_PONG, b"")
 
         self.assertEqual(self.extension.encode(frame), frame)
 
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_encode_decode_close_frame(self):
-        frame = Frame(True, OP_CLOSE, serialize_close(1000, ""))
+        frame = Frame(OP_CLOSE, serialize_close(1000, ""))
 
         self.assertEqual(self.extension.encode(frame), frame)
 
@@ -79,7 +79,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
     # Data frames are encoded and decoded.
 
     def test_encode_decode_text_frame(self):
-        frame = Frame(True, OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode("utf-8"))
 
         enc_frame = self.extension.encode(frame)
 
@@ -92,7 +92,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         self.assertEqual(dec_frame, frame)
 
     def test_encode_decode_binary_frame(self):
-        frame = Frame(True, OP_BINARY, b"tea")
+        frame = Frame(OP_BINARY, b"tea")
 
         enc_frame = self.extension.encode(frame)
 
@@ -105,9 +105,9 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         self.assertEqual(dec_frame, frame)
 
     def test_encode_decode_fragmented_text_frame(self):
-        frame1 = Frame(False, OP_TEXT, "café".encode("utf-8"))
-        frame2 = Frame(False, OP_CONT, " & ".encode("utf-8"))
-        frame3 = Frame(True, OP_CONT, "croissants".encode("utf-8"))
+        frame1 = Frame(OP_TEXT, "café".encode("utf-8"), fin=False)
+        frame2 = Frame(OP_CONT, " & ".encode("utf-8"), fin=False)
+        frame3 = Frame(OP_CONT, "croissants".encode("utf-8"))
 
         enc_frame1 = self.extension.encode(frame1)
         enc_frame2 = self.extension.encode(frame2)
@@ -135,8 +135,8 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         self.assertEqual(dec_frame3, frame3)
 
     def test_encode_decode_fragmented_binary_frame(self):
-        frame1 = Frame(False, OP_TEXT, b"tea ")
-        frame2 = Frame(True, OP_CONT, b"time")
+        frame1 = Frame(OP_TEXT, b"tea ", fin=False)
+        frame2 = Frame(OP_CONT, b"time")
 
         enc_frame1 = self.extension.encode(frame1)
         enc_frame2 = self.extension.encode(frame2)
@@ -159,21 +159,21 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         self.assertEqual(dec_frame2, frame2)
 
     def test_no_decode_text_frame(self):
-        frame = Frame(True, OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode("utf-8"))
 
         # Try decoding a frame that wasn't encoded.
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_decode_binary_frame(self):
-        frame = Frame(True, OP_TEXT, b"tea")
+        frame = Frame(OP_TEXT, b"tea")
 
         # Try decoding a frame that wasn't encoded.
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_decode_fragmented_text_frame(self):
-        frame1 = Frame(False, OP_TEXT, "café".encode("utf-8"))
-        frame2 = Frame(False, OP_CONT, " & ".encode("utf-8"))
-        frame3 = Frame(True, OP_CONT, "croissants".encode("utf-8"))
+        frame1 = Frame(OP_TEXT, "café".encode("utf-8"), fin=False)
+        frame2 = Frame(OP_CONT, " & ".encode("utf-8"), fin=False)
+        frame3 = Frame(OP_CONT, "croissants".encode("utf-8"))
 
         dec_frame1 = self.extension.decode(frame1)
         dec_frame2 = self.extension.decode(frame2)
@@ -184,8 +184,8 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         self.assertEqual(dec_frame3, frame3)
 
     def test_no_decode_fragmented_binary_frame(self):
-        frame1 = Frame(False, OP_TEXT, b"tea ")
-        frame2 = Frame(True, OP_CONT, b"time")
+        frame1 = Frame(OP_TEXT, b"tea ", fin=False)
+        frame2 = Frame(OP_CONT, b"time")
 
         dec_frame1 = self.extension.decode(frame1)
         dec_frame2 = self.extension.decode(frame2)
@@ -194,7 +194,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         self.assertEqual(dec_frame2, frame2)
 
     def test_context_takeover(self):
-        frame = Frame(True, OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode("utf-8"))
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -206,7 +206,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         # No context takeover when decoding messages.
         self.extension = PerMessageDeflate(True, False, 15, 15)
 
-        frame = Frame(True, OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode("utf-8"))
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -225,7 +225,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         # No context takeover when encoding and decoding messages.
         self.extension = PerMessageDeflate(True, True, 15, 15)
 
-        frame = Frame(True, OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode("utf-8"))
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -245,7 +245,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         # Configure an extension so that no compression actually occurs.
         extension = PerMessageDeflate(False, False, 15, 15, {"level": 0})
 
-        frame = Frame(True, OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode("utf-8"))
 
         enc_frame = extension.encode(frame)
 
@@ -261,7 +261,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
     # Frames aren't decoded beyond max_size.
 
     def test_decompress_max_size(self):
-        frame = Frame(True, OP_TEXT, ("a" * 20).encode("utf-8"))
+        frame = Frame(OP_TEXT, ("a" * 20).encode("utf-8"))
 
         enc_frame = self.extension.encode(frame)
 

@@ -577,7 +577,7 @@ class MiscTests(unittest.TestCase):
         client = ClientConnection("ws://example.com/test", state=OPEN)
         client.receive_data(b"\x81\x06Hello!")
         [frame] = client.events_received()
-        self.assertEqual(frame, Frame(True, OP_TEXT, b"Hello!"))
+        self.assertEqual(frame, Frame(OP_TEXT, b"Hello!"))
 
     def test_custom_logger(self):
         logger = logging.getLogger("test")

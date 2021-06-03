@@ -5,7 +5,7 @@ import email.utils
 import http
 from typing import Callable, Generator, List, Optional, Sequence, Tuple, Union, cast
 
-from .connection import CONNECTING, OPEN, SERVER, Connection
+from .connection import CONNECTING, OPEN, SERVER, Connection, State
 from .datastructures import Headers, HeadersLike, MultipleValuesError
 from .exceptions import (
     InvalidHandshake,
@@ -56,12 +56,13 @@ class ServerConnection(Connection):
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
+        state: State = CONNECTING,
         max_size: Optional[int] = 2 ** 20,
         logger: Optional[LoggerLike] = None,
     ):
         super().__init__(
             side=SERVER,
-            state=CONNECTING,
+            state=state,
             max_size=max_size,
             logger=logger,
         )
@@ -417,6 +418,7 @@ class ServerConnection(Connection):
 
         """
         if response.status_code == 101:
+            assert self.state is CONNECTING
             self.set_state(OPEN)
 
         if self.debug:
@@ -430,13 +432,14 @@ class ServerConnection(Connection):
         self.writes.append(response.serialize())
 
     def parse(self) -> Generator[None, None, None]:
-        request = yield from Request.parse(self.reader.read_line)
+        if self.state == CONNECTING:
+            request = yield from Request.parse(self.reader.read_line)
 
-        if self.debug:
-            self.logger.debug("< GET %s HTTP/1.1", request.path)
-            for key, value in request.headers.raw_items():
-                self.logger.debug("< %s: %s", key, value)
+            if self.debug:
+                self.logger.debug("< GET %s HTTP/1.1", request.path)
+                for key, value in request.headers.raw_items():
+                    self.logger.debug("< %s: %s", key, value)
 
-        assert self.state == CONNECTING
-        self.events.append(request)
+            self.events.append(request)
+
         yield from super().parse()

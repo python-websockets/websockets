@@ -1,7 +1,7 @@
 import collections
 from typing import Generator, List, Optional, Sequence
 
-from .connection import CLIENT, CONNECTING, OPEN, Connection
+from .connection import CLIENT, CONNECTING, OPEN, Connection, State
 from .datastructures import Headers, HeadersLike, MultipleValuesError
 from .exceptions import (
     InvalidHandshake,
@@ -50,12 +50,13 @@ class ClientConnection(Connection):
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
+        state: State = CONNECTING,
         max_size: Optional[int] = 2 ** 20,
         logger: Optional[LoggerLike] = None,
     ):
         super().__init__(
             side=CLIENT,
-            state=CONNECTING,
+            state=state,
             max_size=max_size,
             logger=logger,
         )
@@ -283,27 +284,29 @@ class ClientConnection(Connection):
         self.writes.append(request.serialize())
 
     def parse(self) -> Generator[None, None, None]:
-        response = yield from Response.parse(
-            self.reader.read_line,
-            self.reader.read_exact,
-            self.reader.read_to_eof,
-        )
+        if self.state is CONNECTING:
+            response = yield from Response.parse(
+                self.reader.read_line,
+                self.reader.read_exact,
+                self.reader.read_to_eof,
+            )
 
-        if self.debug:
-            code, phrase = response.status_code, response.reason_phrase
-            self.logger.debug("< HTTP/1.1 %d %s", code, phrase)
-            for key, value in response.headers.raw_items():
-                self.logger.debug("< %s: %s", key, value)
-            if response.body is not None:
-                self.logger.debug("< [body] (%d bytes)", len(response.body))
+            if self.debug:
+                code, phrase = response.status_code, response.reason_phrase
+                self.logger.debug("< HTTP/1.1 %d %s", code, phrase)
+                for key, value in response.headers.raw_items():
+                    self.logger.debug("< %s: %s", key, value)
+                if response.body is not None:
+                    self.logger.debug("< [body] (%d bytes)", len(response.body))
 
-        assert self.state == CONNECTING
-        try:
-            self.process_response(response)
-        except InvalidHandshake as exc:
-            response = response._replace(exception=exc)
-        else:
-            self.set_state(OPEN)
-        finally:
-            self.events.append(response)
+            try:
+                self.process_response(response)
+            except InvalidHandshake as exc:
+                response = response._replace(exception=exc)
+            else:
+                assert self.state == CONNECTING
+                self.set_state(OPEN)
+            finally:
+                self.events.append(response)
+
         yield from super().parse()

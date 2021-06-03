@@ -6,6 +6,7 @@ import unittest.mock
 from websockets.connection import CONNECTING, OPEN
 from websockets.datastructures import Headers
 from websockets.exceptions import InvalidHeader, InvalidOrigin, InvalidUpgrade
+from websockets.frames import OP_TEXT, Frame
 from websockets.http import USER_AGENT
 from websockets.http11 import Request, Response
 from websockets.server import *
@@ -629,6 +630,12 @@ class AcceptRejectTests(unittest.TestCase):
 
 
 class MiscTests(unittest.TestCase):
+    def test_bypass_handshake(self):
+        server = ServerConnection(state=OPEN)
+        server.receive_data(b"\x81\x86\x00\x00\x00\x00Hello!")
+        [frame] = server.events_received()
+        self.assertEqual(frame, Frame(True, OP_TEXT, b"Hello!"))
+
     def test_custom_logger(self):
         logger = logging.getLogger("test")
         with self.assertLogs("test", logging.DEBUG) as logs:

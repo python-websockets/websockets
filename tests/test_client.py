@@ -6,6 +6,7 @@ from websockets.client import *
 from websockets.connection import CONNECTING, OPEN
 from websockets.datastructures import Headers
 from websockets.exceptions import InvalidHandshake, InvalidHeader
+from websockets.frames import OP_TEXT, Frame
 from websockets.http import USER_AGENT
 from websockets.http11 import Request, Response
 from websockets.utils import accept_key
@@ -572,6 +573,12 @@ class AcceptRejectTests(unittest.TestCase):
 
 
 class MiscTests(unittest.TestCase):
+    def test_bypass_handshake(self):
+        client = ClientConnection("ws://example.com/test", state=OPEN)
+        client.receive_data(b"\x81\x06Hello!")
+        [frame] = client.events_received()
+        self.assertEqual(frame, Frame(True, OP_TEXT, b"Hello!"))
+
     def test_custom_logger(self):
         logger = logging.getLogger("test")
         with self.assertLogs("test", logging.DEBUG) as logs:

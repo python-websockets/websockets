@@ -1,3 +1,4 @@
+import dataclasses
 import unittest
 import zlib
 
@@ -82,7 +83,9 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
         enc_frame = self.extension.encode(frame)
 
-        self.assertEqual(enc_frame, frame._replace(rsv1=True, data=b"JNL;\xbc\x12\x00"))
+        self.assertEqual(
+            enc_frame, dataclasses.replace(frame, rsv1=True, data=b"JNL;\xbc\x12\x00")
+        )
 
         dec_frame = self.extension.decode(enc_frame)
 
@@ -93,7 +96,9 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
         enc_frame = self.extension.encode(frame)
 
-        self.assertEqual(enc_frame, frame._replace(rsv1=True, data=b"*IM\x04\x00"))
+        self.assertEqual(
+            enc_frame, dataclasses.replace(frame, rsv1=True, data=b"*IM\x04\x00")
+        )
 
         dec_frame = self.extension.decode(enc_frame)
 
@@ -110,13 +115,15 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
         self.assertEqual(
             enc_frame1,
-            frame1._replace(rsv1=True, data=b"JNL;\xbc\x12\x00\x00\x00\xff\xff"),
+            dataclasses.replace(
+                frame1, rsv1=True, data=b"JNL;\xbc\x12\x00\x00\x00\xff\xff"
+            ),
         )
         self.assertEqual(
-            enc_frame2, frame2._replace(data=b"RPS\x00\x00\x00\x00\xff\xff")
+            enc_frame2, dataclasses.replace(frame2, data=b"RPS\x00\x00\x00\x00\xff\xff")
         )
         self.assertEqual(
-            enc_frame3, frame3._replace(data=b"J.\xca\xcf,.N\xcc+)\x06\x00")
+            enc_frame3, dataclasses.replace(frame3, data=b"J.\xca\xcf,.N\xcc+)\x06\x00")
         )
 
         dec_frame1 = self.extension.decode(enc_frame1)
@@ -136,11 +143,13 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
         self.assertEqual(
             enc_frame1,
-            frame1._replace(rsv1=True, data=b"*IMT\x00\x00\x00\x00\xff\xff"),
+            dataclasses.replace(
+                frame1, rsv1=True, data=b"*IMT\x00\x00\x00\x00\xff\xff"
+            ),
         )
         self.assertEqual(
             enc_frame2,
-            frame2._replace(data=b"*\xc9\xccM\x05\x00"),
+            dataclasses.replace(frame2, data=b"*\xc9\xccM\x05\x00"),
         )
 
         dec_frame1 = self.extension.decode(enc_frame1)
@@ -242,8 +251,10 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
 
         self.assertEqual(
             enc_frame,
-            frame._replace(
-                rsv1=True, data=b"\x00\x05\x00\xfa\xffcaf\xc3\xa9\x00"  # not compressed
+            dataclasses.replace(
+                frame,
+                rsv1=True,
+                data=b"\x00\x05\x00\xfa\xffcaf\xc3\xa9\x00",  # not compressed
             ),
         )
 

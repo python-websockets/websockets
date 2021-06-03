@@ -3,11 +3,12 @@ Parse and serialize WebSocket frames.
 
 """
 
+import dataclasses
 import enum
 import io
 import secrets
 import struct
-from typing import Callable, Generator, NamedTuple, Optional, Sequence, Tuple
+from typing import Callable, Generator, Optional, Sequence, Tuple
 
 from .exceptions import PayloadTooBig, ProtocolError
 from .typing import Data
@@ -92,10 +93,8 @@ EXTERNAL_CLOSE_CODES = {
 }
 
 
-# Consider converting to a dataclass when dropping support for Python < 3.7.
-
-
-class Frame(NamedTuple):
+@dataclasses.dataclass
+class Frame:
     """
     WebSocket frame.
 

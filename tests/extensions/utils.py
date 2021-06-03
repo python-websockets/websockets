@@ -1,3 +1,5 @@
+import dataclasses
+
 from websockets.exceptions import NegotiationError
 
 
@@ -49,11 +51,11 @@ class Rsv2Extension:
 
     def decode(self, frame, *, max_size=None):
         assert frame.rsv2
-        return frame._replace(rsv2=False)
+        return dataclasses.replace(frame, rsv2=False)
 
     def encode(self, frame):
         assert not frame.rsv2
-        return frame._replace(rsv2=True)
+        return dataclasses.replace(frame, rsv2=True)
 
     def __eq__(self, other):
         return isinstance(other, Rsv2Extension)

@@ -4,6 +4,7 @@ Extensions for WebSocket as specified in :rfc:`7692`.
 
 """
 
+import dataclasses
 import zlib
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -115,7 +116,7 @@ class PerMessageDeflate(Extension):
         else:
             if not frame.rsv1:
                 return frame
-            frame = frame._replace(rsv1=False)
+            frame = dataclasses.replace(frame, rsv1=False)
             if not frame.fin:
                 self.decode_cont_data = True
 
@@ -138,7 +139,7 @@ class PerMessageDeflate(Extension):
         if frame.fin and self.remote_no_context_takeover:
             del self.decoder
 
-        return frame._replace(data=data)
+        return dataclasses.replace(frame, data=data)
 
     def encode(self, frame: Frame) -> Frame:
         """
@@ -154,7 +155,7 @@ class PerMessageDeflate(Extension):
 
         if frame.opcode != OP_CONT:
             # Set the rsv1 flag on the first frame of a compressed message.
-            frame = frame._replace(rsv1=True)
+            frame = dataclasses.replace(frame, rsv1=True)
             # Re-initialize per-message decoder.
             if self.local_no_context_takeover:
                 self.encoder = zlib.compressobj(
@@ -170,7 +171,7 @@ class PerMessageDeflate(Extension):
         if frame.fin and self.local_no_context_takeover:
             del self.encoder
 
-        return frame._replace(data=data)
+        return dataclasses.replace(frame, data=data)
 
 
 def _build_parameters(

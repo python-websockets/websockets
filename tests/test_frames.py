@@ -1,4 +1,5 @@
 import codecs
+import dataclasses
 import unittest
 import unittest.mock
 
@@ -178,7 +179,7 @@ class FrameTests(FramesTestCase):
                 assert frame.opcode == OP_TEXT
                 text = frame.data.decode()
                 data = codecs.encode(text, "rot13").encode()
-                return frame._replace(data=data)
+                return dataclasses.replace(frame, data=data)
 
             # This extensions is symmetrical.
             @staticmethod

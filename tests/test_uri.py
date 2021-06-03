@@ -5,15 +5,32 @@ from websockets.uri import *
 
 
 VALID_URIS = [
-    ("ws://localhost/", (False, "localhost", 80, "/", None)),
-    ("wss://localhost/", (True, "localhost", 443, "/", None)),
-    ("ws://localhost/path?query", (False, "localhost", 80, "/path?query", None)),
-    ("WS://LOCALHOST/PATH?QUERY", (False, "localhost", 80, "/PATH?QUERY", None)),
-    ("ws://user:pass@localhost/", (False, "localhost", 80, "/", ("user", "pass"))),
-    ("ws://høst/", (False, "xn--hst-0na", 80, "/", None)),
+    (
+        "ws://localhost/",
+        WebSocketURI(False, "localhost", 80, "/", None),
+    ),
+    (
+        "wss://localhost/",
+        WebSocketURI(True, "localhost", 443, "/", None),
+    ),
+    (
+        "ws://localhost/path?query",
+        WebSocketURI(False, "localhost", 80, "/path?query", None),
+    ),
+    (
+        "WS://LOCALHOST/PATH?QUERY",
+        WebSocketURI(False, "localhost", 80, "/PATH?QUERY", None),
+    ),
+    (
+        "ws://user:pass@localhost/",
+        WebSocketURI(False, "localhost", 80, "/", ("user", "pass")),
+    ),
+    ("ws://høst/", WebSocketURI(False, "xn--hst-0na", 80, "/", None)),
     (
         "ws://üser:påss@høst/πass",
-        (False, "xn--hst-0na", 80, "/%CF%80ass", ("%C3%BCser", "p%C3%A5ss")),
+        WebSocketURI(
+            False, "xn--hst-0na", 80, "/%CF%80ass", ("%C3%BCser", "p%C3%A5ss")
+        ),
     ),
 ]
 

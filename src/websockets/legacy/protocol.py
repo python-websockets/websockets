@@ -926,14 +926,17 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     # is empty and parse_close() synthetizes a 1005 close code.
                     await self.write_close_frame(frame.data)
                 except ConnectionClosed:
-                    # It doesn't really matter if the connection was closed
-                    # before we could send back a close frame.
+                    # Connection closed before we could echo the close frame.
                     pass
                 return None
 
             elif frame.opcode == OP_PING:
                 # Answer pings.
-                await self.pong(frame.data)
+                try:
+                    await self.pong(frame.data)
+                except ConnectionClosed:
+                    # Connection closed before we could respond to the ping.
+                    pass
 
             elif frame.opcode == OP_PONG:
                 if frame.data in self.pings:

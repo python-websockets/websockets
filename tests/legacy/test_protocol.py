@@ -877,6 +877,16 @@ class CommonTests:
         self.run_loop_once()
         self.assertOneFrameSent(True, OP_PONG, b"test")
 
+    def test_answer_ping_does_not_crash_if_connection_closed(self):
+        self.make_drain_slow()
+        # Drop the connection right after receiving a ping frame,
+        # which prevents responding wwith a pong frame properly.
+        self.receive_frame(Frame(True, OP_PING, b"test"))
+        self.receive_eof()
+
+        with self.assertNoLogs():
+            self.loop.run_until_complete(self.protocol.close())
+
     def test_ignore_pong(self):
         self.receive_frame(Frame(True, OP_PONG, b"test"))
         self.run_loop_once()

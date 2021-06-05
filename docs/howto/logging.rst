@@ -210,6 +210,7 @@ Here's what websockets logs at each level.
 
 * Server starting and stopping
 * Server establishing and closing connections
+* Client reconnecting automatically
 
 :attr:`~logging.DEBUG`
 ......................

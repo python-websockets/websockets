@@ -904,7 +904,7 @@ class Serve:
     :exc:`~websockets.exceptions.ConnectionClosedOK` exception on their
     current or next interaction with the WebSocket connection.
 
-    :func:`serve` can also be used as an asynchronous context manager::
+    :func:`serve` can be used as an asynchronous context manager::
 
         stop = asyncio.Future()  # set this future to exit the server
 

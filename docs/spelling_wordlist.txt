@@ -6,6 +6,7 @@ autoscaler
 awaitable
 aymeric
 backend
+backoff
 backpressure
 balancer
 balancers
@@ -52,6 +53,7 @@ pong
 pongs
 proxying
 pythonic
+reconnection
 redis
 retransmit
 runtime

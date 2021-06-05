@@ -36,12 +36,22 @@ They may change at any time.
 
 .. note::
 
+    **Version 10.0 enables a timeout of 10 seconds on**
+    :func:`~legacy.client.connect` **by default.**
+
+    You can adjust the timeout with the ``open_timeout`` parameter. Set it to
+    ``None`` to disable the timeout entirely.
+
+.. note::
+
     **Version 10.0 deprecates the** ``loop`` **parameter from all APIs.**
 
     This reflects a decision made in Python 3.8. See the release notes of
     Python 3.10 for details.
 
 * Added compatibility with Python 3.10.
+
+* Added ``open_timeout`` to :func:`~legacy.client.connect`.
 
 * Improved logging.
 

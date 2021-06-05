@@ -439,6 +439,10 @@ class Connect:
     be replaced by a wrapper or a subclass to customize the protocol that
     manages the connection.
 
+    If the WebSocket connection isn't established within ``open_timeout``
+    seconds, :func:`connect` raises :exc:`~asyncio.TimeoutError`. The default
+    is 10 seconds. Set ``open_timeout`` to ``None`` to disable the timeout.
+
     The behavior of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
     ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit`` is
     described in :class:`WebSocketClientProtocol`.
@@ -471,6 +475,7 @@ class Connect:
         uri: str,
         *,
         create_protocol: Optional[Callable[[Any], WebSocketClientProtocol]] = None,
+        open_timeout: Optional[float] = 10,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
         close_timeout: Optional[float] = None,
@@ -571,6 +576,7 @@ class Connect:
                 loop.create_connection, factory, host, port, **kwargs
             )
 
+        self.open_timeout = open_timeout
         # This is a coroutine function.
         self._create_connection = create_connection
         self._wsuri = wsuri
@@ -626,7 +632,10 @@ class Connect:
 
     def __await__(self) -> Generator[Any, None, WebSocketClientProtocol]:
         # Create a suitable iterator by calling __await__ on a coroutine.
-        return self.__await_impl__().__await__()
+        return self.__await_impl_timeout__().__await__()
+
+    async def __await_impl_timeout__(self) -> WebSocketClientProtocol:
+        return await asyncio.wait_for(self.__await_impl__(), self.open_timeout)
 
     async def __await_impl__(self) -> WebSocketClientProtocol:
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):

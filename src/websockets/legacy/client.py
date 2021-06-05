@@ -9,7 +9,18 @@ import functools
 import logging
 import warnings
 from types import TracebackType
-from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple, Type, cast
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Generator,
+    List,
+    Optional,
+    Sequence,
+    Tuple,
+    Type,
+    cast,
+)
 
 from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
@@ -413,12 +424,23 @@ class Connect:
     Awaiting :func:`connect` yields a :class:`WebSocketClientProtocol` which
     can then be used to send and receive messages.
 
-    :func:`connect` can also be used as a asynchronous context manager::
+    :func:`connect` can be used as a asynchronous context manager::
 
         async with connect(...) as websocket:
             ...
 
-    In that case, the connection is closed when exiting the context.
+    The connection is closed automatically when exiting the context.
+
+    :func:`connect` can be used as an infinite asynchronous iterator to
+    reconnect automatically on errors::
+
+        async for websocket in connect(...):
+            ...
+
+    You must catch all exceptions, or else you will exit the loop prematurely.
+    As above, connections are closed automatically. Connection attempts are
+    delayed with exponential backoff, starting at three seconds and
+    increasing up to one minute.
 
     :func:`connect` is a wrapper around the event loop's
     :meth:`~asyncio.loop.create_connection` method. Unknown keyword arguments
@@ -577,6 +599,10 @@ class Connect:
             )
 
         self.open_timeout = open_timeout
+        if logger is None:
+            logger = logging.getLogger("websockets.client")
+        self.logger = logger
+
         # This is a coroutine function.
         self._create_connection = create_connection
         self._wsuri = wsuri
@@ -615,7 +641,38 @@ class Connect:
         # Set the new WebSocket URI. This suffices for same-origin redirects.
         self._wsuri = new_wsuri
 
-    # async with connect(...)
+    # async for ... in connect(...):
+
+    BACKOFF_MIN = 2.0
+    BACKOFF_MAX = 60.0
+    BACKOFF_FACTOR = 1.5
+
+    async def __aiter__(self) -> AsyncIterator[WebSocketClientProtocol]:
+        backoff_delay = self.BACKOFF_MIN
+        while True:
+            try:
+                async with self as protocol:
+                    yield protocol
+            # Remove this branch when dropping support for Python < 3.8
+            # because CancelledError no longer inherits Exception.
+            except asyncio.CancelledError:  # pragma: no cover
+                raise
+            except Exception:
+                # Connection timed out - increase backoff delay
+                backoff_delay = backoff_delay * self.BACKOFF_FACTOR
+                backoff_delay = min(backoff_delay, self.BACKOFF_MAX)
+                self.logger.info(
+                    "! connect failed; retrying in %d seconds",
+                    int(backoff_delay),
+                    exc_info=True,
+                )
+                await asyncio.sleep(backoff_delay)
+                continue
+            else:
+                # Connection succeeded - reset backoff delay
+                backoff_delay = self.BACKOFF_MIN
+
+    # async with connect(...) as ...:
 
     async def __aenter__(self) -> WebSocketClientProtocol:
         return await self
@@ -628,7 +685,7 @@ class Connect:
     ) -> None:
         await self.protocol.close()
 
-    # await connect(...)
+    # ... = await connect(...)
 
     def __await__(self) -> Generator[Any, None, WebSocketClientProtocol]:
         # Create a suitable iterator by calling __await__ on a coroutine.
@@ -665,7 +722,7 @@ class Connect:
         else:
             raise SecurityError("too many redirects")
 
-    # yield from connect(...)
+    # ... = yield from connect(...)
 
     __iter__ = __await__
 

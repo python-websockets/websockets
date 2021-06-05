@@ -1474,6 +1474,85 @@ class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
         self.assertEqual(messages, self.MESSAGES)
 
 
+class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
+    async def echo_handler(ws, path):
+        async for msg in ws:
+            await ws.send(msg)
+
+    service_available = True
+
+    async def maybe_service_unavailable(path, headers):
+        if not ReconnectionTests.service_available:
+            return http.HTTPStatus.SERVICE_UNAVAILABLE, [], b""
+
+    async def disable_server(self, duration):
+        ReconnectionTests.service_available = False
+        await asyncio.sleep(duration)
+        ReconnectionTests.service_available = True
+
+    @with_server(handler=echo_handler, process_request=maybe_service_unavailable)
+    def test_reconnect(self):
+        # Big, ugly integration test :-(
+
+        async def run_client():
+            iteration = 0
+            connect_inst = connect(get_server_uri(self.server))
+            connect_inst.BACKOFF_MIN = 10 * MS
+            connect_inst.BACKOFF_MAX = 200 * MS
+            async for ws in connect_inst:
+                await ws.send("spam")
+                msg = await ws.recv()
+                self.assertEqual(msg, "spam")
+
+                iteration += 1
+                if iteration == 1:
+                    # Exit block normally.
+                    pass
+                elif iteration == 2:
+                    # Disable server for a little bit
+                    asyncio.create_task(self.disable_server(70 * MS))
+                    await asyncio.sleep(0)
+                elif iteration == 3:
+                    # Exit block after catching connection error.
+                    server_ws = next(iter(self.server.websockets))
+                    await server_ws.close()
+                    with self.assertRaises(ConnectionClosed):
+                        await ws.recv()
+                else:
+                    # Exit block with an exception.
+                    raise Exception("BOOM!")
+
+        with self.assertLogs("websockets", logging.INFO) as logs:
+            with self.assertRaisesRegex(Exception, "BOOM!"):
+                self.loop.run_until_complete(run_client())
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            [
+                # Iteration 1
+                "connection open",
+                "connection closed",
+                # Iteration 2
+                "connection open",
+                "connection closed",
+                # Iteration 3
+                "connection failed (503 Service Unavailable)",
+                "connection closed",
+                "! connect failed; retrying in 0 seconds",
+                "connection failed (503 Service Unavailable)",
+                "connection closed",
+                "! connect failed; retrying in 0 seconds",
+                "connection failed (503 Service Unavailable)",
+                "connection closed",
+                "! connect failed; retrying in 0 seconds",
+                "connection open",
+                "connection closed",
+                # Iteration 4
+                "connection open",
+            ],
+        )
+
+
 class LoggerTests(ClientServerTestsMixin, AsyncioTestCase):
     def test_logger_client(self):
         with self.assertLogs("test.server", logging.DEBUG) as server_logs:

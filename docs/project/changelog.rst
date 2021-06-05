@@ -51,6 +51,9 @@ They may change at any time.
 
 * Added compatibility with Python 3.10.
 
+* Added support for reconnecting automatically by using
+  :func:`~legacy.client.connect` as an asynchronous iterator.
+
 * Added ``open_timeout`` to :func:`~legacy.client.connect`.
 
 * Improved logging.

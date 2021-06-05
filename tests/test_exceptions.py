@@ -88,7 +88,7 @@ class ExceptionsTests(unittest.TestCase):
                 "invalid Connection header: websocket",
             ),
             (
-                InvalidStatusCode(403),
+                InvalidStatusCode(403, Headers()),
                 "server rejected WebSocket connection: HTTP 403",
             ),
             (

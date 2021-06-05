@@ -7,7 +7,7 @@ from .exceptions import (
     InvalidHandshake,
     InvalidHeader,
     InvalidHeaderValue,
-    InvalidStatusCode,
+    InvalidStatus,
     InvalidUpgrade,
     NegotiationError,
 )
@@ -127,7 +127,7 @@ class ClientConnection(Connection):
         """
 
         if response.status_code != 101:
-            raise InvalidStatusCode(response.status_code)
+            raise InvalidStatus(response)
 
         headers = response.headers
 

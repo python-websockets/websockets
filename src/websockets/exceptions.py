@@ -13,7 +13,8 @@
             * :exc:`InvalidHeaderValue`
             * :exc:`InvalidOrigin`
             * :exc:`InvalidUpgrade`
-        * :exc:`InvalidStatusCode`
+        * :exc:`InvalidStatus`
+        * :exc:`InvalidStatusCode` (legacy)
         * :exc:`NegotiationError`
             * :exc:`DuplicateParameter`
             * :exc:`InvalidParameterName`
@@ -46,6 +47,7 @@ __all__ = [
     "InvalidHeaderValue",
     "InvalidOrigin",
     "InvalidUpgrade",
+    "InvalidStatus",
     "InvalidStatusCode",
     "NegotiationError",
     "DuplicateParameter",
@@ -190,16 +192,30 @@ class InvalidUpgrade(InvalidHeader):
     """
 
 
+class InvalidStatus(InvalidHandshake):
+    """
+    Raised when a handshake response rejects the WebSocket upgrade.
+
+    """
+
+    def __init__(self, response: "Response") -> None:
+        self.response = response
+        message = f"server rejected WebSocket connection: HTTP {response.status_code:d}"
+        super().__init__(message)
+
+
 class InvalidStatusCode(InvalidHandshake):
     """
     Raised when a handshake response status code is invalid.
 
-    The integer status code is available in the ``status_code`` attribute.
+    The integer status code is available in the ``status_code`` attribute and
+    HTTP headers in the ``headers`` attribute.
 
     """
 
-    def __init__(self, status_code: int) -> None:
+    def __init__(self, status_code: int, headers: Headers) -> None:
         self.status_code = status_code
+        self.headers = headers
         message = f"server rejected WebSocket connection: HTTP {status_code}"
         super().__init__(message)
 
@@ -333,3 +349,6 @@ WebSocketProtocolError = ProtocolError  # for backwards compatibility
 
 # at the bottom to allow circular import, because the frames module imports exceptions
 from .frames import format_close  # noqa
+
+# at the bottom to allow circular import, because the http11 module imports exceptions
+from .http11 import Response  # noqa

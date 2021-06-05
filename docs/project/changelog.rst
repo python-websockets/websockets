@@ -548,7 +548,7 @@ Also:
 * Added an optional C extension to speed up low-level operations.
 
 * An invalid response status code during :func:`~legacy.client.connect` now
-  raises :class:`~exceptions.InvalidStatusCode` with a ``code`` attribute.
+  raises :class:`~exceptions.InvalidStatusCode`.
 
 * Providing a ``sock`` argument to :func:`~legacy.client.connect` no longer
   crashes.

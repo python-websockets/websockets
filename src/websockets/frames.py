@@ -129,7 +129,7 @@ class Frame:
         if self.opcode is OP_TEXT:
             # Decoding only the beginning and the end is needlessly hard.
             # Decode the entire payload then elide later if necessary.
-            data = self.data.decode()
+            data = repr(self.data.decode())
         elif self.opcode is OP_BINARY:
             # We'll show at most the first 16 bytes and the last 8 bytes.
             # Encode just what we need, plus two dummy bytes to elide later.
@@ -145,7 +145,7 @@ class Frame:
             # Ping and Pong frames could contain UTF-8. Attempt to decode as
             # UTF-8 and display it as text; fallback to binary.
             try:
-                data = self.data.decode()
+                data = repr(self.data.decode())
                 coding = "text"
             except UnicodeDecodeError:
                 binary = self.data
@@ -154,7 +154,7 @@ class Frame:
                 data = " ".join(f"{byte:02x}" for byte in binary)
                 coding = "binary"
         else:
-            data = ""
+            data = "''"
 
         if len(data) > 75:
             data = data[:48] + "..." + data[-24:]

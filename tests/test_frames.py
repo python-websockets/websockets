@@ -198,7 +198,7 @@ class StrTests(unittest.TestCase):
     def test_cont_text(self):
         self.assertEqual(
             str(Frame(OP_CONT, b" cr\xc3\xa8me", fin=False)),
-            "CONT  crème [text, 7 bytes, continued]",
+            "CONT ' crème' [text, 7 bytes, continued]",
         )
 
     def test_cont_binary(self):
@@ -210,7 +210,7 @@ class StrTests(unittest.TestCase):
     def test_cont_final_text(self):
         self.assertEqual(
             str(Frame(OP_CONT, b" cr\xc3\xa8me")),
-            "CONT  crème [text, 7 bytes]",
+            "CONT ' crème' [text, 7 bytes]",
         )
 
     def test_cont_final_binary(self):
@@ -222,8 +222,8 @@ class StrTests(unittest.TestCase):
     def test_cont_text_truncated(self):
         self.assertEqual(
             str(Frame(OP_CONT, b"caf\xc3\xa9 " * 16, fin=False)),
-            "CONT café café café café café café café café café caf..."
-            "afé café café café café  [text, 96 bytes, continued]",
+            "CONT 'café café café café café café café café café ca..."
+            "fé café café café café ' [text, 96 bytes, continued]",
         )
 
     def test_cont_binary_truncated(self):
@@ -236,20 +236,26 @@ class StrTests(unittest.TestCase):
     def test_text(self):
         self.assertEqual(
             str(Frame(OP_TEXT, b"caf\xc3\xa9")),
-            "TEXT café [5 bytes]",
+            "TEXT 'café' [5 bytes]",
         )
 
     def test_text_non_final(self):
         self.assertEqual(
             str(Frame(OP_TEXT, b"caf\xc3\xa9", fin=False)),
-            "TEXT café [5 bytes, continued]",
+            "TEXT 'café' [5 bytes, continued]",
         )
 
     def test_text_truncated(self):
         self.assertEqual(
             str(Frame(OP_TEXT, b"caf\xc3\xa9 " * 16)),
-            "TEXT café café café café café café café café café caf..."
-            "afé café café café café  [96 bytes]",
+            "TEXT 'café café café café café café café café café ca..."
+            "fé café café café café ' [96 bytes]",
+        )
+
+    def test_text_with_newline(self):
+        self.assertEqual(
+            str(Frame(OP_TEXT, b"Hello\nworld!")),
+            "TEXT 'Hello\\nworld!' [12 bytes]",
         )
 
     def test_binary(self):
@@ -286,13 +292,19 @@ class StrTests(unittest.TestCase):
     def test_ping(self):
         self.assertEqual(
             str(Frame(OP_PING, b"")),
-            "PING  [0 bytes]",
+            "PING '' [0 bytes]",
         )
 
     def test_ping_text(self):
         self.assertEqual(
             str(Frame(OP_PING, b"ping")),
-            "PING ping [text, 4 bytes]",
+            "PING 'ping' [text, 4 bytes]",
+        )
+
+    def test_ping_text_with_newline(self):
+        self.assertEqual(
+            str(Frame(OP_PING, b"ping\n")),
+            "PING 'ping\\n' [text, 5 bytes]",
         )
 
     def test_ping_binary(self):
@@ -304,13 +316,19 @@ class StrTests(unittest.TestCase):
     def test_pong(self):
         self.assertEqual(
             str(Frame(OP_PONG, b"")),
-            "PONG  [0 bytes]",
+            "PONG '' [0 bytes]",
         )
 
     def test_pong_text(self):
         self.assertEqual(
             str(Frame(OP_PONG, b"pong")),
-            "PONG pong [text, 4 bytes]",
+            "PONG 'pong' [text, 4 bytes]",
+        )
+
+    def test_pong_text_with_newline(self):
+        self.assertEqual(
+            str(Frame(OP_PONG, b"pong\n")),
+            "PONG 'pong\\n' [text, 5 bytes]",
         )
 
     def test_pong_binary(self):

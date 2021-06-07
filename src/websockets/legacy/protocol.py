@@ -6,6 +6,7 @@ See `sections 4 to 8 of RFC 6455`_.
 .. _sections 4 to 8 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
 
 """
+from __future__ import annotations
 
 import asyncio
 import codecs
@@ -95,6 +96,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     # Set is_client = True/False and side = "client"/"server" to pick a side.
     is_client: bool
     side: str = "undefined"
+    _reader: Optional[asyncio.StreamReader] = None
+    _connection_lost_waiter: Optional[asyncio.Future[None]] = None
 
     def __init__(
         self,
@@ -145,26 +148,16 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Track if DEBUG is enabled. Shortcut logging calls if it isn't.
         self.debug = logger.isEnabledFor(logging.DEBUG)
 
-        assert loop is not None
-        # Remove when dropping Python < 3.10 - use get_running_loop instead.
-        self.loop = loop
-
         self._host = host
         self._port = port
         self._secure = secure
         self.legacy_recv = legacy_recv
 
-        # Configure read buffer limits. The high-water limit is defined by
-        # ``self.read_limit``. The ``limit`` argument controls the line length
-        # limit and half the buffer limit of :class:`~asyncio.StreamReader`.
-        # That's why it must be set to half of ``self.read_limit``.
-        self.reader = asyncio.StreamReader(limit=read_limit // 2, loop=loop)
-
         # Copied from asyncio.FlowControlMixin
         self._paused = False
         self._drain_waiter: Optional[asyncio.Future[None]] = None
 
-        self._drain_lock = asyncio.Lock(**loop_if_py_lt_38(loop))
+        self._drain_lock = asyncio.Lock()
 
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.
@@ -188,12 +181,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.close_code: int
         self.close_reason: str
 
-        # Completed when the connection state becomes CLOSED. Translates the
-        # :meth:`connection_lost` callback to a :class:`~asyncio.Future`
-        # that can be awaited. (Other :class:`~asyncio.Protocol` callbacks are
-        # translated by ``self.stream_reader``).
-        self.connection_lost_waiter: asyncio.Future[None] = loop.create_future()
-
         # Queue of received messages.
         self.messages: Deque[Data] = collections.deque()
         self._pop_message_waiter: Optional[asyncio.Future[None]] = None
@@ -216,6 +203,43 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # Task closing the TCP connection.
         self.close_connection_task: asyncio.Task[None]
+
+    @property
+    def loop(self) -> asyncio.AbstractEventLoop:
+        return asyncio.get_running_loop()
+
+    @loop.setter
+    def loop(self, value: asyncio.AbstractEventLoop) -> None:
+        if value is not asyncio.get_running_loop():
+            raise AttributeError("can't set attribute")
+
+    @property
+    def reader(self) -> asyncio.StreamReader:
+        if self._reader is not None:
+            return self._reader
+        # Configure read buffer limits. The high-water limit is defined by
+        # ``self.read_limit``. The ``limit`` argument controls the line length
+        # limit and half the buffer limit of :class:`~asyncio.StreamReader`.
+        # That's why it must be set to half of ``self.read_limit``.
+        self._reader = reader = asyncio.StreamReader(
+            limit=self.read_limit // 2, loop=self.loop
+        )
+        return reader
+
+    @reader.setter
+    def reader(self, value: asyncio.StreamReader) -> None:
+        self._reader = value
+
+    @property
+    def connection_lost_waiter(self) -> asyncio.Future[None]:
+        if self._connection_lost_waiter is not None:
+            return self._connection_lost_waiter
+        # Completed when the connection state becomes CLOSED. Translates the
+        # :meth:`connection_lost` callback to a :class:`~asyncio.Future`
+        # that can be awaited. (Other :class:`~asyncio.Protocol` callbacks are
+        # translated by ``self.stream_reader``).
+        self._connection_lost_waiter = fut = self.loop.create_future()
+        return fut
 
     # Copied from asyncio.FlowControlMixin
     async def _drain_helper(self) -> None:  # pragma: no cover

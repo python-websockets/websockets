@@ -49,10 +49,16 @@ class TransportMock(unittest.mock.Mock):
         self.protocol = protocol
         self._eof = False
         self._closing = False
-        # Simulate a successful TCP handshake.
-        self.protocol.connection_made(self)
-        # Simulate a successful WebSocket handshake.
-        self.protocol.connection_open()
+
+        async def init():
+            # Simulate a successful TCP handshake.
+            self.protocol.connection_made(self)
+            # Simulate a successful WebSocket handshake.
+            self.protocol.connection_open()
+            loop.stop()
+
+        loop.create_task(init())
+        loop.run_forever()
 
     def can_write_eof(self):
         return True
@@ -1060,9 +1066,31 @@ class CommonTests:
 
     def test_connection_lost(self):
         # Test calling connection_lost without going through close_connection.
-        self.protocol.connection_lost(None)
+        async def test():
+            self.protocol.connection_lost(None)
 
-        self.assertConnectionFailed(1006, "")
+            self.assertConnectionFailed(1006, "")
+
+        self.loop.run_until_complete(test())
+
+    def test_loop_property(self):
+        async def test():
+            self.assertIs(self.protocol.loop, self.loop)
+
+            # test loop.setter
+            self.protocol.loop = self.loop
+            with contextlib.closing(
+                asyncio.new_event_loop()
+            ) as new_loop, self.assertRaises(AttributeError):
+                self.protocol.loop = new_loop
+
+        self.loop.run_until_complete(test())
+
+    def test_reader_property(self):
+        async def test():
+            self.protocol.reader = asyncio.StreamReader()
+
+        self.loop.run_until_complete(test())
 
     def test_ensure_open_before_opening_handshake(self):
         # Simulate a bug by forcibly reverting the protocol state.

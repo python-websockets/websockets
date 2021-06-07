@@ -29,9 +29,16 @@
 """
 
 import http
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
+from ._format_close import format_close
 from .datastructures import Headers, HeadersLike
+
+
+if TYPE_CHECKING:
+    from .http11 import Response
+else:
+    Response = object
 
 
 __all__ = [
@@ -198,7 +205,7 @@ class InvalidStatus(InvalidHandshake):
 
     """
 
-    def __init__(self, response: "Response") -> None:
+    def __init__(self, response: Response) -> None:
         self.response = response
         message = f"server rejected WebSocket connection: HTTP {response.status_code:d}"
         super().__init__(message)
@@ -345,10 +352,3 @@ class ProtocolError(WebSocketException):
 
 
 WebSocketProtocolError = ProtocolError  # for backwards compatibility
-
-
-# at the bottom to allow circular import, because the frames module imports exceptions
-from .frames import format_close  # noqa
-
-# at the bottom to allow circular import, because the http11 module imports exceptions
-from .http11 import Response  # noqa

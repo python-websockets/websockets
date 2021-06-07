@@ -3,15 +3,18 @@ Parse and serialize WebSocket frames.
 
 """
 
+from __future__ import annotations
+
 import dataclasses
 import enum
 import io
 import secrets
 import struct
-from typing import Callable, Generator, Optional, Sequence, Tuple
+from typing import Callable, Generator, List, Optional, Sequence, Tuple
 
+from ._format_close import CLOSE_CODES, format_close
 from .exceptions import PayloadTooBig, ProtocolError
-from .typing import Data
+from .typing import Data, ExtensionName, ExtensionParameter
 
 
 try:
@@ -35,6 +38,8 @@ __all__ = [
     "prepare_ctrl",
     "parse_close",
     "serialize_close",
+    "format_close",
+    "CLOSE_CODES",
 ]
 
 
@@ -52,27 +57,6 @@ OP_PONG = Opcode.PONG
 
 DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY
 CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG
-
-
-# See https://www.iana.org/assignments/websocket/websocket.xhtml
-CLOSE_CODES = {
-    1000: "OK",
-    1001: "going away",
-    1002: "protocol error",
-    1003: "unsupported type",
-    # 1004 is reserved
-    1005: "no status code [internal]",
-    1006: "connection closed abnormally [internal]",
-    1007: "invalid data",
-    1008: "policy violation",
-    1009: "message too big",
-    1010: "extension required",
-    1011: "unexpected error",
-    1012: "service restart",
-    1013: "try again later",
-    1014: "bad gateway",
-    1015: "TLS failure [internal]",
-}
 
 
 # Close code that are allowed in a close frame.
@@ -170,7 +154,7 @@ class Frame:
         *,
         mask: bool,
         max_size: Optional[int] = None,
-        extensions: Optional[Sequence["extensions.Extension"]] = None,
+        extensions: Optional[Sequence[Extension]] = None,
     ) -> Generator[None, None, "Frame"]:
         """
         Read a WebSocket frame.
@@ -239,7 +223,7 @@ class Frame:
         self,
         *,
         mask: bool,
-        extensions: Optional[Sequence["extensions.Extension"]] = None,
+        extensions: Optional[Sequence[Extension]] = None,
     ) -> bytes:
         """
         Write a WebSocket frame.
@@ -404,26 +388,103 @@ def check_close(code: int) -> None:
         raise ProtocolError("invalid status code")
 
 
-def format_close(code: int, reason: str) -> str:
+class Extension:
     """
-    Display a human-readable version of the close code and reason.
+    Abstract class for extensions.
 
     """
-    if 3000 <= code < 4000:
-        explanation = "registered"
-    elif 4000 <= code < 5000:
-        explanation = "private use"
-    else:
-        explanation = CLOSE_CODES.get(code, "unknown")
-    result = f"code = {code} ({explanation}), "
 
-    if reason:
-        result += f"reason = {reason}"
-    else:
-        result += "no reason"
+    @property
+    def name(self) -> ExtensionName:
+        """
+        Extension identifier.
 
-    return result
+        """
+
+    def decode(self, frame: Frame, *, max_size: Optional[int] = None) -> Frame:
+        """
+        Decode an incoming frame.
+
+        :param frame: incoming frame
+        :param max_size: maximum payload size in bytes
+
+        """
+
+    def encode(self, frame: Frame) -> Frame:
+        """
+        Encode an outgoing frame.
+
+        :param frame: outgoing frame
+
+        """
 
 
-# at the bottom to allow circular import, because Extension depends on Frame
-from . import extensions  # noqa
+class ClientExtensionFactory:
+    """
+    Abstract class for client-side extension factories.
+
+    """
+
+    @property
+    def name(self) -> ExtensionName:
+        """
+        Extension identifier.
+
+        """
+
+    def get_request_params(self) -> List[ExtensionParameter]:
+        """
+        Build request parameters.
+
+        Return a list of ``(name, value)`` pairs.
+
+        """
+
+    def process_response_params(
+        self,
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence[Extension],
+    ) -> Extension:
+        """
+        Process response parameters received from the server.
+
+        :param params: list of ``(name, value)`` pairs.
+        :param accepted_extensions: list of previously accepted extensions.
+        :raises ~websockets.exceptions.NegotiationError: if parameters aren't
+            acceptable
+
+        """
+
+
+class ServerExtensionFactory:
+    """
+    Abstract class for server-side extension factories.
+
+    """
+
+    @property
+    def name(self) -> ExtensionName:
+        """
+        Extension identifier.
+
+        """
+
+    def process_request_params(
+        self,
+        params: Sequence[ExtensionParameter],
+        accepted_extensions: Sequence[Extension],
+    ) -> Tuple[List[ExtensionParameter], Extension]:
+        """
+        Process request parameters received from the client.
+
+        To accept the offer, return a 2-uple containing:
+
+        - response parameters: a list of ``(name, value)`` pairs
+        - an extension: an instance of a subclass of :class:`Extension`
+
+        :param params: list of ``(name, value)`` pairs.
+        :param accepted_extensions: list of previously accepted extensions.
+        :raises ~websockets.exceptions.NegotiationError: to reject the offer,
+            if parameters aren't acceptable
+
+        """

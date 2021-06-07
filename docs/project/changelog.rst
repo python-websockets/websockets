@@ -69,7 +69,11 @@ They may change at any time.
 
     **Version 9.1 fixes a security issue introduced in version 8.0.**
 
-    Version 8.0 was vulnerable to timing attacks on HTTP Basic Auth passwords.
+    Version 8.0 was vulnerable to timing attacks on HTTP Basic Auth passwords
+    (`CVE-2021-33880`_).
+
+    .. _CVE-2021-33880: https://nvd.nist.gov/vuln/detail/CVE-2021-33880
+
 
 9.0.2
 .....

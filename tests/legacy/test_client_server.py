@@ -213,17 +213,17 @@ class ClientServerTestsMixin:
         kwargs.setdefault("compression", None)
         # Disable pings by default in tests.
         kwargs.setdefault("ping_interval", None)
-        # Python 3.10 dislikes not having a running event loop
-        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
-            kwargs.setdefault("loop", self.loop)
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
             start_server = serve(handler, "localhost", 0, **kwargs)
             self.server = self.loop.run_until_complete(start_server)
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
-        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
-            expected_warnings += ["remove loop argument"]
+        if (
+            sys.version_info[:2] >= (3, 10)
+            and "remove loop argument" not in expected_warnings
+        ):  # pragma: no cover
+            expected_warnings += ["There is no current event loop"]
         self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def start_redirecting_server(
@@ -234,10 +234,6 @@ class ClientServerTestsMixin:
         deprecation_warnings=None,
         **kwargs,
     ):
-        # Python 3.10 dislikes not having a running event loop
-        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
-            kwargs.setdefault("loop", self.loop)
-
         async def process_request(path, headers):
             server_uri = get_server_uri(self.server, self.secure, path)
             if force_insecure:
@@ -259,8 +255,11 @@ class ClientServerTestsMixin:
             self.redirecting_server = self.loop.run_until_complete(start_server)
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
-        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
-            expected_warnings += ["remove loop argument"]
+        if (
+            sys.version_info[:2] >= (3, 10)
+            and "remove loop argument" not in expected_warnings
+        ):  # pragma: no cover
+            expected_warnings += ["There is no current event loop"]
         self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def start_client(
@@ -270,9 +269,6 @@ class ClientServerTestsMixin:
         kwargs.setdefault("compression", None)
         # Disable pings by default in tests.
         kwargs.setdefault("ping_interval", None)
-        # Python 3.10 dislikes not having a running event loop
-        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
-            kwargs.setdefault("loop", self.loop)
 
         secure = kwargs.get("ssl") is not None
         try:
@@ -286,8 +282,11 @@ class ClientServerTestsMixin:
             self.client = self.loop.run_until_complete(start_client)
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
-        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
-            expected_warnings += ["remove loop argument"]
+        if (
+            sys.version_info[:2] >= (3, 10)
+            and "remove loop argument" not in expected_warnings
+        ):  # pragma: no cover
+            expected_warnings += ["There is no current event loop"]
         self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def stop_client(self):
@@ -409,8 +408,6 @@ class CommonClientServerTests:
         with temp_test_redirecting_server(
             self,
             http.HTTPStatus.FOUND,
-            loop=self.loop,
-            deprecation_warnings=["remove loop argument"],
         ):
             self.server = self.redirecting_server
             with self.assertRaises(InvalidHandshake):
@@ -430,7 +427,7 @@ class CommonClientServerTests:
                 with temp_test_client(self):
                     self.fail("Did not raise")  # pragma: no cover
 
-    def test_explicit_event_loop(self):
+    def test_loop_backwards_compatibility(self):
         with self.temp_server(
             loop=self.loop, deprecation_warnings=["remove loop argument"]
         ):

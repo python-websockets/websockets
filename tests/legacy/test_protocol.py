@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import sys
 import unittest
 import unittest.mock
 import warnings
@@ -86,8 +87,9 @@ class CommonTests:
 
     def setUp(self):
         super().setUp()
-        # Disable pings to make it easier to test what frames are sent exactly.
-        self.protocol = WebSocketCommonProtocol(ping_interval=None, loop=self.loop)
+        with warnings.catch_warnings(record=True):
+            # Disable pings to make it easier to test what frames are sent exactly.
+            self.protocol = WebSocketCommonProtocol(ping_interval=None)
         self.transport = TransportMock()
         self.transport.setup_mock(self.loop, self.protocol)
 
@@ -309,14 +311,29 @@ class CommonTests:
     # Test constructor.
 
     def test_timeout_backwards_compatibility(self):
-        with warnings.catch_warnings(record=True) as recorded_warnings:
-            protocol = WebSocketCommonProtocol(timeout=5, loop=self.loop)
+        with warnings.catch_warnings(record=True) as recorded:
+            protocol = WebSocketCommonProtocol(timeout=5)
 
         self.assertEqual(protocol.close_timeout, 5)
 
-        self.assertDeprecationWarnings(
-            recorded_warnings, ["rename timeout to close_timeout"]
-        )
+        expected = ["rename timeout to close_timeout"]
+        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
+            expected += ["There is no current event loop"]
+
+        self.assertDeprecationWarnings(recorded, expected)
+
+    def test_loop_backwards_compatibility(self):
+        loop = asyncio.new_event_loop()
+        self.addCleanup(loop.close)
+
+        with warnings.catch_warnings(record=True) as recorded:
+            protocol = WebSocketCommonProtocol(loop=loop)
+
+        self.assertEqual(protocol.loop, loop)
+
+        expected = ["remove loop argument"]
+
+        self.assertDeprecationWarnings(recorded, expected)
 
     # Test public attributes.
 
@@ -1116,11 +1133,11 @@ class CommonTests:
         self.transport.close()
         self.loop.run_until_complete(self.protocol.close())
         # copied from setUp, but enables keepalive pings
-        self.protocol = WebSocketCommonProtocol(
-            ping_interval=ping_interval,
-            ping_timeout=ping_timeout,
-            loop=self.loop,
-        )
+        with warnings.catch_warnings(record=True):
+            self.protocol = WebSocketCommonProtocol(
+                ping_interval=ping_interval,
+                ping_timeout=ping_timeout,
+            )
         self.transport = TransportMock()
         self.transport.setup_mock(self.loop, self.protocol)
         self.protocol.is_client = initial_protocol.is_client

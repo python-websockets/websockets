@@ -124,6 +124,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         if close_timeout is None:
             close_timeout = timeout
 
+        # Backwards compatibility: the loop parameter used to be supported.
+        if loop is None:
+            loop = asyncio.get_event_loop()
+        else:
+            warnings.warn("remove loop argument", DeprecationWarning)
+
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
@@ -145,8 +151,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Track if DEBUG is enabled. Shortcut logging calls if it isn't.
         self.debug = logger.isEnabledFor(logging.DEBUG)
 
-        assert loop is not None
-        # Remove when dropping Python < 3.10 - use get_running_loop instead.
         self.loop = loop
 
         self._host = host

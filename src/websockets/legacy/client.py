@@ -514,10 +514,11 @@ class Connect:
         legacy_recv: bool = kwargs.pop("legacy_recv", False)
 
         # Backwards compatibility: the loop parameter used to be supported.
-        loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
-        if loop is None:
+        _loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
+        if _loop is None:
             loop = asyncio.get_event_loop()
         else:
+            loop = _loop
             warnings.warn("remove loop argument", DeprecationWarning)
 
         wsuri = parse_uri(uri)
@@ -543,7 +544,7 @@ class Connect:
             max_queue=max_queue,
             read_limit=read_limit,
             write_limit=write_limit,
-            loop=loop,
+            loop=_loop,
             host=wsuri.host,
             port=wsuri.port,
             secure=wsuri.secure,

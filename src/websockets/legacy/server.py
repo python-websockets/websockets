@@ -1024,10 +1024,11 @@ class Serve:
         legacy_recv: bool = kwargs.pop("legacy_recv", False)
 
         # Backwards compatibility: the loop parameter used to be supported.
-        loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
-        if loop is None:
+        _loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
+        if _loop is None:
             loop = asyncio.get_event_loop()
         else:
+            loop = _loop
             warnings.warn("remove loop argument", DeprecationWarning)
 
         ws_server = WebSocketServer(logger=logger, loop=loop)
@@ -1053,7 +1054,7 @@ class Serve:
             max_queue=max_queue,
             read_limit=read_limit,
             write_limit=write_limit,
-            loop=loop,
+            loop=_loop,
             legacy_recv=legacy_recv,
             origins=origins,
             extensions=extensions,

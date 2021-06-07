@@ -42,7 +42,7 @@ from ..extensions.permessage_deflate import enable_server_permessage_deflate
 from ..headers import build_extension, parse_extension, parse_subprotocol
 from ..http import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
-from .compatibility import asyncio_get_running_loop, loop_if_py_lt_38
+from .compatibility import loop_if_py_lt_38
 from .handshake import build_response, check_request
 from .http import read_request
 from .protocol import WebSocketCommonProtocol
@@ -1026,7 +1026,7 @@ class Serve:
         # Backwards compatibility: the loop parameter used to be supported.
         loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
         if loop is None:
-            loop = asyncio_get_running_loop()
+            loop = asyncio.get_event_loop()
         else:
             warnings.warn("remove loop argument", DeprecationWarning)
 

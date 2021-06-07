@@ -33,7 +33,6 @@ from ..headers import (
 from ..http import USER_AGENT, build_host
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
-from .compatibility import asyncio_get_running_loop
 from .handshake import build_request, check_response
 from .http import read_response
 from .protocol import WebSocketCommonProtocol
@@ -517,7 +516,7 @@ class Connect:
         # Backwards compatibility: the loop parameter used to be supported.
         loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
         if loop is None:
-            loop = asyncio_get_running_loop()
+            loop = asyncio.get_event_loop()
         else:
             warnings.warn("remove loop argument", DeprecationWarning)
 

@@ -1507,7 +1507,7 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
                     pass
                 elif iteration == 2:
                     # Disable server for a little bit
-                    asyncio.create_task(self.disable_server(70 * MS))
+                    asyncio.create_task(self.disable_server(50 * MS))
                     await asyncio.sleep(0)
                 elif iteration == 3:
                     # Exit block after catching connection error.
@@ -1523,28 +1523,40 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
             with self.assertRaisesRegex(Exception, "BOOM!"):
                 self.loop.run_until_complete(run_client())
 
+        # Iteration 1
         self.assertEqual(
-            [record.getMessage() for record in logs.records],
+            [record.getMessage() for record in logs.records][:2],
             [
-                # Iteration 1
                 "connection open",
                 "connection closed",
-                # Iteration 2
+            ],
+        )
+        # Iteration 2
+        self.assertEqual(
+            [record.getMessage() for record in logs.records][2:4],
+            [
                 "connection open",
                 "connection closed",
-                # Iteration 3
+            ],
+        )
+        # Iteration 3
+        self.assertEqual(
+            [record.getMessage() for record in logs.records][4:-1],
+            [
                 "connection failed (503 Service Unavailable)",
                 "connection closed",
                 "! connect failed; retrying in 0 seconds",
-                "connection failed (503 Service Unavailable)",
-                "connection closed",
-                "! connect failed; retrying in 0 seconds",
-                "connection failed (503 Service Unavailable)",
-                "connection closed",
-                "! connect failed; retrying in 0 seconds",
+            ]
+            * ((len(logs.records) - 5) // 3)
+            + [
                 "connection open",
                 "connection closed",
-                # Iteration 4
+            ],
+        )
+        # Iteration 4
+        self.assertEqual(
+            [record.getMessage() for record in logs.records][-1:],
+            [
                 "connection open",
             ],
         )

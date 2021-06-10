@@ -33,7 +33,7 @@ from __future__ import annotations
 import http
 from typing import Optional
 
-from .datastructures import Headers, HeadersLike
+from . import datastructures, frames, http11
 
 
 __all__ = [
@@ -84,7 +84,7 @@ class ConnectionClosed(WebSocketException):
     def __init__(self, code: int, reason: str) -> None:
         self.code = code
         self.reason = reason
-        super().__init__(format_close(code, reason))
+        super().__init__(frames.format_close(code, reason))
 
 
 class ConnectionClosedError(ConnectionClosed):
@@ -200,7 +200,7 @@ class InvalidStatus(InvalidHandshake):
 
     """
 
-    def __init__(self, response: Response) -> None:
+    def __init__(self, response: http11.Response) -> None:
         self.response = response
         message = f"server rejected WebSocket connection: HTTP {response.status_code:d}"
         super().__init__(message)
@@ -215,7 +215,7 @@ class InvalidStatusCode(InvalidHandshake):
 
     """
 
-    def __init__(self, status_code: int, headers: Headers) -> None:
+    def __init__(self, status_code: int, headers: datastructures.Headers) -> None:
         self.status_code = status_code
         self.headers = headers
         message = f"server rejected WebSocket connection: HTTP {status_code}"
@@ -284,11 +284,11 @@ class AbortHandshake(InvalidHandshake):
     def __init__(
         self,
         status: http.HTTPStatus,
-        headers: HeadersLike,
+        headers: datastructures.HeadersLike,
         body: bytes = b"",
     ) -> None:
         self.status = status
-        self.headers = Headers(headers)
+        self.headers = datastructures.Headers(headers)
         self.body = body
         message = f"HTTP {status:d}, {len(self.headers)} headers, {len(body)} bytes"
         super().__init__(message)
@@ -347,10 +347,3 @@ class ProtocolError(WebSocketException):
 
 
 WebSocketProtocolError = ProtocolError  # for backwards compatibility
-
-
-# at the bottom to allow circular import, because the frames module imports exceptions
-from .frames import format_close  # noqa
-
-# at the bottom to allow circular import, because the http11 module imports exceptions
-from .http11 import Response  # noqa

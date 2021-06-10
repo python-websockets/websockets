@@ -13,7 +13,7 @@ import dataclasses
 import urllib.parse
 from typing import Optional, Tuple
 
-from .exceptions import InvalidURI
+from . import exceptions
 
 
 __all__ = ["parse_uri", "WebSocketURI"]
@@ -59,7 +59,7 @@ def parse_uri(uri: str) -> WebSocketURI:
         assert parsed.fragment == ""
         assert parsed.hostname is not None
     except AssertionError as exc:
-        raise InvalidURI(uri) from exc
+        raise exceptions.InvalidURI(uri) from exc
 
     secure = parsed.scheme == "wss"
     host = parsed.hostname
@@ -72,7 +72,7 @@ def parse_uri(uri: str) -> WebSocketURI:
         # urllib.parse.urlparse accepts URLs with a username but without a
         # password. This doesn't make sense for HTTP Basic Auth credentials.
         if parsed.password is None:
-            raise InvalidURI(uri)
+            raise exceptions.InvalidURI(uri)
         user_info = (parsed.username, parsed.password)
 
     try:

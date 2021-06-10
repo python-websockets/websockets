@@ -10,6 +10,7 @@ import dataclasses
 import zlib
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
+from .. import frames
 from ..exceptions import (
     DuplicateParameter,
     InvalidParameterName,
@@ -17,7 +18,6 @@ from ..exceptions import (
     NegotiationError,
     PayloadTooBig,
 )
-from ..frames import CTRL_OPCODES, OP_CONT, Frame
 from ..typing import ExtensionName, ExtensionParameter
 from .base import ClientExtensionFactory, Extension, ServerExtensionFactory
 
@@ -93,19 +93,24 @@ class PerMessageDeflate(Extension):
             f"local_max_window_bits={self.local_max_window_bits})"
         )
 
-    def decode(self, frame: Frame, *, max_size: Optional[int] = None) -> Frame:
+    def decode(
+        self,
+        frame: frames.Frame,
+        *,
+        max_size: Optional[int] = None,
+    ) -> frames.Frame:
         """
         Decode an incoming frame.
 
         """
         # Skip control frames.
-        if frame.opcode in CTRL_OPCODES:
+        if frame.opcode in frames.CTRL_OPCODES:
             return frame
 
         # Handle continuation data frames:
         # - skip if the message isn't encoded
         # - reset "decode continuation data" flag if it's a final frame
-        if frame.opcode == OP_CONT:
+        if frame.opcode is frames.OP_CONT:
             if not self.decode_cont_data:
                 return frame
             if frame.fin:
@@ -143,19 +148,19 @@ class PerMessageDeflate(Extension):
 
         return dataclasses.replace(frame, data=data)
 
-    def encode(self, frame: Frame) -> Frame:
+    def encode(self, frame: frames.Frame) -> frames.Frame:
         """
         Encode an outgoing frame.
 
         """
         # Skip control frames.
-        if frame.opcode in CTRL_OPCODES:
+        if frame.opcode in frames.CTRL_OPCODES:
             return frame
 
         # Since we always encode messages, there's no "encode continuation
         # data" flag similar to "decode continuation data" at this time.
 
-        if frame.opcode != OP_CONT:
+        if frame.opcode is not frames.OP_CONT:
             # Set the rsv1 flag on the first frame of a compressed message.
             frame = dataclasses.replace(frame, rsv1=True)
             # Re-initialize per-message decoder.

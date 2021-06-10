@@ -12,7 +12,7 @@ from __future__ import annotations
 
 from typing import List, Optional, Sequence, Tuple
 
-from ..frames import Frame
+from .. import frames
 from ..typing import ExtensionName, ExtensionParameter
 
 
@@ -32,7 +32,12 @@ class Extension:
 
         """
 
-    def decode(self, frame: Frame, *, max_size: Optional[int] = None) -> Frame:
+    def decode(
+        self,
+        frame: frames.Frame,
+        *,
+        max_size: Optional[int] = None,
+    ) -> frames.Frame:
         """
         Decode an incoming frame.
 
@@ -41,7 +46,7 @@ class Extension:
 
         """
 
-    def encode(self, frame: Frame) -> Frame:
+    def encode(self, frame: frames.Frame) -> frames.Frame:
         """
         Encode an outgoing frame.
 

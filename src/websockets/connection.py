@@ -6,7 +6,7 @@ import uuid
 from typing import Generator, List, Optional, Union
 
 from .exceptions import InvalidState, PayloadTooBig, ProtocolError
-from .extensions.base import Extension
+from .extensions import Extension
 from .frames import (
     OP_BINARY,
     OP_CLOSE,

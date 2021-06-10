@@ -42,7 +42,7 @@ from ..exceptions import (
     PayloadTooBig,
     ProtocolError,
 )
-from ..extensions.base import Extension
+from ..extensions import Extension
 from ..frames import (
     OP_BINARY,
     OP_CLOSE,

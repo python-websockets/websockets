@@ -12,7 +12,7 @@ import secrets
 import struct
 from typing import Callable, Generator, Optional, Sequence, Tuple
 
-from .exceptions import PayloadTooBig, ProtocolError
+from . import exceptions, extensions
 from .typing import Data
 
 
@@ -204,10 +204,10 @@ class Frame:
         try:
             opcode = Opcode(head1 & 0b00001111)
         except ValueError as exc:
-            raise ProtocolError("invalid opcode") from exc
+            raise exceptions.ProtocolError("invalid opcode") from exc
 
         if (True if head2 & 0b10000000 else False) != mask:
-            raise ProtocolError("incorrect masking")
+            raise exceptions.ProtocolError("incorrect masking")
 
         length = head2 & 0b01111111
         if length == 126:
@@ -217,7 +217,9 @@ class Frame:
             data = yield from read_exact(8)
             (length,) = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
-            raise PayloadTooBig(f"over size limit ({length} > {max_size} bytes)")
+            raise exceptions.PayloadTooBig(
+                f"over size limit ({length} > {max_size} bytes)"
+            )
         if mask:
             mask_bytes = yield from read_exact(4)
 
@@ -306,13 +308,13 @@ class Frame:
 
         """
         if self.rsv1 or self.rsv2 or self.rsv3:
-            raise ProtocolError("reserved bits must be 0")
+            raise exceptions.ProtocolError("reserved bits must be 0")
 
         if self.opcode in CTRL_OPCODES:
             if len(self.data) > 125:
-                raise ProtocolError("control frame too long")
+                raise exceptions.ProtocolError("control frame too long")
             if not self.fin:
-                raise ProtocolError("fragmented control frame")
+                raise exceptions.ProtocolError("fragmented control frame")
 
 
 def prepare_data(data: Data) -> Tuple[int, bytes]:
@@ -380,7 +382,7 @@ def parse_close(data: bytes) -> Tuple[int, str]:
         return 1005, ""
     else:
         assert length == 1
-        raise ProtocolError("close frame too short")
+        raise exceptions.ProtocolError("close frame too short")
 
 
 def serialize_close(code: int, reason: str) -> bytes:
@@ -403,7 +405,7 @@ def check_close(code: int) -> None:
 
     """
     if not (code in EXTERNAL_CLOSE_CODES or 3000 <= code < 5000):
-        raise ProtocolError("invalid status code")
+        raise exceptions.ProtocolError("invalid status code")
 
 
 def format_close(code: int, reason: str) -> str:
@@ -425,7 +427,3 @@ def format_close(code: int, reason: str) -> str:
         result += "no reason"
 
     return result
-
-
-# at the bottom to allow circular import, because Extension depends on Frame
-from . import extensions  # noqa

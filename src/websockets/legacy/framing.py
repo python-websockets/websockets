@@ -15,8 +15,8 @@ from __future__ import annotations
 import struct
 from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence
 
+from .. import extensions, frames
 from ..exceptions import PayloadTooBig, ProtocolError
-from ..frames import Frame as NewFrame, Opcode
 
 
 try:
@@ -28,15 +28,15 @@ except ImportError:  # pragma: no cover
 class Frame(NamedTuple):
 
     fin: bool
-    opcode: Opcode
+    opcode: frames.Opcode
     data: bytes
     rsv1: bool = False
     rsv2: bool = False
     rsv3: bool = False
 
     @property
-    def new_frame(self) -> NewFrame:
-        return NewFrame(
+    def new_frame(self) -> frames.Frame:
+        return frames.Frame(
             self.opcode,
             self.data,
             self.fin,
@@ -89,7 +89,7 @@ class Frame(NamedTuple):
         rsv3 = True if head1 & 0b00010000 else False
 
         try:
-            opcode = Opcode(head1 & 0b00001111)
+            opcode = frames.Opcode(head1 & 0b00001111)
         except ValueError as exc:
             raise ProtocolError("invalid opcode") from exc
 
@@ -113,7 +113,7 @@ class Frame(NamedTuple):
         if mask:
             data = apply_mask(data, mask_bits)
 
-        new_frame = NewFrame(opcode, data, fin, rsv1, rsv2, rsv3)
+        new_frame = frames.Frame(opcode, data, fin, rsv1, rsv2, rsv3)
 
         if extensions is None:
             extensions = []
@@ -157,9 +157,6 @@ class Frame(NamedTuple):
         # send frames concurrently from multiple coroutines.
         write(self.new_frame.serialize(mask=mask, extensions=extensions))
 
-
-# at the bottom to allow circular import, because Extension depends on Frame
-from .. import extensions  # noqa
 
 # Backwards compatibility with previously documented public APIs
 from ..frames import parse_close  # noqa

@@ -4,8 +4,7 @@ import dataclasses
 import re
 from typing import Callable, Generator, Optional
 
-from .datastructures import Headers
-from .exceptions import SecurityError
+from . import datastructures, exceptions
 
 
 MAX_HEADERS = 256
@@ -50,7 +49,7 @@ class Request:
     """
 
     path: str
-    headers: Headers
+    headers: datastructures.Headers
     # body isn't useful is the context of this library
 
     # If processing the request triggers an exception, it's stored here.
@@ -75,7 +74,7 @@ class Request:
         :param read_line: generator-based coroutine that reads a LF-terminated
             line or raises an exception if there isn't enough data
         :raises EOFError: if the connection is closed without a full HTTP request
-        :raises SecurityError: if the request exceeds a security limit
+        :raises exceptions.SecurityError: if the request exceeds a security limit
         :raises ValueError: if the request isn't well formatted
 
         """
@@ -134,7 +133,7 @@ class Response:
 
     status_code: int
     reason_phrase: str
-    headers: Headers
+    headers: datastructures.Headers
     body: Optional[bytes] = None
 
     # If processing the response triggers an exception, it's stored here.
@@ -162,7 +161,7 @@ class Response:
         :param read_exact: generator-based coroutine that reads the requested
             number of bytes or raises an exception if there isn't enough data
         :raises EOFError: if the connection is closed without a full HTTP response
-        :raises SecurityError: if the response exceeds a security limit
+        :raises exceptions.SecurityError: if the response exceeds a security limit
         :raises LookupError: if the response isn't well formatted
         :raises ValueError: if the response isn't well formatted
 
@@ -242,7 +241,7 @@ class Response:
 
 def parse_headers(
     read_line: Callable[[], Generator[None, None, bytes]]
-) -> Generator[None, None, Headers]:
+) -> Generator[None, None, datastructures.Headers]:
     """
     Parse HTTP headers.
 
@@ -256,7 +255,7 @@ def parse_headers(
 
     # We don't attempt to support obsolete line folding.
 
-    headers = Headers()
+    headers = datastructures.Headers()
     for _ in range(MAX_HEADERS + 1):
         try:
             line = yield from parse_line(read_line)
@@ -280,7 +279,7 @@ def parse_headers(
         headers[name] = value
 
     else:
-        raise SecurityError("too many HTTP headers")
+        raise exceptions.SecurityError("too many HTTP headers")
 
     return headers
 
@@ -301,7 +300,7 @@ def parse_line(
     line = yield from read_line()
     # Security: this guarantees header values are small (hard-coded = 4 KiB)
     if len(line) > MAX_LINE:
-        raise SecurityError("line too long")
+        raise exceptions.SecurityError("line too long")
     # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):
         raise EOFError("line without CRLF")

@@ -17,7 +17,7 @@ from .exceptions import (
     InvalidUpgrade,
     NegotiationError,
 )
-from .extensions.base import Extension, ServerExtensionFactory
+from .extensions import Extension, ServerExtensionFactory
 from .headers import (
     build_extension,
     parse_connection,

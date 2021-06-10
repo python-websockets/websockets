@@ -39,7 +39,7 @@ from ..exceptions import (
     InvalidUpgrade,
     NegotiationError,
 )
-from ..extensions.base import Extension, ServerExtensionFactory
+from ..extensions import Extension, ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
 from ..headers import build_extension, parse_extension, parse_subprotocol
 from ..http import USER_AGENT

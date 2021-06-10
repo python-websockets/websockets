@@ -34,7 +34,7 @@ from ..exceptions import (
     RedirectHandshake,
     SecurityError,
 )
-from ..extensions.base import ClientExtensionFactory, Extension
+from ..extensions import ClientExtensionFactory, Extension
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import (
     build_authorization_basic,

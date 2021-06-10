@@ -13,7 +13,7 @@ from .exceptions import (
     InvalidUpgrade,
     NegotiationError,
 )
-from .extensions.base import ClientExtensionFactory, Extension
+from .extensions import ClientExtensionFactory, Extension
 from .headers import (
     build_authorization_basic,
     build_extension,

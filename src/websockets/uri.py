@@ -7,6 +7,8 @@ See `section 3 of RFC 6455`_.
 
 """
 
+from __future__ import annotations
+
 import dataclasses
 import urllib.parse
 from typing import Optional, Tuple

@@ -3,6 +3,8 @@ Parse and serialize WebSocket frames.
 
 """
 
+from __future__ import annotations
+
 import dataclasses
 import enum
 import io
@@ -170,7 +172,7 @@ class Frame:
         *,
         mask: bool,
         max_size: Optional[int] = None,
-        extensions: Optional[Sequence["extensions.Extension"]] = None,
+        extensions: Optional[Sequence[extensions.Extension]] = None,
     ) -> Generator[None, None, "Frame"]:
         """
         Read a WebSocket frame.
@@ -239,7 +241,7 @@ class Frame:
         self,
         *,
         mask: bool,
-        extensions: Optional[Sequence["extensions.Extension"]] = None,
+        extensions: Optional[Sequence[extensions.Extension]] = None,
     ) -> bytes:
         """
         Write a WebSocket frame.

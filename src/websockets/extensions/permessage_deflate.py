@@ -4,6 +4,8 @@ Extensions for WebSocket as specified in :rfc:`7692`.
 
 """
 
+from __future__ import annotations
+
 import dataclasses
 import zlib
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
@@ -328,7 +330,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
     def process_response_params(
         self,
         params: Sequence[ExtensionParameter],
-        accepted_extensions: Sequence["Extension"],
+        accepted_extensions: Sequence[Extension],
     ) -> PerMessageDeflate:
         """
         Process response parameters.
@@ -510,7 +512,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
     def process_request_params(
         self,
         params: Sequence[ExtensionParameter],
-        accepted_extensions: Sequence["Extension"],
+        accepted_extensions: Sequence[Extension],
     ) -> Tuple[List[ExtensionParameter], PerMessageDeflate]:
         """
         Process request parameters.

@@ -7,6 +7,8 @@ See `sections 4 to 8 of RFC 6455`_.
 
 """
 
+from __future__ import annotations
+
 import asyncio
 import codecs
 import collections

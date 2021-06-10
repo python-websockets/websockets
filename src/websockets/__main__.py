@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import asyncio
 import os
@@ -44,7 +46,8 @@ if sys.platform == "win32":
 
 
 def exit_from_event_loop_thread(
-    loop: asyncio.AbstractEventLoop, stop: "asyncio.Future[None]"
+    loop: asyncio.AbstractEventLoop,
+    stop: asyncio.Future[None],
 ) -> None:
     loop.stop()
     if not stop.done():
@@ -92,8 +95,8 @@ def print_over_input(string: str) -> None:
 async def run_client(
     uri: str,
     loop: asyncio.AbstractEventLoop,
-    inputs: "asyncio.Queue[str]",
-    stop: "asyncio.Future[None]",
+    inputs: asyncio.Queue[str],
+    stop: asyncio.Future[None],
 ) -> None:
     try:
         websocket = await connect(uri)
@@ -183,7 +186,7 @@ def main() -> None:
         return asyncio.Queue()
 
     # Create a queue of user inputs. There's no need to limit its size.
-    inputs: "asyncio.Queue[str]" = loop.run_until_complete(queue_factory())
+    inputs: asyncio.Queue[str] = loop.run_until_complete(queue_factory())
 
     # Create a stop condition when receiving SIGINT or SIGTERM.
     stop: asyncio.Future[None] = loop.create_future()

@@ -10,6 +10,8 @@ See `section 5 of RFC 6455`_.
 
 """
 
+from __future__ import annotations
+
 import struct
 from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence
 
@@ -56,7 +58,7 @@ class Frame(NamedTuple):
         *,
         mask: bool,
         max_size: Optional[int] = None,
-        extensions: Optional[Sequence["extensions.Extension"]] = None,
+        extensions: Optional[Sequence[extensions.Extension]] = None,
     ) -> "Frame":
         """
         Read a WebSocket frame.
@@ -134,7 +136,7 @@ class Frame(NamedTuple):
         write: Callable[[bytes], Any],
         *,
         mask: bool,
-        extensions: Optional[Sequence["extensions.Extension"]] = None,
+        extensions: Optional[Sequence[extensions.Extension]] = None,
     ) -> None:
         """
         Write a WebSocket frame.

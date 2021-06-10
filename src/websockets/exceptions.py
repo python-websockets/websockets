@@ -28,6 +28,8 @@
 
 """
 
+from __future__ import annotations
+
 import http
 from typing import Optional
 
@@ -198,7 +200,7 @@ class InvalidStatus(InvalidHandshake):
 
     """
 
-    def __init__(self, response: "Response") -> None:
+    def __init__(self, response: Response) -> None:
         self.response = response
         message = f"server rejected WebSocket connection: HTTP {response.status_code:d}"
         super().__init__(message)

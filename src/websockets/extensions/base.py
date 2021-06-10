@@ -8,6 +8,8 @@ See `section 9 of RFC 6455`_.
 
 """
 
+from __future__ import annotations
+
 from typing import List, Optional, Sequence, Tuple
 
 from ..frames import Frame

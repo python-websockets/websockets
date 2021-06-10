@@ -3,6 +3,8 @@
 
 """
 
+from __future__ import annotations
+
 import asyncio
 import collections.abc
 import email.utils
@@ -169,8 +171,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def __init__(
         self,
-        ws_handler: Callable[["WebSocketServerProtocol", str], Awaitable[Any]],
-        ws_server: "WebSocketServer",
+        ws_handler: Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
+        ws_server: WebSocketServer,
         *,
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,

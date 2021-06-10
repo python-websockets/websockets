@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import collections
 from typing import Generator, List, Optional, Sequence
 

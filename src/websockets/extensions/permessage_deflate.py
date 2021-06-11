@@ -10,14 +10,7 @@ import dataclasses
 import zlib
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
-from .. import frames
-from ..exceptions import (
-    DuplicateParameter,
-    InvalidParameterName,
-    InvalidParameterValue,
-    NegotiationError,
-    PayloadTooBig,
-)
+from .. import exceptions, frames
 from ..typing import ExtensionName, ExtensionParameter
 from .base import ClientExtensionFactory, Extension, ServerExtensionFactory
 
@@ -140,7 +133,7 @@ class PerMessageDeflate(Extension):
         max_length = 0 if max_size is None else max_size
         data = self.decoder.decompress(data, max_length)
         if self.decoder.unconsumed_tail:
-            raise PayloadTooBig(f"over size limit (? > {max_size} bytes)")
+            raise exceptions.PayloadTooBig(f"over size limit (? > {max_size} bytes)")
 
         # Allow garbage collection of the decoder if it won't be reused.
         if frame.fin and self.remote_no_context_takeover:
@@ -224,40 +217,40 @@ def _extract_parameters(
 
         if name == "server_no_context_takeover":
             if server_no_context_takeover:
-                raise DuplicateParameter(name)
+                raise exceptions.DuplicateParameter(name)
             if value is None:
                 server_no_context_takeover = True
             else:
-                raise InvalidParameterValue(name, value)
+                raise exceptions.InvalidParameterValue(name, value)
 
         elif name == "client_no_context_takeover":
             if client_no_context_takeover:
-                raise DuplicateParameter(name)
+                raise exceptions.DuplicateParameter(name)
             if value is None:
                 client_no_context_takeover = True
             else:
-                raise InvalidParameterValue(name, value)
+                raise exceptions.InvalidParameterValue(name, value)
 
         elif name == "server_max_window_bits":
             if server_max_window_bits is not None:
-                raise DuplicateParameter(name)
+                raise exceptions.DuplicateParameter(name)
             if value in _MAX_WINDOW_BITS_VALUES:
                 server_max_window_bits = int(value)
             else:
-                raise InvalidParameterValue(name, value)
+                raise exceptions.InvalidParameterValue(name, value)
 
         elif name == "client_max_window_bits":
             if client_max_window_bits is not None:
-                raise DuplicateParameter(name)
+                raise exceptions.DuplicateParameter(name)
             if is_server and value is None:  # only in handshake requests
                 client_max_window_bits = True
             elif value in _MAX_WINDOW_BITS_VALUES:
                 client_max_window_bits = int(value)
             else:
-                raise InvalidParameterValue(name, value)
+                raise exceptions.InvalidParameterValue(name, value)
 
         else:
-            raise InvalidParameterName(name)
+            raise exceptions.InvalidParameterName(name)
 
     return (
         server_no_context_takeover,
@@ -344,7 +337,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
         """
         if any(other.name == self.name for other in accepted_extensions):
-            raise NegotiationError(f"received duplicate {self.name}")
+            raise exceptions.NegotiationError(f"received duplicate {self.name}")
 
         # Request parameters are available in instance variables.
 
@@ -370,7 +363,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
         if self.server_no_context_takeover:
             if not server_no_context_takeover:
-                raise NegotiationError("expected server_no_context_takeover")
+                raise exceptions.NegotiationError("expected server_no_context_takeover")
 
         # client_no_context_takeover
         #
@@ -400,9 +393,9 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
         else:
             if server_max_window_bits is None:
-                raise NegotiationError("expected server_max_window_bits")
+                raise exceptions.NegotiationError("expected server_max_window_bits")
             elif server_max_window_bits > self.server_max_window_bits:
-                raise NegotiationError("unsupported server_max_window_bits")
+                raise exceptions.NegotiationError("unsupported server_max_window_bits")
 
         # client_max_window_bits
 
@@ -418,7 +411,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
         if self.client_max_window_bits is None:
             if client_max_window_bits is not None:
-                raise NegotiationError("unexpected client_max_window_bits")
+                raise exceptions.NegotiationError("unexpected client_max_window_bits")
 
         elif self.client_max_window_bits is True:
             pass
@@ -427,7 +420,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
             if client_max_window_bits is None:
                 client_max_window_bits = self.client_max_window_bits
             elif client_max_window_bits > self.client_max_window_bits:
-                raise NegotiationError("unsupported client_max_window_bits")
+                raise exceptions.NegotiationError("unsupported client_max_window_bits")
 
         return PerMessageDeflate(
             server_no_context_takeover,  # remote_no_context_takeover
@@ -526,7 +519,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
         """
         if any(other.name == self.name for other in accepted_extensions):
-            raise NegotiationError(f"skipped duplicate {self.name}")
+            raise exceptions.NegotiationError(f"skipped duplicate {self.name}")
 
         # Load request parameters in local variables.
         (
@@ -604,7 +597,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
         else:
             if client_max_window_bits is None:
-                raise NegotiationError("required client_max_window_bits")
+                raise exceptions.NegotiationError("required client_max_window_bits")
             elif client_max_window_bits is True:
                 client_max_window_bits = self.client_max_window_bits
             elif self.client_max_window_bits < client_max_window_bits:

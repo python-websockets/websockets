@@ -11,7 +11,7 @@ import binascii
 import re
 from typing import Callable, List, Optional, Sequence, Tuple, TypeVar, cast
 
-from .exceptions import InvalidHeaderFormat, InvalidHeaderValue
+from . import exceptions
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
@@ -87,7 +87,7 @@ def parse_token(header: str, pos: int, header_name: str) -> Tuple[str, int]:
     """
     match = _token_re.match(header, pos)
     if match is None:
-        raise InvalidHeaderFormat(header_name, "expected token", header, pos)
+        raise exceptions.InvalidHeaderFormat(header_name, "expected token", header, pos)
     return match.group(), match.end()
 
 
@@ -110,7 +110,9 @@ def parse_quoted_string(header: str, pos: int, header_name: str) -> Tuple[str, i
     """
     match = _quoted_string_re.match(header, pos)
     if match is None:
-        raise InvalidHeaderFormat(header_name, "expected quoted string", header, pos)
+        raise exceptions.InvalidHeaderFormat(
+            header_name, "expected quoted string", header, pos
+        )
     return _unquote_re.sub(r"\1", match.group()[1:-1]), match.end()
 
 
@@ -181,7 +183,9 @@ def parse_list(
         if peek_ahead(header, pos) == ",":
             pos = parse_OWS(header, pos + 1)
         else:
-            raise InvalidHeaderFormat(header_name, "expected comma", header, pos)
+            raise exceptions.InvalidHeaderFormat(
+                header_name, "expected comma", header, pos
+            )
 
         # Remove extra delimiters before the next item.
         while peek_ahead(header, pos) == ",":
@@ -244,7 +248,9 @@ def parse_upgrade_protocol(
     """
     match = _protocol_re.match(header, pos)
     if match is None:
-        raise InvalidHeaderFormat(header_name, "expected protocol", header, pos)
+        raise exceptions.InvalidHeaderFormat(
+            header_name, "expected protocol", header, pos
+        )
     return cast(UpgradeProtocol, match.group()), match.end()
 
 
@@ -285,7 +291,7 @@ def parse_extension_item_param(
             # https://tools.ietf.org/html/rfc6455#section-9.1 says: the value
             # after quoted-string unescaping MUST conform to the 'token' ABNF.
             if _token_re.fullmatch(value) is None:
-                raise InvalidHeaderFormat(
+                raise exceptions.InvalidHeaderFormat(
                     header_name, "invalid quoted header content", header, pos_before
                 )
         else:
@@ -451,7 +457,9 @@ def parse_token68(header: str, pos: int, header_name: str) -> Tuple[str, int]:
     """
     match = _token68_re.match(header, pos)
     if match is None:
-        raise InvalidHeaderFormat(header_name, "expected token68", header, pos)
+        raise exceptions.InvalidHeaderFormat(
+            header_name, "expected token68", header, pos
+        )
     return match.group(), match.end()
 
 
@@ -461,7 +469,7 @@ def parse_end(header: str, pos: int, header_name: str) -> None:
 
     """
     if pos < len(header):
-        raise InvalidHeaderFormat(header_name, "trailing data", header, pos)
+        raise exceptions.InvalidHeaderFormat(header_name, "trailing data", header, pos)
 
 
 def parse_authorization_basic(header: str) -> Tuple[str, str]:
@@ -479,9 +487,12 @@ def parse_authorization_basic(header: str) -> Tuple[str, str]:
     # https://tools.ietf.org/html/rfc7617#section-2
     scheme, pos = parse_token(header, 0, "Authorization")
     if scheme.lower() != "basic":
-        raise InvalidHeaderValue("Authorization", f"unsupported scheme: {scheme}")
+        raise exceptions.InvalidHeaderValue(
+            "Authorization",
+            f"unsupported scheme: {scheme}",
+        )
     if peek_ahead(header, pos) != " ":
-        raise InvalidHeaderFormat(
+        raise exceptions.InvalidHeaderFormat(
             "Authorization", "expected space after scheme", header, pos
         )
     pos += 1
@@ -491,14 +502,16 @@ def parse_authorization_basic(header: str) -> Tuple[str, str]:
     try:
         user_pass = base64.b64decode(basic_credentials.encode()).decode()
     except binascii.Error:
-        raise InvalidHeaderValue(
-            "Authorization", "expected base64-encoded credentials"
+        raise exceptions.InvalidHeaderValue(
+            "Authorization",
+            "expected base64-encoded credentials",
         ) from None
     try:
         username, password = user_pass.split(":", 1)
     except ValueError:
-        raise InvalidHeaderValue(
-            "Authorization", "expected username:password credentials"
+        raise exceptions.InvalidHeaderValue(
+            "Authorization",
+            "expected username:password credentials",
         ) from None
 
     return username, password

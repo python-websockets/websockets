@@ -12,7 +12,6 @@ from __future__ import annotations
 import asyncio
 import codecs
 import collections
-import enum
 import logging
 import random
 import struct
@@ -33,6 +32,7 @@ from typing import (
     cast,
 )
 
+from ..connection import State
 from ..datastructures import Headers
 from ..exceptions import (
     ConnectionClosed,
@@ -62,13 +62,6 @@ from .framing import Frame
 
 
 __all__ = ["WebSocketCommonProtocol"]
-
-
-# A WebSocket connection goes through the following four states, in order:
-
-
-class State(enum.IntEnum):
-    CONNECTING, OPEN, CLOSING, CLOSED = range(4)
 
 
 # In order to ensure consistency, the code always checks the current value of

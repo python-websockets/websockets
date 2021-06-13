@@ -12,3 +12,4 @@ Topics
    design
    memory
    security
+   performance

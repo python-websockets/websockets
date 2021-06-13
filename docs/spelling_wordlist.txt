@@ -73,6 +73,7 @@ unregister
 uple
 username
 uvicorn
+uvloop
 virtualenv
 WebSocket
 websocket

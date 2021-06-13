@@ -18,7 +18,7 @@ from websockets.frames import (
 )
 from websockets.legacy.compatibility import loop_if_py_lt_38
 from websockets.legacy.framing import Frame
-from websockets.legacy.protocol import WebSocketCommonProtocol
+from websockets.legacy.protocol import WebSocketCommonProtocol, broadcast
 
 from .utils import MS, AsyncioTestCase
 
@@ -1387,6 +1387,52 @@ class CommonTests:
 
     # There is no test_local_close_during_send because this cannot really
     # happen, considering that writes are serialized.
+
+    def test_broadcast_text(self):
+        broadcast([self.protocol], "café")
+        self.assertOneFrameSent(True, OP_TEXT, "café".encode("utf-8"))
+
+    def test_broadcast_binary(self):
+        broadcast([self.protocol], b"tea")
+        self.assertOneFrameSent(True, OP_BINARY, b"tea")
+
+    def test_broadcast_type_error(self):
+        with self.assertRaises(TypeError):
+            broadcast([self.protocol], ["ca", "fé"])
+
+    def test_broadcast_no_clients(self):
+        broadcast([], "café")
+        self.assertNoFrameSent()
+
+    def test_broadcast_two_clients(self):
+        broadcast([self.protocol, self.protocol], "café")
+        self.assertFramesSent(
+            (True, OP_TEXT, "café".encode("utf-8")),
+            (True, OP_TEXT, "café".encode("utf-8")),
+        )
+
+    def test_broadcast_skips_closed_connection(self):
+        self.close_connection()
+
+        broadcast([self.protocol], "café")
+        self.assertNoFrameSent()
+
+    def test_broadcast_skips_closing_connection(self):
+        close_task = self.half_close_connection_local()
+
+        broadcast([self.protocol], "café")
+        self.assertNoFrameSent()
+
+        self.loop.run_until_complete(close_task)  # cleanup
+
+    def test_broadcast_within_fragmented_text(self):
+        self.make_drain_slow()
+        self.loop.create_task(self.protocol.send(["ca", "fé"]))
+        self.run_loop_once()
+        self.assertOneFrameSent(False, OP_TEXT, "ca".encode("utf-8"))
+
+        with self.assertRaises(RuntimeError):
+            broadcast([self.protocol], "café")
 
 
 class ServerTests(CommonTests, AsyncioTestCase):

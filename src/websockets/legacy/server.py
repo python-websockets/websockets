@@ -836,8 +836,8 @@ class WebSocketServer:
         await asyncio.sleep(0, **loop_if_py_lt_38(self.loop))
 
         # Close OPEN connections with status code 1001. Since the server was
-        # closed, handshake() closes OPENING conections with a HTTP 503 error.
-        # Wait until all connections are closed.
+        # closed, handshake() closes OPENING connections with a HTTP 503
+        # error. Wait until all connections are closed.
 
         # asyncio.wait doesn't accept an empty first argument
         if self.websockets:

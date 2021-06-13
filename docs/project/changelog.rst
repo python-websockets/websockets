@@ -51,6 +51,8 @@ They may change at any time.
 
 * Added compatibility with Python 3.10.
 
+* Added :func:`~websockets.broadcast` to send a message to many clients.
+
 * Added support for reconnecting automatically by using
   :func:`~legacy.client.connect` as an asynchronous iterator.
 

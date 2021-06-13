@@ -61,7 +61,7 @@ from .compatibility import loop_if_py_lt_38
 from .framing import Frame
 
 
-__all__ = ["WebSocketCommonProtocol"]
+__all__ = ["WebSocketCommonProtocol", "broadcast"]
 
 
 # In order to ensure consistency, the code always checks the current value of
@@ -974,15 +974,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             self.logger.debug("< %s", frame)
         return frame
 
-    async def write_frame(
-        self, fin: bool, opcode: int, data: bytes, *, _expected_state: int = State.OPEN
-    ) -> None:
-        # Defensive assertion for protocol compliance.
-        if self.state is not _expected_state:  # pragma: no cover
-            raise InvalidState(
-                f"Cannot write to a WebSocket in the {self.state.name} state"
-            )
-
+    def write_frame_sync(self, fin: bool, opcode: int, data: bytes) -> None:
         frame = Frame(fin, Opcode(opcode), data)
         if self.debug:
             self.logger.debug("> %s", frame)
@@ -992,6 +984,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             extensions=self.extensions,
         )
 
+    async def drain(self) -> None:
         try:
             # drain() cannot be called concurrently by multiple coroutines:
             # http://bugs.python.org/issue29930. Remove this lock when no
@@ -1005,6 +998,17 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # Wait until the connection is closed to raise ConnectionClosed
             # with the correct code and reason.
             await self.ensure_open()
+
+    async def write_frame(
+        self, fin: bool, opcode: int, data: bytes, *, _state: int = State.OPEN
+    ) -> None:
+        # Defensive assertion for protocol compliance.
+        if self.state is not _state:  # pragma: no cover
+            raise InvalidState(
+                f"Cannot write to a WebSocket in the {self.state.name} state"
+            )
+        self.write_frame_sync(fin, opcode, data)
+        await self.drain()
 
     async def write_close_frame(self, data: bytes = b"") -> None:
         """
@@ -1023,7 +1027,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 self.logger.debug("= connection is CLOSING")
 
             # 7.1.2. Start the WebSocket Closing Handshake
-            await self.write_frame(True, OP_CLOSE, data, _expected_state=State.CLOSING)
+            await self.write_frame(True, OP_CLOSE, data, _state=State.CLOSING)
 
     async def keepalive_ping(self) -> None:
         """
@@ -1371,3 +1375,50 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         """
         self.reader.feed_eof()
+
+
+def broadcast(websockets: Iterable[WebSocketCommonProtocol], message: Data) -> None:
+    """
+    Broadcast a message to several WebSocket connections.
+
+    A string (:class:`str`) is sent as a `Text frame`_. A bytestring or
+    bytes-like object (:class:`bytes`, :class:`bytearray`, or
+    :class:`memoryview`) is sent as a `Binary frame`_.
+
+    .. _Text frame: https://tools.ietf.org/html/rfc6455#section-5.6
+    .. _Binary frame: https://tools.ietf.org/html/rfc6455#section-5.6
+
+    :func:`broadcast` pushes the message synchronously to all connections even
+    if their write buffers overflow ``write_limit``. There's no backpressure.
+
+    :func:`broadcast` skips silently connections that aren't open in order to
+    avoid errors on connections where the closing handshake is in progress.
+
+    If you broadcast messages faster than a connection can handle them,
+    messages will pile up in its write buffer until the connection times out.
+    Keep low values for ``ping_interval`` and ``ping_timeout`` to prevent
+    excessive memory use by slow connections when you use :func:`broadcast`.
+
+    Unlike :meth:`~websockets.server.WebSocketServerProtocol.send`,
+    :func:`broadcast` doesn't support sending fragmented messages. Indeed,
+    fragmentation is useful for sending large messages without buffering
+    them in memory, while :func:`broadcast` buffers one copy per connection
+    as fast as possible.
+
+    :raises RuntimeError: if a connection is busy sending a fragmented message
+    :raises TypeError: for unsupported inputs
+
+    """
+    if not isinstance(message, (str, bytes, bytearray, memoryview)):
+        raise TypeError("data must be bytes, str, or iterable")
+
+    opcode, data = prepare_data(message)
+
+    for websocket in websockets:
+        if websocket.state is not State.OPEN:
+            continue
+
+        if websocket._fragmented_message_waiter is not None:
+            raise RuntimeError("busy sending a fragmented message")
+
+        websocket.write_frame_sync(True, opcode, data)

@@ -55,9 +55,12 @@ async def process_events():
         payload = message["data"].decode()
         # Broadcast event to all users who have permissions to see it.
         event = json.loads(payload)
-        for websocket, connection in CONNECTIONS.items():
-            if event["content_type_id"] in connection["content_type_ids"]:
-                asyncio.create_task(websocket.send(payload))
+        recipients = (
+            websocket
+            for websocket, connection in CONNECTIONS.items()
+            if event["content_type_id"] in connection["content_type_ids"]
+        )
+        websockets.broadcast(recipients, payload)
 
 
 async def main():

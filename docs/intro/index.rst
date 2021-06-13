@@ -181,7 +181,7 @@ unregister them when they disconnect.
         connected.add(websocket)
         try:
             # Broadcast a message to all connected clients.
-            await asyncio.wait([ws.send("Hello!") for ws in connected])
+            websockets.broadcast(connected, "Hello!")
             await asyncio.sleep(10)
         finally:
             # Unregister.

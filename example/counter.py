@@ -22,23 +22,11 @@ def users_event():
     return json.dumps({"type": "users", "count": len(USERS)})
 
 
-async def broadcast(message):
-    # asyncio.wait doesn't accept an empty list
-    if not USERS:
-        return
-    # Ignore return value. If a user disconnects before we send
-    # the message to them, there's nothing we can do anyway.
-    await asyncio.wait([
-        asyncio.create_task(user.send(message))
-        for user in USERS
-    ])
-
-
 async def counter(websocket, path):
     try:
         # Register user
         USERS.add(websocket)
-        await broadcast(users_event())
+        websockets.broadcast(USERS, users_event())
         # Send current state to user
         await websocket.send(state_event())
         # Manage state changes
@@ -46,16 +34,16 @@ async def counter(websocket, path):
             data = json.loads(message)
             if data["action"] == "minus":
                 STATE["value"] -= 1
-                await broadcast(state_event())
+                websockets.broadcast(USERS, state_event())
             elif data["action"] == "plus":
                 STATE["value"] += 1
-                await broadcast(state_event())
+                websockets.broadcast(USERS, state_event())
             else:
                 logging.error("unsupported event: %s", data)
     finally:
         # Unregister user
         USERS.remove(websocket)
-        await broadcast(users_event())
+        websockets.broadcast(USERS, users_event())
 
 
 async def main():

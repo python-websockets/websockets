@@ -126,6 +126,21 @@ class HeadersTests(unittest.TestCase):
                 with self.assertRaises(InvalidHeaderFormat):
                     parse_subprotocol(header)
 
+    def test_validate_subprotocols(self):
+        for subprotocols in [[], ["sip"], ["v1.usp"], ["sip", "v1.usp"]]:
+            with self.subTest(subprotocols=subprotocols):
+                validate_subprotocols(subprotocols)
+
+    def test_validate_subprotocols_invalid(self):
+        for subprotocols, exception in [
+            ({"sip": None}, TypeError),
+            ("sip", TypeError),
+            ([""], ValueError),
+        ]:
+            with self.subTest(subprotocols=subprotocols):
+                with self.assertRaises(exception):
+                    validate_subprotocols(subprotocols)
+
     def test_build_www_authenticate_basic(self):
         # Test vector from RFC 7617
         self.assertEqual(

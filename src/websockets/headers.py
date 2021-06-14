@@ -29,6 +29,7 @@ __all__ = [
     "build_extension",
     "parse_subprotocol",
     "build_subprotocol",
+    "validate_subprotocols",
     "build_www_authenticate_basic",
     "parse_authorization_basic",
     "build_authorization_basic",
@@ -417,17 +418,31 @@ def parse_subprotocol(header: str) -> List[Subprotocol]:
 parse_subprotocol_list = parse_subprotocol  # alias for backwards compatibility
 
 
-def build_subprotocol(protocols: Sequence[Subprotocol]) -> str:
+def build_subprotocol(subprotocols: Sequence[Subprotocol]) -> str:
     """
     Build a ``Sec-WebSocket-Protocol`` header.
 
     This is the reverse of :func:`parse_subprotocol`.
 
     """
-    return ", ".join(protocols)
+    return ", ".join(subprotocols)
 
 
 build_subprotocol_list = build_subprotocol  # alias for backwards compatibility
+
+
+def validate_subprotocols(subprotocols: Sequence[Subprotocol]) -> None:
+    """
+    Validate that ``subprotocols`` is suitable for :func:`build_subprotocol`.
+
+    """
+    if not isinstance(subprotocols, Sequence):
+        raise TypeError("subprotocols must be a list")
+    if isinstance(subprotocols, str):
+        raise TypeError("subprotocols must be a list, not a str")
+    for subprotocol in subprotocols:
+        if not _token_re.fullmatch(subprotocol):
+            raise ValueError(f"invalid subprotocol: {subprotocol}")
 
 
 def build_www_authenticate_basic(realm: str) -> str:

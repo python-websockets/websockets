@@ -1013,6 +1013,15 @@ class CommonClientServerTests:
         self.assertEqual(server_subprotocol, repr("chat"))
         self.assertEqual(self.client.subprotocol, "chat")
 
+    def test_invalid_subprotocol_server(self):
+        with self.assertRaises(TypeError):
+            self.start_server(subprotocols="sip")
+
+    @with_server()
+    def test_invalid_subprotocol_client(self):
+        with self.assertRaises(TypeError):
+            self.start_client(subprotocols="sip")
+
     @with_server(subprotocols=["superchat"])
     @with_client("/subprotocol", subprotocols=["otherchat"])
     def test_subprotocol_not_accepted(self):

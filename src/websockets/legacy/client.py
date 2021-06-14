@@ -42,6 +42,7 @@ from ..headers import (
     build_subprotocol,
     parse_extension,
     parse_subprotocol,
+    validate_subprotocols,
 )
 from ..http import USER_AGENT, build_host
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
@@ -558,6 +559,9 @@ class Connect:
             extensions = enable_client_permessage_deflate(extensions)
         elif compression is not None:
             raise ValueError(f"unsupported compression: {compression}")
+
+        if subprotocols is not None:
+            validate_subprotocols(subprotocols)
 
         factory = functools.partial(
             create_protocol,

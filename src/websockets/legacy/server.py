@@ -41,7 +41,12 @@ from ..exceptions import (
 )
 from ..extensions import Extension, ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
-from ..headers import build_extension, parse_extension, parse_subprotocol
+from ..headers import (
+    build_extension,
+    parse_extension,
+    parse_subprotocol,
+    validate_subprotocols,
+)
 from ..http import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from .compatibility import loop_if_py_lt_38
@@ -1041,6 +1046,9 @@ class Serve:
             extensions = enable_server_permessage_deflate(extensions)
         elif compression is not None:
             raise ValueError(f"unsupported compression: {compression}")
+
+        if subprotocols is not None:
+            validate_subprotocols(subprotocols)
 
         factory = functools.partial(
             create_protocol,

@@ -372,17 +372,7 @@ def parse_close(data: bytes) -> Tuple[int, str]:
     :raises UnicodeDecodeError: if the reason isn't valid UTF-8
 
     """
-    length = len(data)
-    if length >= 2:
-        (code,) = struct.unpack("!H", data[:2])
-        check_close(code)
-        reason = data[2:].decode("utf-8")
-        return code, reason
-    elif length == 0:
-        return 1005, ""
-    else:
-        assert length == 1
-        raise exceptions.ProtocolError("close frame too short")
+    return dataclasses.astuple(Close.parse(data))  # type: ignore
 
 
 def serialize_close(code: int, reason: str) -> bytes:
@@ -392,20 +382,7 @@ def serialize_close(code: int, reason: str) -> bytes:
     This is the reverse of :func:`parse_close`.
 
     """
-    check_close(code)
-    return struct.pack("!H", code) + reason.encode("utf-8")
-
-
-def check_close(code: int) -> None:
-    """
-    Check that the close code has an acceptable value for a close frame.
-
-    :raises ~websockets.exceptions.ProtocolError: if the close code
-        is invalid
-
-    """
-    if not (code in EXTERNAL_CLOSE_CODES or 3000 <= code < 5000):
-        raise exceptions.ProtocolError("invalid status code")
+    return Close(code, reason).serialize()
 
 
 def format_close(code: int, reason: str) -> str:
@@ -413,17 +390,76 @@ def format_close(code: int, reason: str) -> str:
     Display a human-readable version of the close code and reason.
 
     """
-    if 3000 <= code < 4000:
-        explanation = "registered"
-    elif 4000 <= code < 5000:
-        explanation = "private use"
-    else:
-        explanation = CLOSE_CODES.get(code, "unknown")
-    result = f"code = {code} ({explanation}), "
+    return str(Close(code, reason))
 
-    if reason:
-        result += f"reason = {reason}"
-    else:
-        result += "no reason"
 
-    return result
+@dataclasses.dataclass
+class Close:
+    """
+    WebSocket close code and reason.
+
+    """
+
+    code: int
+    reason: str
+
+    def __str__(self) -> str:
+        """
+        Return a human-readable represention of a close code and reason.
+
+        """
+        if 3000 <= self.code < 4000:
+            explanation = "registered"
+        elif 4000 <= self.code < 5000:
+            explanation = "private use"
+        else:
+            explanation = CLOSE_CODES.get(self.code, "unknown")
+        result = f"code = {self.code} ({explanation}), "
+
+        if self.reason:
+            result += f"reason = {self.reason}"
+        else:
+            result += "no reason"
+
+        return result
+
+    @classmethod
+    def parse(cls, data: bytes) -> Close:
+        """
+        Parse the payload of a close frame.
+
+        :raises ~websockets.exceptions.ProtocolError: if data is ill-formed
+        :raises UnicodeDecodeError: if the reason isn't valid UTF-8
+
+        """
+        if len(data) >= 2:
+            (code,) = struct.unpack("!H", data[:2])
+            reason = data[2:].decode("utf-8")
+            close = cls(code, reason)
+            close.check()
+            return close
+        elif len(data) == 0:
+            return cls(1005, "")
+        else:
+            raise exceptions.ProtocolError("close frame too short")
+
+    def serialize(self) -> bytes:
+        """
+        Serialize the payload for a close frame.
+
+        This is the reverse of :meth:`parse`.
+
+        """
+        self.check()
+        return struct.pack("!H", self.code) + self.reason.encode("utf-8")
+
+    def check(self) -> None:
+        """
+        Check that the close code has a valid value for a close frame.
+
+        :raises ~websockets.exceptions.ProtocolError: if the close code
+            is invalid
+
+        """
+        if not (self.code in EXTERNAL_CLOSE_CODES or 3000 <= self.code < 5000):
+            raise exceptions.ProtocolError("invalid status code")

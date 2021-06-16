@@ -386,6 +386,20 @@ class CommonTests:
         self.close_connection()
         self.assertTrue(wait_closed.done())
 
+    def test_close_code(self):
+        self.close_connection(1001, "Bye!")
+        self.assertEqual(self.protocol.close_code, 1001)
+
+    def test_close_reason(self):
+        self.close_connection(1001, "Bye!")
+        self.assertEqual(self.protocol.close_reason, "Bye!")
+
+    def test_close_code_not_set(self):
+        self.assertIsNone(self.protocol.close_code)
+
+    def test_close_reason_not_set(self):
+        self.assertIsNone(self.protocol.close_reason)
+
     # Test the recv coroutine.
 
     def test_recv_text(self):

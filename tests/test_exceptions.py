@@ -2,6 +2,7 @@ import unittest
 
 from websockets.datastructures import Headers
 from websockets.exceptions import *
+from websockets.frames import Close
 
 
 class ExceptionsTests(unittest.TestCase):
@@ -13,28 +14,36 @@ class ExceptionsTests(unittest.TestCase):
                 "something went wrong",
             ),
             (
-                ConnectionClosed(1000, ""),
-                "1000 (OK)",
+                ConnectionClosed(Close(1000, ""), Close(1000, ""), True),
+                "received 1000 (OK); then sent 1000 (OK)",
             ),
             (
-                ConnectionClosed(1006, None),
-                "1006 (connection closed abnormally [internal])"
+                ConnectionClosed(Close(1001, "Bye!"), Close(1001, "Bye!"), False),
+                "sent 1001 (going away) Bye!; then received 1001 (going away) Bye!",
             ),
             (
-                ConnectionClosed(3000, None),
-                "3000 (registered)"
+                ConnectionClosed(Close(1000, "race"), Close(1000, "cond"), True),
+                "received 1000 (OK) race; then sent 1000 (OK) cond",
             ),
             (
-                ConnectionClosed(4000, None),
-                "4000 (private use)"
+                ConnectionClosed(Close(1000, "cond"), Close(1000, "race"), False),
+                "sent 1000 (OK) race; then received 1000 (OK) cond",
             ),
             (
-                ConnectionClosedError(1016, None),
-                "1016 (unknown)"
+                ConnectionClosed(None, Close(1009, ""), None),
+                "sent 1009 (message too big); no close frame received",
             ),
             (
-                ConnectionClosedOK(1001, "bye"),
-                "1001 (going away) bye",
+                ConnectionClosed(Close(1002, ""), None, None),
+                "received 1002 (protocol error); no close frame sent",
+            ),
+            (
+                ConnectionClosedOK(Close(1000, ""), Close(1000, ""), True),
+                "received 1000 (OK); then sent 1000 (OK)",
+            ),
+            (
+                ConnectionClosedError(None, None, None),
+                "no close frame received or sent"
             ),
             (
                 InvalidHandshake("invalid request"),

@@ -405,8 +405,15 @@ class CloseTests(unittest.TestCase):
         parsed = Close.parse(data)
         self.assertEqual(parsed, close)
 
+    def test_str(self):
+        self.assertEqual(str(Close(1000, "")), "1000 (OK)")
+        self.assertEqual(str(Close(1001, "Bye!")), "1001 (going away) Bye!")
+        self.assertEqual(str(Close(3000, "")), "3000 (registered)")
+        self.assertEqual(str(Close(4000, "")), "4000 (private use)")
+        self.assertEqual(str(Close(5000, "")), "5000 (unknown)")
+
     def test_parse_and_serialize(self):
-        self.assertCloseData(Close(1000, ""), b"\x03\xe8")
+        self.assertCloseData(Close(1001, ""), b"\x03\xe9")
         self.assertCloseData(Close(1000, "OK"), b"\x03\xe8OK")
 
     def test_parse_empty(self):

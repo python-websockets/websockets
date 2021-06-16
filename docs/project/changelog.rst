@@ -49,6 +49,13 @@ They may change at any time.
     This reflects a decision made in Python 3.8. See the release notes of
     Python 3.10 for details.
 
+.. note::
+
+    **Version 10.0 changes parameters of** ``ConnectionClosed.__init__`` **.**
+
+    If you raise :exc:`~exceptions.ConnectionClosed` or a subclass — rather
+    than catch them when websockets raises them — you must change your code.
+
 * Added compatibility with Python 3.10.
 
 * Added :func:`~websockets.broadcast` to send a message to many clients.
@@ -59,6 +66,8 @@ They may change at any time.
 * Added ``open_timeout`` to :func:`~legacy.client.connect`.
 
 * Improved logging.
+
+* Provided additional information in :exc:`ConnectionClosed` exceptions.
 
 * Optimized default compression settings to reduce memory usage.
 

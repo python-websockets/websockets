@@ -143,6 +143,7 @@ async def run_client(
 
     finally:
         await websocket.close()
+        assert websocket.close_code is not None and websocket.close_reason is not None
         close_status = Close(websocket.close_code, websocket.close_reason)
 
         print_over_input(f"Connection closed: {close_status}.")

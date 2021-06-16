@@ -93,18 +93,20 @@ EXTERNAL_CLOSE_CODES = {
     1014,
 }
 
+OK_CLOSE_CODES = {1000, 1001}
+
 
 @dataclasses.dataclass
 class Frame:
     """
     WebSocket frame.
 
+    :param int opcode: opcode
+    :param bytes data: payload data
     :param bool fin: FIN bit
     :param bool rsv1: RSV1 bit
     :param bool rsv2: RSV2 bit
     :param bool rsv3: RSV3 bit
-    :param int opcode: opcode
-    :param bytes data: payload data
 
     Only these fields are needed. The MASK bit, payload length and masking-key
     are handled on the fly by :meth:`parse` and :meth:`serialize`.

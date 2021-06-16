@@ -244,8 +244,8 @@ See `issue 867`_.
 Both sides
 ----------
 
-What does ``ConnectionClosedError: code = 1006`` mean?
-......................................................
+What does ``ConnectionClosedError: no close frame received or sent`` mean?
+..........................................................................
 
 If you're seeing this traceback in the logs of a server:
 
@@ -260,7 +260,7 @@ If you're seeing this traceback in the logs of a server:
 
     Traceback (most recent call last):
       ...
-    websockets.exceptions.ConnectionClosedError: code = 1006 (connection closed abnormally [internal]), no reason
+    websockets.exceptions.ConnectionClosedError: no close frame received or sent
 
 or if a client crashes with this traceback:
 
@@ -274,10 +274,11 @@ or if a client crashes with this traceback:
 
     Traceback (most recent call last):
       ...
-    websockets.exceptions.ConnectionClosedError: code = 1006 (connection closed abnormally [internal]), no reason
+    websockets.exceptions.ConnectionClosedError: no close frame received or sent
 
 it means that the TCP connection was lost. As a consequence, the WebSocket
-connection was closed without receiving a close frame, which is abnormal.
+connection was closed without receiving and sending a close frame, which is
+abnormal.
 
 You can catch and handle :exc:`~exceptions.ConnectionClosed` to prevent it
 from being logged.

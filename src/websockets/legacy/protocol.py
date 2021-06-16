@@ -44,6 +44,7 @@ from ..exceptions import (
 )
 from ..extensions import Extension
 from ..frames import (
+    OK_CLOSE_CODES,
     OP_BINARY,
     OP_CLOSE,
     OP_CONT,
@@ -181,10 +182,10 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.extensions: List[Extension] = []
         self.subprotocol: Optional[Subprotocol] = None
 
-        # The close code and reason are set when receiving a close frame or
-        # losing the TCP connection.
-        self.close_code: int
-        self.close_reason: str
+        # Close code and reason, set when a close frame is sent or received.
+        self.close_rcvd: Optional[Close] = None
+        self.close_sent: Optional[Close] = None
+        self.close_rcvd_then_sent: Optional[bool] = None
 
         # Completed when the connection state becomes CLOSED. Translates the
         # :meth:`connection_lost` callback to a :class:`~asyncio.Future`
@@ -338,6 +339,36 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         """
         return self.state is State.CLOSED
+
+    @property
+    def close_code(self) -> Optional[int]:
+        """
+        WebSocket close code received in a close frame.
+
+        Available once the connection is closed.
+
+        """
+        if self.state is not State.CLOSED:
+            return None
+        elif self.close_rcvd is None:
+            return 1006
+        else:
+            return self.close_rcvd.code
+
+    @property
+    def close_reason(self) -> Optional[str]:
+        """
+        WebSocket close reason received in a close frame.
+
+        Available once the connection is closed.
+
+        """
+        if self.state is not State.CLOSED:
+            return None
+        elif self.close_rcvd is None:
+            return ""
+        else:
+            return self.close_rcvd.reason
 
     async def wait_closed(self) -> None:
         """
@@ -608,7 +639,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         try:
             await asyncio.wait_for(
-                self.write_close_frame(Close(code, reason).serialize()),
+                self.write_close_frame(Close(code, reason)),
                 self.close_timeout,
                 **loop_if_py_lt_38(self.loop),
             )
@@ -714,14 +745,27 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     # Private methods - no guarantees.
 
     def connection_closed_exc(self) -> ConnectionClosed:
-        exception: ConnectionClosed
-        if self.close_code == 1000 or self.close_code == 1001:
-            exception = ConnectionClosedOK(self.close_code, self.close_reason)
+        exc: ConnectionClosed
+        if (
+            self.close_rcvd is not None
+            and self.close_rcvd.code in OK_CLOSE_CODES
+            and self.close_sent is not None
+            and self.close_sent.code in OK_CLOSE_CODES
+        ):
+            exc = ConnectionClosedOK(
+                self.close_rcvd,
+                self.close_sent,
+                self.close_rcvd_then_sent,
+            )
         else:
-            exception = ConnectionClosedError(self.close_code, self.close_reason)
+            exc = ConnectionClosedError(
+                self.close_rcvd,
+                self.close_sent,
+                self.close_rcvd_then_sent,
+            )
         # Chain to the exception that terminated data transfer, if any.
-        exception.__cause__ = self.transfer_data_exc
-        return exception
+        exc.__cause__ = self.transfer_data_exc
+        return exc
 
     async def ensure_open(self) -> None:
         """
@@ -917,13 +961,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             if frame.opcode == OP_CLOSE:
                 # 7.1.5.  The WebSocket Connection Close Code
                 # 7.1.6.  The WebSocket Connection Close Reason
-                close = Close.parse(frame.data)
-                self.close_code, self.close_reason = close.code, close.reason
+                self.close_rcvd = Close.parse(frame.data)
+                if self.close_sent is not None:
+                    self.close_rcvd_then_sent = False
                 try:
                     # Echo the original data instead of re-serializing it with
                     # Close.serialize() because that fails when the close frame
                     # is empty and Close.parse() synthetizes a 1005 close code.
-                    await self.write_close_frame(frame.data)
+                    await self.write_close_frame(self.close_rcvd, frame.data)
                 except ConnectionClosed:
                     # Connection closed before we could echo the close frame.
                     pass
@@ -1010,7 +1055,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.write_frame_sync(fin, opcode, data)
         await self.drain()
 
-    async def write_close_frame(self, data: bytes = b"") -> None:
+    async def write_close_frame(
+        self, close: Close, data: Optional[bytes] = None
+    ) -> None:
         """
         Write a close frame if and only if the connection state is OPEN.
 
@@ -1025,6 +1072,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             self.state = State.CLOSING
             if self.debug:
                 self.logger.debug("= connection is CLOSING")
+
+            self.close_sent = close
+            if self.close_rcvd is not None:
+                self.close_rcvd_then_sent = True
+            if data is None:
+                data = close.serialize()
 
             # 7.1.2. Start the WebSocket Closing Handshake
             await self.write_frame(True, OP_CLOSE, data, _state=State.CLOSING)
@@ -1219,8 +1272,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # an error reading from or writing to the network.
         # Don't send a close frame if the connection is broken.
         if code != 1006 and self.state is State.OPEN:
-
-            frame_data = Close(code, reason).serialize()
+            close = Close(code, reason)
 
             # Write the close frame without draining the write buffer.
 
@@ -1228,21 +1280,19 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # get stuck and simplifies the implementation of the callers.
             # Not drainig the write buffer is acceptable in this context.
 
-            # This duplicates a few lines of code from write_close_frame()
-            # and write_frame().
+            # This duplicates a few lines of code from write_close_frame().
 
             self.state = State.CLOSING
             if self.debug:
                 self.logger.debug("= connection is CLOSING")
 
-            frame = Frame(True, OP_CLOSE, frame_data)
-            if self.debug:
-                self.logger.debug("> %s", frame)
-            frame.write(
-                self.transport.write,
-                mask=self.is_client,
-                extensions=self.extensions,
-            )
+            # If self.close_rcvd was set, the connection state would be
+            # CLOSING. Therefore self.close_rcvd isn't set and we don't
+            # have to set self.close_rcvd_then_sent.
+            assert self.close_rcvd is None
+            self.close_sent = close
+
+            self.write_frame_sync(True, OP_CLOSE, close.serialize())
 
         # Start close_connection_task if the opening handshake didn't succeed.
         if not hasattr(self, "close_connection_task"):
@@ -1303,15 +1353,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         """
         self.state = State.CLOSED
-        if not hasattr(self, "close_code"):
-            self.close_code = 1006
-        if not hasattr(self, "close_reason"):
-            self.close_reason = ""
-        self.logger.debug(
-            "= connection is CLOSED - %d %s",
-            self.close_code,
-            self.close_reason or "[no reason]",
-        )
+        self.logger.debug("= connection is CLOSED")
 
         self.abort_pings()
 

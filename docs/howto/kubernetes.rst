@@ -73,7 +73,7 @@ shut down gracefully:
     Connected to ws://localhost:32080/.
     > Hey there!
     < Hey there!
-    Connection closed: code = 1001 (going away), no reason.
+    Connection closed: 1001 (going away).
 
 If it didn't, you'd get code 1006 (connection closed abnormally).
 
@@ -119,7 +119,7 @@ You can connect to the service — press Ctrl-D to exit:
 
     $ python -m websockets ws://localhost:32080/
     Connected to ws://localhost:32080/.
-    Connection closed: code = 1000 (OK), no reason.
+    Connection closed: 1000 (OK).
 
 Validate deployment
 -------------------

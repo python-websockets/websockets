@@ -58,4 +58,4 @@ You can confirm that HAProxy proxies connections properly:
     Connected to ws://localhost:8080/.
     > Hello!
     < Hello!
-    Connection closed: code = 1000 (OK), no reason.
+    Connection closed: 1000 (OK).

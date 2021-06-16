@@ -146,7 +146,7 @@ prompt:
     Connected to ws://localhost:8888/
     > <your token>
     < Hello <your username>!
-    Connection closed: code = 1000 (OK), no reason.
+    Connection closed: 1000 (OK).
 
 It works!
 
@@ -158,7 +158,7 @@ closes the connection:
     $ python -m websockets ws://localhost:8888/
     Connected to ws://localhost:8888.
     > not a token
-    Connection closed: code = 1011 (unexpected error), reason = authentication failed.
+    Connection closed: 1011 (unexpected error) authentication failed.
 
 You can also test from a browser by generating a new token and running the
 following code in the JavaScript console of the browser:

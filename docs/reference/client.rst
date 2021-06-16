@@ -55,17 +55,9 @@ Client
 
             Available once the connection is open.
 
-        .. attribute:: close_code
+        .. autoattribute:: close_code
 
-            WebSocket close code.
-
-            Available once the connection is closed.
-
-        .. attribute:: close_reason
-
-            WebSocket close reason.
-
-            Available once the connection is closed.
+        .. autoattribute:: close_reason
 
         .. automethod:: recv
 

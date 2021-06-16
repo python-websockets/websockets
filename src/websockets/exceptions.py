@@ -81,36 +81,62 @@ class ConnectionClosed(WebSocketException):
 
     """
 
-    def __init__(self, code: int, reason: str) -> None:
-        self.code = code
-        self.reason = reason
-        super().__init__(str(frames.Close(code, reason)))
+    def __init__(
+        self,
+        rcvd: Optional[frames.Close],
+        sent: Optional[frames.Close],
+        rcvd_then_sent: Optional[bool] = None,
+    ) -> None:
+        self.rcvd = rcvd
+        self.sent = sent
+        self.rcvd_then_sent = rcvd_then_sent
+        if rcvd is None:
+            if sent is None:
+                assert rcvd_then_sent is None
+                msg = "no close frame received or sent"
+            else:
+                assert rcvd_then_sent is None
+                msg = f"sent {sent}; no close frame received"
+        else:
+            if sent is None:
+                assert rcvd_then_sent is None
+                msg = f"received {rcvd}; no close frame sent"
+            else:
+                assert rcvd_then_sent is not None
+                if rcvd_then_sent:
+                    msg = f"received {rcvd}; then sent {sent}"
+                else:
+                    msg = f"sent {sent}; then received {rcvd}"
+        super().__init__(msg)
+
+    # code and reason attributes are provided for backwards-compatibility
+
+    @property
+    def code(self) -> int:
+        return 1006 if self.rcvd is None else self.rcvd.code
+
+    @property
+    def reason(self) -> str:
+        return "" if self.rcvd is None else self.rcvd.reason
 
 
 class ConnectionClosedError(ConnectionClosed):
     """
     Like :exc:`ConnectionClosed`, when the connection terminated with an error.
 
-    This means the close code is different from 1000 (OK) and 1001 (going away).
+    A close code other than 1000 (OK) or 1001 (going away) was received or
+    sent, or the closing handshake didn't complete properly.
 
     """
-
-    def __init__(self, code: int, reason: str) -> None:
-        assert code != 1000 and code != 1001
-        super().__init__(code, reason)
 
 
 class ConnectionClosedOK(ConnectionClosed):
     """
     Like :exc:`ConnectionClosed`, when the connection terminated properly.
 
-    This means the close code is 1000 (OK) or 1001 (going away).
+    A close code 1000 (OK) or 1001 (going away) was received and sent.
 
     """
-
-    def __init__(self, code: int, reason: str) -> None:
-        assert code == 1000 or code == 1001
-        super().__init__(code, reason)
 
 
 class InvalidHandshake(WebSocketException):

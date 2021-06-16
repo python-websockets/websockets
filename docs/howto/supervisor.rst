@@ -68,7 +68,7 @@ press Ctrl-D to exit:
     Connected to ws://localhost:8080/.
     > Hello!
     < Hello!
-    Connection closed: code = 1000 (OK), no reason.
+    Connection closed: 1000 (OK).
 
 Look at the pid of an instance of the app in the logs and terminate it:
 
@@ -117,7 +117,7 @@ And you can see that the connection to the app was closed gracefully:
 
     $ python -m websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.
-    Connection closed: code = 1001 (going away), no reason.
+    Connection closed: 1001 (going away).
 
 In this example, we've been sharing the same virtualenv for supervisor and
 websockets.

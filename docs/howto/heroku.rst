@@ -142,7 +142,7 @@ then press Ctrl-D to terminate the connection:
 
     > Hello!
     < Hello!
-    Connection closed: code = 1000 (OK), no reason.
+    Connection closed: 1000 (OK).
 
 You can also confirm that your application shuts down gracefully. Connect an
 interactive client again — remember to replace ``websockets-echo`` with your app:
@@ -167,7 +167,7 @@ away).
 
     $ python -m websockets wss://websockets-echo.herokuapp.com/
     Connected to wss://websockets-echo.herokuapp.com/.
-    Connection closed: code = 1001 (going away), no reason.
+    Connection closed: 1001 (going away).
 
 If graceful shutdown wasn't working, the server wouldn't perform a closing
 handshake and the connection would be closed with code 1006 (connection closed

@@ -1308,7 +1308,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         if not hasattr(self, "close_reason"):
             self.close_reason = ""
         self.logger.debug(
-            "= connection is CLOSED - code = %d, reason = %s",
+            "= connection is CLOSED - %d %s",
             self.close_code,
             self.close_reason or "[no reason]",
         )

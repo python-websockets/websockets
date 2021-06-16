@@ -14,27 +14,27 @@ class ExceptionsTests(unittest.TestCase):
             ),
             (
                 ConnectionClosed(1000, ""),
-                "code = 1000 (OK), no reason",
+                "1000 (OK)",
             ),
             (
                 ConnectionClosed(1006, None),
-                "code = 1006 (connection closed abnormally [internal]), no reason"
+                "1006 (connection closed abnormally [internal])"
             ),
             (
                 ConnectionClosed(3000, None),
-                "code = 3000 (registered), no reason"
+                "3000 (registered)"
             ),
             (
                 ConnectionClosed(4000, None),
-                "code = 4000 (private use), no reason"
+                "4000 (private use)"
             ),
             (
                 ConnectionClosedError(1016, None),
-                "code = 1016 (unknown), no reason"
+                "1016 (unknown)"
             ),
             (
                 ConnectionClosedOK(1001, "bye"),
-                "code = 1001 (going away), reason = bye",
+                "1001 (going away) bye",
             ),
             (
                 InvalidHandshake("invalid request"),

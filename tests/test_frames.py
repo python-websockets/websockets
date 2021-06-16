@@ -280,13 +280,13 @@ class StrTests(unittest.TestCase):
     def test_close(self):
         self.assertEqual(
             str(Frame(OP_CLOSE, b"\x03\xe8")),
-            "CLOSE code = 1000 (OK), no reason [2 bytes]",
+            "CLOSE 1000 (OK) [2 bytes]",
         )
 
     def test_close_reason(self):
         self.assertEqual(
             str(Frame(OP_CLOSE, b"\x03\xe9Bye!")),
-            "CLOSE code = 1001 (going away), reason = Bye! [6 bytes]",
+            "CLOSE 1001 (going away) Bye! [6 bytes]",
         )
 
     def test_ping(self):

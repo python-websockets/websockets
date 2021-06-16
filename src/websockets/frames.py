@@ -381,12 +381,10 @@ class Close:
             explanation = "private use"
         else:
             explanation = CLOSE_CODES.get(self.code, "unknown")
-        result = f"code = {self.code} ({explanation}), "
+        result = f"{self.code} ({explanation})"
 
         if self.reason:
-            result += f"reason = {self.reason}"
-        else:
-            result += "no reason"
+            result = f"{result} {self.reason}"
 
         return result
 

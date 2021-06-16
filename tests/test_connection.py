@@ -667,9 +667,57 @@ class BinaryTests(ConnectionTestCase):
 
 class CloseTests(ConnectionTestCase):
     """
-    Test close frames. See 5.5.1. Close in RFC 6544.
+    Test close frames.
+
+    See RFC 6544:
+
+    5.5.1. Close
+    7.1.6.  The WebSocket Connection Close Reason
+    7.1.7.  Fail the WebSocket Connection
 
     """
+
+    def test_close_code(self):
+        client = Connection(Side.CLIENT)
+        client.receive_data(b"\x88\x04\x03\xe8OK")
+        client.set_state(State.CLOSED)
+        self.assertEqual(client.close_code, 1000)
+
+    def test_close_reason(self):
+        server = Connection(Side.SERVER)
+        server.receive_data(b"\x88\x84\x00\x00\x00\x00\x03\xe8OK")
+        server.set_state(State.CLOSED)
+        self.assertEqual(server.close_reason, "OK")
+
+    def test_close_code_not_provided(self):
+        server = Connection(Side.SERVER)
+        server.receive_data(b"\x88\x80\x00\x00\x00\x00")
+        server.set_state(State.CLOSED)
+        self.assertEqual(server.close_code, 1005)
+
+    def test_close_reason_not_provided(self):
+        client = Connection(Side.CLIENT)
+        client.receive_data(b"\x88\x00")
+        client.set_state(State.CLOSED)
+        self.assertEqual(client.close_reason, "")
+
+    def test_close_code_not_available(self):
+        client = Connection(Side.CLIENT)
+        client.set_state(State.CLOSED)
+        self.assertEqual(client.close_code, 1006)
+
+    def test_close_reason_not_available(self):
+        server = Connection(Side.SERVER)
+        server.set_state(State.CLOSED)
+        self.assertEqual(server.close_reason, "")
+
+    def test_close_code_not_available_yet(self):
+        server = Connection(Side.SERVER)
+        self.assertIsNone(server.close_code)
+
+    def test_close_reason_not_available_yet(self):
+        client = Connection(Side.CLIENT)
+        self.assertIsNone(client.close_reason)
 
     def test_client_sends_close(self):
         client = Connection(Side.CLIENT)

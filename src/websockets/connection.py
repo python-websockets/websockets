@@ -102,15 +102,10 @@ class Connection:
         self.extensions: List[Extension] = []
         self.subprotocol: Optional[Subprotocol] = None
 
-        # Connection state isn't enough to tell if a close frame was received:
-        # when this side closes the connection, state is CLOSING as soon as a
-        # close frame is sent, before a close frame is received.
-        self.close_frame_received = False
-
-        # Close code and reason. Set when receiving a close frame or when the
-        # TCP connection drops.
-        self.close_code: int
-        self.close_reason: str
+        # Close code and reason, set when a close frame is sent or received.
+        self.close_rcvd: Optional[Close] = None
+        self.close_sent: Optional[Close] = None
+        self.close_rcvd_then_sent: Optional[bool] = None
 
         # Track if send_eof() was called.
         self.eof_sent = False
@@ -127,6 +122,36 @@ class Connection:
         if self.debug:
             self.logger.debug("= connection is %s", state.name)
         self.state = state
+
+    @property
+    def close_code(self) -> Optional[int]:
+        """
+        WebSocket close code received in a close frame.
+
+        Available once the connection is closed.
+
+        """
+        if self.state is not State.CLOSED:
+            return None
+        elif self.close_rcvd is None:
+            return 1006
+        else:
+            return self.close_rcvd.code
+
+    @property
+    def close_reason(self) -> Optional[str]:
+        """
+        WebSocket close reason received in a close frame.
+
+        Available once the connection is closed.
+
+        """
+        if self.state is not State.CLOSED:
+            return None
+        elif self.close_rcvd is None:
+            return ""
+        else:
+            return self.close_rcvd.reason
 
     # Public APIs for receiving data.
 
@@ -199,10 +224,13 @@ class Connection:
         if code is None:
             if reason != "":
                 raise ValueError("cannot send a reason without a code")
+            close = Close(1005, "")
             data = b""
         else:
-            data = Close(code, reason).serialize()
+            close = Close(code, reason)
+            data = close.serialize()
         self.send_frame(Frame(OP_CLOSE, data))
+        self.close_sent = close
         # send_frame() guarantees that self.state is OPEN at this point.
         # 7.1.3. The WebSocket Closing Handshake is Started
         self.set_state(CLOSING)
@@ -258,7 +286,9 @@ class Connection:
         # sent if it's CLOSING), except when failing the connection because of
         # an error reading from or writing to the network.
         if code != 1006 and self.state is OPEN:
-            self.send_frame(Frame(OP_CLOSE, Close(code, reason).serialize()))
+            close = Close(code, reason)
+            self.send_frame(Frame(OP_CLOSE, close.serialize()))
+            self.close_sent = close
             self.set_state(CLOSING)
         if not self.eof_sent:
             self.send_eof()
@@ -304,7 +334,7 @@ class Connection:
             if eof:
                 if self.debug:
                     self.logger.debug("< EOF")
-                if self.close_frame_received:
+                if self.close_rcvd is not None:
                     if not self.eof_sent:
                         self.send_eof()
                     yield
@@ -338,7 +368,7 @@ class Connection:
             if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
                 # 5.5.1 Close: "The application MUST NOT send any more data
                 # frames after sending a Close frame."
-                if self.close_frame_received:
+                if self.close_rcvd is not None:
                     raise ProtocolError("data frame after close frame")
 
                 if self.cur_size is not None:
@@ -351,7 +381,7 @@ class Connection:
             elif frame.opcode is OP_CONT:
                 # 5.5.1 Close: "The application MUST NOT send any more data
                 # frames after sending a Close frame."
-                if self.close_frame_received:
+                if self.close_rcvd is not None:
                     raise ProtocolError("data frame after close frame")
 
                 if self.cur_size is None:
@@ -365,7 +395,7 @@ class Connection:
                 # 5.5.2. Ping: "Upon receipt of a Ping frame, an endpoint MUST
                 # send a Pong frame in response, unless it already received a
                 # Close frame."
-                if not self.close_frame_received:
+                if self.close_rcvd is None:
                     pong_frame = Frame(OP_PONG, frame.data)
                     self.send_frame(pong_frame)
 
@@ -375,11 +405,12 @@ class Connection:
                 pass
 
             elif frame.opcode is OP_CLOSE:
-                self.close_frame_received = True
                 # 7.1.5.  The WebSocket Connection Close Code
                 # 7.1.6.  The WebSocket Connection Close Reason
-                close = Close.parse(frame.data)
-                self.close_code, self.close_reason = close.code, close.reason
+                self.close_rcvd = Close.parse(frame.data)
+                if self.state is CLOSING:
+                    assert self.close_sent is not None
+                    self.close_rcvd_then_sent = False
 
                 if self.cur_size is not None:
                     raise ProtocolError("incomplete fragmented message")
@@ -388,12 +419,15 @@ class Connection:
                 # Close frame in response. (When sending a Close frame in
                 # response, the endpoint typically echos the status code it
                 # received.)"
+
                 if self.state is OPEN:
                     # Echo the original data instead of re-serializing it with
                     # Close.serialize() because that fails when the close frame
                     # is empty and Close.parse() synthetizes a 1005 close code.
                     # The rest is identical to send_close().
                     self.send_frame(Frame(OP_CLOSE, frame.data))
+                    self.close_sent = self.close_rcvd
+                    self.close_rcvd_then_sent = True
                     self.set_state(CLOSING)
                     if self.side is SERVER:
                         self.send_eof()

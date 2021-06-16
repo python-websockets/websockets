@@ -12,8 +12,9 @@ See `section 5 of RFC 6455`_.
 
 from __future__ import annotations
 
+import dataclasses
 import struct
-from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence
+from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence, Tuple
 
 from .. import extensions, frames
 from ..exceptions import PayloadTooBig, ProtocolError
@@ -159,7 +160,28 @@ class Frame(NamedTuple):
 
 
 # Backwards compatibility with previously documented public APIs
-from ..frames import parse_close  # noqa
-from ..frames import prepare_data  # noqa
-from ..frames import serialize_close  # noqa
-from ..frames import prepare_ctrl as encode_data  # noqa
+
+from ..frames import Close, prepare_ctrl as encode_data, prepare_data  # noqa
+
+
+def parse_close(data: bytes) -> Tuple[int, str]:
+    """
+    Parse the payload from a close frame.
+
+    Return ``(code, reason)``.
+
+    :raises ~websockets.exceptions.ProtocolError: if data is ill-formed
+    :raises UnicodeDecodeError: if the reason isn't valid UTF-8
+
+    """
+    return dataclasses.astuple(Close.parse(data))  # type: ignore
+
+
+def serialize_close(code: int, reason: str) -> bytes:
+    """
+    Serialize the payload for a close frame.
+
+    This is the reverse of :func:`parse_close`.
+
+    """
+    return Close(code, reason).serialize()

@@ -9,7 +9,7 @@ import threading
 from typing import Any, Set
 
 from .exceptions import ConnectionClosed
-from .frames import format_close
+from .frames import Close
 from .legacy.client import connect
 
 
@@ -143,7 +143,7 @@ async def run_client(
 
     finally:
         await websocket.close()
-        close_status = format_close(websocket.close_code, websocket.close_reason)
+        close_status = Close(websocket.close_code, websocket.close_reason)
 
         print_over_input(f"Connection closed: {close_status}.")
 

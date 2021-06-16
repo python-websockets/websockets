@@ -394,32 +394,32 @@ class PrepareCtrlTests(unittest.TestCase):
             prepare_ctrl(None)
 
 
-class ParseAndSerializeCloseTests(unittest.TestCase):
-    def assertCloseData(self, code, reason, data):
+class CloseTests(unittest.TestCase):
+    def assertCloseData(self, close, data):
         """
-        Serializing code / reason yields data. Parsing data yields code / reason.
+        Serializing close yields data. Parsing data yields close.
 
         """
-        serialized = serialize_close(code, reason)
+        serialized = close.serialize()
         self.assertEqual(serialized, data)
-        parsed = parse_close(data)
-        self.assertEqual(parsed, (code, reason))
+        parsed = Close.parse(data)
+        self.assertEqual(parsed, close)
 
-    def test_parse_close_and_serialize_close(self):
-        self.assertCloseData(1000, "", b"\x03\xe8")
-        self.assertCloseData(1000, "OK", b"\x03\xe8OK")
+    def test_parse_and_serialize(self):
+        self.assertCloseData(Close(1000, ""), b"\x03\xe8")
+        self.assertCloseData(Close(1000, "OK"), b"\x03\xe8OK")
 
-    def test_parse_close_empty(self):
-        self.assertEqual(parse_close(b""), (1005, ""))
+    def test_parse_empty(self):
+        self.assertEqual(Close.parse(b""), Close(1005, ""))
 
-    def test_parse_close_errors(self):
+    def test_parse_errors(self):
         with self.assertRaises(ProtocolError):
-            parse_close(b"\x03")
+            Close.parse(b"\x03")
         with self.assertRaises(ProtocolError):
-            parse_close(b"\x03\xe7")
+            Close.parse(b"\x03\xe7")
         with self.assertRaises(UnicodeDecodeError):
-            parse_close(b"\x03\xe8\xff\xff")
+            Close.parse(b"\x03\xe8\xff\xff")
 
-    def test_serialize_close_errors(self):
+    def test_serialize_errors(self):
         with self.assertRaises(ProtocolError):
-            serialize_close(999, "")
+            Close(999, "").serialize()

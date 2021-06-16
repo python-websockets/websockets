@@ -14,7 +14,7 @@ from websockets.frames import (
     OP_PING,
     OP_PONG,
     OP_TEXT,
-    serialize_close,
+    Close,
 )
 from websockets.legacy.compatibility import loop_if_py_lt_38
 from websockets.legacy.framing import Frame
@@ -113,9 +113,9 @@ class CommonTests:
 
         self.protocol._drain = delayed_drain
 
-    close_frame = Frame(True, OP_CLOSE, serialize_close(1000, "close"))
-    local_close = Frame(True, OP_CLOSE, serialize_close(1000, "local"))
-    remote_close = Frame(True, OP_CLOSE, serialize_close(1000, "remote"))
+    close_frame = Frame(True, OP_CLOSE, Close(1000, "close").serialize())
+    local_close = Frame(True, OP_CLOSE, Close(1000, "local").serialize())
+    remote_close = Frame(True, OP_CLOSE, Close(1000, "remote").serialize())
 
     def receive_frame(self, frame):
         """
@@ -156,7 +156,7 @@ class CommonTests:
         This puts the connection in the CLOSED state.
 
         """
-        close_frame_data = serialize_close(code, reason)
+        close_frame_data = Close(code, reason).serialize()
         # Prepare the response to the closing handshake from the remote side.
         self.receive_frame(Frame(True, OP_CLOSE, close_frame_data))
         self.receive_eof_if_client()
@@ -178,7 +178,7 @@ class CommonTests:
         canceled, else asyncio complains about destroying a pending task.
 
         """
-        close_frame_data = serialize_close(code, reason)
+        close_frame_data = Close(code, reason).serialize()
         # Trigger the closing handshake from the local endpoint.
         close_task = self.loop.create_task(self.protocol.close(code, reason))
         self.run_loop_once()  # wait_for executes
@@ -213,7 +213,7 @@ class CommonTests:
         if not self.protocol.is_client:
             self.make_drain_slow()
 
-        close_frame_data = serialize_close(code, reason)
+        close_frame_data = Close(code, reason).serialize()
         # Trigger the closing handshake from the remote endpoint.
         self.receive_frame(Frame(True, OP_CLOSE, close_frame_data))
         self.run_loop_once()  # read_frame executes
@@ -298,7 +298,7 @@ class CommonTests:
         if code == 1006:
             self.assertNoFrameSent()
         else:
-            self.assertOneFrameSent(True, OP_CLOSE, serialize_close(code, message))
+            self.assertOneFrameSent(True, OP_CLOSE, Close(code, message).serialize())
 
     @contextlib.contextmanager
     def assertCompletesWithin(self, min_time, max_time):
@@ -649,7 +649,7 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.send(["café", b"tea"]))
         self.assertFramesSent(
             (False, OP_TEXT, "café".encode("utf-8")),
-            (True, OP_CLOSE, serialize_close(1011, "")),
+            (True, OP_CLOSE, Close(1011, "").serialize()),
         )
 
     def test_send_iterable_prevents_concurrent_send(self):
@@ -723,7 +723,7 @@ class CommonTests:
             )
         self.assertFramesSent(
             (False, OP_TEXT, "café".encode("utf-8")),
-            (True, OP_CLOSE, serialize_close(1011, "")),
+            (True, OP_CLOSE, Close(1011, "").serialize()),
         )
 
     def test_send_async_iterable_prevents_concurrent_send(self):
@@ -1172,7 +1172,7 @@ class CommonTests:
         # Connection is closed at 6ms.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
         self.assertOneFrameSent(
-            True, OP_CLOSE, serialize_close(1011, "keepalive ping timeout")
+            True, OP_CLOSE, Close(1011, "keepalive ping timeout").serialize()
         )
 
         # The keepalive ping task is complete.

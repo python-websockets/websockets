@@ -35,8 +35,7 @@ __all__ = [
     "Frame",
     "prepare_data",
     "prepare_ctrl",
-    "parse_close",
-    "serialize_close",
+    "Close",
 ]
 
 
@@ -140,8 +139,7 @@ class Frame:
                 binary = binary[:16] + b"\x00\x00" + binary[-8:]
             data = " ".join(f"{byte:02x}" for byte in binary)
         elif self.opcode is OP_CLOSE:
-            code, reason = parse_close(self.data)
-            data = format_close(code, reason)
+            data = str(Close.parse(self.data))
         elif self.data:
             # We don't know if a Continuation frame contains text or binary.
             # Ping and Pong frames could contain UTF-8. Attempt to decode as
@@ -360,37 +358,6 @@ def prepare_ctrl(data: Data) -> bytes:
         return bytes(data)
     else:
         raise TypeError("data must be bytes-like or str")
-
-
-def parse_close(data: bytes) -> Tuple[int, str]:
-    """
-    Parse the payload from a close frame.
-
-    Return ``(code, reason)``.
-
-    :raises ~websockets.exceptions.ProtocolError: if data is ill-formed
-    :raises UnicodeDecodeError: if the reason isn't valid UTF-8
-
-    """
-    return dataclasses.astuple(Close.parse(data))  # type: ignore
-
-
-def serialize_close(code: int, reason: str) -> bytes:
-    """
-    Serialize the payload for a close frame.
-
-    This is the reverse of :func:`parse_close`.
-
-    """
-    return Close(code, reason).serialize()
-
-
-def format_close(code: int, reason: str) -> str:
-    """
-    Display a human-readable version of the close code and reason.
-
-    """
-    return str(Close(code, reason))
 
 
 @dataclasses.dataclass

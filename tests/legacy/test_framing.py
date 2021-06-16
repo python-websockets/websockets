@@ -171,3 +171,34 @@ class FramingTests(AsyncioTestCase):
         self.round_trip(
             b"\x81\x05uryyb", Frame(True, OP_TEXT, b"hello"), extensions=[Rot13()]
         )
+
+
+class ParseAndSerializeCloseTests(unittest.TestCase):
+    def assertCloseData(self, code, reason, data):
+        """
+        Serializing code / reason yields data. Parsing data yields code / reason.
+
+        """
+        serialized = serialize_close(code, reason)
+        self.assertEqual(serialized, data)
+        parsed = parse_close(data)
+        self.assertEqual(parsed, (code, reason))
+
+    def test_parse_close_and_serialize_close(self):
+        self.assertCloseData(1000, "", b"\x03\xe8")
+        self.assertCloseData(1000, "OK", b"\x03\xe8OK")
+
+    def test_parse_close_empty(self):
+        self.assertEqual(parse_close(b""), (1005, ""))
+
+    def test_parse_close_errors(self):
+        with self.assertRaises(ProtocolError):
+            parse_close(b"\x03")
+        with self.assertRaises(ProtocolError):
+            parse_close(b"\x03\xe7")
+        with self.assertRaises(UnicodeDecodeError):
+            parse_close(b"\x03\xe8\xff\xff")
+
+    def test_serialize_close_errors(self):
+        with self.assertRaises(ProtocolError):
+            serialize_close(999, "")

@@ -17,8 +17,8 @@ from websockets.frames import (
     OP_PING,
     OP_PONG,
     OP_TEXT,
+    Close,
     Frame,
-    serialize_close,
 )
 
 from .test_base import ClientNoOpExtensionFactory, ServerNoOpExtensionFactory
@@ -70,7 +70,7 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_encode_decode_close_frame(self):
-        frame = Frame(OP_CLOSE, serialize_close(1000, ""))
+        frame = Frame(OP_CLOSE, Close(1000, "").serialize())
 
         self.assertEqual(self.extension.encode(frame), frame)
 

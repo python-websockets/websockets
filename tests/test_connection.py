@@ -9,8 +9,8 @@ from websockets.frames import (
     OP_PING,
     OP_PONG,
     OP_TEXT,
+    Close,
     Frame,
-    serialize_close,
 )
 
 from .extensions.utils import Rsv2Extension
@@ -60,7 +60,7 @@ class ConnectionTestCase(FramesTestCase):
         """
         close_frame = Frame(
             OP_CLOSE,
-            b"" if code is None else serialize_close(code, reason),
+            b"" if code is None else Close(code, reason).serialize(),
         )
         # A close frame was received.
         self.assertFrameReceived(connection, close_frame)
@@ -76,7 +76,7 @@ class ConnectionTestCase(FramesTestCase):
         """
         close_frame = Frame(
             OP_CLOSE,
-            b"" if code is None else serialize_close(code, reason),
+            b"" if code is None else Close(code, reason).serialize(),
         )
         # No frame was received.
         self.assertFrameReceived(connection, None)

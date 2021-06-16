@@ -50,11 +50,10 @@ from ..frames import (
     OP_PING,
     OP_PONG,
     OP_TEXT,
+    Close,
     Opcode,
-    parse_close,
     prepare_ctrl,
     prepare_data,
-    serialize_close,
 )
 from ..typing import Data, LoggerLike, Subprotocol
 from .compatibility import loop_if_py_lt_38
@@ -609,7 +608,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         try:
             await asyncio.wait_for(
-                self.write_close_frame(serialize_close(code, reason)),
+                self.write_close_frame(Close(code, reason).serialize()),
                 self.close_timeout,
                 **loop_if_py_lt_38(self.loop),
             )
@@ -918,11 +917,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             if frame.opcode == OP_CLOSE:
                 # 7.1.5.  The WebSocket Connection Close Code
                 # 7.1.6.  The WebSocket Connection Close Reason
-                self.close_code, self.close_reason = parse_close(frame.data)
+                close = Close.parse(frame.data)
+                self.close_code, self.close_reason = close.code, close.reason
                 try:
                     # Echo the original data instead of re-serializing it with
-                    # serialize_close() because that fails when the close frame
-                    # is empty and parse_close() synthetizes a 1005 close code.
+                    # Close.serialize() because that fails when the close frame
+                    # is empty and Close.parse() synthetizes a 1005 close code.
                     await self.write_close_frame(frame.data)
                 except ConnectionClosed:
                     # Connection closed before we could echo the close frame.
@@ -1220,7 +1220,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Don't send a close frame if the connection is broken.
         if code != 1006 and self.state is State.OPEN:
 
-            frame_data = serialize_close(code, reason)
+            frame_data = Close(code, reason).serialize()
 
             # Write the close frame without draining the write buffer.
 

@@ -14,9 +14,8 @@ from .frames import (
     OP_PING,
     OP_PONG,
     OP_TEXT,
+    Close,
     Frame,
-    parse_close,
-    serialize_close,
 )
 from .http11 import Request, Response
 from .streams import StreamReader
@@ -202,7 +201,7 @@ class Connection:
                 raise ValueError("cannot send a reason without a code")
             data = b""
         else:
-            data = serialize_close(code, reason)
+            data = Close(code, reason).serialize()
         self.send_frame(Frame(OP_CLOSE, data))
         # send_frame() guarantees that self.state is OPEN at this point.
         # 7.1.3. The WebSocket Closing Handshake is Started
@@ -259,7 +258,7 @@ class Connection:
         # sent if it's CLOSING), except when failing the connection because of
         # an error reading from or writing to the network.
         if code != 1006 and self.state is OPEN:
-            self.send_frame(Frame(OP_CLOSE, serialize_close(code, reason)))
+            self.send_frame(Frame(OP_CLOSE, Close(code, reason).serialize()))
             self.set_state(CLOSING)
         if not self.eof_sent:
             self.send_eof()
@@ -379,7 +378,8 @@ class Connection:
                 self.close_frame_received = True
                 # 7.1.5.  The WebSocket Connection Close Code
                 # 7.1.6.  The WebSocket Connection Close Reason
-                self.close_code, self.close_reason = parse_close(frame.data)
+                close = Close.parse(frame.data)
+                self.close_code, self.close_reason = close.code, close.reason
 
                 if self.cur_size is not None:
                     raise ProtocolError("incomplete fragmented message")
@@ -390,8 +390,8 @@ class Connection:
                 # received.)"
                 if self.state is OPEN:
                     # Echo the original data instead of re-serializing it with
-                    # serialize_close() because that fails when the close frame
-                    # is empty and parse_close() synthetizes a 1005 close code.
+                    # Close.serialize() because that fails when the close frame
+                    # is empty and Close.parse() synthetizes a 1005 close code.
                     # The rest is identical to send_close().
                     self.send_frame(Frame(OP_CLOSE, frame.data))
                     self.set_state(CLOSING)

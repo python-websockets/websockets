@@ -1316,14 +1316,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # nothing, but it prevents logging the exception.
             ping.cancel()
 
-        if self.debug:
-            if self.pings:
-                pings_hex = ", ".join(
-                    ping_id.hex() or "[empty]" for ping_id in self.pings
-                )
-                plural = "s" if len(self.pings) > 1 else ""
-                self.logger.debug("% aborted pending ping%s: %s", plural, pings_hex)
-
     # asyncio.Protocol methods
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:

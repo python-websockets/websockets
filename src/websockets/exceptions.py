@@ -76,8 +76,17 @@ class ConnectionClosed(WebSocketException):
     """
     Raised when trying to interact with a closed connection.
 
-    Provides the connection close code and reason in its ``code`` and
-    ``reason`` attributes respectively.
+    If a close frame was received, its code and reason are available in the
+    ``rcvd.code`` and ``rcvd.reason`` attributes. Else, the ``rcvd``
+    attribute is ``None``.
+
+    Likewise, if a close frame was sent, its code and reason are available in
+    the ``sent.code`` and ``sent.reason`` attributes. Else, the ``sent``
+    attribute is ``None``.
+
+    If close frames were received and sent, the ``rcvd_then_sent`` attribute
+    tells in which order this happened, from the perspective of this side of
+    the connection.
 
     """
 

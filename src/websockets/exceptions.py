@@ -90,24 +90,25 @@ class ConnectionClosed(WebSocketException):
         self.rcvd = rcvd
         self.sent = sent
         self.rcvd_then_sent = rcvd_then_sent
-        if rcvd is None:
-            if sent is None:
-                assert rcvd_then_sent is None
-                msg = "no close frame received or sent"
+
+    def __str__(self) -> str:
+        if self.rcvd is None:
+            if self.sent is None:
+                assert self.rcvd_then_sent is None
+                return "no close frame received or sent"
             else:
-                assert rcvd_then_sent is None
-                msg = f"sent {sent}; no close frame received"
+                assert self.rcvd_then_sent is None
+                return f"sent {self.sent}; no close frame received"
         else:
-            if sent is None:
-                assert rcvd_then_sent is None
-                msg = f"received {rcvd}; no close frame sent"
+            if self.sent is None:
+                assert self.rcvd_then_sent is None
+                return f"received {self.rcvd}; no close frame sent"
             else:
-                assert rcvd_then_sent is not None
-                if rcvd_then_sent:
-                    msg = f"received {rcvd}; then sent {sent}"
+                assert self.rcvd_then_sent is not None
+                if self.rcvd_then_sent:
+                    return f"received {self.rcvd}; then sent {self.sent}"
                 else:
-                    msg = f"sent {sent}; then received {rcvd}"
-        super().__init__(msg)
+                    return f"sent {self.sent}; then received {self.rcvd}"
 
     # code and reason attributes are provided for backwards-compatibility
 
@@ -171,13 +172,14 @@ class InvalidHeader(InvalidHandshake):
     def __init__(self, name: str, value: Optional[str] = None) -> None:
         self.name = name
         self.value = value
-        if value is None:
-            message = f"missing {name} header"
-        elif value == "":
-            message = f"empty {name} header"
+
+    def __str__(self) -> str:
+        if self.value is None:
+            return f"missing {self.name} header"
+        elif self.value == "":
+            return f"empty {self.name} header"
         else:
-            message = f"invalid {name} header: {value}"
-        super().__init__(message)
+            return f"invalid {self.name} header: {self.value}"
 
 
 class InvalidHeaderFormat(InvalidHeader):
@@ -189,9 +191,7 @@ class InvalidHeaderFormat(InvalidHeader):
     """
 
     def __init__(self, name: str, error: str, header: str, pos: int) -> None:
-        self.name = name
-        error = f"{error} at {pos} in {header}"
-        super().__init__(name, error)
+        super().__init__(name, f"{error} at {pos} in {header}")
 
 
 class InvalidHeaderValue(InvalidHeader):
@@ -228,8 +228,12 @@ class InvalidStatus(InvalidHandshake):
 
     def __init__(self, response: http11.Response) -> None:
         self.response = response
-        message = f"server rejected WebSocket connection: HTTP {response.status_code:d}"
-        super().__init__(message)
+
+    def __str__(self) -> str:
+        return (
+            "server rejected WebSocket connection: "
+            f"HTTP {self.response.status_code:d}"
+        )
 
 
 class InvalidStatusCode(InvalidHandshake):
@@ -244,8 +248,9 @@ class InvalidStatusCode(InvalidHandshake):
     def __init__(self, status_code: int, headers: datastructures.Headers) -> None:
         self.status_code = status_code
         self.headers = headers
-        message = f"server rejected WebSocket connection: HTTP {status_code}"
-        super().__init__(message)
+
+    def __str__(self) -> str:
+        return f"server rejected WebSocket connection: HTTP {self.status_code}"
 
 
 class NegotiationError(InvalidHandshake):
@@ -263,8 +268,9 @@ class DuplicateParameter(NegotiationError):
 
     def __init__(self, name: str) -> None:
         self.name = name
-        message = f"duplicate parameter: {name}"
-        super().__init__(message)
+
+    def __str__(self) -> str:
+        return f"duplicate parameter: {self.name}"
 
 
 class InvalidParameterName(NegotiationError):
@@ -275,8 +281,9 @@ class InvalidParameterName(NegotiationError):
 
     def __init__(self, name: str) -> None:
         self.name = name
-        message = f"invalid parameter name: {name}"
-        super().__init__(message)
+
+    def __str__(self) -> str:
+        return f"invalid parameter name: {self.name}"
 
 
 class InvalidParameterValue(NegotiationError):
@@ -288,13 +295,14 @@ class InvalidParameterValue(NegotiationError):
     def __init__(self, name: str, value: Optional[str]) -> None:
         self.name = name
         self.value = value
-        if value is None:
-            message = f"missing value for parameter {name}"
-        elif value == "":
-            message = f"empty value for parameter {name}"
+
+    def __str__(self) -> str:
+        if self.value is None:
+            return f"missing value for parameter {self.name}"
+        elif self.value == "":
+            return f"empty value for parameter {self.name}"
         else:
-            message = f"invalid value for parameter {name}: {value}"
-        super().__init__(message)
+            return f"invalid value for parameter {self.name}: {self.value}"
 
 
 class AbortHandshake(InvalidHandshake):
@@ -316,8 +324,13 @@ class AbortHandshake(InvalidHandshake):
         self.status = status
         self.headers = datastructures.Headers(headers)
         self.body = body
-        message = f"HTTP {status:d}, {len(self.headers)} headers, {len(body)} bytes"
-        super().__init__(message)
+
+    def __str__(self) -> str:
+        return (
+            f"HTTP {self.status:d}, "
+            f"{len(self.headers)} headers, "
+            f"{len(self.body)} bytes"
+        )
 
 
 class RedirectHandshake(InvalidHandshake):
@@ -354,8 +367,9 @@ class InvalidURI(WebSocketException):
 
     def __init__(self, uri: str) -> None:
         self.uri = uri
-        message = "{} isn't a valid URI".format(uri)
-        super().__init__(message)
+
+    def __str__(self) -> str:
+        return f"{self.uri} isn't a valid URI"
 
 
 class PayloadTooBig(WebSocketException):

@@ -3,6 +3,7 @@ import unittest
 from websockets.datastructures import Headers
 from websockets.exceptions import *
 from websockets.frames import Close
+from websockets.http11 import Response
 
 
 class ExceptionsTests(unittest.TestCase):
@@ -95,6 +96,10 @@ class ExceptionsTests(unittest.TestCase):
             (
                 InvalidUpgrade("Connection", "websocket"),
                 "invalid Connection header: websocket",
+            ),
+            (
+                InvalidStatus(Response(401, "Unauthorized", Headers())),
+                "server rejected WebSocket connection: HTTP 401",
             ),
             (
                 InvalidStatusCode(403, Headers()),

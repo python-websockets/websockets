@@ -975,12 +975,13 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 return None
 
             elif frame.opcode == OP_PING:
-                # Answer pings.
-                try:
-                    await self.pong(frame.data)
-                except ConnectionClosed:
-                    # Connection closed before we could respond to the ping.
-                    pass
+                # Answer pings, unless connection is CLOSING.
+                if self.state is State.OPEN:
+                    try:
+                        await self.pong(frame.data)
+                    except ConnectionClosed:
+                        # Connection closed while draining write buffer.
+                        pass
 
             elif frame.opcode == OP_PONG:
                 if frame.data in self.pings:

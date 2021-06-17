@@ -29,6 +29,7 @@ from typing import (
     cast,
 )
 
+from ..connection import State
 from ..datastructures import Headers, HeadersLike, MultipleValuesError
 from ..exceptions import (
     AbortHandshake,
@@ -655,6 +656,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             # For backwards compatibility with 7.0.
             warnings.warn("declare process_request as a coroutine", DeprecationWarning)
             early_response = early_response_awaitable  # type: ignore
+
+        # The connection may drop while process_request is running.
+        if self.state is State.CLOSED:
+            raise self.connection_closed_exc()  # pragma: no cover
 
         # Change the response to a 503 error if the server is shutting down.
         if not self.ws_server.is_serving():

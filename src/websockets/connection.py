@@ -118,10 +118,7 @@ class Connection:
         next(self.parser)  # start coroutine
         self.parser_exc: Optional[Exception] = None
 
-    def set_state(self, state: State) -> None:
-        if self.debug:
-            self.logger.debug("= connection is %s", state.name)
-        self.state = state
+    # Public attributes
 
     @property
     def close_code(self) -> Optional[int]:
@@ -152,6 +149,13 @@ class Connection:
             return ""
         else:
             return self.close_rcvd.reason
+
+    # Private attributes
+
+    def set_state(self, state: State) -> None:
+        if self.debug:
+            self.logger.debug("= connection is %s", state.name)
+        self.state = state
 
     # Public APIs for receiving data.
 

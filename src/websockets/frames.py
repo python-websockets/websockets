@@ -96,6 +96,9 @@ EXTERNAL_CLOSE_CODES = {
 OK_CLOSE_CODES = {1000, 1001}
 
 
+BytesLike = bytes, bytearray, memoryview
+
+
 @dataclasses.dataclass
 class Frame:
     """
@@ -334,7 +337,7 @@ def prepare_data(data: Data) -> Tuple[int, bytes]:
     """
     if isinstance(data, str):
         return OP_TEXT, data.encode("utf-8")
-    elif isinstance(data, (bytes, bytearray, memoryview)):
+    elif isinstance(data, BytesLike):
         return OP_BINARY, data
     else:
         raise TypeError("data must be bytes-like or str")
@@ -356,7 +359,7 @@ def prepare_ctrl(data: Data) -> bytes:
     """
     if isinstance(data, str):
         return data.encode("utf-8")
-    elif isinstance(data, (bytes, bytearray, memoryview)):
+    elif isinstance(data, BytesLike):
         return bytes(data)
     else:
         raise TypeError("data must be bytes-like or str")

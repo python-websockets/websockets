@@ -269,6 +269,11 @@ class Connection:
         if self.side is SERVER and not self.eof_sent:
             self.send_eof()
 
+        # "An endpoint MUST NOT continue to attempt to process data
+        # (including a responding Close frame) from the remote endpoint
+        # after being instructed to _Fail the WebSocket Connection_."
+        self.reader.abort()
+
     # Public API for getting incoming events after receiving data.
 
     def events_received(self) -> List[Event]:
@@ -304,14 +309,8 @@ class Connection:
         # Run parser until more data is needed or EOF
         try:
             next(self.parser)
-        except StopIteration:
-            # This happens if receive_data() or receive_eof() is called after
-            # the parser raised an exception. (It cannot happen after reaching
-            # EOF because receive_data() or receive_eof() would fail earlier.)
-            assert self.parser_exc is not None
-            raise RuntimeError(
-                "parser cannot receive data or EOF after an error"
-            ) from self.parser_exc
+        except StopIteration:  # pragma: no cover
+            raise AssertionError("parser shouldn't exit")
         except ProtocolError as exc:
             self.fail(1002, str(exc))
             self.parser_exc = exc

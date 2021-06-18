@@ -144,3 +144,12 @@ class StreamReaderTests(GeneratorTestCase):
         with self.assertRaises(EOFError) as raised:
             self.reader.feed_eof()
         self.assertEqual(str(raised.exception), "stream ended")
+
+    def test_abort(self):
+        gen = self.reader.read_to_eof()
+
+        self.reader.feed_data(b"spam")
+        self.reader.abort()
+
+        data = self.assertGeneratorReturns(gen)
+        self.assertEqual(data, b"")

@@ -1192,6 +1192,31 @@ class PongTests(ConnectionTestCase):
         )
 
 
+class FailTests(ConnectionTestCase):
+    """
+    Test failing the connection.
+
+    See 7.1.7. Fail the WebSocket Connection in RFC 6544.
+
+    """
+
+    def test_client_stops_processing_frames_after_fail(self):
+        client = Connection(Side.CLIENT)
+        client.fail(1002)
+        self.assertConnectionFailing(client, 1002)
+        with self.assertRaises(EOFError) as raised:
+            client.receive_data(b"\x88\x02\x03\xea")
+        self.assertEqual(str(raised.exception), "stream ended")
+
+    def test_server_stops_processing_frames_after_fail(self):
+        server = Connection(Side.SERVER)
+        server.fail(1002)
+        self.assertConnectionFailing(server, 1002)
+        with self.assertRaises(EOFError) as raised:
+            server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xea")
+        self.assertEqual(str(raised.exception), "stream ended")
+
+
 class FragmentationTests(ConnectionTestCase):
     """
     Test message fragmentation.
@@ -1401,44 +1426,36 @@ class EOFTests(ConnectionTestCase):
         with self.assertRaises(ProtocolError) as raised:
             client.receive_data(b"\xff\xff")
         self.assertEqual(str(raised.exception), "invalid opcode")
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(EOFError) as raised:
             client.receive_data(b"\x00\x00")
-        self.assertEqual(
-            str(raised.exception), "parser cannot receive data or EOF after an error"
-        )
+        self.assertEqual(str(raised.exception), "stream ended")
 
     def test_server_receives_data_after_exception(self):
         server = Connection(Side.SERVER)
         with self.assertRaises(ProtocolError) as raised:
             server.receive_data(b"\xff\xff")
         self.assertEqual(str(raised.exception), "invalid opcode")
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(EOFError) as raised:
             server.receive_data(b"\x00\x00")
-        self.assertEqual(
-            str(raised.exception), "parser cannot receive data or EOF after an error"
-        )
+        self.assertEqual(str(raised.exception), "stream ended")
 
     def test_client_receives_eof_after_exception(self):
         client = Connection(Side.CLIENT)
         with self.assertRaises(ProtocolError) as raised:
             client.receive_data(b"\xff\xff")
         self.assertEqual(str(raised.exception), "invalid opcode")
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(EOFError) as raised:
             client.receive_eof()
-        self.assertEqual(
-            str(raised.exception), "parser cannot receive data or EOF after an error"
-        )
+        self.assertEqual(str(raised.exception), "stream ended")
 
     def test_server_receives_eof_after_exception(self):
         server = Connection(Side.SERVER)
         with self.assertRaises(ProtocolError) as raised:
             server.receive_data(b"\xff\xff")
         self.assertEqual(str(raised.exception), "invalid opcode")
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(EOFError) as raised:
             server.receive_eof()
-        self.assertEqual(
-            str(raised.exception), "parser cannot receive data or EOF after an error"
-        )
+        self.assertEqual(str(raised.exception), "stream ended")
 
     def test_client_receives_data_after_eof(self):
         client = Connection(Side.CLIENT)

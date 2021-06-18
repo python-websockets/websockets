@@ -238,8 +238,6 @@ class Connection:
         # send_frame() guarantees that self.state is OPEN at this point.
         # 7.1.3. The WebSocket Closing Handshake is Started
         self.set_state(CLOSING)
-        if self.side is SERVER:
-            self.send_eof()
 
     def send_ping(self, data: bytes) -> None:
         """
@@ -254,6 +252,22 @@ class Connection:
 
         """
         self.send_frame(Frame(OP_PONG, data))
+
+    def fail(self, code: Optional[int] = None, reason: str = "") -> None:
+        """
+        Fail the WebSocket connection.
+
+        """
+        # 7.1.7. Fail the WebSocket Connection
+
+        # Send a close frame when the state is OPEN (a close frame was already
+        # sent if it's CLOSING), except when failing the connection because
+        # of an error reading from or writing to the network.
+        if self.state is OPEN and code != 1006:
+            self.send_close(code, reason)
+
+        if self.side is SERVER and not self.eof_sent:
+            self.send_eof()
 
     # Public API for getting incoming events after receiving data.
 
@@ -274,8 +288,9 @@ class Connection:
         """
         Return data to write to the connection.
 
-        Call this method immediately after calling any of the ``receive_*()``
-        or ``send_*()`` methods and write the data to the connection.
+        Call this method immediately after calling any of the ``receive_*()``,
+        ``send_*()``, or ``fail()`` methods and write the data to the
+        connection.
 
         The empty bytestring signals the end of the data stream.
 
@@ -284,18 +299,6 @@ class Connection:
         return writes
 
     # Private APIs for receiving data.
-
-    def fail_connection(self, code: int = 1006, reason: str = "") -> None:
-        # Send a close frame when the state is OPEN (a close frame was already
-        # sent if it's CLOSING), except when failing the connection because of
-        # an error reading from or writing to the network.
-        if code != 1006 and self.state is OPEN:
-            close = Close(code, reason)
-            self.send_frame(Frame(OP_CLOSE, close.serialize()))
-            self.close_sent = close
-            self.set_state(CLOSING)
-        if not self.eof_sent:
-            self.send_eof()
 
     def step_parser(self) -> None:
         # Run parser until more data is needed or EOF
@@ -310,25 +313,25 @@ class Connection:
                 "parser cannot receive data or EOF after an error"
             ) from self.parser_exc
         except ProtocolError as exc:
-            self.fail_connection(1002, str(exc))
+            self.fail(1002, str(exc))
             self.parser_exc = exc
             raise
         except EOFError as exc:
-            self.fail_connection(1006, str(exc))
+            self.fail(1006, str(exc))
             self.parser_exc = exc
             raise
         except UnicodeDecodeError as exc:
-            self.fail_connection(1007, f"{exc.reason} at position {exc.start}")
+            self.fail(1007, f"{exc.reason} at position {exc.start}")
             self.parser_exc = exc
             raise
         except PayloadTooBig as exc:
-            self.fail_connection(1009, str(exc))
+            self.fail(1009, str(exc))
             self.parser_exc = exc
             raise
         except Exception as exc:
             self.logger.error("parser failed", exc_info=True)
             # Don't include exception details, which may be security-sensitive.
-            self.fail_connection(1011)
+            self.fail(1011)
             self.parser_exc = exc
             raise
 
@@ -418,6 +421,7 @@ class Connection:
 
                 if self.cur_size is not None:
                     raise ProtocolError("incomplete fragmented message")
+
                 # 5.5.1 Close: "If an endpoint receives a Close frame and did
                 # not previously send a Close frame, the endpoint MUST send a
                 # Close frame in response. (When sending a Close frame in
@@ -433,8 +437,13 @@ class Connection:
                     self.close_sent = self.close_rcvd
                     self.close_rcvd_then_sent = True
                     self.set_state(CLOSING)
-                    if self.side is SERVER:
-                        self.send_eof()
+
+                # 7.1.2. Start the WebSocket Closing Handshake: "Once an
+                # endpoint has both sent and received a Close control frame,
+                # that endpoint SHOULD _Close the WebSocket Connection_"
+
+                if self.side is SERVER:
+                    self.send_eof()
 
             else:  # pragma: no cover
                 # This can't happen because Frame.parse() validates opcodes.

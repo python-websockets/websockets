@@ -80,8 +80,10 @@ class ConnectionTestCase(FramesTestCase):
         )
         # No frame was received.
         self.assertFrameReceived(connection, None)
-        # A close frame and the end of stream were sent.
-        self.assertFrameSent(connection, close_frame, eof=True)
+        # A close frame and possibly the end of stream were sent.
+        self.assertFrameSent(
+            connection, close_frame, eof=connection.side is Side.SERVER
+        )
 
 
 class MaskingTests(ConnectionTestCase):
@@ -187,7 +189,7 @@ class ContinuationTests(ConnectionTestCase):
         # this is the same test as test_server_sends_unexpected_continuation.
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
         with self.assertRaises(ProtocolError) as raised:
             server.send_continuation(b"", fin=False)
         self.assertEqual(str(raised.exception), "unexpected continuation frame")
@@ -442,7 +444,7 @@ class TextTests(ConnectionTestCase):
     def test_server_sends_text_after_sending_close(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
         with self.assertRaises(InvalidState):
             server.send_text(b"")
 
@@ -644,7 +646,7 @@ class BinaryTests(ConnectionTestCase):
     def test_server_sends_binary_after_sending_close(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
         with self.assertRaises(InvalidState):
             server.send_binary(b"")
 
@@ -729,7 +731,7 @@ class CloseTests(ConnectionTestCase):
     def test_server_sends_close(self):
         server = Connection(Side.SERVER)
         server.send_close()
-        self.assertEqual(server.data_to_send(), [b"\x88\x00", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x00"])
         self.assertIs(server.state, State.CLOSING)
 
     def test_client_receives_close(self):
@@ -769,11 +771,11 @@ class CloseTests(ConnectionTestCase):
 
         server.send_close()
         self.assertFrameReceived(server, None)
-        self.assertFrameSent(server, Frame(OP_CLOSE, b""), eof=True)
+        self.assertFrameSent(server, Frame(OP_CLOSE, b""))
 
         server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
         self.assertFrameReceived(server, Frame(OP_CLOSE, b""))
-        self.assertFrameSent(server, None)
+        self.assertFrameSent(server, None, eof=True)
 
         server.receive_eof()
         self.assertFrameReceived(server, None)
@@ -813,7 +815,7 @@ class CloseTests(ConnectionTestCase):
     def test_server_sends_close_with_code(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
         self.assertIs(server.state, State.CLOSING)
 
     def test_client_receives_close_with_code(self):
@@ -840,7 +842,7 @@ class CloseTests(ConnectionTestCase):
     def test_server_sends_close_with_code_and_reason(self):
         server = Connection(Side.SERVER)
         server.send_close(1000, "OK")
-        self.assertEqual(server.data_to_send(), [b"\x88\x04\x03\xe8OK", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x04\x03\xe8OK"])
         self.assertIs(server.state, State.CLOSING)
 
     def test_client_receives_close_with_code_and_reason(self):
@@ -1029,7 +1031,7 @@ class PingTests(ConnectionTestCase):
     def test_server_sends_ping_after_sending_close(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
         # The spec says: "An endpoint MAY send a Ping frame any time (...)
         # before the connection is closed" but websockets doesn't support
         # sending a Ping frame after a Close frame.
@@ -1164,7 +1166,7 @@ class PongTests(ConnectionTestCase):
     def test_server_sends_pong_after_sending_close(self):
         server = Connection(Side.SERVER)
         server.send_close(1000)
-        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8", b""])
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
         # websockets doesn't support sending a Pong frame after a Close frame.
         with self.assertRaises(InvalidState):
             server.send_pong(b"")

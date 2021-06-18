@@ -79,33 +79,32 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     simplicity.
 
     Once the connection is open, a Ping_ frame is sent every ``ping_interval``
-    seconds. This serves as a keepalive. It helps keeping the connection
-    open, especially in the presence of proxies with short timeouts on
-    inactive connections. Set ``ping_interval`` to :obj:`None` to disable
-    this behavior.
+    seconds. This serves as a keepalive. It helps keeping the connection open,
+    especially in the presence of proxies with short timeouts on inactive
+    connections. Set ``ping_interval`` to :obj:`None` to disable this behavior.
 
     .. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
 
     If the corresponding Pong_ frame isn't received within ``ping_timeout``
-    seconds, the connection is considered unusable and is closed with code
-    1011. This ensures that the remote endpoint remains responsive. Set
+    seconds, the connection is considered unusable and is closed with code 1011.
+    This ensures that the remote endpoint remains responsive. Set
     ``ping_timeout`` to :obj:`None` to disable this behavior.
 
     .. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
+
+    See the discussion of :doc:`timeouts <../topics/timeouts>` for details.
 
     The ``close_timeout`` parameter defines a maximum wait time for completing
     the closing handshake and terminating the TCP connection. For legacy
     reasons, :meth:`close` completes in at most ``5 * close_timeout`` seconds
     for clients and ``4 * close_timeout`` for servers.
 
-    See the discussion of :doc:`timeouts <../topics/timeouts>` for details.
+    ``close_timeout`` is a parameter of the protocol because websockets usually
+    calls :meth:`close` implicitly upon exit:
 
-    ``close_timeout`` needs to be a parameter of the protocol because
-    websockets usually calls :meth:`close` implicitly upon exit:
-
-    * on the client side, when :func:`~websockets.client.connect` is used as a
+    * on the client side, when using :func:`~websockets.client.connect` as a
       context manager;
-    * on the server side, when the connection handler terminates;
+    * on the server side, when the connection handler terminates.
 
     To apply a timeout to any other API, wrap it in :func:`~asyncio.wait_for`.
 
@@ -486,10 +485,11 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         Iterate on incoming messages.
 
-        The iterator  exits normally when the connection is closed with the
-        close code 1000 (OK) or 1001(going away). It raises
-        a :exc:`~websockets.exceptions.ConnectionClosedError` exception when
-        the connection is closed with any other code.
+        The iterator exits normally when the connection is closed with the close
+        code 1000 (OK) or 1001 (going away).
+
+        It raises a :exc:`~websockets.exceptions.ConnectionClosedError`
+        exception when the connection is closed with any other code.
 
         """
         try:
@@ -503,8 +503,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         Receive the next message.
 
         When the connection is closed, :meth:`recv` raises
-        :exc:`~websockets.exceptions.ConnectionClosed`. Specifically, it
-        raises :exc:`~websockets.exceptions.ConnectionClosedOK` after a normal
+        :exc:`~websockets.exceptions.ConnectionClosed`. Specifically, it raises
+        :exc:`~websockets.exceptions.ConnectionClosedOK` after a normal
         connection closure and
         :exc:`~websockets.exceptions.ConnectionClosedError` after a protocol
         error or a network failure. This is how you detect the end of the
@@ -513,8 +513,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         Canceling :meth:`recv` is safe. There's no risk of losing the next
         message. The next invocation of :meth:`recv` will return it.
 
-        This makes it possible to enforce a timeout by wrapping :meth:`recv`
-        in :func:`~asyncio.wait_for`.
+        This makes it possible to enforce a timeout by wrapping :meth:`recv` in
+        :func:`~asyncio.wait_for`.
 
         Returns:
             Data: A string (:class:`str`) for a Text_ frame. A bytestring

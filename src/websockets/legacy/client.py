@@ -737,7 +737,9 @@ connect = Connect
 
 
 def unix_connect(
-    path: Optional[str], uri: str = "ws://localhost/", **kwargs: Any
+    path: Optional[str] = None,
+    uri: str = "ws://localhost/",
+    **kwargs: Any,
 ) -> Connect:
     """
     Similar to :func:`connect`, but for connecting to a Unix socket.

@@ -157,7 +157,7 @@ class Connection:
             self.logger.debug("= connection is %s", state.name)
         self.state = state
 
-    # Public APIs for receiving data.
+    # Public methods for receiving data.
 
     def receive_data(self, data: bytes) -> None:
         """
@@ -186,7 +186,7 @@ class Connection:
         self.reader.feed_eof()
         self.step_parser()
 
-    # Public APIs for sending events.
+    # Public methods for sending events.
 
     def send_continuation(self, data: bytes, fin: bool) -> None:
         """
@@ -274,7 +274,7 @@ class Connection:
         # after being instructed to _Fail the WebSocket Connection_."
         self.reader.abort()
 
-    # Public API for getting incoming events after receiving data.
+    # Public method for getting incoming events after receiving data.
 
     def events_received(self) -> List[Event]:
         """
@@ -287,7 +287,7 @@ class Connection:
         events, self.events = self.events, []
         return events
 
-    # Public API for getting outgoing data after receiving data or sending events.
+    # Public method for getting outgoing data after receiving data or sending events.
 
     def data_to_send(self) -> List[bytes]:
         """
@@ -303,7 +303,7 @@ class Connection:
         writes, self.writes = self.writes, []
         return writes
 
-    # Private APIs for receiving data.
+    # Private methods for receiving data.
 
     def step_parser(self) -> None:
         # Run parser until more data is needed or EOF
@@ -450,7 +450,7 @@ class Connection:
 
             self.events.append(frame)
 
-    # Private APIs for sending events.
+    # Private methods for sending events.
 
     def send_frame(self, frame: Frame) -> None:
         # Defensive assertion for protocol compliance.

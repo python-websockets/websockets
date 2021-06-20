@@ -435,7 +435,7 @@ class ServerConnection(Connection):
         self.writes.append(response.serialize())
 
     def parse(self) -> Generator[None, None, None]:
-        if self.state == CONNECTING:
+        if self.state is CONNECTING:
             request = yield from Request.parse(self.reader.read_line)
 
             if self.debug:

@@ -306,7 +306,7 @@ class ClientConnection(Connection):
             except InvalidHandshake as exc:
                 response.exception = exc
             else:
-                assert self.state == CONNECTING
+                assert self.state is CONNECTING
                 self.set_state(OPEN)
             finally:
                 self.events.append(response)

@@ -122,7 +122,8 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Content-Type: text/plain; charset=utf-8\r\n"
                 f"Connection: close\r\n"
                 f"\r\n"
-                f"Sorry folks.\n".encode()
+                f"Sorry folks.\n".encode(),
+                b"",
             ],
         )
         self.assertEqual(server.state, CONNECTING)

@@ -420,10 +420,6 @@ class ServerConnection(Connection):
         Send a WebSocket handshake response to the client.
 
         """
-        if response.status_code == 101:
-            assert self.state is CONNECTING
-            self.set_state(OPEN)
-
         if self.debug:
             code, phrase = response.status_code, response.reason_phrase
             self.logger.debug("> HTTP/1.1 %d %s", code, phrase)
@@ -433,6 +429,12 @@ class ServerConnection(Connection):
                 self.logger.debug("> [body] (%d bytes)", len(response.body))
 
         self.writes.append(response.serialize())
+
+        if response.status_code == 101:
+            assert self.state is CONNECTING
+            self.set_state(OPEN)
+        else:
+            self.send_eof()
 
     def parse(self) -> Generator[None, None, None]:
         if self.state is CONNECTING:

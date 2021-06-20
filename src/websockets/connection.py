@@ -3,11 +3,19 @@ from __future__ import annotations
 import enum
 import logging
 import uuid
-from typing import Generator, List, Optional, Union
+from typing import Generator, List, Optional, Type, Union
 
-from .exceptions import InvalidState, PayloadTooBig, ProtocolError
+from .exceptions import (
+    ConnectionClosed,
+    ConnectionClosedError,
+    ConnectionClosedOK,
+    InvalidState,
+    PayloadTooBig,
+    ProtocolError,
+)
 from .extensions import Extension
 from .frames import (
+    OK_CLOSE_CODES,
     OP_BINARY,
     OP_CLOSE,
     OP_CONT,
@@ -123,7 +131,7 @@ class Connection:
     @property
     def state(self) -> State:
         """
-        WebSocket connection state.
+        Connection State defined in 4.1, 4.2, 7.1.3, and 7.1.4 of :rfc:`6455`.
 
         """
         return self._state
@@ -137,7 +145,7 @@ class Connection:
     @property
     def close_code(self) -> Optional[int]:
         """
-        WebSocket close code received in a close frame.
+        Connection Close Code defined in 7.1.5 of :rfc:`6455`.
 
         Available once the connection is closed.
 
@@ -152,7 +160,7 @@ class Connection:
     @property
     def close_reason(self) -> Optional[str]:
         """
-        WebSocket close reason received in a close frame.
+        Connection Close Reason defined in 7.1.6 of :rfc:`6455`.
 
         Available once the connection is closed.
 
@@ -163,6 +171,35 @@ class Connection:
             return ""
         else:
             return self.close_rcvd.reason
+
+    @property
+    def connection_closed_exc(self) -> ConnectionClosed:
+        """
+        Exception raised when trying to interact with a closed connection.
+
+        Available once the connection is closed. If you need to raise this
+        exception while the connection is closing, wait until it's closed.
+
+        """
+        assert self.state is CLOSED
+        exc_type: Type[ConnectionClosed]
+        if (
+            self.close_rcvd is not None
+            and self.close_sent is not None
+            and self.close_rcvd.code in OK_CLOSE_CODES
+            and self.close_sent.code in OK_CLOSE_CODES
+        ):
+            exc_type = ConnectionClosedOK
+        else:
+            exc_type = ConnectionClosedError
+        exc: ConnectionClosed = exc_type(
+            self.close_rcvd,
+            self.close_sent,
+            self.close_rcvd_then_sent,
+        )
+        # Chain to the exception raised in the parser, if any.
+        exc.__cause__ = self.parser_exc
+        return exc
 
     # Public methods for receiving data.
 

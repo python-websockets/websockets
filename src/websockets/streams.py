@@ -116,10 +116,9 @@ class StreamReader:
             raise EOFError("stream ended")
         self.eof = True
 
-    def abort(self) -> None:
+    def discard(self) -> None:
         """
-        End the stream, discarding all buffered data.
+        Discarding all buffered data, but don't end the stream.
 
         """
-        self.eof = True
         del self.buffer[:]

@@ -1204,17 +1204,15 @@ class FailTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         client.fail(1002)
         self.assertConnectionFailing(client, 1002)
-        with self.assertRaises(EOFError) as raised:
-            client.receive_data(b"\x88\x02\x03\xea")
-        self.assertEqual(str(raised.exception), "stream ended")
+        client.receive_data(b"\x88\x02\x03\xea")
+        self.assertFrameReceived(client, None)
 
     def test_server_stops_processing_frames_after_fail(self):
         server = Connection(Side.SERVER)
         server.fail(1002)
         self.assertConnectionFailing(server, 1002)
-        with self.assertRaises(EOFError) as raised:
-            server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xea")
-        self.assertEqual(str(raised.exception), "stream ended")
+        server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xea")
+        self.assertFrameReceived(server, None)
 
 
 class FragmentationTests(ConnectionTestCase):
@@ -1423,39 +1421,53 @@ class EOFTests(ConnectionTestCase):
 
     def test_client_receives_data_after_exception(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError) as raised:
+        with self.assertRaises(ProtocolError):
             client.receive_data(b"\xff\xff")
-        self.assertEqual(str(raised.exception), "invalid opcode")
-        with self.assertRaises(EOFError) as raised:
-            client.receive_data(b"\x00\x00")
-        self.assertEqual(str(raised.exception), "stream ended")
+        self.assertConnectionFailing(client, 1002, "invalid opcode")
+        client.receive_data(b"\x00\x00")
+        self.assertFrameSent(client, None)
 
     def test_server_receives_data_after_exception(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError) as raised:
+        with self.assertRaises(ProtocolError):
             server.receive_data(b"\xff\xff")
-        self.assertEqual(str(raised.exception), "invalid opcode")
-        with self.assertRaises(EOFError) as raised:
-            server.receive_data(b"\x00\x00")
-        self.assertEqual(str(raised.exception), "stream ended")
+        self.assertConnectionFailing(server, 1002, "invalid opcode")
+        server.receive_data(b"\x00\x00")
+        self.assertFrameSent(server, None)
 
     def test_client_receives_eof_after_exception(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError) as raised:
+        with self.assertRaises(ProtocolError):
             client.receive_data(b"\xff\xff")
-        self.assertEqual(str(raised.exception), "invalid opcode")
-        with self.assertRaises(EOFError) as raised:
-            client.receive_eof()
-        self.assertEqual(str(raised.exception), "stream ended")
+        self.assertConnectionFailing(client, 1002, "invalid opcode")
+        client.receive_eof()
+        self.assertFrameSent(client, None, eof=True)
 
     def test_server_receives_eof_after_exception(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError) as raised:
+        with self.assertRaises(ProtocolError):
             server.receive_data(b"\xff\xff")
-        self.assertEqual(str(raised.exception), "invalid opcode")
-        with self.assertRaises(EOFError) as raised:
-            server.receive_eof()
-        self.assertEqual(str(raised.exception), "stream ended")
+        self.assertConnectionFailing(server, 1002, "invalid opcode")
+        server.receive_eof()
+        self.assertFrameSent(server, None)
+
+    def test_client_receives_data_and_eof_after_exception(self):
+        client = Connection(Side.CLIENT)
+        with self.assertRaises(ProtocolError):
+            client.receive_data(b"\xff\xff")
+        self.assertConnectionFailing(client, 1002, "invalid opcode")
+        client.receive_data(b"\x00\x00")
+        client.receive_eof()
+        self.assertFrameSent(client, None, eof=True)
+
+    def test_server_receives_data_and_eof_after_exception(self):
+        server = Connection(Side.SERVER)
+        with self.assertRaises(ProtocolError):
+            server.receive_data(b"\xff\xff")
+        self.assertConnectionFailing(server, 1002, "invalid opcode")
+        server.receive_data(b"\x00\x00")
+        server.receive_eof()
+        self.assertFrameSent(server, None)
 
     def test_client_receives_data_after_eof(self):
         client = Connection(Side.CLIENT)

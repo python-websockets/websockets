@@ -170,7 +170,7 @@ class Connection:
 
         """
         self.reader.feed_data(data)
-        self.step_parser()
+        next(self.parser)
 
     def receive_eof(self) -> None:
         """
@@ -184,7 +184,7 @@ class Connection:
 
         """
         self.reader.feed_eof()
-        self.step_parser()
+        next(self.parser)
 
     # Public methods for sending events.
 
@@ -233,10 +233,10 @@ class Connection:
         else:
             close = Close(code, reason)
             data = close.serialize()
-        self.send_frame(Frame(OP_CLOSE, data))
-        self.close_sent = close
         # send_frame() guarantees that self.state is OPEN at this point.
         # 7.1.3. The WebSocket Closing Handshake is Started
+        self.send_frame(Frame(OP_CLOSE, data))
+        self.close_sent = close
         self.set_state(CLOSING)
 
     def send_ping(self, data: bytes) -> None:
@@ -253,7 +253,7 @@ class Connection:
         """
         self.send_frame(Frame(OP_PONG, data))
 
-    def fail(self, code: Optional[int] = None, reason: str = "") -> None:
+    def fail(self, code: int, reason: str = "") -> None:
         """
         Fail the WebSocket connection.
 
@@ -263,8 +263,13 @@ class Connection:
         # Send a close frame when the state is OPEN (a close frame was already
         # sent if it's CLOSING), except when failing the connection because
         # of an error reading from or writing to the network.
-        if self.state is OPEN and code != 1006:
-            self.send_close(code, reason)
+        if self.state is OPEN:
+            if code != 1006:
+                close = Close(code, reason)
+                data = close.serialize()
+                self.send_frame(Frame(OP_CLOSE, data))
+                self.close_sent = close
+                self.set_state(CLOSING)
 
         if self.side is SERVER and not self.eof_sent:
             self.send_eof()
@@ -272,7 +277,8 @@ class Connection:
         # "An endpoint MUST NOT continue to attempt to process data
         # (including a responding Close frame) from the remote endpoint
         # after being instructed to _Fail the WebSocket Connection_."
-        self.reader.abort()
+        self.parser = self.discard()
+        next(self.parser)  # start coroutine
 
     # Public method for getting incoming events after receiving data.
 
@@ -305,28 +311,65 @@ class Connection:
 
     # Private methods for receiving data.
 
-    def step_parser(self) -> None:
-        # Run parser until more data is needed or EOF
+    def parse(self) -> Generator[None, None, None]:
         try:
-            next(self.parser)
-        except StopIteration:  # pragma: no cover
-            raise AssertionError("parser shouldn't exit")
+            while True:
+                if (yield from self.reader.at_eof()):
+                    if self.debug:
+                        self.logger.debug("< EOF")
+                    if self.close_rcvd_then_sent is not None:
+                        if self.side is CLIENT:
+                            self.send_eof()
+                        # If parse() completes normally, execution ends here.
+                        yield
+                        # Once the reader reaches EOF, its feed_data/eof()
+                        # methods raise an error, so our receive_data/eof()
+                        # methods don't step the generator.
+                        raise AssertionError(
+                            "parse() shouldn't step after EOF"
+                        )  # pragma: no cover
+                    else:
+                        raise EOFError("unexpected end of stream")
+
+                if self.max_size is None:
+                    max_size = None
+                elif self.cur_size is None:
+                    max_size = self.max_size
+                else:
+                    max_size = self.max_size - self.cur_size
+
+                frame = yield from Frame.parse(
+                    self.reader.read_exact,
+                    mask=self.side is SERVER,
+                    max_size=max_size,
+                    extensions=self.extensions,
+                )
+
+                if self.debug:
+                    self.logger.debug("< %s", frame)
+
+                self.recv_frame(frame)
+
         except ProtocolError as exc:
             self.fail(1002, str(exc))
             self.parser_exc = exc
             raise
+
         except EOFError as exc:
             self.fail(1006, str(exc))
             self.parser_exc = exc
             raise
+
         except UnicodeDecodeError as exc:
             self.fail(1007, f"{exc.reason} at position {exc.start}")
             self.parser_exc = exc
             raise
+
         except PayloadTooBig as exc:
             self.fail(1009, str(exc))
             self.parser_exc = exc
             raise
+
         except Exception as exc:
             self.logger.error("parser failed", exc_info=True)
             # Don't include exception details, which may be security-sensitive.
@@ -334,121 +377,97 @@ class Connection:
             self.parser_exc = exc
             raise
 
-    def parse(self) -> Generator[None, None, None]:
-        while True:
-            eof = yield from self.reader.at_eof()
-            if eof:
-                if self.debug:
-                    self.logger.debug("< EOF")
-                if self.close_rcvd is not None:
-                    if not self.eof_sent:
-                        self.send_eof()
-                    yield
-                    # Once the reader reaches EOF, its feed_data/eof() methods
-                    # raise an error, so our receive_data/eof() methods never
-                    # call step_parser(), so the generator shouldn't resume
-                    # executing until it's garbage collected.
-                    raise AssertionError(
-                        "parser shouldn't step after EOF"
-                    )  # pragma: no cover
-                else:
-                    raise EOFError("unexpected end of stream")
+    def discard(self) -> Generator[None, None, None]:
+        while not (yield from self.reader.at_eof()):
+            self.reader.discard()
+        if self.side is CLIENT:
+            self.send_eof()
+        # If discard() completes normally, execution ends here.
+        yield
+        # Once the reader reaches EOF, its feed_data/eof()
+        # methods raise an error, so our receive_data/eof()
+        # methods don't step the generator.
+        raise AssertionError("discard() shouldn't step after EOF")  # pragma: no cover
 
-            if self.max_size is None:
-                max_size = None
-            elif self.cur_size is None:
-                max_size = self.max_size
+    def recv_frame(self, frame: Frame) -> None:
+        if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
+            # 5.5.1 Close: "The application MUST NOT send any more data
+            # frames after sending a Close frame."
+            if self.close_rcvd is not None:
+                raise ProtocolError("data frame after close frame")
+
+            if self.cur_size is not None:
+                raise ProtocolError("expected a continuation frame")
+            if frame.fin:
+                self.cur_size = None
             else:
-                max_size = self.max_size - self.cur_size
+                self.cur_size = len(frame.data)
 
-            frame = yield from Frame.parse(
-                self.reader.read_exact,
-                mask=self.side is SERVER,
-                max_size=max_size,
-                extensions=self.extensions,
-            )
+        elif frame.opcode is OP_CONT:
+            # 5.5.1 Close: "The application MUST NOT send any more data
+            # frames after sending a Close frame."
+            if self.close_rcvd is not None:
+                raise ProtocolError("data frame after close frame")
 
-            if self.debug:
-                self.logger.debug("< %s", frame)
+            if self.cur_size is None:
+                raise ProtocolError("unexpected continuation frame")
+            if frame.fin:
+                self.cur_size = None
+            else:
+                self.cur_size += len(frame.data)
 
-            if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
-                # 5.5.1 Close: "The application MUST NOT send any more data
-                # frames after sending a Close frame."
-                if self.close_rcvd is not None:
-                    raise ProtocolError("data frame after close frame")
+        elif frame.opcode is OP_PING:
+            # 5.5.2. Ping: "Upon receipt of a Ping frame, an endpoint MUST
+            # send a Pong frame in response, unless it already received a
+            # Close frame."
+            if self.close_rcvd is None:
+                pong_frame = Frame(OP_PONG, frame.data)
+                self.send_frame(pong_frame)
 
-                if self.cur_size is not None:
-                    raise ProtocolError("expected a continuation frame")
-                if frame.fin:
-                    self.cur_size = None
-                else:
-                    self.cur_size = len(frame.data)
+        elif frame.opcode is OP_PONG:
+            # 5.5.3 Pong: "A response to an unsolicited Pong frame is not
+            # expected."
+            pass
 
-            elif frame.opcode is OP_CONT:
-                # 5.5.1 Close: "The application MUST NOT send any more data
-                # frames after sending a Close frame."
-                if self.close_rcvd is not None:
-                    raise ProtocolError("data frame after close frame")
+        elif frame.opcode is OP_CLOSE:
+            # 7.1.5.  The WebSocket Connection Close Code
+            # 7.1.6.  The WebSocket Connection Close Reason
+            self.close_rcvd = Close.parse(frame.data)
+            if self.state is CLOSING:
+                assert self.close_sent is not None
+                self.close_rcvd_then_sent = False
 
-                if self.cur_size is None:
-                    raise ProtocolError("unexpected continuation frame")
-                if frame.fin:
-                    self.cur_size = None
-                else:
-                    self.cur_size += len(frame.data)
+            if self.cur_size is not None:
+                raise ProtocolError("incomplete fragmented message")
 
-            elif frame.opcode is OP_PING:
-                # 5.5.2. Ping: "Upon receipt of a Ping frame, an endpoint MUST
-                # send a Pong frame in response, unless it already received a
-                # Close frame."
-                if self.close_rcvd is None:
-                    pong_frame = Frame(OP_PONG, frame.data)
-                    self.send_frame(pong_frame)
+            # 5.5.1 Close: "If an endpoint receives a Close frame and did
+            # not previously send a Close frame, the endpoint MUST send a
+            # Close frame in response. (When sending a Close frame in
+            # response, the endpoint typically echos the status code it
+            # received.)"
 
-            elif frame.opcode is OP_PONG:
-                # 5.5.3 Pong: "A response to an unsolicited Pong frame is not
-                # expected."
-                pass
+            if self.state is OPEN:
+                # Echo the original data instead of re-serializing it with
+                # Close.serialize() because that fails when the close frame
+                # is empty and Close.parse() synthetizes a 1005 close code.
+                # The rest is identical to send_close().
+                self.send_frame(Frame(OP_CLOSE, frame.data))
+                self.close_sent = self.close_rcvd
+                self.close_rcvd_then_sent = True
+                self.set_state(CLOSING)
 
-            elif frame.opcode is OP_CLOSE:
-                # 7.1.5.  The WebSocket Connection Close Code
-                # 7.1.6.  The WebSocket Connection Close Reason
-                self.close_rcvd = Close.parse(frame.data)
-                if self.state is CLOSING:
-                    assert self.close_sent is not None
-                    self.close_rcvd_then_sent = False
+            # 7.1.2. Start the WebSocket Closing Handshake: "Once an
+            # endpoint has both sent and received a Close control frame,
+            # that endpoint SHOULD _Close the WebSocket Connection_"
 
-                if self.cur_size is not None:
-                    raise ProtocolError("incomplete fragmented message")
+            if self.side is SERVER:
+                self.send_eof()
 
-                # 5.5.1 Close: "If an endpoint receives a Close frame and did
-                # not previously send a Close frame, the endpoint MUST send a
-                # Close frame in response. (When sending a Close frame in
-                # response, the endpoint typically echos the status code it
-                # received.)"
+        else:  # pragma: no cover
+            # This can't happen because Frame.parse() validates opcodes.
+            raise AssertionError(f"unexpected opcode: {frame.opcode:02x}")
 
-                if self.state is OPEN:
-                    # Echo the original data instead of re-serializing it with
-                    # Close.serialize() because that fails when the close frame
-                    # is empty and Close.parse() synthetizes a 1005 close code.
-                    # The rest is identical to send_close().
-                    self.send_frame(Frame(OP_CLOSE, frame.data))
-                    self.close_sent = self.close_rcvd
-                    self.close_rcvd_then_sent = True
-                    self.set_state(CLOSING)
-
-                # 7.1.2. Start the WebSocket Closing Handshake: "Once an
-                # endpoint has both sent and received a Close control frame,
-                # that endpoint SHOULD _Close the WebSocket Connection_"
-
-                if self.side is SERVER:
-                    self.send_eof()
-
-            else:  # pragma: no cover
-                # This can't happen because Frame.parse() validates opcodes.
-                raise AssertionError(f"unexpected opcode: {frame.opcode:02x}")
-
-            self.events.append(frame)
+        self.events.append(frame)
 
     # Private methods for sending events.
 

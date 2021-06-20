@@ -682,35 +682,35 @@ class CloseTests(ConnectionTestCase):
     def test_close_code(self):
         client = Connection(Side.CLIENT)
         client.receive_data(b"\x88\x04\x03\xe8OK")
-        client.set_state(State.CLOSED)
+        client.receive_eof()
         self.assertEqual(client.close_code, 1000)
 
     def test_close_reason(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x84\x00\x00\x00\x00\x03\xe8OK")
-        server.set_state(State.CLOSED)
+        server.receive_eof()
         self.assertEqual(server.close_reason, "OK")
 
     def test_close_code_not_provided(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x80\x00\x00\x00\x00")
-        server.set_state(State.CLOSED)
+        server.receive_eof()
         self.assertEqual(server.close_code, 1005)
 
     def test_close_reason_not_provided(self):
         client = Connection(Side.CLIENT)
         client.receive_data(b"\x88\x00")
-        client.set_state(State.CLOSED)
+        client.receive_eof()
         self.assertEqual(client.close_reason, "")
 
     def test_close_code_not_available(self):
         client = Connection(Side.CLIENT)
-        client.set_state(State.CLOSED)
+        client.receive_eof()
         self.assertEqual(client.close_code, 1006)
 
     def test_close_reason_not_available(self):
         server = Connection(Side.SERVER)
-        server.set_state(State.CLOSED)
+        server.receive_eof()
         self.assertEqual(server.close_reason, "")
 
     def test_close_code_not_available_yet(self):
@@ -1385,25 +1385,29 @@ class EOFTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         client.receive_data(b"\x88\x00")
         self.assertConnectionClosing(client)
-        client.receive_eof()  # does not raise an exception
+        client.receive_eof()
+        self.assertIs(client.state, State.CLOSED)
 
     def test_server_receives_eof(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
         self.assertConnectionClosing(server)
-        server.receive_eof()  # does not raise an exception
+        server.receive_eof()
+        self.assertIs(server.state, State.CLOSED)
 
     def test_client_receives_eof_between_frames(self):
         client = Connection(Side.CLIENT)
         client.receive_eof()
         self.assertIsInstance(client.parser_exc, EOFError)
         self.assertEqual(str(client.parser_exc), "unexpected end of stream")
+        self.assertIs(client.state, State.CLOSED)
 
     def test_server_receives_eof_between_frames(self):
         server = Connection(Side.SERVER)
         server.receive_eof()
         self.assertIsInstance(server.parser_exc, EOFError)
         self.assertEqual(str(server.parser_exc), "unexpected end of stream")
+        self.assertIs(server.state, State.CLOSED)
 
     def test_client_receives_eof_inside_frame(self):
         client = Connection(Side.CLIENT)
@@ -1414,6 +1418,7 @@ class EOFTests(ConnectionTestCase):
             str(client.parser_exc),
             "stream ends after 1 bytes, expected 2 bytes",
         )
+        self.assertIs(client.state, State.CLOSED)
 
     def test_server_receives_eof_inside_frame(self):
         server = Connection(Side.SERVER)
@@ -1424,6 +1429,7 @@ class EOFTests(ConnectionTestCase):
             str(server.parser_exc),
             "stream ends after 1 bytes, expected 2 bytes",
         )
+        self.assertIs(server.state, State.CLOSED)
 
     def test_client_receives_data_after_exception(self):
         client = Connection(Side.CLIENT)

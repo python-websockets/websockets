@@ -128,7 +128,7 @@ class Connection:
         Available once the connection is closed.
 
         """
-        if self.state is not State.CLOSED:
+        if self.state is not CLOSED:
             return None
         elif self.close_rcvd is None:
             return 1006
@@ -143,7 +143,7 @@ class Connection:
         Available once the connection is closed.
 
         """
-        if self.state is not State.CLOSED:
+        if self.state is not CLOSED:
             return None
         elif self.close_rcvd is None:
             return ""
@@ -340,6 +340,7 @@ class Connection:
                     if self.close_rcvd_then_sent is not None:
                         if self.side is CLIENT:
                             self.send_eof()
+                        self.set_state(CLOSED)
                         # If parse() completes normally, execution ends here.
                         yield
                         # Once the reader reaches EOF, its feed_data/eof()
@@ -402,6 +403,7 @@ class Connection:
         if self.side is CLIENT:
             self.send_eof()
         # If discard() completes normally, execution ends here.
+        self.set_state(CLOSED)
         yield
         # Once the reader reaches EOF, its feed_data/eof()
         # methods raise an error, so our receive_data/eof()

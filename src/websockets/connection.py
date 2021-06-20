@@ -83,8 +83,8 @@ class Connection:
         # Connection side. CLIENT or SERVER.
         self.side = side
 
-        # Connnection state. CONNECTING and CLOSED states are handled in subclasses.
-        self.set_state(state)
+        # Connnection state. Initially OPEN because subclasses handle CONNECTING.
+        self.state = state
 
         # Maximum size of incoming messages in bytes.
         self.max_size = max_size
@@ -121,6 +121,20 @@ class Connection:
     # Public attributes
 
     @property
+    def state(self) -> State:
+        """
+        WebSocket connection state.
+
+        """
+        return self._state
+
+    @state.setter
+    def state(self, state: State) -> None:
+        if self.debug:
+            self.logger.debug("= connection is %s", state.name)
+        self._state = state
+
+    @property
     def close_code(self) -> Optional[int]:
         """
         WebSocket close code received in a close frame.
@@ -149,13 +163,6 @@ class Connection:
             return ""
         else:
             return self.close_rcvd.reason
-
-    # Private attributes
-
-    def set_state(self, state: State) -> None:
-        if self.debug:
-            self.logger.debug("= connection is %s", state.name)
-        self.state = state
 
     # Public methods for receiving data.
 
@@ -241,7 +248,7 @@ class Connection:
         # 7.1.3. The WebSocket Closing Handshake is Started
         self.send_frame(Frame(OP_CLOSE, data))
         self.close_sent = close
-        self.set_state(CLOSING)
+        self.state = CLOSING
 
     def send_ping(self, data: bytes) -> None:
         """
@@ -273,7 +280,7 @@ class Connection:
                 data = close.serialize()
                 self.send_frame(Frame(OP_CLOSE, data))
                 self.close_sent = close
-                self.set_state(CLOSING)
+                self.state = CLOSING
 
         if self.side is SERVER and not self.eof_sent:
             self.send_eof()
@@ -340,7 +347,7 @@ class Connection:
                     if self.close_rcvd_then_sent is not None:
                         if self.side is CLIENT:
                             self.send_eof()
-                        self.set_state(CLOSED)
+                        self.state = CLOSED
                         # If parse() completes normally, execution ends here.
                         yield
                         # Once the reader reaches EOF, its feed_data/eof()
@@ -403,7 +410,7 @@ class Connection:
         if self.side is CLIENT:
             self.send_eof()
         # If discard() completes normally, execution ends here.
-        self.set_state(CLOSED)
+        self.state = CLOSED
         yield
         # Once the reader reaches EOF, its feed_data/eof()
         # methods raise an error, so our receive_data/eof()
@@ -475,7 +482,7 @@ class Connection:
                 self.send_frame(Frame(OP_CLOSE, frame.data))
                 self.close_sent = self.close_rcvd
                 self.close_rcvd_then_sent = True
-                self.set_state(CLOSING)
+                self.state = CLOSING
 
             # 7.1.2. Start the WebSocket Closing Handshake: "Once an
             # endpoint has both sent and received a Close control frame,

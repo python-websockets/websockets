@@ -432,7 +432,7 @@ class ServerConnection(Connection):
 
         if response.status_code == 101:
             assert self.state is CONNECTING
-            self.set_state(OPEN)
+            self.state = OPEN
         else:
             self.send_eof()
 

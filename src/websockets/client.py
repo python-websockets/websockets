@@ -307,7 +307,7 @@ class ClientConnection(Connection):
                 response.exception = exc
             else:
                 assert self.state is CONNECTING
-                self.set_state(OPEN)
+                self.state = OPEN
             finally:
                 self.events.append(response)
 

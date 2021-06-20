@@ -1027,7 +1027,8 @@ class PingTests(ConnectionTestCase):
         with self.assertRaises(InvalidState) as raised:
             client.send_ping(b"")
         self.assertEqual(
-            str(raised.exception), "cannot write to a WebSocket in the CLOSING state"
+            str(raised.exception),
+            "cannot write to a WebSocket in the CLOSING state",
         )
 
     def test_server_sends_ping_after_sending_close(self):
@@ -1040,7 +1041,8 @@ class PingTests(ConnectionTestCase):
         with self.assertRaises(InvalidState) as raised:
             server.send_ping(b"")
         self.assertEqual(
-            str(raised.exception), "cannot write to a WebSocket in the CLOSING state"
+            str(raised.exception),
+            "cannot write to a WebSocket in the CLOSING state",
         )
 
     def test_client_receives_ping_after_receiving_close(self):
@@ -1375,7 +1377,7 @@ class FragmentationTests(ConnectionTestCase):
 
 class EOFTests(ConnectionTestCase):
     """
-    Test connection termination.
+    Test half-closes on connection termination.
 
     """
 
@@ -1409,7 +1411,8 @@ class EOFTests(ConnectionTestCase):
         client.receive_eof()
         self.assertIsInstance(client.parser_exc, EOFError)
         self.assertEqual(
-            str(client.parser_exc), "stream ends after 1 bytes, expected 2 bytes"
+            str(client.parser_exc),
+            "stream ends after 1 bytes, expected 2 bytes",
         )
 
     def test_server_receives_eof_inside_frame(self):
@@ -1418,7 +1421,8 @@ class EOFTests(ConnectionTestCase):
         server.receive_eof()
         self.assertIsInstance(server.parser_exc, EOFError)
         self.assertEqual(
-            str(server.parser_exc), "stream ends after 1 bytes, expected 2 bytes"
+            str(server.parser_exc),
+            "stream ends after 1 bytes, expected 2 bytes",
         )
 
     def test_client_receives_data_after_exception(self):
@@ -1500,6 +1504,63 @@ class EOFTests(ConnectionTestCase):
         with self.assertRaises(EOFError) as raised:
             server.receive_eof()
         self.assertEqual(str(raised.exception), "stream ended")
+
+
+class TCPCloseTests(ConnectionTestCase):
+    """
+    Test expectation of TCP close on connection termination.
+
+    """
+
+    def test_client_default(self):
+        client = Connection(Side.CLIENT)
+        self.assertFalse(client.close_expected())
+
+    def test_server_default(self):
+        server = Connection(Side.SERVER)
+        self.assertFalse(server.close_expected())
+
+    def test_client_sends_close(self):
+        client = Connection(Side.CLIENT)
+        client.send_close()
+        self.assertTrue(client.close_expected())
+
+    def test_server_sends_close(self):
+        server = Connection(Side.SERVER)
+        server.send_close()
+        self.assertTrue(server.close_expected())
+
+    def test_client_receives_close(self):
+        client = Connection(Side.CLIENT)
+        client.receive_data(b"\x88\x00")
+        self.assertTrue(client.close_expected())
+
+    def test_client_receives_close_then_eof(self):
+        client = Connection(Side.CLIENT)
+        client.receive_data(b"\x88\x00")
+        client.receive_eof()
+        self.assertFalse(client.close_expected())
+
+    def test_server_receives_close_then_eof(self):
+        server = Connection(Side.SERVER)
+        server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
+        server.receive_eof()
+        self.assertFalse(server.close_expected())
+
+    def test_server_receives_close(self):
+        server = Connection(Side.SERVER)
+        server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
+        self.assertTrue(server.close_expected())
+
+    def test_client_fails_connection(self):
+        client = Connection(Side.CLIENT)
+        client.fail(1002)
+        self.assertTrue(client.close_expected())
+
+    def test_server_fails_connection(self):
+        server = Connection(Side.SERVER)
+        server.fail(1002)
+        self.assertTrue(server.close_expected())
 
 
 class ErrorTests(ConnectionTestCase):

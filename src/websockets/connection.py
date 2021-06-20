@@ -313,6 +313,22 @@ class Connection:
         writes, self.writes = self.writes, []
         return writes
 
+    def close_expected(self) -> bool:
+        """
+        Tell whether the TCP connection is expected to close soon.
+
+        Call this method immediately after calling any of the ``receive_*()``
+        methods and, if it returns ``True``, schedule closing the TCP
+        connection after a short timeout.
+
+        """
+        # We already got a TCP Close if and only if the state is CLOSED.
+        # We expect a TCP close if and only if we sent a close frame:
+        # * Normal closure: once we send a close frame, we expect a TCP close.
+        # * Abnormal closure: we always send a close frame except on EOFError,
+        #   but that's fine because we already got the TCP close.
+        return self.state is not CLOSED and self.close_sent is not None
+
     # Private methods for receiving data.
 
     def parse(self) -> Generator[None, None, None]:

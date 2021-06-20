@@ -168,6 +168,8 @@ class Connection:
         - You must call :meth:`data_to_send` and send this data.
         - You should call :meth:`events_received` and process these events.
 
+        :raises EOFError: if :meth:`receive_eof` was called before
+
         """
         self.reader.feed_data(data)
         next(self.parser)
@@ -179,8 +181,10 @@ class Connection:
         After calling this method:
 
         - You must call :meth:`data_to_send` and send this data.
-        - You shouldn't call :meth:`events_received` as it won't
+        - You aren't exepcted to call :meth:`events_received` as it won't
           return any new events.
+
+        :raises EOFError: if :meth:`receive_eof` was called before
 
         """
         self.reader.feed_eof()
@@ -324,7 +328,7 @@ class Connection:
                         yield
                         # Once the reader reaches EOF, its feed_data/eof()
                         # methods raise an error, so our receive_data/eof()
-                        # methods don't step the generator.
+                        # methods don't step parse().
                         raise AssertionError(
                             "parse() shouldn't step after EOF"
                         )  # pragma: no cover
@@ -353,29 +357,28 @@ class Connection:
         except ProtocolError as exc:
             self.fail(1002, str(exc))
             self.parser_exc = exc
-            raise
 
         except EOFError as exc:
             self.fail(1006, str(exc))
             self.parser_exc = exc
-            raise
 
         except UnicodeDecodeError as exc:
             self.fail(1007, f"{exc.reason} at position {exc.start}")
             self.parser_exc = exc
-            raise
 
         except PayloadTooBig as exc:
             self.fail(1009, str(exc))
             self.parser_exc = exc
-            raise
 
         except Exception as exc:
             self.logger.error("parser failed", exc_info=True)
             # Don't include exception details, which may be security-sensitive.
             self.fail(1011)
             self.parser_exc = exc
-            raise
+
+        yield
+        # If an error occurs, parse() is replaced by discard().
+        raise AssertionError("parse() shouldn't step after EOF")  # pragma: no cover
 
     def discard(self) -> Generator[None, None, None]:
         while not (yield from self.reader.at_eof()):

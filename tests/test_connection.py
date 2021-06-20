@@ -126,16 +126,16 @@ class MaskingTests(ConnectionTestCase):
 
     def test_client_receives_masked_frame(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(self.masked_text_frame_data)
-        self.assertEqual(str(raised.exception), "incorrect masking")
+        client.receive_data(self.masked_text_frame_data)
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "incorrect masking")
         self.assertConnectionFailing(client, 1002, "incorrect masking")
 
     def test_server_receives_unmasked_frame(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(self.unmasked_text_frame_date)
-        self.assertEqual(str(raised.exception), "incorrect masking")
+        server.receive_data(self.unmasked_text_frame_date)
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "incorrect masking")
         self.assertConnectionFailing(server, 1002, "incorrect masking")
 
 
@@ -159,16 +159,16 @@ class ContinuationTests(ConnectionTestCase):
 
     def test_client_receives_unexpected_continuation(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x00\x00")
-        self.assertEqual(str(raised.exception), "unexpected continuation frame")
+        client.receive_data(b"\x00\x00")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "unexpected continuation frame")
         self.assertConnectionFailing(client, 1002, "unexpected continuation frame")
 
     def test_server_receives_unexpected_continuation(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x00\x80\x00\x00\x00\x00")
-        self.assertEqual(str(raised.exception), "unexpected continuation frame")
+        server.receive_data(b"\x00\x80\x00\x00\x00\x00")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "unexpected continuation frame")
         self.assertConnectionFailing(server, 1002, "unexpected continuation frame")
 
     def test_client_sends_continuation_after_sending_close(self):
@@ -198,17 +198,17 @@ class ContinuationTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, 1000)
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x00\x00")
-        self.assertEqual(str(raised.exception), "data frame after close frame")
+        client.receive_data(b"\x00\x00")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "data frame after close frame")
 
     def test_server_receives_continuation_after_receiving_close(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, 1001)
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x00\x80\x00\xff\x00\xff")
-        self.assertEqual(str(raised.exception), "data frame after close frame")
+        server.receive_data(b"\x00\x80\x00\xff\x00\xff")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "data frame after close frame")
 
 
 class TextTests(ConnectionTestCase):
@@ -248,16 +248,16 @@ class TextTests(ConnectionTestCase):
 
     def test_client_receives_text_over_size_limit(self):
         client = Connection(Side.CLIENT, max_size=3)
-        with self.assertRaises(PayloadTooBig) as raised:
-            client.receive_data(b"\x81\x04\xf0\x9f\x98\x80")
-        self.assertEqual(str(raised.exception), "over size limit (4 > 3 bytes)")
+        client.receive_data(b"\x81\x04\xf0\x9f\x98\x80")
+        self.assertIsInstance(client.parser_exc, PayloadTooBig)
+        self.assertEqual(str(client.parser_exc), "over size limit (4 > 3 bytes)")
         self.assertConnectionFailing(client, 1009, "over size limit (4 > 3 bytes)")
 
     def test_server_receives_text_over_size_limit(self):
         server = Connection(Side.SERVER, max_size=3)
-        with self.assertRaises(PayloadTooBig) as raised:
-            server.receive_data(b"\x81\x84\x00\x00\x00\x00\xf0\x9f\x98\x80")
-        self.assertEqual(str(raised.exception), "over size limit (4 > 3 bytes)")
+        server.receive_data(b"\x81\x84\x00\x00\x00\x00\xf0\x9f\x98\x80")
+        self.assertIsInstance(server.parser_exc, PayloadTooBig)
+        self.assertEqual(str(server.parser_exc), "over size limit (4 > 3 bytes)")
         self.assertConnectionFailing(server, 1009, "over size limit (4 > 3 bytes)")
 
     def test_client_receives_text_without_size_limit(self):
@@ -342,9 +342,9 @@ class TextTests(ConnectionTestCase):
             client,
             Frame(OP_TEXT, "😀".encode()[:2], fin=False),
         )
-        with self.assertRaises(PayloadTooBig) as raised:
-            client.receive_data(b"\x80\x02\x98\x80")
-        self.assertEqual(str(raised.exception), "over size limit (2 > 1 bytes)")
+        client.receive_data(b"\x80\x02\x98\x80")
+        self.assertIsInstance(client.parser_exc, PayloadTooBig)
+        self.assertEqual(str(client.parser_exc), "over size limit (2 > 1 bytes)")
         self.assertConnectionFailing(client, 1009, "over size limit (2 > 1 bytes)")
 
     def test_server_receives_fragmented_text_over_size_limit(self):
@@ -354,9 +354,9 @@ class TextTests(ConnectionTestCase):
             server,
             Frame(OP_TEXT, "😀".encode()[:2], fin=False),
         )
-        with self.assertRaises(PayloadTooBig) as raised:
-            server.receive_data(b"\x80\x82\x00\x00\x00\x00\x98\x80")
-        self.assertEqual(str(raised.exception), "over size limit (2 > 1 bytes)")
+        server.receive_data(b"\x80\x82\x00\x00\x00\x00\x98\x80")
+        self.assertIsInstance(server.parser_exc, PayloadTooBig)
+        self.assertEqual(str(server.parser_exc), "over size limit (2 > 1 bytes)")
         self.assertConnectionFailing(server, 1009, "over size limit (2 > 1 bytes)")
 
     def test_client_receives_fragmented_text_without_size_limit(self):
@@ -416,9 +416,9 @@ class TextTests(ConnectionTestCase):
             client,
             Frame(OP_TEXT, b"", fin=False),
         )
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x01\x00")
-        self.assertEqual(str(raised.exception), "expected a continuation frame")
+        client.receive_data(b"\x01\x00")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "expected a continuation frame")
         self.assertConnectionFailing(client, 1002, "expected a continuation frame")
 
     def test_server_receives_unexpected_text(self):
@@ -428,9 +428,9 @@ class TextTests(ConnectionTestCase):
             server,
             Frame(OP_TEXT, b"", fin=False),
         )
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x01\x80\x00\x00\x00\x00")
-        self.assertEqual(str(raised.exception), "expected a continuation frame")
+        server.receive_data(b"\x01\x80\x00\x00\x00\x00")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "expected a continuation frame")
         self.assertConnectionFailing(server, 1002, "expected a continuation frame")
 
     def test_client_sends_text_after_sending_close(self):
@@ -452,17 +452,17 @@ class TextTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, 1000)
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x81\x00")
-        self.assertEqual(str(raised.exception), "data frame after close frame")
+        client.receive_data(b"\x81\x00")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "data frame after close frame")
 
     def test_server_receives_text_after_receiving_close(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, 1001)
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x81\x80\x00\xff\x00\xff")
-        self.assertEqual(str(raised.exception), "data frame after close frame")
+        server.receive_data(b"\x81\x80\x00\xff\x00\xff")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "data frame after close frame")
 
 
 class BinaryTests(ConnectionTestCase):
@@ -502,16 +502,16 @@ class BinaryTests(ConnectionTestCase):
 
     def test_client_receives_binary_over_size_limit(self):
         client = Connection(Side.CLIENT, max_size=3)
-        with self.assertRaises(PayloadTooBig) as raised:
-            client.receive_data(b"\x82\x04\x01\x02\xfe\xff")
-        self.assertEqual(str(raised.exception), "over size limit (4 > 3 bytes)")
+        client.receive_data(b"\x82\x04\x01\x02\xfe\xff")
+        self.assertIsInstance(client.parser_exc, PayloadTooBig)
+        self.assertEqual(str(client.parser_exc), "over size limit (4 > 3 bytes)")
         self.assertConnectionFailing(client, 1009, "over size limit (4 > 3 bytes)")
 
     def test_server_receives_binary_over_size_limit(self):
         server = Connection(Side.SERVER, max_size=3)
-        with self.assertRaises(PayloadTooBig) as raised:
-            server.receive_data(b"\x82\x84\x00\x00\x00\x00\x01\x02\xfe\xff")
-        self.assertEqual(str(raised.exception), "over size limit (4 > 3 bytes)")
+        server.receive_data(b"\x82\x84\x00\x00\x00\x00\x01\x02\xfe\xff")
+        self.assertIsInstance(server.parser_exc, PayloadTooBig)
+        self.assertEqual(str(server.parser_exc), "over size limit (4 > 3 bytes)")
         self.assertConnectionFailing(server, 1009, "over size limit (4 > 3 bytes)")
 
     def test_client_sends_fragmented_binary(self):
@@ -580,9 +580,9 @@ class BinaryTests(ConnectionTestCase):
             client,
             Frame(OP_BINARY, b"\x01\x02", fin=False),
         )
-        with self.assertRaises(PayloadTooBig) as raised:
-            client.receive_data(b"\x80\x02\xfe\xff")
-        self.assertEqual(str(raised.exception), "over size limit (2 > 1 bytes)")
+        client.receive_data(b"\x80\x02\xfe\xff")
+        self.assertIsInstance(client.parser_exc, PayloadTooBig)
+        self.assertEqual(str(client.parser_exc), "over size limit (2 > 1 bytes)")
         self.assertConnectionFailing(client, 1009, "over size limit (2 > 1 bytes)")
 
     def test_server_receives_fragmented_binary_over_size_limit(self):
@@ -592,9 +592,9 @@ class BinaryTests(ConnectionTestCase):
             server,
             Frame(OP_BINARY, b"\x01\x02", fin=False),
         )
-        with self.assertRaises(PayloadTooBig) as raised:
-            server.receive_data(b"\x80\x82\x00\x00\x00\x00\xfe\xff")
-        self.assertEqual(str(raised.exception), "over size limit (2 > 1 bytes)")
+        server.receive_data(b"\x80\x82\x00\x00\x00\x00\xfe\xff")
+        self.assertIsInstance(server.parser_exc, PayloadTooBig)
+        self.assertEqual(str(server.parser_exc), "over size limit (2 > 1 bytes)")
         self.assertConnectionFailing(server, 1009, "over size limit (2 > 1 bytes)")
 
     def test_client_sends_unexpected_binary(self):
@@ -618,9 +618,9 @@ class BinaryTests(ConnectionTestCase):
             client,
             Frame(OP_BINARY, b"", fin=False),
         )
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x02\x00")
-        self.assertEqual(str(raised.exception), "expected a continuation frame")
+        client.receive_data(b"\x02\x00")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "expected a continuation frame")
         self.assertConnectionFailing(client, 1002, "expected a continuation frame")
 
     def test_server_receives_unexpected_binary(self):
@@ -630,9 +630,9 @@ class BinaryTests(ConnectionTestCase):
             server,
             Frame(OP_BINARY, b"", fin=False),
         )
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x02\x80\x00\x00\x00\x00")
-        self.assertEqual(str(raised.exception), "expected a continuation frame")
+        server.receive_data(b"\x02\x80\x00\x00\x00\x00")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "expected a continuation frame")
         self.assertConnectionFailing(server, 1002, "expected a continuation frame")
 
     def test_client_sends_binary_after_sending_close(self):
@@ -654,17 +654,17 @@ class BinaryTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, 1000)
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x82\x00")
-        self.assertEqual(str(raised.exception), "data frame after close frame")
+        client.receive_data(b"\x82\x00")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "data frame after close frame")
 
     def test_server_receives_binary_after_receiving_close(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, 1001)
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x82\x80\x00\xff\x00\xff")
-        self.assertEqual(str(raised.exception), "data frame after close frame")
+        server.receive_data(b"\x82\x80\x00\xff\x00\xff")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "data frame after close frame")
 
 
 class CloseTests(ConnectionTestCase):
@@ -871,26 +871,27 @@ class CloseTests(ConnectionTestCase):
 
     def test_client_receives_close_with_truncated_code(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x88\x01\x03")
-        self.assertEqual(str(raised.exception), "close frame too short")
+        client.receive_data(b"\x88\x01\x03")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "close frame too short")
         self.assertConnectionFailing(client, 1002, "close frame too short")
         self.assertIs(client.state, State.CLOSING)
 
     def test_server_receives_close_with_truncated_code(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x88\x81\x00\x00\x00\x00\x03")
-        self.assertEqual(str(raised.exception), "close frame too short")
+        server.receive_data(b"\x88\x81\x00\x00\x00\x00\x03")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "close frame too short")
         self.assertConnectionFailing(server, 1002, "close frame too short")
         self.assertIs(server.state, State.CLOSING)
 
     def test_client_receives_close_with_non_utf8_reason(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(UnicodeDecodeError) as raised:
-            client.receive_data(b"\x88\x04\x03\xe8\xff\xff")
+
+        client.receive_data(b"\x88\x04\x03\xe8\xff\xff")
+        self.assertIsInstance(client.parser_exc, UnicodeDecodeError)
         self.assertEqual(
-            str(raised.exception),
+            str(client.parser_exc),
             "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
         )
         self.assertConnectionFailing(client, 1007, "invalid start byte at position 0")
@@ -898,10 +899,11 @@ class CloseTests(ConnectionTestCase):
 
     def test_server_receives_close_with_non_utf8_reason(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(UnicodeDecodeError) as raised:
-            server.receive_data(b"\x88\x84\x00\x00\x00\x00\x03\xe9\xff\xff")
+
+        server.receive_data(b"\x88\x84\x00\x00\x00\x00\x03\xe9\xff\xff")
+        self.assertIsInstance(server.parser_exc, UnicodeDecodeError)
         self.assertEqual(
-            str(raised.exception),
+            str(server.parser_exc),
             "'utf-8' codec can't decode byte 0xff in position 0: invalid start byte",
         )
         self.assertConnectionFailing(server, 1007, "invalid start byte at position 0")
@@ -1002,16 +1004,16 @@ class PingTests(ConnectionTestCase):
 
     def test_client_receives_fragmented_ping_frame(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x09\x00")
-        self.assertEqual(str(raised.exception), "fragmented control frame")
+        client.receive_data(b"\x09\x00")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "fragmented control frame")
         self.assertConnectionFailing(client, 1002, "fragmented control frame")
 
     def test_server_receives_fragmented_ping_frame(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x09\x80\x3c\x3c\x3c\x3c")
-        self.assertEqual(str(raised.exception), "fragmented control frame")
+        server.receive_data(b"\x09\x80\x3c\x3c\x3c\x3c")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "fragmented control frame")
         self.assertConnectionFailing(server, 1002, "fragmented control frame")
 
     def test_client_sends_ping_after_sending_close(self):
@@ -1142,16 +1144,16 @@ class PongTests(ConnectionTestCase):
 
     def test_client_receives_fragmented_pong_frame(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x0a\x00")
-        self.assertEqual(str(raised.exception), "fragmented control frame")
+        client.receive_data(b"\x0a\x00")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "fragmented control frame")
         self.assertConnectionFailing(client, 1002, "fragmented control frame")
 
     def test_server_receives_fragmented_pong_frame(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x0a\x80\x3c\x3c\x3c\x3c")
-        self.assertEqual(str(raised.exception), "fragmented control frame")
+        server.receive_data(b"\x0a\x80\x3c\x3c\x3c\x3c")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "fragmented control frame")
         self.assertConnectionFailing(server, 1002, "fragmented control frame")
 
     def test_client_sends_pong_after_sending_close(self):
@@ -1349,9 +1351,9 @@ class FragmentationTests(ConnectionTestCase):
         # frames in the middle of a fragmented message." However, since the
         # endpoint must not send a data frame after a close frame, a close
         # frame can't be "in the middle" of a fragmented message.
-        with self.assertRaises(ProtocolError) as raised:
-            client.receive_data(b"\x88\x02\x03\xe8")
-        self.assertEqual(str(raised.exception), "incomplete fragmented message")
+        client.receive_data(b"\x88\x02\x03\xe8")
+        self.assertIsInstance(client.parser_exc, ProtocolError)
+        self.assertEqual(str(client.parser_exc), "incomplete fragmented message")
         self.assertConnectionFailing(client, 1002, "incomplete fragmented message")
 
     def test_server_receive_close_in_fragmented_message(self):
@@ -1365,9 +1367,9 @@ class FragmentationTests(ConnectionTestCase):
         # frames in the middle of a fragmented message." However, since the
         # endpoint must not send a data frame after a close frame, a close
         # frame can't be "in the middle" of a fragmented message.
-        with self.assertRaises(ProtocolError) as raised:
-            server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
-        self.assertEqual(str(raised.exception), "incomplete fragmented message")
+        server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
+        self.assertIsInstance(server.parser_exc, ProtocolError)
+        self.assertEqual(str(server.parser_exc), "incomplete fragmented message")
         self.assertConnectionFailing(server, 1002, "incomplete fragmented message")
 
 
@@ -1391,70 +1393,65 @@ class EOFTests(ConnectionTestCase):
 
     def test_client_receives_eof_between_frames(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(EOFError) as raised:
-            client.receive_eof()
-        self.assertEqual(str(raised.exception), "unexpected end of stream")
+        client.receive_eof()
+        self.assertIsInstance(client.parser_exc, EOFError)
+        self.assertEqual(str(client.parser_exc), "unexpected end of stream")
 
     def test_server_receives_eof_between_frames(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(EOFError) as raised:
-            server.receive_eof()
-        self.assertEqual(str(raised.exception), "unexpected end of stream")
+        server.receive_eof()
+        self.assertIsInstance(server.parser_exc, EOFError)
+        self.assertEqual(str(server.parser_exc), "unexpected end of stream")
 
     def test_client_receives_eof_inside_frame(self):
         client = Connection(Side.CLIENT)
         client.receive_data(b"\x81")
-        with self.assertRaises(EOFError) as raised:
-            client.receive_eof()
+        client.receive_eof()
+        self.assertIsInstance(client.parser_exc, EOFError)
         self.assertEqual(
-            str(raised.exception), "stream ends after 1 bytes, expected 2 bytes"
+            str(client.parser_exc), "stream ends after 1 bytes, expected 2 bytes"
         )
 
     def test_server_receives_eof_inside_frame(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x81")
-        with self.assertRaises(EOFError) as raised:
-            server.receive_eof()
+        server.receive_eof()
+        self.assertIsInstance(server.parser_exc, EOFError)
         self.assertEqual(
-            str(raised.exception), "stream ends after 1 bytes, expected 2 bytes"
+            str(server.parser_exc), "stream ends after 1 bytes, expected 2 bytes"
         )
 
     def test_client_receives_data_after_exception(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError):
-            client.receive_data(b"\xff\xff")
+        client.receive_data(b"\xff\xff")
         self.assertConnectionFailing(client, 1002, "invalid opcode")
         client.receive_data(b"\x00\x00")
         self.assertFrameSent(client, None)
 
     def test_server_receives_data_after_exception(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError):
-            server.receive_data(b"\xff\xff")
+        server.receive_data(b"\xff\xff")
         self.assertConnectionFailing(server, 1002, "invalid opcode")
         server.receive_data(b"\x00\x00")
         self.assertFrameSent(server, None)
 
     def test_client_receives_eof_after_exception(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError):
-            client.receive_data(b"\xff\xff")
+        client.receive_data(b"\xff\xff")
         self.assertConnectionFailing(client, 1002, "invalid opcode")
         client.receive_eof()
         self.assertFrameSent(client, None, eof=True)
 
     def test_server_receives_eof_after_exception(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError):
-            server.receive_data(b"\xff\xff")
+        server.receive_data(b"\xff\xff")
         self.assertConnectionFailing(server, 1002, "invalid opcode")
         server.receive_eof()
         self.assertFrameSent(server, None)
 
     def test_client_receives_data_and_eof_after_exception(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ProtocolError):
-            client.receive_data(b"\xff\xff")
+        client.receive_data(b"\xff\xff")
         self.assertConnectionFailing(client, 1002, "invalid opcode")
         client.receive_data(b"\x00\x00")
         client.receive_eof()
@@ -1462,8 +1459,7 @@ class EOFTests(ConnectionTestCase):
 
     def test_server_receives_data_and_eof_after_exception(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ProtocolError):
-            server.receive_data(b"\xff\xff")
+        server.receive_data(b"\xff\xff")
         self.assertConnectionFailing(server, 1002, "invalid opcode")
         server.receive_data(b"\x00\x00")
         server.receive_eof()
@@ -1516,18 +1512,18 @@ class ErrorTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         # This isn't supposed to happen, so we're simulating it.
         with unittest.mock.patch("struct.unpack", side_effect=RuntimeError("BOOM")):
-            with self.assertRaises(RuntimeError) as raised:
-                client.receive_data(b"\x81\x00")
-            self.assertEqual(str(raised.exception), "BOOM")
+            client.receive_data(b"\x81\x00")
+            self.assertIsInstance(client.parser_exc, RuntimeError)
+            self.assertEqual(str(client.parser_exc), "BOOM")
         self.assertConnectionFailing(client, 1011, "")
 
     def test_server_hits_internal_error_reading_frame(self):
         server = Connection(Side.SERVER)
         # This isn't supposed to happen, so we're simulating it.
         with unittest.mock.patch("struct.unpack", side_effect=RuntimeError("BOOM")):
-            with self.assertRaises(RuntimeError) as raised:
-                server.receive_data(b"\x81\x80\x00\x00\x00\x00")
-            self.assertEqual(str(raised.exception), "BOOM")
+            server.receive_data(b"\x81\x80\x00\x00\x00\x00")
+            self.assertIsInstance(server.parser_exc, RuntimeError)
+            self.assertEqual(str(server.parser_exc), "BOOM")
         self.assertConnectionFailing(server, 1011, "")
 
 

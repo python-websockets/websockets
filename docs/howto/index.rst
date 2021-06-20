@@ -36,3 +36,11 @@ Once your application is ready, learn how to deploy it on various platforms.
    supervisor
    nginx
    haproxy
+
+If you're integrating the Sans-I/O layer of websockets into a library, rather
+than building an application with websockets, follow this guide.
+
+.. toctree::
+   :maxdepth: 2
+
+   sansio

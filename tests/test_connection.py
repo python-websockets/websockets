@@ -205,16 +205,16 @@ class ContinuationTests(ConnectionTestCase):
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, 1000)
         client.receive_data(b"\x00\x00")
-        self.assertIsInstance(client.parser_exc, ProtocolError)
-        self.assertEqual(str(client.parser_exc), "data frame after close frame")
+        self.assertFrameReceived(client, None)
+        self.assertFrameSent(client, None)
 
     def test_server_receives_continuation_after_receiving_close(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, 1001)
         server.receive_data(b"\x00\x80\x00\xff\x00\xff")
-        self.assertIsInstance(server.parser_exc, ProtocolError)
-        self.assertEqual(str(server.parser_exc), "data frame after close frame")
+        self.assertFrameReceived(server, None)
+        self.assertFrameSent(server, None)
 
 
 class TextTests(ConnectionTestCase):
@@ -459,16 +459,16 @@ class TextTests(ConnectionTestCase):
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, 1000)
         client.receive_data(b"\x81\x00")
-        self.assertIsInstance(client.parser_exc, ProtocolError)
-        self.assertEqual(str(client.parser_exc), "data frame after close frame")
+        self.assertFrameReceived(client, None)
+        self.assertFrameSent(client, None)
 
     def test_server_receives_text_after_receiving_close(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, 1001)
         server.receive_data(b"\x81\x80\x00\xff\x00\xff")
-        self.assertIsInstance(server.parser_exc, ProtocolError)
-        self.assertEqual(str(server.parser_exc), "data frame after close frame")
+        self.assertFrameReceived(server, None)
+        self.assertFrameSent(server, None)
 
 
 class BinaryTests(ConnectionTestCase):
@@ -661,16 +661,16 @@ class BinaryTests(ConnectionTestCase):
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, 1000)
         client.receive_data(b"\x82\x00")
-        self.assertIsInstance(client.parser_exc, ProtocolError)
-        self.assertEqual(str(client.parser_exc), "data frame after close frame")
+        self.assertFrameReceived(client, None)
+        self.assertFrameSent(client, None)
 
     def test_server_receives_binary_after_receiving_close(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, 1001)
         server.receive_data(b"\x82\x80\x00\xff\x00\xff")
-        self.assertIsInstance(server.parser_exc, ProtocolError)
-        self.assertEqual(str(server.parser_exc), "data frame after close frame")
+        self.assertFrameReceived(server, None)
+        self.assertFrameSent(server, None)
 
 
 class CloseTests(ConnectionTestCase):
@@ -1056,10 +1056,7 @@ class PingTests(ConnectionTestCase):
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, 1000)
         client.receive_data(b"\x89\x04\x22\x66\xaa\xee")
-        self.assertFrameReceived(
-            client,
-            Frame(OP_PING, b"\x22\x66\xaa\xee"),
-        )
+        self.assertFrameReceived(client, None)
         self.assertFrameSent(client, None)
 
     def test_server_receives_ping_after_receiving_close(self):
@@ -1067,10 +1064,7 @@ class PingTests(ConnectionTestCase):
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, 1001)
         server.receive_data(b"\x89\x84\x00\x44\x88\xcc\x22\x22\x22\x22")
-        self.assertFrameReceived(
-            server,
-            Frame(OP_PING, b"\x22\x66\xaa\xee"),
-        )
+        self.assertFrameReceived(server, None)
         self.assertFrameSent(server, None)
 
 
@@ -1186,20 +1180,16 @@ class PongTests(ConnectionTestCase):
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, 1000)
         client.receive_data(b"\x8a\x04\x22\x66\xaa\xee")
-        self.assertFrameReceived(
-            client,
-            Frame(OP_PONG, b"\x22\x66\xaa\xee"),
-        )
+        self.assertFrameReceived(client, None)
+        self.assertFrameSent(client, None)
 
     def test_server_receives_pong_after_receiving_close(self):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, 1001)
         server.receive_data(b"\x8a\x84\x00\x44\x88\xcc\x22\x22\x22\x22")
-        self.assertFrameReceived(
-            server,
-            Frame(OP_PONG, b"\x22\x66\xaa\xee"),
-        )
+        self.assertFrameReceived(server, None)
+        self.assertFrameSent(server, None)
 
 
 class FailTests(ConnectionTestCase):

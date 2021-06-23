@@ -381,20 +381,11 @@ class Connection:
                 if (yield from self.reader.at_eof()):
                     if self.debug:
                         self.logger.debug("< EOF")
-                    if self.close_rcvd_then_sent is not None:
-                        if self.side is CLIENT:
-                            self.send_eof()
-                        self.state = CLOSED
-                        # If parse() completes normally, execution ends here.
-                        yield
-                        # Once the reader reaches EOF, its feed_data/eof()
-                        # methods raise an error, so our receive_data/eof()
-                        # methods don't step parse().
-                        raise AssertionError(
-                            "parse() shouldn't step after EOF"
-                        )  # pragma: no cover
-                    else:
-                        raise EOFError("unexpected end of stream")
+                    # If the WebSocket connection is closed cleanly, with a
+                    # closing handhshake, recv_frame() substitutes parse()
+                    # with discard(). This branch is reached only when the
+                    # connection isn't closed cleanly.
+                    raise EOFError("unexpected end of stream")
 
                 if self.max_size is None:
                     max_size = None
@@ -444,6 +435,8 @@ class Connection:
     def discard(self) -> Generator[None, None, None]:
         while not (yield from self.reader.at_eof()):
             self.reader.discard()
+        if self.debug:
+            self.logger.debug("< EOF")
         if self.side is CLIENT:
             self.send_eof()
         # If discard() completes normally, execution ends here.
@@ -456,11 +449,6 @@ class Connection:
 
     def recv_frame(self, frame: Frame) -> None:
         if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
-            # 5.5.1 Close: "The application MUST NOT send any more data
-            # frames after sending a Close frame."
-            if self.close_rcvd is not None:
-                raise ProtocolError("data frame after close frame")
-
             if self.cur_size is not None:
                 raise ProtocolError("expected a continuation frame")
             if frame.fin:
@@ -469,11 +457,6 @@ class Connection:
                 self.cur_size = len(frame.data)
 
         elif frame.opcode is OP_CONT:
-            # 5.5.1 Close: "The application MUST NOT send any more data
-            # frames after sending a Close frame."
-            if self.close_rcvd is not None:
-                raise ProtocolError("data frame after close frame")
-
             if self.cur_size is None:
                 raise ProtocolError("unexpected continuation frame")
             if frame.fin:
@@ -483,11 +466,9 @@ class Connection:
 
         elif frame.opcode is OP_PING:
             # 5.5.2. Ping: "Upon receipt of a Ping frame, an endpoint MUST
-            # send a Pong frame in response, unless it already received a
-            # Close frame."
-            if self.close_rcvd is None:
-                pong_frame = Frame(OP_PONG, frame.data)
-                self.send_frame(pong_frame)
+            # send a Pong frame in response"
+            pong_frame = Frame(OP_PONG, frame.data)
+            self.send_frame(pong_frame)
 
         elif frame.opcode is OP_PONG:
             # 5.5.3 Pong: "A response to an unsolicited Pong frame is not
@@ -528,6 +509,12 @@ class Connection:
             if self.side is SERVER:
                 self.send_eof()
 
+            # 1.4. Closing Handshake: "after receiving a control frame
+            # indicating the connection should be closed, a peer discards
+            # any further data received."
+            self.parser = self.discard()
+            next(self.parser)  # start coroutine
+
         else:  # pragma: no cover
             # This can't happen because Frame.parse() validates opcodes.
             raise AssertionError(f"unexpected opcode: {frame.opcode:02x}")
@@ -537,7 +524,6 @@ class Connection:
     # Private methods for sending events.
 
     def send_frame(self, frame: Frame) -> None:
-        # Defensive assertion for protocol compliance.
         if self.state is not OPEN:
             raise InvalidState(
                 f"cannot write to a WebSocket in the {self.state.name} state"

@@ -173,7 +173,7 @@ class Connection:
             return self.close_rcvd.reason
 
     @property
-    def connection_closed_exc(self) -> ConnectionClosed:
+    def close_exc(self) -> ConnectionClosed:
         """
         Exception raised when trying to interact with a closed connection.
 

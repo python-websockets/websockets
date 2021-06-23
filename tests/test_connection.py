@@ -1587,7 +1587,7 @@ class ConnectionClosedTests(ConnectionTestCase):
         client.send_close(1000, "")
         client.receive_data(b"\x88\x02\x03\xe8")
         client.receive_eof()
-        exc = client.connection_closed_exc
+        exc = client.close_exc
         self.assertIsInstance(exc, ConnectionClosedOK)
         self.assertEqual(exc.rcvd, Close(1000, ""))
         self.assertEqual(exc.sent, Close(1000, ""))
@@ -1599,7 +1599,7 @@ class ConnectionClosedTests(ConnectionTestCase):
         server.send_close(1000, "")
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe8")
         server.receive_eof()
-        exc = server.connection_closed_exc
+        exc = server.close_exc
         self.assertIsInstance(exc, ConnectionClosedOK)
         self.assertEqual(exc.rcvd, Close(1000, ""))
         self.assertEqual(exc.sent, Close(1000, ""))
@@ -1610,7 +1610,7 @@ class ConnectionClosedTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         client.receive_data(b"\x88\x02\x03\xe8")
         client.receive_eof()
-        exc = client.connection_closed_exc
+        exc = client.close_exc
         self.assertIsInstance(exc, ConnectionClosedOK)
         self.assertEqual(exc.rcvd, Close(1000, ""))
         self.assertEqual(exc.sent, Close(1000, ""))
@@ -1621,7 +1621,7 @@ class ConnectionClosedTests(ConnectionTestCase):
         server = Connection(Side.SERVER)
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe8")
         server.receive_eof()
-        exc = server.connection_closed_exc
+        exc = server.close_exc
         self.assertIsInstance(exc, ConnectionClosedOK)
         self.assertEqual(exc.rcvd, Close(1000, ""))
         self.assertEqual(exc.sent, Close(1000, ""))
@@ -1632,7 +1632,7 @@ class ConnectionClosedTests(ConnectionTestCase):
         client = Connection(Side.CLIENT)
         client.send_close(1000, "")
         client.receive_eof()
-        exc = client.connection_closed_exc
+        exc = client.close_exc
         self.assertIsInstance(exc, ConnectionClosedError)
         self.assertIsNone(exc.rcvd)
         self.assertEqual(exc.sent, Close(1000, ""))
@@ -1643,7 +1643,7 @@ class ConnectionClosedTests(ConnectionTestCase):
         server = Connection(Side.SERVER)
         server.send_close(1000, "")
         server.receive_eof()
-        exc = server.connection_closed_exc
+        exc = server.close_exc
         self.assertIsInstance(exc, ConnectionClosedError)
         self.assertIsNone(exc.rcvd)
         self.assertEqual(exc.sent, Close(1000, ""))
@@ -1653,7 +1653,7 @@ class ConnectionClosedTests(ConnectionTestCase):
         # Server-initiated close handshake on the client side times out.
         client = Connection(Side.CLIENT)
         client.receive_eof()
-        exc = client.connection_closed_exc
+        exc = client.close_exc
         self.assertIsInstance(exc, ConnectionClosedError)
         self.assertIsNone(exc.rcvd)
         self.assertIsNone(exc.sent)
@@ -1663,7 +1663,7 @@ class ConnectionClosedTests(ConnectionTestCase):
         # Client-initiated close handshake on the server side times out.
         server = Connection(Side.SERVER)
         server.receive_eof()
-        exc = server.connection_closed_exc
+        exc = server.close_exc
         self.assertIsInstance(exc, ConnectionClosedError)
         self.assertIsNone(exc.rcvd)
         self.assertIsNone(exc.sent)

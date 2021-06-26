@@ -319,12 +319,17 @@ class Connection:
                 self.close_sent = close
                 self.state = CLOSING
 
+        # When failing the connection, a server closes the TCP connection
+        # without waiting for the client to complete the handshake, while a
+        # client waits for the server to close the TCP connection, possibly
+        # after sending a close frame that the client will ignore.
         if self.side is SERVER and not self.eof_sent:
             self.send_eof()
 
-        # "An endpoint MUST NOT continue to attempt to process data
-        # (including a responding Close frame) from the remote endpoint
-        # after being instructed to _Fail the WebSocket Connection_."
+        # 7.1.7. Fail the WebSocket Connection "An endpoint MUST NOT continue
+        # to attempt to process data(including a responding Close frame) from
+        # the remote endpoint after being instructed to _Fail the WebSocket
+        # Connection_."
         self.parser = self.discard()
         next(self.parser)  # start coroutine
 
@@ -362,20 +367,30 @@ class Connection:
         Tell whether the TCP connection is expected to close soon.
 
         Call this method immediately after calling any of the ``receive_*()``
-        methods and, if it returns ``True``, schedule closing the TCP
-        connection after a short timeout.
+        or ``fail_*()``  methods and, if it returns ``True``, schedule closing
+        the TCP connection after a short timeout.
 
         """
         # We already got a TCP Close if and only if the state is CLOSED.
         # We expect a TCP close if and only if we sent a close frame:
-        # * Normal closure: once we send a close frame, we expect a TCP close.
-        # * Abnormal closure: we always send a close frame except on EOFError,
-        #   but that's fine because we already got the TCP close.
+        # * Normal closure: once we send a close frame, we expect a TCP close:
+        #   server waits for client to complete the TCP closing handshake;
+        #   client waits for server to initiate the TCP closing handshake.
+        # * Abnormal closure: we always send a close frame and the same logic
+        #   applies, except on EOFError where we don't send a close frame
+        #   because we already received the TCP close, so we don't expect it.
         return self.state is not CLOSED and self.close_sent is not None
 
     # Private methods for receiving data.
 
     def parse(self) -> Generator[None, None, None]:
+        """
+        Parse incoming data into frames.
+
+        :meth:`receive_data` and :meth:`receive_eof` run this generator
+        coroutine until it needs more data or reaches EOF.
+
+        """
         try:
             while True:
                 if (yield from self.reader.at_eof()):
@@ -394,6 +409,9 @@ class Connection:
                 else:
                     max_size = self.max_size - self.cur_size
 
+                # During a normal closure, execution ends here on the next
+                # iteration of the loop after receiving a close frame. At
+                # this point, recv_frame() replaced parse() by discard().
                 frame = yield from Frame.parse(
                     self.reader.read_exact,
                     mask=self.side is SERVER,
@@ -428,26 +446,46 @@ class Connection:
             self.fail(1011)
             self.parser_exc = exc
 
+        # During an abnormal closure, execution ends here after catching an
+        # exception. At this point, fail() replaced parse() by discard().
         yield
-        # If an error occurs, parse() is replaced by discard().
-        raise AssertionError("parse() shouldn't step after EOF")  # pragma: no cover
+        raise AssertionError("parse() shouldn't step after error")  # pragma: no cover
 
     def discard(self) -> Generator[None, None, None]:
+        """
+        Discard incoming data.
+
+        This coroutine replaces :meth:`parse`:
+
+        - after receiving a close frame, during a normal closure (1.4);
+        - after sending a close frame, during an abnormal closure (7.1.7).
+
+        """
+        # The server close the TCP connection in the same circumstances where
+        # discard() replaces parse(). The client closes the connection later,
+        # after the server closes the connection or a timeout elapses.
+        # (The latter case cannot be handled in this Sans-I/O layer.)
+        assert (self.side is SERVER) == (self.eof_sent)
         while not (yield from self.reader.at_eof()):
             self.reader.discard()
         if self.debug:
             self.logger.debug("< EOF")
+        # A server closes the TCP connection immediately, while a client
+        # waits for the server to close the TCP connection.
         if self.side is CLIENT:
             self.send_eof()
-        # If discard() completes normally, execution ends here.
         self.state = CLOSED
+        # If discard() completes normally, execution ends here.
         yield
-        # Once the reader reaches EOF, its feed_data/eof()
-        # methods raise an error, so our receive_data/eof()
-        # methods don't step the generator.
+        # Once the reader reaches EOF, its feed_data/eof() methods raise an
+        # error, so our receive_data/eof() methods don't step the generator.
         raise AssertionError("discard() shouldn't step after EOF")  # pragma: no cover
 
     def recv_frame(self, frame: Frame) -> None:
+        """
+        Process an incoming frame.
+
+        """
         if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
             if self.cur_size is not None:
                 raise ProtocolError("expected a continuation frame")
@@ -506,6 +544,8 @@ class Connection:
             # endpoint has both sent and received a Close control frame,
             # that endpoint SHOULD _Close the WebSocket Connection_"
 
+            # A server closes the TCP connection immediately, while a client
+            # waits for the server to close the TCP connection.
             if self.side is SERVER:
                 self.send_eof()
 

@@ -251,10 +251,10 @@ If you're seeing this traceback in the logs of a server:
 
 .. code-block:: pytb
 
-    Error in connection handler
+    connection handler failed
     Traceback (most recent call last):
       ...
-    asyncio.streams.IncompleteReadError: 0 bytes read on a total of 2 expected bytes
+    asyncio.exceptions.IncompleteReadError: 0 bytes read on a total of 2 expected bytes
 
     The above exception was the direct cause of the following exception:
 
@@ -290,10 +290,58 @@ There are several reasons why long-lived connections may be lost:
   a wired network, enter airplane mode, be put to sleep, etc.
 * HTTP load balancers or proxies that aren't configured for long-lived
   connections may terminate connections after a short amount of time, usually
-  30 seconds.
+  30 seconds, despite websockets' keepalive mechanism.
 
 If you're facing a reproducible issue, :ref:`enable debug logs <debugging>` to
 see when and how connections are closed.
+
+What does ``ConnectionClosedError: sent 1011 (unexpected error) keepalive ping timeout; no close frame received`` mean?
+.......................................................................................................................
+
+If you're seeing this traceback in the logs of a server:
+
+.. code-block:: pytb
+
+    connection handler failed
+    Traceback (most recent call last):
+      ...
+    asyncio.exceptions.CancelledError
+
+    The above exception was the direct cause of the following exception:
+
+    Traceback (most recent call last):
+      ...
+    websockets.exceptions.ConnectionClosedError: sent 1011 (unexpected error) keepalive ping timeout; no close frame received
+
+or if a client crashes with this traceback:
+
+.. code-block:: pytb
+
+    Traceback (most recent call last):
+      ...
+    asyncio.exceptions.CancelledError
+
+    The above exception was the direct cause of the following exception:
+
+    Traceback (most recent call last):
+      ...
+    websockets.exceptions.ConnectionClosedError: sent 1011 (unexpected error) keepalive ping timeout; no close frame received
+
+it means that the WebSocket connection suffered from excessive latency and was
+closed after reaching the timeout of websockets' keepalive mechanism.
+
+You can catch and handle :exc:`~exceptions.ConnectionClosed` to prevent it
+from being logged.
+
+There are two main reasons why latency may increase:
+
+* Poor network connectivity.
+* More traffic than the recipient can handle.
+
+See the discussion of :doc:`timeouts <../topics/timeouts>` for details.
+
+If websockets' default timeout of 20 seconds is too short for your use case,
+you can adjust it with the ``ping_timeout`` argument.
 
 How do I set a timeout on ``recv()``?
 .....................................

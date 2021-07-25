@@ -20,7 +20,8 @@ By default, websockets waits 20 seconds, then sends a Ping frame, and expects
 to receive the corresponding Pong frame within 20 seconds. Else, it considers
 the connection broken and closes it.
 
-Timings are configurable with ``ping_interval`` and ``ping_timeout``.
+Timings are configurable with the ``ping_interval`` and ``ping_timeout``
+arguments of :func:`~websockets.connect` and :func:`~websockets.serve`.
 
 While WebSocket runs on top of TCP, websockets doesn't rely on TCP keepalive
 because it's disabled by default and, if enabled, the default interval is no

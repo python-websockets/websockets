@@ -14,7 +14,7 @@ __all__ = [  # noqa
     "ConnectionClosedOK",
     "Data",
     "DuplicateParameter",
-    "ExtensionHeader",
+    "ExtensionName",
     "ExtensionParameter",
     "InvalidHandshake",
     "InvalidHeader",

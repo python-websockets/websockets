@@ -8,46 +8,52 @@ __all__ = [
     "Data",
     "LoggerLike",
     "Origin",
-    "ExtensionHeader",
-    "ExtensionParameter",
     "Subprotocol",
+    "ExtensionName",
+    "ExtensionParameter",
 ]
+
+
+# Public types used in the signature of public APIs
 
 Data = Union[str, bytes]
 Data.__doc__ = """
 Types supported in a WebSocket message:
 
-- :class:`str` for text messages
-- :class:`bytes` for binary messages
-
+- :class:`str` for text messages;
+- :class:`bytes` for binary messages.
 """
 
+
 LoggerLike = Union[logging.Logger, logging.LoggerAdapter]
-LoggerLike.__doc__ = """"Types accepted where :class:`~logging.Logger` is expected"""
+LoggerLike.__doc__ = """Types accepted where :class:`~logging.Logger` is expected."""
+
 
 Origin = NewType("Origin", str)
-Origin.__doc__ = """Value of a Origin header"""
-
-
-ExtensionName = NewType("ExtensionName", str)
-ExtensionName.__doc__ = """Name of a WebSocket extension"""
-
-
-ExtensionParameter = Tuple[str, Optional[str]]
-ExtensionParameter.__doc__ = """Parameter of a WebSocket extension"""
-
-
-ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
-ExtensionHeader.__doc__ = """Extension in a Sec-WebSocket-Extensions header"""
+Origin.__doc__ = """Value of a Origin header."""
 
 
 Subprotocol = NewType("Subprotocol", str)
-Subprotocol.__doc__ = """Subprotocol value in a Sec-WebSocket-Protocol header"""
+Subprotocol.__doc__ = """Subprotocol in a Sec-WebSocket-Protocol header."""
+
+
+ExtensionName = NewType("ExtensionName", str)
+ExtensionName.__doc__ = """Name of a WebSocket extension."""
+
+
+ExtensionParameter = Tuple[str, Optional[str]]
+ExtensionParameter.__doc__ = """Parameter of a WebSocket extension."""
+
+
+# Private types
+
+ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
+ExtensionHeader.__doc__ = """Extension in a Sec-WebSocket-Extensions header."""
 
 
 ConnectionOption = NewType("ConnectionOption", str)
-ConnectionOption.__doc__ = """Connection option in a Connection header"""
+ConnectionOption.__doc__ = """Connection option in a Connection header."""
 
 
 UpgradeProtocol = NewType("UpgradeProtocol", str)
-UpgradeProtocol.__doc__ = """Upgrade protocol in an Upgrade header"""
+UpgradeProtocol.__doc__ = """Upgrade protocol in an Upgrade header."""

@@ -10,7 +10,12 @@ Data structures
 ---------------
 
 .. automodule:: websockets.datastructures
-    :members:
+
+    .. autoclass:: Headers
+
+    .. autodata:: HeadersLike
+
+    .. autoexception:: MultipleValuesError
 
 Exceptions
 ----------
@@ -22,4 +27,15 @@ Types
 -----
 
 .. automodule:: websockets.typing
-    :members:
+
+    .. autodata:: Data
+
+    .. autodata:: LoggerLike
+
+    .. autodata:: Origin
+
+    .. autodata:: Subprotocol
+
+    .. autodata:: ExtensionName
+
+    .. autodata:: ExtensionParameter

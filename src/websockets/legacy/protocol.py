@@ -1432,7 +1432,7 @@ def broadcast(websockets: Iterable[WebSocketCommonProtocol], message: Data) -> N
     If you broadcast messages faster than a connection can handle them,
     messages will pile up in its write buffer until the connection times out.
     Keep low values for ``ping_interval`` and ``ping_timeout`` to prevent
-    excessive memory use by slow connections when you use :func:`broadcast`.
+    excessive memory usage by slow connections when you use :func:`broadcast`.
 
     Unlike :meth:`~websockets.server.WebSocketServerProtocol.send`,
     :func:`broadcast` doesn't support sending fragmented messages. Indeed,

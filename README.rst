@@ -104,7 +104,7 @@ The development of ``websockets`` is shaped by four principles:
    under 100% branch coverage. Also it passes the industry-standard `Autobahn
    Testsuite`_.
 
-4. **Performance**: memory use is configurable. An extension written in C
+4. **Performance**: memory usage is configurable. An extension written in C
    accelerates expensive operations. It's pre-compiled for Linux, macOS and
    Windows and packaged in the wheel format for each system and Python version.
 

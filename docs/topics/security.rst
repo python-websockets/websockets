@@ -9,8 +9,8 @@ For production use, a server should require encrypted connections.
 See this example of :ref:`encrypting connections with TLS
 <secure-server-example>`.
 
-Memory use
-----------
+Memory usage
+------------
 
 .. warning::
 
@@ -21,11 +21,11 @@ Memory use
 
 With the default settings, opening a connection uses 70 KiB of memory.
 
-Sending some highly compressed messages could use up to 128 MiB of memory
-with an amplification factor of 1000 between network traffic and memory use.
+Sending some highly compressed messages could use up to 128 MiB of memory with
+an amplification factor of 1000 between network traffic and memory usage.
 
-Configuring a server to :doc:`memory` will improve security in addition to
-improving performance.
+Configuring a server to :doc:`optimize memory usage <memory>` will improve
+security in addition to improving performance.
 
 Other limits
 ------------

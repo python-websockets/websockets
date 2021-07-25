@@ -26,7 +26,7 @@ Buffers
 Under normal circumstances, buffers are almost always empty.
 
 Under high load, if a server receives more messages than it can process,
-bufferbloat can result in excessive memory use.
+bufferbloat can result in excessive memory usage.
 
 By default websockets has generous limits. It is strongly recommended to adapt
 them to your application. When you call :func:`~legacy.server.serve`:

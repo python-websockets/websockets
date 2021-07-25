@@ -12,7 +12,7 @@ Broadcasting messages
     If you want to learn about its design in depth, continue reading this
     document.
 
-WebSocket servers often send the same message to all connected clients to a
+WebSocket servers often send the same message to all connected clients or to a
 subset of clients for which the message is relevant.
 
 Let's explore options for broadcasting a message, explain the design

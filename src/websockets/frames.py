@@ -340,7 +340,7 @@ def prepare_data(data: Data) -> Tuple[int, bytes]:
     elif isinstance(data, BytesLike):
         return OP_BINARY, data
     else:
-        raise TypeError("data must be bytes-like or str")
+        raise TypeError("data must be str or bytes-like")
 
 
 def prepare_ctrl(data: Data) -> bytes:
@@ -362,7 +362,7 @@ def prepare_ctrl(data: Data) -> bytes:
     elif isinstance(data, BytesLike):
         return bytes(data)
     else:
-        raise TypeError("data must be bytes-like or str")
+        raise TypeError("data must be str or bytes-like")
 
 
 @dataclasses.dataclass

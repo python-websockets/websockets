@@ -507,7 +507,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         :raises ~websockets.exceptions.ConnectionClosed: when the
             connection is closed
-        :raises TypeError: for unsupported inputs
+        :raises TypeError: if ``message`` doesn't have a supported type
 
         """
         await self.ensure_open()
@@ -613,7 +613,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 self._fragmented_message_waiter = None
 
         else:
-            raise TypeError("data must be bytes, str, or iterable")
+            raise TypeError("data must be str, bytes-like, or iterable")
 
     async def close(self, code: int = 1000, reason: str = "") -> None:
         """
@@ -1441,11 +1441,11 @@ def broadcast(websockets: Iterable[WebSocketCommonProtocol], message: Data) -> N
     as fast as possible.
 
     :raises RuntimeError: if a connection is busy sending a fragmented message
-    :raises TypeError: for unsupported inputs
+    :raises TypeError: if ``message`` doesn't have a supported type
 
     """
     if not isinstance(message, (str, bytes, bytearray, memoryview)):
-        raise TypeError("data must be bytes, str, or iterable")
+        raise TypeError("data must be str or bytes-like")
 
     opcode, data = prepare_data(message)
 

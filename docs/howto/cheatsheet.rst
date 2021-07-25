@@ -69,7 +69,7 @@ If you don't understand what websockets is doing, enable logging::
 
     import logging
     logger = logging.getLogger('websockets')
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     logger.addHandler(logging.StreamHandler())
 
 The logs contain:

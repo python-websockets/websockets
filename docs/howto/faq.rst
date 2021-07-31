@@ -214,7 +214,7 @@ the connection terminates.
 Why does my program never receives any messages?
 ................................................
 
-Your program runs a coroutine that never yield control to the event loop. The
+Your program runs a coroutine that never yields control to the event loop. The
 coroutine that receives messages never gets a chance to run.
 
 Putting an ``await`` statement in a ``for`` or a ``while`` loop isn't enough
@@ -240,6 +240,15 @@ See `issue 867`_.
 
 .. _issue 867: https://github.com/aaugustin/websockets/issues/867
 
+Why does my very simple program misbehave mysteriously?
+.......................................................
+
+You are using :func:`time.sleep` instead of :func:`asyncio.sleep`, which
+blocks the event loop and prevents asyncio from operating normally.
+
+This may lead to messages getting send but not received, to connection
+timeouts, and to unexpected results of shotgun debugging e.g. adding an
+unnecessary call to ``send()`` makes the program functional.
 
 Both sides
 ----------

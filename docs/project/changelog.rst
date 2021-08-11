@@ -74,6 +74,8 @@ They may change at any time.
 * Made it easier to customize authentication with
   :meth:`~auth.BasicAuthWebSocketServerProtocol.check_credentials`.
 
+* Fixed handling of relative redirects in :func:`~legacy.client.connect`.
+
 9.1
 ...
 

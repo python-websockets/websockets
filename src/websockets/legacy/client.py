@@ -9,6 +9,7 @@ import asyncio
 import collections.abc
 import functools
 import logging
+import urllib.parse
 import warnings
 from types import TracebackType
 from typing import (
@@ -611,12 +612,15 @@ class Connect:
 
         # This is a coroutine function.
         self._create_connection = create_connection
+        self._uri = uri
         self._wsuri = wsuri
 
     def handle_redirect(self, uri: str) -> None:
         # Update the state of this instance to connect to a new URI.
+        old_uri = self._uri
         old_wsuri = self._wsuri
-        new_wsuri = parse_uri(uri)
+        new_uri = urllib.parse.urljoin(old_uri, uri)
+        new_wsuri = parse_uri(new_uri)
 
         # Forbid TLS downgrade.
         if old_wsuri.secure and not new_wsuri.secure:
@@ -645,6 +649,7 @@ class Connect:
             )
 
         # Set the new WebSocket URI. This suffices for same-origin redirects.
+        self._uri = new_uri
         self._wsuri = new_wsuri
 
     # async for ... in connect(...):

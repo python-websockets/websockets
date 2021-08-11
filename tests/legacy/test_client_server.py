@@ -76,8 +76,10 @@ async def default_handler(ws, path):
 
 
 async def redirect_request(path, headers, test, status):
-    if path == "/redirect":
+    if path == "/absolute_redirect":
         location = get_server_uri(test.server, test.secure, "/")
+    elif path == "/relative_redirect":
+        location = "/"
     elif path == "/infinite":
         location = get_server_uri(test.server, test.secure, "/infinite")
     elif path == "/force_insecure":
@@ -353,10 +355,17 @@ class CommonClientServerTests:
         ]
         for status in redirect_statuses:
             with temp_test_redirecting_server(self, status):
-                with self.temp_client("/redirect"):
+                with self.temp_client("/absolute_redirect"):
                     self.loop.run_until_complete(self.client.send("Hello!"))
                     reply = self.loop.run_until_complete(self.client.recv())
                     self.assertEqual(reply, "Hello!")
+
+    def test_redirect_relative_location(self):
+        with temp_test_redirecting_server(self):
+            with self.temp_client("/relative_redirect"):
+                self.loop.run_until_complete(self.client.send("Hello!"))
+                reply = self.loop.run_until_complete(self.client.recv())
+                self.assertEqual(reply, "Hello!")
 
     def test_infinite_redirect(self):
         with temp_test_redirecting_server(self):

@@ -865,13 +865,13 @@ class CloseTests(ConnectionTestCase):
 
     def test_client_sends_close_with_reason_only(self):
         client = Connection(Side.CLIENT)
-        with self.assertRaises(ValueError) as raised:
+        with self.assertRaises(ProtocolError) as raised:
             client.send_close(reason="going away")
         self.assertEqual(str(raised.exception), "cannot send a reason without a code")
 
     def test_server_sends_close_with_reason_only(self):
         server = Connection(Side.SERVER)
-        with self.assertRaises(ValueError) as raised:
+        with self.assertRaises(ProtocolError) as raised:
             server.send_close(reason="OK")
         self.assertEqual(str(raised.exception), "cannot send a reason without a code")
 

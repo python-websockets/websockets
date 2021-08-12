@@ -275,7 +275,7 @@ class Connection:
             raise ProtocolError("expected a continuation frame")
         if code is None:
             if reason != "":
-                raise ValueError("cannot send a reason without a code")
+                raise ProtocolError("cannot send a reason without a code")
             close = Close(1005, "")
             data = b""
         else:

@@ -96,10 +96,10 @@ class AcceptRejectTests(unittest.TestCase):
             server.data_to_send(),
             [
                 f"HTTP/1.1 101 Switching Protocols\r\n"
+                f"Date: {DATE}\r\n"
                 f"Upgrade: websocket\r\n"
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Accept: {ACCEPT}\r\n"
-                f"Date: {DATE}\r\n"
                 f"Server: {USER_AGENT}\r\n"
                 f"\r\n".encode()
             ],
@@ -117,10 +117,10 @@ class AcceptRejectTests(unittest.TestCase):
             [
                 f"HTTP/1.1 404 Not Found\r\n"
                 f"Date: {DATE}\r\n"
-                f"Server: {USER_AGENT}\r\n"
+                f"Connection: close\r\n"
                 f"Content-Length: 13\r\n"
                 f"Content-Type: text/plain; charset=utf-8\r\n"
-                f"Connection: close\r\n"
+                f"Server: {USER_AGENT}\r\n"
                 f"\r\n"
                 f"Sorry folks.\n".encode(),
                 b"",
@@ -139,10 +139,10 @@ class AcceptRejectTests(unittest.TestCase):
             response.headers,
             Headers(
                 {
+                    "Date": DATE,
                     "Upgrade": "websocket",
                     "Connection": "Upgrade",
                     "Sec-WebSocket-Accept": ACCEPT,
-                    "Date": DATE,
                     "Server": USER_AGENT,
                 }
             ),
@@ -161,10 +161,10 @@ class AcceptRejectTests(unittest.TestCase):
             Headers(
                 {
                     "Date": DATE,
-                    "Server": USER_AGENT,
+                    "Connection": "close",
                     "Content-Length": "13",
                     "Content-Type": "text/plain; charset=utf-8",
-                    "Connection": "close",
+                    "Server": USER_AGENT,
                 }
             ),
         )
@@ -603,31 +603,6 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 101)
         self.assertNotIn("Sec-WebSocket-Protocol", response.headers)
         self.assertIsNone(server.subprotocol)
-
-    def test_extra_headers(self):
-        for extra_headers in [
-            Headers({"X-Spam": "Eggs"}),
-            {"X-Spam": "Eggs"},
-            [("X-Spam", "Eggs")],
-            lambda path, headers: Headers({"X-Spam": "Eggs"}),
-            lambda path, headers: {"X-Spam": "Eggs"},
-            lambda path, headers: [("X-Spam", "Eggs")],
-        ]:
-            with self.subTest(extra_headers=extra_headers):
-                server = ServerConnection(extra_headers=extra_headers)
-                request = self.make_request()
-                response = server.accept(request)
-
-                self.assertEqual(response.status_code, 101)
-                self.assertEqual(response.headers["X-Spam"], "Eggs")
-
-    def test_extra_headers_overrides_server(self):
-        server = ServerConnection(extra_headers={"Server": "Other"})
-        request = self.make_request()
-        response = server.accept(request)
-
-        self.assertEqual(response.status_code, 101)
-        self.assertEqual(response.headers["Server"], "Other")
 
 
 class MiscTests(unittest.TestCase):

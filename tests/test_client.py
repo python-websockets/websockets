@@ -108,28 +108,6 @@ class ConnectTests(unittest.TestCase):
 
         self.assertEqual(request.headers["Sec-WebSocket-Protocol"], "chat")
 
-    def test_extra_headers(self):
-        for extra_headers in [
-            Headers({"X-Spam": "Eggs"}),
-            {"X-Spam": "Eggs"},
-            [("X-Spam", "Eggs")],
-        ]:
-            with self.subTest(extra_headers=extra_headers):
-                client = ClientConnection(
-                    "wss://example.com/", extra_headers=extra_headers
-                )
-                request = client.connect()
-
-                self.assertEqual(request.headers["X-Spam"], "Eggs")
-
-    def test_extra_headers_overrides_user_agent(self):
-        client = ClientConnection(
-            "wss://example.com/", extra_headers={"User-Agent": "Other"}
-        )
-        request = client.connect()
-
-        self.assertEqual(request.headers["User-Agent"], "Other")
-
 
 class AcceptRejectTests(unittest.TestCase):
     def test_receive_accept(self):

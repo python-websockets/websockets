@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Generator, List, Optional, Sequence
 
 from .connection import CLIENT, CONNECTING, OPEN, Connection, State
-from .datastructures import Headers, HeadersLike, MultipleValuesError
+from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
     InvalidHandshake,
     InvalidHeader,
@@ -50,7 +50,6 @@ class ClientConnection(Connection):
         origin: Optional[Origin] = None,
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
-        extra_headers: Optional[HeadersLike] = None,
         state: State = CONNECTING,
         max_size: Optional[int] = 2 ** 20,
         logger: Optional[LoggerLike] = None,
@@ -65,7 +64,6 @@ class ClientConnection(Connection):
         self.origin = origin
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
-        self.extra_headers = extra_headers
         self.key = generate_key()
 
     def connect(self) -> Request:  # noqa: F811
@@ -103,10 +101,7 @@ class ClientConnection(Connection):
             protocol_header = build_subprotocol(self.available_subprotocols)
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        if self.extra_headers is not None:
-            headers.update(self.extra_headers)
-
-        headers.setdefault("User-Agent", USER_AGENT)
+        headers["User-Agent"] = USER_AGENT
 
         return Request(self.wsuri.resource_name, headers)
 

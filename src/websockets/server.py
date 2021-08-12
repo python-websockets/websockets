@@ -4,10 +4,10 @@ import base64
 import binascii
 import email.utils
 import http
-from typing import Callable, Generator, List, Optional, Sequence, Tuple, Union, cast
+from typing import Generator, List, Optional, Sequence, Tuple, cast
 
 from .connection import CONNECTING, OPEN, SERVER, Connection, State
-from .datastructures import Headers, HeadersLike, MultipleValuesError
+from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
     InvalidHandshake,
     InvalidHeader,
@@ -44,9 +44,6 @@ from .legacy.server import *  # isort:skip  # noqa
 __all__ = ["ServerConnection"]
 
 
-HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]]
-
-
 class ServerConnection(Connection):
 
     side = SERVER
@@ -56,7 +53,6 @@ class ServerConnection(Connection):
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
-        extra_headers: Optional[HeadersLikeOrCallable] = None,
         state: State = CONNECTING,
         max_size: Optional[int] = 2 ** 20,
         logger: Optional[LoggerLike] = None,
@@ -70,7 +66,6 @@ class ServerConnection(Connection):
         self.origins = origins
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
-        self.extra_headers = extra_headers
 
     def accept(self, request: Request) -> Response:
         """
@@ -125,6 +120,8 @@ class ServerConnection(Connection):
 
         headers = Headers()
 
+        headers["Date"] = email.utils.formatdate(usegmt=True)
+
         headers["Upgrade"] = "websocket"
         headers["Connection"] = "Upgrade"
         headers["Sec-WebSocket-Accept"] = accept_key(key)
@@ -135,16 +132,7 @@ class ServerConnection(Connection):
         if protocol_header is not None:
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        extra_headers: Optional[HeadersLike]
-        if callable(self.extra_headers):
-            extra_headers = self.extra_headers(request.path, request.headers)
-        else:
-            extra_headers = self.extra_headers
-        if extra_headers is not None:
-            headers.update(extra_headers)
-
-        headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-        headers.setdefault("Server", USER_AGENT)
+        headers["Server"] = USER_AGENT
 
         self.logger.info("connection open")
         return Response(101, "Switching Protocols", headers)
@@ -402,10 +390,10 @@ class ServerConnection(Connection):
         if headers is None:
             headers = Headers()
         headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-        headers.setdefault("Server", USER_AGENT)
+        headers.setdefault("Connection", "close")
         headers.setdefault("Content-Length", str(len(body)))
         headers.setdefault("Content-Type", "text/plain; charset=utf-8")
-        headers.setdefault("Connection", "close")
+        headers.setdefault("Server", USER_AGENT)
         self.logger.info("connection failed (%d %s)", status.value, status.phrase)
         return Response(status.value, status.phrase, headers, body)
 

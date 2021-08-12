@@ -97,6 +97,10 @@ class HeadersTests(unittest.TestCase):
         other_headers = Headers([("Connection", "Upgrade"), ("Server", "websockets")])
         self.assertEqual(self.headers, other_headers)
 
+    def test_eq_case_insensitive(self):
+        other_headers = Headers(connection="Upgrade", server="websockets")
+        self.assertEqual(self.headers, other_headers)
+
     def test_eq_not_equal(self):
         other_headers = Headers([("Connection", "close"), ("Server", "websockets")])
         self.assertNotEqual(self.headers, other_headers)

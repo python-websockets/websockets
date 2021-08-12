@@ -129,7 +129,7 @@ class Headers(MutableMapping[str, str]):
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Headers):
             return NotImplemented
-        return self._list == other._list
+        return self._dict == other._dict
 
     def clear(self) -> None:
         """

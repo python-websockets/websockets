@@ -74,10 +74,10 @@ class Headers(MutableMapping[str, str]):
 
     __slots__ = ["_dict", "_list"]
 
-    def __init__(self, *args: Any, **kwargs: str) -> None:
+    # Like dict, Headers accepts an optional "mapping or iterable" argument.
+    def __init__(self, *args: HeadersLike, **kwargs: str) -> None:
         self._dict: Dict[str, List[str]] = {}
         self._list: List[Tuple[str, str]] = []
-        # MutableMapping.update calls __setitem__ for each (name, value) pair.
         self.update(*args, **kwargs)
 
     def __str__(self) -> str:
@@ -86,7 +86,7 @@ class Headers(MutableMapping[str, str]):
     def __repr__(self) -> str:
         return f"{self.__class__.__name__}({self._list!r})"
 
-    def copy(self) -> "Headers":
+    def copy(self) -> Headers:
         copy = self.__class__()
         copy._dict = self._dict.copy()
         copy._list = self._list.copy()
@@ -138,6 +138,16 @@ class Headers(MutableMapping[str, str]):
         """
         self._dict = {}
         self._list = []
+
+    def update(self, *args: HeadersLike, **kwargs: str) -> None:
+        """
+        Update from a Headers instance and/or keyword arguments.
+
+        """
+        args = tuple(
+            arg.raw_items() if isinstance(arg, Headers) else arg for arg in args
+        )
+        super().update(*args, **kwargs)
 
     # Methods for handling multiple values
 

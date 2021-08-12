@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import asyncio
-import collections.abc
 import email.utils
 import functools
 import http
@@ -697,12 +696,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if callable(extra_headers):
             extra_headers = extra_headers(path, self.request_headers)
         if extra_headers is not None:
-            if isinstance(extra_headers, Headers):
-                extra_headers = extra_headers.raw_items()
-            elif isinstance(extra_headers, collections.abc.Mapping):
-                extra_headers = extra_headers.items()
-            for name, value in extra_headers:
-                response_headers[name] = value
+            response_headers.update(extra_headers)
 
         response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
         response_headers.setdefault("Server", USER_AGENT)

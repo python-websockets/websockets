@@ -609,51 +609,23 @@ class CommonClientServerTests:
         self.assertEqual(server_resp, repr(client_resp))
 
     @with_server()
-    @with_client("/headers", extra_headers=Headers({"X-Spam": "Eggs"}))
+    @with_client("/headers", extra_headers={"X-Spam": "Eggs"})
     def test_protocol_custom_request_headers(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
     @with_server()
-    @with_client("/headers", extra_headers={"X-Spam": "Eggs"})
-    def test_protocol_custom_request_headers_dict(self):
-        req_headers = self.loop.run_until_complete(self.client.recv())
-        self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", req_headers)
-
-    @with_server()
-    @with_client("/headers", extra_headers=[("X-Spam", "Eggs")])
-    def test_protocol_custom_request_headers_list(self):
-        req_headers = self.loop.run_until_complete(self.client.recv())
-        self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", req_headers)
-
-    @with_server()
-    @with_client("/headers", extra_headers=[("User-Agent", "Eggs")])
+    @with_client("/headers", extra_headers={"User-Agent": "Eggs"})
     def test_protocol_custom_request_user_agent(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertEqual(req_headers.count("User-Agent"), 1)
         self.assertIn("('User-Agent', 'Eggs')", req_headers)
 
-    @with_server(extra_headers=lambda p, r: Headers({"X-Spam": "Eggs"}))
-    @with_client("/headers")
-    def test_protocol_custom_response_headers_callable(self):
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-
     @with_server(extra_headers=lambda p, r: {"X-Spam": "Eggs"})
     @with_client("/headers")
-    def test_protocol_custom_response_headers_callable_dict(self):
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-
-    @with_server(extra_headers=lambda p, r: [("X-Spam", "Eggs")])
-    @with_client("/headers")
-    def test_protocol_custom_response_headers_callable_list(self):
+    def test_protocol_custom_response_headers_callable(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
@@ -664,28 +636,14 @@ class CommonClientServerTests:
         self.loop.run_until_complete(self.client.recv())  # doesn't crash
         self.loop.run_until_complete(self.client.recv())  # nothing to check
 
-    @with_server(extra_headers=Headers({"X-Spam": "Eggs"}))
+    @with_server(extra_headers={"X-Spam": "Eggs"})
     @with_client("/headers")
     def test_protocol_custom_response_headers(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
-    @with_server(extra_headers={"X-Spam": "Eggs"})
-    @with_client("/headers")
-    def test_protocol_custom_response_headers_dict(self):
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-
-    @with_server(extra_headers=[("X-Spam", "Eggs")])
-    @with_client("/headers")
-    def test_protocol_custom_response_headers_list(self):
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertIn("('X-Spam', 'Eggs')", resp_headers)
-
-    @with_server(extra_headers=[("Server", "Eggs")])
+    @with_server(extra_headers={"Server": "Eggs"})
     @with_client("/headers")
     def test_protocol_custom_response_user_agent(self):
         self.loop.run_until_complete(self.client.recv())

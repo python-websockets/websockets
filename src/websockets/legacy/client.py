@@ -6,7 +6,6 @@
 from __future__ import annotations
 
 import asyncio
-import collections.abc
 import functools
 import logging
 import urllib.parse
@@ -387,13 +386,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             protocol_header = build_subprotocol(available_subprotocols)
             request_headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        if extra_headers is not None:
-            if isinstance(extra_headers, Headers):
-                extra_headers = extra_headers.raw_items()
-            elif isinstance(extra_headers, collections.abc.Mapping):
-                extra_headers = extra_headers.items()
-            for name, value in extra_headers:
-                request_headers[name] = value
+        if self.extra_headers is not None:
+            request_headers.update(self.extra_headers)
 
         request_headers.setdefault("User-Agent", USER_AGENT)
 

@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import collections
 from typing import Generator, List, Optional, Sequence
 
 from .connection import CLIENT, CONNECTING, OPEN, Connection, State
@@ -105,13 +104,7 @@ class ClientConnection(Connection):
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
         if self.extra_headers is not None:
-            extra_headers = self.extra_headers
-            if isinstance(extra_headers, Headers):
-                extra_headers = extra_headers.raw_items()
-            elif isinstance(extra_headers, collections.abc.Mapping):
-                extra_headers = extra_headers.items()
-            for name, value in extra_headers:
-                headers[name] = value
+            headers.update(self.extra_headers)
 
         headers.setdefault("User-Agent", USER_AGENT)
 

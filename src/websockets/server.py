@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import base64
 import binascii
-import collections
 import email.utils
 import http
 from typing import Callable, Generator, List, Optional, Sequence, Tuple, Union, cast
@@ -142,12 +141,7 @@ class ServerConnection(Connection):
         else:
             extra_headers = self.extra_headers
         if extra_headers is not None:
-            if isinstance(extra_headers, Headers):
-                extra_headers = extra_headers.raw_items()
-            elif isinstance(extra_headers, collections.abc.Mapping):
-                extra_headers = extra_headers.items()
-            for name, value in extra_headers:
-                headers[name] = value
+            headers.update(extra_headers)
 
         headers.setdefault("Date", email.utils.formatdate(usegmt=True))
         headers.setdefault("Server", USER_AGENT)

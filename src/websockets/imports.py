@@ -9,15 +9,15 @@ __all__ = ["lazy_import"]
 
 def import_name(name: str, source: str, namespace: Dict[str, Any]) -> Any:
     """
-    Import <name> from <source> in <namespace>.
+    Import ``name`` from ``source`` in ``namespace``.
 
-    There are two cases:
+    There are two use cases:
 
-    - <name> is an object defined in <source>
-    - <name> is a submodule of source
+    - ``name`` is an object defined in ``source``;
+    - ``name`` is a submodule of ``source``.
 
-    Neither __import__ nor importlib.import_module does exactly this.
-    __import__ is closer to the intended behavior.
+    Neither :func:`__import__` nor :func:`~importlib.import_module` does
+    exactly this. :func:`__import__` is closer to the intended behavior.
 
     """
     level = 0
@@ -49,7 +49,7 @@ def lazy_import(
             }
         )
 
-    This function defines __getattr__ and __dir__ per PEP 562.
+    This function defines ``__getattr__`` and ``__dir__`` per :pep:`562`.
 
     """
     if aliases is None:

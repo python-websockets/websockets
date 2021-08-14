@@ -1,13 +1,13 @@
 Broadcasting messages
 =====================
 
-.. currentmodule: websockets
+.. currentmodule:: websockets
 
 
 .. note::
 
     If you just want to send a message to all connected clients, use
-    :func:`~websockets.broadcast`.
+    :func:`broadcast`.
 
     If you want to learn about its design in depth, continue reading this
     document.
@@ -16,7 +16,7 @@ WebSocket servers often send the same message to all connected clients or to a
 subset of clients for which the message is relevant.
 
 Let's explore options for broadcasting a message, explain the design
-of :func:`~websockets.broadcast`, and discuss alternatives.
+of :func:`broadcast`, and discuss alternatives.
 
 For each option, we'll provide a connection handler called ``handler()`` and a
 function or coroutine called ``broadcast()`` that sends a message to all
@@ -122,7 +122,7 @@ connections before the write buffer has time to fill up.
 
 Don't set extreme ``write_limit``, ``ping_interval``, and ``ping_timeout``
 values to ensure that this condition holds. Set reasonable values and use the
-built-in :func:`~websockets.broadcast` function instead.
+built-in :func:`broadcast` function instead.
 
 The concurrent way
 ------------------
@@ -207,11 +207,11 @@ If a client gets too far behind, eventually it reaches the limit defined by
 ``ping_timeout`` and websockets terminates the connection. You can read the
 discussion of :doc:`keepalive and timeouts <./timeouts>` for details.
 
-How :func:`~websockets.broadcast` works
----------------------------------------
+How :func:`broadcast` works
+---------------------------
 
-The built-in :func:`~websockets.broadcast` function is similar to the naive
-way. The main difference is that it doesn't apply backpressure.
+The built-in :func:`broadcast` function is similar to the naive way. The main
+difference is that it doesn't apply backpressure.
 
 This provides the best performance by avoiding the overhead of scheduling and
 running one task per client.
@@ -321,9 +321,9 @@ the asynchronous iterator returned by ``subscribe()``.
 Performance considerations
 --------------------------
 
-The built-in :func:`~websockets.broadcast` function sends all messages without
-yielding control to the event loop. So does the naive way when the network
-and clients are fast and reliable.
+The built-in :func:`broadcast` function sends all messages without yielding
+control to the event loop. So does the naive way when the network and clients
+are fast and reliable.
 
 For each client, a WebSocket frame is prepared and sent to the network. This
 is the minimum amount of work required to broadcast a message.
@@ -343,7 +343,7 @@ However, this isn't possible in general for two reasons:
 
 All other patterns discussed above yield control to the event loop once per
 client because messages are sent by different tasks. This makes them slower
-than the built-in :func:`~websockets.broadcast` function.
+than the built-in :func:`broadcast` function.
 
 There is no major difference between the performance of per-message queues and
 publish–subscribe.

@@ -6,36 +6,32 @@ Broadcast
 
 .. autofunction:: websockets.broadcast
 
-Data structures
----------------
+WebSocket events
+----------------
+
+.. automodule:: websockets.frames
+
+    .. autoclass:: Frame
+
+    .. autoclass:: Opcode
+
+    .. autoclass:: Close
+
+HTTP events
+-----------
+
+.. automodule:: websockets.http11
+
+    .. autoclass:: Request
+
+    .. autoclass:: Response
 
 .. automodule:: websockets.datastructures
 
     .. autoclass:: Headers
 
-    .. autodata:: HeadersLike
+        .. automethod:: get_all
+
+        .. automethod:: raw_items
 
     .. autoexception:: MultipleValuesError
-
-Exceptions
-----------
-
-.. automodule:: websockets.exceptions
-    :members:
-
-Types
------
-
-.. automodule:: websockets.typing
-
-    .. autodata:: Data
-
-    .. autodata:: LoggerLike
-
-    .. autodata:: Origin
-
-    .. autodata:: Subprotocol
-
-    .. autodata:: ExtensionName
-
-    .. autodata:: ExtensionParameter

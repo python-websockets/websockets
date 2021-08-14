@@ -69,14 +69,24 @@ class ServerConnection(Connection):
 
     def accept(self, request: Request) -> Response:
         """
-        Create a WebSocket handshake response event to send to the client.
+        Create a WebSocket handshake response event to accept the connection.
 
-        If the connection cannot be established, the response rejects the
-        connection, which may be unexpected.
+        If the connection cannot be established, create a HTTP response event
+        to reject the handshake.
+
+        Args:
+            request: handshake request event received from the client.
+
+        Returns:
+            Response: handshake response event to send to the client.
 
         """
         try:
-            key, extensions_header, protocol_header = self.process_request(request)
+            (
+                accept_header,
+                extensions_header,
+                protocol_header,
+            ) = self.process_request(request)
         except InvalidOrigin as exc:
             request.exception = exc
             if self.debug:
@@ -124,7 +134,7 @@ class ServerConnection(Connection):
 
         headers["Upgrade"] = "websocket"
         headers["Connection"] = "Upgrade"
-        headers["Sec-WebSocket-Accept"] = accept_key(key)
+        headers["Sec-WebSocket-Accept"] = accept_header
 
         if extensions_header is not None:
             headers["Sec-WebSocket-Extensions"] = extensions_header
@@ -141,17 +151,24 @@ class ServerConnection(Connection):
         self, request: Request
     ) -> Tuple[str, Optional[str], Optional[str]]:
         """
-        Check a handshake request received from the client.
+        Check a handshake request and negociate extensions and subprotocol.
 
-        This function doesn't verify that the request is an HTTP/1.1 or higher GET
-        request and doesn't perform ``Host`` and ``Origin`` checks. These controls
-        are usually performed earlier in the HTTP request handling code. They're
+        This function doesn't verify that the request is an HTTP/1.1 or higher
+        GET request and doesn't check the ``Host`` header. These controls are
+        usually performed earlier in the HTTP request handling code. They're
         the responsibility of the caller.
 
-        :param request: request
-        :returns: ``key`` which must be passed to :func:`build_response`
-        :raises ~websockets.exceptions.InvalidHandshake: if the handshake request
-            is invalid; then the server must return 400 Bad Request error
+        Args:
+            request: WebSocket handshake request received from the client.
+
+        Returns:
+            Tuple[str, Optional[str], Optional[str]]:
+            ``Sec-WebSocket-Accept``, ``Sec-WebSocket-Extensions``, and
+            ``Sec-WebSocket-Protocol`` headers for the handshake response.
+
+        Raises:
+            InvalidHandshake: if the handshake request is invalid;
+                then the server must return 400 Bad Request error.
 
         """
         headers = request.headers
@@ -204,21 +221,32 @@ class ServerConnection(Connection):
         if version != "13":
             raise InvalidHeaderValue("Sec-WebSocket-Version", version)
 
+        accept_header = accept_key(key)
+
         self.origin = self.process_origin(headers)
 
         extensions_header, self.extensions = self.process_extensions(headers)
 
         protocol_header = self.subprotocol = self.process_subprotocol(headers)
 
-        return key, extensions_header, protocol_header
+        return (
+            accept_header,
+            extensions_header,
+            protocol_header,
+        )
 
     def process_origin(self, headers: Headers) -> Optional[Origin]:
         """
         Handle the Origin HTTP request header.
 
-        :param headers: request headers
-        :raises ~websockets.exceptions.InvalidOrigin: if the origin isn't
-            acceptable
+        Args:
+            headers: WebSocket handshake request headers.
+
+        Returns:
+           Optional[Origin]: origin, if it is acceptable.
+
+        Raises:
+            InvalidOrigin: if the origin isn't acceptable.
 
         """
         # "The user agent MUST NOT include more than one Origin header field"
@@ -242,9 +270,6 @@ class ServerConnection(Connection):
         Accept or reject each extension proposed in the client request.
         Negotiate parameters for accepted extensions.
 
-        Return the Sec-WebSocket-Extensions HTTP response header and the list
-        of accepted extensions.
-
         :rfc:`6455` leaves the rules up to the specification of each
         :extension.
 
@@ -263,9 +288,15 @@ class ServerConnection(Connection):
         Other requirements, for example related to mandatory extensions or the
         order of extensions, may be implemented by overriding this method.
 
-        :param headers: request headers
-        :raises ~websockets.exceptions.InvalidHandshake: to abort the
-            handshake with an HTTP 400 error code
+        Args:
+            headers: WebSocket handshake request headers.
+
+        Returns:
+            Tuple[Optional[str], List[Extension]]: ``Sec-WebSocket-Extensions``
+            HTTP response header and list of accepted extensions.
+
+        Raises:
+            InvalidHandshake: to abort the handshake with an HTTP 400 error.
 
         """
         response_header_value: Optional[str] = None
@@ -317,12 +348,15 @@ class ServerConnection(Connection):
         """
         Handle the Sec-WebSocket-Protocol HTTP request header.
 
-        Return Sec-WebSocket-Protocol HTTP response header, which is the same
-        as the selected subprotocol.
+        Args:
+            headers: WebSocket handshake request headers.
 
-        :param headers: request headers
-        :raises ~websockets.exceptions.InvalidHandshake: to abort the
-            handshake with an HTTP 400 error code
+        Returns:
+           Optional[Subprotocol]: Subprotocol, if one was selected; this is
+           also the value of the ``Sec-WebSocket-Protocol`` response header.
+
+        Raises:
+            InvalidHandshake: to abort the handshake with an HTTP 400 error.
 
         """
         subprotocol: Optional[Subprotocol] = None
@@ -360,8 +394,13 @@ class ServerConnection(Connection):
         many servers providing a subprotocol will require that the client uses
         that subprotocol.
 
-        :param client_subprotocols: list of subprotocols offered by the client
-        :param server_subprotocols: list of subprotocols available on the server
+        Args:
+            client_subprotocols: list of subprotocols offered by the client.
+            server_subprotocols: list of subprotocols available on the server.
+
+        Returns:
+            Optional[Subprotocol]: Subprotocol, if a common subprotocol was
+            found.
 
         """
         subprotocols = set(client_subprotocols) & set(server_subprotocols)
@@ -380,10 +419,13 @@ class ServerConnection(Connection):
         exception: Optional[Exception] = None,
     ) -> Response:
         """
-        Create a HTTP response event to send to the client.
+        Create a HTTP response event to reject the connection.
 
         A short plain text response is the best fallback when failing to
         establish a WebSocket connection.
+
+        Returns:
+            Response: HTTP handshake response to send to the client.
 
         """
         body = text.encode()
@@ -399,7 +441,10 @@ class ServerConnection(Connection):
 
     def send_response(self, response: Response) -> None:
         """
-        Send a WebSocket handshake response to the client.
+        Send a handshake response to the client.
+
+        Args:
+            response: WebSocket handshake response event to send.
 
         """
         if self.debug:

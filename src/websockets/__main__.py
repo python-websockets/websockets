@@ -183,7 +183,7 @@ def main() -> None:
 
     # Due to zealous removal of the loop parameter in the Queue constructor,
     # we need a factory coroutine to run in the freshly created event loop.
-    async def queue_factory() -> "asyncio.Queue[str]":
+    async def queue_factory() -> asyncio.Queue[str]:
         return asyncio.Queue()
 
     # Create a queue of user inputs. There's no need to limit its size.

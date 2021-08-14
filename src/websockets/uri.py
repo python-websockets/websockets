@@ -1,12 +1,3 @@
-"""
-:mod:`websockets.uri` parses WebSocket URIs.
-
-See `section 3 of RFC 6455`_.
-
-.. _section 3 of RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-3
-
-"""
-
 from __future__ import annotations
 
 import dataclasses
@@ -24,14 +15,16 @@ class WebSocketURI:
     """
     WebSocket URI.
 
-    :param bool secure: secure flag
-    :param str host: lower-case host
-    :param int port: port, always set even if it's the default
-    :param str resource_name: path and optional query
-    :param str user_info: ``(username, password)`` tuple when the URI contains
-      `User Information`_, else ``None``.
+    Attributes:
+        secure: :obj:`True` for a ``wss`` URI, :obj:`False` for a ``ws`` URI.
+        host: Host, normalized to lower case.
+        port: Port, always set even if it's the default.
+        resource_name: Path and optional query.
+        user_info: ``(username, password)`` when the URI contains
+            `User Information`_, else :obj:`None`.
 
     .. _User Information: https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.1
+
     """
 
     secure: bool
@@ -49,8 +42,11 @@ def parse_uri(uri: str) -> WebSocketURI:
     """
     Parse and validate a WebSocket URI.
 
-    :raises ~websockets.exceptions.InvalidURI: if ``uri`` isn't a valid
-        WebSocket URI.
+    Args:
+        uri: WebSocket URI.
+
+    Raises:
+        InvalidURI: if ``uri`` isn't a valid WebSocket URI.
 
     """
     parsed = urllib.parse.urlparse(uri)

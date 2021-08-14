@@ -1,8 +1,3 @@
-"""
-Parse and serialize WebSocket frames.
-
-"""
-
 from __future__ import annotations
 
 import dataclasses
@@ -104,15 +99,16 @@ class Frame:
     """
     WebSocket frame.
 
-    :param int opcode: opcode
-    :param bytes data: payload data
-    :param bool fin: FIN bit
-    :param bool rsv1: RSV1 bit
-    :param bool rsv2: RSV2 bit
-    :param bool rsv3: RSV3 bit
+    Args:
+        opcode: opcode.
+        data: payload data.
+        fin: FIN bit.
+        rsv1: RSV1 bit.
+        rsv2: RSV2 bit.
+        rsv3: RSV3 bit.
 
     Only these fields are needed. The MASK bit, payload length and masking-key
-    are handled on the fly by :meth:`parse` and :meth:`serialize`.
+    are handled on the fly when parsing and serializing frames.
 
     """
 
@@ -176,22 +172,23 @@ class Frame:
         mask: bool,
         max_size: Optional[int] = None,
         extensions: Optional[Sequence[extensions.Extension]] = None,
-    ) -> Generator[None, None, "Frame"]:
+    ) -> Generator[None, None, Frame]:
         """
-        Read a WebSocket frame.
+        Parse a WebSocket frame.
 
-        :param read_exact: generator-based coroutine that reads the requested
-            number of bytes or raises an exception if there isn't enough data
-        :param mask: whether the frame should be masked i.e. whether the read
-            happens on the server side
-        :param max_size: maximum payload size in bytes
-        :param extensions: list of classes with a ``decode()`` method that
-            transforms the frame and return a new frame; extensions are applied
-            in reverse order
-        :raises ~websockets.exceptions.PayloadTooBig: if the frame exceeds
-            ``max_size``
-        :raises ~websockets.exceptions.ProtocolError: if the frame
-            contains incorrect values
+        This is a generator-based coroutine.
+
+        Args:
+            read_exact: generator-based coroutine that reads the requested
+                bytes or raises an exception if there isn't enough data.
+            mask: whether the frame should be masked i.e. whether the read
+                happens on the server side.
+            max_size: maximum payload size in bytes.
+            extensions: list of extensions, applied in reverse order.
+
+        Raises:
+            PayloadTooBig: if the frame's payload size exceeds ``max_size``.
+            ProtocolError: if the frame contains incorrect values.
 
         """
         # Read the header.
@@ -249,16 +246,15 @@ class Frame:
         extensions: Optional[Sequence[extensions.Extension]] = None,
     ) -> bytes:
         """
-        Write a WebSocket frame.
+        Serialize a WebSocket frame.
 
-        :param frame: frame to write
-        :param mask: whether the frame should be masked i.e. whether the write
-            happens on the client side
-        :param extensions: list of classes with an ``encode()`` method that
-            transform the frame and return a new frame; extensions are applied
-            in order
-        :raises ~websockets.exceptions.ProtocolError: if the frame
-            contains incorrect values
+        Args:
+            mask: whether the frame should be masked i.e. whether the write
+                happens on the client side.
+            extensions: list of extensions, applied in order.
+
+        Raises:
+            ProtocolError: if the frame contains incorrect values.
 
         """
         self.check()
@@ -306,8 +302,8 @@ class Frame:
         """
         Check that reserved bits and opcode have acceptable values.
 
-        :raises ~websockets.exceptions.ProtocolError: if a reserved
-            bit or the opcode is invalid
+        Raises:
+            ProtocolError: if a reserved bit or the opcode is invalid.
 
         """
         if self.rsv1 or self.rsv2 or self.rsv3:
@@ -332,7 +328,8 @@ def prepare_data(data: Data) -> Tuple[int, bytes]:
     If ``data`` is a bytes-like object, return ``OP_BINARY`` and a bytes-like
     object.
 
-    :raises TypeError: if ``data`` doesn't have a supported type
+    Raises:
+        TypeError: if ``data`` doesn't have a supported type.
 
     """
     if isinstance(data, str):
@@ -354,7 +351,8 @@ def prepare_ctrl(data: Data) -> bytes:
 
     If ``data`` is a bytes-like object, return a :class:`bytes` object.
 
-    :raises TypeError: if ``data`` doesn't have a supported type
+    Raises:
+        TypeError: if ``data`` doesn't have a supported type.
 
     """
     if isinstance(data, str):
@@ -398,8 +396,12 @@ class Close:
         """
         Parse the payload of a close frame.
 
-        :raises ~websockets.exceptions.ProtocolError: if data is ill-formed
-        :raises UnicodeDecodeError: if the reason isn't valid UTF-8
+        Args:
+            data: payload of the close frame.
+
+        Raises:
+            ProtocolError: if data is ill-formed.
+            UnicodeDecodeError: if the reason isn't valid UTF-8.
 
         """
         if len(data) >= 2:
@@ -415,9 +417,7 @@ class Close:
 
     def serialize(self) -> bytes:
         """
-        Serialize the payload for a close frame.
-
-        This is the reverse of :meth:`parse`.
+        Serialize the payload of a close frame.
 
         """
         self.check()
@@ -427,8 +427,8 @@ class Close:
         """
         Check that the close code has a valid value for a close frame.
 
-        :raises ~websockets.exceptions.ProtocolError: if the close code
-            is invalid
+        Raises:
+            ProtocolError: if the close code is invalid.
 
         """
         if not (self.code in EXTERNAL_CLOSE_CODES or 3000 <= self.code < 5000):

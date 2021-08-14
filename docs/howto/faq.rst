@@ -5,7 +5,7 @@ FAQ
 
 .. note::
 
-    Many questions asked in :mod:`websockets`' issue tracker are actually
+    Many questions asked in websockets' issue tracker are actually
     about :mod:`asyncio`. Python's documentation about `developing with
     asyncio`_ is a good complement.
 
@@ -99,13 +99,13 @@ How do I get access HTTP headers, for example cookies?
 ......................................................
 
 To access HTTP headers during the WebSocket handshake, you can override
-:attr:`~legacy.server.WebSocketServerProtocol.process_request`::
+:attr:`~server.WebSocketServerProtocol.process_request`::
 
     async def process_request(self, path, request_headers):
         cookies = request_header["Cookie"]
 
 Once the connection is established, they're available in
-:attr:`~legacy.protocol.WebSocketServerProtocol.request_headers`::
+:attr:`~server.WebSocketServerProtocol.request_headers`::
 
     async def handler(websocket, path):
         cookies = websocket.request_headers["Cookie"]
@@ -123,7 +123,7 @@ How do I set which IP addresses my server listens to?
 
 Look at the ``host`` argument of :meth:`~asyncio.loop.create_server`.
 
-:func:`serve` accepts the same arguments as
+:func:`~server.serve` accepts the same arguments as
 :meth:`~asyncio.loop.create_server`.
 
 How do I close a connection properly?
@@ -143,7 +143,7 @@ Providing a HTTP server is out of scope for websockets. It only aims at
 providing a WebSocket server.
 
 There's limited support for returning HTTP responses with the
-:attr:`~legacy.server.WebSocketServerProtocol.process_request` hook.
+:attr:`~server.WebSocketServerProtocol.process_request` hook.
 
 If you need more, pick a HTTP server and run it separately.
 
@@ -169,7 +169,7 @@ change it to::
 How do I close a connection properly?
 .....................................
 
-The easiest is to use :func:`connect` as a context manager::
+The easiest is to use :func:`~client.connect` as a context manager::
 
     async with connect(...) as websocket:
         ...
@@ -196,7 +196,7 @@ How do I disable TLS/SSL certificate verification?
 
 Look at the ``ssl`` argument of :meth:`~asyncio.loop.create_connection`.
 
-:func:`connect` accepts the same arguments as
+:func:`~client.connect` accepts the same arguments as
 :meth:`~asyncio.loop.create_connection`.
 
 asyncio usage
@@ -449,4 +449,4 @@ I'm having problems with threads
 
 You shouldn't use threads. Use tasks instead.
 
-:func:`~asyncio.AbstractEventLoop.call_soon_threadsafe` may help.
+:meth:`~asyncio.loop.call_soon_threadsafe` may help.

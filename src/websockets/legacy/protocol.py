@@ -1,12 +1,3 @@
-"""
-:mod:`websockets.legacy.protocol` handles WebSocket control and data frames.
-
-See `sections 4 to 8 of RFC 6455`_.
-
-.. _sections 4 to 8 of RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-4
-
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -71,17 +62,99 @@ __all__ = ["WebSocketCommonProtocol", "broadcast"]
 
 class WebSocketCommonProtocol(asyncio.Protocol):
     """
-    :class:`~asyncio.Protocol` subclass implementing the data transfer phase.
+    WebSocket connection.
 
-    Once the WebSocket connection is established, during the data transfer
-    phase, the protocol is almost symmetrical between the server side and the
-    client side. :class:`WebSocketCommonProtocol` implements logic that's
-    shared between servers and clients.
+    :class:`WebSocketCommonProtocol` provides APIs shared between WebSocket
+    servers and clients. You shouldn't use it directly. Instead, use
+    :class:`~websockets.client.WebSocketClientProtocol` or
+    :class:`~websockets.server.WebSocketServerProtocol`.
 
-    Subclasses such as
-    :class:`~websockets.legacy.server.WebSocketServerProtocol` and
-    :class:`~websockets.legacy.client.WebSocketClientProtocol` implement the
-    opening handshake, which is different between servers and clients.
+    This documentation focuses on low-level details that aren't covered in the
+    documentation of :class:`~websockets.client.WebSocketClientProtocol` and
+    :class:`~websockets.server.WebSocketServerProtocol` for the sake of
+    simplicity.
+
+    Once the connection is open, a Ping_ frame is sent every ``ping_interval``
+    seconds. This serves as a keepalive. It helps keeping the connection
+    open, especially in the presence of proxies with short timeouts on
+    inactive connections. Set ``ping_interval`` to :obj:`None` to disable
+    this behavior.
+
+    .. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
+
+    If the corresponding Pong_ frame isn't received within ``ping_timeout``
+    seconds, the connection is considered unusable and is closed with code
+    1011. This ensures that the remote endpoint remains responsive. Set
+    ``ping_timeout`` to :obj:`None` to disable this behavior.
+
+    .. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
+
+    The ``close_timeout`` parameter defines a maximum wait time for completing
+    the closing handshake and terminating the TCP connection. For legacy
+    reasons, :meth:`close` completes in at most ``5 * close_timeout`` seconds
+    for clients and ``4 * close_timeout`` for servers.
+
+    See the discussion of :doc:`timeouts <../topics/timeouts>` for details.
+
+    ``close_timeout`` needs to be a parameter of the protocol because
+    websockets usually calls :meth:`close` implicitly upon exit:
+
+    * on the client side, when :func:`~websockets.client.connect` is used as a
+      context manager;
+    * on the server side, when the connection handler terminates;
+
+    To apply a timeout to any other API, wrap it in :func:`~asyncio.wait_for`.
+
+    The ``max_size`` parameter enforces the maximum size for incoming messages
+    in bytes. The default value is 1 MiB. If a larger message is received,
+    :meth:`recv` will raise :exc:`~websockets.exceptions.ConnectionClosedError`
+    and the connection will be closed with code 1009.
+
+    The ``max_queue`` parameter sets the maximum length of the queue that
+    holds incoming messages. The default value is ``32``. Messages are added
+    to an in-memory queue when they're received; then :meth:`recv` pops from
+    that queue. In order to prevent excessive memory consumption when
+    messages are received faster than they can be processed, the queue must
+    be bounded. If the queue fills up, the protocol stops processing incoming
+    data until :meth:`recv` is called. In this situation, various receive
+    buffers (at least in :mod:`asyncio` and in the OS) will fill up, then the
+    TCP receive window will shrink, slowing down transmission to avoid packet
+    loss.
+
+    Since Python can use up to 4 bytes of memory to represent a single
+    character, each connection may use up to ``4 * max_size * max_queue``
+    bytes of memory to store incoming messages. By default, this is 128 MiB.
+    You may want to lower the limits, depending on your application's
+    requirements.
+
+    The ``read_limit`` argument sets the high-water limit of the buffer for
+    incoming bytes. The low-water limit is half the high-water limit. The
+    default value is 64 KiB, half of asyncio's default (based on the current
+    implementation of :class:`~asyncio.StreamReader`).
+
+    The ``write_limit`` argument sets the high-water limit of the buffer for
+    outgoing bytes. The low-water limit is a quarter of the high-water limit.
+    The default value is 64 KiB, equal to asyncio's default (based on the
+    current implementation of ``FlowControlMixin``).
+
+    See the discussion of :doc:`memory usage <../topics/memory>` for details.
+
+    Args:
+        logger: logger for this connection;
+            defaults to ``logging.getLogger("websockets.protocol")``;
+            see the :doc:`logging guide <../topics/logging>` for details.
+        ping_interval: delay between keepalive pings in seconds;
+            :obj:`None` to disable keepalive pings.
+        ping_timeout: timeout for keepalive pings in seconds;
+            :obj:`None` to disable timeouts.
+        close_timeout: timeout for closing the connection in seconds;
+            for legacy reasons, the actual timeout is 4 or 5 times larger.
+        max_size: maximum size of incoming messages in bytes;
+            :obj:`None` to disable the limit.
+        max_queue: maximum number of incoming messages in receive buffer;
+            :obj:`None` to disable the limit.
+        read_limit: high-water mark of read buffer in bytes.
+        write_limit: high-water mark of write buffer in bytes.
 
     """
 
@@ -94,6 +167,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     def __init__(
         self,
         *,
+        logger: Optional[LoggerLike] = None,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
         close_timeout: Optional[float] = None,
@@ -101,14 +175,13 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         max_queue: Optional[int] = 2 ** 5,
         read_limit: int = 2 ** 16,
         write_limit: int = 2 ** 16,
-        logger: Optional[LoggerLike] = None,
         # The following arguments are kept only for backwards compatibility.
         host: Optional[str] = None,
         port: Optional[int] = None,
         secure: Optional[bool] = None,
-        timeout: Optional[float] = None,
         legacy_recv: bool = False,
         loop: Optional[asyncio.AbstractEventLoop] = None,
+        timeout: Optional[float] = None,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
         if timeout is None:
@@ -134,7 +207,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.write_limit = write_limit
 
         # Unique identifier. For logs.
-        self.id = uuid.uuid4()
+        self.id: uuid.UUID = uuid.uuid4()
+        """Unique identifier of the connection. Useful in logs."""
 
         # Logger or LoggerAdapter for this connection.
         if logger is None:
@@ -175,12 +249,16 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # HTTP protocol parameters.
         self.path: str
+        """Path of the opening handshake request."""
         self.request_headers: Headers
+        """Opening handshake request headers."""
         self.response_headers: Headers
+        """Opening handshake response headers."""
 
         # WebSocket protocol parameters.
         self.extensions: List[Extension] = []
         self.subprotocol: Optional[Subprotocol] = None
+        """Subprotocol, if one was negotiated."""
 
         # Close code and reason, set when a close frame is sent or received.
         self.close_rcvd: Optional[Close] = None
@@ -286,9 +364,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def local_address(self) -> Any:
         """
-        Local address of the connection as a ``(host, port)`` tuple.
+        Local address of the connection.
 
-        When the connection isn't open, ``local_address`` is ``None``.
+        For IPv4 connections, this is a ``(host, port)`` tuple.
+
+        The format of the address depends on the address family;
+        see :meth:`~socket.socket.getsockname`.
+
+        :obj:`None` if the TCP connection isn't established yet.
 
         """
         try:
@@ -301,9 +384,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def remote_address(self) -> Any:
         """
-        Remote address of the connection as a ``(host, port)`` tuple.
+        Remote address of the connection.
 
-        When the connection isn't open, ``remote_address`` is ``None``.
+        For IPv4 connections, this is a ``(host, port)`` tuple.
+
+        The format of the address depends on the address family;
+        see :meth:`~socket.socket.getpeername`.
+
+        :obj:`None` if the TCP connection isn't established yet.
 
         """
         try:
@@ -316,13 +404,11 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def open(self) -> bool:
         """
-        ``True`` when the connection is usable.
+        :obj:`True` when the connection is open; :obj:`False` otherwise.
 
-        It may be used to detect disconnections. However, this approach is
-        discouraged per the EAFP_ principle.
-
-        When ``open`` is ``False``, using the connection raises a
-        :exc:`~websockets.exceptions.ConnectionClosed` exception.
+        This attribute may be used to detect disconnections. However, this
+        approach is discouraged per the EAFP_ principle. Instead, you should
+        handle :exc:`~websockets.exceptions.ConnectionClosed` exceptions.
 
         .. _EAFP: https://docs.python.org/3/glossary.html#term-eafp
 
@@ -332,10 +418,10 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def closed(self) -> bool:
         """
-        ``True`` once the connection is closed.
+        :obj:`True` when the connection is closed; :obj:`False` otherwise.
 
-        Be aware that both :attr:`open` and :attr:`closed` are ``False`` during
-        the opening and closing sequences.
+        Be aware that both :attr:`open` and :attr:`closed` are :obj:`False`
+        during the opening and closing sequences.
 
         """
         return self.state is State.CLOSED
@@ -343,9 +429,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def close_code(self) -> Optional[int]:
         """
-        WebSocket close code received in a close frame.
+        WebSocket close code, defined in `section 7.1.5 of RFC 6455`_.
 
-        Available once the connection is closed.
+        .. _section 7.1.5 of RFC 6455:
+            https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.5
+
+        :obj:`None` if the connection isn't closed yet.
 
         """
         if self.state is not State.CLOSED:
@@ -358,9 +447,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     @property
     def close_reason(self) -> Optional[str]:
         """
-        WebSocket close reason received in a close frame.
+        WebSocket close reason, defined in `section 7.1.6 of RFC 6455`_.
 
-        Available once the connection is closed.
+        .. _section 7.1.6 of RFC 6455:
+            https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.6
+
+        :obj:`None` if the connection isn't closed yet.
 
         """
         if self.state is not State.CLOSED:
@@ -370,25 +462,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         else:
             return self.close_rcvd.reason
 
-    async def wait_closed(self) -> None:
-        """
-        Wait until the connection is closed.
-
-        This is identical to :attr:`closed`, except it can be awaited.
-
-        This can make it easier to handle connection termination, regardless
-        of its cause, in tasks that interact with the WebSocket connection.
-
-        """
-        await asyncio.shield(self.connection_lost_waiter)
-
     async def __aiter__(self) -> AsyncIterator[Data]:
         """
-        Iterate on received messages.
+        Iterate on incoming messages.
 
-        Exit normally when the connection is closed with code 1000 or 1001.
-
-        Raise an exception in other cases.
+        The iterator  exits normally when the connection is closed with the
+        close code 1000 (OK) or 1001(going away). It raises
+        a :exc:`~websockets.exceptions.ConnectionClosedError` exception when
+        the connection is closed with any other code.
 
         """
         try:
@@ -401,24 +482,30 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         Receive the next message.
 
-        Return a :class:`str` for a text frame and :class:`bytes` for a binary
-        frame.
-
-        When the end of the message stream is reached, :meth:`recv` raises
+        When the connection is closed, :meth:`recv` raises
         :exc:`~websockets.exceptions.ConnectionClosed`. Specifically, it
         raises :exc:`~websockets.exceptions.ConnectionClosedOK` after a normal
         connection closure and
         :exc:`~websockets.exceptions.ConnectionClosedError` after a protocol
-        error or a network failure.
+        error or a network failure. This is how you detect the end of the
+        message stream.
 
         Canceling :meth:`recv` is safe. There's no risk of losing the next
-        message. The next invocation of :meth:`recv` will return it. This
-        makes it possible to enforce a timeout by wrapping :meth:`recv` in
-        :func:`~asyncio.wait_for`.
+        message. The next invocation of :meth:`recv` will return it.
 
-        :raises ~websockets.exceptions.ConnectionClosed: when the
-            connection is closed
-        :raises RuntimeError: if two coroutines call :meth:`recv` concurrently
+        This makes it possible to enforce a timeout by wrapping :meth:`recv`
+        in :func:`~asyncio.wait_for`.
+
+        Returns:
+            Data: A string (:class:`str`) for a Text_ frame. A bytestring
+            (:class:`bytes`) for a Binary_ frame.
+
+            .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+            .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+
+        Raises:
+            ConnectionClosed: when the connection is closed.
+            RuntimeError: if two coroutines call :meth:`recv` concurrently.
 
         """
         if self._pop_message_waiter is not None:
@@ -471,43 +558,58 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         return message
 
     async def send(
-        self, message: Union[Data, Iterable[Data], AsyncIterable[Data]]
+        self,
+        message: Union[Data, Iterable[Data], AsyncIterable[Data]],
     ) -> None:
         """
         Send a message.
 
-        A string (:class:`str`) is sent as a `Text frame`_. A bytestring or
+        A string (:class:`str`) is sent as a Text_ frame. A bytestring or
         bytes-like object (:class:`bytes`, :class:`bytearray`, or
-        :class:`memoryview`) is sent as a `Binary frame`_.
+        :class:`memoryview`) is sent as a Binary_ frame.
 
-        .. _Text frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-        .. _Binary frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+        .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+        .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
 
         :meth:`send` also accepts an iterable or an asynchronous iterable of
-        strings, bytestrings, or bytes-like objects. In that case the message
-        is fragmented. Each item is treated as a message fragment and sent in
-        its own frame. All items must be of the same type, or else
-        :meth:`send` will raise a :exc:`TypeError` and the connection will be
-        closed.
+        strings, bytestrings, or bytes-like objects to enable fragmentation_.
+        Each item is treated as a message fragment and sent in its own frame.
+        All items must be of the same type, or else :meth:`send` will raise a
+        :exc:`TypeError` and the connection will be closed.
+
+        .. _fragmentation: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.4
 
         :meth:`send` rejects dict-like objects because this is often an error.
-        If you wish to send the keys of a dict-like object as fragments, call
-        its :meth:`~dict.keys` method and pass the result to :meth:`send`.
+        (If you want to send the keys of a dict-like object as fragments, call
+        its :meth:`~dict.keys` method and pass the result to :meth:`send`.)
 
         Canceling :meth:`send` is discouraged. Instead, you should close the
         connection with :meth:`close`. Indeed, there are only two situations
-        where :meth:`send` may yield control to the event loop:
+        where :meth:`send` may yield control to the event loop and then get
+        canceled; in both cases, :meth:`close` has the same effect and is
+        more clear:
 
         1. The write buffer is full. If you don't want to wait until enough
            data is sent, your only alternative is to close the connection.
            :meth:`close` will likely time out then abort the TCP connection.
         2. ``message`` is an asynchronous iterator that yields control.
            Stopping in the middle of a fragmented message will cause a
-           protocol error. Closing the connection has the same effect.
+           protocol error and the connection will be closed.
 
-        :raises ~websockets.exceptions.ConnectionClosed: when the
-            connection is closed
-        :raises TypeError: if ``message`` doesn't have a supported type
+        When the connection is closed, :meth:`send` raises
+        :exc:`~websockets.exceptions.ConnectionClosed`. Specifically, it
+        raises :exc:`~websockets.exceptions.ConnectionClosedOK` after a normal
+        connection closure and
+        :exc:`~websockets.exceptions.ConnectionClosedError` after a protocol
+        error or a network failure.
+
+        Args:
+            message (Union[Data, Iterable[Data], AsyncIterable[Data]): message
+                to send.
+
+        Raises:
+            ConnectionClosed: when the connection is closed.
+            TypeError: if ``message`` doesn't have a supported type.
 
         """
         await self.ensure_open()
@@ -621,7 +723,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         :meth:`close` waits for the other end to complete the handshake and
         for the TCP connection to terminate. As a consequence, there's no need
-        to await :meth:`wait_closed`; :meth:`close` already does it.
+        to await :meth:`wait_closed` after :meth:`close`.
 
         :meth:`close` is idempotent: it doesn't do anything once the
         connection is closed.
@@ -631,10 +733,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         Canceling :meth:`close` is discouraged. If it takes too long, you can
         set a shorter ``close_timeout``. If you don't want to wait, let the
-        Python process exit, then the OS will close the TCP connection.
+        Python process exit, then the OS will take care of closing the TCP
+        connection.
 
-        :param code: WebSocket close code
-        :param reason: WebSocket close reason
+        Args:
+            code: WebSocket close code.
+            reason: WebSocket close reason.
 
         """
         try:
@@ -653,7 +757,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # the data transfer task and raises TimeoutError.
 
         # If close() is called multiple times concurrently and one of these
-        # calls hits the timeout, the data transfer task will be cancelled.
+        # calls hits the timeout, the data transfer task will be canceled.
         # Other calls will receive a CancelledError here.
 
         try:
@@ -670,23 +774,27 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Wait for the close connection task to close the TCP connection.
         await asyncio.shield(self.close_connection_task)
 
+    async def wait_closed(self) -> None:
+        """
+        Wait until the connection is closed.
+
+        This coroutine is identical to the :attr:`closed` attribute, except it
+        can be awaited.
+
+        This can make it easier to detect connection termination, regardless
+        of its cause, in tasks that interact with the WebSocket connection.
+
+        """
+        await asyncio.shield(self.connection_lost_waiter)
+
     async def ping(self, data: Optional[Data] = None) -> Awaitable[None]:
         """
-        Send a ping.
+        Send a Ping_.
 
-        Return a :class:`~asyncio.Future` that will be completed when the
-        corresponding pong is received. You can ignore it if you don't intend
-        to wait.
+        .. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
 
         A ping may serve as a keepalive or as a check that the remote endpoint
-        received all messages up to this point::
-
-            pong_waiter = await ws.ping()
-            await pong_waiter  # only if you want to wait for the pong
-
-        By default, the ping contains four random bytes. This payload may be
-        overridden with the optional ``data`` argument which must be a string
-        (which will be encoded to UTF-8) or a bytes-like object.
+        received all messages up to this point
 
         Canceling :meth:`ping` is discouraged. If :meth:`ping` doesn't return
         immediately, it means the write buffer is full. If you don't want to
@@ -695,10 +803,25 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         Canceling the :class:`~asyncio.Future` returned by :meth:`ping` has no
         effect.
 
-        :raises ~websockets.exceptions.ConnectionClosed: when the
-            connection is closed
-        :raises RuntimeError: if another ping was sent with the same data and
-            the corresponding pong wasn't received yet
+        Args:
+            data (Optional[Data]): payload of the ping; a string will be
+                encoded to UTF-8; or :obj:`None` to generate a payload
+                containing four random bytes.
+
+        Returns:
+            ~asyncio.Future: A future that will be completed when the
+            corresponding pong is received. You can ignore it if you
+            don't intend to wait.
+
+            ::
+
+                pong_waiter = await ws.ping()
+                await pong_waiter  # only if you want to wait for the pong
+
+        Raises:
+            ConnectionClosed: when the connection is closed.
+            RuntimeError: if another ping was sent with the same data and
+                the corresponding pong wasn't received yet.
 
         """
         await self.ensure_open()
@@ -722,18 +845,22 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     async def pong(self, data: Data = b"") -> None:
         """
-        Send a pong.
+        Send a Pong_.
+
+        .. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
 
         An unsolicited pong may serve as a unidirectional heartbeat.
 
-        The payload may be set with the optional ``data`` argument which must
-        be a string (which will be encoded to UTF-8) or a bytes-like object.
+        Canceling :meth:`pong` is discouraged. If :meth:`pong` doesn't return
+        immediately, it means the write buffer is full. If you don't want to
+        wait, you should close the connection.
 
-        Canceling :meth:`pong` is discouraged for the same reason as
-        :meth:`ping`.
+        Args:
+            data (Data): payload of the pong; a string will be encoded to
+                UTF-8.
 
-        :raises ~websockets.exceptions.ConnectionClosed: when the
-            connection is closed
+        Raises:
+            ConnectionClosed: when the connection is closed.
 
         """
         await self.ensure_open()
@@ -876,7 +1003,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         Re-assemble data frames if the message is fragmented.
 
-        Return ``None`` when the closing handshake is started.
+        Return :obj:`None` when the closing handshake is started.
 
         """
         frame = await self.read_data_frame(max_size=self.max_size)
@@ -950,7 +1077,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         Process control frames received before the next data frame.
 
-        Return ``None`` if a close frame is encountered before any data frame.
+        Return :obj:`None` if a close frame is encountered before any data frame.
 
         """
         # 6.2. Receiving Data
@@ -1224,7 +1351,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         Wait until the TCP connection is closed or ``self.close_timeout`` elapses.
 
-        Return ``True`` if the connection is closed and ``False`` otherwise.
+        Return :obj:`True` if the connection is closed and :obj:`False`
+        otherwise.
 
         """
         if not self.connection_lost_waiter.done():
@@ -1404,7 +1532,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         the TCP or TLS connection after sending and receiving a close frame.
 
         As a consequence, they never need to write after receiving EOF, so
-        there's no reason to keep the transport open by returning ``True``.
+        there's no reason to keep the transport open by returning :obj:`True`.
 
         Besides, that doesn't work on TLS connections.
 
@@ -1416,15 +1544,15 @@ def broadcast(websockets: Iterable[WebSocketCommonProtocol], message: Data) -> N
     """
     Broadcast a message to several WebSocket connections.
 
-    A string (:class:`str`) is sent as a `Text frame`_. A bytestring or
+    A string (:class:`str`) is sent as a Text_ frame. A bytestring or
     bytes-like object (:class:`bytes`, :class:`bytearray`, or
-    :class:`memoryview`) is sent as a `Binary frame`_.
+    :class:`memoryview`) is sent as a Binary_ frame.
 
-    .. _Text frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-    .. _Binary frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+    .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+    .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
 
     :func:`broadcast` pushes the message synchronously to all connections even
-    if their write buffers overflow ``write_limit``. There's no backpressure.
+    if their write buffers are overflowing. There's no backpressure.
 
     :func:`broadcast` skips silently connections that aren't open in order to
     avoid errors on connections where the closing handshake is in progress.
@@ -1440,8 +1568,14 @@ def broadcast(websockets: Iterable[WebSocketCommonProtocol], message: Data) -> N
     them in memory, while :func:`broadcast` buffers one copy per connection
     as fast as possible.
 
-    :raises RuntimeError: if a connection is busy sending a fragmented message
-    :raises TypeError: if ``message`` doesn't have a supported type
+    Args:
+        websockets (Iterable[WebSocketCommonProtocol]): WebSocket connections
+            to which the message will be sent.
+        message (Data): message to send.
+
+    Raises:
+        RuntimeError: if a connection is busy sending a fragmented message.
+        TypeError: if ``message`` doesn't have a supported type.
 
     """
     if not isinstance(message, (str, bytes, bytearray, memoryview)):

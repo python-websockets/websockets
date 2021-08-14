@@ -35,7 +35,7 @@ Transitions happen in the following places:
   :meth:`~legacy.protocol.WebSocketCommonProtocol.connection_open` which runs when
   the :ref:`opening handshake <opening-handshake>` completes and the WebSocket
   connection is established — not to be confused with
-  :meth:`~asyncio.Protocol.connection_made` which runs when the TCP connection
+  :meth:`~asyncio.BaseProtocol.connection_made` which runs when the TCP connection
   is established;
 - ``OPEN -> CLOSING``: in
   :meth:`~legacy.protocol.WebSocketCommonProtocol.write_frame` immediately before
@@ -58,7 +58,7 @@ connection lifecycle on the client side.
    :target: _images/lifecycle.svg
 
 The lifecycle is identical on the server side, except inversion of control
-makes the equivalent of :meth:`~legacy.client.connect` implicit.
+makes the equivalent of :meth:`~client.connect` implicit.
 
 Coroutines shown in green are called by the application. Multiple coroutines
 may interact with the WebSocket connection concurrently.
@@ -113,7 +113,7 @@ Opening handshake
 -----------------
 
 websockets performs the opening handshake when establishing a WebSocket
-connection. On the client side, :meth:`~legacy.client.connect` executes it
+connection. On the client side, :meth:`~client.connect` executes it
 before returning the protocol to the caller. On the server side, it's executed
 before passing the protocol to the ``ws_handler`` coroutine handling the
 connection.
@@ -123,26 +123,26 @@ request and the server replies with an HTTP Switching Protocols response —
 websockets aims at keeping the implementation of both sides consistent with
 one another.
 
-On the client side, :meth:`~legacy.client.WebSocketClientProtocol.handshake`:
+On the client side, :meth:`~client.WebSocketClientProtocol.handshake`:
 
 - builds a HTTP request based on the ``uri`` and parameters passed to
-  :meth:`~legacy.client.connect`;
+  :meth:`~client.connect`;
 - writes the HTTP request to the network;
 - reads a HTTP response from the network;
 - checks the HTTP response, validates ``extensions`` and ``subprotocol``, and
   configures the protocol accordingly;
 - moves to the ``OPEN`` state.
 
-On the server side, :meth:`~legacy.server.WebSocketServerProtocol.handshake`:
+On the server side, :meth:`~server.WebSocketServerProtocol.handshake`:
 
 - reads a HTTP request from the network;
-- calls :meth:`~legacy.server.WebSocketServerProtocol.process_request` which may
+- calls :meth:`~server.WebSocketServerProtocol.process_request` which may
   abort the WebSocket handshake and return a HTTP response instead; this
   hook only makes sense on the server side;
 - checks the HTTP request, negotiates ``extensions`` and ``subprotocol``, and
   configures the protocol accordingly;
 - builds a HTTP response based on the above and parameters passed to
-  :meth:`~legacy.server.serve`;
+  :meth:`~server.serve`;
 - writes the HTTP response to the network;
 - moves to the ``OPEN`` state;
 - returns the ``path`` part of the ``uri``.
@@ -186,8 +186,8 @@ in the same class, :class:`~legacy.protocol.WebSocketCommonProtocol`.
 
 The :attr:`~legacy.protocol.WebSocketCommonProtocol.is_client` attribute tells which
 side a protocol instance is managing. This attribute is defined on the
-:attr:`~legacy.server.WebSocketServerProtocol` and
-:attr:`~legacy.client.WebSocketClientProtocol` classes.
+:attr:`~server.WebSocketServerProtocol` and
+:attr:`~client.WebSocketClientProtocol` classes.
 
 Data flow
 .........
@@ -264,14 +264,14 @@ Closing handshake
 When the other side of the connection initiates the closing handshake,
 :meth:`~legacy.protocol.WebSocketCommonProtocol.read_message` receives a close
 frame while in the ``OPEN`` state. It moves to the ``CLOSING`` state, sends a
-close frame, and returns ``None``, causing
+close frame, and returns :obj:`None`, causing
 :attr:`~legacy.protocol.WebSocketCommonProtocol.transfer_data_task` to terminate.
 
 When this side of the connection initiates the closing handshake with
 :meth:`~legacy.protocol.WebSocketCommonProtocol.close`, it moves to the ``CLOSING``
 state and sends a close frame. When the other side sends a close frame,
 :meth:`~legacy.protocol.WebSocketCommonProtocol.read_message` receives it in the
-``CLOSING`` state and returns ``None``, also causing
+``CLOSING`` state and returns :obj:`None`, also causing
 :attr:`~legacy.protocol.WebSocketCommonProtocol.transfer_data_task` to terminate.
 
 If the other side doesn't send a close frame within the connection's close
@@ -313,7 +313,7 @@ of canceling :attr:`~legacy.protocol.WebSocketCommonProtocol.close_connection_ta
 and failing to close the TCP connection, thus leaking resources.
 
 Then :attr:`~legacy.protocol.WebSocketCommonProtocol.close_connection_task` cancels
-:attr:`~legacy.protocol.WebSocketCommonProtocol.keepalive_ping`. This task has no
+:meth:`~legacy.protocol.WebSocketCommonProtocol.keepalive_ping`. This task has no
 protocol compliance responsibilities. Terminating it to avoid leaking it is
 the only concern.
 
@@ -445,15 +445,15 @@ is canceled, which is correct at this point.
 to prevent cancellation.
 
 :meth:`~legacy.protocol.WebSocketCommonProtocol.close` and
-:func:`~legacy.protocol.WebSocketCommonProtocol.fail_connection` are the only
+:meth:`~legacy.protocol.WebSocketCommonProtocol.fail_connection` are the only
 places where :attr:`~legacy.protocol.WebSocketCommonProtocol.transfer_data_task` may
 be canceled.
 
-:attr:`~legacy.protocol.WebSocketCommonProtocol.close_connnection_task` starts by
+:attr:`~legacy.protocol.WebSocketCommonProtocol.close_connection_task` starts by
 waiting for :attr:`~legacy.protocol.WebSocketCommonProtocol.transfer_data_task`. It
 catches :exc:`~asyncio.CancelledError` to prevent a cancellation of
 :attr:`~legacy.protocol.WebSocketCommonProtocol.transfer_data_task` from propagating
-to :attr:`~legacy.protocol.WebSocketCommonProtocol.close_connnection_task`.
+to :attr:`~legacy.protocol.WebSocketCommonProtocol.close_connection_task`.
 
 .. _backpressure:
 
@@ -520,21 +520,21 @@ For each connection, the receiving side contains these buffers:
 - OS buffers: tuning them is an advanced optimization.
 - :class:`~asyncio.StreamReader` bytes buffer: the default limit is 64 KiB.
   You can set another limit by passing a ``read_limit`` keyword argument to
-  :func:`~legacy.client.connect()` or :func:`~legacy.server.serve`.
+  :func:`~client.connect()` or :func:`~server.serve`.
 - Incoming messages :class:`~collections.deque`: its size depends both on
   the size and the number of messages it contains. By default the maximum
   UTF-8 encoded size is 1 MiB and the maximum number is 32. In the worst case,
   after UTF-8 decoding, a single message could take up to 4 MiB of memory and
   the overall memory consumption could reach 128 MiB. You should adjust these
   limits by setting the ``max_size`` and ``max_queue`` keyword arguments of
-  :func:`~legacy.client.connect()` or :func:`~legacy.server.serve` according to your
+  :func:`~client.connect()` or :func:`~server.serve` according to your
   application's requirements.
 
 For each connection, the sending side contains these buffers:
 
 - :class:`~asyncio.StreamWriter` bytes buffer: the default size is 64 KiB.
   You can set another limit by passing a ``write_limit`` keyword argument to
-  :func:`~legacy.client.connect()` or :func:`~legacy.server.serve`.
+  :func:`~client.connect()` or :func:`~server.serve`.
 - OS buffers: tuning them is an advanced optimization.
 
 Concurrency

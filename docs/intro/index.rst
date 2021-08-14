@@ -82,7 +82,7 @@ This client needs a context because the server uses a self-signed certificate.
 
 A client connecting to a secure WebSocket server with a valid certificate
 (i.e. signed by a CA that your Python installation trusts) can simply pass
-``ssl=True`` to :func:`connect` instead of building a context.
+``ssl=True`` to :func:`~client.connect` instead of building a context.
 
 Browser-based example
 ---------------------

@@ -26,27 +26,27 @@ Server
     :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
     needed in general.
 
-* Create a server with :func:`~legacy.server.serve` which is similar to asyncio's
-  :meth:`~asyncio.AbstractEventLoop.create_server`. You can also use it as an
-  asynchronous context manager.
+* Create a server with :func:`~server.serve` which is similar to asyncio's
+  :meth:`~asyncio.loop.create_server`. You can also use it as an asynchronous
+  context manager.
 
   * The server takes care of establishing connections, then lets the handler
     execute the application logic, and finally closes the connection after the
     handler exits normally or with an exception.
 
   * For advanced customization, you may subclass
-    :class:`~legacy.server.WebSocketServerProtocol` and pass either this subclass or
+    :class:`~server.WebSocketServerProtocol` and pass either this subclass or
     a factory function as the ``create_protocol`` argument.
 
 Client
 ------
 
-* Create a client with :func:`~legacy.client.connect` which is similar to asyncio's
-  :meth:`~asyncio.BaseEventLoop.create_connection`. You can also use it as an
+* Create a client with :func:`~client.connect` which is similar to asyncio's
+  :meth:`~asyncio.loop.create_connection`. You can also use it as an
   asynchronous context manager.
 
   * For advanced customization, you may subclass
-    :class:`~legacy.server.WebSocketClientProtocol` and pass either this subclass or
+    :class:`~client.WebSocketClientProtocol` and pass either this subclass or
     a factory function as the ``create_protocol`` argument.
 
 * Call :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` and
@@ -57,7 +57,7 @@ Client
   :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
   needed in general.
 
-* If you aren't using :func:`~legacy.client.connect` as a context manager, call
+* If you aren't using :func:`~client.connect` as a context manager, call
   :meth:`~legacy.protocol.WebSocketCommonProtocol.close` to terminate the connection.
 
 .. _debugging:

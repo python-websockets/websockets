@@ -55,10 +55,13 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, Headers]:
     WebSocket handshake requests don't have one. If the request contains a
     body, it may be read from ``stream`` after this coroutine returns.
 
-    :param stream: input to read the request from
-    :raises EOFError: if the connection is closed without a full HTTP request
-    :raises SecurityError: if the request exceeds a security limit
-    :raises ValueError: if the request isn't well formatted
+    Args:
+        stream: input to read the request from
+
+    Raises:
+        EOFError: if the connection is closed without a full HTTP request
+        SecurityError: if the request exceeds a security limit
+        ValueError: if the request isn't well formatted
 
     """
     # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.1
@@ -99,10 +102,13 @@ async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, Headers
     WebSocket handshake responses don't have one. If the response contains a
     body, it may be read from ``stream`` after this coroutine returns.
 
-    :param stream: input to read the response from
-    :raises EOFError: if the connection is closed without a full HTTP response
-    :raises SecurityError: if the response exceeds a security limit
-    :raises ValueError: if the response isn't well formatted
+    Args:
+        stream: input to read the response from
+
+    Raises:
+        EOFError: if the connection is closed without a full HTTP response
+        SecurityError: if the response exceeds a security limit
+        ValueError: if the response isn't well formatted
 
     """
     # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.2

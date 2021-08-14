@@ -6,67 +6,55 @@ Client
     Opening a connection
     --------------------
 
-    .. autofunction:: connect(uri, *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, compression='deflate', origin=None, extensions=None, subprotocols=None, extra_headers=None, logger=None, **kwds)
+    .. autofunction:: connect(uri, *, create_protocol=None, logger=None, compression="deflate", origin=None, extensions=None, subprotocols=None, extra_headers=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
         :async:
 
-    .. autofunction:: unix_connect(path, uri="ws://localhost/", *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, compression='deflate', origin=None, extensions=None, subprotocols=None, extra_headers=None, logger=None, **kwds)
+    .. autofunction:: unix_connect(path, uri="ws://localhost/", *, create_protocol=None, logger=None, compression="deflate", origin=None, extensions=None, subprotocols=None, extra_headers=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
         :async:
 
     Using a connection
     ------------------
 
-    .. autoclass:: WebSocketClientProtocol(*, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, origin=None, extensions=None, subprotocols=None, extra_headers=None, logger=None)
-
-        .. attribute:: id
-
-            UUID for the connection.
-
-            Useful for identifying connections in logs.
-
-        .. autoattribute:: local_address
-
-        .. autoattribute:: remote_address
-
-        .. autoattribute:: open
-
-        .. autoattribute:: closed
-
-        .. attribute:: path
-
-            Path of the HTTP request.
-
-            Available once the connection is open.
-
-        .. attribute:: request_headers
-
-            HTTP request headers as a :class:`~websockets.http.Headers` instance.
-
-            Available once the connection is open.
-
-        .. attribute:: response_headers
-
-            HTTP response headers as a :class:`~websockets.http.Headers` instance.
-
-            Available once the connection is open.
-
-        .. attribute:: subprotocol
-
-            Subprotocol, if one was negotiated.
-
-            Available once the connection is open.
-
-        .. autoattribute:: close_code
-
-        .. autoattribute:: close_reason
+    .. autoclass:: WebSocketClientProtocol(*, logger=None, origin=None, extensions=None, subprotocols=None, extra_headers=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
 
         .. automethod:: recv
 
         .. automethod:: send
 
+        .. automethod:: close
+
+        .. automethod:: wait_closed
+
         .. automethod:: ping
 
         .. automethod:: pong
 
-        .. automethod:: close
+        WebSocket connection objects also provide these attributes:
 
-        .. automethod:: wait_closed
+        .. autoattribute:: id
+
+        .. autoproperty:: local_address
+
+        .. autoproperty:: remote_address
+
+        .. autoproperty:: open
+
+        .. autoproperty:: closed
+
+        The following attributes are available after the opening handshake,
+        once the WebSocket connection is open:
+
+        .. autoattribute:: path
+
+        .. autoattribute:: request_headers
+
+        .. autoattribute:: response_headers
+
+        .. autoattribute:: subprotocol
+
+        The following attributes are available after the closing handshake,
+        once the WebSocket connection is closed:
+
+        .. autoproperty:: close_code
+
+        .. autoproperty:: close_reason

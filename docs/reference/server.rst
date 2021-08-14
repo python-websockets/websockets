@@ -6,10 +6,10 @@ Server
     Starting a server
     -----------------
 
-    .. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, compression='deflate', origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, logger=None, **kwds)
+    .. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
         :async:
 
-    .. autofunction:: unix_serve(ws_handler, path, *, create_protocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, compression='deflate', origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, logger=None, **kwds)
+    .. autofunction:: unix_serve(ws_handler, path=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
         :async:
 
     Stopping a server
@@ -17,92 +17,80 @@ Server
 
     .. autoclass:: WebSocketServer
 
-        .. autoattribute:: sockets
-
         .. automethod:: close
+
         .. automethod:: wait_closed
+
+        .. autoattribute:: sockets
 
     Using a connection
     ------------------
 
-    .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, logger=None)
-
-        .. attribute:: id
-
-            UUID for the connection.
-
-            Useful for identifying connections in logs.
-
-        .. autoattribute:: local_address
-
-        .. autoattribute:: remote_address
-
-        .. autoattribute:: open
-
-        .. autoattribute:: closed
-
-        .. attribute:: path
-
-            Path of the HTTP request.
-
-            Available once the connection is open.
-
-        .. attribute:: request_headers
-
-            HTTP request headers as a :class:`~websockets.http.Headers` instance.
-
-            Available once the connection is open.
-
-        .. attribute:: response_headers
-
-            HTTP response headers as a :class:`~websockets.http.Headers` instance.
-
-            Available once the connection is open.
-
-        .. attribute:: subprotocol
-
-            Subprotocol, if one was negotiated.
-
-            Available once the connection is open.
-
-        .. autoattribute:: close_code
-
-        .. autoattribute:: close_reason
-
-        .. automethod:: process_request
-
-        .. automethod:: select_subprotocol
+    .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, logger=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
 
         .. automethod:: recv
 
         .. automethod:: send
 
+        .. automethod:: close
+
+        .. automethod:: wait_closed
+
         .. automethod:: ping
 
         .. automethod:: pong
 
-        .. automethod:: close
+        You can customize the opening handshake in a subclass by overriding these methods:
 
-        .. automethod:: wait_closed
+        .. automethod:: process_request
+
+        .. automethod:: select_subprotocol
+
+        WebSocket connection objects also provide these attributes:
+
+        .. autoattribute:: id
+
+        .. autoproperty:: local_address
+
+        .. autoproperty:: remote_address
+
+        .. autoproperty:: open
+
+        .. autoproperty:: closed
+
+        The following attributes are available after the opening handshake,
+        once the WebSocket connection is open:
+
+        .. autoattribute:: path
+
+        .. autoattribute:: request_headers
+
+        .. autoattribute:: response_headers
+
+        .. autoattribute:: subprotocol
+
+        The following attributes are available after the closing handshake,
+        once the WebSocket connection is closed:
+
+        .. autoproperty:: close_code
+
+        .. autoproperty:: close_reason
+
 
 Basic authentication
 --------------------
 
 .. automodule:: websockets.auth
 
+    websockets supports HTTP Basic Authentication according to
+    :rfc:`7235` and :rfc:`7617`.
+
     .. autofunction:: basic_auth_protocol_factory
 
     .. autoclass:: BasicAuthWebSocketServerProtocol
 
-        .. attribute:: realm
+        .. autoattribute:: realm
 
-            Scope of protection.
-
-            If provided, it should contain only ASCII characters because the
-            encoding of non-ASCII characters is undefined.
-
-        .. attribute:: username
-
-            Username of the authenticated user.
+        .. autoattribute:: username
 
         .. automethod:: check_credentials

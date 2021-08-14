@@ -1,6 +1,8 @@
 Compression
 ===========
 
+.. currentmodule:: websockets.extensions.permessage_deflate
+
 Most WebSocket servers exchange JSON messages because they're convenient to
 parse and serialize in a browser. These messages contain text data and tend to
 be repetitive.
@@ -29,9 +31,8 @@ If you want to disable compression, set ``compression=None``::
     websockets.serve(..., compression=None)
 
 If you want to customize compression settings, you can enable the Per-Message
-Deflate extension explicitly with
-:class:`~permessage_deflate.ClientPerMessageDeflateFactory` or
-:class:`~permessage_deflate.ServerPerMessageDeflateFactory`::
+Deflate extension explicitly with :class:`ClientPerMessageDeflateFactory` or
+:class:`ServerPerMessageDeflateFactory`::
 
     import websockets
     from websockets.extensions import permessage_deflate

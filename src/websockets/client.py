@@ -68,7 +68,7 @@ class ClientConnection(Connection):
 
     def connect(self) -> Request:  # noqa: F811
         """
-        Create a WebSocket handshake request event to send to the server.
+        Create a WebSocket handshake request event to open a connection.
 
         """
         headers = Headers()
@@ -107,12 +107,13 @@ class ClientConnection(Connection):
 
     def process_response(self, response: Response) -> None:
         """
-        Check a handshake response received from the server.
+        Check a handshake response.
 
-        :param response: response
-        :param key: comes from :func:`build_request`
-        :raises ~websockets.exceptions.InvalidHandshake: if the handshake response
-            is invalid
+        Args:
+            request: WebSocket handshake response received from the server.
+
+        Raises:
+            InvalidHandshake: if the handshake response is invalid.
 
         """
 
@@ -162,11 +163,6 @@ class ClientConnection(Connection):
 
         Check that each extension is supported, as well as its parameters.
 
-        Return the list of accepted extensions.
-
-        Raise :exc:`~websockets.exceptions.InvalidHandshake` to abort the
-        connection.
-
         :rfc:`6455` leaves the rules up to the specification of each
         extension.
 
@@ -181,6 +177,15 @@ class ClientConnection(Connection):
 
         Other requirements, for example related to mandatory extensions or the
         order of extensions, may be implemented by overriding this method.
+
+        Args:
+            headers: WebSocket handshake response headers.
+
+        Returns:
+            List[Extension]: List of accepted extensions.
+
+        Raises:
+            InvalidHandshake: to abort the handshake.
 
         """
         accepted_extensions: List[Extension] = []
@@ -232,9 +237,13 @@ class ClientConnection(Connection):
         """
         Handle the Sec-WebSocket-Protocol HTTP response header.
 
-        Check that it contains exactly one supported subprotocol.
+        If provided, check that it contains exactly one supported subprotocol.
 
-        Return the selected subprotocol.
+        Args:
+            headers: WebSocket handshake response headers.
+
+        Returns:
+           Optional[Subprotocol]: Subprotocol, if one was selected.
 
         """
         subprotocol: Optional[Subprotocol] = None
@@ -263,7 +272,10 @@ class ClientConnection(Connection):
 
     def send_request(self, request: Request) -> None:
         """
-        Send a WebSocket handshake request to the server.
+        Send a handshake request to the server.
+
+        Args:
+            request: WebSocket handshake request event to send.
 
         """
         if self.debug:

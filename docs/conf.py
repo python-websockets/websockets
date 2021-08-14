@@ -31,6 +31,28 @@ release = "9.1"
 
 # -- General configuration ---------------------------------------------------
 
+nitpicky = True
+
+nitpick_ignore = [
+    # topics/design.rst discusses undocumented APIs
+    ("py:meth", "client.WebSocketClientProtocol.handshake"),
+    ("py:meth", "server.WebSocketServerProtocol.handshake"),
+    ("py:attr", "legacy.protocol.WebSocketCommonProtocol.is_client"),
+    ("py:attr", "legacy.protocol.WebSocketCommonProtocol.messages"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.close_connection"),
+    ("py:attr", "legacy.protocol.WebSocketCommonProtocol.close_connection_task"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.keepalive_ping"),
+    ("py:attr", "legacy.protocol.WebSocketCommonProtocol.keepalive_ping_task"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.transfer_data"),
+    ("py:attr", "legacy.protocol.WebSocketCommonProtocol.transfer_data_task"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.connection_open"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.ensure_open"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.fail_connection"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.connection_lost"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.read_message"),
+    ("py:meth", "legacy.protocol.WebSocketCommonProtocol.write_frame"),
+]
+
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
@@ -38,13 +60,22 @@ extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.linkcode",
-    "sphinx_autodoc_typehints",
+    "sphinx.ext.napoleon",
     "sphinx_copybutton",
     "sphinx_inline_tabs",
     "sphinxcontrib.spelling",
     "sphinxcontrib_trio",
     "sphinxext.opengraph",
 ]
+
+autodoc_typehints = "description"
+
+autodoc_typehints_description_target = "documented"
+
+# Workaround for https://github.com/sphinx-doc/sphinx/issues/9560
+from sphinx.domains.python import PythonDomain
+assert PythonDomain.object_types['data'].roles == ('data', 'obj')
+PythonDomain.object_types['data'].roles = ('data', 'class', 'obj')
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
 

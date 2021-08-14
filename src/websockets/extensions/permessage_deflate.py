@@ -1,9 +1,3 @@
-"""
-:mod:`websockets.extensions.permessage_deflate` implements the Compression
-Extensions for WebSocket as specified in :rfc:`7692`.
-
-"""
-
 from __future__ import annotations
 
 import dataclasses
@@ -204,8 +198,8 @@ def _extract_parameters(
     """
     Extract compression parameters from a list of ``(name, value)`` pairs.
 
-    If ``is_server`` is ``True``, ``client_max_window_bits`` may be provided
-    without a value. This is only allow in handshake requests.
+    If ``is_server`` is :obj:`True`, ``client_max_window_bits`` may be
+    provided without a value. This is only allowed in handshake requests.
 
     """
     server_no_context_takeover: bool = False
@@ -264,18 +258,23 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
     """
     Client-side extension factory for the Per-Message Deflate extension.
 
-    Parameters behave as described in `section 7.1 of RFC 7692`_. Set them to
-    ``True`` to include them in the negotiation offer without a value or to an
-    integer value to include them with this value.
+    Parameters behave as described in `section 7.1 of RFC 7692`_.
 
     .. _section 7.1 of RFC 7692: https://www.rfc-editor.org/rfc/rfc7692.html#section-7.1
 
-    :param server_no_context_takeover: defaults to ``False``
-    :param client_no_context_takeover: defaults to ``False``
-    :param server_max_window_bits: optional, defaults to ``None``
-    :param client_max_window_bits: optional, defaults to ``None``
-    :param compress_settings: optional, keyword arguments for
-        :func:`zlib.compressobj`, excluding ``wbits``
+    Set them to :obj:`True` to include them in the negotiation offer without a
+    value or to an integer value to include them with this value.
+
+    Args:
+        server_no_context_takeover: prevent server from using context takeover.
+        client_no_context_takeover: prevent client from using context takeover.
+        server_max_window_bits: maximum size of the server's LZ77 sliding window
+            in bits, between 8 and 15.
+        client_max_window_bits: maximum size of the client's LZ77 sliding window
+            in bits, between 8 and 15, or :obj:`True` to indicate support without
+            setting a limit.
+        compress_settings: additional keyword arguments for :func:`zlib.compressobj`,
+            excluding ``wbits``.
 
     """
 
@@ -440,7 +439,6 @@ def enable_client_permessage_deflate(
     If the extension is already present, perhaps with non-default settings,
     the configuration isn't changed.
 
-
     """
     if extensions is None:
         extensions = []
@@ -462,18 +460,23 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
     """
     Server-side extension factory for the Per-Message Deflate extension.
 
-    Parameters behave as described in `section 7.1 of RFC 7692`_. Set them to
-    ``True`` to include them in the negotiation offer without a value or to an
-    integer value to include them with this value.
+    Parameters behave as described in `section 7.1 of RFC 7692`_.
 
     .. _section 7.1 of RFC 7692: https://www.rfc-editor.org/rfc/rfc7692.html#section-7.1
 
-    :param server_no_context_takeover: defaults to ``False``
-    :param client_no_context_takeover: defaults to ``False``
-    :param server_max_window_bits: optional, defaults to ``None``
-    :param client_max_window_bits: optional, defaults to ``None``
-    :param compress_settings: optional, keyword arguments for
-        :func:`zlib.compressobj`, excluding ``wbits``
+    Set them to :obj:`True` to include them in the negotiation offer without a
+    value or to an integer value to include them with this value.
+
+    Args:
+        server_no_context_takeover: prevent server from using context takeover.
+        client_no_context_takeover: prevent client from using context takeover.
+        server_max_window_bits: maximum size of the server's LZ77 sliding window
+            in bits, between 8 and 15.
+        client_max_window_bits: maximum size of the client's LZ77 sliding window
+            in bits, between 8 and 15, or :obj:`True` to indicate support without
+            setting a limit.
+        compress_settings: additional keyword arguments for :func:`zlib.compressobj`,
+            excluding ``wbits``.
 
     """
 

@@ -1,30 +1,3 @@
-"""
-:mod:`websockets.legacy.handshake` provides helpers for the WebSocket handshake.
-
-See `section 4 of RFC 6455`_.
-
-.. _section 4 of RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-4
-
-Some checks cannot be performed because they depend too much on the
-context; instead, they're documented below.
-
-To accept a connection, a server must:
-
-- Read the request, check that the method is GET, and check the headers with
-  :func:`check_request`,
-- Send a 101 response to the client with the headers created by
-  :func:`build_response` if the request is valid; otherwise, send an
-  appropriate HTTP error code.
-
-To open a connection, a client must:
-
-- Send a GET request to the server with the headers created by
-  :func:`build_request`,
-- Read the response, check that the status code is 101, and check the headers
-  with :func:`check_response`.
-
-"""
-
 from __future__ import annotations
 
 import base64
@@ -47,8 +20,11 @@ def build_request(headers: Headers) -> str:
 
     Update request headers passed in argument.
 
-    :param headers: request headers
-    :returns: ``key`` which must be passed to :func:`check_response`
+    Args:
+        headers: handshake request headers.
+
+    Returns:
+        str: ``key`` that must be passed to :func:`check_response`.
 
     """
     key = generate_key()
@@ -68,10 +44,15 @@ def check_request(headers: Headers) -> str:
     are usually performed earlier in the HTTP request handling code. They're
     the responsibility of the caller.
 
-    :param headers: request headers
-    :returns: ``key`` which must be passed to :func:`build_response`
-    :raises ~websockets.exceptions.InvalidHandshake: if the handshake request
-        is invalid; then the server must return 400 Bad Request error
+    Args:
+        headers: handshake request headers.
+
+    Returns:
+        str: ``key`` that must be passed to :func:`build_response`.
+
+    Raises:
+        InvalidHandshake: if the handshake request is invalid;
+            then the server must return 400 Bad Request error.
 
     """
     connection: List[ConnectionOption] = sum(
@@ -128,8 +109,9 @@ def build_response(headers: Headers, key: str) -> None:
 
     Update response headers passed in argument.
 
-    :param headers: response headers
-    :param key: comes from :func:`check_request`
+    Args:
+        headers: handshake response headers.
+        key: returned by :func:`check_request`.
 
     """
     headers["Upgrade"] = "websocket"
@@ -145,10 +127,12 @@ def check_response(headers: Headers, key: str) -> None:
     response with a 101 status code. These controls are the responsibility of
     the caller.
 
-    :param headers: response headers
-    :param key: comes from :func:`build_request`
-    :raises ~websockets.exceptions.InvalidHandshake: if the handshake response
-        is invalid
+    Args:
+        headers: handshake response headers.
+        key: returned by :func:`build_request`.
+
+    Raises:
+        InvalidHandshake: if the handshake response is invalid.
 
     """
     connection: List[ConnectionOption] = sum(

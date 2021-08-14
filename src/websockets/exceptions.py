@@ -67,7 +67,7 @@ __all__ = [
 
 class WebSocketException(Exception):
     """
-    Base class for all exceptions defined by :mod:`websockets`.
+    Base class for all exceptions defined by websockets.
 
     """
 
@@ -76,17 +76,14 @@ class ConnectionClosed(WebSocketException):
     """
     Raised when trying to interact with a closed connection.
 
-    If a close frame was received, its code and reason are available in the
-    ``rcvd.code`` and ``rcvd.reason`` attributes. Else, the ``rcvd``
-    attribute is ``None``.
-
-    Likewise, if a close frame was sent, its code and reason are available in
-    the ``sent.code`` and ``sent.reason`` attributes. Else, the ``sent``
-    attribute is ``None``.
-
-    If close frames were received and sent, the ``rcvd_then_sent`` attribute
-    tells in which order this happened, from the perspective of this side of
-    the connection.
+    Attributes:
+        rcvd (Optional[Close]): if a close frame was received, its code and
+            reason are available in ``rcvd.code`` and ``rcvd.reason``.
+        sent (Optional[Close]): if a close frame was sent, its code and reason
+            are available in ``sent.code`` and ``sent.reason``.
+        rcvd_then_sent (Optional[bool]): if close frames were received and
+            sent, this attribute tells in which order this happened, from the
+            perspective of this side of the connection.
 
     """
 
@@ -249,9 +246,6 @@ class InvalidStatusCode(InvalidHandshake):
     """
     Raised when a handshake response status code is invalid.
 
-    The integer status code is available in the ``status_code`` attribute and
-    HTTP headers in the ``headers`` attribute.
-
     """
 
     def __init__(self, status_code: int, headers: datastructures.Headers) -> None:
@@ -320,8 +314,13 @@ class AbortHandshake(InvalidHandshake):
 
     This exception is an implementation detail.
 
-    The public API is :meth:`~legacy.server.WebSocketServerProtocol.process_request`.
+    The public API
+    is :meth:`~websockets.server.WebSocketServerProtocol.process_request`.
 
+    Attributes:
+        status (~http.HTTPStatus): HTTP status code.
+        headers (Headers): HTTP response headers.
+        body (bytes): HTTP response body.
     """
 
     def __init__(

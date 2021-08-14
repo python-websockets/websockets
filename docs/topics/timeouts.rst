@@ -1,6 +1,8 @@
 Timeouts
 ========
 
+.. currentmodule:: websockets
+
 Since the WebSocket protocol is intended for real-time communications over
 long-lived connections, it is desirable to ensure that connections don't
 break, and if they do, to report the problem quickly.
@@ -13,15 +15,18 @@ As a consequence, proxies may terminate WebSocket connections prematurely,
 when no message was exchanged in 30 seconds.
 
 In order to avoid this problem, websockets implements a keepalive mechanism
-based on WebSocket Ping and Pong frames. Ping and Pong are designed for this
+based on WebSocket Ping_ and Pong_ frames. Ping and Pong are designed for this
 purpose.
+
+.. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
+.. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
 
 By default, websockets waits 20 seconds, then sends a Ping frame, and expects
 to receive the corresponding Pong frame within 20 seconds. Else, it considers
 the connection broken and closes it.
 
 Timings are configurable with the ``ping_interval`` and ``ping_timeout``
-arguments of :func:`~websockets.connect` and :func:`~websockets.serve`.
+arguments of :func:`~client.connect` and :func:`~server.serve`.
 
 While WebSocket runs on top of TCP, websockets doesn't rely on TCP keepalive
 because it's disabled by default and, if enabled, the default interval is no

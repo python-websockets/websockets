@@ -7,8 +7,8 @@ class StreamReader:
     """
     Generator-based stream reader.
 
-    This class doesn't support concurrent calls to :meth:`read_line()`,
-    :meth:`read_exact()`, or :meth:`read_to_eof()`. Make sure calls are
+    This class doesn't support concurrent calls to :meth:`read_line`,
+    :meth:`read_exact`, or :meth:`read_to_eof`. Make sure calls are
     serialized.
 
     """
@@ -21,11 +21,12 @@ class StreamReader:
         """
         Read a LF-terminated line from the stream.
 
-        The return value includes the LF character.
-
         This is a generator-based coroutine.
 
-        :raises EOFError: if the stream ends without a LF
+        The return value includes the LF character.
+
+        Raises:
+            EOFError: if the stream ends without a LF.
 
         """
         n = 0  # number of bytes to read
@@ -44,11 +45,15 @@ class StreamReader:
 
     def read_exact(self, n: int) -> Generator[None, None, bytes]:
         """
-        Read ``n`` bytes from the stream.
+        Read a given number of bytes from the stream.
 
         This is a generator-based coroutine.
 
-        :raises EOFError: if the stream ends in less than ``n`` bytes
+        Args:
+            n: how many bytes to read.
+
+        Raises:
+            EOFError: if the stream ends in less than ``n`` bytes.
 
         """
         assert n >= 0
@@ -92,11 +97,15 @@ class StreamReader:
 
     def feed_data(self, data: bytes) -> None:
         """
-        Write ``data`` to the stream.
+        Write data to the stream.
 
-        :meth:`feed_data()` cannot be called after :meth:`feed_eof()`.
+        :meth:`feed_data` cannot be called after :meth:`feed_eof`.
 
-        :raises EOFError: if the stream has ended
+        Args:
+            data: data to write.
+
+        Raises:
+            EOFError: if the stream has ended.
 
         """
         if self.eof:
@@ -107,9 +116,10 @@ class StreamReader:
         """
         End the stream.
 
-        :meth:`feed_eof()` must be called at must once.
+        :meth:`feed_eof` cannot be called more than once.
 
-        :raises EOFError: if the stream has ended
+        Raises:
+            EOFError: if the stream has ended.
 
         """
         if self.eof:
@@ -118,7 +128,7 @@ class StreamReader:
 
     def discard(self) -> None:
         """
-        Discarding all buffered data, but don't end the stream.
+        Discard all buffered data, but don't end the stream.
 
         """
         del self.buffer[:]

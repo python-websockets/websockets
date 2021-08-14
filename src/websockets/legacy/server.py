@@ -1,8 +1,3 @@
-"""
-:mod:`websockets.legacy.server` defines the WebSocket server APIs.
-
-"""
-
 from __future__ import annotations
 
 import asyncio
@@ -65,109 +60,33 @@ HTTPResponse = Tuple[http.HTTPStatus, HeadersLike, bytes]
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
     """
-    :class:`~asyncio.Protocol` subclass implementing a WebSocket server.
+    WebSocket server connection.
 
-    :class:`WebSocketServerProtocol`:
+    :class:`WebSocketServerProtocol` provides :meth:`recv` and :meth:`send`
+    coroutines for receiving and sending messages.
 
-    * performs the opening handshake to establish the connection;
-    * provides :meth:`recv` and :meth:`send` coroutines for receiving and
-      sending messages;
-    * deals with control frames automatically;
-    * performs the closing handshake to terminate the connection.
-
-    You may customize the opening handshake by subclassing
-    :class:`WebSocketServer` and overriding:
-
-    * :meth:`process_request` to intercept the client request before any
-      processing and, if appropriate, to abort the WebSocket request and
-      return a HTTP response instead;
-    * :meth:`select_subprotocol` to select a subprotocol, if the client and
-      the server have multiple subprotocols in common and the default logic
-      for choosing one isn't suitable (this is rarely needed).
-
-    :class:`WebSocketServerProtocol` supports asynchronous iteration::
+    It supports asynchronous iteration to receive messages::
 
         async for message in websocket:
             await process(message)
 
-    The iterator yields incoming messages. It exits normally when the
-    connection is closed with the close code 1000 (OK) or 1001 (going away).
-    It raises a :exc:`~websockets.exceptions.ConnectionClosedError` exception
-    when the connection is closed with any other code.
+    The iterator exits normally when the connection is closed with close code
+    1000 (OK) or 1001 (going away). It raises
+    a :exc:`~websockets.exceptions.ConnectionClosedError` when the connection
+    is closed with any other code.
 
-    Once the connection is open, a `Ping frame`_ is sent every
-    ``ping_interval`` seconds. This serves as a keepalive. It helps keeping
-    the connection open, especially in the presence of proxies with short
-    timeouts on inactive connections. Set ``ping_interval`` to ``None`` to
-    disable this behavior.
+    You may customize the opening handshake in a subclass by
+    overriding :meth:`process_request` or :meth:`select_subprotocol`.
 
-    .. _Ping frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
+    Args:
+        ws_server: WebSocket server that created this connection.
 
-    If the corresponding `Pong frame`_ isn't received within ``ping_timeout``
-    seconds, the connection is considered unusable and is closed with
-    code 1011. This ensures that the remote endpoint remains responsive. Set
-    ``ping_timeout`` to ``None`` to disable this behavior.
+    See :func:`serve` for the documentation of ``ws_handler``, ``logger``, ``origins``,
+    ``extensions``, ``subprotocols``, and ``extra_headers``.
 
-    .. _Pong frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
-
-    The ``close_timeout`` parameter defines a maximum wait time for completing
-    the closing handshake and terminating the TCP connection. For legacy
-    reasons, :meth:`close` completes in at most ``4 * close_timeout`` seconds.
-
-    ``close_timeout`` needs to be a parameter of the protocol because
-    websockets usually calls :meth:`close` implicitly when the connection
-    handler terminates.
-
-    To apply a timeout to any other API, wrap it in :func:`~asyncio.wait_for`.
-
-    The ``max_size`` parameter enforces the maximum size for incoming messages
-    in bytes. The default value is 1 MiB. ``None`` disables the limit. If a
-    message larger than the maximum size is received, :meth:`recv` will
-    raise :exc:`~websockets.exceptions.ConnectionClosedError` and the
-    connection will be closed with code 1009.
-
-    The ``max_queue`` parameter sets the maximum length of the queue that
-    holds incoming messages. The default value is ``32``. ``None`` disables
-    the limit. Messages are added to an in-memory queue when they're received;
-    then :meth:`recv` pops from that queue. In order to prevent excessive
-    memory consumption when messages are received faster than they can be
-    processed, the queue must be bounded. If the queue fills up, the protocol
-    stops processing incoming data until :meth:`recv` is called. In this
-    situation, various receive buffers (at least in :mod:`asyncio` and in the
-    OS) will fill up, then the TCP receive window will shrink, slowing down
-    transmission to avoid packet loss.
-
-    Since Python can use up to 4 bytes of memory to represent a single
-    character, each connection may use up to ``4 * max_size * max_queue``
-    bytes of memory to store incoming messages. By default, this is 128 MiB.
-    You may want to lower the limits, depending on your application's
-    requirements.
-
-    The ``read_limit`` argument sets the high-water limit of the buffer for
-    incoming bytes. The low-water limit is half the high-water limit. The
-    default value is 64 KiB, half of asyncio's default (based on the current
-    implementation of :class:`~asyncio.StreamReader`).
-
-    The ``write_limit`` argument sets the high-water limit of the buffer for
-    outgoing bytes. The low-water limit is a quarter of the high-water limit.
-    The default value is 64 KiB, equal to asyncio's default (based on the
-    current implementation of ``FlowControlMixin``).
-
-    As soon as the HTTP request and response in the opening handshake are
-    processed:
-
-    * the request path is available in the :attr:`path` attribute;
-    * the request and response HTTP headers are available in the
-      :attr:`request_headers` and :attr:`response_headers` attributes,
-      which are :class:`~websockets.http.Headers` instances.
-
-    If a subprotocol was negotiated, it's available in the :attr:`subprotocol`
-    attribute.
-
-    Once the connection is closed, the code is available in the
-    :attr:`close_code` attribute and the reason in :attr:`close_reason`.
-
-    All attributes must be treated as read-only.
+    See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
+    documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
+    ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit``.
 
     """
 
@@ -179,6 +98,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         ws_handler: Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
         ws_server: WebSocketServer,
         *,
+        logger: Optional[LoggerLike] = None,
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
@@ -189,7 +109,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
-        logger: Optional[LoggerLike] = None,
         **kwargs: Any,
     ) -> None:
         if logger is None:
@@ -339,8 +258,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         If the request contains a body, it may be read from ``self.reader``
         after this coroutine returns.
 
-        :raises ~websockets.exceptions.InvalidMessage: if the HTTP message is
-            malformed or isn't an HTTP/1.1 GET request
+        Raises:
+            InvalidMessage: if the HTTP message is malformed or isn't an
+                HTTP/1.1 GET request.
 
         """
         try:
@@ -394,18 +314,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         Intercept the HTTP request and return an HTTP response if appropriate.
 
-        If ``process_request`` returns ``None``, the WebSocket handshake
-        continues. If it returns 3-uple containing a status code, response
-        headers and a response body, that HTTP response is sent and the
-        connection is closed. In that case:
-
-        * The HTTP status must be a :class:`~http.HTTPStatus`.
-        * HTTP headers must be a :class:`~websockets.http.Headers` instance, a
-          :class:`~collections.abc.Mapping`, or an iterable of ``(name,
-          value)`` pairs.
-        * The HTTP response body must be :class:`bytes`. It may be empty.
-
-        This coroutine may be overridden in a :class:`WebSocketServerProtocol`
+        You may override this method in a :class:`WebSocketServerProtocol`
         subclass, for example:
 
         * to return a HTTP 200 OK response on a given path; then a load
@@ -413,19 +322,27 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         * to authenticate the request and return a HTTP 401 Unauthorized or a
           HTTP 403 Forbidden when authentication fails.
 
-        Instead of subclassing, it is possible to override this method by
-        passing a ``process_request`` argument to the :func:`serve` function
-        or the :class:`WebSocketServerProtocol` constructor. This is
-        equivalent, except ``process_request`` won't have access to the
+        You may also override this method with the ``process_request``
+        argument of :func:`serve` and :class:`WebSocketServerProtocol`. This
+        is equivalent, except ``process_request`` won't have access to the
         protocol instance, so it can't store information for later use.
 
-        ``process_request`` is expected to complete quickly. If it may run for
-        a long time, then it should await :meth:`wait_closed` and exit if
+        :meth:`process_request` is expected to complete quickly. If it may run
+        for a long time, then it should await :meth:`wait_closed` and exit if
         :meth:`wait_closed` completes, or else it could prevent the server
         from shutting down.
 
-        :param path: request path, including optional query string
-        :param request_headers: request headers
+        Args:
+            path: request path, including optional query string.
+            request_headers: request headers.
+
+        Returns:
+            Optional[Tuple[http.HTTPStatus, HeadersLike, bytes]]: :obj:`None`
+            to continue the WebSocket handshake normally.
+
+            An HTTP response, represented by a 3-uple of the response status,
+            headers, and body, to abort the WebSocket handshake and return
+            that HTTP response instead.
 
         """
         if self._process_request is not None:
@@ -447,10 +364,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         Handle the Origin HTTP request header.
 
-        :param headers: request headers
-        :param origins: optional list of acceptable origins
-        :raises ~websockets.exceptions.InvalidOrigin: if the origin isn't
-            acceptable
+        Args:
+            headers: request headers.
+            origins: optional list of acceptable origins.
+
+        Raises:
+            InvalidOrigin: if the origin isn't acceptable.
 
         """
         # "The user agent MUST NOT include more than one Origin header field"
@@ -496,10 +415,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Other requirements, for example related to mandatory extensions or the
         order of extensions, may be implemented by overriding this method.
 
-        :param headers: request headers
-        :param extensions: optional list of supported extensions
-        :raises ~websockets.exceptions.InvalidHandshake: to abort the
-            handshake with an HTTP 400 error code
+        Args:
+            headers: request headers.
+            extensions: optional list of supported extensions.
+
+        Raises:
+            InvalidHandshake: to abort the handshake with an HTTP 400 error.
 
         """
         response_header_value: Optional[str] = None
@@ -557,10 +478,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Return Sec-WebSocket-Protocol HTTP response header, which is the same
         as the selected subprotocol.
 
-        :param headers: request headers
-        :param available_subprotocols: optional list of supported subprotocols
-        :raises ~websockets.exceptions.InvalidHandshake: to abort the
-            handshake with an HTTP 400 error code
+        Args:
+            headers: request headers.
+            available_subprotocols: optional list of supported subprotocols.
+
+        Raises:
+            InvalidHandshake: to abort the handshake with an HTTP 400 error.
 
         """
         subprotocol: Optional[Subprotocol] = None
@@ -588,22 +511,27 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Pick a subprotocol among those offered by the client.
 
         If several subprotocols are supported by the client and the server,
-        the default implementation selects the preferred subprotocols by
+        the default implementation selects the preferred subprotocol by
         giving equal value to the priorities of the client and the server.
-
         If no subprotocol is supported by the client and the server, it
         proceeds without a subprotocol.
 
-        This is unlikely to be the most useful implementation in practice, as
-        many servers providing a subprotocol will require that the client uses
-        that subprotocol. Such rules can be implemented in a subclass.
+        This is unlikely to be the most useful implementation in practice.
+        Many servers providing a subprotocol will require that the client
+        uses that subprotocol. Such rules can be implemented in a subclass.
 
-        Instead of subclassing, it is possible to override this method by
-        passing a ``select_subprotocol`` argument to the :func:`serve`
-        function or the :class:`WebSocketServerProtocol` constructor.
+        You may also override this method with the ``select_subprotocol``
+        argument of :func:`serve` and :class:`WebSocketServerProtocol`.
 
-        :param client_subprotocols: list of subprotocols offered by the client
-        :param server_subprotocols: list of subprotocols available on the server
+        Args:
+            client_subprotocols: list of subprotocols offered by the client.
+            server_subprotocols: list of subprotocols available on the server.
+
+        Returns:
+            Optional[Subprotocol]: Selected subprotocol.
+
+            :obj:`None` to continue without a subprotocol.
+
 
         """
         if self._select_subprotocol is not None:
@@ -629,19 +557,18 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         Return the path of the URI of the request.
 
-        :param origins: list of acceptable values of the Origin HTTP header;
-            include ``None`` if the lack of an origin is acceptable
-        :param available_extensions: list of supported extensions in the order
-            in which they should be used
-        :param available_subprotocols: list of supported subprotocols in order
-            of decreasing preference
-        :param extra_headers: sets additional HTTP response headers when the
-            handshake succeeds; it can be a :class:`~websockets.http.Headers`
-            instance, a :class:`~collections.abc.Mapping`, an iterable of
-            ``(name, value)`` pairs, or a callable taking the request path and
-            headers in arguments and returning one of the above.
-        :raises ~websockets.exceptions.InvalidHandshake: if the handshake
-            fails
+        Args:
+            origins: list of acceptable values of the Origin HTTP header;
+                include :obj:`None` if the lack of an origin is acceptable.
+            extensions: list of supported extensions, in order in which they
+                should be tried.
+            subprotocols: list of supported subprotocols, in order of
+                decreasing preference.
+            extra_headers: arbitrary HTTP headers to add to the response when
+                the handshake succeeds.
+
+        Raises:
+            InvalidHandshake: if the handshake fails.
 
         """
         path, request_headers = await self.read_http_request()
@@ -714,24 +641,24 @@ class WebSocketServer:
     """
     WebSocket server returned by :func:`serve`.
 
-    This class provides the same interface as
-    :class:`~asyncio.AbstractServer`, namely the
-    :meth:`~asyncio.AbstractServer.close` and
-    :meth:`~asyncio.AbstractServer.wait_closed` methods.
+    This class provides the same interface as :class:`~asyncio.Server`,
+    notably the :meth:`~asyncio.Server.close`
+    and :meth:`~asyncio.Server.wait_closed` methods.
 
     It keeps track of WebSocket connections in order to close them properly
     when shutting down.
 
-    Instances of this class store a reference to the :class:`~asyncio.Server`
-    object returned by :meth:`~asyncio.loop.create_server` rather than inherit
-    from :class:`~asyncio.Server` in part because
-    :meth:`~asyncio.loop.create_server` doesn't support passing a custom
-    :class:`~asyncio.Server` class.
+    Args:
+        logger: logger for this server;
+            defaults to ``logging.getLogger("websockets.server")``;
+            see the :doc:`logging guide <../topics/logging>` for details.
 
     """
 
     def __init__(
-        self, loop: asyncio.AbstractEventLoop, logger: Optional[LoggerLike] = None
+        self,
+        loop: asyncio.AbstractEventLoop,
+        logger: Optional[LoggerLike] = None,
     ) -> None:
         # Store a reference to loop to avoid relying on self.server._loop.
         self.loop = loop
@@ -874,15 +801,26 @@ class WebSocketServer:
         When :meth:`wait_closed` returns, all TCP connections are closed and
         all connection handlers have returned.
 
+        To ensure a fast shutdown, a connection handler should always be
+        awaiting at least one of:
+
+        * :meth:`~WebSocketServerProtocol.recv`: when the connection is closed,
+          it raises :exc:`~websockets.exceptions.ConnectionClosedOK`;
+        * :meth:`~WebSocketServerProtocol.wait_closed`: when the connection is
+          closed, it returns.
+
+        Then the connection handler is immediately notified of the shutdown;
+        it can clean up and exit.
+
         """
         await asyncio.shield(self.closed_waiter)
 
     @property
     def sockets(self) -> Optional[List[socket.socket]]:
         """
-        List of :class:`~socket.socket` objects the server is listening to.
+        List of :obj:`~socket.socket` objects the server is listening on.
 
-        ``None`` if the server is closed.
+        :obj:`None` if the server is closed.
 
         """
         return self.server.sockets
@@ -890,25 +828,21 @@ class WebSocketServer:
 
 class Serve:
     """
+    Start a WebSocket server listening on ``host`` and ``port``.
 
-    Create, start, and return a WebSocket server on ``host`` and ``port``.
-
-    Whenever a client connects, the server accepts the connection, creates a
+    Whenever a client connects, the server creates a
     :class:`WebSocketServerProtocol`, performs the opening handshake, and
-    delegates to the connection handler defined by ``ws_handler``. Once the
-    handler completes, either normally or with an exception, the server
-    performs the closing handshake and closes the connection.
+    delegates to the connection handler, ``ws_handler``.
 
-    Awaiting :func:`serve` yields a :class:`WebSocketServer`. This instance
+    The handler receives the :class:`WebSocketServerProtocol` and uses it to
+    send and receive messages.
+
+    Once the handler completes, either normally or with an exception, the
+    server performs the closing handshake and closes the connection.
+
+    Awaiting :func:`serve` yields a :class:`WebSocketServer`. This object
     provides :meth:`~WebSocketServer.close` and
-    :meth:`~WebSocketServer.wait_closed` methods for terminating the server
-    and cleaning up its resources.
-
-    When a server is closed with :meth:`~WebSocketServer.close`, it closes all
-    connections with close code 1001 (going away). Connections handlers, which
-    are running the ``ws_handler`` coroutine, will receive a
-    :exc:`~websockets.exceptions.ConnectionClosedOK` exception on their
-    current or next interaction with the WebSocket connection.
+    :meth:`~WebSocketServer.wait_closed` methods for shutting down the server.
 
     :func:`serve` can be used as an asynchronous context manager::
 
@@ -917,64 +851,61 @@ class Serve:
         async with serve(...):
             await stop
 
-    In this case, the server is shut down when exiting the context.
+    The server is shut down automatically when exiting the context.
 
-    :func:`serve` is a wrapper around the event loop's
-    :meth:`~asyncio.loop.create_server` method. It creates and starts a
-    :class:`asyncio.Server` with :meth:`~asyncio.loop.create_server`. Then it
-    wraps the :class:`asyncio.Server` in a :class:`WebSocketServer`  and
-    returns the :class:`WebSocketServer`.
+    Args:
+        ws_handler: connection handler. It must be a coroutine accepting
+            two arguments: the WebSocket connection, which is a
+            :class:`WebSocketServerProtocol`, and the path of the request.
+        host: network interfaces the server is bound to;
+            see :meth:`~asyncio.loop.create_server` for details.
+        port: TCP port the server listens on;
+            see :meth:`~asyncio.loop.create_server` for details.
+        create_protocol: factory for the :class:`asyncio.Protocol` managing
+            the connection; defaults to :class:`WebSocketServerProtocol`; may
+            be set to a wrapper or a subclass to customize connection handling.
+        logger: logger for this server;
+            defaults to ``logging.getLogger("websockets.server")``;
+            see the :doc:`logging guide <../topics/logging>` for details.
+        compression: shortcut that enables the "permessage-deflate" extension
+            by default; may be set to :obj:`None` to disable compression;
+            see the :doc:`compression guide <../topics/compression>` for details.
+        origins: acceptable values of the ``Origin`` header; include
+            :obj:`None` in the list if the lack of an origin is acceptable.
+            This is useful for defending against Cross-Site WebSocket
+            Hijacking attacks.
+        extensions: list of supported extensions, in order in which they
+            should be tried.
+        subprotocols: list of supported subprotocols, in order of decreasing
+            preference.
+        extra_headers (Union[HeadersLike, Callable[[str, Headers], HeadersLike]]):
+            arbitrary HTTP headers to add to the request; this can be
+            a :data:`~websockets.datastructures.HeadersLike` or a callable
+            taking the request path and headers in arguments and returning
+            a :data:`~websockets.datastructures.HeadersLike`.
+        process_request (Optional[Callable[[str, Headers], \
+            Awaitable[Optional[Tuple[http.HTTPStatus, HeadersLike, bytes]]]]]):
+            intercept HTTP request before the opening handshake;
+            see :meth:`~WebSocketServerProtocol.process_request` for details.
+        select_subprotocol: select a subprotocol supported by the client;
+            see :meth:`~WebSocketServerProtocol.select_subprotocol` for details.
 
-    ``ws_handler`` is the WebSocket handler. It must be a coroutine accepting
-    two arguments: the WebSocket connection, which is an instance of
-    :class:`WebSocketServerProtocol`, and the path of the request.
+    See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
+    documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
+    ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit``.
 
-    The ``host`` and ``port`` arguments, as well as unrecognized keyword
-    arguments, are passed to :meth:`~asyncio.loop.create_server`.
+    Any other keyword arguments are passed the event loop's
+    :meth:`~asyncio.loop.create_server` method.
 
-    For example, you can set the ``ssl`` keyword argument to a
-    :class:`~ssl.SSLContext` to enable TLS.
+    For example:
 
-    ``create_protocol`` defaults to :class:`WebSocketServerProtocol`. It may
-    be replaced by a wrapper or a subclass to customize the protocol that
-    manages the connection.
+    * You can set ``ssl`` to a :class:`~ssl.SSLContext` to enable TLS.
 
-    The behavior of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
-    ``max_size``, ``max_queue``, ``read_limit``, and ``write_limit`` is
-    described in :class:`WebSocketServerProtocol`.
+    * You can set ``sock`` to a :obj:`~socket.socket` that you created
+      outside of websockets.
 
-    :func:`serve` also accepts the following optional arguments:
-
-    * ``compression`` is a shortcut to configure compression extensions;
-      by default it enables the "permessage-deflate" extension; set it to
-      ``None`` to disable compression.
-    * ``origins`` defines acceptable Origin HTTP headers; include ``None`` in
-      the list if the lack of an origin is acceptable.
-    * ``extensions`` is a list of supported extensions in order of
-      decreasing preference.
-    * ``subprotocols`` is a list of supported subprotocols in order of
-      decreasing preference.
-    * ``extra_headers`` sets additional HTTP response headers  when the
-      handshake succeeds; it can be a :class:`~websockets.http.Headers`
-      instance, a :class:`~collections.abc.Mapping`, an iterable of ``(name,
-      value)`` pairs, or a callable taking the request path and headers in
-      arguments and returning one of the above.
-    * ``process_request`` allows intercepting the HTTP request; it must be a
-      coroutine taking the request path and headers in argument; see
-      :meth:`~WebSocketServerProtocol.process_request` for details.
-    * ``select_subprotocol`` allows customizing the logic for selecting a
-      subprotocol; it must be a callable taking the subprotocols offered by
-      the client and available on the server in argument; see
-      :meth:`~WebSocketServerProtocol.select_subprotocol` for details.
-
-    Since there's no useful way to propagate exceptions triggered in handlers,
-    they're sent to the ``"websockets.server"`` logger instead.
-    Debugging is much easier if you configure logging to print them::
-
-        import logging
-        logger = logging.getLogger("websockets.server")
-        logger.setLevel(logging.ERROR)
-        logger.addHandler(logging.StreamHandler())
+    Returns:
+        WebSocketServer: WebSocket server.
 
     """
 
@@ -985,13 +916,7 @@ class Serve:
         port: Optional[int] = None,
         *,
         create_protocol: Optional[Callable[[Any], WebSocketServerProtocol]] = None,
-        ping_interval: Optional[float] = 20,
-        ping_timeout: Optional[float] = 20,
-        close_timeout: Optional[float] = None,
-        max_size: Optional[int] = 2 ** 20,
-        max_queue: Optional[int] = 2 ** 5,
-        read_limit: int = 2 ** 16,
-        write_limit: int = 2 ** 16,
+        logger: Optional[LoggerLike] = None,
         compression: Optional[str] = "deflate",
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
@@ -1003,7 +928,13 @@ class Serve:
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
-        logger: Optional[LoggerLike] = None,
+        ping_interval: Optional[float] = 20,
+        ping_timeout: Optional[float] = 20,
+        close_timeout: Optional[float] = None,
+        max_size: Optional[int] = 2 ** 20,
+        max_queue: Optional[int] = 2 ** 5,
+        read_limit: int = 2 ** 16,
+        write_limit: int = 2 ** 16,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
@@ -1131,14 +1062,15 @@ def unix_serve(
     """
     Similar to :func:`serve`, but for listening on Unix sockets.
 
-    This function calls the event loop's
-    :meth:`~asyncio.loop.create_unix_server` method.
+    This function builds upon the event
+    loop's :meth:`~asyncio.loop.create_unix_server` method.
 
     It is only available on Unix.
 
     It's useful for deploying a server behind a reverse proxy such as nginx.
 
-    :param path: file system path to the Unix socket
+    Args:
+        path: file system path to the Unix socket.
 
     """
     return serve(ws_handler, path=path, unix=True, **kwargs)

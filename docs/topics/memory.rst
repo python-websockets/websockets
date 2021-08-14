@@ -1,6 +1,8 @@
 Memory usage
 ============
 
+.. currentmodule:: websockets
+
 In most cases, memory usage of a WebSocket server is proportional to the
 number of open connections. When a server handles thousands of connections,
 memory usage can become a bottleneck.
@@ -17,8 +19,8 @@ Baseline
 Compression settings are the main factor affecting the baseline amount of
 memory used by each connection.
 
-Read to the topic guide on :doc:`../topics/compression` to learn more about
-tuning compression settings.
+Refer to the :doc:`topic guide on compression <../topics/compression>` to
+learn more about tuning compression settings.
 
 Buffers
 -------
@@ -29,7 +31,7 @@ Under high load, if a server receives more messages than it can process,
 bufferbloat can result in excessive memory usage.
 
 By default websockets has generous limits. It is strongly recommended to adapt
-them to your application. When you call :func:`~legacy.server.serve`:
+them to your application. When you call :func:`~server.serve`:
 
 - Set ``max_size`` (default: 1 MiB, UTF-8 encoded) to the maximum size of
   messages your application generates.
@@ -40,4 +42,4 @@ them to your application. When you call :func:`~legacy.server.serve`:
 Furthermore, you can lower ``read_limit`` and ``write_limit`` (default:
 64 KiB) to reduce the size of buffers for incoming and outgoing data.
 
-The design document provides :ref:`more details about buffers<buffers>`.
+The design document provides :ref:`more details about buffers <buffers>`.

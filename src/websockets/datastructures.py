@@ -1,8 +1,3 @@
-"""
-:mod:`websockets.datastructures` defines a class for manipulating HTTP headers.
-
-"""
-
 from __future__ import annotations
 
 from typing import (
@@ -141,7 +136,7 @@ class Headers(MutableMapping[str, str]):
 
     def update(self, *args: HeadersLike, **kwargs: str) -> None:
         """
-        Update from a Headers instance and/or keyword arguments.
+        Update from a :class:`Headers` instance and/or keyword arguments.
 
         """
         args = tuple(
@@ -155,7 +150,8 @@ class Headers(MutableMapping[str, str]):
         """
         Return the (possibly empty) list of all values for a header.
 
-        :param key: header name
+        Args:
+            key: header name.
 
         """
         return self._dict.get(key.lower(), [])

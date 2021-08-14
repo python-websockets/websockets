@@ -78,7 +78,7 @@ Option 2 almost always combines with option 3.
 How do I start a process?
 .........................
 
-Run a Python program that invokes :func:`~serve`. That's it.
+Run a Python program that invokes :func:`~server.serve`. That's it.
 
 Don't run an ASGI server such as Uvicorn, Hypercorn, or Daphne. They're
 alternatives to websockets, not complements.

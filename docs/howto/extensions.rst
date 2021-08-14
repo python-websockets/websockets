@@ -4,8 +4,10 @@ Writing an extension
 .. currentmodule:: websockets.extensions
 
 During the opening handshake, WebSocket clients and servers negotiate which
-extensions will be used with which parameters. Then each frame is processed by
-extensions before being sent or after being received.
+extensions_ will be used with which parameters. Then each frame is processed
+by extensions before being sent or after being received.
+
+.. _extensions: https://www.rfc-editor.org/rfc/rfc6455.html#section-9
 
 As a consequence, writing an extension requires implementing several classes:
 
@@ -23,11 +25,8 @@ As a consequence, writing an extension requires implementing several classes:
   Extensions are initialized by extension factories, so they don't need to be
   part of the public API of an extension.
 
-websockets provides abstract base classes for extension factories and
-extensions. See the API documentation for details on their methods:
-
-* :class:`ClientExtensionFactory` and :class:`ServerExtensionFactory` for
-  extension factories,
-* :class:`Extension` for extensions.
+websockets provides base classes for extension factories and extensions.
+See :class:`ClientExtensionFactory`, :class:`ServerExtensionFactory`,
+and :class:`Extension` for details.
 
 

@@ -1,15 +1,3 @@
-"""
-:mod:`websockets.legacy.framing` reads and writes WebSocket frames.
-
-It deals with a single frame at a time. Anything that depends on the sequence
-of frames is implemented in :mod:`websockets.legacy.protocol`.
-
-See `section 5 of RFC 6455`_.
-
-.. _section 5 of RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-5
-
-"""
-
 from __future__ import annotations
 
 import dataclasses
@@ -60,22 +48,21 @@ class Frame(NamedTuple):
         mask: bool,
         max_size: Optional[int] = None,
         extensions: Optional[Sequence[extensions.Extension]] = None,
-    ) -> "Frame":
+    ) -> Frame:
         """
         Read a WebSocket frame.
 
-        :param reader: coroutine that reads exactly the requested number of
-            bytes, unless the end of file is reached
-        :param mask: whether the frame should be masked i.e. whether the read
-            happens on the server side
-        :param max_size: maximum payload size in bytes
-        :param extensions: list of classes with a ``decode()`` method that
-            transforms the frame and return a new frame; extensions are applied
-            in reverse order
-        :raises ~websockets.exceptions.PayloadTooBig: if the frame exceeds
-            ``max_size``
-        :raises ~websockets.exceptions.ProtocolError: if the frame
-            contains incorrect values
+        Args:
+            reader: coroutine that reads exactly the requested number of
+                bytes, unless the end of file is reached.
+            mask: whether the frame should be masked i.e. whether the read
+                happens on the server side.
+            max_size: maximum payload size in bytes.
+            extensions: list of extensions, applied in reverse order.
+
+        Raises:
+            PayloadTooBig: if the frame exceeds ``max_size``.
+            ProtocolError: if the frame contains incorrect values.
 
         """
 
@@ -142,15 +129,15 @@ class Frame(NamedTuple):
         """
         Write a WebSocket frame.
 
-        :param frame: frame to write
-        :param write: function that writes bytes
-        :param mask: whether the frame should be masked i.e. whether the write
-            happens on the client side
-        :param extensions: list of classes with an ``encode()`` method that
-            transform the frame and return a new frame; extensions are applied
-            in order
-        :raises ~websockets.exceptions.ProtocolError: if the frame
-            contains incorrect values
+        Args:
+            frame: frame to write.
+            write: function that writes bytes.
+            mask: whether the frame should be masked i.e. whether the write
+                happens on the client side.
+            extensions: list of extensions, applied in order.
+
+        Raises:
+            ProtocolError: if the frame contains incorrect values.
 
         """
         # The frame is written in a single call to write in order to prevent
@@ -168,10 +155,12 @@ def parse_close(data: bytes) -> Tuple[int, str]:
     """
     Parse the payload from a close frame.
 
-    Return ``(code, reason)``.
+    Returns:
+        Tuple[int, str]: close code and reason.
 
-    :raises ~websockets.exceptions.ProtocolError: if data is ill-formed
-    :raises UnicodeDecodeError: if the reason isn't valid UTF-8
+    Raises:
+        ProtocolError: if data is ill-formed.
+        UnicodeDecodeError: if the reason isn't valid UTF-8.
 
     """
     return dataclasses.astuple(Close.parse(data))  # type: ignore
@@ -180,8 +169,6 @@ def parse_close(data: bytes) -> Tuple[int, str]:
 def serialize_close(code: int, reason: str) -> bytes:
     """
     Serialize the payload for a close frame.
-
-    This is the reverse of :func:`parse_close`.
 
     """
     return Close(code, reason).serialize()

@@ -212,7 +212,8 @@ class Connection:
         - You must call :meth:`data_to_send` and send this data.
         - You should call :meth:`events_received` and process these events.
 
-        :raises EOFError: if :meth:`receive_eof` was called before
+        Raises:
+            EOFError: if :meth:`receive_eof` was called before.
 
         """
         self.reader.feed_data(data)
@@ -228,7 +229,8 @@ class Connection:
         - You aren't exepcted to call :meth:`events_received` as it won't
           return any new events.
 
-        :raises EOFError: if :meth:`receive_eof` was called before
+        Raises:
+            EOFError: if :meth:`receive_eof` was called before.
 
         """
         self.reader.feed_eof()
@@ -367,8 +369,8 @@ class Connection:
         Tell whether the TCP connection is expected to close soon.
 
         Call this method immediately after calling any of the ``receive_*()``
-        or ``fail_*()``  methods and, if it returns ``True``, schedule closing
-        the TCP connection after a short timeout.
+        or ``fail_*()``  methods and, if it returns :obj:`True`, schedule
+        closing the TCP connection after a short timeout.
 
         """
         # We already got a TCP Close if and only if the state is CLOSED.

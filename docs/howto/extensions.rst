@@ -1,6 +1,8 @@
 Writing an extension
 ====================
 
+.. currentmodule:: websockets.extensions
+
 During the opening handshake, WebSocket clients and servers negotiate which
 extensions will be used with which parameters. Then each frame is processed by
 extensions before being sent or after being received.
@@ -24,8 +26,8 @@ As a consequence, writing an extension requires implementing several classes:
 websockets provides abstract base classes for extension factories and
 extensions. See the API documentation for details on their methods:
 
-* :class:`ClientExtensionFactory` and class:`ServerExtensionFactory` for
-  :extension factories,
+* :class:`ClientExtensionFactory` and :class:`ServerExtensionFactory` for
+  extension factories,
 * :class:`Extension` for extensions.
 
 

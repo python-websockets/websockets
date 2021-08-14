@@ -36,8 +36,11 @@ extensions = [
     "sphinx.ext.intersphinx",
     "sphinx.ext.viewcode",
     "sphinx_autodoc_typehints",
+    "sphinx_copybutton",
+    "sphinx_inline_tabs",
     "sphinxcontrib.spelling",
     "sphinxcontrib_trio",
+    "sphinxext.opengraph",
 ]
 
 intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
@@ -57,29 +60,29 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-html_theme = "alabaster"
+html_theme = "furo"
 
 html_theme_options = {
-    "logo": "websockets.svg",
-    "description": "A library for building WebSocket servers and clients in Python with a focus on correctness and simplicity.",
-    "github_button": True,
-    "github_type": "star",
-    "github_user": "aaugustin",
-    "github_repo": "websockets",
-    "tidelift_url": "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=docs",
+    "light_css_variables": {
+        "color-brand-primary": "#306998",  # blue from logo
+        "color-brand-content": "#0b487a",  # blue more saturated and less dark
+    },
+    "dark_css_variables": {
+        "color-brand-primary": "#ffd43bcc",  # yellow from logo, more muted than content
+        "color-brand-content": "#ffd43bd9",  # yellow from logo, transparent like text
+    },
+    "sidebar_hide_name": True,
 }
 
-html_sidebars = {
-    "**": [
-        "about.html",
-        "searchbox.html",
-        "navigation.html",
-        "relations.html",
-        "donate.html",
-    ]
-}
+html_logo = "_static/websockets.svg"
+
+html_favicon = "_static/favicon.ico"
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+
+html_copy_source = False
+
+html_show_sphinx = False

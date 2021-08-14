@@ -1,4 +1,9 @@
+furo
 sphinx
+sphinx-autobuild
 sphinx-autodoc-typehints
+sphinx-copybutton
+sphinx-inline-tabs
 sphinxcontrib-spelling
 sphinxcontrib-trio
+sphinxext-opengraph

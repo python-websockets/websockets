@@ -697,7 +697,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         :raises ~websockets.exceptions.ConnectionClosed: when the
             connection is closed
-        :raises ValueError: if another ping was sent with the same data and
+        :raises RuntimeError: if another ping was sent with the same data and
             the corresponding pong wasn't received yet
 
         """
@@ -708,7 +708,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # Protect against duplicates if a payload is explicitly set.
         if data in self.pings:
-            raise ValueError("already waiting for a pong with the same data")
+            raise RuntimeError("already waiting for a pong with the same data")
 
         # Generate a unique random payload otherwise.
         while data is None or data in self.pings:

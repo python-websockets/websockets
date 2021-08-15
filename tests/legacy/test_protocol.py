@@ -1021,7 +1021,7 @@ class CommonTests:
     def test_duplicate_ping(self):
         self.loop.run_until_complete(self.protocol.ping(b"foobar"))
         self.assertOneFrameSent(True, OP_PING, b"foobar")
-        with self.assertRaises(ValueError):
+        with self.assertRaises(RuntimeError):
             self.loop.run_until_complete(self.protocol.ping(b"foobar"))
         self.assertNoFrameSent()
 

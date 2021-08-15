@@ -35,8 +35,8 @@ Instead, when running as a server, websockets logs one event when a
 `connection is established`_ and another event when a `connection is
 closed`_.
 
-.. _connection is established: https://datatracker.ietf.org/doc/html/rfc6455#section-4
-.. _connection is closed: https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.4
+.. _connection is established: https://www.rfc-editor.org/rfc/rfc6455.html#section-4
+.. _connection is closed: https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.4
 
 websockets doesn't log an event for every message because that would be
 excessive for many applications exchanging small messages at a fast rate.

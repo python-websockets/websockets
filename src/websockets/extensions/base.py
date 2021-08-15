@@ -4,7 +4,7 @@ extensions.
 
 See `section 9 of RFC 6455`_.
 
-.. _section 9 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-9
+.. _section 9 of RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-9
 
 """
 

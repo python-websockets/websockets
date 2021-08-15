@@ -162,4 +162,4 @@ settings affect memory usage and how to optimize them.
 This `experiment by Peter Thorson`_ recommends Window Bits = 11 and Memory
 Level = 4 for optimizing memory usage.
 
-.. _experiment by Peter Thorson: https://www.ietf.org/mail-archive/web/hybi/current/msg10222.html
+.. _experiment by Peter Thorson: https://mailarchive.ietf.org/arch/msg/hybi/F9t4uPufVEy8KBLuL36cZjCmM_Y/

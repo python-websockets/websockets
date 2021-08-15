@@ -83,14 +83,14 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     timeouts on inactive connections. Set ``ping_interval`` to ``None`` to
     disable this behavior.
 
-    .. _Ping frame: https://tools.ietf.org/html/rfc6455#section-5.5.2
+    .. _Ping frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
 
     If the corresponding `Pong frame`_ isn't received within ``ping_timeout``
     seconds, the connection is considered unusable and is closed with
     code 1011. This ensures that the remote endpoint remains responsive. Set
     ``ping_timeout`` to ``None`` to disable this behavior.
 
-    .. _Pong frame: https://tools.ietf.org/html/rfc6455#section-5.5.3
+    .. _Pong frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
 
     The ``close_timeout`` parameter defines a maximum wait time for completing
     the closing handshake and terminating the TCP connection. For legacy

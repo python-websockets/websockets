@@ -3,7 +3,7 @@
 
 See `sections 4 to 8 of RFC 6455`_.
 
-.. _sections 4 to 8 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
+.. _sections 4 to 8 of RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-4
 
 """
 
@@ -480,8 +480,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         bytes-like object (:class:`bytes`, :class:`bytearray`, or
         :class:`memoryview`) is sent as a `Binary frame`_.
 
-        .. _Text frame: https://tools.ietf.org/html/rfc6455#section-5.6
-        .. _Binary frame: https://tools.ietf.org/html/rfc6455#section-5.6
+        .. _Text frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+        .. _Binary frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
 
         :meth:`send` also accepts an iterable or an asynchronous iterable of
         strings, bytestrings, or bytes-like objects. In that case the message
@@ -1420,8 +1420,8 @@ def broadcast(websockets: Iterable[WebSocketCommonProtocol], message: Data) -> N
     bytes-like object (:class:`bytes`, :class:`bytearray`, or
     :class:`memoryview`) is sent as a `Binary frame`_.
 
-    .. _Text frame: https://tools.ietf.org/html/rfc6455#section-5.6
-    .. _Binary frame: https://tools.ietf.org/html/rfc6455#section-5.6
+    .. _Text frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+    .. _Binary frame: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
 
     :func:`broadcast` pushes the message synchronously to all connections even
     if their write buffers overflow ``write_limit``. There's no backpressure.

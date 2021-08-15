@@ -3,7 +3,7 @@
 
 See `section 4 of RFC 6455`_.
 
-.. _section 4 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-4
+.. _section 4 of RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-4
 
 Some checks cannot be performed because they depend too much on the
 context; instead, they're documented below.

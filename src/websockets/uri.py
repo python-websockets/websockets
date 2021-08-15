@@ -3,7 +3,7 @@
 
 See `section 3 of RFC 6455`_.
 
-.. _section 3 of RFC 6455: http://tools.ietf.org/html/rfc6455#section-3
+.. _section 3 of RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-3
 
 """
 
@@ -31,7 +31,7 @@ class WebSocketURI:
     :param str user_info: ``(username, password)`` tuple when the URI contains
       `User Information`_, else ``None``.
 
-    .. _User Information: https://tools.ietf.org/html/rfc3986#section-3.2.1
+    .. _User Information: https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.1
     """
 
     secure: bool

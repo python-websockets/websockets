@@ -22,7 +22,7 @@ def d(value: bytes) -> str:
     return value.decode(errors="backslashreplace")
 
 
-# See https://tools.ietf.org/html/rfc7230#appendix-B.
+# See https://www.rfc-editor.org/rfc/rfc7230.html#appendix-B.
 
 # Regex for validating header names.
 
@@ -61,7 +61,7 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, Headers]:
     :raises ValueError: if the request isn't well formatted
 
     """
-    # https://tools.ietf.org/html/rfc7230#section-3.1.1
+    # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.1
 
     # Parsing is simple because fixed values are expected for method and
     # version and because path isn't checked. Since WebSocket software tends
@@ -105,7 +105,7 @@ async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, Headers
     :raises ValueError: if the response isn't well formatted
 
     """
-    # https://tools.ietf.org/html/rfc7230#section-3.1.2
+    # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.2
 
     # As in read_request, parsing is simple because a fixed value is expected
     # for version, status_code is a 3-digit number, and reason can be ignored.
@@ -144,7 +144,7 @@ async def read_headers(stream: asyncio.StreamReader) -> Headers:
     Non-ASCII characters are represented with surrogate escapes.
 
     """
-    # https://tools.ietf.org/html/rfc7230#section-3.2
+    # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2
 
     # We don't attempt to support obsolete line folding.
 
@@ -189,7 +189,7 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     # Security: this guarantees header values are small (hard-coded = 4 KiB)
     if len(line) > MAX_LINE:
         raise SecurityError("line too long")
-    # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
+    # Not mandatory but safe - https://www.rfc-editor.org/rfc/rfc7230.html#section-3.5
     if not line.endswith(b"\r\n"):
         raise EOFError("line without CRLF")
     return line[:-2]

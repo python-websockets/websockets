@@ -747,7 +747,7 @@ Also:
 
 * Added support for providing and checking Origin_.
 
-.. _Origin: https://tools.ietf.org/html/rfc6455#section-10.2
+.. _Origin: https://www.rfc-editor.org/rfc/rfc6455.html#section-10.2
 
 2.0
 ...

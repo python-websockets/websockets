@@ -6,8 +6,10 @@ Client
 
 The client doesn't attempt to guarantee that there is no more than one
 connection to a given IP address in a CONNECTING state. This behavior is
-mandated by :rfc:`6455`. However, :func:`~websockets.connect()` isn't the
+`mandated by RFC 6455`_. However, :func:`~websockets.connect()` isn't the
 right layer for enforcing this constraint. It's the caller's responsibility.
+
+.. _mandated by RFC 6455: https://www.rfc-editor.org/rfc/rfc6455.html#section-4.1
 
 The client doesn't support connecting through a HTTP proxy (`issue 364`_) or a
 SOCKS proxy (`issue 475`_).

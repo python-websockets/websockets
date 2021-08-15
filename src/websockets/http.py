@@ -36,7 +36,7 @@ def build_host(host: str, port: int, secure: bool) -> str:
     Build a ``Host`` header.
 
     """
-    # https://tools.ietf.org/html/rfc3986#section-3.2.2
+    # https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.2
     # IPv6 addresses must be enclosed in brackets.
     try:
         address = ipaddress.ip_address(host)

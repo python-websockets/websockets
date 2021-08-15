@@ -19,7 +19,7 @@ def d(value: bytes) -> str:
     return value.decode(errors="backslashreplace")
 
 
-# See https://tools.ietf.org/html/rfc7230#appendix-B.
+# See https://www.rfc-editor.org/rfc/rfc7230.html#appendix-B.
 
 # Regex for validating header names.
 
@@ -78,7 +78,7 @@ class Request:
         :raises ValueError: if the request isn't well formatted
 
         """
-        # https://tools.ietf.org/html/rfc7230#section-3.1.1
+        # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.1
 
         # Parsing is simple because fixed values are expected for method and
         # version and because path isn't checked. Since WebSocket software tends
@@ -102,7 +102,7 @@ class Request:
 
         headers = yield from parse_headers(read_line)
 
-        # https://tools.ietf.org/html/rfc7230#section-3.3.3
+        # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.3.3
 
         if "Transfer-Encoding" in headers:
             raise NotImplementedError("transfer codings aren't supported")
@@ -166,7 +166,7 @@ class Response:
         :raises ValueError: if the response isn't well formatted
 
         """
-        # https://tools.ietf.org/html/rfc7230#section-3.1.2
+        # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.2
 
         # As in parse_request, parsing is simple because a fixed value is expected
         # for version, status_code is a 3-digit number, and reason can be ignored.
@@ -197,7 +197,7 @@ class Response:
 
         headers = yield from parse_headers(read_line)
 
-        # https://tools.ietf.org/html/rfc7230#section-3.3.3
+        # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.3.3
 
         if "Transfer-Encoding" in headers:
             raise NotImplementedError("transfer codings aren't supported")
@@ -251,7 +251,7 @@ def parse_headers(
         line or raises an exception if there isn't enough data
 
     """
-    # https://tools.ietf.org/html/rfc7230#section-3.2
+    # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2
 
     # We don't attempt to support obsolete line folding.
 
@@ -301,7 +301,7 @@ def parse_line(
     # Security: this guarantees header values are small (hard-coded = 4 KiB)
     if len(line) > MAX_LINE:
         raise exceptions.SecurityError("line too long")
-    # Not mandatory but safe - https://tools.ietf.org/html/rfc7230#section-3.5
+    # Not mandatory but safe - https://www.rfc-editor.org/rfc/rfc7230.html#section-3.5
     if not line.endswith(b"\r\n"):
         raise EOFError("line without CRLF")
     return line[:-2]

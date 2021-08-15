@@ -268,7 +268,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
     ``True`` to include them in the negotiation offer without a value or to an
     integer value to include them with this value.
 
-    .. _section 7.1 of RFC 7692: https://tools.ietf.org/html/rfc7692#section-7.1
+    .. _section 7.1 of RFC 7692: https://www.rfc-editor.org/rfc/rfc7692.html#section-7.1
 
     :param server_no_context_takeover: defaults to ``False``
     :param client_no_context_takeover: defaults to ``False``
@@ -466,7 +466,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
     ``True`` to include them in the negotiation offer without a value or to an
     integer value to include them with this value.
 
-    .. _section 7.1 of RFC 7692: https://tools.ietf.org/html/rfc7692#section-7.1
+    .. _section 7.1 of RFC 7692: https://www.rfc-editor.org/rfc/rfc7692.html#section-7.1
 
     :param server_no_context_takeover: defaults to ``False``
     :param client_no_context_takeover: defaults to ``False``

@@ -8,9 +8,11 @@ Requirements
 
 websockets requires Python ≥ 3.7.
 
-You should use the latest version of Python if possible. If you're using an
-older version, be aware that for each minor version (3.x), only the latest
-bugfix release (3.x.y) is officially supported.
+.. admonition:: Use the most recent Python release
+    :class: tip
+
+    For each minor version (3.x), only the latest bugfix or security release
+    (3.x.y) is officially supported.
 
 Installation
 ------------
@@ -33,7 +35,7 @@ It reads a name from the client, sends a greeting, and closes the connection.
 
 .. _client-example:
 
-On the server side, websockets executes the handler coroutine ``hello`` once
+On the server side, websockets executes the handler coroutine ``hello()`` once
 for each WebSocket connection. It closes the connection when the handler
 coroutine returns.
 
@@ -42,8 +44,8 @@ Here's a corresponding WebSocket client example.
 .. literalinclude:: ../../example/client.py
     :emphasize-lines: 10
 
-Using :func:`connect` as an asynchronous context manager ensures the
-connection is closed before exiting the ``hello`` coroutine.
+Using :func:`~client.connect` as an asynchronous context manager ensures the
+connection is closed before exiting the ``hello()`` coroutine.
 
 .. _secure-server-example:
 
@@ -53,20 +55,28 @@ Secure example
 Secure WebSocket connections improve confidentiality and also reliability
 because they reduce the risk of interference by bad proxies.
 
-The WSS protocol is to WS what HTTPS is to HTTP: the connection is encrypted
-with Transport Layer Security (TLS) — which is often referred to as Secure
-Sockets Layer (SSL). WSS requires TLS certificates like HTTPS.
+The ``wss`` protocol is to ``ws`` what ``https`` is to ``http``. The
+connection is encrypted with TLS_ (Transport Layer Security). ``wss``
+requires certificates like ``https``.
+
+.. _TLS: https://developer.mozilla.org/en-US/docs/Web/Security/Transport_Layer_Security
+
+.. admonition:: TLS vs. SSL
+    :class: tip
+
+    TLS is sometimes referred to as SSL (Secure Sockets Layer). SSL was an
+    earlier encryption protocol; the name stuck.
 
 Here's how to adapt the server example to provide secure connections. See the
 documentation of the :mod:`ssl` module for configuring the context securely.
 
 .. literalinclude:: ../../example/secure_server.py
-    :emphasize-lines: 19-21,26
+    :emphasize-lines: 19-21,24
 
 Here's how to adapt the client.
 
 .. literalinclude:: ../../example/secure_client.py
-    :emphasize-lines: 10-12,18
+    :emphasize-lines: 10-12,16
 
 This client needs a context because the server uses a self-signed certificate.
 

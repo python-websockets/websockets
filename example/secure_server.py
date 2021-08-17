@@ -21,10 +21,7 @@ localhost_pem = pathlib.Path(__file__).with_name("localhost.pem")
 ssl_context.load_cert_chain(localhost_pem)
 
 async def main():
-    async with websockets.serve(
-        hello, "localhost", 8765,
-        ssl=ssl_context,
-    ):
+    async with websockets.serve(hello, "localhost", 8765, ssl=ssl_context):
         await asyncio.Future()  # run forever
 
 asyncio.run(main())

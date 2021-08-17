@@ -4,7 +4,7 @@ How-to guides
 If you're stuck, perhaps you'll find the answer in the FAQ or the cheat sheet.
 
 .. toctree::
-   :maxdepth: 2
+   :titlesonly:
 
    faq
    cheatsheet
@@ -12,7 +12,7 @@ If you're stuck, perhaps you'll find the answer in the FAQ or the cheat sheet.
 This guide will help you integrate websockets into a broader system.
 
 .. toctree::
-   :maxdepth: 2
+   :titlesonly:
 
    django
 
@@ -20,7 +20,7 @@ The WebSocket protocol makes provisions for extending or specializing its
 features, which websockets supports fully.
 
 .. toctree::
-   :maxdepth: 2
+   :titlesonly:
 
    extensions
 
@@ -29,7 +29,7 @@ features, which websockets supports fully.
 Once your application is ready, learn how to deploy it on various platforms.
 
 .. toctree::
-   :maxdepth: 2
+   :titlesonly:
 
    heroku
    kubernetes

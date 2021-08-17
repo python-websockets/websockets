@@ -40,52 +40,11 @@ And here's an echo server:
 
 Do you like it? Let's dive in!
 
-Tutorials
----------
-
-If you're new to websockets, this is the place to start.
-
 .. toctree::
-   :maxdepth: 2
+   :hidden:
 
    intro/index
-
-How-to guides
--------------
-
-These guides will help you build and deploy a websockets application.
-
-.. toctree::
-   :maxdepth: 2
-
    howto/index
-
-Reference
----------
-
-Find all the details you could ask for, and then some.
-
-.. toctree::
-   :maxdepth: 2
-
    reference/index
-
-Topics
-------
-
-Get a deeper understanding of how websockets is built and why.
-
-.. toctree::
-   :maxdepth: 2
-
    topics/index
-
-Project
--------
-
-This is about websockets-the-project rather than websockets-the-software.
-
-.. toctree::
-   :maxdepth: 2
-
    project/index

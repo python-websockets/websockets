@@ -1,8 +1,10 @@
-Topics
-======
+Topic guides
+============
+
+Get a deeper understanding of how websockets is built and why.
 
 .. toctree::
-   :maxdepth: 2
+   :titlesonly:
 
    deployment
    logging

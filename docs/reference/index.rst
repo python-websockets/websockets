@@ -1,5 +1,5 @@
-Reference
-=========
+API reference
+=============
 
 websockets provides complete client and server implementations, as shown in
 the :doc:`getting started guide <../intro/index>`.
@@ -38,7 +38,7 @@ client and server connections. For convenience, common methods are documented
 both in the client API and server API.
 
 .. toctree::
-   :maxdepth: 2
+   :titlesonly:
 
    client
    server

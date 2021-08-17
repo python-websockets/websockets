@@ -5,6 +5,7 @@ Topics
    :maxdepth: 2
 
    deployment
+   logging
    authentication
    broadcast
    compression

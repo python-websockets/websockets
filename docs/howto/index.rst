@@ -9,13 +9,12 @@ If you're stuck, perhaps you'll find the answer in the FAQ or the cheat sheet.
    faq
    cheatsheet
 
-The following guides will help you integrate websockets into a broader system.
+This guide will help you integrate websockets into a broader system.
 
 .. toctree::
    :maxdepth: 2
 
    django
-   logging
 
 The WebSocket protocol makes provisions for extending or specializing its
 features, which websockets supports fully.

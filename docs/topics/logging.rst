@@ -10,7 +10,7 @@ When you run a WebSocket client, your code calls coroutines provided by
 websockets.
 
 If an error occurs, websockets tells you by raising an exception. For example,
-it raises a :exc:`~exception.ConnectionClosed` exception if the other side
+it raises a :exc:`~exceptions.ConnectionClosed` exception if the other side
 closes the connection.
 
 When you run a WebSocket server, websockets accepts connections, performs the
@@ -38,12 +38,15 @@ closed`_.
 .. _connection is established: https://www.rfc-editor.org/rfc/rfc6455.html#section-4
 .. _connection is closed: https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.4
 
-websockets doesn't log an event for every message because that would be
-excessive for many applications exchanging small messages at a fast rate.
-However, you could add this level of logging in your own code if necessary.
+By default, websockets doesn't log an event for every message. That would be
+excessive for many applications exchanging small messages at a fast rate. If
+you need this level of detail, you could add logging in your own code.
 
-See :ref:`log levels <log-levels>` below for details of events logged by
-websockets at each level.
+Finally, you can enable debug logs to get details about everything websockets
+is doing. This can be useful when developing clients as well as servers.
+
+See :ref:`log levels <log-levels>` below for a list of events logged by
+websockets logs at each log level.
 
 Configure logging
 -----------------
@@ -94,13 +97,14 @@ However, this technique runs into two problems:
 * Even with :meth:`str.format` style, you're restricted to attribute and index
   lookups, which isn't enough to implement some fairly simple requirements.
 
-There's a better way. :func:`~server.serve` accepts a ``logger`` argument to
-override the default :class:`~logging.Logger`. You can set ``logger`` to
-a :class:`~logging.LoggerAdapter` that enriches logs.
+There's a better way. :func:`~client.connect` and :func:`~server.serve` accept
+a ``logger`` argument to override the default :class:`~logging.Logger`. You
+can set ``logger`` to a :class:`~logging.LoggerAdapter` that enriches logs.
 
-For example, if the server is behind a reverse proxy, ``remote_address`` gives
+For example, if the server is behind a reverse
+proxy, :attr:`~legacy.protocol.WebSocketCommonProtocol.remote_address` gives
 the IP address of the proxy, which isn't useful. IP addresses of clients are
-generally available in a HTTP header set by the proxy.
+provided in a HTTP header set by the proxy.
 
 Here's how to include them in logs, assuming they're in the
 ``X-Forwarded-For`` header::
@@ -111,6 +115,7 @@ Here's how to include them in logs, assuming they're in the
     )
 
     class LoggerAdapter(logging.LoggerAdapter):
+        """Add connection ID and client IP address to websockets logs."""
         def process(self, msg, kwargs):
             try:
                 websocket = kwargs["extra"]["websocket"]
@@ -148,6 +153,7 @@ Finally, we populate the ``event_data`` custom attribute in log records with
 a :class:`~logging.LoggerAdapter`::
 
     class LoggerAdapter(logging.LoggerAdapter):
+        """Add connection ID and client IP address to websockets logs."""
         def process(self, msg, kwargs):
             try:
                 websocket = kwargs["extra"]["websocket"]
@@ -169,9 +175,9 @@ Disable logging
 ---------------
 
 If your application doesn't configure :mod:`logging`, Python outputs messages
-of severity :data:`~logging.WARNING` and higher to :data:`~sys.stderr`. As a
-consequence, you will see a message and a stack trace if a connection handler
-coroutine crashes or if you hit a bug in websockets.
+of severity ``WARNING`` and higher to :data:`~sys.stderr`. As a consequence,
+you will see a message and a stack trace if a connection handler coroutine
+crashes or if you hit a bug in websockets.
 
 If you want to disable this behavior for websockets, you can add
 a :class:`~logging.NullHandler`::
@@ -183,8 +189,8 @@ propagation to the root logger, or else its handlers could output logs::
 
     logging.getLogger("websockets").propagate = False
 
-Alternatively, you could set the log level to :data:`~logging.CRITICAL` for
-websockets, as the highest level currently used is :data:`~logging.ERROR`::
+Alternatively, you could set the log level to ``CRITICAL`` for the
+``"websockets"`` logger, as the highest level currently used is ``ERROR``::
 
     logging.getLogger("websockets").setLevel(logging.CRITICAL)
 
@@ -199,21 +205,21 @@ Log levels
 
 Here's what websockets logs at each level.
 
-:attr:`~logging.ERROR`
-......................
+``ERROR``
+.........
 
 * Exceptions raised by connection handler coroutines in servers
 * Exceptions resulting from bugs in websockets
 
-:attr:`~logging.INFO`
-.....................
+``INFO``
+........
 
 * Server starting and stopping
 * Server establishing and closing connections
 * Client reconnecting automatically
 
-:attr:`~logging.DEBUG`
-......................
+``DEBUG``
+.........
 
 * Changes to the state of connections
 * Handshake requests and responses

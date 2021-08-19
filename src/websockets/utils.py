@@ -4,6 +4,7 @@ import base64
 import hashlib
 import itertools
 import secrets
+import sys
 
 
 __all__ = ["accept_key", "apply_mask"]
@@ -43,4 +44,7 @@ def apply_mask(data: bytes, mask: bytes) -> bytes:
     if len(mask) != 4:
         raise ValueError("mask must contain 4 bytes")
 
-    return bytes(b ^ m for b, m in zip(data, itertools.cycle(mask)))
+    data_int = int.from_bytes(data, sys.byteorder)
+    mask_repeated = mask * (len(data) // 4) + mask[:len(data) % 4]
+    mask_int = int.from_bytes(mask_repeated, sys.byteorder)
+    return (data_int ^ mask_int).to_bytes(len(data), sys.byteorder)

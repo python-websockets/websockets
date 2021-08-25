@@ -389,7 +389,7 @@ How do I keep idle connections open?
 
 websockets sends pings at 20 seconds intervals to keep the connection open.
 
-In closes the connection if it doesn't get a pong within 20 seconds.
+It closes the connection if it doesn't get a pong within 20 seconds.
 
 You can adjust this behavior with ``ping_interval`` and ``ping_timeout``.
 

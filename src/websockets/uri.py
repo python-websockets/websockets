@@ -49,7 +49,8 @@ def parse_uri(uri: str) -> WebSocketURI:
     """
     Parse and validate a WebSocket URI.
 
-    :raises ValueError: if ``uri`` isn't a valid WebSocket URI.
+    :raises ~websockets.exceptions.InvalidURI: if ``uri`` isn't a valid
+        WebSocket URI.
 
     """
     parsed = urllib.parse.urlparse(uri)

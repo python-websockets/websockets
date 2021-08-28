@@ -5,7 +5,10 @@
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
 import datetime
+import importlib
+import inspect
 import os
+import subprocess
 import sys
 
 # -- Path setup --------------------------------------------------------------
@@ -34,7 +37,7 @@ release = "9.1"
 extensions = [
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
-    "sphinx.ext.viewcode",
+    "sphinx.ext.linkcode",
     "sphinx_autodoc_typehints",
     "sphinx_copybutton",
     "sphinx_inline_tabs",
@@ -54,6 +57,52 @@ templates_path = ["_templates"]
 # directories to ignore when looking for source files.
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
+
+# Configure viewcode extension.
+try:
+    git_sha1 = subprocess.run(
+        "git rev-parse --short HEAD",
+        capture_output=True,
+        shell=True,
+        check=True,
+        text=True,
+    ).stdout.strip()
+except subprocess.SubprocessError as exc:
+    print("Cannot get git commit, disabling linkcode:", exc)
+    extensions.remove("sphinx.ext.linkcode")
+else:
+    code_url = f"https://github.com/aaugustin/websockets/blob/{git_sha1}"
+
+
+def linkcode_resolve(domain, info):
+    assert domain == "py"
+
+    mod = importlib.import_module(info["module"])
+    if "." in info["fullname"]:
+        objname, attrname = info["fullname"].split(".")
+        obj = getattr(mod, objname)
+        try:
+            # object is a method of a class
+            obj = getattr(obj, attrname)
+        except AttributeError:
+            # object is an attribute of a class
+            return None
+    else:
+        obj = getattr(mod, info["fullname"])
+
+    try:
+        file = inspect.getsourcefile(obj)
+        lines = inspect.getsourcelines(obj)
+    except TypeError:
+        # e.g. object is a typing.Union
+        return None
+    file = os.path.relpath(file, os.path.abspath(".."))
+    if not file.startswith("src/websockets"):
+        # e.g. object is a typing.NewType
+        return None
+    start, end = lines[1], lines[1] + len(lines[0]) - 1
+
+    return f"{code_url}/{file}#L{start}-L{end}"
 
 
 # -- Options for HTML output -------------------------------------------------

@@ -286,7 +286,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         server_no_context_takeover: bool = False,
         client_no_context_takeover: bool = False,
         server_max_window_bits: Optional[int] = None,
-        client_max_window_bits: Optional[Union[int, bool]] = None,
+        client_max_window_bits: Optional[Union[int, bool]] = True,
         compress_settings: Optional[Dict[str, Any]] = None,
     ) -> None:
         """

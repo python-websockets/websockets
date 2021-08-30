@@ -834,7 +834,12 @@ class CommonClientServerTests:
             ServerPerMessageDeflateFactory(),
         ]
     )
-    @with_client("/extensions", extensions=[ClientPerMessageDeflateFactory()])
+    @with_client(
+        "/extensions",
+        extensions=[
+            ClientPerMessageDeflateFactory(client_max_window_bits=None),
+        ],
+    )
     def test_extension_no_match_then_match(self):
         # The order requested by the client has priority.
         server_extensions = self.loop.run_until_complete(self.client.recv())

@@ -54,13 +54,12 @@ def parse_uri(uri: str) -> WebSocketURI:
 
     """
     parsed = urllib.parse.urlparse(uri)
-    try:
-        assert parsed.scheme in ["ws", "wss"]
-        assert parsed.params == ""
-        assert parsed.fragment == ""
-        assert parsed.hostname is not None
-    except AssertionError as exc:
-        raise exceptions.InvalidURI(uri) from exc
+    if parsed.scheme not in ["ws", "wss"]:
+        raise exceptions.InvalidURI(uri, "scheme isn't ws or wss")
+    if parsed.hostname is None:
+        raise exceptions.InvalidURI(uri, "hostname isn't provided")
+    if parsed.fragment != "":
+        raise exceptions.InvalidURI(uri, "fragment identifier is meaningless")
 
     secure = parsed.scheme == "wss"
     host = parsed.hostname
@@ -73,7 +72,7 @@ def parse_uri(uri: str) -> WebSocketURI:
         # urllib.parse.urlparse accepts URLs with a username but without a
         # password. This doesn't make sense for HTTP Basic Auth credentials.
         if parsed.password is None:
-            raise exceptions.InvalidURI(uri)
+            raise exceptions.InvalidURI(uri, "username provided without password")
         user_info = (parsed.username, parsed.password)
 
     try:

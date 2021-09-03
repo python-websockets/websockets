@@ -56,6 +56,15 @@ They may change at any time.
     If you raise :exc:`~exceptions.ConnectionClosed` or a subclass — rather
     than catch them when websockets raises them — you must change your code.
 
+.. note::
+
+    **Version 10.0 adds a ``msg`` parameter to** ``InvalidURI.__init__`` **.**
+
+    If you raise :exc:`~exceptions.InvalidURI` — rather than catch them when
+    websockets raises them — you must change your code.
+
+Also:
+
 * Added compatibility with Python 3.10.
 
 * Added :func:`~websockets.broadcast` to send a message to many clients.
@@ -149,6 +158,8 @@ They may change at any time.
 
         from websockets.client import connect
         from websockets.server import serve
+
+Also:
 
 * Added compatibility with Python 3.9.
 

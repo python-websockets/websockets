@@ -142,8 +142,8 @@ class ExceptionsTests(unittest.TestCase):
                 "WebSocket connection isn't established yet",
             ),
             (
-                InvalidURI("|"),
-                "| isn't a valid URI",
+                InvalidURI("|", "not at all!"),
+                "| isn't a valid URI: not at all!",
             ),
             (
                 PayloadTooBig("payload length exceeds limit: 2 > 1 bytes"),

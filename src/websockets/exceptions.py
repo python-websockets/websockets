@@ -374,11 +374,12 @@ class InvalidURI(WebSocketException):
 
     """
 
-    def __init__(self, uri: str) -> None:
+    def __init__(self, uri: str, msg: str) -> None:
         self.uri = uri
+        self.msg = msg
 
     def __str__(self) -> str:
-        return f"{self.uri} isn't a valid URI"
+        return f"{self.uri} isn't a valid URI: {self.msg}"
 
 
 class PayloadTooBig(WebSocketException):

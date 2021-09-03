@@ -18,6 +18,10 @@ VALID_URIS = [
         WebSocketURI(False, "localhost", 80, "/path?query", None),
     ),
     (
+        "ws://localhost/path;params",
+        WebSocketURI(False, "localhost", 80, "/path;params", None),
+    ),
+    (
         "WS://LOCALHOST/PATH?QUERY",
         WebSocketURI(False, "localhost", 80, "/PATH?QUERY", None),
     ),
@@ -39,6 +43,7 @@ INVALID_URIS = [
     "https://localhost/",
     "ws://localhost/path#fragment",
     "ws://user@localhost/",
+    "ws:///path",
 ]
 
 

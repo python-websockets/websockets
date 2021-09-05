@@ -10,24 +10,24 @@ class StreamReaderTests(GeneratorTestCase):
     def test_read_line(self):
         self.reader.feed_data(b"spam\neggs\n")
 
-        gen = self.reader.read_line()
+        gen = self.reader.read_line(32)
         line = self.assertGeneratorReturns(gen)
         self.assertEqual(line, b"spam\n")
 
-        gen = self.reader.read_line()
+        gen = self.reader.read_line(32)
         line = self.assertGeneratorReturns(gen)
         self.assertEqual(line, b"eggs\n")
 
     def test_read_line_need_more_data(self):
         self.reader.feed_data(b"spa")
 
-        gen = self.reader.read_line()
+        gen = self.reader.read_line(32)
         self.assertGeneratorRunning(gen)
         self.reader.feed_data(b"m\neg")
         line = self.assertGeneratorReturns(gen)
         self.assertEqual(line, b"spam\n")
 
-        gen = self.reader.read_line()
+        gen = self.reader.read_line(32)
         self.assertGeneratorRunning(gen)
         self.reader.feed_data(b"gs\n")
         line = self.assertGeneratorReturns(gen)
@@ -37,11 +37,34 @@ class StreamReaderTests(GeneratorTestCase):
         self.reader.feed_data(b"spa")
         self.reader.feed_eof()
 
-        gen = self.reader.read_line()
+        gen = self.reader.read_line(32)
         with self.assertRaises(EOFError) as raised:
             next(gen)
         self.assertEqual(
-            str(raised.exception), "stream ends after 3 bytes, before end of line"
+            str(raised.exception),
+            "stream ends after 3 bytes, before end of line",
+        )
+
+    def test_read_line_too_long(self):
+        self.reader.feed_data(b"spam\neggs\n")
+
+        gen = self.reader.read_line(2)
+        with self.assertRaises(RuntimeError) as raised:
+            next(gen)
+        self.assertEqual(
+            str(raised.exception),
+            "read 5 bytes, expected no more than 2 bytes",
+        )
+
+    def test_read_line_too_long_need_more_data(self):
+        self.reader.feed_data(b"spa")
+
+        gen = self.reader.read_line(2)
+        with self.assertRaises(RuntimeError) as raised:
+            next(gen)
+        self.assertEqual(
+            str(raised.exception),
+            "read 3 bytes, expected no more than 2 bytes",
         )
 
     def test_read_exact(self):
@@ -78,11 +101,12 @@ class StreamReaderTests(GeneratorTestCase):
         with self.assertRaises(EOFError) as raised:
             next(gen)
         self.assertEqual(
-            str(raised.exception), "stream ends after 3 bytes, expected 4 bytes"
+            str(raised.exception),
+            "stream ends after 3 bytes, expected 4 bytes",
         )
 
     def test_read_to_eof(self):
-        gen = self.reader.read_to_eof()
+        gen = self.reader.read_to_eof(32)
 
         self.reader.feed_data(b"spam")
         self.assertGeneratorRunning(gen)
@@ -94,9 +118,20 @@ class StreamReaderTests(GeneratorTestCase):
     def test_read_to_eof_at_eof(self):
         self.reader.feed_eof()
 
-        gen = self.reader.read_to_eof()
+        gen = self.reader.read_to_eof(32)
         data = self.assertGeneratorReturns(gen)
         self.assertEqual(data, b"")
+
+    def test_read_to_eof_too_long(self):
+        gen = self.reader.read_to_eof(2)
+
+        self.reader.feed_data(b"spam")
+        with self.assertRaises(RuntimeError) as raised:
+            next(gen)
+        self.assertEqual(
+            str(raised.exception),
+            "read 4 bytes, expected no more than 2 bytes",
+        )
 
     def test_at_eof_after_feed_data(self):
         gen = self.reader.at_eof()
@@ -137,16 +172,22 @@ class StreamReaderTests(GeneratorTestCase):
         self.reader.feed_eof()
         with self.assertRaises(EOFError) as raised:
             self.reader.feed_data(b"spam")
-        self.assertEqual(str(raised.exception), "stream ended")
+        self.assertEqual(
+            str(raised.exception),
+            "stream ended",
+        )
 
     def test_feed_eof_after_feed_eof(self):
         self.reader.feed_eof()
         with self.assertRaises(EOFError) as raised:
             self.reader.feed_eof()
-        self.assertEqual(str(raised.exception), "stream ended")
+        self.assertEqual(
+            str(raised.exception),
+            "stream ended",
+        )
 
     def test_discard(self):
-        gen = self.reader.read_to_eof()
+        gen = self.reader.read_to_eof(32)
 
         self.reader.feed_data(b"spam")
         self.reader.discard()

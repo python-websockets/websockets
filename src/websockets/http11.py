@@ -7,8 +7,18 @@ from typing import Callable, Generator, Optional
 from . import datastructures, exceptions
 
 
+# Maximum total size of headers is around 256 * 4 KiB = 1 MiB
 MAX_HEADERS = 256
-MAX_LINE = 4110
+
+# We can use the same limit for the request line and header lines:
+# "GET <4096 bytes> HTTP/1.1\r\n" = 4111 bytes
+# "Set-Cookie: <4097 bytes>\r\n" = 4111 bytes
+# (RFC requires 4096 bytes; for some reason Firefox supports 4097 bytes.)
+MAX_LINE = 4111
+
+# Support for HTTP response bodies is intended to read an error message
+# returned by a server. It isn't designed to perform large file transfers.
+MAX_BODY = 2 ** 20  # 1 MiB
 
 
 def d(value: bytes) -> str:
@@ -60,7 +70,7 @@ class Request:
     @classmethod
     def parse(
         cls,
-        read_line: Callable[[], Generator[None, None, bytes]],
+        read_line: Callable[[int], Generator[None, None, bytes]],
     ) -> Generator[None, None, Request]:
         """
         Parse a WebSocket handshake request.
@@ -157,9 +167,9 @@ class Response:
     @classmethod
     def parse(
         cls,
-        read_line: Callable[[], Generator[None, None, bytes]],
+        read_line: Callable[[int], Generator[None, None, bytes]],
         read_exact: Callable[[int], Generator[None, None, bytes]],
-        read_to_eof: Callable[[], Generator[None, None, bytes]],
+        read_to_eof: Callable[[int], Generator[None, None, bytes]],
     ) -> Generator[None, None, Response]:
         """
         Parse a WebSocket handshake response.
@@ -234,7 +244,16 @@ class Response:
                 content_length = int(raw_content_length)
 
             if content_length is None:
-                body = yield from read_to_eof()
+                try:
+                    body = yield from read_to_eof(MAX_BODY)
+                except RuntimeError:
+                    raise exceptions.SecurityError(
+                        f"body too large: over {MAX_BODY} bytes"
+                    )
+            elif content_length > MAX_BODY:
+                raise exceptions.SecurityError(
+                    f"body too large: {content_length} bytes"
+                )
             else:
                 body = yield from read_exact(content_length)
 
@@ -255,7 +274,7 @@ class Response:
 
 
 def parse_headers(
-    read_line: Callable[[], Generator[None, None, bytes]],
+    read_line: Callable[[int], Generator[None, None, bytes]],
 ) -> Generator[None, None, datastructures.Headers]:
     """
     Parse HTTP headers.
@@ -306,7 +325,7 @@ def parse_headers(
 
 
 def parse_line(
-    read_line: Callable[[], Generator[None, None, bytes]],
+    read_line: Callable[[int], Generator[None, None, bytes]],
 ) -> Generator[None, None, bytes]:
     """
     Parse a single line.
@@ -322,10 +341,9 @@ def parse_line(
         SecurityError: if the response exceeds a security limit.
 
     """
-    # Security: TODO: add a limit here
-    line = yield from read_line()
-    # Security: this guarantees header values are small (hard-coded = 4 KiB)
-    if len(line) > MAX_LINE:
+    try:
+        line = yield from read_line(MAX_LINE)
+    except RuntimeError:
         raise exceptions.SecurityError("line too long")
     # Not mandatory but safe - https://www.rfc-editor.org/rfc/rfc7230.html#section-3.5
     if not line.endswith(b"\r\n"):

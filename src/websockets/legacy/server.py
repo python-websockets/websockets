@@ -1043,7 +1043,7 @@ class Serve:
         self.ws_server.wrap(server)
         return self.ws_server
 
-    # yield from serve(...)
+    # yield from serve(...) - remove when dropping Python < 3.10
 
     __iter__ = __await__
 

@@ -53,6 +53,10 @@ Backwards-incompatible changes
     You can adjust the timeout with the ``open_timeout`` parameter. Set it to
     :obj:`None` to disable the timeout entirely.
 
+.. admonition:: The ``legacy_recv`` option is deprecated.
+
+    See the release notes of websockets 3.0 for details.
+
 .. admonition:: The signature of :exc:`~exceptions.ConnectionClosed` changed.
     :class: note
 

@@ -183,6 +183,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         loop: Optional[asyncio.AbstractEventLoop] = None,
         timeout: Optional[float] = None,
     ) -> None:
+        if legacy_recv:  # pragma: no cover
+            warnings.warn("legacy_recv is deprecated", DeprecationWarning)
+
         # Backwards compatibility: close_timeout used to be called timeout.
         if timeout is None:
             timeout = 10

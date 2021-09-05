@@ -584,9 +584,9 @@ class Connect:
 
     # async for ... in connect(...):
 
-    BACKOFF_MIN = 2.0
+    BACKOFF_MIN = 1.92
     BACKOFF_MAX = 60.0
-    BACKOFF_FACTOR = 1.5
+    BACKOFF_FACTOR = 1.618
 
     async def __aiter__(self) -> AsyncIterator[WebSocketClientProtocol]:
         backoff_delay = self.BACKOFF_MIN

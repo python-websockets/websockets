@@ -1418,7 +1418,8 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
             iteration = 0
             connect_inst = connect(get_server_uri(self.server))
             connect_inst.BACKOFF_MIN = 10 * MS
-            connect_inst.BACKOFF_MAX = 200 * MS
+            connect_inst.BACKOFF_MAX = 99 * MS
+            connect_inst.BACKOFF_INITIAL = 0
             async for ws in connect_inst:
                 await ws.send("spam")
                 msg = await ws.recv()
@@ -1468,9 +1469,14 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
             [
                 "connection failed (503 Service Unavailable)",
                 "connection closed",
-                "! connect failed; retrying in 0 seconds",
+                "! connect failed; reconnecting in 0.0 seconds",
             ]
-            * ((len(logs.records) - 5) // 3)
+            + [
+                "connection failed (503 Service Unavailable)",
+                "connection closed",
+                "! connect failed again; retrying in 0 seconds",
+            ]
+            * ((len(logs.records) - 8) // 3)
             + [
                 "connection open",
                 "connection closed",

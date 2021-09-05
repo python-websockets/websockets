@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+import random
 import urllib.parse
 import warnings
 from types import TracebackType
@@ -587,6 +588,7 @@ class Connect:
     BACKOFF_MIN = 1.92
     BACKOFF_MAX = 60.0
     BACKOFF_FACTOR = 1.618
+    BACKOFF_INITIAL = 5
 
     async def __aiter__(self) -> AsyncIterator[WebSocketClientProtocol]:
         backoff_delay = self.BACKOFF_MIN
@@ -599,15 +601,26 @@ class Connect:
             except asyncio.CancelledError:  # pragma: no cover
                 raise
             except Exception:
-                # Connection timed out - increase backoff delay
+                # Add a random initial delay between 0 and 5 seconds.
+                # See 7.2.3. Recovering from Abnormal Closure in RFC 6544.
+                if backoff_delay == self.BACKOFF_MIN:
+                    initial_delay = random.random() * self.BACKOFF_INITIAL
+                    self.logger.info(
+                        "! connect failed; reconnecting in %.1f seconds",
+                        initial_delay,
+                        exc_info=True,
+                    )
+                    await asyncio.sleep(initial_delay)
+                else:
+                    self.logger.info(
+                        "! connect failed again; retrying in %d seconds",
+                        int(backoff_delay),
+                        exc_info=True,
+                    )
+                    await asyncio.sleep(int(backoff_delay))
+                # Increase delay with truncated exponential backoff.
                 backoff_delay = backoff_delay * self.BACKOFF_FACTOR
                 backoff_delay = min(backoff_delay, self.BACKOFF_MAX)
-                self.logger.info(
-                    "! connect failed; retrying in %d seconds",
-                    int(backoff_delay),
-                    exc_info=True,
-                )
-                await asyncio.sleep(backoff_delay)
                 continue
             else:
                 # Connection succeeded - reset backoff delay

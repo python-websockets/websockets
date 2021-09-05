@@ -11,9 +11,6 @@ FAQ
 
     .. _developing with asyncio: https://docs.python.org/3/library/asyncio-dev.html
 
-.. contents::
-   :local:
-
 Server side
 -----------
 
@@ -221,11 +218,13 @@ Putting an ``await`` statement in a ``for`` or a ``while`` loop isn't enough
 to yield control. Awaiting a coroutine may yield control, but there's no
 guarantee that it will.
 
-For example, ``send()`` only yields control when send buffers are full, which
-never happens in most practical cases.
+For example, :meth:`~legacy.protocol.WebSocketCommonProtocol.send` only yields
+control when send buffers are full, which never happens in most practical
+cases.
 
-If you run a loop that contains only synchronous operations and a ``send()``
-call, you must yield control explicitly with :func:`asyncio.sleep`::
+If you run a loop that contains only synchronous operations and
+a :meth:`~legacy.protocol.WebSocketCommonProtocol.send` call, you must yield
+control explicitly with :func:`asyncio.sleep`::
 
     async def producer(websocket):
         message = generate_next_message()
@@ -248,7 +247,8 @@ blocks the event loop and prevents asyncio from operating normally.
 
 This may lead to messages getting send but not received, to connection
 timeouts, and to unexpected results of shotgun debugging e.g. adding an
-unnecessary call to ``send()`` makes the program functional.
+unnecessary call to :meth:`~legacy.protocol.WebSocketCommonProtocol.send`
+makes the program functional.
 
 Both sides
 ----------
@@ -352,8 +352,8 @@ See the discussion of :doc:`timeouts <../topics/timeouts>` for details.
 If websockets' default timeout of 20 seconds is too short for your use case,
 you can adjust it with the ``ping_timeout`` argument.
 
-How do I set a timeout on ``recv()``?
-.....................................
+How do I set a timeout on :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`?
+................................................................................
 
 Use :func:`~asyncio.wait_for`::
 

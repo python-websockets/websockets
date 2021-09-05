@@ -120,7 +120,7 @@ WebSocket server.
      the old credentials, which may be expired, resulting in an HTTP 401. Then
      the next connection succeeds. Perhaps errors clear the cache.
 
-     When tokens are short-lived on single-use, this bug produces an
+     When tokens are short-lived or single-use, this bug produces an
      interesting effect: every other WebSocket connection fails.
 
    * Safari 14 ignores credentials entirely.

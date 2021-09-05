@@ -655,14 +655,7 @@ class WebSocketServer:
 
     """
 
-    def __init__(
-        self,
-        loop: asyncio.AbstractEventLoop,
-        logger: Optional[LoggerLike] = None,
-    ) -> None:
-        # Store a reference to loop to avoid relying on self.server._loop.
-        self.loop = loop
-
+    def __init__(self, logger: Optional[LoggerLike] = None):
         if logger is None:
             logger = logging.getLogger("websockets.server")
         self.logger = logger
@@ -674,7 +667,7 @@ class WebSocketServer:
         self.close_task: Optional[asyncio.Task[None]] = None
 
         # Completed when the server is closed and connections are terminated.
-        self.closed_waiter: asyncio.Future[None] = loop.create_future()
+        self.closed_waiter: asyncio.Future[None]
 
     def wrap(self, server: asyncio.AbstractServer) -> None:
         """
@@ -704,6 +697,10 @@ class WebSocketServer:
             else:  # pragma: no cover
                 name = str(sock.getsockname())
             self.logger.info("server listening on %s", name)
+
+        # Initialized here because we need a reference to the event loop.
+        # This should be moved back to __init__ in Python 3.10.
+        self.closed_waiter = server.get_loop().create_future()
 
     def register(self, protocol: WebSocketServerProtocol) -> None:
         """
@@ -743,7 +740,7 @@ class WebSocketServer:
 
         """
         if self.close_task is None:
-            self.close_task = self.loop.create_task(self._close())
+            self.close_task = self.server.get_loop().create_task(self._close())
 
     async def _close(self) -> None:
         """
@@ -764,7 +761,7 @@ class WebSocketServer:
 
         # Wait until all accepted connections reach connection_made() and call
         # register(). See https://bugs.python.org/issue34852 for details.
-        await asyncio.sleep(0, **loop_if_py_lt_38(self.loop))
+        await asyncio.sleep(0, **loop_if_py_lt_38(self.server.get_loop()))
 
         # Close OPEN connections with status code 1001. Since the server was
         # closed, handshake() closes OPENING connections with a HTTP 503
@@ -777,7 +774,7 @@ class WebSocketServer:
                     asyncio.create_task(websocket.close(1001))
                     for websocket in self.websockets
                 ],
-                **loop_if_py_lt_38(self.loop),
+                **loop_if_py_lt_38(self.server.get_loop()),
             )
 
         # Wait until all connection handlers are complete.
@@ -786,7 +783,7 @@ class WebSocketServer:
         if self.websockets:
             await asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets],
-                **loop_if_py_lt_38(self.loop),
+                **loop_if_py_lt_38(self.server.get_loop()),
             )
 
         # Tell wait_closed() to return.
@@ -968,7 +965,7 @@ class Serve:
             loop = _loop
             warnings.warn("remove loop argument", DeprecationWarning)
 
-        ws_server = WebSocketServer(logger=logger, loop=loop)
+        ws_server = WebSocketServer(logger=logger)
 
         secure = kwargs.get("ssl") is not None
 

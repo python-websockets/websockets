@@ -44,6 +44,9 @@ Backwards-incompatible changes
     This reflects a decision made in Python 3.8. See the release notes of
     Python 3.10 for details.
 
+    The ``loop`` parameter is also removed
+    from :class:`~server.WebSocketServer`. This should be transparent.
+
 .. admonition:: :func:`~client.connect` times out after 10 seconds by default.
     :class: note
 

@@ -158,7 +158,8 @@ class ResponseTests(GeneratorTestCase):
         with self.assertRaises(EOFError) as raised:
             next(self.parse())
         self.assertEqual(
-            str(raised.exception), "connection closed while reading HTTP status line"
+            str(raised.exception),
+            "connection closed while reading HTTP status line",
         )
 
     def test_parse_invalid_status_line(self):
@@ -229,6 +230,24 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_eof()
         response = self.assertGeneratorReturns(gen)
         self.assertEqual(response.body, b"Hello world!\n")
+
+    def test_parse_body_with_content_length_too_long(self):
+        self.reader.feed_data(b"HTTP/1.1 200 OK\r\nContent-Length: 1048577\r\n\r\n")
+        with self.assertRaises(SecurityError) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "body too large: 1048577 bytes",
+        )
+
+    def test_parse_body_without_content_length_too_long(self):
+        self.reader.feed_data(b"HTTP/1.1 200 OK\r\n\r\n" + b"a" * 1048577)
+        with self.assertRaises(SecurityError) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "body too large: over 1048576 bytes",
+        )
 
     def test_parse_body_with_transfer_encoding(self):
         self.reader.feed_data(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n")
@@ -314,8 +333,8 @@ class HeadersTests(GeneratorTestCase):
             next(self.parse_headers())
 
     def test_parse_too_long_line(self):
-        # Header line contains 5 + 4104 + 2 = 4111 bytes.
-        self.reader.feed_data(b"foo: " + b"a" * 4104 + b"\r\n\r\n")
+        # Header line contains 5 + 4105 + 2 = 4112 bytes.
+        self.reader.feed_data(b"foo: " + b"a" * 4105 + b"\r\n\r\n")
         with self.assertRaises(SecurityError):
             next(self.parse_headers())
 

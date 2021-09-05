@@ -33,6 +33,8 @@ Client
 
         .. autoattribute:: id
 
+        .. autoattribute:: logger
+
         .. autoproperty:: local_address
 
         .. autoproperty:: remote_address

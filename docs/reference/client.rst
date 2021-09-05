@@ -3,60 +3,108 @@ Client
 
 .. automodule:: websockets.client
 
-    Opening a connection
-    --------------------
+asyncio
+-------
 
-    .. autofunction:: connect(uri, *, create_protocol=None, logger=None, compression="deflate", origin=None, extensions=None, subprotocols=None, extra_headers=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
-        :async:
+Opening a connection
+....................
 
-    .. autofunction:: unix_connect(path, uri="ws://localhost/", *, create_protocol=None, logger=None, compression="deflate", origin=None, extensions=None, subprotocols=None, extra_headers=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
-        :async:
+.. autofunction:: connect(uri, *, create_protocol=None, logger=None, compression="deflate", origin=None, extensions=None, subprotocols=None, extra_headers=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
+    :async:
 
-    Using a connection
-    ------------------
+.. autofunction:: unix_connect(path, uri="ws://localhost/", *, create_protocol=None, logger=None, compression="deflate", origin=None, extensions=None, subprotocols=None, extra_headers=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
+    :async:
 
-    .. autoclass:: WebSocketClientProtocol(*, logger=None, origin=None, extensions=None, subprotocols=None, extra_headers=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
+Using a connection
+..................
 
-        .. automethod:: recv
+.. autoclass:: WebSocketClientProtocol(*, logger=None, origin=None, extensions=None, subprotocols=None, extra_headers=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
 
-        .. automethod:: send
+    .. automethod:: recv
 
-        .. automethod:: close
+    .. automethod:: send
 
-        .. automethod:: wait_closed
+    .. automethod:: close
 
-        .. automethod:: ping
+    .. automethod:: wait_closed
 
-        .. automethod:: pong
+    .. automethod:: ping
 
-        WebSocket connection objects also provide these attributes:
+    .. automethod:: pong
 
-        .. autoattribute:: id
+    WebSocket connection objects also provide these attributes:
 
-        .. autoattribute:: logger
+    .. autoattribute:: id
 
-        .. autoproperty:: local_address
+    .. autoattribute:: logger
 
-        .. autoproperty:: remote_address
+    .. autoproperty:: local_address
 
-        .. autoproperty:: open
+    .. autoproperty:: remote_address
 
-        .. autoproperty:: closed
+    .. autoproperty:: open
 
-        The following attributes are available after the opening handshake,
-        once the WebSocket connection is open:
+    .. autoproperty:: closed
 
-        .. autoattribute:: path
+    The following attributes are available after the opening handshake,
+    once the WebSocket connection is open:
 
-        .. autoattribute:: request_headers
+    .. autoattribute:: path
 
-        .. autoattribute:: response_headers
+    .. autoattribute:: request_headers
 
-        .. autoattribute:: subprotocol
+    .. autoattribute:: response_headers
 
-        The following attributes are available after the closing handshake,
-        once the WebSocket connection is closed:
+    .. autoattribute:: subprotocol
 
-        .. autoproperty:: close_code
+    The following attributes are available after the closing handshake,
+    once the WebSocket connection is closed:
 
-        .. autoproperty:: close_reason
+    .. autoproperty:: close_code
+
+    .. autoproperty:: close_reason
+
+Sans-I/O
+--------
+
+.. autoclass:: ClientConnection(wsuri, origin=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
+
+    .. automethod:: receive_data
+
+    .. automethod:: receive_eof
+
+    .. automethod:: connect
+
+    .. automethod:: send_request
+
+    .. automethod:: send_continuation
+
+    .. automethod:: send_text
+
+    .. automethod:: send_binary
+
+    .. automethod:: send_close
+
+    .. automethod:: send_ping
+
+    .. automethod:: send_pong
+
+    .. automethod:: fail
+
+    .. automethod:: events_received
+
+    .. automethod:: data_to_send
+
+    .. automethod:: close_expected
+
+    .. autoattribute:: id
+
+    .. autoattribute:: logger
+
+    .. autoproperty:: state
+
+    .. autoproperty:: close_code
+
+    .. autoproperty:: close_reason
+
+    .. autoproperty:: close_exc

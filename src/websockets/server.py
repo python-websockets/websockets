@@ -45,8 +45,26 @@ __all__ = ["ServerConnection"]
 
 
 class ServerConnection(Connection):
+    """
+    Sans-I/O implementation of a WebSocket server connection.
 
-    side = SERVER
+    Args:
+        origins: acceptable values of the ``Origin`` header; include
+            :obj:`None` in the list if the lack of an origin is acceptable.
+            This is useful for defending against Cross-Site WebSocket
+            Hijacking attacks.
+        extensions: list of supported extensions, in order in which they
+            should be tried.
+        subprotocols: list of supported subprotocols, in order of decreasing
+            preference.
+        state: initial state of the WebSocket connection.
+        max_size: maximum size of incoming messages in bytes;
+            :obj:`None` to disable the limit.
+        logger: logger for this connection;
+            defaults to ``logging.getLogger("websockets.client")``;
+            see the :doc:`logging guide <../topics/logging>` for details.
+
+    """
 
     def __init__(
         self,
@@ -69,16 +87,20 @@ class ServerConnection(Connection):
 
     def accept(self, request: Request) -> Response:
         """
-        Create a WebSocket handshake response event to accept the connection.
+        Create a handshake response to accept the connection.
 
-        If the connection cannot be established, create a HTTP response event
-        to reject the handshake.
+        If the connection cannot be established, the handshake response
+        actually rejects the handshake.
+
+        You must send the handshake response with :meth:`send_response`.
+
+        You can modify it before sending it, for example to add HTTP headers.
 
         Args:
-            request: handshake request event received from the client.
+            request: WebSocket handshake request event received from the client.
 
         Returns:
-            Response: handshake response event to send to the client.
+            Response: WebSocket handshake response event to send to the client.
 
         """
         try:
@@ -418,13 +440,21 @@ class ServerConnection(Connection):
         text: str,
     ) -> Response:
         """
-        Create a HTTP response event to reject the connection.
+        Create a handshake response to reject the connection.
 
         A short plain text response is the best fallback when failing to
         establish a WebSocket connection.
 
+        You must send the handshake response with :meth:`send_response`.
+
+        You can modify it before sending it, for example to alter HTTP headers.
+
+        Args:
+            status: HTTP status code.
+            text: HTTP response body; will be encoded to UTF-8.
+
         Returns:
-            Response: HTTP handshake response to send to the client.
+            Response: WebSocket handshake response event to send to the client.
 
         """
         body = text.encode()

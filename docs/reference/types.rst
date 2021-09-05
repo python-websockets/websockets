@@ -1,8 +1,6 @@
 Types
 =====
 
-.. autodata:: websockets.datastructures.HeadersLike
-
 .. automodule:: websockets.typing
 
     .. autodata:: Data
@@ -17,4 +15,6 @@ Types
 
     .. autodata:: ExtensionParameter
 
+.. autodata:: websockets.connection.Event
 
+.. autodata:: websockets.datastructures.HeadersLike

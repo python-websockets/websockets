@@ -44,6 +44,28 @@ __all__ = ["ClientConnection"]
 
 
 class ClientConnection(Connection):
+    """
+    Sans-I/O implementation of a WebSocket client connection.
+
+    Args:
+        wsuri: URI of the WebSocket server, parsed
+            with :func:`~websockets.uri.parse_uri`.
+        origin: value of the ``Origin`` header. This is useful when connecting
+            to a server that validates the ``Origin`` header to defend against
+            Cross-Site WebSocket Hijacking attacks.
+        extensions: list of supported extensions, in order in which they
+            should be tried.
+        subprotocols: list of supported subprotocols, in order of decreasing
+            preference.
+        state: initial state of the WebSocket connection.
+        max_size: maximum size of incoming messages in bytes;
+            :obj:`None` to disable the limit.
+        logger: logger for this connection;
+            defaults to ``logging.getLogger("websockets.client")``;
+            see the :doc:`logging guide <../topics/logging>` for details.
+
+    """
+
     def __init__(
         self,
         wsuri: WebSocketURI,
@@ -68,7 +90,14 @@ class ClientConnection(Connection):
 
     def connect(self) -> Request:  # noqa: F811
         """
-        Create a WebSocket handshake request event to open a connection.
+        Create a handshake request to open a connection.
+
+        You must send the handshake request with :meth:`send_request`.
+
+        You can modify it before sending it, for example to add HTTP headers.
+
+        Returns:
+            Request: WebSocket handshake request event to send to the server.
 
         """
         headers = Headers()
@@ -275,7 +304,7 @@ class ClientConnection(Connection):
         Send a handshake request to the server.
 
         Args:
-            request: WebSocket handshake request event to send.
+            request: WebSocket handshake request event.
 
         """
         if self.debug:

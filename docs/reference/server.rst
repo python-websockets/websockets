@@ -3,96 +3,148 @@ Server
 
 .. automodule:: websockets.server
 
-    Starting a server
-    -----------------
+asyncio
+-------
 
-    .. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
-        :async:
+Starting a server
+.................
 
-    .. autofunction:: unix_serve(ws_handler, path=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
-        :async:
+.. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
+    :async:
 
-    Stopping a server
-    -----------------
+.. autofunction:: unix_serve(ws_handler, path=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
+    :async:
 
-    .. autoclass:: WebSocketServer
+Stopping a server
+.................
 
-        .. automethod:: close
+.. autoclass:: WebSocketServer
 
-        .. automethod:: wait_closed
+    .. automethod:: close
 
-        .. autoattribute:: sockets
+    .. automethod:: wait_closed
 
-    Using a connection
-    ------------------
+    .. autoattribute:: sockets
 
-    .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, logger=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
+Using a connection
+..................
 
-        .. automethod:: recv
+.. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, logger=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
 
-        .. automethod:: send
+    .. automethod:: recv
 
-        .. automethod:: close
+    .. automethod:: send
 
-        .. automethod:: wait_closed
+    .. automethod:: close
 
-        .. automethod:: ping
+    .. automethod:: wait_closed
 
-        .. automethod:: pong
+    .. automethod:: ping
 
-        You can customize the opening handshake in a subclass by overriding these methods:
+    .. automethod:: pong
 
-        .. automethod:: process_request
+    You can customize the opening handshake in a subclass by overriding these methods:
 
-        .. automethod:: select_subprotocol
+    .. automethod:: process_request
 
-        WebSocket connection objects also provide these attributes:
+    .. automethod:: select_subprotocol
 
-        .. autoattribute:: id
+    WebSocket connection objects also provide these attributes:
 
-        .. autoattribute:: logger
+    .. autoattribute:: id
 
-        .. autoproperty:: local_address
+    .. autoattribute:: logger
 
-        .. autoproperty:: remote_address
+    .. autoproperty:: local_address
 
-        .. autoproperty:: open
+    .. autoproperty:: remote_address
 
-        .. autoproperty:: closed
+    .. autoproperty:: open
 
-        The following attributes are available after the opening handshake,
-        once the WebSocket connection is open:
+    .. autoproperty:: closed
 
-        .. autoattribute:: path
+    The following attributes are available after the opening handshake,
+    once the WebSocket connection is open:
 
-        .. autoattribute:: request_headers
+    .. autoattribute:: path
 
-        .. autoattribute:: response_headers
+    .. autoattribute:: request_headers
 
-        .. autoattribute:: subprotocol
+    .. autoattribute:: response_headers
 
-        The following attributes are available after the closing handshake,
-        once the WebSocket connection is closed:
+    .. autoattribute:: subprotocol
 
-        .. autoproperty:: close_code
+    The following attributes are available after the closing handshake,
+    once the WebSocket connection is closed:
 
-        .. autoproperty:: close_reason
+    .. autoproperty:: close_code
+
+    .. autoproperty:: close_reason
 
 
 Basic authentication
---------------------
+....................
 
 .. automodule:: websockets.auth
 
-    websockets supports HTTP Basic Authentication according to
-    :rfc:`7235` and :rfc:`7617`.
+websockets supports HTTP Basic Authentication according to
+:rfc:`7235` and :rfc:`7617`.
 
-    .. autofunction:: basic_auth_protocol_factory
+.. autofunction:: basic_auth_protocol_factory
 
-    .. autoclass:: BasicAuthWebSocketServerProtocol
+.. autoclass:: BasicAuthWebSocketServerProtocol
 
-        .. autoattribute:: realm
+    .. autoattribute:: realm
 
-        .. autoattribute:: username
+    .. autoattribute:: username
 
-        .. automethod:: check_credentials
+    .. automethod:: check_credentials
+
+.. currentmodule:: websockets.server
+
+Sans-I/O
+--------
+
+.. autoclass:: ServerConnection(origins=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
+
+    .. automethod:: receive_data
+
+    .. automethod:: receive_eof
+
+    .. automethod:: accept
+
+    .. automethod:: reject
+
+    .. automethod:: send_response
+
+    .. automethod:: send_continuation
+
+    .. automethod:: send_text
+
+    .. automethod:: send_binary
+
+    .. automethod:: send_close
+
+    .. automethod:: send_ping
+
+    .. automethod:: send_pong
+
+    .. automethod:: fail
+
+    .. automethod:: events_received
+
+    .. automethod:: data_to_send
+
+    .. automethod:: close_expected
+
+    .. autoattribute:: id
+
+    .. autoattribute:: logger
+
+    .. autoproperty:: state
+
+    .. autoproperty:: close_code
+
+    .. autoproperty:: close_reason
+
+    .. autoproperty:: close_exc

@@ -38,12 +38,12 @@ __all__ = [
 ]
 
 Event = Union[Request, Response, Frame]
-
-
-# A WebSocket connection is either a server or a client.
+"""Events that :meth:`~Connection.events_received` may return."""
 
 
 class Side(enum.IntEnum):
+    """A WebSocket connection is either a server or a client."""
+
     SERVER, CLIENT = range(2)
 
 
@@ -51,10 +51,9 @@ SERVER = Side.SERVER
 CLIENT = Side.CLIENT
 
 
-# A WebSocket connection goes through the following four states, in order:
-
-
 class State(enum.IntEnum):
+    """A WebSocket connection is in one of these four states."""
+
     CONNECTING, OPEN, CLOSING, CLOSED = range(4)
 
 
@@ -64,12 +63,26 @@ CLOSING = State.CLOSING
 CLOSED = State.CLOSED
 
 
-# Sentinel to signal that the connection should be closed.
-
 SEND_EOF = b""
+"""Sentinel signaling that the TCP connection must be half-closed."""
 
 
 class Connection:
+    """
+    Sans-I/O implementation of a WebSocket connection.
+
+    Args:
+        side: :attr:`~Side.CLIENT` or :attr:`~Side.SERVER`.
+        state: initial state of the WebSocket connection.
+        max_size: maximum size of incoming messages in bytes;
+            :obj:`None` to disable the limit.
+        logger: logger for this connection; depending on ``side``,
+            defaults to ``logging.getLogger("websockets.client")``
+            or ``logging.getLogger("websockets.server")``;
+            see the :doc:`logging guide <../topics/logging>` for details.
+
+    """
+
     def __init__(
         self,
         side: Side,
@@ -78,12 +91,14 @@ class Connection:
         logger: Optional[LoggerLike] = None,
     ) -> None:
         # Unique identifier. For logs.
-        self.id = uuid.uuid4()
+        self.id: uuid.UUID = uuid.uuid4()
+        """Unique identifier of the connection. Useful in logs."""
 
         # Logger or LoggerAdapter for this connection.
         if logger is None:
             logger = logging.getLogger(f"websockets.{side.name.lower()}")
-        self.logger = logger
+        self.logger: LoggerLike = logger
+        """Logger for this connection."""
 
         # Track if DEBUG is enabled. Shortcut logging calls if it isn't.
         self.debug = logger.isEnabledFor(logging.DEBUG)
@@ -126,12 +141,12 @@ class Connection:
         next(self.parser)  # start coroutine
         self.parser_exc: Optional[Exception] = None
 
-    # Public attributes
-
     @property
     def state(self) -> State:
         """
-        Connection State defined in 4.1, 4.2, 7.1.3, and 7.1.4 of :rfc:`6455`.
+        WebSocket connection state.
+
+        Defined in 4.1, 4.2, 7.1.3, and 7.1.4 of :rfc:`6455`.
 
         """
         return self._state
@@ -145,9 +160,12 @@ class Connection:
     @property
     def close_code(self) -> Optional[int]:
         """
-        Connection Close Code defined in 7.1.5 of :rfc:`6455`.
+        `WebSocket close code`_.
 
-        Available once the connection is closed.
+        .. _WebSocket close code:
+            https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.5
+
+        :obj:`None` if the connection isn't closed yet.
 
         """
         if self.state is not CLOSED:
@@ -160,9 +178,12 @@ class Connection:
     @property
     def close_reason(self) -> Optional[str]:
         """
-        Connection Close Reason defined in 7.1.6 of :rfc:`6455`.
+        `WebSocket close reason`_.
 
-        Available once the connection is closed.
+        .. _WebSocket close reason:
+            https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.6
+
+        :obj:`None` if the connection isn't closed yet.
 
         """
         if self.state is not CLOSED:
@@ -175,13 +196,20 @@ class Connection:
     @property
     def close_exc(self) -> ConnectionClosed:
         """
-        Exception raised when trying to interact with a closed connection.
+        Exception to raise when trying to interact with a closed connection.
 
-        Available once the connection is closed. If you need to raise this
-        exception while the connection is closing, wait until it's closed.
+        Don't raise this exception while the connection :attr:`state`
+        is :attr:`~websockets.connection.State.CLOSING`; wait until
+        it's :attr:`~websockets.connection.State.CLOSED`.
+
+        Indeed, the exception includes the close code and reason, which are
+        known only once the connection is closed.
+
+        Raises:
+            AssertionError: if the connection isn't closed yet.
 
         """
-        assert self.state is CLOSED
+        assert self.state is CLOSED, "connection isn't closed yet"
         exc_type: Type[ConnectionClosed]
         if (
             self.close_rcvd is not None
@@ -205,15 +233,15 @@ class Connection:
 
     def receive_data(self, data: bytes) -> None:
         """
-        Receive data from the connection.
+        Receive data from the network.
 
         After calling this method:
 
-        - You must call :meth:`data_to_send` and send this data.
-        - You should call :meth:`events_received` and process these events.
+        - You must call :meth:`data_to_send` and send this data to the network.
+        - You should call :meth:`events_received` and process resulting events.
 
         Raises:
-            EOFError: if :meth:`receive_eof` was called before.
+            EOFError: if :meth:`receive_eof` was called earlier.
 
         """
         self.reader.feed_data(data)
@@ -221,16 +249,16 @@ class Connection:
 
     def receive_eof(self) -> None:
         """
-        Receive the end of the data stream from the connection.
+        Receive the end of the data stream from the network.
 
         After calling this method:
 
-        - You must call :meth:`data_to_send` and send this data.
-        - You aren't exepcted to call :meth:`events_received` as it won't
-          return any new events.
+        - You must call :meth:`data_to_send` and send this data to the network.
+        - You aren't expected to call :meth:`events_received`; it won't return
+          any new events.
 
         Raises:
-            EOFError: if :meth:`receive_eof` was called before.
+            EOFError: if :meth:`receive_eof` was called earlier.
 
         """
         self.reader.feed_eof()
@@ -240,7 +268,19 @@ class Connection:
 
     def send_continuation(self, data: bytes, fin: bool) -> None:
         """
-        Send a continuation frame.
+        Send a `Continuation frame`_.
+
+        .. _Continuation frame:
+            https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+        Parameters:
+            data: payload containing the same kind of data
+                as the initial frame.
+            fin: FIN bit; set it to :obj:`True` if this is the last frame
+                of a fragmented message and to :obj:`False` otherwise.
+
+        Raises:
+            ProtocolError: if a fragmented message isn't in progress.
 
         """
         if not self.expect_continuation_frame:
@@ -250,7 +290,18 @@ class Connection:
 
     def send_text(self, data: bytes, fin: bool = True) -> None:
         """
-        Send a text frame.
+        Send a `Text frame`_.
+
+        .. _Text frame:
+            https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+        Parameters:
+            data: payload containing text encoded with UTF-8.
+            fin: FIN bit; set it to :obj:`False` if this is the first frame of
+                a fragmented message.
+
+        Raises:
+            ProtocolError: if a fragmented message is in progress.
 
         """
         if self.expect_continuation_frame:
@@ -260,7 +311,18 @@ class Connection:
 
     def send_binary(self, data: bytes, fin: bool = True) -> None:
         """
-        Send a binary frame.
+        Send a `Binary frame`_.
+
+        .. _Binary frame:
+            https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+        Parameters:
+            data: payload containing arbitrary binary data.
+            fin: FIN bit; set it to :obj:`False` if this is the first frame of
+                a fragmented message.
+
+        Raises:
+            ProtocolError: if a fragmented message is in progress.
 
         """
         if self.expect_continuation_frame:
@@ -270,7 +332,18 @@ class Connection:
 
     def send_close(self, code: Optional[int] = None, reason: str = "") -> None:
         """
-        Send a connection close frame.
+        Send a `Close frame`_.
+
+        .. _Close frame:
+            https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.1
+
+        Parameters:
+            code: close code.
+            reason: close reason.
+
+        Raises:
+            ProtocolError: if a fragmented message is being sent, if the code
+                isn't valid, or if a reason is provided without a code
 
         """
         if self.expect_continuation_frame:
@@ -291,22 +364,43 @@ class Connection:
 
     def send_ping(self, data: bytes) -> None:
         """
-        Send a ping frame.
+        Send a `Ping frame`_.
+
+        .. _Ping frame:
+            https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2
+
+        Parameters:
+            data: payload containing arbitrary binary data.
 
         """
         self.send_frame(Frame(OP_PING, data))
 
     def send_pong(self, data: bytes) -> None:
         """
-        Send a pong frame.
+        Send a `Pong frame`_.
+
+        .. _Pong frame:
+            https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.3
+
+        Parameters:
+            data: payload containing arbitrary binary data.
 
         """
         self.send_frame(Frame(OP_PONG, data))
 
     def fail(self, code: int, reason: str = "") -> None:
         """
-        Fail the WebSocket connection.
+        `Fail the WebSocket connection`_.
 
+        .. _Fail the WebSocket connection:
+            https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.7
+
+        Parameters:
+            code: close code
+            reason: close reason
+
+        Raises:
+            ProtocolError: if the code isn't valid.
         """
         # 7.1.7. Fail the WebSocket Connection
 
@@ -339,11 +433,14 @@ class Connection:
 
     def events_received(self) -> List[Event]:
         """
-        Return events read from the connection.
+        Fetch events generated from data received from the network.
 
-        Call this method immediately after calling any of the ``receive_*()``
-        methods and process the events.
+        Call this method immediately after any of the ``receive_*()`` methods.
 
+        Process resulting events, likely by passing them to the application.
+
+        Returns:
+            List[Event]: Events read from the connection.
         """
         events, self.events = self.events, []
         return events
@@ -352,13 +449,19 @@ class Connection:
 
     def data_to_send(self) -> List[bytes]:
         """
-        Return data to write to the connection.
+        Obtain data to send to the network.
 
-        Call this method immediately after calling any of the ``receive_*()``,
-        ``send_*()``, or ``fail()`` methods and write the data to the
+        Call this method immediately after any of the ``receive_*()``,
+        ``send_*()``, or :meth:`fail` methods.
+
+        Write resulting data to the connection.
+
+        The empty bytestring :data:`~websockets.connection.SEND_EOF` signals
+        the end of the data stream. When you receive it, half-close the TCP
         connection.
 
-        The empty bytestring signals the end of the data stream.
+        Returns:
+            List[bytes]: Data to write to the connection.
 
         """
         writes, self.writes = self.writes, []
@@ -366,11 +469,16 @@ class Connection:
 
     def close_expected(self) -> bool:
         """
-        Tell whether the TCP connection is expected to close soon.
+        Tell if the TCP connection is expected to close soon.
 
-        Call this method immediately after calling any of the ``receive_*()``
-        or ``fail_*()``  methods and, if it returns :obj:`True`, schedule
-        closing the TCP connection after a short timeout.
+        Call this method immediately after any of the ``receive_*()`` or
+        :meth:`fail` methods.
+
+        If it returns :obj:`True`, schedule closing the TCP connection after a
+        short timeout if the other side hasn't already closed it.
+
+        Returns:
+            bool: Whether the TCP connection is expected to close soon.
 
         """
         # We already got a TCP Close if and only if the state is CLOSED.

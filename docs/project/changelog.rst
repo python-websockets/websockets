@@ -81,22 +81,46 @@ New features
 
 * Added ``open_timeout`` to :func:`~client.connect`.
 
+* Documented how to integrate with `Django <https://www.djangoproject.com/>`_.
+
+* Documented how to deploy websockets in production, with several options.
+
+* Documented how to authenticate connections.
+
+* Documented how to broadcast messages to many connections.
+
 Improvements
 ............
 
-* Improved logging.
-
-* Provided additional information in :exc:`~exceptions.ConnectionClosed`
-  exceptions.
+* Improved logging. See the :doc:`logging guide <../topics/logging>`.
 
 * Optimized default compression settings to reduce memory usage.
+
+* Optimized processing of client-to-server messages when the C extension isn't
+  available.
+
+* Supported relative redirects in :func:`~client.connect`.
+
+* Handled TCP connection drops during the opening handshake.
 
 * Made it easier to customize authentication with
   :meth:`~auth.BasicAuthWebSocketServerProtocol.check_credentials`.
 
-* Supported relative redirects in :func:`~client.connect`.
+* Provided additional information in :exc:`~exceptions.ConnectionClosed`
+  exceptions.
+
+* Clarified several exceptions or log messages.
+
+* Restructured documentation.
 
 * Improved API documentation.
+
+* Extended FAQ.
+
+Bug fixes
+.........
+
+* Avoided a crash when receiving a ping while the connection is closing.
 
 9.1
 ---

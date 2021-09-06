@@ -35,3 +35,12 @@ HTTP events
         .. automethod:: raw_items
 
     .. autoexception:: MultipleValuesError
+
+URIs
+----
+
+.. automodule:: websockets.uri
+
+    .. autofunction:: parse_uri
+
+    .. autoclass:: WebSocketURI

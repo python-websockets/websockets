@@ -32,7 +32,7 @@ from .typing import (
     Subprotocol,
     UpgradeProtocol,
 )
-from .uri import parse_uri
+from .uri import WebSocketURI
 from .utils import accept_key, generate_key
 
 
@@ -46,7 +46,7 @@ __all__ = ["ClientConnection"]
 class ClientConnection(Connection):
     def __init__(
         self,
-        uri: str,
+        wsuri: WebSocketURI,
         origin: Optional[Origin] = None,
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
@@ -60,7 +60,7 @@ class ClientConnection(Connection):
             max_size=max_size,
             logger=logger,
         )
-        self.wsuri = parse_uri(uri)
+        self.wsuri = wsuri
         self.origin = origin
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols

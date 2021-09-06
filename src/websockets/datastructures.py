@@ -88,7 +88,7 @@ class Headers(MutableMapping[str, str]):
         return copy
 
     def serialize(self) -> bytes:
-        # Headers only contain ASCII characters.
+        # Since headers only contain ASCII characters, we can keep this simple.
         return str(self).encode()
 
     # Collection methods

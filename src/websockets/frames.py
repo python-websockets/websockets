@@ -99,9 +99,9 @@ class Frame:
     """
     WebSocket frame.
 
-    Args:
-        opcode: opcode.
-        data: payload data.
+    Attributes:
+        opcode: Opcode.
+        data: Payload data.
         fin: FIN bit.
         rsv1: RSV1 bit.
         rsv2: RSV2 bit.
@@ -367,6 +367,10 @@ def prepare_ctrl(data: Data) -> bytes:
 class Close:
     """
     WebSocket close code and reason.
+
+    Attributes:
+        code: Close code.
+        reason: Close reason.
 
     """
 

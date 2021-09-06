@@ -15,6 +15,18 @@ WebSocket events
 
     .. autoclass:: Opcode
 
+        .. autoattribute:: CONT
+
+        .. autoattribute:: TEXT
+
+        .. autoattribute:: BINARY
+
+        .. autoattribute:: CLOSE
+
+        .. autoattribute:: PING
+
+        .. autoattribute:: PONG
+
     .. autoclass:: Close
 
 HTTP events

@@ -35,6 +35,8 @@ __all__ = [
 
 
 class Opcode(enum.IntEnum):
+    """Opcode values for WebSocket frames."""
+
     CONT, TEXT, BINARY = 0x00, 0x01, 0x02
     CLOSE, PING, PONG = 0x08, 0x09, 0x0A
 
@@ -366,7 +368,7 @@ def prepare_ctrl(data: Data) -> bytes:
 @dataclasses.dataclass
 class Close:
     """
-    WebSocket close code and reason.
+    Code and reason for WebSocket close frames.
 
     Attributes:
         code: Close code.

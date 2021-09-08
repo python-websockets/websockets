@@ -99,7 +99,7 @@ class ServerConnection(Connection):
             request.exception = exc
             if self.debug:
                 self.logger.debug("! invalid upgrade", exc_info=True)
-            return self.reject(
+            response = self.reject(
                 http.HTTPStatus.UPGRADE_REQUIRED,
                 (
                     f"Failed to open a WebSocket connection: {exc}.\n"
@@ -107,8 +107,9 @@ class ServerConnection(Connection):
                     f"You cannot access a WebSocket server directly "
                     f"with a browser. You need a WebSocket client.\n"
                 ),
-                headers=Headers([("Upgrade", "websocket")]),
             )
+            response.headers["Upgrade"] = "websocket"
+            return response
         except InvalidHandshake as exc:
             request.exception = exc
             if self.debug:
@@ -415,8 +416,6 @@ class ServerConnection(Connection):
         self,
         status: http.HTTPStatus,
         text: str,
-        headers: Optional[Headers] = None,
-        exception: Optional[Exception] = None,
     ) -> Response:
         """
         Create a HTTP response event to reject the connection.
@@ -429,13 +428,15 @@ class ServerConnection(Connection):
 
         """
         body = text.encode()
-        if headers is None:
-            headers = Headers()
-        headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-        headers.setdefault("Connection", "close")
-        headers.setdefault("Content-Length", str(len(body)))
-        headers.setdefault("Content-Type", "text/plain; charset=utf-8")
-        headers.setdefault("Server", USER_AGENT)
+        headers = Headers(
+            [
+                ("Date", email.utils.formatdate(usegmt=True)),
+                ("Connection", "close"),
+                ("Content-Length", str(len(body))),
+                ("Content-Type", "text/plain; charset=utf-8"),
+                ("Server", USER_AGENT),
+            ]
+        )
         self.logger.info("connection failed (%d %s)", status.value, status.phrase)
         return Response(status.value, status.phrase, headers, body)
 

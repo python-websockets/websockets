@@ -165,4 +165,4 @@ class Headers(MutableMapping[str, str]):
 
 
 HeadersLike = Union[Headers, Mapping[str, str], Iterable[Tuple[str, str]]]
-HeadersLike.__doc__ = """Types accepted where :class:`Headers` is expected"""
+"""Types accepted where :class:`Headers` is expected."""

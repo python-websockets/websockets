@@ -17,7 +17,7 @@ __all__ = [
 # Public types used in the signature of public APIs
 
 Data = Union[str, bytes]
-Data.__doc__ = """Types supported in a WebSocket message:
+"""Types supported in a WebSocket message:
 :class:`str` for a Text_ frame, :class:`bytes` for a Binary_.
 
 .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
@@ -27,34 +27,34 @@ Data.__doc__ = """Types supported in a WebSocket message:
 
 
 LoggerLike = Union[logging.Logger, logging.LoggerAdapter]
-LoggerLike.__doc__ = """Types accepted where a :class:`~logging.Logger` is expected."""
+"""Types accepted where a :class:`~logging.Logger` is expected."""
 
 
 Origin = NewType("Origin", str)
-Origin.__doc__ = """Value of a ``Origin`` header."""
+"""Value of a ``Origin`` header."""
 
 
 Subprotocol = NewType("Subprotocol", str)
-Subprotocol.__doc__ = """Subprotocol in a ``Sec-WebSocket-Protocol`` header."""
+"""Subprotocol in a ``Sec-WebSocket-Protocol`` header."""
 
 
 ExtensionName = NewType("ExtensionName", str)
-ExtensionName.__doc__ = """Name of a WebSocket extension."""
+"""Name of a WebSocket extension."""
 
 
 ExtensionParameter = Tuple[str, Optional[str]]
-ExtensionParameter.__doc__ = """Parameter of a WebSocket extension."""
+"""Parameter of a WebSocket extension."""
 
 
 # Private types
 
 ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
-ExtensionHeader.__doc__ = """Extension in a ``Sec-WebSocket-Extensions`` header."""
+"""Extension in a ``Sec-WebSocket-Extensions`` header."""
 
 
 ConnectionOption = NewType("ConnectionOption", str)
-ConnectionOption.__doc__ = """Connection option in a ``Connection`` header."""
+"""Connection option in a ``Connection`` header."""
 
 
 UpgradeProtocol = NewType("UpgradeProtocol", str)
-UpgradeProtocol.__doc__ = """Upgrade protocol in an ``Upgrade`` header."""
+"""Upgrade protocol in an ``Upgrade`` header."""

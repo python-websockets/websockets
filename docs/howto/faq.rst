@@ -428,15 +428,6 @@ coroutines make it easier to manage control flow in concurrent code.
 
 If you prefer callback-based APIs, you should use another library.
 
-Is there a Python 2 version?
-............................
-
-No, there isn't.
-
-Python 2 reached end of life on January 1st, 2020.
-
-Before that date, websockets required asyncio and therefore Python 3.
-
 Why do I get the error: ``module 'websockets' has no attribute '...'``?
 .......................................................................
 

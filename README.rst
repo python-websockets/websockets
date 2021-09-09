@@ -125,8 +125,6 @@ Why shouldn't I use ``websockets``?
   at being an excellent implementation of :rfc:`6455`: The WebSocket Protocol
   and :rfc:`7692`: Compression Extensions for WebSocket. Its support for HTTP
   is minimal — just enough for a HTTP health check.
-* If you want to use Python 2: ``websockets`` builds upon ``asyncio`` which
-  only works on Python 3. ``websockets`` requires Python ≥ 3.7.
 
 What else?
 ----------

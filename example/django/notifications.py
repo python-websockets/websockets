@@ -28,7 +28,7 @@ def get_content_types(user):
     }
 
 
-async def handler(websocket, path):
+async def handler(websocket):
     """Authenticate user and register connection in CONNECTIONS."""
     sesame = await websocket.recv()
     user = await asyncio.to_thread(get_user, sesame)

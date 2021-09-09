@@ -131,7 +131,7 @@ Consumer
 
 For receiving messages and passing them to a ``consumer`` coroutine::
 
-    async def consumer_handler(websocket, path):
+    async def consumer_handler(websocket):
         async for message in websocket:
             await consumer(message)
 
@@ -145,7 +145,7 @@ Producer
 
 For getting messages from a ``producer`` coroutine and sending them::
 
-    async def producer_handler(websocket, path):
+    async def producer_handler(websocket):
         while True:
             message = await producer()
             await websocket.send(message)
@@ -163,11 +163,11 @@ Both sides
 You can read and write messages on the same connection by combining the two
 patterns shown above and running the two tasks in parallel::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         consumer_task = asyncio.ensure_future(
-            consumer_handler(websocket, path))
+            consumer_handler(websocket))
         producer_task = asyncio.ensure_future(
-            producer_handler(websocket, path))
+            producer_handler(websocket))
         done, pending = await asyncio.wait(
             [consumer_task, producer_task],
             return_when=asyncio.FIRST_COMPLETED,
@@ -186,7 +186,7 @@ unregister them when they disconnect.
 
     connected = set()
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         # Register.
         connected.add(websocket)
         try:

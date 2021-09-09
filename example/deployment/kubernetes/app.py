@@ -9,7 +9,7 @@ import time
 import websockets
 
 
-async def slow_echo(websocket, path):
+async def slow_echo(websocket):
     async for message in websocket:
         # Block the event loop! This allows saturating a single asyncio
         # process without opening an impractical number of connections.

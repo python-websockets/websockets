@@ -10,7 +10,7 @@ django.setup()
 from sesame.utils import get_user
 
 
-async def handler(websocket, path):
+async def handler(websocket):
     sesame = await websocket.recv()
     user = await asyncio.to_thread(get_user, sesame)
     if user is None:

@@ -22,12 +22,12 @@ before returning.
 
 For example, if your handler has a structure similar to::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         asyncio.create_task(do_some_work())
 
 change it to::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         await do_some_work()
 
 Why does the server close the connection after processing one message?
@@ -38,12 +38,12 @@ process multiple messages.
 
 For example, if your handler looks like this::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         print(websocket.recv())
 
 change it like this::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         async for message in websocket:
             print(message)
 
@@ -58,12 +58,12 @@ Any call that may take some time must be asynchronous.
 
 For example, if you have::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         time.sleep(1)
 
 change it to::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         await asyncio.sleep(1)
 
 This is part of learning asyncio. It isn't specific to websockets.
@@ -82,7 +82,7 @@ You can bind additional arguments to the connection handler with
     import functools
     import websockets
 
-    async def handler(websocket, path, extra_argument):
+    async def handler(websocket, extra_argument):
         ...
 
     bound_handler = functools.partial(handler, extra_argument='spam')
@@ -104,7 +104,7 @@ To access HTTP headers during the WebSocket handshake, you can override
 Once the connection is established, they're available in
 :attr:`~server.WebSocketServerProtocol.request_headers`::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         cookies = websocket.request_headers["Cookie"]
 
 How do I get the IP address of the client connecting to my server?
@@ -112,7 +112,7 @@ How do I get the IP address of the client connecting to my server?
 
 It's available in :attr:`~legacy.protocol.WebSocketCommonProtocol.remote_address`::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         remote_ip = websocket.remote_address[0]
 
 How do I set which IP addresses my server listens to?

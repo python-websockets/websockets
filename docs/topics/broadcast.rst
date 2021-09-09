@@ -27,7 +27,7 @@ Integrating them is left as an exercise for the reader. You could start with::
     import asyncio
     import websockets
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         ...
 
     async def broadcast(message):
@@ -64,7 +64,7 @@ Here's a connection handler that registers clients in a global variable::
 
     CLIENTS = set()
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         CLIENTS.add(websocket)
         try:
             await websocket.wait_closed()
@@ -241,7 +241,7 @@ run a task that gets messages from the queue and sends them to the client::
             message = await queue.get()
             await websocket.send(message)
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         queue = asyncio.Queue()
         relay_task = asyncio.create_task(relay(queue, websocket))
         CLIENTS.add(queue)
@@ -297,7 +297,7 @@ no references left, therefore the garbage collector deletes it.
 
 The connection handler subscribes to the stream and sends messages::
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         async for message in PUBSUB:
             await websocket.send(message)
 

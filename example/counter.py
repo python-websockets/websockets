@@ -22,7 +22,7 @@ def users_event():
     return json.dumps({"type": "users", "count": len(USERS)})
 
 
-async def counter(websocket, path):
+async def counter(websocket):
     try:
         # Register user
         USERS.add(websocket)

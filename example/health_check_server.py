@@ -8,7 +8,7 @@ async def health_check(path, request_headers):
     if path == "/healthz":
         return http.HTTPStatus.OK, [], b"OK\n"
 
-async def echo(websocket, path):
+async def echo(websocket):
     async for message in websocket:
         await websocket.send(message)
 

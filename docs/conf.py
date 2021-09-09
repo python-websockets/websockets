@@ -26,7 +26,7 @@ copyright = f"2013-{datetime.date.today().year}, Aymeric Augustin and contributo
 author = "Aymeric Augustin"
 
 # The full version, including alpha/beta/rc tags
-release = "9.1"
+release = "10.0"
 
 
 # -- General configuration ---------------------------------------------------

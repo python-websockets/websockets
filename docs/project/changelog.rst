@@ -28,7 +28,7 @@ They may change at any time.
 10.0
 ----
 
-*In development*
+*September 9, 2021*
 
 Backwards-incompatible changes
 ..............................

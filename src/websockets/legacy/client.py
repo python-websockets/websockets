@@ -35,12 +35,13 @@ from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import (
     build_authorization_basic,
     build_extension,
+    build_host,
     build_subprotocol,
     parse_extension,
     parse_subprotocol,
     validate_subprotocols,
 )
-from ..http import USER_AGENT, build_host
+from ..http import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
 from .handshake import build_request, check_response

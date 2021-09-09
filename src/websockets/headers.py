@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import base64
 import binascii
+import ipaddress
 import re
 from typing import Callable, List, Optional, Sequence, Tuple, TypeVar, cast
 
@@ -17,6 +18,7 @@ from .typing import (
 
 
 __all__ = [
+    "build_host",
     "parse_connection",
     "parse_upgrade",
     "parse_extension",
@@ -31,6 +33,29 @@ __all__ = [
 
 
 T = TypeVar("T")
+
+
+def build_host(host: str, port: int, secure: bool) -> str:
+    """
+    Build a ``Host`` header.
+
+    """
+    # https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.2
+    # IPv6 addresses must be enclosed in brackets.
+    try:
+        address = ipaddress.ip_address(host)
+    except ValueError:
+        # host is a hostname
+        pass
+    else:
+        # host is an IP address
+        if address.version == 6:
+            host = f"[{host}]"
+
+    if port != (443 if secure else 80):
+        host = f"{host}:{port}"
+
+    return host
 
 
 # To avoid a dependency on a parsing library, we implement manually the ABNF

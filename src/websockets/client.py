@@ -16,13 +16,14 @@ from .extensions import ClientExtensionFactory, Extension
 from .headers import (
     build_authorization_basic,
     build_extension,
+    build_host,
     build_subprotocol,
     parse_connection,
     parse_extension,
     parse_subprotocol,
     parse_upgrade,
 )
-from .http import USER_AGENT, build_host
+from .http import USER_AGENT
 from .http11 import Request, Response
 from .typing import (
     ConnectionOption,

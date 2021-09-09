@@ -54,6 +54,7 @@ Backwards-incompatible changes
     :obj:`None` to disable the timeout entirely.
 
 .. admonition:: The ``legacy_recv`` option is deprecated.
+    :class: note
 
     See the release notes of websockets 3.0 for details.
 
@@ -71,6 +72,14 @@ Backwards-incompatible changes
 
 New features
 ............
+
+.. admonition:: websockets 10.0 introduces a `Sans-I/O API
+    <https://sans-io.readthedocs.io/>`_ for easier integration
+    in third-party libraries.
+    :class: important
+
+    If you're integrating websockets in a library, rather than just using it,
+    look at the :doc:`Sans-I/O integration guide <../howto/sansio>`.
 
 * Added compatibility with Python 3.10.
 

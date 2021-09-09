@@ -45,7 +45,7 @@ class PubSub:
 PUBSUB = PubSub()
 
 
-async def handler(websocket, path, method=None):
+async def handler(websocket, method=None):
     if method in ["default", "naive", "task", "wait"]:
         CLIENTS.add(websocket)
         try:

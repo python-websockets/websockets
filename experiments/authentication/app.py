@@ -84,14 +84,14 @@ async def serve_html(path, request_headers):
     return http.HTTPStatus.NOT_FOUND, {}, b"Not found\n"
 
 
-async def noop_handler(websocket, path):
+async def noop_handler(websocket):
     pass
 
 
 # Send credentials as the first message in the WebSocket connection
 
 
-async def first_message_handler(websocket, path):
+async def first_message_handler(websocket):
     token = await websocket.recv()
     user = get_user(token)
     if user is None:
@@ -119,7 +119,7 @@ class QueryParamProtocol(websockets.WebSocketServerProtocol):
         self.user = user
 
 
-async def query_param_handler(websocket, path):
+async def query_param_handler(websocket):
     user = websocket.user
 
     await websocket.send(f"Hello {user}!")
@@ -149,7 +149,7 @@ class CookieProtocol(websockets.WebSocketServerProtocol):
         self.user = user
 
 
-async def cookie_handler(websocket, path):
+async def cookie_handler(websocket):
     user = websocket.user
 
     await websocket.send(f"Hello {user}!")
@@ -173,7 +173,7 @@ class UserInfoProtocol(websockets.BasicAuthWebSocketServerProtocol):
         return True
 
 
-async def user_info_handler(websocket, path):
+async def user_info_handler(websocket):
     user = websocket.user
 
     await websocket.send(f"Hello {user}!")

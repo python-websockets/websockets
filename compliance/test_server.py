@@ -13,7 +13,7 @@ logging.basicConfig(level=logging.WARNING)
 HOST, PORT = "127.0.0.1", 8642
 
 
-async def echo(ws, path):
+async def echo(ws):
     async for msg in ws:
         await ws.send(msg)
 

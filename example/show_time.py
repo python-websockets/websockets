@@ -7,7 +7,7 @@ import datetime
 import random
 import websockets
 
-async def time(websocket, path):
+async def time(websocket):
     while True:
         now = datetime.datetime.utcnow().isoformat() + "Z"
         await websocket.send(now)

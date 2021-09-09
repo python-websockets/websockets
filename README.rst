@@ -63,7 +63,7 @@ And here's an echo server:
     import asyncio
     from websockets import serve
 
-    async def echo(websocket, path):
+    async def echo(websocket):
         async for message in websocket:
             await websocket.send(message)
 

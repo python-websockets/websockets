@@ -25,6 +25,19 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented APIs are considered private.
 They may change at any time.
 
+10.1
+----
+
+*In development*
+
+Improvements
+............
+
+* Made the second parameter of connection handlers optional. It will be
+  deprecated in the next major release. The request path is available in
+  the :attr:`~legacy.protocol.WebSocketCommonProtocol.path` attribute of
+  the first argument.
+
 10.0
 ----
 

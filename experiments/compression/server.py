@@ -18,7 +18,7 @@ WB, ML = 12, 5
 MEM_SIZE = []
 
 
-async def handler(ws, path):
+async def handler(ws):
     msg = await ws.recv()
     await ws.send(msg)
 

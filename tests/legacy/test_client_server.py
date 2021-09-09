@@ -53,22 +53,22 @@ from .utils import MS, AsyncioTestCase
 testcert = bytes(pathlib.Path(__file__).parent.with_name("test_localhost.pem"))
 
 
-async def default_handler(ws, path):
-    if path == "/deprecated_attributes":
+async def default_handler(ws):
+    if ws.path == "/deprecated_attributes":
         await ws.recv()  # delay that allows catching warnings
         await ws.send(repr((ws.host, ws.port, ws.secure)))
-    elif path == "/close_timeout":
+    elif ws.path == "/close_timeout":
         await ws.send(repr(ws.close_timeout))
-    elif path == "/path":
+    elif ws.path == "/path":
         await ws.send(str(ws.path))
-    elif path == "/headers":
+    elif ws.path == "/headers":
         await ws.send(repr(ws.request_headers))
         await ws.send(repr(ws.response_headers))
-    elif path == "/extensions":
+    elif ws.path == "/extensions":
         await ws.send(repr(ws.extensions))
-    elif path == "/subprotocol":
+    elif ws.path == "/subprotocol":
         await ws.send(repr(ws.subprotocol))
-    elif path == "/slow_stop":
+    elif ws.path == "/slow_stop":
         await ws.wait_closed()
         await asyncio.sleep(2 * MS)
     else:
@@ -475,6 +475,21 @@ class CommonClientServerTests:
                     self.stop_client()
             finally:
                 self.stop_server()
+
+    def test_ws_handler_argument_backwards_compatibility(self):
+        async def handler_with_path(ws, path):
+            await ws.send(path)
+
+        with self.temp_server(
+            handler=handler_with_path,
+            # Enable deprecation warning and announce deprecation in 11.0.
+            # deprecation_warnings=["remove second argument of ws_handler"],
+        ):
+            with self.temp_client("/path"):
+                self.assertEqual(
+                    self.loop.run_until_complete(self.client.recv()),
+                    "/path",
+                )
 
     async def process_request_OK(path, request_headers):
         return http.HTTPStatus.OK, [], b"OK\n"
@@ -1336,7 +1351,7 @@ class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
 
     MESSAGES = ["3", "2", "1", "Fire!"]
 
-    async def echo_handler(ws, path):
+    async def echo_handler(ws):
         for message in AsyncIteratorTests.MESSAGES:
             await ws.send(message)
 
@@ -1354,7 +1369,7 @@ class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
 
         self.assertEqual(messages, self.MESSAGES)
 
-    async def echo_handler_1001(ws, path):
+    async def echo_handler_1001(ws):
         for message in AsyncIteratorTests.MESSAGES:
             await ws.send(message)
         await ws.close(1001)
@@ -1373,7 +1388,7 @@ class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
 
         self.assertEqual(messages, self.MESSAGES)
 
-    async def echo_handler_1011(ws, path):
+    async def echo_handler_1011(ws):
         for message in AsyncIteratorTests.MESSAGES:
             await ws.send(message)
         await ws.close(1011)
@@ -1395,7 +1410,7 @@ class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
 
 
 class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
-    async def echo_handler(ws, path):
+    async def echo_handler(ws):
         async for msg in ws:
             await ws.send(msg)
 

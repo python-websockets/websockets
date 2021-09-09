@@ -4,6 +4,7 @@ import asyncio
 import email.utils
 import functools
 import http
+import inspect
 import logging
 import socket
 import warnings
@@ -95,7 +96,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def __init__(
         self,
-        ws_handler: Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
+        ws_handler: Union[
+            Callable[[WebSocketServerProtocol], Awaitable[Any]],
+            Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
+        ],
         ws_server: WebSocketServer,
         *,
         logger: Optional[LoggerLike] = None,
@@ -118,7 +122,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if origins is not None and "" in origins:
             warnings.warn("use None instead of '' in origins", DeprecationWarning)
             origins = [None if origin == "" else origin for origin in origins]
-        self.ws_handler = ws_handler
+        # For backwards compatibility with 10.0 or earlier. Done here in
+        # addition to serve to trigger the deprecation warning on direct
+        # use of WebSocketServerProtocol.
+        self.ws_handler = remove_path_argument(ws_handler)
         self.ws_server = ws_server
         self.origins = origins
         self.available_extensions = extensions
@@ -152,7 +159,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         try:
 
             try:
-                path = await self.handshake(
+                await self.handshake(
                     origins=self.origins,
                     available_extensions=self.available_extensions,
                     available_subprotocols=self.available_subprotocols,
@@ -221,7 +228,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 return
 
             try:
-                await self.ws_handler(self, path)
+                await self.ws_handler(self)
             except Exception:
                 self.logger.error("connection handler failed", exc_info=True)
                 if not self.closed:
@@ -555,8 +562,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         Perform the server side of the opening handshake.
 
-        Return the path of the URI of the request.
-
         Args:
             origins: list of acceptable values of the Origin HTTP header;
                 include :obj:`None` if the lack of an origin is acceptable.
@@ -566,6 +571,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 decreasing preference.
             extra_headers: arbitrary HTTP headers to add to the response when
                 the handshake succeeds.
+
+        Returns:
+            str: path of the URI of the request.
 
         Raises:
             InvalidHandshake: if the handshake fails.
@@ -851,9 +859,8 @@ class Serve:
     The server is shut down automatically when exiting the context.
 
     Args:
-        ws_handler: connection handler. It must be a coroutine accepting
-            two arguments: the WebSocket connection, which is a
-            :class:`WebSocketServerProtocol`, and the path of the request.
+        ws_handler: connection handler. It receives the WebSocket connection,
+            which is a :class:`WebSocketServerProtocol`, in argument.
         host: network interfaces the server is bound to;
             see :meth:`~asyncio.loop.create_server` for details.
         port: TCP port the server listens on;
@@ -908,7 +915,10 @@ class Serve:
 
     def __init__(
         self,
-        ws_handler: Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
+        ws_handler: Union[
+            Callable[[WebSocketServerProtocol], Awaitable[Any]],
+            Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
+        ],
         host: Optional[Union[str, Sequence[str]]] = None,
         port: Optional[int] = None,
         *,
@@ -979,7 +989,10 @@ class Serve:
 
         factory = functools.partial(
             create_protocol,
-            ws_handler,
+            # For backwards compatibility with 10.0 or earlier. Done here in
+            # addition to WebSocketServerProtocol to trigger the deprecation
+            # warning once per serve() call rather than once per connection.
+            remove_path_argument(ws_handler),
             ws_server,
             host=host,
             port=port,
@@ -1052,7 +1065,10 @@ serve = Serve
 
 
 def unix_serve(
-    ws_handler: Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
+    ws_handler: Union[
+        Callable[[WebSocketServerProtocol], Awaitable[Any]],
+        Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
+    ],
     path: Optional[str] = None,
     **kwargs: Any,
 ) -> Serve:
@@ -1071,3 +1087,27 @@ def unix_serve(
 
     """
     return serve(ws_handler, path=path, unix=True, **kwargs)
+
+
+def remove_path_argument(
+    ws_handler: Union[
+        Callable[[WebSocketServerProtocol], Awaitable[Any]],
+        Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
+    ]
+) -> Callable[[WebSocketServerProtocol], Awaitable[Any]]:
+    if len(inspect.signature(ws_handler).parameters) == 2:
+        # Enable deprecation warning and announce deprecation in 11.0.
+        # warnings.warn("remove second argument of ws_handler", DeprecationWarning)
+
+        async def _ws_handler(websocket: WebSocketServerProtocol) -> Any:
+            return await cast(
+                Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
+                ws_handler,
+            )(websocket, websocket.path)
+
+        return _ws_handler
+
+    return cast(
+        Callable[[WebSocketServerProtocol], Awaitable[Any]],
+        ws_handler,
+    )

@@ -651,8 +651,6 @@ class Connect:
     async def __await_impl__(self) -> WebSocketClientProtocol:
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):
             transport, protocol = await self._create_connection()
-            # https://github.com/python/typeshed/pull/2756
-            transport = cast(asyncio.Transport, transport)
             protocol = cast(WebSocketClientProtocol, protocol)
 
             try:

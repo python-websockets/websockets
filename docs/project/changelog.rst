@@ -38,6 +38,9 @@ Improvements
   the :attr:`~legacy.protocol.WebSocketCommonProtocol.path` attribute of
   the first argument.
 
+* Mirrored the entire :class:`~asyncio.Server` API
+  in :class:`~server.WebSocketServer`.
+
 10.0
 ----
 

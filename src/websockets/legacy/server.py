@@ -724,13 +724,6 @@ class WebSocketServer:
         """
         self.websockets.remove(protocol)
 
-    def is_serving(self) -> bool:
-        """
-        Tell whether the server is accepting new connections or shutting down.
-
-        """
-        return self.server.is_serving()
-
     def close(self) -> None:
         """
         Close the server.
@@ -748,7 +741,7 @@ class WebSocketServer:
 
         """
         if self.close_task is None:
-            self.close_task = self.server.get_loop().create_task(self._close())
+            self.close_task = self.get_loop().create_task(self._close())
 
     async def _close(self) -> None:
         """
@@ -769,7 +762,7 @@ class WebSocketServer:
 
         # Wait until all accepted connections reach connection_made() and call
         # register(). See https://bugs.python.org/issue34852 for details.
-        await asyncio.sleep(0, **loop_if_py_lt_38(self.server.get_loop()))
+        await asyncio.sleep(0, **loop_if_py_lt_38(self.get_loop()))
 
         # Close OPEN connections with status code 1001. Since the server was
         # closed, handshake() closes OPENING connections with a HTTP 503
@@ -782,7 +775,7 @@ class WebSocketServer:
                     asyncio.create_task(websocket.close(1001))
                     for websocket in self.websockets
                 ],
-                **loop_if_py_lt_38(self.server.get_loop()),
+                **loop_if_py_lt_38(self.get_loop()),
             )
 
         # Wait until all connection handlers are complete.
@@ -791,7 +784,7 @@ class WebSocketServer:
         if self.websockets:
             await asyncio.wait(
                 [websocket.handler_task for websocket in self.websockets],
-                **loop_if_py_lt_38(self.server.get_loop()),
+                **loop_if_py_lt_38(self.get_loop()),
             )
 
         # Tell wait_closed() to return.
@@ -820,15 +813,53 @@ class WebSocketServer:
         """
         await asyncio.shield(self.closed_waiter)
 
+    def get_loop(self) -> asyncio.AbstractEventLoop:
+        """
+        See :meth:`asyncio.Server.get_loop`.
+
+        """
+        return self.server.get_loop()
+
+    def is_serving(self) -> bool:
+        """
+        See :meth:`asyncio.Server.is_serving`.
+
+        """
+        return self.server.is_serving()
+
+    async def start_serving(self) -> None:
+        """
+        See :meth:`asyncio.Server.start_serving`.
+
+        """
+        await self.server.start_serving()  # pragma: no cover
+
+    async def serve_forever(self) -> None:
+        """
+        See :meth:`asyncio.Server.serve_forever`.
+
+        """
+        await self.server.serve_forever()  # pragma: no cover
+
     @property
     def sockets(self) -> Optional[List[socket.socket]]:
         """
-        List of :obj:`~socket.socket` objects the server is listening on.
-
-        :obj:`None` if the server is closed.
+        See :attr:`asyncio.Server.sockets`.
 
         """
         return self.server.sockets
+
+    async def __aenter__(self) -> WebSocketServer:
+        return self  # pragma: no cover
+
+    async def __aexit__(
+        self,
+        exc_type: Optional[Type[BaseException]],
+        exc_value: Optional[BaseException],
+        traceback: Optional[TracebackType],
+    ) -> None:
+        self.close()  # pragma: no cover
+        await self.wait_closed()  # pragma: no cover
 
 
 class Serve:

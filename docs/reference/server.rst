@@ -24,6 +24,14 @@ Stopping a server
 
     .. automethod:: wait_closed
 
+    .. automethod:: get_loop
+
+    .. automethod:: is_serving
+
+    .. automethod:: start_serving
+
+    .. automethod:: serve_forever
+
     .. autoattribute:: sockets
 
 Using a connection

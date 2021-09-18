@@ -38,6 +38,10 @@ And here's an echo server:
 
 .. literalinclude:: ../example/echo.py
 
+Don't worry about the opening and closing handshakes, pings and pongs, or any
+other behavior described in the specification. websockets takes care of this
+under the hood so you can focus on your application!
+
 Also, websockets provides an interactive client:
 
 .. code-block:: console

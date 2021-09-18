@@ -8,6 +8,7 @@ If you're stuck, perhaps you'll find the answer here.
 
    faq
    cheatsheet
+   patterns
    autoreload
 
 This guide will help you integrate websockets into a broader system.

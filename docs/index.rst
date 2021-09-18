@@ -21,11 +21,11 @@ websockets
 .. |docs| image:: https://img.shields.io/readthedocs/websockets.svg
    :target: https://websockets.readthedocs.io/
 
-websockets is a library for building WebSocket servers_ and clients_ in Python
-with a focus on correctness and simplicity.
+websockets is a library for building WebSocket_ servers and
+clients in Python with a focus on correctness, simplicity, robustness, and
+performance.
 
-.. _servers: https://github.com/aaugustin/websockets/blob/main/example/server.py
-.. _clients: https://github.com/aaugustin/websockets/blob/main/example/client.py
+.. _WebSocket: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
 
 Built on top of :mod:`asyncio`, Python's standard asynchronous I/O framework,
 it provides an elegant coroutine-based API.

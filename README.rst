@@ -25,11 +25,10 @@
 What is ``websockets``?
 -----------------------
 
-``websockets`` is a library for building WebSocket servers_ and clients_ in
-Python with a focus on correctness and simplicity.
+websockets is a library for building WebSocket_ servers and clients in Python
+with a focus on correctness, simplicity, robustness, and performance.
 
-.. _servers: https://github.com/aaugustin/websockets/blob/main/example/server.py
-.. _clients: https://github.com/aaugustin/websockets/blob/main/example/client.py
+.. _WebSocket: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
 
 Built on top of ``asyncio``, Python's standard asynchronous I/O framework, it
 provides an elegant coroutine-based API.
@@ -92,19 +91,19 @@ Why should I use ``websockets``?
 
 The development of ``websockets`` is shaped by four principles:
 
-1. **Simplicity**: all you need to understand is ``msg = await ws.recv()`` and
-   ``await ws.send(msg)``; ``websockets`` takes care of managing connections
+1. **Correctness**: ``websockets`` is heavily tested for compliance
+   with :rfc:`6455`. Continuous integration fails under 100% branch
+   coverage.
+
+2. **Simplicity**: all you need to understand is ``msg = await ws.recv()`` and
+   ``await ws.send(msg)``. ``websockets`` takes care of managing connections
    so you can focus on your application.
 
-2. **Robustness**: ``websockets`` is built for production; for example it was
+3. **Robustness**: ``websockets`` is built for production. For example, it was
    the only library to `handle backpressure correctly`_ before the issue
    became widely known in the Python community.
 
-3. **Quality**: ``websockets`` is heavily tested. Continuous integration fails
-   under 100% branch coverage. Also it passes the industry-standard `Autobahn
-   Testsuite`_.
-
-4. **Performance**: memory usage is configurable. An extension written in C
+4. **Performance**: memory usage is optimized and configurable. A C extension
    accelerates expensive operations. It's pre-compiled for Linux, macOS and
    Windows and packaged in the wheel format for each system and Python version.
 

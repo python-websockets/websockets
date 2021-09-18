@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# WS server example
-
 import asyncio
 import websockets
 
@@ -18,4 +16,5 @@ async def main():
     async with websockets.serve(hello, "localhost", 8765):
         await asyncio.Future()  # run forever
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())

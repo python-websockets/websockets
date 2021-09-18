@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# WS client example
-
 import asyncio
 import websockets
 
@@ -16,4 +14,5 @@ async def hello():
         greeting = await websocket.recv()
         print(f"<<< {greeting}")
 
-asyncio.run(hello())
+if __name__ == "__main__":
+    asyncio.run(hello())

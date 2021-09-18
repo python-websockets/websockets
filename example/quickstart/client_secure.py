@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# WSS (WS over TLS) client example, with a self-signed certificate
-
 import asyncio
 import pathlib
 import ssl
@@ -22,4 +20,5 @@ async def hello():
         greeting = await websocket.recv()
         print(f"<<< {greeting}")
 
-asyncio.run(hello())
+if __name__ == "__main__":
+    asyncio.run(hello())

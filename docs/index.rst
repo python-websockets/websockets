@@ -38,6 +38,16 @@ And here's an echo server:
 
 .. literalinclude:: ../example/echo.py
 
+Also, websockets provides an interactive client:
+
+.. code-block:: console
+
+    $ python -m websockets ws://localhost:8765/
+    Connected to ws://localhost:8765/.
+    > Hello world!
+    < Hello world!
+    Connection closed: 1000 (OK).
+
 Do you like it? Let's dive in!
 
 .. toctree::

@@ -39,7 +39,7 @@ Generate tokens
 We want secure, short-lived tokens containing the user ID. We'll rely on
 `django-sesame`_, a small library designed exactly for this purpose.
 
- .. _django-sesame: https://github.com/aaugustin/django-sesame
+.. _django-sesame: https://github.com/aaugustin/django-sesame
 
 Add django-sesame to the dependencies of your Django project, install it, and
 configure it in the settings of the project:

@@ -18,6 +18,7 @@ coroutines
 cryptocurrencies
 cryptocurrency
 ctrl
+deserialize
 django
 dyno
 fractalideas

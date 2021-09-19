@@ -42,6 +42,7 @@ Here's the implementation of the app, an echo server. Save it in a file called
 ``app.py``:
 
 .. literalinclude:: ../../example/deployment/heroku/app.py
+    :language: text
 
 Heroku expects the server to `listen on a specific port`_, which is provided
 in the ``$PORT`` environment variable. The app reads it and passes it to
@@ -62,6 +63,7 @@ In order to build the app, Heroku needs to know that it depends on websockets.
 Create a ``requirements.txt`` file containing this line:
 
 .. literalinclude:: ../../example/deployment/heroku/requirements.txt
+    :language: text
 
 Heroku also needs to know how to run the app. Create a ``Procfile`` with this
 content:
@@ -86,7 +88,7 @@ The app is ready. Let's deploy it!
 
 .. code-block:: console
 
-    $ git push heroku main
+    $ git push heroku
 
     ... lots of output...
 

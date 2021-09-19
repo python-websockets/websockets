@@ -95,7 +95,11 @@ from websockets.version import commit
 code_url = f"https://github.com/aaugustin/websockets/blob/{commit}"
 
 def linkcode_resolve(domain, info):
-    assert domain == "py"
+    # Non-linkable objects from the starter kit in the tutorial.
+    if domain == "js" or info["module"] == "connect4":
+        return
+
+    assert domain == "py", "expected only Python objects"
 
     mod = importlib.import_module(info["module"])
     if "." in info["fullname"]:

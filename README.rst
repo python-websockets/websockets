@@ -113,7 +113,6 @@ Docs`_ and see for yourself.
 
 .. _Read the Docs: https://websockets.readthedocs.io/
 .. _handle backpressure correctly: https://vorpus.org/blog/some-thoughts-on-asynchronous-api-design-in-a-post-asyncawait-world/#websocket-servers
-.. _Autobahn Testsuite: https://github.com/aaugustin/websockets/blob/main/compliance/README.rst
 
 Why shouldn't I use ``websockets``?
 -----------------------------------

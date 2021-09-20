@@ -12,7 +12,7 @@ assignees: ''
 Thanks for taking the time to report an issue!
 
 Did you check the FAQ? Perhaps you'll find the answer you need:
-https://websockets.readthedocs.io/en/stable/faq.html
+https://websockets.readthedocs.io/en/stable/howto/faq.html
 
 Is your question really about asyncio? Perhaps the dev guide will help:
 https://docs.python.org/3/library/asyncio-dev.html

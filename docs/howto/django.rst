@@ -12,7 +12,7 @@ WebSocket, you have two main options.
    technique is well suited when you need to add a small set of real-time
    features — maybe a notification service — to a HTTP application.
 
-.. _Channels: https://channels.readthedocs.io/en/latest/
+.. _Channels: https://channels.readthedocs.io/
 
 This guide shows how to implement the second technique with websockets. It
 assumes familiarity with Django.

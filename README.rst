@@ -75,7 +75,7 @@ And here's an echo server:
 
 Does that look good?
 
-`Get started with the tutorial! <https://websockets.readthedocs.io/en/stable/intro.html>`_
+`Get started with the tutorial! <https://websockets.readthedocs.io/en/stable/intro/index.html>`_
 
 .. raw:: html
 

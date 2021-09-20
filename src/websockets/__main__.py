@@ -11,6 +11,7 @@ from typing import Any, Set
 from .exceptions import ConnectionClosed
 from .frames import Close
 from .legacy.client import connect
+from .version import version as websockets_version
 
 
 if sys.platform == "win32":
@@ -152,6 +153,24 @@ async def run_client(
 
 
 def main() -> None:
+    # Parse command line arguments.
+    parser = argparse.ArgumentParser(
+        prog="python -m websockets",
+        description="Interactive WebSocket client.",
+        add_help=False,
+    )
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument("--version", action="store_true")
+    group.add_argument("uri", metavar="<uri>", nargs="?")
+    args = parser.parse_args()
+
+    if args.version:
+        print(f"websockets {websockets_version}")
+        return
+
+    if args.uri is None:
+        parser.error("the following arguments are required: <uri>")
+
     # If we're on Windows, enable VT100 terminal support.
     if sys.platform == "win32":
         try:
@@ -168,15 +187,6 @@ def main() -> None:
         import readline  # noqa
     except ImportError:  # Windows has no `readline` normally
         pass
-
-    # Parse command line arguments.
-    parser = argparse.ArgumentParser(
-        prog="python -m websockets",
-        description="Interactive WebSocket client.",
-        add_help=False,
-    )
-    parser.add_argument("uri", metavar="<uri>")
-    args = parser.parse_args()
 
     # Create an event loop that will run in a background thread.
     loop = asyncio.new_event_loop()

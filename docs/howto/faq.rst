@@ -208,7 +208,7 @@ achieve this with :func:`asyncio.gather` or :func:`asyncio.create_task`.
 Keep track of the tasks and make sure they terminate or you cancel them when
 the connection terminates.
 
-Why does my program never receives any messages?
+Why does my program never receive any messages?
 ................................................
 
 Your program runs a coroutine that never yields control to the event loop. The

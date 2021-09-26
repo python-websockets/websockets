@@ -41,6 +41,8 @@ Improvements
 * Mirrored the entire :class:`~asyncio.Server` API
   in :class:`~server.WebSocketServer`.
 
+* Documented how to auto-reload on code changes in development.
+
 10.0
 ----
 

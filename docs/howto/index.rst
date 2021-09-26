@@ -1,13 +1,14 @@
 How-to guides
 =============
 
-If you're stuck, perhaps you'll find the answer in the FAQ or the cheat sheet.
+If you're stuck, perhaps you'll find the answer here.
 
 .. toctree::
    :titlesonly:
 
    faq
    cheatsheet
+   autoreload
 
 This guide will help you integrate websockets into a broader system.
 

@@ -4,10 +4,9 @@ Broadcasting messages
 .. currentmodule:: websockets
 
 
-.. note::
-
-    If you just want to send a message to all connected clients, use
-    :func:`broadcast`.
+.. admonition:: If you just want to send a message to all connected clients,
+    use :func:`broadcast`.
+    :class: tip
 
     If you want to learn about its design in depth, continue reading this
     document.

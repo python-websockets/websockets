@@ -38,6 +38,11 @@ Improvements
   the :attr:`~legacy.protocol.WebSocketCommonProtocol.path` attribute of
   the first argument.
 
+* Reverted optimization of default compression settings for clients, mainly to
+  avoid triggering bugs in poorly implemented servers like `AWS API Gateway`_.
+
+  .. _AWS API Gateway: https://github.com/aaugustin/websockets/issues/1065
+
 * Mirrored the entire :class:`~asyncio.Server` API
   in :class:`~server.WebSocketServer`.
 

@@ -59,35 +59,46 @@ Deflate extension explicitly with :class:`ClientPerMessageDeflateFactory` or
         ],
     )
 
-The Window Bits and Memory Level values in these examples reduce memory usage at the expense of compression rate.
+The Window Bits and Memory Level values in these examples reduce memory usage
+at the expense of compression rate.
 
 Compression settings
 --------------------
 
 When a client and a server enable the Per-Message Deflate extension, they
 negotiate two parameters to guarantee compatibility between compression and
-decompression. This affects the trade-off between compression rate and memory
-usage for both sides.
+decompression. These parameters affect the trade-off between compression rate
+and memory usage for both sides.
 
 * **Context Takeover** means that the compression context is retained between
   messages. In other words, compression is applied to the stream of messages
-  rather than to each message individually. Context takeover should remain
-  enabled to get good performance on applications that send a stream of
-  messages with the same structure, that is, most applications.
+  rather than to each message individually.
+
+  Context takeover should remain enabled to get good performance on
+  applications that send a stream of messages with similar structure,
+  that is, most applications.
+
+  This requires retaining the compression context and state between messages,
+  which increases the memory footprint of a connection.
 
 * **Window Bits** controls the size of the compression context. It must be
   an integer between 9 (lowest memory usage) and 15 (best compression).
-  websockets defaults to 12. Setting it to 8 is possible but rejected by some
-  versions of zlib.
+  Setting it to 8 is possible but rejected by some versions of zlib.
+
+  On the server side, websockets defaults to 12. On the client side, it lets
+  the server pick a suitable value, which is the same as defaulting to 15.
 
 :mod:`zlib` offers additional parameters for tuning compression. They control
-the trade-off between compression rate and CPU and memory usage for the
-compression side, transparently for the decompression side.
+the trade-off between compression rate, memory usage, and CPU usage only for
+compressing. They're transparent for decompressing. Unless mentioned
+otherwise, websockets inherits defaults of :func:`~zlib.compressobj`.
 
 * **Memory Level** controls the size of the compression state. It must be an
-  integer between 1 (lowest memory usage) and 9 (best compression). websockets
-  defaults to 5. A lower memory level can increase speed thanks to memory
-  locality.
+  integer between 1 (lowest memory usage) and 9 (best compression).
+
+  websockets defaults to 5. This is lower than zlib's default of 8. Not only
+  does a lower memory level reduce memory usage, but it can also increase
+  speed thanks to memory locality.
 
 * **Compression Level** controls the effort to optimize compression. It must
   be an integer between 1 (lowest CPU usage) and 9 (best compression).
@@ -95,16 +106,17 @@ compression side, transparently for the decompression side.
 * **Strategy** selects the compression strategy. The best choice depends on
   the type of data being compressed.
 
-Unless mentioned otherwise, websockets uses the defaults of
-:func:`zlib.compressobj` for all these settings.
 
 Tuning compression
 ------------------
 
+For servers
+...........
+
 By default, websockets enables compression with conservative settings that
-optimize memory usage at the cost of a slightly worse compression rate: Window
-Bits = 12 and Memory Level = 5. This strikes a good balance for small messages
-that are typical of WebSocket servers.
+optimize memory usage at the cost of a slightly worse compression rate:
+Window Bits = 12 and Memory Level = 5. This strikes a good balance for small
+messages that are typical of WebSocket servers.
 
 Here's how various compression settings affect memory usage of a single
 connection on a 64-bit system, as well a benchmark of compressed size and
@@ -151,6 +163,33 @@ usage is:
 * ``1 << windowBits`` for decompression.
 
 CPU usage is also higher for compression than decompression.
+
+For clients
+...........
+
+By default, websockets enables compression with Memory Level = 5 but leaves
+the Window Bits setting up to the server.
+
+There's two good reasons and one bad reason for not optimizing the client side
+like the server side:
+
+1. If the maintainers of a server configured some optimized settings, we don't
+   want to override them with more restrictive settings.
+
+2. Optimizing memory usage doesn't matter very much for clients because it's
+   uncommon to open thousands of client connections in a program.
+
+3. On a more pragmatic note, some servers misbehave badly when a client
+   configures compression settings. `AWS API Gateway`_ is the worst offender.
+
+   .. _AWS API Gateway: https://github.com/aaugustin/websockets/issues/1065
+
+   Unfortunately, even though websockets is right and AWS is wrong, many users
+   jump to the conclusion that websockets doesn't work.
+
+   Until the ecosystem levels up, interoperability with buggy servers seems
+   more valuable than optimizing memory usage.
+
 
 Further reading
 ---------------

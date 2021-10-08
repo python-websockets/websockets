@@ -19,6 +19,9 @@ Baseline
 Compression settings are the main factor affecting the baseline amount of
 memory used by each connection.
 
+With websockets' defaults, on the server side, a single connections uses
+70 KiB of memory.
+
 Refer to the :doc:`topic guide on compression <../topics/compression>` to
 learn more about tuning compression settings.
 

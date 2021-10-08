@@ -448,8 +448,6 @@ def enable_client_permessage_deflate(
     ):
         extensions = list(extensions) + [
             ClientPerMessageDeflateFactory(
-                server_max_window_bits=12,
-                client_max_window_bits=12,
                 compress_settings={"memLevel": 5},
             )
         ]

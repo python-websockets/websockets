@@ -2,9 +2,11 @@
 
 #define PY_SSIZE_T_CLEAN
 #include <Python.h>
-#include <stdint.h> /* uint32_t, uint64_t */
+#include <stdint.h> /* uint8_t, uint32_t, uint64_t */
 
-#if __SSE2__
+#if __ARM_NEON
+#include <arm_neon.h>
+#elif __SSE2__
 #include <emmintrin.h>
 #endif
 
@@ -128,7 +130,21 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
 
     // We need a new scope for MSVC 2010 (non C99 friendly)
     {
-#if __SSE2__
+#if __ARM_NEON
+
+        // With NEON support, XOR by blocks of 16 bytes = 128 bits.
+
+        Py_ssize_t input_len_128 = input_len & ~15;
+        uint8x16_t mask_128 = vreinterpretq_u8_u32(vdupq_n_u32(*(uint32_t *)mask));
+
+        for (; i < input_len_128; i += 16)
+        {
+            uint8x16_t in_128 = vld1q_u8((uint8_t *)(input + i));
+            uint8x16_t out_128 = veorq_u8(in_128, mask_128);
+            vst1q_u8((uint8_t *)(output + i), out_128);
+        }
+
+#elif __SSE2__
 
         // With SSE2 support, XOR by blocks of 16 bytes = 128 bits.
 

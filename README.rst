@@ -120,10 +120,17 @@ Why shouldn't I use ``websockets``?
 * If you prefer callbacks over coroutines: ``websockets`` was created to
   provide the best coroutine-based API to manage WebSocket connections in
   Python. Pick another library for a callback-based API.
+
 * If you're looking for a mixed HTTP / WebSocket library: ``websockets`` aims
   at being an excellent implementation of :rfc:`6455`: The WebSocket Protocol
   and :rfc:`7692`: Compression Extensions for WebSocket. Its support for HTTP
   is minimal — just enough for a HTTP health check.
+
+  If you want do to both in the same server, look at HTTP frameworks that
+  build on top of ``websockets`` to support WebSocket connections, like
+  Sanic_.
+
+.. _Sanic: https://sanicframework.org/en/
 
 What else?
 ----------

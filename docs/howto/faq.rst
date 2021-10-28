@@ -135,7 +135,7 @@ How do I run a HTTP server and WebSocket server on the same port?
 You don't.
 
 HTTP and WebSockets have widely different operational characteristics.
-Running them on the same server is a bad idea.
+Running them with the same server becomes inconvenient when you scale.
 
 Providing a HTTP server is out of scope for websockets. It only aims at
 providing a WebSocket server.
@@ -144,6 +144,11 @@ There's limited support for returning HTTP responses with the
 :attr:`~server.WebSocketServerProtocol.process_request` hook.
 
 If you need more, pick a HTTP server and run it separately.
+
+Alternatively, pick a HTTP framework that builds on top of ``websockets`` to
+support WebSocket connections, like Sanic_.
+
+.. _Sanic: https://sanicframework.org/en/
 
 Client side
 -----------

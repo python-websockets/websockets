@@ -59,6 +59,9 @@ class TransportMock(unittest.mock.Mock):
     def can_write_eof(self):
         return True
 
+    def is_closing(self):
+        return False
+
     def write_eof(self):
         # When the protocol half-closes the TCP connection, it expects the
         # other end to close it. Simulate that.

@@ -1303,7 +1303,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     self.logger.debug("! timed out waiting for TCP close")
 
             # Half-close the TCP connection if possible (when there's no TLS).
-            if self.transport.can_write_eof():
+            if self.transport.can_write_eof() and not self.transport.is_closing():
                 if self.debug:
                     self.logger.debug("x half-closing TCP connection")
                 self.transport.write_eof()

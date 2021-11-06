@@ -30,15 +30,29 @@ They may change at any time.
 
 *In development*
 
-Improvements
+New features
 ............
-
-* Added wheels for Python 3.10, PyPy 3.7, and for more platforms.
 
 * Made the second parameter of connection handlers optional. It will be
   deprecated in the next major release. The request path is available in
   the :attr:`~legacy.protocol.WebSocketCommonProtocol.path` attribute of
   the first argument.
+
+  If you implemented the connection handler of a server as::
+
+      async def handler(request, path):
+          ...
+
+  You should replace it by::
+
+      async def handler(request):
+          path = request.path  # if handler() uses the path argument
+          ...
+
+Improvements
+............
+
+* Added wheels for Python 3.10, PyPy 3.7, and for more platforms.
 
 * Reverted optimization of default compression settings for clients, mainly to
   avoid triggering bugs in poorly implemented servers like `AWS API Gateway`_.

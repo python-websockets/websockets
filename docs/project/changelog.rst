@@ -33,6 +33,8 @@ They may change at any time.
 Improvements
 ............
 
+* Added wheels for Python 3.10, PyPy 3.7, and for more platforms.
+
 * Made the second parameter of connection handlers optional. It will be
   deprecated in the next major release. The request path is available in
   the :attr:`~legacy.protocol.WebSocketCommonProtocol.path` attribute of

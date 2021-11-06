@@ -47,9 +47,10 @@ jobs:
       with:
         platforms: all
     - name: Build wheels
-      uses: joerick/cibuildwheel@v1.11.0
+      uses: pypa/cibuildwheel@v2.2.2
       env:
-        CIBW_ARCHS_LINUX: auto aarch64
+        CIBW_ARCHS_MACOS: "x86_64 universal2 arm64"
+        CIBW_ARCHS_LINUX: "auto aarch64"
         CIBW_SKIP: cp36-*
     - name: Save wheels
       uses: actions/upload-artifact@v2

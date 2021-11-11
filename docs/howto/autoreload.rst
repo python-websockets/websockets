@@ -14,7 +14,7 @@ However, you can achieve the same result easily.
 
 Install watchdog_ with the ``watchmedo`` shell utility:
 
-.. code:: console
+.. code-block:: console
 
     $ pip install watchdog[watchmedo]
 
@@ -22,7 +22,7 @@ Install watchdog_ with the ``watchmedo`` shell utility:
 
 Run your server with ``watchmedo auto-restart``:
 
-.. code:: console
+.. code-block:: console
 
     $ watchmedo auto-restart --pattern "*.py" --recursive --signal SIGTERM \
         python app.py

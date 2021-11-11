@@ -44,7 +44,7 @@ We want secure, short-lived tokens containing the user ID. We'll rely on
 Add django-sesame to the dependencies of your Django project, install it, and
 configure it in the settings of the project:
 
-.. code:: python
+.. code-block:: python
 
     AUTHENTICATION_BACKENDS = [
         "django.contrib.auth.backends.ModelBackend",
@@ -62,7 +62,7 @@ We'd like our tokens to be valid for 30 seconds. We expect web pages to load
 and to establish the WebSocket connection within this delay. Configure
 django-sesame accordingly in the settings of your Django project:
 
-.. code:: python
+.. code-block:: python
 
     SESAME_MAX_AGE = 30
 
@@ -77,7 +77,7 @@ performance.
 
 Now you can generate tokens in a ``django-admin shell`` as follows:
 
-.. code:: pycon
+.. code-block:: pycon
 
     >>> from django.contrib.auth import get_user_model
     >>> User = get_user_model()
@@ -132,7 +132,7 @@ Save this code to a file called ``authentication.py``, make sure the
 ``DJANGO_SETTINGS_MODULE`` environment variable is set properly, and start the
 websockets server:
 
-.. code:: console
+.. code-block:: console
 
     $ python authentication.py
 
@@ -140,7 +140,7 @@ Generate a new token — remember, they're only valid for 30 seconds — and use
 it to connect to your server. Paste your token and press Enter when you get a
 prompt:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets ws://localhost:8888/
     Connected to ws://localhost:8888/
@@ -153,7 +153,7 @@ It works!
 If you enter an expired or invalid token, authentication fails and the server
 closes the connection:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets ws://localhost:8888/
     Connected to ws://localhost:8888.
@@ -163,7 +163,7 @@ closes the connection:
 You can also test from a browser by generating a new token and running the
 following code in the JavaScript console of the browser:
 
-.. code:: javascript
+.. code-block:: javascript
 
     websocket = new WebSocket("ws://localhost:8888/");
     websocket.onopen = (event) => websocket.send("<your token>");
@@ -205,7 +205,7 @@ the Redis connection directly.
 Install Redis, add django-redis to the dependencies of your Django project,
 install it, and configure it in the settings of the project:
 
-.. code:: python
+.. code-block:: python
 
     CACHES = {
         "default": {
@@ -234,7 +234,7 @@ an event to Redis.
 
 Let's check that it works:
 
-.. code:: console
+.. code-block:: console
 
     $ redis-cli
     127.0.0.1:6379> SELECT 1

@@ -154,7 +154,7 @@ Run the experiment in an environment where websockets is installed:
 
 .. _experiments/authentication: https://github.com/aaugustin/websockets/tree/main/experiments/authentication
 
-.. code:: console
+.. code-block:: console
 
     $ python experiments/authentication/app.py
     Running on http://localhost:8000/
@@ -172,7 +172,7 @@ First message
 As soon as the connection is open, the client sends a message containing the
 token:
 
-.. code:: javascript
+.. code-block:: javascript
 
     const websocket = new WebSocket("ws://.../");
     websocket.onopen = () => websocket.send(token);
@@ -183,7 +183,7 @@ At the beginning of the connection handler, the server receives this message
 and authenticates the user. If authentication fails, the server closes the
 connection:
 
-.. code:: python
+.. code-block:: python
 
     async def first_message_handler(websocket):
         token = await websocket.recv()
@@ -200,7 +200,7 @@ Query parameter
 The client adds the token to the WebSocket URI in a query parameter before
 opening the connection:
 
-.. code:: javascript
+.. code-block:: javascript
 
     const uri = `ws://.../?token=${token}`;
     const websocket = new WebSocket(uri);
@@ -210,7 +210,7 @@ opening the connection:
 The server intercepts the HTTP request, extracts the token and authenticates
 the user. If authentication fails, it returns a HTTP 401:
 
-.. code:: python
+.. code-block:: python
 
     class QueryParamProtocol(websockets.WebSocketServerProtocol):
         async def process_request(self, path, headers):
@@ -237,7 +237,7 @@ The client sets a cookie containing the token before opening the connection.
 The cookie must be set by an iframe loaded from the same origin as the
 WebSocket server. This requires passing the token to this iframe.
 
-.. code:: javascript
+.. code-block:: javascript
 
     // in main window
     iframe.contentWindow.postMessage(token, "http://...");
@@ -256,7 +256,7 @@ This involves several events. Look at the full implementation for details.
 The server intercepts the HTTP request, extracts the token and authenticates
 the user. If authentication fails, it returns a HTTP 401:
 
-.. code:: python
+.. code-block:: python
 
     class CookieProtocol(websockets.WebSocketServerProtocol):
         async def process_request(self, path, headers):
@@ -284,7 +284,7 @@ User information
 The client adds the token to the WebSocket URI in user information before
 opening the connection:
 
-.. code:: javascript
+.. code-block:: javascript
 
     const uri = `ws://token:${token}@.../`;
     const websocket = new WebSocket(uri);
@@ -297,7 +297,7 @@ than a token, we send ``token`` as username and the token as password.
 The server intercepts the HTTP request, extracts the token and authenticates
 the user. If authentication fails, it returns a HTTP 401:
 
-.. code:: python
+.. code-block:: python
 
     class UserInfoProtocol(websockets.BasicAuthWebSocketServerProtocol):
         async def check_credentials(self, username, password):
@@ -326,7 +326,7 @@ solution in this scenario.
 To authenticate a websockets client with HTTP Basic Authentication
 (:rfc:`7617`), include the credentials in the URI:
 
-.. code:: python
+.. code-block:: python
 
     async with websockets.connect(
         f"wss://{username}:{password}@example.com",
@@ -339,7 +339,7 @@ contain unsafe characters.)
 To authenticate a websockets client with HTTP Bearer Authentication
 (:rfc:`6750`), add a suitable ``Authorization`` header:
 
-.. code:: python
+.. code-block:: python
 
     async with websockets.connect(
         "wss://example.com",

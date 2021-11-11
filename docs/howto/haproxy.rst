@@ -28,7 +28,7 @@ This configuration runs four instances of the app.
 
 Install Supervisor and run it:
 
-.. code:: console
+.. code-block:: console
 
     $ supervisord -c supervisord.conf -n
 
@@ -46,13 +46,13 @@ servers. This is best for long running connections.
 
 Save the configuration to ``haproxy.cfg``, install HAProxy, and run it:
 
-.. code:: console
+.. code-block:: console
 
     $ haproxy -f haproxy.cfg
 
 You can confirm that HAProxy proxies connections properly:
 
-.. code:: console
+.. code-block:: console
 
     $ PYTHONPATH=src python -m websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.

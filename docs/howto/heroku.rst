@@ -14,7 +14,7 @@ Create application
 
 Deploying to Heroku requires a git repository. Let's initialize one:
 
-.. code:: console
+.. code-block:: console
 
     $ mkdir websockets-echo
     $ cd websockets-echo
@@ -32,7 +32,7 @@ Then, create a Heroku app — if you follow these instructions step-by-step,
 you'll have to pick a different name because I'm already using
 ``websockets-echo`` on Heroku:
 
-.. code:: console
+.. code-block:: console
 
     $ heroku create websockets-echo
     Creating ⬢ websockets-echo... done
@@ -61,20 +61,16 @@ Deploy application
 In order to build the app, Heroku needs to know that it depends on websockets.
 Create a ``requirements.txt`` file containing this line:
 
-.. code::
-
-    websockets
+.. literalinclude:: ../../example/deployment/heroku/requirements.txt
 
 Heroku also needs to know how to run the app. Create a ``Procfile`` with this
 content:
 
-.. code::
-
-    web: python app.py
+.. literalinclude:: ../../example/deployment/heroku/Procfile
 
 Confirm that you created the correct files and commit them to git:
 
-.. code:: console
+.. code-block:: console
 
     $ ls
     Procfile         app.py           requirements.txt
@@ -88,7 +84,7 @@ Confirm that you created the correct files and commit them to git:
 
 The app is ready. Let's deploy it!
 
-.. code:: console
+.. code-block:: console
 
     $ git push heroku main
 
@@ -114,7 +110,7 @@ If you're currently building a websockets server, perhaps you're already in a
 virtualenv where websockets is installed. If not, you can install it in a new
 virtualenv as follows:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m venv websockets-client
     $ . websockets-client/bin/activate
@@ -123,7 +119,7 @@ virtualenv as follows:
 Connect the interactive client — using the name of your Heroku app instead of
 ``websockets-echo``:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets wss://websockets-echo.herokuapp.com/
     Connected to wss://websockets-echo.herokuapp.com/.
@@ -138,7 +134,7 @@ An insecure connection (``ws://``) would also work.
 Once you're connected, you can send any message and the server will echo it,
 then press Ctrl-D to terminate the connection:
 
-.. code:: console
+.. code-block:: console
 
     > Hello!
     < Hello!
@@ -147,7 +143,7 @@ then press Ctrl-D to terminate the connection:
 You can also confirm that your application shuts down gracefully. Connect an
 interactive client again — remember to replace ``websockets-echo`` with your app:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets wss://websockets-echo.herokuapp.com/
     Connected to wss://websockets-echo.herokuapp.com/.
@@ -155,7 +151,7 @@ interactive client again — remember to replace ``websockets-echo`` with your a
 
 In another shell, restart the dyno — again, replace ``websockets-echo`` with your app:
 
-.. code:: console
+.. code-block:: console
 
     $ heroku dyno:restart -a websockets-echo
     Restarting dynos on ⬢ websockets-echo... done
@@ -163,7 +159,7 @@ In another shell, restart the dyno — again, replace ``websockets-echo`` with y
 Go back to the first shell. The connection is closed with code 1001 (going
 away).
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets wss://websockets-echo.herokuapp.com/
     Connected to wss://websockets-echo.herokuapp.com/.

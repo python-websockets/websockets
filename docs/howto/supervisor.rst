@@ -14,14 +14,14 @@ connections.
 
 Create and activate a virtualenv:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m venv supervisor-websockets
     $ . supervisor-websockets/bin/activate
 
 Install websockets and Supervisor:
 
-.. code:: console
+.. code-block:: console
 
     $ pip install websockets
     $ pip install supervisor
@@ -45,7 +45,7 @@ running, restarting them if they exit.
 
 Now start Supervisor in the foreground:
 
-.. code:: console
+.. code-block:: console
 
     $ supervisord -c supervisord.conf -n
     INFO Increased RLIMIT_NOFILE limit to 1024
@@ -62,7 +62,7 @@ Now start Supervisor in the foreground:
 In another shell, after activating the virtualenv, we can connect to the app —
 press Ctrl-D to exit:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.
@@ -72,13 +72,13 @@ press Ctrl-D to exit:
 
 Look at the pid of an instance of the app in the logs and terminate it:
 
-.. code:: console
+.. code-block:: console
 
     $ kill -TERM 43597
 
 The logs show that Supervisor restarted this instance:
 
-.. code:: console
+.. code-block:: console
 
     INFO exited: websockets-test_00 (exit status 0; expected)
     INFO spawned: 'websockets-test_00' with pid 43629
@@ -87,7 +87,7 @@ The logs show that Supervisor restarted this instance:
 Now let's check what happens when we shut down Supervisor, but first let's
 establish a connection and leave it open:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.
@@ -95,14 +95,14 @@ establish a connection and leave it open:
 
 Look at the pid of supervisord itself in the logs and terminate it:
 
-.. code:: console
+.. code-block:: console
 
     $ kill -TERM 43596
 
 The logs show that Supervisor terminated all instances of the app before
 exiting:
 
-.. code:: console
+.. code-block:: console
 
     WARN received SIGTERM indicating exit request
     INFO waiting for websockets-test_00, websockets-test_01, websockets-test_02, websockets-test_03 to die
@@ -113,7 +113,7 @@ exiting:
 
 And you can see that the connection to the app was closed gracefully:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.

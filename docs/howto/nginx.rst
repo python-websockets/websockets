@@ -33,7 +33,7 @@ This configuration runs four instances of the app.
 
 Install Supervisor and run it:
 
-.. code:: console
+.. code-block:: console
 
     $ supervisord -c supervisord.conf -n
 
@@ -69,13 +69,13 @@ Then we combine the `WebSocket proxying`_ and `load balancing`_ guides:
 
 Save the configuration to ``nginx.conf``, install nginx, and run it:
 
-.. code:: console
+.. code-block:: console
 
     $ nginx -c nginx.conf -p .
 
 You can confirm that nginx proxies connections properly:
 
-.. code:: console
+.. code-block:: console
 
     $ PYTHONPATH=src python -m websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.

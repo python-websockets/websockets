@@ -36,13 +36,13 @@ guide, so we'll go for the simplest possible configuration instead:
 
 After saving this ``Dockerfile``, build the image:
 
-.. code:: console
+.. code-block:: console
 
     $ docker build -t websockets-test:1.0 .
 
 Test your image by running:
 
-.. code:: console
+.. code-block:: console
 
     $ docker run --name run-websockets-test --publish 32080:80 --rm \
         websockets-test:1.0
@@ -50,7 +50,7 @@ Test your image by running:
 Then, in another shell, in a virtualenv where websockets is installed, connect
 to the app and check that it echoes anything you send:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets ws://localhost:32080/
     Connected to ws://localhost:32080/.
@@ -60,14 +60,14 @@ to the app and check that it echoes anything you send:
 
 Now, in yet another shell, stop the app with:
 
-.. code:: console
+.. code-block:: console
 
     $ docker kill -s TERM run-websockets-test
 
 Going to the shell where you connected to the app, you can confirm that it
 shut down gracefully:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets ws://localhost:32080/
     Connected to ws://localhost:32080/.
@@ -96,7 +96,7 @@ to production, you would configure an Ingress_.
 
 After saving this to a file called ``deployment.yaml``, you can deploy:
 
-.. code:: console
+.. code-block:: console
 
     $ kubectl apply -f deployment.yaml
     service/websockets-test created
@@ -104,7 +104,7 @@ After saving this to a file called ``deployment.yaml``, you can deploy:
 
 Now you have a deployment with one pod running:
 
-.. code:: console
+.. code-block:: console
 
     $ kubectl get deployment websockets-test
     NAME              READY   UP-TO-DATE   AVAILABLE   AGE
@@ -115,7 +115,7 @@ Now you have a deployment with one pod running:
 
 You can connect to the service — press Ctrl-D to exit:
 
-.. code:: console
+.. code-block:: console
 
     $ python -m websockets ws://localhost:32080/
     Connected to ws://localhost:32080/.
@@ -126,7 +126,7 @@ Validate deployment
 
 First, let's ensure the liveness probe works by making the app unresponsive:
 
-.. code:: console
+.. code-block:: console
 
     $ curl http://localhost:32080/inemuri
     Sleeping for 10s
@@ -139,7 +139,7 @@ Therefore Kubernetes should restart the pod after at most 5 seconds.
 
 Indeed, after a few seconds, the pod reports a restart:
 
-.. code:: console
+.. code-block:: console
 
     $ kubectl get pods -l app=websockets-test
     NAME                               READY   STATUS    RESTARTS   AGE
@@ -147,14 +147,14 @@ Indeed, after a few seconds, the pod reports a restart:
 
 Next, let's take it one step further and crash the app:
 
-.. code:: console
+.. code-block:: console
 
     $ curl http://localhost:32080/seppuku
     Terminating
 
 The pod reports a second restart:
 
-.. code:: console
+.. code-block:: console
 
     $ kubectl get pods -l app=websockets-test
     NAME                               READY   STATUS    RESTARTS   AGE
@@ -167,14 +167,14 @@ Scale deployment
 
 Of course, Kubernetes is for scaling. Let's scale — modestly — to 10 pods:
 
-.. code:: console
+.. code-block:: console
 
     $ kubectl scale deployment.apps/websockets-test --replicas=10
     deployment.apps/websockets-test scaled
 
 After a few seconds, we have 10 pods running:
 
-.. code:: console
+.. code-block:: console
 
     $ kubectl get deployment websockets-test
     NAME              READY   UP-TO-DATE   AVAILABLE   AGE
@@ -191,7 +191,7 @@ over 50 * 6 * 0.1 = 30 seconds.
 
 Let's try it:
 
-.. code:: console
+.. code-block:: console
 
     $ ulimit -n 512
     $ time python benchmark.py 500 6
@@ -204,7 +204,7 @@ stabilize the test setup.
 
 Finally, we can scale back to one pod.
 
-.. code:: console
+.. code-block:: console
 
     $ kubectl scale deployment.apps/websockets-test --replicas=1
     deployment.apps/websockets-test scaled

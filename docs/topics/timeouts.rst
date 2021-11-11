@@ -56,7 +56,7 @@ Latency between a client and a server may increase for two reasons:
 
 You can monitor latency as follows:
 
-.. code:: python
+.. code-block:: python
 
     import asyncio
     import logging

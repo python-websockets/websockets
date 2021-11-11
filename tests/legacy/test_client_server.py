@@ -1454,6 +1454,7 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
                     await server_ws.close()
                     with self.assertRaises(ConnectionClosed):
                         await ws.recv()
+                    pass  # work around bug in coverage
                 else:
                     # Exit block with an exception.
                     raise Exception("BOOM!")

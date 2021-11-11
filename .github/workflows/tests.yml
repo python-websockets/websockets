@@ -18,7 +18,7 @@ jobs:
     - name: Install Python 3.x
       uses: actions/setup-python@v2
       with:
-        python-version: "3.9.6"
+        python-version: "3.x"
     - name: Install tox
       run: pip install tox
     - name: Run tests with coverage
@@ -38,7 +38,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9.6", "3.10"]
+        python: ["3.7", "3.8", "3.9", "3.10"]
     steps:
     - name: Check out repository
       uses: actions/checkout@v2

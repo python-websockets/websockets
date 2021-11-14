@@ -25,8 +25,7 @@ project = "websockets"
 copyright = f"2013-{datetime.date.today().year}, Aymeric Augustin and contributors"
 author = "Aymeric Augustin"
 
-# The full version, including alpha/beta/rc tags
-release = "10.0"
+from websockets.version import tag as version, version as release
 
 
 # -- General configuration ---------------------------------------------------
@@ -91,20 +90,9 @@ templates_path = ["_templates"]
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # Configure viewcode extension.
-try:
-    git_sha1 = subprocess.run(
-        "git rev-parse --short HEAD",
-        capture_output=True,
-        shell=True,
-        check=True,
-        text=True,
-    ).stdout.strip()
-except subprocess.SubprocessError as exc:
-    print("Cannot get git commit, disabling linkcode:", exc)
-    extensions.remove("sphinx.ext.linkcode")
-else:
-    code_url = f"https://github.com/aaugustin/websockets/blob/{git_sha1}"
+from websockets.version import commit
 
+code_url = f"https://github.com/aaugustin/websockets/blob/{commit}"
 
 def linkcode_resolve(domain, info):
     assert domain == "py"

@@ -33,6 +33,8 @@ They may change at any time.
 New features
 ............
 
+* Added a tutorial.
+
 * Made the second parameter of connection handlers optional. It will be
   deprecated in the next major release. The request path is available in
   the :attr:`~legacy.protocol.WebSocketCommonProtocol.path` attribute of
@@ -48,6 +50,8 @@ New features
       async def handler(request):
           path = request.path  # if handler() uses the path argument
           ...
+
+* Added ``python -m websockets --version``.
 
 Improvements
 ............
@@ -65,6 +69,11 @@ Improvements
 * Improved performance for large messages on ARM processors.
 
 * Documented how to auto-reload on code changes in development.
+
+Bug fixes
+.........
+
+* Avoided half-closing TCP connections that are already closed.
 
 10.0
 ----

@@ -1,4 +1,3 @@
-import sys
 import types
 import unittest
 import warnings
@@ -32,10 +31,6 @@ class ImportsTests(unittest.TestCase):
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
             self.assertEqual(self.mod.bar, bar)
-
-        # No warnings raised on pre-PEP 526 Python.
-        if sys.version_info[:2] < (3, 7):  # pragma: no cover
-            return
 
         self.assertEqual(len(recorded_warnings), 1)
         warning = recorded_warnings[0].message

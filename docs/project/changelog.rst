@@ -28,7 +28,7 @@ They may change at any time.
 10.1
 ----
 
-*In development*
+*November 14, 2021*
 
 New features
 ............

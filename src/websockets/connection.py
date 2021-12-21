@@ -106,7 +106,7 @@ class Connection:
         # Connection side. CLIENT or SERVER.
         self.side = side
 
-        # Connnection state. Initially OPEN because subclasses handle CONNECTING.
+        # Connection state. Initially OPEN because subclasses handle CONNECTING.
         self.state = state
 
         # Maximum size of incoming messages in bytes.

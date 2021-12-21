@@ -174,7 +174,7 @@ class ServerConnection(Connection):
         self, request: Request
     ) -> Tuple[str, Optional[str], Optional[str]]:
         """
-        Check a handshake request and negociate extensions and subprotocol.
+        Check a handshake request and negotiate extensions and subprotocol.
 
         This function doesn't verify that the request is an HTTP/1.1 or higher
         GET request and doesn't check the ``Host`` header. These controls are

@@ -118,7 +118,7 @@ class Headers(MutableMapping[str, str]):
     def __delitem__(self, key: str) -> None:
         key_lower = key.lower()
         self._dict.__delitem__(key_lower)
-        # This is inefficent. Fortunately deleting HTTP headers is uncommon.
+        # This is inefficient. Fortunately deleting HTTP headers is uncommon.
         self._list = [(k, v) for k, v in self._list if k.lower() != key_lower]
 
     def __eq__(self, other: Any) -> bool:

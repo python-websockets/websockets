@@ -121,7 +121,7 @@ apply_mask(PyObject *self, PyObject *args, PyObject *kwds)
         goto exit;
     }
 
-    // Since we juste created result, we don't need error checks.
+    // Since we just created result, we don't need error checks.
     output = PyBytes_AS_STRING(result);
 
     // Perform the masking operation.

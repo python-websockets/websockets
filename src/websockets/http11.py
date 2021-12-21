@@ -185,7 +185,7 @@ class Response:
             read_exact: generator-based coroutine that reads the requested
                 bytes or raises an exception if there isn't enough data.
             read_to_eof: generator-based coroutine that reads until the end
-                of the strem.
+                of the stream.
 
         Raises:
             EOFError: if the connection is closed without a full HTTP response.

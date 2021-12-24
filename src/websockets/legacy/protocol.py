@@ -750,7 +750,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 self.write_close_frame(Close(code, reason)),
                 self.close_timeout,
                 **loop_if_py_lt_38(self.loop),
-            )  # type: ignore  # remove when removing loop_if_py_lt_38
+            )
         except asyncio.TimeoutError:
             # If the close frame cannot be sent because the send buffers
             # are full, the closing handshake won't complete anyway.
@@ -771,7 +771,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 self.transfer_data_task,
                 self.close_timeout,
                 **loop_if_py_lt_38(self.loop),
-            )  # type: ignore  # remove when removing loop_if_py_lt_38
+            )
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
 
@@ -1072,8 +1072,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 raise ProtocolError("unexpected opcode")
             append(frame)
 
-        # mypy cannot figure out that chunks have the proper type.
-        return ("" if text else b"").join(chunks)  # type: ignore
+        return ("" if text else b"").join(chunks)
 
     async def read_data_frame(self, max_size: Optional[int]) -> Optional[Frame]:
         """
@@ -1250,7 +1249,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                             pong_waiter,
                             self.ping_timeout,
                             **loop_if_py_lt_38(self.loop),
-                        )  # type: ignore  # remove when removing loop_if_py_lt_38
+                        )
                         self.logger.debug("% received keepalive pong")
                     except asyncio.TimeoutError:
                         if self.debug:
@@ -1365,7 +1364,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     asyncio.shield(self.connection_lost_waiter),
                     self.close_timeout,
                     **loop_if_py_lt_38(self.loop),
-                )  # type: ignore  # remove when removing loop_if_py_lt_38
+                )
             except asyncio.TimeoutError:
                 pass
         # Re-check self.connection_lost_waiter.done() synchronously because

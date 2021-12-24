@@ -14,6 +14,7 @@ from typing import (
     Awaitable,
     Callable,
     Generator,
+    Iterable,
     List,
     Optional,
     Sequence,
@@ -361,7 +362,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 warnings.warn(
                     "declare process_request as a coroutine", DeprecationWarning
                 )
-                return response  # type: ignore
+                return response
         return None
 
     @staticmethod
@@ -589,7 +590,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         else:
             # For backwards compatibility with 7.0.
             warnings.warn("declare process_request as a coroutine", DeprecationWarning)
-            early_response = early_response_awaitable  # type: ignore
+            early_response = early_response_awaitable
 
         # The connection may drop while process_request is running.
         if self.state is State.CLOSED:
@@ -677,7 +678,7 @@ class WebSocketServer:
         # Completed when the server is closed and connections are terminated.
         self.closed_waiter: asyncio.Future[None]
 
-    def wrap(self, server: asyncio.AbstractServer) -> None:
+    def wrap(self, server: asyncio.base_events.Server) -> None:
         """
         Attach to a given :class:`~asyncio.Server`.
 
@@ -692,7 +693,6 @@ class WebSocketServer:
 
         """
         self.server = server
-        assert server.sockets is not None
         for sock in server.sockets:
             if sock.family == socket.AF_INET:
                 name = "%s:%d" % sock.getsockname()
@@ -842,7 +842,7 @@ class WebSocketServer:
         await self.server.serve_forever()  # pragma: no cover
 
     @property
-    def sockets(self) -> Optional[List[socket.socket]]:
+    def sockets(self) -> Iterable[socket.socket]:
         """
         See :attr:`asyncio.Server.sockets`.
 

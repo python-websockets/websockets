@@ -16,6 +16,12 @@ from .typing import (
     UpgradeProtocol,
 )
 
+from urllib.parse import urlparse
+import hashlib
+import time
+import os
+
+from .uri  import WebSocketURI
 
 __all__ = [
     "build_host",
@@ -33,6 +39,122 @@ __all__ = [
 
 
 T = TypeVar("T")
+
+# Class from the module requests
+class HTTPDigestAuth():
+    """Attaches HTTP Digest Authentication to the given Request object."""
+
+    def __init__(self, username, password):
+        self.username = username
+        self.password = password
+        self.last_nonce = ''
+        self.nonce_count = 0
+        self.chal = {}
+        self.pos = None
+
+    def build_digest_header(self, method, url):
+        """
+        :rtype: str
+        """
+
+        realm = self.chal['realm']
+        nonce = self.chal['nonce']
+        qop = self.chal.get('qop')
+        algorithm = self.chal.get('algorithm')
+        opaque = self.chal.get('opaque')
+        hash_utf8 = None
+
+        if algorithm is None:
+            _algorithm = 'MD5'
+        else:
+            _algorithm = algorithm.upper()
+        # lambdas assume digest modules are imported at the top level
+        if _algorithm == 'MD5' or _algorithm == 'MD5-SESS':
+            def md5_utf8(x):
+                if isinstance(x, str):
+                    x = x.encode('utf-8')
+                return hashlib.md5(x).hexdigest()
+            hash_utf8 = md5_utf8
+        elif _algorithm == 'SHA':
+            def sha_utf8(x):
+                if isinstance(x, str):
+                    x = x.encode('utf-8')
+                return hashlib.sha1(x).hexdigest()
+            hash_utf8 = sha_utf8
+        elif _algorithm == 'SHA-256':
+            def sha256_utf8(x):
+                if isinstance(x, str):
+                    x = x.encode('utf-8')
+                return hashlib.sha256(x).hexdigest()
+            hash_utf8 = sha256_utf8
+        elif _algorithm == 'SHA-512':
+            def sha512_utf8(x):
+                if isinstance(x, str):
+                    x = x.encode('utf-8')
+                return hashlib.sha512(x).hexdigest()
+            hash_utf8 = sha512_utf8
+
+        KD = lambda s, d: hash_utf8("%s:%s" % (s, d))
+
+        if hash_utf8 is None:
+            return None
+
+        # XXX not implemented yet
+        entdig = None
+        p_parsed = urlparse(url)
+        #: path is request-uri defined in RFC 2616 which should not be empty
+        path = p_parsed.path or "/"
+        if p_parsed.query:
+            path += '?' + p_parsed.query
+
+        A1 = '%s:%s:%s' % (self.username, realm, self.password)
+        A2 = '%s:%s' % (method, path)
+
+        HA1 = hash_utf8(A1)
+        HA2 = hash_utf8(A2)
+
+        if nonce == self.last_nonce:
+            self.nonce_count += 1
+        else:
+            self.nonce_count = 1
+        ncvalue = '%08x' % self.nonce_count
+        s = str(self.nonce_count).encode('utf-8')
+        s += nonce.encode('utf-8')
+        s += time.ctime().encode('utf-8')
+        s += os.urandom(8)
+        # For comparison purpose only
+        #s += bytes(0x0000000000000001)
+
+        cnonce = (hashlib.sha1(s).hexdigest()[:16])
+        if _algorithm == 'MD5-SESS':
+            HA1 = hash_utf8('%s:%s:%s' % (HA1, nonce, cnonce))
+
+        if not qop:
+            respdig = KD(HA1, "%s:%s" % (nonce, HA2))
+        elif qop == 'auth' or 'auth' in qop.split(','):
+            noncebit = "%s:%s:%s:%s:%s" % (
+                nonce, ncvalue, cnonce, 'auth', HA2
+            )
+            respdig = KD(HA1, noncebit)
+        else:
+            # XXX handle auth-int.
+            return None
+
+        self.last_nonce = nonce
+
+        # XXX should the partial digests be encoded too?
+        base = 'username="%s", realm="%s", nonce="%s", uri="%s", ' \
+               'response="%s"' % (self.username, realm, nonce, path, respdig)
+        if opaque:
+            base += ', opaque="%s"' % opaque
+        if algorithm:
+            base += ', algorithm="%s"' % algorithm
+        if entdig:
+            base += ', digest="%s"' % entdig
+        if qop:
+            base += ', qop="auth", nc=%s, cnonce="%s"' % (ncvalue, cnonce)
+
+        return 'Digest %s' % (base)
 
 
 def build_host(host: str, port: int, secure: bool) -> str:
@@ -585,3 +707,63 @@ def build_authorization_basic(username: str, password: str) -> str:
     user_pass = f"{username}:{password}"
     basic_credentials = base64.b64encode(user_pass.encode()).decode()
     return "Basic " + basic_credentials
+
+def build_authorization_digest(username: str, password: str, response_header, wsuri: WebSocketURI,) -> str:
+    """
+
+    Build an ``Authorization`` header for HTTP Digest Auth.
+    
+    It needs the once challenge that the server sended in the 401 headers response
+    
+    """
+    assert ":" not in username
+    
+    auth_rec = response_header.get('www-authenticate', '')
+    
+    auth_rec_splited = auth_rec.split(',')
+    # Remove the Auth type (Digest or Basic)
+    first_field = auth_rec_splited[0]
+    first_field_splited = first_field.split(' ')
+    auth_type = first_field_splited[0]
+    auth_rec_splited[0] = first_field_splited[1]
+    
+    realm =  ''
+    qop   =  ''
+    nonce =  ''
+    
+    for field in auth_rec_splited:
+        field = field.strip()
+        key, value = field.split('=', 1)
+        if   key == 'realm':
+            realm = value
+        elif key == 'qop':
+            qop = value
+        elif key == 'nonce':
+            nonce = value
+    
+    digest_challenge = HTTPDigestAuth(username, password)
+    
+    # Remove the double quotes (begining and end)
+    digest_challenge.chal['realm'] = realm[1:-1]
+    digest_challenge.chal['nonce'] = nonce[1:-1]
+    digest_challenge.chal['qop'] = qop[1:-1]
+    
+    # Reconstruction of the websocket uri for build_digest_header()
+    if wsuri.secure:
+        uri = 'wss://'
+    else:
+        uri = 'ws://'
+    
+    if wsuri.host:
+        uri += wsuri.host
+    
+    if wsuri.port:
+        uri += ':' + str(wsuri.port)
+    
+    if wsuri.resource_name:
+        uri += wsuri.resource_name
+    
+    #digest_credential = digest_challenge.build_digest_header('GET', 'wss://mediation.tydom.com:443/mediation/client?mac=001A250261D2&appli=1')
+    digest_credential = digest_challenge.build_digest_header('GET', wsuri.resource_name)
+    
+    return digest_credential

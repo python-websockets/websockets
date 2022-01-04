@@ -33,6 +33,7 @@ from ..exceptions import (
 from ..extensions import ClientExtensionFactory, Extension
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import (
+    build_authorization_digest,
     build_authorization_basic,
     build_extension,
     build_host,
@@ -44,7 +45,7 @@ from ..headers import (
 from ..http import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
-from .handshake import build_request, check_response
+from .handshake import build_request, check_response, build_request_known_key
 from .http import read_response
 from .protocol import WebSocketCommonProtocol
 
@@ -324,6 +325,70 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if "Location" not in response_headers:
                 raise InvalidHeader("Location")
             raise RedirectHandshake(response_headers["Location"])
+
+        elif status_code == 401:
+            # The Digest method needs a challenge, the server send the 401 response
+            # with the data of the challenge in the headers
+            challenge_headers = Headers()
+            
+            # Extract the authentication type at the beginning of the www-authenticate header
+            websocket_auth_type = response_headers.get('www-authenticate', '')
+            websocket_auth_type = websocket_auth_type.split(' ', 1)
+            websocket_auth_type = websocket_auth_type[0].lower()
+            
+            if websocket_auth_type == 'digest':
+                
+                # Start to build the challenge headers
+                if wsuri.port == (443 if wsuri.secure else 80):  # pragma: no cover
+                    challenge_headers["Host"] = wsuri.host
+                else:
+                    challenge_headers["Host"] = f"{wsuri.host}:{wsuri.port}"
+                
+                # Build the digest
+                challenge_headers["Authorization"] = build_authorization_digest(
+                    *wsuri.user_info, response_headers, wsuri
+                )
+                
+                # Other headers
+                if origin is not None:
+                    challenge_headers["Origin"] = origin
+                
+                # Don't generate a new key fr the websocket
+                key = build_request_known_key(challenge_headers, key)
+                
+                if available_extensions is not None:
+                    extensions_header = build_extension(
+                        [
+                            (extension_factory.name, extension_factory.get_request_params())
+                            for extension_factory in available_extensions
+                        ]
+                    )
+                    challenge_headers["Sec-WebSocket-Extensions"] = extensions_header
+                
+                if available_subprotocols is not None:
+                    protocol_header = build_subprotocol(available_subprotocols)
+                    challenge_headers["Sec-WebSocket-Protocol"] = protocol_header
+                
+                if extra_headers is not None:
+                    if isinstance(extra_headers, Headers):
+                        extra_headers = extra_headers.raw_items()
+                    elif isinstance(extra_headers, collections.abc.Mapping):
+                        extra_headers = extra_headers.items()
+                    for name, value in extra_headers:
+                        challenge_headers[name] = value
+                
+                # Last headers for the challenge response
+                challenge_headers.setdefault("User-Agent", USER_AGENT)
+                
+                # Send Challenge
+                self.write_http_request(wsuri.resource_name, challenge_headers)
+                # Wait response
+                status_code, response_headers = await self.read_http_response()
+            
+            else:
+                # If not digest type, same as not 101 answer
+                raise InvalidStatusCode(status_code)
+
         elif status_code != 101:
             raise InvalidStatusCode(status_code, response_headers)
 

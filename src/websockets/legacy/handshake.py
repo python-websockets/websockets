@@ -34,6 +34,25 @@ def build_request(headers: Headers) -> str:
     headers["Sec-WebSocket-Version"] = "13"
     return key
 
+def build_request_known_key(headers: Headers, known_key: str) -> str:
+    """
+    Build a handshake request to send to the server.
+
+    Update request headers passed in argument.
+
+    Args:
+        headers: request headers
+        known_key: the key sended by the server during the handshake
+
+    Returns:
+        str: ``key`` which must be passed to :func:`check_response`
+
+    """
+    headers["Upgrade"] = "websocket"
+    headers["Connection"] = "Upgrade"
+    headers["Sec-WebSocket-Key"] = known_key
+    headers["Sec-WebSocket-Version"] = "13"
+    return known_key
 
 def check_request(headers: Headers) -> str:
     """

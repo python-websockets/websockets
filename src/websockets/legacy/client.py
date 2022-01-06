@@ -663,7 +663,7 @@ class Connect:
                         available_subprotocols=protocol.available_subprotocols,
                         extra_headers=protocol.extra_headers,
                     )
-                except Exception:
+                except BaseException:
                     protocol.fail_connection()
                     await protocol.wait_closed()
                     raise

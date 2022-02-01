@@ -42,7 +42,7 @@ if not released:  # pragma: no cover
                 check=True,
                 text=True,
             ).stdout.strip()
-        except subprocess.CalledProcessError:
+        except (subprocess.CalledProcessError, FileNotFoundError):
             pass
         else:
             description_re = r"[0-9.]+-([0-9]+)-(g[0-9a-f]{7}(?:-dirty)?)"

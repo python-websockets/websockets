@@ -3,6 +3,8 @@ import contextlib
 import functools
 import http
 import logging
+import multiprocessing
+import os
 import pathlib
 import random
 import socket
@@ -1520,3 +1522,94 @@ class LoggerTests(ClientServerTestsMixin, AsyncioTestCase):
 
         self.assertGreater(len(server_logs.records), 0)
         self.assertGreater(len(client_logs.records), 0)
+
+
+@unittest.skipUnless(sys.platform.startswith("linux"), "this test requires Linux")
+class ClientConnectionCancellationTests(ClientServerTestsMixin, AsyncioTestCase):
+    def setUp(self):
+        super().setUp()
+
+        self._parent_conn, child_conn = multiprocessing.Pipe()
+
+        def _srv(conn):
+            loop = asyncio.new_event_loop()
+            server = loop.run_until_complete(
+                asyncio.start_server(lambda r, w: None, "127.0.0.1", 0)
+            )
+            conn.send(server.sockets[0].getsockname())
+            conn.recv()
+
+        pr = multiprocessing.Process(target=_srv, args=(child_conn,))
+        pr.start()
+
+        self.host, self.port = self._parent_conn.recv()
+
+    def tearDown(self):
+        self._parent_conn.send(None)
+        return super().tearDown()
+
+    def _get_open_sockets(self):
+        result = []
+        for fn in os.scandir("/proc/%d/fd" % os.getpid()):
+            name = os.readlink(fn)
+            if "socket" in name:
+                result.append(name)
+
+        return result
+
+    @contextlib.contextmanager
+    def assertSameSockets(self):
+        open_before = self._get_open_sockets()
+        yield
+        open_after = self._get_open_sockets()
+        self.assertEqual(open_before, open_after)
+
+    async def test_open_timeout(self):
+        with self.assertSameSockets():
+            for _ in range(3):
+                with self.assertRaises(asyncio.TimeoutError):
+                    await connect(
+                        f"ws://{self.host}:{self.port}",
+                        ping_interval=1,
+                        ping_timeout=0.5,
+                        open_timeout=1,
+                        close_timeout=1,
+                    )
+
+    async def test_wait_for(self):
+        with self.assertSameSockets():
+            for _ in range(3):
+                with self.assertRaises(asyncio.TimeoutError):
+                    await asyncio.wait_for(
+                        connect(
+                            f"ws://{self.host}:{self.port}",
+                            ping_interval=1,
+                            ping_timeout=0.5,
+                            close_timeout=1,
+                        ),
+                        1,
+                    )
+
+    async def test_cancellation(self):
+        with self.assertSameSockets():
+            connections = []
+
+            for _ in range(3):
+
+                async def _conn():
+                    await connect(
+                        f"ws://{self.host}:{self.port}",
+                        ping_interval=1,
+                        ping_timeout=0.5,
+                        close_timeout=1,
+                    )
+
+                connections.append(asyncio.create_task(_conn()))
+
+            await asyncio.sleep(1)
+
+            for conn in connections:
+                conn.cancel()
+
+                with contextlib.suppress(asyncio.CancelledError):
+                    await conn

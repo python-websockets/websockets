@@ -387,7 +387,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             
             else:
                 # If not digest type, same as not 101 answer
-                raise InvalidStatusCode(status_code)
+                raise InvalidStatusCode(status_code, response_headers)
 
         elif status_code != 101:
             raise InvalidStatusCode(status_code, response_headers)

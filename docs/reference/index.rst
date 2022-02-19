@@ -59,8 +59,8 @@ Anything that isn't listed in the API reference is a private API. There's no
 guarantees of behavior or backwards-compatibility for private APIs.
 
 For convenience, many public APIs can be imported from the ``websockets``
-package. This feature is incompatible with static code analysis tools such as
-mypy_, though. If you're using such tools, use the full import path.
+package. However, this feature is incompatible with static code analysis. It
+breaks autocompletion in an IDE or type checking with mypy_. If you're using
+such tools, use the real import paths.
 
 .. _mypy: https://github.com/python/mypy
-

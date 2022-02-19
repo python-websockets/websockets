@@ -259,10 +259,12 @@ Backwards-incompatible changes
 .. admonition:: Convenience imports from ``websockets`` are performed lazily.
     :class: note
 
-    While Python supports this, static code analysis tools such as mypy are
-    unable to understand the behavior.
+    While Python supports this, tools relying on static code analysis don't.
+    This breaks autocompletion in an IDE or type checking with mypy_.
 
-    If you depend on such tools, use the real import path, which can be found
+    .. _mypy: https://github.com/python/mypy
+
+    If you depend on such tools, use the real import paths, which can be found
     in the API documentation, for example::
 
         from websockets.client import connect

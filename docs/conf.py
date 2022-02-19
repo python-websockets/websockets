@@ -66,6 +66,11 @@ extensions = [
     "sphinxcontrib_trio",
     "sphinxext.opengraph",
 ]
+# It is currently inconvenient to install PyEnchant on Apple Silicon.
+try:
+    import sphinxcontrib.spelling
+except ImportError:
+    extensions.remove("sphinxcontrib.spelling")
 
 autodoc_typehints = "description"
 

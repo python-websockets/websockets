@@ -124,6 +124,16 @@ Look at the ``host`` argument of :meth:`~asyncio.loop.create_server`.
 :func:`~server.serve` accepts the same arguments as
 :meth:`~asyncio.loop.create_server`.
 
+What does ``OSError: [Errno 99] error while attempting to bind on address ('::1', 80, 0, 0): address not available`` mean?
+..........................................................................................................................
+
+You are calling :func:`~server.serve` without a ``host`` argument in a context
+where IPv6 isn't available.
+
+To listen only on IPv4, specify ``host="0.0.0.0"`` or ``family=socket.AF_INET``.
+
+Refer to the documentation of :meth:`~asyncio.loop.create_server` for details.
+
 How do I close a connection properly?
 .....................................
 

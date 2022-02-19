@@ -1438,7 +1438,8 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
             connect_inst.BACKOFF_MIN = 10 * MS
             connect_inst.BACKOFF_MAX = 99 * MS
             connect_inst.BACKOFF_INITIAL = 0
-            async for ws in connect_inst:
+            # coverage has a hard time dealing with this code - I give up.
+            async for ws in connect_inst:  # pragma: no cover
                 await ws.send("spam")
                 msg = await ws.recv()
                 self.assertEqual(msg, "spam")
@@ -1457,10 +1458,10 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
                     await server_ws.close()
                     with self.assertRaises(ConnectionClosed):
                         await ws.recv()
-                    pass  # work around bug in coverage
                 else:
                     # Exit block with an exception.
                     raise Exception("BOOM!")
+                pass  # work around bug in coverage
 
         with self.assertLogs("websockets", logging.INFO) as logs:
             with self.assertRaisesRegex(Exception, "BOOM!"):

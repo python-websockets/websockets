@@ -85,8 +85,13 @@ and memory usage for both sides.
   an integer between 9 (lowest memory usage) and 15 (best compression).
   Setting it to 8 is possible but rejected by some versions of zlib.
 
-  On the server side, websockets defaults to 12. On the client side, it lets
-  the server pick a suitable value, which is the same as defaulting to 15.
+  On the server side, websockets defaults to 12. Specifically, the compression
+  window size (server to client) is always 12 while the decompression window
+  (client to server) size may be 12 or 15 depending on whether the client
+  supports configuring it.
+
+  On the client side, websockets lets the server pick a suitable value, which
+  has the same effect as defaulting to 15.
 
 :mod:`zlib` offers additional parameters for tuning compression. They control
 the trade-off between compression rate, memory usage, and CPU usage only for
@@ -163,6 +168,18 @@ usage is:
 * ``1 << windowBits`` for decompression.
 
 CPU usage is also higher for compression than decompression.
+
+While it's always possible for a server to use a smaller window size for
+compressing outgoing messages, using a smaller window size for decompressing
+incoming messages requires collaboration from clients.
+
+When a client doesn't support configuring the size of its compression window,
+websockets enables compression with the largest possible decompression window.
+In most use cases, this is more efficient than disabling compression both ways.
+
+If you are very sensitive to memory usage, you can reverse this behavior by
+setting the ``require_client_max_window_bits`` parameter of
+:class:`ServerPerMessageDeflateFactory` to ``True``.
 
 For clients
 ...........

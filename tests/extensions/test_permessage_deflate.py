@@ -628,6 +628,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
             (True, False, None, 8),  # client_max_window_bits ≥ 8
             (True, True, None, 15),  # client_max_window_bits ≤ 15
             (False, False, None, None, {"memLevel": 4}),
+            (False, False, None, 12, {}, True),  # require_client_max_window_bits
         ]:
             with self.subTest(config=config):
                 # This does not raise an exception.
@@ -642,6 +643,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
             (False, False, None, True),  # client_max_window_bits
             (False, False, True, None),  # server_max_window_bits
             (False, False, None, None, {"wbits": 11}),
+            (False, False, None, None, {}, True),  # require_client_max_window_bits
         ]:
             with self.subTest(config=config):
                 with self.assertRaises(ValueError):
@@ -809,6 +811,12 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
             (
                 (False, False, None, 12),
                 [],
+                [],
+                (False, False, 15, 15),
+            ),
+            (
+                (False, False, None, 12, {}, True),
+                [],
                 None,
                 NegotiationError,
             ),
@@ -848,7 +856,7 @@ class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
                 None,
                 InvalidParameterValue,
             ),
-            # # Test all parameters together
+            # Test all parameters together
             (
                 (True, True, 12, 12),
                 [

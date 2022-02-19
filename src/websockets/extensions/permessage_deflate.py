@@ -471,10 +471,13 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         server_max_window_bits: maximum size of the server's LZ77 sliding window
             in bits, between 8 and 15.
         client_max_window_bits: maximum size of the client's LZ77 sliding window
-            in bits, between 8 and 15, or :obj:`True` to indicate support without
-            setting a limit.
+            in bits, between 8 and 15.
         compress_settings: additional keyword arguments for :func:`zlib.compressobj`,
             excluding ``wbits``.
+        require_client_max_window_bits: do not enable compression at all if
+            client doesn't advertise support for ``client_max_window_bits``;
+            the default behavior is to enable compression without enforcing
+            ``client_max_window_bits``.
 
     """
 
@@ -487,6 +490,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         server_max_window_bits: Optional[int] = None,
         client_max_window_bits: Optional[int] = None,
         compress_settings: Optional[Dict[str, Any]] = None,
+        require_client_max_window_bits: bool = False,
     ) -> None:
         """
         Configure the Per-Message Deflate extension factory.
@@ -501,12 +505,18 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
                 "compress_settings must not include wbits, "
                 "set server_max_window_bits instead"
             )
+        if client_max_window_bits is None and require_client_max_window_bits:
+            raise ValueError(
+                "require_client_max_window_bits is enabled, "
+                "but client_max_window_bits isn't configured"
+            )
 
         self.server_no_context_takeover = server_no_context_takeover
         self.client_no_context_takeover = client_no_context_takeover
         self.server_max_window_bits = server_max_window_bits
         self.client_max_window_bits = client_max_window_bits
         self.compress_settings = compress_settings
+        self.require_client_max_window_bits = require_client_max_window_bits
 
     def process_request_params(
         self,
@@ -587,7 +597,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         #   None    None    None
         #   None    True    None - must change value
         #   None    8≤M≤15  M (or None)
-        #   8≤N≤15  None    Error!
+        #   8≤N≤15  None    None or Error!
         #   8≤N≤15  True    N - must change value
         #   8≤N≤15  8≤M≤N   M (or None)
         #   8≤N≤15  N<M≤15  N
@@ -598,7 +608,8 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
         else:
             if client_max_window_bits is None:
-                raise exceptions.NegotiationError("required client_max_window_bits")
+                if self.require_client_max_window_bits:
+                    raise exceptions.NegotiationError("required client_max_window_bits")
             elif client_max_window_bits is True:
                 client_max_window_bits = self.client_max_window_bits
             elif self.client_max_window_bits < client_max_window_bits:

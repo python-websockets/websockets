@@ -30,6 +30,11 @@ They may change at any time.
 
 *In development*
 
+Improvements
+............
+
+* Made compression negotiation more lax for compatibility with Firefox.
+
 10.1
 ----
 

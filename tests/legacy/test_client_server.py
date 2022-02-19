@@ -845,7 +845,10 @@ class CommonClientServerTests:
     @with_server(
         extensions=[
             # No match because the client doesn't send client_max_window_bits.
-            ServerPerMessageDeflateFactory(client_max_window_bits=10),
+            ServerPerMessageDeflateFactory(
+                client_max_window_bits=10,
+                require_client_max_window_bits=True,
+            ),
             ServerPerMessageDeflateFactory(),
         ]
     )

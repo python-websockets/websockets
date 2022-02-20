@@ -73,6 +73,92 @@ See also Python's documentation about `running blocking code`_.
 
 .. _running blocking code: https://docs.python.org/3/library/asyncio-dev.html#running-blocking-code
 
+.. _send-message-to-all-users:
+
+How do I send a message to all users?
+.....................................
+
+Record all connections in a global variable::
+
+    CONNECTIONS = set()
+
+    async def handler(websocket):
+        CONNECTIONS.add(websocket)
+        try:
+            await websocket.wait_closed()
+        finally:
+            CONNECTIONS.remove(websocket)
+
+Then, call :func:`~websockets.broadcast`::
+
+    import websockets
+
+    def message_all(message):
+        websockets.broadcast(CONNECTIONS, message)
+
+If you're running multiple server processes, make sure you call ``message_all``
+in each process.
+
+.. _send-message-to-single-user:
+
+How do I send a message to a single user?
+.........................................
+
+Record connections in a global variable, keyed by user identifier::
+
+    CONNECTIONS = {}
+
+    async def handler(websocket):
+        user_id = ...  # identify user in your app's context
+        CONNECTIONS[user_id] = websocket
+        try:
+            await websocket.wait_closed()
+        finally:
+            del CONNECTIONS[user_id]
+
+Then, call :meth:`~legacy.protocol.WebSocketCommonProtocol.send`::
+
+    async def message_user(user_id, message):
+        websocket = CONNECTIONS[user_id]  # raises KeyError if user disconnected
+        await websocket.send(message)  # may raise websockets.ConnectionClosed
+
+Add error handling according to the behavior you want if the user disconnected
+before the message could be sent.
+
+This example supports only one connection per user. To support concurrent
+connects by the same user, you can change ``CONNECTIONS`` to store a set of
+connections for each user.
+
+If you're running multiple server processes, call ``message_user`` in each
+process. The process managing the user's connection sends the message; other
+processes do nothing.
+
+When you reach a scale where server processes cannot keep up with the stream of
+all messages, you need a better architecture. For example, you could deploy an
+external publish / subscribe system such as Redis_. Server processes would
+subscribe their clients. Then, they would receive messages only for the
+connections that they're managing.
+
+.. _Redis: https://redis.io/
+
+How do I send a message to a channel, a topic, or a subset of users?
+....................................................................
+
+websockets doesn't provide built-in publish / subscribe functionality.
+
+Record connections in a global variable, keyed by user identifier, as shown in
+:ref:`How do I send a message to a single user?<send-message-to-single-user>`
+
+Then, build the set of recipients and broadcast the message to them, as shown in
+:ref:`How do I send a message to all users?<send-message-to-all-users>`
+
+:doc:`django` contains a complete implementation of this pattern.
+
+Again, as you scale, you may reach the performance limits of a basic in-process
+implementation. You may need an external publish / subscribe system like Redis_.
+
+.. _Redis: https://redis.io/
+
 How can I pass additional arguments to the connection handler?
 ..............................................................
 
@@ -416,14 +502,6 @@ websockets takes care of responding to pings with pongs.
 
 Miscellaneous
 -------------
-
-How do I create channels or topics?
-...................................
-
-websockets doesn't have built-in publish / subscribe for these use cases.
-
-Depending on the scale of your service, a simple in-memory implementation may
-do the job or you may need an external publish / subscribe component.
 
 Can I use websockets synchronously, without ``async`` / ``await``?
 ..................................................................

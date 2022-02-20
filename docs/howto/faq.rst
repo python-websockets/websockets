@@ -276,9 +276,16 @@ The easiest is to use :func:`~client.connect` as a context manager::
 How do I reconnect automatically when the connection drops?
 ...........................................................
 
-See `issue 414`_.
+Use :func:`connect` as an asynchronous iterator::
 
-.. _issue 414: https://github.com/aaugustin/websockets/issues/414
+    async for websocket in websockets.connect(...):
+        try:
+            ...
+        except websockets.ConnectionClosed:
+            continue
+
+Make sure you handle exceptions in the ``async for`` loop. Uncaught exceptions
+will break out of the loop.
 
 How do I stop a client that is continuously processing messages?
 ................................................................

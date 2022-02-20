@@ -655,23 +655,24 @@ class Connect:
             protocol = cast(WebSocketClientProtocol, protocol)
 
             try:
-                try:
-                    await protocol.handshake(
-                        self._wsuri,
-                        origin=protocol.origin,
-                        available_extensions=protocol.available_extensions,
-                        available_subprotocols=protocol.available_subprotocols,
-                        extra_headers=protocol.extra_headers,
-                    )
-                except Exception:
-                    protocol.fail_connection()
-                    await protocol.wait_closed()
-                    raise
-                else:
-                    self.protocol = protocol
-                    return protocol
+                await protocol.handshake(
+                    self._wsuri,
+                    origin=protocol.origin,
+                    available_extensions=protocol.available_extensions,
+                    available_subprotocols=protocol.available_subprotocols,
+                    extra_headers=protocol.extra_headers,
+                )
             except RedirectHandshake as exc:
+                protocol.fail_connection()
+                await protocol.wait_closed()
                 self.handle_redirect(exc.uri)
+            except Exception:
+                protocol.fail_connection()
+                await protocol.wait_closed()
+                raise
+            else:
+                self.protocol = protocol
+                return protocol
         else:
             raise SecurityError("too many redirects")
 

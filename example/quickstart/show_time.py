@@ -6,8 +6,9 @@ import random
 import websockets
 
 async def show_time(websocket):
-    while websocket.open:
-        await websocket.send(datetime.datetime.utcnow().isoformat() + "Z")
+    while True:
+        message = datetime.datetime.utcnow().isoformat() + "Z"
+        await websocket.send(message)
         await asyncio.sleep(random.random() * 2 + 1)
 
 async def main():

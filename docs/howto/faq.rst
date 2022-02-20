@@ -15,8 +15,8 @@ FAQ
 Server side
 -----------
 
-Why does my server close the connection prematurely?
-....................................................
+Why does the server close the connection prematurely?
+.....................................................
 
 Your connection handler exits prematurely. Wait for the work to be finished
 before returning.
@@ -31,8 +31,8 @@ change it to::
     async def handler(websocket):
         await do_some_work()
 
-Why does the server close the connection after processing one message?
-......................................................................
+Why does the server close the connection after one message?
+...........................................................
 
 Your connection handler exits after processing one message. Write a loop to
 process multiple messages.
@@ -141,8 +141,8 @@ connections that they're managing.
 
 .. _Redis: https://redis.io/
 
-How do I send a message to a channel, a topic, or a subset of users?
-....................................................................
+How do I send a message to a channel, a topic, or some users?
+.............................................................
 
 websockets doesn't provide built-in publish / subscribe functionality.
 
@@ -159,8 +159,8 @@ implementation. You may need an external publish / subscribe system like Redis_.
 
 .. _Redis: https://redis.io/
 
-How can I pass additional arguments to the connection handler?
-..............................................................
+How do I pass arguments to the connection handler?
+..................................................
 
 You can bind additional arguments to the connection handler with
 :func:`functools.partial`::
@@ -179,8 +179,8 @@ Another way to achieve this result is to define the ``handler`` coroutine in
 a scope where the ``extra_argument`` variable exists instead of injecting it
 through an argument.
 
-How do I get access HTTP headers, for example cookies?
-......................................................
+How do I access HTTP headers, like cookies?
+...........................................
 
 To access HTTP headers during the WebSocket handshake, you can override
 :attr:`~server.WebSocketServerProtocol.process_request`::
@@ -194,16 +194,16 @@ Once the connection is established, they're available in
     async def handler(websocket):
         cookies = websocket.request_headers["Cookie"]
 
-How do I get the IP address of the client connecting to my server?
-..................................................................
+How do I get the IP address of the client?
+..........................................
 
 It's available in :attr:`~legacy.protocol.WebSocketCommonProtocol.remote_address`::
 
     async def handler(websocket):
         remote_ip = websocket.remote_address[0]
 
-How do I set which IP addresses my server listens to?
-.....................................................
+How do I set the IP addresses my server listens on?
+...................................................
 
 Look at the ``host`` argument of :meth:`~asyncio.loop.create_server`.
 
@@ -236,13 +236,13 @@ Here's an example that terminates cleanly when it receives SIGTERM on Unix:
     :emphasize-lines: 12-15,18
 
 
-How do I run a HTTP server and WebSocket server on the same port?
-.................................................................
+How do I run HTTP and WebSocket servers on the same port?
+.........................................................
 
 You don't.
 
-HTTP and WebSockets have widely different operational characteristics.
-Running them with the same server becomes inconvenient when you scale.
+HTTP and WebSocket have widely different operational characteristics. Running
+them with the same server becomes inconvenient when you scale.
 
 Providing a HTTP server is out of scope for websockets. It only aims at
 providing a WebSocket server.
@@ -260,8 +260,8 @@ support WebSocket connections, like Sanic_.
 Client side
 -----------
 
-Why does my client close the connection prematurely?
-....................................................
+Why does the client close the connection prematurely?
+.....................................................
 
 You're exiting the context manager prematurely. Wait for the work to be
 finished before exiting.
@@ -284,8 +284,8 @@ The easiest is to use :func:`~client.connect` as a context manager::
     async with connect(...) as websocket:
         ...
 
-How do I reconnect automatically when the connection drops?
-...........................................................
+How do I reconnect when the connection drops?
+.............................................
 
 Use :func:`connect` as an asynchronous iterator::
 
@@ -319,8 +319,8 @@ Look at the ``ssl`` argument of :meth:`~asyncio.loop.create_connection`.
 asyncio usage
 -------------
 
-How do I do two things in parallel? How do I integrate with another coroutine?
-..............................................................................
+How do I run two coroutines in parallel?
+........................................
 
 You must start two tasks, which the event loop will run concurrently. You can
 achieve this with :func:`asyncio.gather` or :func:`asyncio.create_task`.
@@ -359,8 +359,8 @@ See `issue 867`_.
 
 .. _issue 867: https://github.com/aaugustin/websockets/issues/867
 
-Why does my very simple program misbehave mysteriously?
-.......................................................
+Why does my simple program misbehave mysteriously?
+..................................................
 
 You are using :func:`time.sleep` instead of :func:`asyncio.sleep`, which
 blocks the event loop and prevents asyncio from operating normally.
@@ -484,8 +484,8 @@ See `issue 574`_.
 
 .. _issue 574: https://github.com/aaugustin/websockets/issues/574
 
-How can I pass additional arguments to a custom protocol subclass?
-..................................................................
+How can I pass arguments to a custom protocol subclass?
+.......................................................
 
 You can bind additional arguments to the protocol factory with
 :func:`functools.partial`::
@@ -513,16 +513,18 @@ It closes the connection if it doesn't get a pong within 20 seconds.
 
 You can adjust this behavior with ``ping_interval`` and ``ping_timeout``.
 
+See :doc:`../topics/timeouts` for details.
+
 How do I respond to pings?
 ..........................
 
-websockets takes care of responding to pings with pongs.
+Don't bother; websockets takes care of responding to pings with pongs.
 
 Miscellaneous
 -------------
 
-Can I use websockets synchronously, without ``async`` / ``await``?
-..................................................................
+Can I use websockets without ``async`` and ``await``?
+.....................................................
 
 You can convert every asynchronous call to a synchronous call by wrapping it
 in ``asyncio.get_event_loop().run_until_complete(...)``. Unfortunately, this
@@ -547,9 +549,9 @@ Often, this is because you created a script called ``websockets.py`` in your
 current working directory. Then ``import websockets`` imports this module
 instead of the websockets library.
 
-I'm having problems with threads
-................................
+Why am I having problems with threads?
+......................................
 
 You shouldn't use threads. Use tasks instead.
 
-:meth:`~asyncio.loop.call_soon_threadsafe` may help.
+If you have to, :meth:`~asyncio.loop.call_soon_threadsafe` may help.

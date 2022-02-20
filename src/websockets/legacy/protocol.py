@@ -1302,10 +1302,16 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     self.logger.debug("! timed out waiting for TCP close")
 
             # Half-close the TCP connection if possible (when there's no TLS).
-            if self.transport.can_write_eof() and not self.transport.is_closing():
+            if self.transport.can_write_eof():
                 if self.debug:
                     self.logger.debug("x half-closing TCP connection")
-                self.transport.write_eof()
+                # write_eof() doesn't document which exceptions it raises.
+                # "[Errno 107] Transport endpoint is not connected" happens
+                # but it isn't completely clear under which circumstances.
+                try:
+                    self.transport.write_eof()
+                except OSError:  # pragma: no cover
+                    pass
 
                 if await self.wait_for_connection_lost():
                     # Coverage marks this line as a partially executed branch.

@@ -442,10 +442,10 @@ class Connect:
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
         close_timeout: Optional[float] = None,
-        max_size: Optional[int] = 2 ** 20,
-        max_queue: Optional[int] = 2 ** 5,
-        read_limit: int = 2 ** 16,
-        write_limit: int = 2 ** 16,
+        max_size: Optional[int] = 2**20,
+        max_queue: Optional[int] = 2**5,
+        read_limit: int = 2**16,
+        write_limit: int = 2**16,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.

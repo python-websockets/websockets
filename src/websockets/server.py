@@ -72,7 +72,7 @@ class ServerConnection(Connection):
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         state: State = CONNECTING,
-        max_size: Optional[int] = 2 ** 20,
+        max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
     ):
         super().__init__(

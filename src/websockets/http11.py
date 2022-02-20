@@ -18,7 +18,7 @@ MAX_LINE = 4111
 
 # Support for HTTP response bodies is intended to read an error message
 # returned by a server. It isn't designed to perform large file transfers.
-MAX_BODY = 2 ** 20  # 1 MiB
+MAX_BODY = 2**20  # 1 MiB
 
 
 def d(value: bytes) -> str:

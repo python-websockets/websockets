@@ -87,7 +87,7 @@ class Connection:
         self,
         side: Side,
         state: State = OPEN,
-        max_size: Optional[int] = 2 ** 20,
+        max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
     ) -> None:
         # Unique identifier. For logs.

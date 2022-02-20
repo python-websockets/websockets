@@ -664,7 +664,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 # Final fragment.
                 await self.write_frame(True, OP_CONT, b"")
 
-            except Exception:
+            except (Exception, asyncio.CancelledError):
                 # We're half-way through a fragmented message and we can't
                 # complete it. This makes the connection unusable.
                 self.fail_connection(1011)
@@ -708,7 +708,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 # Final fragment.
                 await self.write_frame(True, OP_CONT, b"")
 
-            except Exception:
+            except (Exception, asyncio.CancelledError):
                 # We're half-way through a fragmented message and we can't
                 # complete it. This makes the connection unusable.
                 self.fail_connection(1011)

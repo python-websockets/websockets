@@ -220,10 +220,21 @@ To listen only on IPv4, specify ``host="0.0.0.0"`` or ``family=socket.AF_INET``.
 
 Refer to the documentation of :meth:`~asyncio.loop.create_server` for details.
 
-How do I close a connection properly?
-.....................................
+How do I close a connection?
+............................
 
 websockets takes care of closing the connection when the handler exits.
+
+How do I stop a server?
+.......................
+
+Exit the :func:`~server.serve` context manager.
+
+Here's an example that terminates cleanly when it receives SIGTERM on Unix:
+
+.. literalinclude:: ../../example/shutdown_server.py
+    :emphasize-lines: 12-15,18
+
 
 How do I run a HTTP server and WebSocket server on the same port?
 .................................................................
@@ -265,8 +276,8 @@ change it to::
     async with connect(...) as websocket:
         await do_some_work()
 
-How do I close a connection properly?
-.....................................
+How do I close a connection?
+............................
 
 The easiest is to use :func:`~client.connect` as a context manager::
 
@@ -287,8 +298,8 @@ Use :func:`connect` as an asynchronous iterator::
 Make sure you handle exceptions in the ``async for`` loop. Uncaught exceptions
 will break out of the loop.
 
-How do I stop a client that is continuously processing messages?
-................................................................
+How do I stop a client that is processing messages in a loop?
+.............................................................
 
 You can close the connection.
 

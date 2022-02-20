@@ -158,14 +158,11 @@ def get_server_address(server):
     server_socket = random.choice(server.sockets)
 
     if server_socket.family == socket.AF_INET6:  # pragma: no cover
-        host, port = server_socket.getsockname()[:2]  # (no IPv6 on CI)
-        host = f"[{host}]"
+        return server_socket.getsockname()[:2]  # (no IPv6 on CI)
     elif server_socket.family == socket.AF_INET:
-        host, port = server_socket.getsockname()
+        return server_socket.getsockname()
     else:  # pragma: no cover
         raise ValueError("expected an IPv6, IPv4, or Unix socket")
-
-    return host, port
 
 
 def get_server_uri(server, secure=False, resource_name="/", user_info=None):
@@ -176,6 +173,8 @@ def get_server_uri(server, secure=False, resource_name="/", user_info=None):
     proto = "wss" if secure else "ws"
     user_info = ":".join(user_info) + "@" if user_info else ""
     host, port = get_server_address(server)
+    if ":" in host:  # IPv6 address
+        host = f"[{host}]"
     return f"{proto}://{user_info}{host}:{port}{resource_name}"
 
 

@@ -147,15 +147,11 @@ def with_client(*args, **kwargs):
     return with_manager(temp_test_client, *args, **kwargs)
 
 
-def get_server_uri(server, secure=False, resource_name="/", user_info=None):
+def get_server_address(server):
     """
-    Return a WebSocket URI for connecting to the given server.
+    Return an address on which the given server listens.
 
     """
-    proto = "wss" if secure else "ws"
-
-    user_info = ":".join(user_info) + "@" if user_info else ""
-
     # Pick a random socket in order to test both IPv4 and IPv6 on systems
     # where both are available. Randomizing tests is usually a bad idea. If
     # needed, either use the first socket, or test separately IPv4 and IPv6.
@@ -169,6 +165,17 @@ def get_server_uri(server, secure=False, resource_name="/", user_info=None):
     else:  # pragma: no cover
         raise ValueError("expected an IPv6, IPv4, or Unix socket")
 
+    return host, port
+
+
+def get_server_uri(server, secure=False, resource_name="/", user_info=None):
+    """
+    Return a WebSocket URI for connecting to the given server.
+
+    """
+    proto = "wss" if secure else "ws"
+    user_info = ":".join(user_info) + "@" if user_info else ""
+    host, port = get_server_address(server)
     return f"{proto}://{user_info}{host}:{port}{resource_name}"
 
 
@@ -1067,6 +1074,21 @@ class CommonClientServerTests:
         with self.assertRaises(InvalidHandshake):
             self.start_client()
 
+    @with_server(create_protocol=SlowOpeningHandshakeProtocol)
+    def test_client_connect_canceled_during_handshake(self):
+        sock = socket.create_connection(get_server_address(self.server))
+        sock.send(b"")  # socket is connected
+
+        async def cancelled_client():
+            start_client = connect(get_server_uri(self.server), sock=sock)
+            await asyncio.wait_for(start_client, 5 * MS)
+
+        with self.assertRaises(asyncio.TimeoutError):
+            self.loop.run_until_complete(cancelled_client())
+
+        with self.assertRaises(OSError):
+            sock.send(b"")  # socket is closed
+
     @with_server()
     @unittest.mock.patch("websockets.legacy.server.WebSocketServerProtocol.send")
     def test_server_handler_crashes(self, send):
@@ -1198,6 +1220,9 @@ class ClientServerTests(
 class SecureClientServerTests(
     CommonClientServerTests, SecureClientServerTestsMixin, AsyncioTestCase
 ):
+
+    # The implementation of this test makes it hard to run it over TLS.
+    test_client_connect_canceled_during_handshake = None
 
     # TLS over Unix sockets doesn't make sense.
     test_unix_socket = None

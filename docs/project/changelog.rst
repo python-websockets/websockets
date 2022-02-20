@@ -35,6 +35,11 @@ Improvements
 
 * Made compression negotiation more lax for compatibility with Firefox.
 
+Bug fixes
+.........
+
+* Avoided leaking open sockets when :func:`~client.connect` is canceled.
+
 10.1
 ----
 

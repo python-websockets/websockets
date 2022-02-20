@@ -666,7 +666,8 @@ class Connect:
                 protocol.fail_connection()
                 await protocol.wait_closed()
                 self.handle_redirect(exc.uri)
-            except Exception:
+            # Avoid leaking a connected socket when the handshake fails.
+            except (Exception, asyncio.CancelledError):
                 protocol.fail_connection()
                 await protocol.wait_closed()
                 raise

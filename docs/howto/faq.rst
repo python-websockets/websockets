@@ -179,20 +179,30 @@ Another way to achieve this result is to define the ``handler`` coroutine in
 a scope where the ``extra_argument`` variable exists instead of injecting it
 through an argument.
 
-How do I access HTTP headers, like cookies?
-...........................................
+How do I access HTTP headers?
+.............................
 
 To access HTTP headers during the WebSocket handshake, you can override
 :attr:`~server.WebSocketServerProtocol.process_request`::
 
     async def process_request(self, path, request_headers):
-        cookies = request_header["Cookie"]
+        authorization = request_headers["Authorization"]
 
-Once the connection is established, they're available in
-:attr:`~server.WebSocketServerProtocol.request_headers`::
+Once the connection is established, HTTP headers are available in
+:attr:`~server.WebSocketServerProtocol.request_headers` and
+:attr:`~server.WebSocketServerProtocol.response_headers`::
 
     async def handler(websocket):
-        cookies = websocket.request_headers["Cookie"]
+        authorization = websocket.request_headers["Authorization"]
+
+How do I set HTTP headers?
+..........................
+
+To set the ``Sec-WebSocket-Extensions`` or ``Sec-WebSocket-Protocol`` headers in
+the WebSocket handshake response, use the ``extensions`` or ``subprotocols``
+arguments of :func:`~server.serve`.
+
+To set other HTTP headers, use the ``extra_headers`` argument.
 
 How do I get the IP address of the client?
 ..........................................
@@ -276,6 +286,27 @@ change it to::
     async with connect(...) as websocket:
         await do_some_work()
 
+How do I access HTTP headers?
+.............................
+
+Once the connection is established, HTTP headers are available in
+:attr:`~client.WebSocketClientProtocol.request_headers` and
+:attr:`~client.WebSocketClientProtocol.response_headers`.
+
+How do I set HTTP headers?
+..........................
+
+To set the ``Origin``, ``Sec-WebSocket-Extensions``, or
+``Sec-WebSocket-Protocol`` headers in the WebSocket handshake request, use the
+``origin``, ``extensions``, or ``subprotocols`` arguments of
+:func:`~client.connect`.
+
+To set other HTTP headers, for example the ``Authorization`` header, use the
+``extra_headers`` argument::
+
+    async with connect(..., extra_headers={"Authorization": ...}) as websocket:
+        ...
+
 How do I close a connection?
 ............................
 
@@ -284,10 +315,12 @@ The easiest is to use :func:`~client.connect` as a context manager::
     async with connect(...) as websocket:
         ...
 
+The connection is closed when exiting the context manager.
+
 How do I reconnect when the connection drops?
 .............................................
 
-Use :func:`connect` as an asynchronous iterator::
+Use :func:`~client.connect` as an asynchronous iterator::
 
     async for websocket in websockets.connect(...):
         try:

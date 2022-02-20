@@ -526,11 +526,7 @@ Miscellaneous
 Can I use websockets without ``async`` and ``await``?
 .....................................................
 
-You can convert every asynchronous call to a synchronous call by wrapping it
-in ``asyncio.get_event_loop().run_until_complete(...)``. Unfortunately, this
-is deprecated as of Python 3.10.
-
-If this turns out to be impractical, you should use another library.
+No, there is no convenient way to do this. You should use another library.
 
 Are there ``onopen``, ``onmessage``, ``onerror``, and ``onclose`` callbacks?
 ............................................................................

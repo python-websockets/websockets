@@ -497,6 +497,23 @@ class CommonClientServerTests:
                     "/path",
                 )
 
+    def test_ws_handler_argument_backwards_compatibility_partial(self):
+        async def handler_with_path(ws, path, extra):
+            await ws.send(path)
+
+        bound_handler_with_path = functools.partial(handler_with_path, extra=None)
+
+        with self.temp_server(
+            handler=bound_handler_with_path,
+            # Enable deprecation warning and announce deprecation in 11.0.
+            # deprecation_warnings=["remove second argument of ws_handler"],
+        ):
+            with self.temp_client("/path"):
+                self.assertEqual(
+                    self.loop.run_until_complete(self.client.recv()),
+                    "/path",
+                )
+
     async def process_request_OK(path, request_headers):
         return http.HTTPStatus.OK, [], b"OK\n"
 

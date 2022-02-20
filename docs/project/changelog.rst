@@ -38,6 +38,9 @@ Improvements
 Bug fixes
 .........
 
+* Fixed backwards-incompatibility in 10.1 for connection handlers created with
+  :func:`functools.partial`.
+
 * Avoided leaking open sockets when :func:`~client.connect` is canceled.
 
 10.1

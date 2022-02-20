@@ -1126,17 +1126,27 @@ def remove_path_argument(
         Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
     ]
 ) -> Callable[[WebSocketServerProtocol], Awaitable[Any]]:
-    if len(inspect.signature(ws_handler).parameters) == 2:
-        # Enable deprecation warning and announce deprecation in 11.0.
-        # warnings.warn("remove second argument of ws_handler", DeprecationWarning)
+    try:
+        inspect.signature(ws_handler).bind(None)
+    except TypeError:
+        try:
+            inspect.signature(ws_handler).bind(None, "")
+        except TypeError:  # pragma: no cover
+            # ws_handler accepts neither one nor two arguments; leave it alone.
+            pass
+        else:
+            # ws_handler accepts two arguments; activate backwards compatibility.
 
-        async def _ws_handler(websocket: WebSocketServerProtocol) -> Any:
-            return await cast(
-                Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
-                ws_handler,
-            )(websocket, websocket.path)
+            # Enable deprecation warning and announce deprecation in 11.0.
+            # warnings.warn("remove second argument of ws_handler", DeprecationWarning)
 
-        return _ws_handler
+            async def _ws_handler(websocket: WebSocketServerProtocol) -> Any:
+                return await cast(
+                    Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
+                    ws_handler,
+                )(websocket, websocket.path)
+
+            return _ws_handler
 
     return cast(
         Callable[[WebSocketServerProtocol], Awaitable[Any]],

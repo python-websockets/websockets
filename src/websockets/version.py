@@ -39,10 +39,12 @@ if not released:  # pragma: no cover
                 ["git", "describe", "--dirty", "--tags", "--long"],
                 capture_output=True,
                 cwd=root_dir,
+                timeout=1,
                 check=True,
                 text=True,
             ).stdout.strip()
-        except (subprocess.CalledProcessError, FileNotFoundError):
+        # subprocess.run raises FileNotFoundError if git isn't on $PATH.
+        except (FileNotFoundError, subprocess.CalledProcessError):
             pass
         else:
             description_re = r"[0-9.]+-([0-9]+)-(g[0-9a-f]{7}(?:-dirty)?)"

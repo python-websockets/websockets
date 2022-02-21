@@ -35,6 +35,8 @@ Improvements
 
 * Made compression negotiation more lax for compatibility with Firefox.
 
+* Improved FAQ and quick start guide.
+
 Bug fixes
 .........
 

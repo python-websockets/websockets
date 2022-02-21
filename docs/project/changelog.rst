@@ -28,7 +28,7 @@ They may change at any time.
 10.2
 ----
 
-*In development*
+*February 21, 2022*
 
 Improvements
 ............

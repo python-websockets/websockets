@@ -45,7 +45,7 @@ from ..headers import (
 from ..http import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
-from .handshake import build_request, check_response, build_request_known_key
+from .handshake import build_request, check_response
 from .http import read_response
 from .protocol import WebSocketCommonProtocol
 
@@ -353,8 +353,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
                 if origin is not None:
                     challenge_headers["Origin"] = origin
                 
-                # Don't generate a new key fr the websocket
-                key = build_request_known_key(challenge_headers, key)
+                # Don't generate a new key with Digest auth, use the existing key provided by the server
+                key = build_request(challenge_headers, key)
                 
                 if available_extensions is not None:
                     extensions_header = build_extension(

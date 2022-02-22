@@ -122,8 +122,6 @@ class HTTPDigestAuth():
         s += nonce.encode('utf-8')
         s += time.ctime().encode('utf-8')
         s += os.urandom(8)
-        # For comparison purpose only
-        #s += bytes(0x0000000000000001)
 
         cnonce = (hashlib.sha1(s).hexdigest()[:16])
         if _algorithm == 'MD5-SESS':
@@ -763,7 +761,6 @@ def build_authorization_digest(username: str, password: str, response_header, ws
     if wsuri.resource_name:
         uri += wsuri.resource_name
     
-    #digest_credential = digest_challenge.build_digest_header('GET', 'wss://mediation.tydom.com:443/mediation/client?mac=001A250261D2&appli=1')
     digest_credential = digest_challenge.build_digest_header('GET', wsuri.resource_name)
     
     return digest_credential

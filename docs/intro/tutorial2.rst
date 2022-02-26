@@ -382,7 +382,7 @@ single coroutine to process the moves of both players:
 
 .. code-block:: python
 
-    async def play(game, player, connected):
+    async def play(websocket, game, player, connected):
         ...
 
 With such a coroutine, you can replace the temporary code for testing in
@@ -390,13 +390,13 @@ With such a coroutine, you can replace the temporary code for testing in
 
 .. code-block:: python
 
-            await play(game, PLAYER1, connected)
+            await play(websocket, game, PLAYER1, connected)
 
 and in ``join()`` by:
 
 .. code-block:: python
 
-            await play(game, PLAYER2, connected)
+            await play(websocket, game, PLAYER2, connected)
 
 The ``play()`` coroutine will reuse much of the code you wrote in the first
 part of the tutorial.

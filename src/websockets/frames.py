@@ -139,7 +139,7 @@ class Frame:
             # Encode just what we need, plus two dummy bytes to elide later.
             binary = self.data
             if len(binary) > 25:
-                binary = binary[:16] + b"\x00\x00" + binary[-8:]
+                binary = b''.join([binary[:16], b"\x00\x00", binary[-8:]])
             data = " ".join(f"{byte:02x}" for byte in binary)
         elif self.opcode is OP_CLOSE:
             data = str(Close.parse(self.data))
@@ -153,7 +153,7 @@ class Frame:
             except UnicodeDecodeError:
                 binary = self.data
                 if len(binary) > 25:
-                    binary = binary[:16] + b"\x00\x00" + binary[-8:]
+                    binary = b''.join([binary[:16], b"\x00\x00", binary[-8:]])
                 data = " ".join(f"{byte:02x}" for byte in binary)
                 coding = "binary"
         else:

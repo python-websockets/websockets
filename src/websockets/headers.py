@@ -93,7 +93,7 @@ def parse_OWS(header: str, pos: int) -> int:
     return match.end()
 
 
-_token_re = re.compile(r"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
+_token_re = re.compile(r"[-!#$%&\'*+.^_`|~:0-9a-zA-Z]+")
 
 
 def parse_token(header: str, pos: int, header_name: str) -> Tuple[str, int]:

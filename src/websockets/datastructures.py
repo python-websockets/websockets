@@ -134,7 +134,7 @@ class Headers(MutableMapping[str, str]):
         self._dict = {}
         self._list = []
 
-    def update(self, *args: HeadersLike, **kwargs: str) -> None:
+    def update(self, *args: HeadersLike, **kwargs: str) -> None:  # type: ignore
         """
         Update from a :class:`Headers` instance and/or keyword arguments.
 

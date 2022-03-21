@@ -18,3 +18,5 @@ Types
 .. autodata:: websockets.connection.Event
 
 .. autodata:: websockets.datastructures.HeadersLike
+
+.. autodata:: websockets.datastructures.SupportsKeysAndGetItem

@@ -8,6 +8,7 @@ from typing import (
     List,
     Mapping,
     MutableMapping,
+    Protocol,
     Tuple,
     Union,
 )
@@ -134,7 +135,7 @@ class Headers(MutableMapping[str, str]):
         self._dict = {}
         self._list = []
 
-    def update(self, *args: HeadersLike, **kwargs: str) -> None:  # type: ignore
+    def update(self, *args: HeadersLike, **kwargs: str) -> None:
         """
         Update from a :class:`Headers` instance and/or keyword arguments.
 
@@ -164,5 +165,30 @@ class Headers(MutableMapping[str, str]):
         return iter(self._list)
 
 
-HeadersLike = Union[Headers, Mapping[str, str], Iterable[Tuple[str, str]]]
-"""Types accepted where :class:`Headers` is expected."""
+# copy of _typeshed.SupportsKeysAndGetItem.
+class SupportsKeysAndGetItem(Protocol):  # pragma: no cover
+    """
+    Dict-like types with ``keys() -> str`` and ``__getitem__(key: str) -> str`` methods.
+
+    """
+
+    def keys(self) -> Iterable[str]:
+        ...
+
+    def __getitem__(self, key: str) -> str:
+        ...
+
+
+HeadersLike = Union[
+    Headers,
+    Mapping[str, str],
+    Iterable[Tuple[str, str]],
+    SupportsKeysAndGetItem,
+]
+"""
+Types accepted where :class:`Headers` is expected.
+
+In addition to :class:`Headers` itself, this includes dict-like types where both
+keys and values are :class:`str`.
+
+"""

@@ -162,7 +162,7 @@ async def watch(websocket, watch_key):
         connected.remove(websocket)
 
 
-async def handler(websocket, path):
+async def handler(websocket):
     """
     Handle a connection and dispatch it according to who is connecting.
 

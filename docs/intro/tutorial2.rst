@@ -212,7 +212,7 @@ previous one to reuse it later:
             del JOIN[join_key]
 
 
-    async def handler(websocket, path):
+    async def handler(websocket):
         # Receive and parse the "init" event from the UI.
         message = await websocket.recv()
         event = json.loads(message)

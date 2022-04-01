@@ -344,6 +344,8 @@ class Connect:
     """
     Connect to the WebSocket server at ``uri``.
 
+    :func:`connect` accepts the same arguments as :meth:`~asyncio.loop.create_connection`.
+
     Awaiting :func:`connect` yields a :class:`WebSocketClientProtocol` which
     can then be used to send and receive messages.
 

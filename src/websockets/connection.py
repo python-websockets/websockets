@@ -481,7 +481,6 @@ class Connection:
             bool: Whether the TCP connection is expected to close soon.
 
         """
-        # We already got a TCP Close if and only if the state is CLOSED.
         # We expect a TCP close if and only if we sent a close frame:
         # * Normal closure: once we send a close frame, we expect a TCP close:
         #   server waits for client to complete the TCP closing handshake;
@@ -489,7 +488,8 @@ class Connection:
         # * Abnormal closure: we always send a close frame and the same logic
         #   applies, except on EOFError where we don't send a close frame
         #   because we already received the TCP close, so we don't expect it.
-        return self.state is not CLOSED and self.close_sent is not None
+        # We already got a TCP Close if and only if the state is CLOSED.
+        return self.state is CLOSING
 
     # Private methods for receiving data.
 

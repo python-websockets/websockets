@@ -498,7 +498,7 @@ class Connection:
         #   applies, except on EOFError where we don't send a close frame
         #   because we already received the TCP close, so we don't expect it.
         # We already got a TCP Close if and only if the state is CLOSED.
-        return self.state is CLOSING
+        return self.state is CLOSING or self.handshake_exc is not None
 
     # Private methods for receiving data.
 

@@ -13,6 +13,7 @@ from .exceptions import (
     InvalidHeader,
     InvalidHeaderValue,
     InvalidOrigin,
+    InvalidStatus,
     InvalidUpgrade,
     NegotiationError,
 )
@@ -471,8 +472,14 @@ class ServerConnection(Connection):
                 ("Server", USER_AGENT),
             ]
         )
+        response = Response(status.value, status.phrase, headers, body)
+        # When reject() is called from accept(), handshake_exc is already set.
+        # If a user calls reject(), set handshake_exc to guarantee invariant:
+        # "handshake_exc is None if and only if opening handshake succeded."
+        if self.handshake_exc is None:
+            self.handshake_exc = InvalidStatus(response)
         self.logger.info("connection failed (%d %s)", status.value, status.phrase)
-        return Response(status.value, status.phrase, headers, body)
+        return response
 
     def send_response(self, response: Response) -> None:
         """
@@ -497,6 +504,8 @@ class ServerConnection(Connection):
             self.state = OPEN
         else:
             self.send_eof()
+            self.parser = self.discard()
+            next(self.parser)  # start coroutine
 
     def parse(self) -> Generator[None, None, None]:
         if self.state is CONNECTING:

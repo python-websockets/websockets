@@ -42,6 +42,7 @@ class ConnectTests(unittest.TestCase):
                 f"\r\n".encode()
             ],
         )
+        self.assertFalse(client.close_expected())
 
     def test_connect_request(self):
         with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
@@ -135,6 +136,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         [response] = client.events_received()
         self.assertIsInstance(response, Response)
+        self.assertEqual(client.data_to_send(), [])
+        self.assertFalse(client.close_expected())
         self.assertEqual(client.state, OPEN)
 
     def test_receive_reject(self):
@@ -155,6 +158,8 @@ class AcceptRejectTests(unittest.TestCase):
         )
         [response] = client.events_received()
         self.assertIsInstance(response, Response)
+        self.assertEqual(client.data_to_send(), [])
+        self.assertTrue(client.close_expected())
         self.assertEqual(client.state, CONNECTING)
 
     def test_accept_response(self):

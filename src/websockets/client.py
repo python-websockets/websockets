@@ -336,6 +336,8 @@ class ClientConnection(Connection):
             except InvalidHandshake as exc:
                 response._exception = exc
                 self.handshake_exc = exc
+                self.parser = self.discard()
+                next(self.parser)  # start coroutine
             else:
                 assert self.state is CONNECTING
                 self.state = OPEN

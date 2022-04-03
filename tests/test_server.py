@@ -38,6 +38,8 @@ class ConnectTests(unittest.TestCase):
         )
         [request] = server.events_received()
         self.assertIsInstance(request, Request)
+        self.assertEqual(server.data_to_send(), [])
+        self.assertFalse(server.close_expected())
 
     def test_connect_request(self):
         server = ServerConnection()
@@ -104,6 +106,7 @@ class AcceptRejectTests(unittest.TestCase):
                 f"\r\n".encode()
             ],
         )
+        self.assertFalse(server.close_expected())
         self.assertEqual(server.state, OPEN)
 
     def test_send_reject(self):
@@ -126,6 +129,7 @@ class AcceptRejectTests(unittest.TestCase):
                 b"",
             ],
         )
+        self.assertTrue(server.close_expected())
         self.assertEqual(server.state, CONNECTING)
 
     def test_accept_response(self):

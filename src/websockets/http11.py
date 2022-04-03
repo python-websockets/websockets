@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import re
+import warnings
 from typing import Callable, Generator, Optional
 
 from . import datastructures, exceptions
@@ -57,15 +58,22 @@ class Request:
     Attributes:
         path: Request path, including optional query.
         headers: Request headers.
-        exception: If processing the response triggers an exception,
-            the exception is stored in this attribute.
     """
 
     path: str
     headers: datastructures.Headers
     # body isn't useful is the context of this library.
 
-    exception: Optional[Exception] = None
+    _exception: Optional[Exception] = None
+
+    @property
+    def exception(self) -> Optional[Exception]:  # pragma: no cover
+        warnings.warn(
+            "Request.exception is deprecated; "
+            "use ServerConnection.handshake_exc instead",
+            DeprecationWarning,
+        )
+        return self._exception
 
     @classmethod
     def parse(
@@ -152,8 +160,6 @@ class Response:
         reason_phrase: Response reason.
         headers: Response headers.
         body: Response body, if any.
-        exception: if processing the response triggers an exception,
-            the exception is stored in this attribute.
 
     """
 
@@ -162,7 +168,16 @@ class Response:
     headers: datastructures.Headers
     body: Optional[bytes] = None
 
-    exception: Optional[Exception] = None
+    _exception: Optional[Exception] = None
+
+    @property
+    def exception(self) -> Optional[Exception]:  # pragma: no cover
+        warnings.warn(
+            "Response.exception is deprecated; "
+            "use ClientConnection.handshake_exc instead",
+            DeprecationWarning,
+        )
+        return self._exception
 
     @classmethod
     def parse(

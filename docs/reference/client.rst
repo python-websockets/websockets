@@ -103,6 +103,8 @@ Sans-I/O
 
     .. autoproperty:: state
 
+    .. autoattribute:: handshake_exc
+
     .. autoproperty:: close_code
 
     .. autoproperty:: close_reason

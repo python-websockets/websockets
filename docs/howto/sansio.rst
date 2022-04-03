@@ -52,10 +52,11 @@ the network, as described in `Send data`_ below.
 The first event returned by :meth:`~connection.Connection.events_received` is
 the WebSocket handshake response.
 
-When the handshake fails, the reason is available in ``response.exception``::
+When the handshake fails, the reason is available in
+:attr:`~client.ClientConnection.handshake_exc`::
 
-    if response.exception is not None:
-        raise response.exception
+    if connection.handshake_exc is not None:
+        raise connection.handshake_exc
 
 Else, the WebSocket connection is open.
 
@@ -96,10 +97,11 @@ the network, as described in `Send data`_ below.
 Even when you call :meth:`~server.ServerConnection.accept`, the WebSocket
 handshake may fail if the request is incorrect or unsupported.
 
-When the handshake fails, the reason is available in ``request.exception``::
+When the handshake fails, the reason is available in
+:attr:`~server.ServerConnection.handshake_exc`::
 
-    if request.exception is not None:
-        raise request.exception
+    if connection.handshake_exc is not None:
+        raise connection.handshake_exc
 
 Else, the WebSocket connection is open.
 

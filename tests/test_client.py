@@ -255,7 +255,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(str(raised.exception), "missing Connection header")
 
     def test_invalid_connection(self):
@@ -268,7 +268,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(str(raised.exception), "invalid Connection header: close")
 
     def test_missing_upgrade(self):
@@ -280,7 +280,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(str(raised.exception), "missing Upgrade header")
 
     def test_invalid_upgrade(self):
@@ -293,7 +293,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(str(raised.exception), "invalid Upgrade header: h2c")
 
     def test_missing_accept(self):
@@ -305,7 +305,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(str(raised.exception), "missing Sec-WebSocket-Accept header")
 
     def test_multiple_accept(self):
@@ -317,7 +317,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(
             str(raised.exception),
             "invalid Sec-WebSocket-Accept header: "
@@ -334,7 +334,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHeader) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(
             str(raised.exception), f"invalid Sec-WebSocket-Accept header: {ACCEPT}"
         )
@@ -383,7 +383,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(str(raised.exception), "no extensions supported")
 
     def test_unsupported_extension(self):
@@ -398,7 +398,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(
             str(raised.exception),
             "Unsupported extension: name = x-op, params = [('op', None)]",
@@ -429,7 +429,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(
             str(raised.exception),
             "Unsupported extension: name = x-op, params = [('op', 'that')]",
@@ -520,7 +520,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(str(raised.exception), "no subprotocols supported")
 
     def test_multiple_subprotocols(self):
@@ -536,7 +536,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(
             str(raised.exception), "multiple subprotocols: superchat, chat"
         )
@@ -566,7 +566,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(client.state, CONNECTING)
         with self.assertRaises(InvalidHandshake) as raised:
-            raise response.exception
+            raise client.handshake_exc
         self.assertEqual(str(raised.exception), "unsupported subprotocol: otherchat")
 
 

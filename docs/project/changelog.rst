@@ -30,6 +30,17 @@ They may change at any time.
 
 *In development*
 
+Backwards-incompatible changes
+..............................
+
+.. admonition:: The ``exception`` attribute of :class:`~http11.Request` and :class:`~http11.Response` is deprecated.
+    :class: note
+
+    Use the ``handshake_exc`` attribute of :class:`~server.ServerConnection` and
+    :class:`~client.ClientConnection` instead.
+
+    See :doc:`../howto/sansio` for details.
+
 10.2
 ----
 

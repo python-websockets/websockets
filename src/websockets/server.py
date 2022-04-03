@@ -110,7 +110,8 @@ class ServerConnection(Connection):
                 protocol_header,
             ) = self.process_request(request)
         except InvalidOrigin as exc:
-            request.exception = exc
+            request._exception = exc
+            self.handshake_exc = exc
             if self.debug:
                 self.logger.debug("! invalid origin", exc_info=True)
             return self.reject(
@@ -118,7 +119,8 @@ class ServerConnection(Connection):
                 f"Failed to open a WebSocket connection: {exc}.\n",
             )
         except InvalidUpgrade as exc:
-            request.exception = exc
+            request._exception = exc
+            self.handshake_exc = exc
             if self.debug:
                 self.logger.debug("! invalid upgrade", exc_info=True)
             response = self.reject(
@@ -133,7 +135,8 @@ class ServerConnection(Connection):
             response.headers["Upgrade"] = "websocket"
             return response
         except InvalidHandshake as exc:
-            request.exception = exc
+            request._exception = exc
+            self.handshake_exc = exc
             if self.debug:
                 self.logger.debug("! invalid handshake", exc_info=True)
             return self.reject(
@@ -141,7 +144,8 @@ class ServerConnection(Connection):
                 f"Failed to open a WebSocket connection: {exc}.\n",
             )
         except Exception as exc:
-            request.exception = exc
+            request._exception = exc
+            self.handshake_exc = exc
             self.logger.error("opening handshake failed", exc_info=True)
             return self.reject(
                 http.HTTPStatus.INTERNAL_SERVER_ERROR,

@@ -130,6 +130,15 @@ class Connection:
         self.close_sent: Optional[Close] = None
         self.close_rcvd_then_sent: Optional[bool] = None
 
+        # Track if an exception happened during the handshake.
+        self.handshake_exc: Optional[Exception] = None
+        """
+        Exception to raise if the opening handshake failed.
+
+        :obj:`None` if the opening handshake succeeded.
+
+        """
+
         # Track if send_eof() was called.
         self.eof_sent = False
 

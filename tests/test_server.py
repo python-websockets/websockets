@@ -188,7 +188,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 500)
         with self.assertRaises(Exception) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(str(raised.exception), "BOOM")
 
     def test_missing_connection(self):
@@ -200,7 +200,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 426)
         self.assertEqual(response.headers["Upgrade"], "websocket")
         with self.assertRaises(InvalidUpgrade) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(str(raised.exception), "missing Connection header")
 
     def test_invalid_connection(self):
@@ -213,7 +213,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 426)
         self.assertEqual(response.headers["Upgrade"], "websocket")
         with self.assertRaises(InvalidUpgrade) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(str(raised.exception), "invalid Connection header: close")
 
     def test_missing_upgrade(self):
@@ -225,7 +225,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 426)
         self.assertEqual(response.headers["Upgrade"], "websocket")
         with self.assertRaises(InvalidUpgrade) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(str(raised.exception), "missing Upgrade header")
 
     def test_invalid_upgrade(self):
@@ -238,7 +238,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 426)
         self.assertEqual(response.headers["Upgrade"], "websocket")
         with self.assertRaises(InvalidUpgrade) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(str(raised.exception), "invalid Upgrade header: h2c")
 
     def test_missing_key(self):
@@ -249,7 +249,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(str(raised.exception), "missing Sec-WebSocket-Key header")
 
     def test_multiple_key(self):
@@ -260,7 +260,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(
             str(raised.exception),
             "invalid Sec-WebSocket-Key header: "
@@ -276,7 +276,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(
             str(raised.exception), "invalid Sec-WebSocket-Key header: not Base64 data!"
         )
@@ -292,7 +292,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(
             str(raised.exception), f"invalid Sec-WebSocket-Key header: {KEY[:16]}"
         )
@@ -305,7 +305,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(str(raised.exception), "missing Sec-WebSocket-Version header")
 
     def test_multiple_version(self):
@@ -316,7 +316,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(
             str(raised.exception),
             "invalid Sec-WebSocket-Version header: "
@@ -332,7 +332,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(
             str(raised.exception), "invalid Sec-WebSocket-Version header: 11"
         )
@@ -344,7 +344,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
         with self.assertRaises(InvalidOrigin) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(str(raised.exception), "missing Origin header")
 
     def test_origin(self):
@@ -364,7 +364,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
         with self.assertRaises(InvalidOrigin) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(
             str(raised.exception), "invalid Origin header: https://other.example.com"
         )
@@ -382,7 +382,7 @@ class AcceptRejectTests(unittest.TestCase):
         # 400 Bad Request rather than 403 Forbidden.
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(
             str(raised.exception),
             "invalid Origin header: more than one Origin header found",
@@ -409,7 +409,7 @@ class AcceptRejectTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 403)
         with self.assertRaises(InvalidOrigin) as raised:
-            raise request.exception
+            raise server.handshake_exc
         self.assertEqual(
             str(raised.exception), "invalid Origin header: https://original.example.com"
         )

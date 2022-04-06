@@ -2,4 +2,4 @@
 
 Only the latest version receives security updates.
 
-Please report vulnerabilities [via Tidelift](https://tidelift.com/docs/security).
+Please report vulnerabilities [via Tidelift](https://tidelift.com/security).

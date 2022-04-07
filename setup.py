@@ -1,5 +1,6 @@
 import pathlib
 import re
+import sys
 
 import setuptools
 
@@ -22,13 +23,19 @@ exec((root_dir / 'src' / 'websockets' / 'version.py').read_text(encoding='utf-8'
 
 packages = ['websockets', 'websockets/legacy', 'websockets/extensions']
 
-ext_modules = [
-    setuptools.Extension(
-        'websockets.speedups',
-        sources=['src/websockets/speedups.c'],
-        optional=not (root_dir / '.cibuildwheel').exists(),
+ext_modules = []
+# PyPy3 as of 7.3.9 does not implement "creating contiguous readonly
+# buffer from non-contiguous".  Disable use of C speedups to avoid
+# issues until it is fixed, see:
+# https://foss.heptapod.net/pypy/pypy/-/issues/3722.
+if not hasattr(sys, 'pypy_version_info'):
+    ext_modules.append(
+        setuptools.Extension(
+            'websockets.speedups',
+            sources=['src/websockets/speedups.c'],
+            optional=not (root_dir / '.cibuildwheel').exists(),
+        )
     )
-]
 
 setuptools.setup(
     name='websockets',

@@ -88,4 +88,10 @@ else:
     class SpeedupsTests(ApplyMaskTests):
         @staticmethod
         def apply_mask(*args, **kwargs):
-            return c_apply_mask(*args, **kwargs)
+            try:
+                return c_apply_mask(*args, **kwargs)
+            except NotImplementedError as e:
+                # PyPy3.9 as of 7.3.9 does not implement creating
+                # contiguous buffers from non-contiguous and raises
+                # NotImplementedError.  Catch it and skip the test.
+                raise unittest.SkipTest(str(e))

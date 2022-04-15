@@ -125,7 +125,7 @@ Why shouldn't I use ``websockets``?
   and :rfc:`7692`: Compression Extensions for WebSocket. Its support for HTTP
   is minimal — just enough for a HTTP health check.
 
-  If you want do to both in the same server, look at HTTP frameworks that
+  If you want to do both in the same server, look at HTTP frameworks that
   build on top of ``websockets`` to support WebSocket connections, like
   Sanic_.
 

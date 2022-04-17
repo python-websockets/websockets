@@ -1,5 +1,6 @@
 import base64
 import itertools
+import platform
 import unittest
 
 from websockets.utils import accept_key, apply_mask as py_apply_mask, generate_key
@@ -90,8 +91,13 @@ else:
         def apply_mask(*args, **kwargs):
             try:
                 return c_apply_mask(*args, **kwargs)
-            except NotImplementedError as e:
-                # PyPy3.9 as of 7.3.9 does not implement creating
-                # contiguous buffers from non-contiguous and raises
-                # NotImplementedError.  Catch it and skip the test.
-                raise unittest.SkipTest(str(e))
+            except NotImplementedError as exc:  # pragma: no cover
+                # PyPy doesn't implement creating contiguous readonly buffer
+                # from non-contiguous. We don't care about this edge case.
+                if (
+                    platform.python_implementation() == "PyPy"
+                    and "not implemented yet" in str(exc)
+                ):
+                    raise unittest.SkipTest(str(exc))
+                else:
+                    raise

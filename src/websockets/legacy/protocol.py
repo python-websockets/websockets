@@ -5,6 +5,7 @@ import codecs
 import collections
 import logging
 import random
+import ssl
 import struct
 import uuid
 import warnings
@@ -974,13 +975,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             self.transfer_data_exc = exc
             self.fail_connection(1002)
 
-        except (ConnectionError, TimeoutError, EOFError) as exc:
+        except (ConnectionError, TimeoutError, EOFError, ssl.SSLError) as exc:
             # Reading data with self.reader.readexactly may raise:
             # - most subclasses of ConnectionError if the TCP connection
             #   breaks, is reset, or is aborted;
             # - TimeoutError if the TCP connection times out;
             # - IncompleteReadError, a subclass of EOFError, if fewer
-            #   bytes are available than requested.
+            #   bytes are available than requested;
+            # - ssl.SSLError if the other side infringes the TLS protocol.
             self.transfer_data_exc = exc
             self.fail_connection(1006)
 

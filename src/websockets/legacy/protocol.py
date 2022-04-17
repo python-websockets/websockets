@@ -1310,9 +1310,10 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 # write_eof() doesn't document which exceptions it raises.
                 # "[Errno 107] Transport endpoint is not connected" happens
                 # but it isn't completely clear under which circumstances.
+                # uvloop can raise RuntimeError here.
                 try:
                     self.transport.write_eof()
-                except OSError:  # pragma: no cover
+                except (OSError, RuntimeError):  # pragma: no cover
                     pass
 
                 if await self.wait_for_connection_lost():

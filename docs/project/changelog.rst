@@ -41,6 +41,11 @@ Backwards-incompatible changes
 
     See :doc:`../howto/sansio` for details.
 
+Improvements
+............
+
+* Reduced noise in logs when :mod:`ssl` or :mod:`zlib` raise exceptions.
+
 10.2
 ----
 

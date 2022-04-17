@@ -179,6 +179,30 @@ Another way to achieve this result is to define the ``handler`` coroutine in
 a scope where the ``extra_argument`` variable exists instead of injecting it
 through an argument.
 
+How do I access the request path?
+.................................
+
+It is available in the :attr:`~server.WebSocketServerProtocol.path` attribute.
+
+You may route a connection to different handlers depending on the request path::
+
+    async def handler(websocket):
+        if websocket.path == "/blue":
+            await blue_handler(websocket)
+        elif websocket.path == "/green":
+            await green_handler(websocket)
+        else:
+            # No handler for this path; close the connection.
+            return
+
+You may also route the connection based on the first message received from the
+client, as shown in the :doc:`tutorial <../intro/tutorial2>`. When you want to
+authenticate the connection before routing it, this is usually more convenient.
+
+Generally speaking, there is far less emphasis on the request path in WebSocket
+servers than in HTTP servers. When a WebSockt server provides a single endpoint,
+it may ignore the request path entirely.
+
 How do I access HTTP headers?
 .............................
 

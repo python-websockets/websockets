@@ -768,13 +768,15 @@ class WebSocketServer:
         # closed, handshake() closes OPENING connections with a HTTP 503
         # error. Wait until all connections are closed.
 
-        # asyncio.wait doesn't accept an empty first argument
-        if self.websockets:
+        close_tasks = [
+            asyncio.create_task(websocket.close(1001))
+            for websocket in self.websockets
+            if websocket.state is not State.CONNECTING
+        ]
+        # asyncio.wait doesn't accept an empty first argument.
+        if close_tasks:
             await asyncio.wait(
-                [
-                    asyncio.create_task(websocket.close(1001))
-                    for websocket in self.websockets
-                ],
+                close_tasks,
                 **loop_if_py_lt_38(self.get_loop()),
             )
 

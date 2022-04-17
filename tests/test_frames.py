@@ -207,6 +207,12 @@ class StrTests(unittest.TestCase):
             "CONT fc fd fe ff [binary, 4 bytes, continued]",
         )
 
+    def test_cont_binary_from_memoryview(self):
+        self.assertEqual(
+            str(Frame(OP_CONT, memoryview(b"\xfc\xfd\xfe\xff"), fin=False)),
+            "CONT fc fd fe ff [binary, 4 bytes, continued]",
+        )
+
     def test_cont_final_text(self):
         self.assertEqual(
             str(Frame(OP_CONT, b" cr\xc3\xa8me")),
@@ -216,6 +222,12 @@ class StrTests(unittest.TestCase):
     def test_cont_final_binary(self):
         self.assertEqual(
             str(Frame(OP_CONT, b"\xfc\xfd\xfe\xff")),
+            "CONT fc fd fe ff [binary, 4 bytes]",
+        )
+
+    def test_cont_final_binary_from_memoryview(self):
+        self.assertEqual(
+            str(Frame(OP_CONT, memoryview(b"\xfc\xfd\xfe\xff"))),
             "CONT fc fd fe ff [binary, 4 bytes]",
         )
 
@@ -229,6 +241,13 @@ class StrTests(unittest.TestCase):
     def test_cont_binary_truncated(self):
         self.assertEqual(
             str(Frame(OP_CONT, bytes(range(256)), fin=False)),
+            "CONT 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
+            " f8 f9 fa fb fc fd fe ff [binary, 256 bytes, continued]",
+        )
+
+    def test_cont_binary_truncated_from_memoryview(self):
+        self.assertEqual(
+            str(Frame(OP_CONT, memoryview(bytes(range(256))), fin=False)),
             "CONT 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
             " f8 f9 fa fb fc fd fe ff [binary, 256 bytes, continued]",
         )
@@ -264,15 +283,34 @@ class StrTests(unittest.TestCase):
             "BINARY 00 01 02 03 [4 bytes]",
         )
 
+    def test_binary_from_memoryview(self):
+        self.assertEqual(
+            str(Frame(OP_BINARY, memoryview(b"\x00\x01\x02\x03"))),
+            "BINARY 00 01 02 03 [4 bytes]",
+        )
+
     def test_binary_non_final(self):
         self.assertEqual(
             str(Frame(OP_BINARY, b"\x00\x01\x02\x03", fin=False)),
             "BINARY 00 01 02 03 [4 bytes, continued]",
         )
 
+    def test_binary_non_final_from_memoryview(self):
+        self.assertEqual(
+            str(Frame(OP_BINARY, memoryview(b"\x00\x01\x02\x03"), fin=False)),
+            "BINARY 00 01 02 03 [4 bytes, continued]",
+        )
+
     def test_binary_truncated(self):
         self.assertEqual(
             str(Frame(OP_BINARY, bytes(range(256)))),
+            "BINARY 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
+            " f8 f9 fa fb fc fd fe ff [256 bytes]",
+        )
+
+    def test_binary_truncated_from_memoryview(self):
+        self.assertEqual(
+            str(Frame(OP_BINARY, memoryview(bytes(range(256))))),
             "BINARY 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
             " f8 f9 fa fb fc fd fe ff [256 bytes]",
         )

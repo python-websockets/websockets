@@ -145,12 +145,14 @@ class Frame:
             data = str(Close.parse(self.data))
         elif self.data:
             # We don't know if a Continuation frame contains text or binary.
-            # Ping and Pong frames could contain UTF-8. Attempt to decode as
-            # UTF-8 and display it as text; fallback to binary.
+            # Ping and Pong frames could contain UTF-8.
+            # Attempt to decode as UTF-8 and display it as text; fallback to
+            # binary. If self.data is a memoryview, it has no decode() method,
+            # which raises AttributeError.
             try:
                 data = repr(self.data.decode())
                 coding = "text"
-            except UnicodeDecodeError:
+            except (UnicodeDecodeError, AttributeError):
                 binary = self.data
                 if len(binary) > 25:
                     binary = b"".join([binary[:16], b"\x00\x00", binary[-8:]])

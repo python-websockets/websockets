@@ -125,7 +125,10 @@ class PerMessageDeflate(Extension):
         if frame.fin:
             data += _EMPTY_UNCOMPRESSED_BLOCK
         max_length = 0 if max_size is None else max_size
-        data = self.decoder.decompress(data, max_length)
+        try:
+            data = self.decoder.decompress(data, max_length)
+        except zlib.error as exc:
+            raise exceptions.ProtocolError("decompression failed") from exc
         if self.decoder.unconsumed_tail:
             raise exceptions.PayloadTooBig(f"over size limit (? > {max_size} bytes)")
 

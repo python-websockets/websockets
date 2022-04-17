@@ -1,6 +1,5 @@
 import dataclasses
 import unittest
-import zlib
 
 from websockets.exceptions import (
     DuplicateParameter,
@@ -8,6 +7,7 @@ from websockets.exceptions import (
     InvalidParameterValue,
     NegotiationError,
     PayloadTooBig,
+    ProtocolError,
 )
 from websockets.extensions.permessage_deflate import *
 from websockets.frames import (
@@ -225,9 +225,8 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
         dec_frame1 = self.extension.decode(enc_frame1)
         self.assertEqual(dec_frame1, frame)
 
-        with self.assertRaises(zlib.error) as exc:
+        with self.assertRaises(ProtocolError):
             self.extension.decode(enc_frame2)
-        self.assertIn("invalid distance too far back", str(exc.exception))
 
     def test_local_no_context_takeover(self):
         # No context takeover when encoding and decoding messages.

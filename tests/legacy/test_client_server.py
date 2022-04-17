@@ -4,6 +4,7 @@ import functools
 import http
 import logging
 import pathlib
+import platform
 import random
 import socket
 import ssl
@@ -1242,6 +1243,10 @@ class SecureClientServerTests(
 
     # TLS over Unix sockets doesn't make sense.
     test_unix_socket = None
+
+    # This test fails under PyPy due to a difference with CPython.
+    if platform.python_implementation() == "PyPy":  # pragma: no cover
+        test_http_request_ws_endpoint = None
 
     @with_server()
     def test_ws_uri_is_rejected(self):

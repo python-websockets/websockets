@@ -607,4 +607,15 @@ Why am I having problems with threads?
 
 You shouldn't use threads. Use tasks instead.
 
-If you have to, :meth:`~asyncio.loop.call_soon_threadsafe` may help.
+Indeed, when you chose websockets, you chose :mod:`asyncio` as the primary
+framework to handle concurrency. This choice is mutually exclusive with
+:mod:`threading`.
+
+If you believe that you need to run websockets in a thread and some logic in
+another thread, you should run that logic in a :class:`~asyncio.Task` instead.
+
+If you believe that you cannot run that logic in the same event loop because it
+will block websockets, :meth:`~asyncio.loop.run_in_executor` may help.
+
+This question is really about :mod:`asyncio`. Please review the advice about
+:ref:`asyncio-multithreading` in the Python documentation.

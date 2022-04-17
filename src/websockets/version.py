@@ -47,7 +47,7 @@ if not released:  # pragma: no cover
         except (FileNotFoundError, subprocess.CalledProcessError):
             pass
         else:
-            description_re = r"[0-9.]+-([0-9]+)-(g[0-9a-f]{7}(?:-dirty)?)"
+            description_re = r"[0-9.]+-([0-9]+)-(g[0-9a-f]{7,}(?:-dirty)?)"
             match = re.fullmatch(description_re, description)
             assert match is not None
             distance, remainder = match.groups()
@@ -69,7 +69,7 @@ if not released:  # pragma: no cover
 
     def get_commit(tag: str, version: str) -> str:
         # Extract commit from version, falling back to tag if not available.
-        version_re = r"[0-9.]+\.dev[0-9]+\+g([0-9a-f]{7}|unknown)(?:\.dirty)?"
+        version_re = r"[0-9.]+\.dev[0-9]+\+g([0-9a-f]{7,}|unknown)(?:\.dirty)?"
         match = re.fullmatch(version_re, version)
         assert match is not None
         (commit,) = match.groups()

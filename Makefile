@@ -16,8 +16,7 @@ test:
 	python -m unittest
 
 coverage:
-	coverage erase
-	coverage run -m unittest
+	coverage run --source websockets,tests -m unittest
 	coverage html
 	coverage report --show-missing --fail-under=100
 

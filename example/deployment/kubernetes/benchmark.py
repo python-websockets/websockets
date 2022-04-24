@@ -11,7 +11,7 @@ URI = "ws://localhost:32080"
 async def run(client_id, messages):
     async with websockets.connect(URI) as websocket:
         for message_id in range(messages):
-            await websocket.send("{client_id}:{message_id}")
+            await websocket.send(f"{client_id}:{message_id}")
             await websocket.recv()
 
 

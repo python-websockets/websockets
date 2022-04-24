@@ -140,7 +140,7 @@ class HeadersTests(unittest.TestCase):
         for header in [
             # Truncated examples
             "",
-            ",\t,"
+            ",\t,",
             # Wrong delimiter
             "foo; bar",
         ]:

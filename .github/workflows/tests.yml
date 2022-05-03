@@ -38,7 +38,17 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.7", "3.8", "3.9", "3.10", "pypy-3.9"]
+        python:
+          - "3.7"
+          - "3.8"
+          - "3.9"
+          - "3.10"
+          - "pypy-3.9"
+        is_main:
+          - ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
+        exclude:
+          - python: "pypy-3.9"
+            is_main: false
     steps:
     - name: Check out repository
       uses: actions/checkout@v2

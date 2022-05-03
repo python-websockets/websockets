@@ -684,9 +684,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             try:
                 # message_chunk = anext(aiter_message) without anext
                 # https://github.com/python/mypy/issues/5738
-                message_chunk = await type(aiter_message).__anext__(  # type: ignore
-                    aiter_message
-                )
+                message_chunk = await type(aiter_message).__anext__(aiter_message)  # type: ignore  # noqa
             except StopAsyncIteration:
                 return
             opcode, data = prepare_data(message_chunk)

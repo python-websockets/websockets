@@ -27,17 +27,14 @@ class ClientProtocol(Protocol):
         self,
         sock: socket.socket,
         connection: ClientConnection,
-        ping_interval: Optional[float] = None,
-        ping_timeout: Optional[float] = None,
+        *,
         close_timeout: Optional[float] = None,
     ) -> None:
         self.connection: ClientConnection
         super().__init__(
             sock,
             connection,
-            ping_interval,
-            ping_timeout,
-            close_timeout,
+            close_timeout=close_timeout,
         )
         self.response_rcvd = threading.Event()
 
@@ -108,8 +105,6 @@ class Connect:
         compression: Optional[str] = "deflate",
         # Timeouts
         open_timeout: Optional[float] = None,
-        ping_interval: Optional[float] = None,
-        ping_timeout: Optional[float] = None,
         close_timeout: Optional[float] = None,
         # Limits
         max_size: Optional[int] = 2**20,
@@ -187,9 +182,7 @@ class Connect:
         self.protocol = create_protocol(
             sock,
             connection,
-            ping_interval,
-            ping_timeout,
-            close_timeout,
+            close_timeout=close_timeout,
         )
         self.protocol.handshake(
             extra_headers,

@@ -22,21 +22,39 @@ HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]
 
 
 class ServerProtocol(Protocol):
+    """
+    WebSocket server connection.
+
+    :class:`ServerProtocol` provides :meth:`recv` and :meth:`send` methods for
+    receiving and sending messages.
+
+    It supports iteration to receive messages::
+
+        for message in websocket:
+            process(message)
+
+    The iterator exits normally when the connection is closed with close code
+    1000 (OK) or 1001 (going away). It raises a
+    :exc:`~websockets.exceptions.ConnectionClosedError` when the connection is
+    closed with any other code.
+
+    You may customize the opening handshake in a subclass by overriding ... TODO
+    CUSTOMIZE HANDSHAKE???
+
+    """
+
     def __init__(
         self,
         sock: socket.socket,
         connection: ServerConnection,
-        ping_interval: Optional[float] = None,
-        ping_timeout: Optional[float] = None,
+        *,
         close_timeout: Optional[float] = None,
     ) -> None:
         self.connection: ServerConnection
         super().__init__(
             sock,
             connection,
-            ping_interval,
-            ping_timeout,
-            close_timeout,
+            close_timeout=close_timeout,
         )
         self.request_rcvd = threading.Event()
 
@@ -53,6 +71,7 @@ class ServerProtocol(Protocol):
         assert self.request is not None
 
         with self.send_context(expected_state=State.CONNECTING):
+            # TODO CUSTOMIZE HANDSHAKE???
             self.response = self.connection.accept(self.request)
             # TODO EXTRA HEADERS???
             self.connection.send_response(self.response)
@@ -94,8 +113,6 @@ class Serve:
         ssl_context: Optional[ssl.SSLContext] = None,
         create_protocol: Optional[Type[ServerProtocol]] = None,
         open_timeout: Optional[float] = None,
-        ping_interval: Optional[float] = None,
-        ping_timeout: Optional[float] = None,
         close_timeout: Optional[float] = None,
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
@@ -155,9 +172,7 @@ class Serve:
             protocol = create_protocol(
                 sock,
                 connection,
-                ping_interval,
-                ping_timeout,
-                close_timeout,
+                close_timeout=close_timeout,
             )
             protocol.handshake(deadline.timeout())
             assert protocol.response is not None

@@ -31,7 +31,6 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macOS-latest]
-
     steps:
     - name: Check out repository
       uses: actions/checkout@v2

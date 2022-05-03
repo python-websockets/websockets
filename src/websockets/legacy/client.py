@@ -651,9 +651,8 @@ class Connect:
 
     async def __await_impl__(self) -> WebSocketClientProtocol:
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):
-            transport, protocol = await self._create_connection()
-            protocol = cast(WebSocketClientProtocol, protocol)
-
+            _transport, _protocol = await self._create_connection()
+            protocol = cast(WebSocketClientProtocol, _protocol)
             try:
                 await protocol.handshake(
                     self._wsuri,

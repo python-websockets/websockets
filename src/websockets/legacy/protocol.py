@@ -645,10 +645,10 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
             iter_message = iter(message)
             try:
-                message_chunk = next(iter_message)
+                fragment = next(iter_message)
             except StopIteration:
                 return
-            opcode, data = prepare_data(message_chunk)
+            opcode, data = prepare_data(fragment)
 
             self._fragmented_message_waiter = asyncio.Future()
             try:
@@ -656,8 +656,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 await self.write_frame(False, opcode, data)
 
                 # Other fragments.
-                for message_chunk in iter_message:
-                    confirm_opcode, data = prepare_data(message_chunk)
+                for fragment in iter_message:
+                    confirm_opcode, data = prepare_data(fragment)
                     if confirm_opcode != opcode:
                         raise TypeError("data contains inconsistent types")
                     await self.write_frame(False, OP_CONT, data)
@@ -682,12 +682,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # https://github.com/python/mypy/issues/5738
             aiter_message = type(message).__aiter__(message)  # type: ignore
             try:
-                # message_chunk = anext(aiter_message) without anext
+                # fragment = anext(aiter_message) without anext
                 # https://github.com/python/mypy/issues/5738
-                message_chunk = await type(aiter_message).__anext__(aiter_message)  # type: ignore  # noqa
+                fragment = await type(aiter_message).__anext__(aiter_message)  # type: ignore  # noqa
             except StopAsyncIteration:
                 return
-            opcode, data = prepare_data(message_chunk)
+            opcode, data = prepare_data(fragment)
 
             self._fragmented_message_waiter = asyncio.Future()
             try:
@@ -698,8 +698,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 # https://github.com/python/mypy/issues/5738
                 # coverage reports this code as not covered, but it is
                 # exercised by tests - changing it breaks the tests!
-                async for message_chunk in aiter_message:  # type: ignore  # pragma: no cover  # noqa
-                    confirm_opcode, data = prepare_data(message_chunk)
+                async for fragment in aiter_message:  # type: ignore  # pragma: no cover  # noqa
+                    confirm_opcode, data = prepare_data(fragment)
                     if confirm_opcode != opcode:
                         raise TypeError("data contains inconsistent types")
                     await self.write_frame(False, OP_CONT, data)
@@ -1028,7 +1028,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             return frame.data.decode("utf-8") if text else frame.data
 
         # 5.4. Fragmentation
-        chunks: List[Data] = []
+        fragments: List[Data] = []
         max_size = self.max_size
         if text:
             decoder_factory = codecs.getincrementaldecoder("utf-8")
@@ -1036,14 +1036,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             if max_size is None:
 
                 def append(frame: Frame) -> None:
-                    nonlocal chunks
-                    chunks.append(decoder.decode(frame.data, frame.fin))
+                    nonlocal fragments
+                    fragments.append(decoder.decode(frame.data, frame.fin))
 
             else:
 
                 def append(frame: Frame) -> None:
-                    nonlocal chunks, max_size
-                    chunks.append(decoder.decode(frame.data, frame.fin))
+                    nonlocal fragments, max_size
+                    fragments.append(decoder.decode(frame.data, frame.fin))
                     assert isinstance(max_size, int)
                     max_size -= len(frame.data)
 
@@ -1051,14 +1051,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             if max_size is None:
 
                 def append(frame: Frame) -> None:
-                    nonlocal chunks
-                    chunks.append(frame.data)
+                    nonlocal fragments
+                    fragments.append(frame.data)
 
             else:
 
                 def append(frame: Frame) -> None:
-                    nonlocal chunks, max_size
-                    chunks.append(frame.data)
+                    nonlocal fragments, max_size
+                    fragments.append(frame.data)
                     assert isinstance(max_size, int)
                     max_size -= len(frame.data)
 
@@ -1072,7 +1072,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 raise ProtocolError("unexpected opcode")
             append(frame)
 
-        return ("" if text else b"").join(chunks)
+        return ("" if text else b"").join(fragments)
 
     async def read_data_frame(self, max_size: Optional[int]) -> Optional[Frame]:
         """

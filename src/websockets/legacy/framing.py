@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import struct
 from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence, Tuple
 
@@ -163,7 +162,8 @@ def parse_close(data: bytes) -> Tuple[int, str]:
         UnicodeDecodeError: if the reason isn't valid UTF-8.
 
     """
-    return dataclasses.astuple(Close.parse(data))  # type: ignore
+    close = Close.parse(data)
+    return close.code, close.reason
 
 
 def serialize_close(code: int, reason: str) -> bytes:

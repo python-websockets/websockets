@@ -14,6 +14,7 @@ from typing import (
     AsyncIterable,
     AsyncIterator,
     Awaitable,
+    Callable,
     Deque,
     Dict,
     Iterable,
@@ -678,13 +679,19 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Fragmented message -- asynchronous iterator
 
         elif isinstance(message, AsyncIterable):
-            # aiter_message = aiter(message) without aiter
-            # https://github.com/python/mypy/issues/5738
-            aiter_message = type(message).__aiter__(message)  # type: ignore
+            # Implement aiter_message = aiter(message) without aiter
+            # Work around https://github.com/python/mypy/issues/5738
+            aiter_message = cast(
+                Callable[[AsyncIterable[Data]], AsyncIterator[Data]],
+                type(message).__aiter__,
+            )(message)
             try:
-                # fragment = anext(aiter_message) without anext
-                # https://github.com/python/mypy/issues/5738
-                fragment = await type(aiter_message).__anext__(aiter_message)  # type: ignore  # noqa
+                # Implement fragment = anext(aiter_message) without anext
+                # Work around https://github.com/python/mypy/issues/5738
+                fragment = await cast(
+                    Callable[[AsyncIterator[Data]], Awaitable[Data]],
+                    type(aiter_message).__anext__,
+                )(aiter_message)
             except StopAsyncIteration:
                 return
             opcode, data = prepare_data(fragment)
@@ -695,10 +702,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 await self.write_frame(False, opcode, data)
 
                 # Other fragments.
-                # https://github.com/python/mypy/issues/5738
                 # coverage reports this code as not covered, but it is
                 # exercised by tests - changing it breaks the tests!
-                async for fragment in aiter_message:  # type: ignore  # pragma: no cover  # noqa
+                async for fragment in aiter_message:  # pragma: no cover
                     confirm_opcode, data = prepare_data(fragment)
                     if confirm_opcode != opcode:
                         raise TypeError("data contains inconsistent types")

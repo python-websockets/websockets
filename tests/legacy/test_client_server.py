@@ -422,9 +422,13 @@ class CommonClientServerTests:
                 self.used_for_write = False
                 super().__init__(*args, **kwargs)
 
-            def recv(self, *args, **kwargs):
+            def recv(self, *args, **kwargs):  # pragma: no cover
                 self.used_for_read = True
                 return super().recv(*args, **kwargs)
+
+            def recv_into(self, *args, **kwargs):  # pragma: no cover
+                self.used_for_read = True
+                return super().recv_into(*args, **kwargs)
 
             def send(self, *args, **kwargs):
                 self.used_for_write = True

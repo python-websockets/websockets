@@ -1343,6 +1343,9 @@ class ClientServerOriginTests(ClientServerTestsMixin, AsyncioTestCase):
         self.assertEqual(self.loop.run_until_complete(self.client.recv()), "Hello!")
 
 
+@unittest.skipIf(
+    sys.version_info[:2] >= (3, 11), "asyncio.coroutine has been removed in Python 3.11"
+)
 class YieldFromTests(ClientServerTestsMixin, AsyncioTestCase):
     @with_server()
     def test_client(self):

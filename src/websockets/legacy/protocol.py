@@ -846,11 +846,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         while data is None or data in self.pings:
             data = struct.pack("!I", random.getrandbits(32))
 
-        self.pings[data] = self.loop.create_future()
+        ping_future = self.loop.create_future()
+        self.pings[data] = ping_future
 
         await self.write_frame(True, OP_PING, data)
 
-        return asyncio.shield(self.pings[data])
+        return asyncio.shield(ping_future)
 
     async def pong(self, data: Data = b"") -> None:
         """

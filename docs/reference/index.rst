@@ -61,6 +61,8 @@ guarantees of behavior or backwards-compatibility for private APIs.
 For convenience, many public APIs can be imported from the ``websockets``
 package. However, this feature is incompatible with static code analysis. It
 breaks autocompletion in an IDE or type checking with mypy_. If you're using
-such tools, use the real import paths.
+such tools, use the real import paths. To do this, you must import modules via
+``from websockets import <module>`` or to access a specific exported value
+``from websockets.<module> import <exported_value>``.
 
 .. _mypy: https://github.com/python/mypy

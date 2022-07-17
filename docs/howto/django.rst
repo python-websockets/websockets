@@ -113,10 +113,10 @@ your settings module.
 
 The connection handler reads the first message received from the client, which
 is expected to contain a django-sesame token. Then it authenticates the user
-with ``get_user()``, the API for `authentication outside views`_. If
+with ``get_user()``, the API for `authentication outside a view`_. If
 authentication fails, it closes the connection and exits.
 
-.. _authentication outside views: https://github.com/aaugustin/django-sesame#authentication-outside-views
+.. _authentication outside a view: https://django-sesame.readthedocs.io/en/stable/howto.html#outside-a-view
 
 When we call an API that makes a database query such as ``get_user()``, we
 wrap the call in :func:`~asyncio.to_thread`. Indeed, the Django ORM doesn't

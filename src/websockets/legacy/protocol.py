@@ -1303,7 +1303,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             if self.is_client and hasattr(self, "transfer_data_task"):
                 if await self.wait_for_connection_lost():
                     # Coverage marks this line as a partially executed branch.
-                    # I supect a bug in coverage. Ignore it for now.
+                    # I suspect a bug in coverage. Ignore it for now.
                     return  # pragma: no cover
                 if self.debug:
                     self.logger.debug("! timed out waiting for TCP close")
@@ -1323,7 +1323,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
                 if await self.wait_for_connection_lost():
                     # Coverage marks this line as a partially executed branch.
-                    # I supect a bug in coverage. Ignore it for now.
+                    # I suspect a bug in coverage. Ignore it for now.
                     return  # pragma: no cover
                 if self.debug:
                     self.logger.debug("! timed out waiting for TCP close")
@@ -1361,7 +1361,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # connection_lost() is called quickly after aborting.
         # Coverage marks this line as a partially executed branch.
-        # I supect a bug in coverage. Ignore it for now.
+        # I suspect a bug in coverage. Ignore it for now.
         await self.wait_for_connection_lost()  # pragma: no cover
 
     async def wait_for_connection_lost(self) -> bool:

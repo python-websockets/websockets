@@ -18,7 +18,7 @@ class AsyncioTestCase(unittest.TestCase):
         """
         Convert test coroutines to test functions.
 
-        This supports asychronous tests transparently.
+        This supports asynchronous tests transparently.
 
         """
         super().__init_subclass__(**kwargs)

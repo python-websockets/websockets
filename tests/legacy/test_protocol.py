@@ -1188,7 +1188,7 @@ class CommonTests:
     def test_keepalive_ping_not_acknowledged_closes_connection(self):
         self.restart_protocol_with_keepalive_ping()
 
-        # Ping is sent at 3ms and not acknowleged.
+        # Ping is sent at 3ms and not acknowledged.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
         (ping_1,) = tuple(self.protocol.pings)
         self.assertOneFrameSent(True, OP_PING, ping_1)
@@ -1257,7 +1257,7 @@ class CommonTests:
     def test_keepalive_ping_with_no_ping_timeout(self):
         self.restart_protocol_with_keepalive_ping(ping_timeout=None)
 
-        # Ping is sent at 3ms and not acknowleged.
+        # Ping is sent at 3ms and not acknowledged.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
         (ping_1,) = tuple(self.protocol.pings)
         self.assertOneFrameSent(True, OP_PING, ping_1)

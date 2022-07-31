@@ -153,7 +153,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Handle the lifecycle of a WebSocket connection.
 
         Since this method doesn't have a caller able to handle exceptions, it
-        attemps to log relevant ones and guarantees that the TCP connection is
+        attempts to log relevant ones and guarantees that the TCP connection is
         closed before exiting.
 
         """

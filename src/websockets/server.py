@@ -75,6 +75,8 @@ class ServerConnection(Connection):
         state: State = CONNECTING,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
+        no_server_header: bool = False,
+        no_date_header: bool = False,
     ):
         super().__init__(
             side=SERVER,
@@ -85,6 +87,8 @@ class ServerConnection(Connection):
         self.origins = origins
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
+        self.no_server_header = no_server_header
+        self.no_date_header = no_date_header
 
     def accept(self, request: Request) -> Response:
         """
@@ -158,7 +162,8 @@ class ServerConnection(Connection):
 
         headers = Headers()
 
-        headers["Date"] = email.utils.formatdate(usegmt=True)
+        if not self.no_date_header:
+            headers["Date"] = email.utils.formatdate(usegmt=True)
 
         headers["Upgrade"] = "websocket"
         headers["Connection"] = "Upgrade"
@@ -170,7 +175,8 @@ class ServerConnection(Connection):
         if protocol_header is not None:
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        headers["Server"] = USER_AGENT
+        if self.no_server_header:
+            headers["Server"] = USER_AGENT
 
         self.logger.info("connection open")
         return Response(101, "Switching Protocols", headers)
@@ -463,15 +469,17 @@ class ServerConnection(Connection):
 
         """
         body = text.encode()
-        headers = Headers(
-            [
-                ("Date", email.utils.formatdate(usegmt=True)),
+        headers_list = [
                 ("Connection", "close"),
                 ("Content-Length", str(len(body))),
                 ("Content-Type", "text/plain; charset=utf-8"),
-                ("Server", USER_AGENT),
             ]
-        )
+        if not self.no_server_header:
+            headers_list.append(("Server", USER_AGENT))
+        if not self.no_date_header:
+            headers_list.append(("Date", email.utils.formatdate(usegmt=True)))
+        headers = Headers(headers_list)
+
         response = Response(status.value, status.phrase, headers, body)
         # When reject() is called from accept(), handshake_exc is already set.
         # If a user calls reject(), set handshake_exc to guarantee invariant:

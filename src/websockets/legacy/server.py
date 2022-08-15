@@ -114,6 +114,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
+        no_server_header: bool = False,
+        no_date_header: bool = False,
         **kwargs: Any,
     ) -> None:
         if logger is None:
@@ -134,6 +136,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.extra_headers = extra_headers
         self._process_request = process_request
         self._select_subprotocol = select_subprotocol
+        self.no_server_header = no_server_header
+        self.no_date_header = no_date_header
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """
@@ -215,8 +219,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                         ),
                     )
 
-                headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-                headers.setdefault("Server", USER_AGENT)
+                if not self.no_date_header:
+                    headers.setdefault("Date", email.utils.formatdate(usegmt=True))
+                if not self.no_server_header:
+                    headers.setdefault("Server", USER_AGENT)
                 headers.setdefault("Content-Length", str(len(body)))
                 headers.setdefault("Content-Type", "text/plain")
                 headers.setdefault("Connection", "close")
@@ -634,8 +640,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if extra_headers is not None:
             response_headers.update(extra_headers)
 
-        response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-        response_headers.setdefault("Server", USER_AGENT)
+        if not self.no_date_header:
+            response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
+        if not self.no_server_header:
+            response_headers.setdefault("Server", USER_AGENT)
 
         self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
 

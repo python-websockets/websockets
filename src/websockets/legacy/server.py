@@ -998,6 +998,7 @@ class Serve:
         max_queue: Optional[int] = 2**5,
         read_limit: int = 2**16,
         write_limit: int = 2**16,
+        server_header: Optional[str] = USER_AGENT,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
@@ -1069,6 +1070,7 @@ class Serve:
             process_request=process_request,
             select_subprotocol=select_subprotocol,
             logger=logger,
+            server_header=server_header,
         )
 
         if kwargs.pop("unix", False):

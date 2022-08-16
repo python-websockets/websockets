@@ -43,8 +43,4 @@ Learn how to build an real-time web application with websockets.
 In a hurry?
 -----------
 
-Check out these examples.
-
-.. toctree::
-
-   quickstart
+Look at the :doc:`quick start guide <../howto/quickstart>`.

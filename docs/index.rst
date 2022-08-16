@@ -52,13 +52,14 @@ Also, websockets provides an interactive client:
     < Hello world!
     Connection closed: 1000 (OK).
 
-Do you like it? Let's dive in!
+Do you like it? :doc:`Let's dive in! <intro/index>`
 
 .. toctree::
    :hidden:
 
    intro/index
    howto/index
+   faq/index
    reference/index
    topics/index
    project/index

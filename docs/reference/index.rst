@@ -43,8 +43,8 @@ and server connections, common methods are documented in a "Both sides" page.
 .. toctree::
    :titlesonly:
 
-   client
    server
+   client
    common
    utilities
    exceptions

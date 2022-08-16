@@ -1,12 +1,18 @@
 How-to guides
 =============
 
+In a hurry? Check out these examples.
+
+.. toctree::
+   :titlesonly:
+
+   quickstart
+
 If you're stuck, perhaps you'll find the answer here.
 
 .. toctree::
    :titlesonly:
 
-   faq
    cheatsheet
    patterns
    autoreload

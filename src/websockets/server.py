@@ -64,6 +64,10 @@ class ServerConnection(Connection):
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../topics/logging>` for details.
+        server_header: Server header that gets defined
+            defaults to `f"Python/{PYTHON_VERSION} websockets/{websockets_version}"`
+            to disable the header assign `None`
+
 
     """
 

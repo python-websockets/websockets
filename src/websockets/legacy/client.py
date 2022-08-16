@@ -398,6 +398,9 @@ class Connect:
         extra_headers: arbitrary HTTP headers to add to the request.
         open_timeout: timeout for opening the connection in seconds;
             :obj:`None` to disable the timeout
+        user_agent_header: User-Agent header that gets defined
+            defaults to `f"Python/{PYTHON_VERSION} websockets/{websockets_version}"`
+            to disable the header assign `None`
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,

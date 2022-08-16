@@ -449,6 +449,7 @@ class Connect:
         max_queue: Optional[int] = 2**5,
         read_limit: int = 2**16,
         write_limit: int = 2**16,
+        user_agent_header: Optional[str] = USER_AGENT,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
@@ -518,6 +519,7 @@ class Connect:
             secure=wsuri.secure,
             legacy_recv=legacy_recv,
             loop=_loop,
+            user_agent_header=user_agent_header
         )
 
         if kwargs.pop("unix", False):

@@ -317,7 +317,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if self.extra_headers is not None:
             request_headers.update(self.extra_headers)
 
-        if self.user_agent_header:
+        if self.user_agent_header is not None:
             request_headers.setdefault("User-Agent", self.user_agent_header)
 
         self.write_http_request(wsuri.resource_name, request_headers)
@@ -441,6 +441,7 @@ class Connect:
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
+        user_agent_header: Optional[str] = USER_AGENT,
         open_timeout: Optional[float] = 10,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
@@ -449,7 +450,6 @@ class Connect:
         max_queue: Optional[int] = 2**5,
         read_limit: int = 2**16,
         write_limit: int = 2**16,
-        user_agent_header: Optional[str] = USER_AGENT,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
@@ -507,6 +507,7 @@ class Connect:
             extensions=extensions,
             subprotocols=subprotocols,
             extra_headers=extra_headers,
+            user_agent_header=user_agent_header,
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,
             close_timeout=close_timeout,
@@ -519,7 +520,6 @@ class Connect:
             secure=wsuri.secure,
             legacy_recv=legacy_recv,
             loop=_loop,
-            user_agent_header=user_agent_header,
         )
 
         if kwargs.pop("unix", False):

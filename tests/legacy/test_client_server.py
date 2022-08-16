@@ -1229,17 +1229,17 @@ class CommonClientServerTests:
 
     @with_server(server_header=None)
     @with_client("/headers")
-    def test_protocol_custom_response_server_header_none(self):
+    def test_protocol_custom_response_no_server_header(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(resp_headers.count("Server"), 0)
+        self.assertNotIn("Server", resp_headers)
 
     @with_server()
     @with_client("/headers", user_agent_header=None)
-    def test_protocol_custom_request_user_agent_header_none(self):
+    def test_protocol_custom_request_no_user_agent_header(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(req_headers.count("User-Agent"), 0)
+        self.assertNotIn("User-Agent", req_headers)
 
 
 class ClientServerTests(

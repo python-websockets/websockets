@@ -574,7 +574,7 @@ class AcceptRejectTests(unittest.TestCase):
             raise client.handshake_exc
         self.assertEqual(str(raised.exception), "unsupported subprotocol: otherchat")
 
-    def test_user_agent_header_none(self):
+    def test_no_user_agent_header(self):
         client = ClientConnection(
             parse_uri("wss://example.com/"),
             user_agent_header=None,
@@ -585,10 +585,10 @@ class AcceptRejectTests(unittest.TestCase):
     def test_custom_user_agent_header(self):
         client = ClientConnection(
             parse_uri("wss://example.com/"),
-            user_agent_header="Eggs",
+            user_agent_header="websockets",
         )
         request = client.connect()
-        self.assertEqual(request.headers.get("User-Agent"), "Eggs")
+        self.assertEqual(request.headers.get("User-Agent"), "websockets")
 
 
 class MiscTests(unittest.TestCase):

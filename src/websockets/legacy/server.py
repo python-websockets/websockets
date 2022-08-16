@@ -108,13 +108,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
+        server_header: Optional[str] = USER_AGENT,
         process_request: Optional[
             Callable[[str, Headers], Awaitable[Optional[HTTPResponse]]]
         ] = None,
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
-        server_header: Optional[str] = USER_AGENT,
         **kwargs: Any,
     ) -> None:
         if logger is None:
@@ -133,9 +133,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
+        self.server_header = server_header
         self._process_request = process_request
         self._select_subprotocol = select_subprotocol
-        self.server_header = server_header
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """
@@ -218,8 +218,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     )
 
                 headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-                if self.server_header:
+                if self.server_header is not None:
                     headers.setdefault("Server", self.server_header)
+
                 headers.setdefault("Content-Length", str(len(body)))
                 headers.setdefault("Content-Type", "text/plain")
                 headers.setdefault("Connection", "close")
@@ -638,8 +639,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             response_headers.update(extra_headers)
 
         response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-
-        if self.server_header:
+        if self.server_header is not None:
             response_headers.setdefault("Server", self.server_header)
 
         self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
@@ -985,6 +985,7 @@ class Serve:
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
+        server_header: Optional[str] = USER_AGENT,
         process_request: Optional[
             Callable[[str, Headers], Awaitable[Optional[HTTPResponse]]]
         ] = None,
@@ -998,7 +999,6 @@ class Serve:
         max_queue: Optional[int] = 2**5,
         read_limit: int = 2**16,
         write_limit: int = 2**16,
-        server_header: Optional[str] = USER_AGENT,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
@@ -1067,10 +1067,10 @@ class Serve:
             extensions=extensions,
             subprotocols=subprotocols,
             extra_headers=extra_headers,
+            server_header=server_header,
             process_request=process_request,
             select_subprotocol=select_subprotocol,
             logger=logger,
-            server_header=server_header,
         )
 
         if kwargs.pop("unix", False):

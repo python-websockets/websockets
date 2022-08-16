@@ -608,17 +608,17 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertNotIn("Sec-WebSocket-Protocol", response.headers)
         self.assertIsNone(server.subprotocol)
 
-    def test_server_header_none(self):
+    def test_no_server_header(self):
         server = ServerConnection(server_header=None)
         request = self.make_request()
         response = server.accept(request)
         self.assertNotIn("Server", response.headers)
 
     def test_custom_server_header(self):
-        server = ServerConnection(server_header="Eggs")
+        server = ServerConnection(server_header="websockets")
         request = self.make_request()
         response = server.accept(request)
-        self.assertEqual(response.headers.get("server"), "Eggs")
+        self.assertEqual(response.headers.get("server"), "websockets")
 
 
 class MiscTests(unittest.TestCase):

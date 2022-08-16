@@ -72,10 +72,10 @@ class ServerConnection(Connection):
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
+        server_header: Optional[str] = USER_AGENT,
         state: State = CONNECTING,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
-        server_header: Optional[str] = USER_AGENT,
     ):
         super().__init__(
             side=SERVER,
@@ -172,7 +172,7 @@ class ServerConnection(Connection):
         if protocol_header is not None:
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        if self.server_header:
+        if self.server_header is not None:
             headers["Server"] = self.server_header
 
         self.logger.info("connection open")
@@ -474,7 +474,7 @@ class ServerConnection(Connection):
                 ("Content-Type", "text/plain; charset=utf-8"),
             ]
         )
-        if self.server_header:
+        if self.server_header is not None:
             headers["Server"] = self.server_header
 
         response = Response(status.value, status.phrase, headers, body)

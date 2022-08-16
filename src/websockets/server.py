@@ -75,7 +75,7 @@ class ServerConnection(Connection):
         state: State = CONNECTING,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
-        no_server_header: bool = False,
+        server_header: Optional[str] = USER_AGENT,
     ):
         super().__init__(
             side=SERVER,
@@ -86,7 +86,7 @@ class ServerConnection(Connection):
         self.origins = origins
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
-        self.no_server_header = no_server_header
+        self.server_header = server_header
 
     def accept(self, request: Request) -> Response:
         """
@@ -172,8 +172,8 @@ class ServerConnection(Connection):
         if protocol_header is not None:
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        if self.no_server_header:
-            headers["Server"] = USER_AGENT
+        if self.server_header:
+            headers["Server"] = self.server_header
 
         self.logger.info("connection open")
         return Response(101, "Switching Protocols", headers)
@@ -471,8 +471,8 @@ class ServerConnection(Connection):
                 ("Content-Length", str(len(body))),
                 ("Content-Type", "text/plain; charset=utf-8"),
             ]
-        if not self.no_server_header:
-            headers_list.append(("Server", USER_AGENT))
+        if self.server_header:
+            headers_list.append(("Server", self.server_header))
 
         headers_list.append(("Date", email.utils.formatdate(usegmt=True)))
         headers = Headers(headers_list)

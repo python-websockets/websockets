@@ -466,16 +466,16 @@ class ServerConnection(Connection):
 
         """
         body = text.encode()
-        headers_list = [
+        headers = Headers(
+            [
+                ("Date", email.utils.formatdate(usegmt=True)),
                 ("Connection", "close"),
                 ("Content-Length", str(len(body))),
                 ("Content-Type", "text/plain; charset=utf-8"),
             ]
+        )
         if self.server_header:
-            headers_list.append(("Server", self.server_header))
-
-        headers_list.append(("Date", email.utils.formatdate(usegmt=True)))
-        headers = Headers(headers_list)
+            headers["Server"] = self.server_header
 
         response = Response(status.value, status.phrase, headers, body)
         # When reject() is called from accept(), handshake_exc is already set.

@@ -1,5 +1,5 @@
-Writing an extension
-====================
+Write an extension
+==================
 
 .. currentmodule:: websockets.extensions
 
@@ -28,5 +28,3 @@ As a consequence, writing an extension requires implementing several classes:
 websockets provides base classes for extension factories and extensions.
 See :class:`ClientExtensionFactory`, :class:`ServerExtensionFactory`,
 and :class:`Extension` for details.
-
-

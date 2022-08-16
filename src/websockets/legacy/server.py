@@ -84,7 +84,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         ws_server: WebSocket server that created this connection.
 
     See :func:`serve` for the documentation of ``ws_handler``, ``logger``, ``origins``,
-    ``extensions``, ``subprotocols``, and ``extra_headers``.
+    ``extensions``, ``subprotocols``, ``extra_headers``, and ``server_header``.
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
@@ -949,6 +949,9 @@ class Serve:
             see :meth:`~WebSocketServerProtocol.process_request` for details.
         select_subprotocol: select a subprotocol supported by the client;
             see :meth:`~WebSocketServerProtocol.select_subprotocol` for details.
+        server_header Optional[str]: Server header that gets defined
+            defaults to `f"Python/{PYTHON_VERSION} websockets/{websockets_version}"`
+            to disable the header assign `None`
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,

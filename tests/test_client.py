@@ -588,6 +588,31 @@ class AcceptRejectTests(unittest.TestCase):
         request = client.connect()
         self.assertEqual(request.headers.get("User-Agent"), "Eggs")
 
+    def test_receive_reject_with_user_header_none(self):
+        with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
+            client = ClientConnection(
+                parse_uri("ws://example.com/test"), user_agent_header=None
+            )
+        request = client.connect()
+        client.receive_data(
+            (
+                f"HTTP/1.1 404 Not Found\r\n"
+                f"Date: {DATE}\r\n"
+                f"Server: {USER_AGENT}\r\n"
+                f"Content-Length: 13\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"Connection: close\r\n"
+                f"\r\n"
+                f"Sorry folks.\n"
+            ).encode(),
+        )
+        [response] = client.events_received()
+        self.assertNotIn("User-Agent", request.headers)
+        self.assertIsInstance(response, Response)
+        self.assertEqual(client.data_to_send(), [])
+        self.assertTrue(client.close_expected())
+        self.assertEqual(client.state, CONNECTING)
+
 
 class MiscTests(unittest.TestCase):
     def test_bypass_handshake(self):

@@ -620,6 +620,16 @@ class AcceptRejectTests(unittest.TestCase):
         response = server.accept(request)
         self.assertEqual(response.headers.get("server"), "Eggs")
 
+    def test_reject_response_server_header_none(self):
+        server = ServerConnection(server_header=None)
+        with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
+            response = server.reject(http.HTTPStatus.NOT_FOUND, "Sorry folks.\n")
+        self.assertIsInstance(response, Response)
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.reason_phrase, "Not Found")
+        self.assertNotIn("Server", response.headers)
+        self.assertEqual(response.body, b"Sorry folks.\n")
+
 
 class MiscTests(unittest.TestCase):
     def test_bypass_handshake(self):

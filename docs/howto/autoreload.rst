@@ -16,7 +16,7 @@ Install watchdog_ with the ``watchmedo`` shell utility:
 
 .. code-block:: console
 
-    $ pip install watchdog[watchmedo]
+    $ pip install 'watchdog[watchmedo]'
 
 .. _watchdog: https://pypi.org/project/watchdog/
 

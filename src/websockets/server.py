@@ -76,7 +76,6 @@ class ServerConnection(Connection):
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
         no_server_header: bool = False,
-        no_date_header: bool = False,
     ):
         super().__init__(
             side=SERVER,
@@ -88,7 +87,6 @@ class ServerConnection(Connection):
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.no_server_header = no_server_header
-        self.no_date_header = no_date_header
 
     def accept(self, request: Request) -> Response:
         """
@@ -162,8 +160,7 @@ class ServerConnection(Connection):
 
         headers = Headers()
 
-        if not self.no_date_header:
-            headers["Date"] = email.utils.formatdate(usegmt=True)
+        headers["Date"] = email.utils.formatdate(usegmt=True)
 
         headers["Upgrade"] = "websocket"
         headers["Connection"] = "Upgrade"
@@ -476,8 +473,8 @@ class ServerConnection(Connection):
             ]
         if not self.no_server_header:
             headers_list.append(("Server", USER_AGENT))
-        if not self.no_date_header:
-            headers_list.append(("Date", email.utils.formatdate(usegmt=True)))
+
+        headers_list.append(("Date", email.utils.formatdate(usegmt=True)))
         headers = Headers(headers_list)
 
         response = Response(status.value, status.phrase, headers, body)

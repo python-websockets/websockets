@@ -64,9 +64,9 @@ class ClientConnection(Connection):
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../topics/logging>` for details.
-        user_agent_header: User-Agent header that gets defined
-            defaults to ``f"Python/{PYTHON_VERSION} websockets/{websockets_version}"``
-            to disable the header assign ``None``
+        user_agent_header: value of  the ``User-Agent`` request header;
+            defauts to ``"Python/x.y.z websockets/X.Y"``;
+            :obj:`None` removes the header.
 
     """
 

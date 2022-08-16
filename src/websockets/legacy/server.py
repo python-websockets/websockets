@@ -943,15 +943,15 @@ class Serve:
             a :data:`~websockets.datastructures.HeadersLike` or a callable
             taking the request path and headers in arguments and returning
             a :data:`~websockets.datastructures.HeadersLike`.
+        server_header: value of  the ``Server`` response header;
+            defauts to ``"Python/x.y.z websockets/X.Y"``;
+            :obj:`None` removes the header.
         process_request (Optional[Callable[[str, Headers], \
             Awaitable[Optional[Tuple[http.HTTPStatus, HeadersLike, bytes]]]]]):
             intercept HTTP request before the opening handshake;
             see :meth:`~WebSocketServerProtocol.process_request` for details.
         select_subprotocol: select a subprotocol supported by the client;
             see :meth:`~WebSocketServerProtocol.select_subprotocol` for details.
-        server_header Optional[str]: Server header that gets defined
-            defaults to ``f"Python/{PYTHON_VERSION} websockets/{websockets_version}"``
-            to disable the header assign ``None``
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,

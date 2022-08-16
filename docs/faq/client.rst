@@ -40,6 +40,9 @@ To set other HTTP headers, for example the ``Authorization`` header, use the
     async with connect(..., extra_headers={"Authorization": ...}) as websocket:
         ...
 
+To override the ``User-Agent`` header, use the ``user_agent_header`` argument.
+Set it to :obj:`None` to remove the header.
+
 How do I close a connection?
 ----------------------------
 

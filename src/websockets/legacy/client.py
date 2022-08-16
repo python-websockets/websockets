@@ -70,7 +70,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     is closed with any other code.
 
     See :func:`connect` for the documentation of ``logger``, ``origin``,
-    ``extensions``, ``subprotocols``, and ``extra_headers``.
+    ``extensions``, ``subprotocols``, ``extra_headers``, and
+    ``user_agent_header``.
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
@@ -396,11 +397,11 @@ class Connect:
         subprotocols: list of supported subprotocols, in order of decreasing
             preference.
         extra_headers: arbitrary HTTP headers to add to the request.
+        user_agent_header: value of  the ``User-Agent`` request header;
+            defauts to ``"Python/x.y.z websockets/X.Y"``;
+            :obj:`None` removes the header.
         open_timeout: timeout for opening the connection in seconds;
             :obj:`None` to disable the timeout
-        user_agent_header: User-Agent header that gets defined
-            defaults to ``f"Python/{PYTHON_VERSION} websockets/{websockets_version}"``
-            to disable the header assign ``None``
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,

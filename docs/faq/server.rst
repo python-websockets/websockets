@@ -216,6 +216,9 @@ arguments of :func:`~server.serve`.
 
 To set other HTTP headers, use the ``extra_headers`` argument.
 
+To override the ``Server`` header, use the ``server_header`` argument. Set it to
+:obj:`None` to remove the header.
+
 How do I get the IP address of the client?
 ------------------------------------------
 

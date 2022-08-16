@@ -11,6 +11,7 @@ from websockets.http import USER_AGENT
 from websockets.http11 import Request, Response
 from websockets.uri import parse_uri
 from websockets.utils import accept_key
+
 from .extensions.utils import (
     ClientOpExtensionFactory,
     ClientRsv2ExtensionFactory,
@@ -584,7 +585,7 @@ class AcceptRejectTests(unittest.TestCase):
     def test_custom_user_agent_header(self):
         client = ClientConnection(
             parse_uri("wss://example.com/"),
-            user_agent_header="Eggs"
+            user_agent_header="Eggs",
         )
         request = client.connect()
         self.assertEqual(request.headers.get("User-Agent"), "Eggs")

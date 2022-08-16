@@ -76,7 +76,7 @@ class ClientConnection(Connection):
         state: State = CONNECTING,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
-        user_agent_header: Optional[str] = USER_AGENT
+        user_agent_header: Optional[str] = USER_AGENT,
     ):
         super().__init__(
             side=CLIENT,

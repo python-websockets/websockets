@@ -11,7 +11,6 @@ from websockets.http import USER_AGENT
 from websockets.http11 import Request, Response
 from websockets.uri import parse_uri
 from websockets.utils import accept_key
-
 from .extensions.utils import (
     ClientOpExtensionFactory,
     ClientRsv2ExtensionFactory,
@@ -573,6 +572,22 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidHandshake) as raised:
             raise client.handshake_exc
         self.assertEqual(str(raised.exception), "unsupported subprotocol: otherchat")
+
+    def test_user_agent_header_none(self):
+        client = ClientConnection(
+            parse_uri("wss://example.com/"),
+            user_agent_header=None,
+        )
+        request = client.connect()
+        self.assertNotIn("User-Agent", request.headers)
+
+    def test_custom_user_agent_header(self):
+        client = ClientConnection(
+            parse_uri("wss://example.com/"),
+            user_agent_header="Eggs"
+        )
+        request = client.connect()
+        self.assertEqual(request.headers.get("User-Agent"), "Eggs")
 
 
 class MiscTests(unittest.TestCase):

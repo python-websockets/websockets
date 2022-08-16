@@ -833,12 +833,30 @@ class WebSocketServer:
         """
         See :meth:`asyncio.Server.start_serving`.
 
+        Typical use::
+
+            server = await serve(..., start_serving=False)
+            # perform additional setup here...
+            # ... then start the server
+            await server.start_serving()
+
         """
         await self.server.start_serving()  # pragma: no cover
 
     async def serve_forever(self) -> None:
         """
         See :meth:`asyncio.Server.serve_forever`.
+
+        Typical use::
+
+            server = await serve(...)
+            # this coroutine doesn't return
+            # canceling it stops the server
+            await server.serve_forever()
+
+        This is an alternative to using :func:`serve` as an asynchronous context
+        manager. Shutdown is triggered by canceling :meth:`serve_forever`
+        instead of exiting a :func:`serve` context.
 
         """
         await self.server.serve_forever()  # pragma: no cover

@@ -24,3 +24,16 @@ Why do I get the error: ``module 'websockets' has no attribute '...'``?
 Often, this is because you created a script called ``websockets.py`` in your
 current working directory. Then ``import websockets`` imports this module
 instead of the websockets library.
+
+Why is websockets slower than another Python library in my benchmark?
+.....................................................................
+
+Not all libraries are as feature-complete as websockets. For a fair benchmark,
+you should disable features that the other library doesn't provide. Typically,
+you may need to disable:
+
+* Compression: set ``compression=None``
+* Keepalive: set ``ping_interval=None``
+* UTF-8 decoding: send ``bytes`` rather than ``str``
+
+If websockets is still slower than another Python library, please file a bug.

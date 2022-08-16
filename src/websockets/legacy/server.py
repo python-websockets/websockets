@@ -114,7 +114,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
-        no_server_header: bool = False,
+        server_header: Optional[str] = USER_AGENT,
         **kwargs: Any,
     ) -> None:
         if logger is None:
@@ -135,7 +135,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.extra_headers = extra_headers
         self._process_request = process_request
         self._select_subprotocol = select_subprotocol
-        self.no_server_header = no_server_header
+        self.server_header = server_header
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """
@@ -218,8 +218,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     )
 
                 headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-                if not self.no_server_header:
-                    headers.setdefault("Server", USER_AGENT)
+                if self.server_header:
+                    headers.setdefault("Server", self.server_header)
                 headers.setdefault("Content-Length", str(len(body)))
                 headers.setdefault("Content-Type", "text/plain")
                 headers.setdefault("Connection", "close")
@@ -638,8 +638,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             response_headers.update(extra_headers)
 
         response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-        if not self.no_server_header:
-            response_headers.setdefault("Server", USER_AGENT)
+
+        if self.server_header:
+            response_headers.setdefault("Server", self.server_header)
 
         self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
 

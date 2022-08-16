@@ -89,7 +89,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
-        no_server_header: bool = False,
+        user_agent_header: Optional[str] = USER_AGENT,
         **kwargs: Any,
     ) -> None:
         if logger is None:
@@ -99,7 +99,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
-        self.no_server_header = no_server_header
+        self.user_agent_header = user_agent_header
 
     def write_http_request(self, path: str, headers: Headers) -> None:
         """
@@ -317,8 +317,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if self.extra_headers is not None:
             request_headers.update(self.extra_headers)
 
-        if not self.no_server_header:
-            request_headers.setdefault("User-Agent", USER_AGENT)
+        if self.user_agent_header:
+            request_headers.setdefault("User-Agent", self.user_agent_header)
 
         self.write_http_request(wsuri.resource_name, request_headers)
 

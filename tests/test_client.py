@@ -583,8 +583,7 @@ class AcceptRejectTests(unittest.TestCase):
 
     def test_custom_user_agent_header(self):
         client = ClientConnection(
-            parse_uri("wss://example.com/"),
-            user_agent_header="Eggs"
+            parse_uri("wss://example.com/"), user_agent_header="Eggs"
         )
         request = client.connect()
         self.assertEqual(request.headers.get("User-Agent"), "Eggs")

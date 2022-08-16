@@ -519,7 +519,7 @@ class Connect:
             secure=wsuri.secure,
             legacy_recv=legacy_recv,
             loop=_loop,
-            user_agent_header=user_agent_header
+            user_agent_header=user_agent_header,
         )
 
         if kwargs.pop("unix", False):

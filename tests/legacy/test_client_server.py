@@ -1227,6 +1227,20 @@ class CommonClientServerTests:
         # Connection ends with an abnormal closure.
         self.assertEqual(self.client.close_code, 1006)
 
+    @with_server(server_header=None)
+    @with_client("/headers")
+    def test_protocol_custom_response_server_header_none(self):
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(resp_headers.count("Server"), 0)
+
+    @with_server()
+    @with_client("/headers", user_agent_header=None)
+    def test_protocol_custom_request_user_agent_header_none(self):
+        req_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(req_headers.count("User-Agent"), 0)
+
 
 class ClientServerTests(
     CommonClientServerTests, ClientServerTestsMixin, AsyncioTestCase

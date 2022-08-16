@@ -76,6 +76,7 @@ class ClientConnection(Connection):
         state: State = CONNECTING,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
+        user_agent_header: Optional[str] = USER_AGENT
     ):
         super().__init__(
             side=CLIENT,
@@ -88,6 +89,7 @@ class ClientConnection(Connection):
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.key = generate_key()
+        self.user_agent_header = user_agent_header
 
     def connect(self) -> Request:  # noqa: F811
         """
@@ -131,7 +133,8 @@ class ClientConnection(Connection):
             protocol_header = build_subprotocol(self.available_subprotocols)
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        headers["User-Agent"] = USER_AGENT
+        if self.user_agent_header:
+            headers["User-Agent"] = self.user_agent_header
 
         return Request(self.wsuri.resource_name, headers)
 

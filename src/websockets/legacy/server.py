@@ -950,8 +950,8 @@ class Serve:
         select_subprotocol: select a subprotocol supported by the client;
             see :meth:`~WebSocketServerProtocol.select_subprotocol` for details.
         server_header Optional[str]: Server header that gets defined
-            defaults to `f"Python/{PYTHON_VERSION} websockets/{websockets_version}"`
-            to disable the header assign `None`
+            defaults to ``f"Python/{PYTHON_VERSION} websockets/{websockets_version}"``
+            to disable the header assign ``None``
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,

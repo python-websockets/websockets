@@ -705,6 +705,13 @@ class CommonClientServerTests:
         self.assertEqual(resp_headers.count("Server"), 1)
         self.assertIn("('Server', 'websockets')", resp_headers)
 
+    @with_server(server_header=None)
+    @with_client("/headers")
+    def test_protocol_no_server_header(self):
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertNotIn("Server", resp_headers)
+
     @with_server(server_header="websockets")
     @with_client("/headers")
     def test_protocol_custom_server_header(self):
@@ -712,13 +719,6 @@ class CommonClientServerTests:
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(resp_headers.count("Server"), 1)
         self.assertIn("('Server', 'websockets')", resp_headers)
-
-    @with_server(server_header=None)
-    @with_client("/headers")
-    def test_protocol_no_server_header(self):
-        self.loop.run_until_complete(self.client.recv())
-        resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertNotIn("Server", resp_headers)
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_http_request_http_endpoint(self):
@@ -753,6 +753,16 @@ class CommonClientServerTests:
         self.loop.run_until_complete(self.client.send("Hello!"))
         self.loop.run_until_complete(self.client.recv())
         self.stop_client()
+
+    @with_server(create_protocol=HealthCheckServerProtocol, server_header=None)
+    def test_http_request_no_server_header(self):
+        response = self.loop.run_until_complete(self.make_http_request("/__health__/"))
+        self.assertNotIn("Server", response.headers)
+
+    @with_server(create_protocol=HealthCheckServerProtocol, server_header="websockets")
+    def test_http_request_custom_server_header(self):
+        response = self.loop.run_until_complete(self.make_http_request("/__health__/"))
+        self.assertEqual(response.headers["Server"], "websockets")
 
     def assert_client_raises_code(self, status_code):
         with self.assertRaises(InvalidStatusCode) as raised:

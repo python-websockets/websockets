@@ -618,17 +618,17 @@ class AcceptRejectTests(unittest.TestCase):
         server = ServerConnection(server_header="websockets")
         request = self.make_request()
         response = server.accept(request)
-        self.assertEqual(response.headers.get("server"), "websockets")
+        self.assertEqual(response.headers["Server"], "websockets")
 
-    def test_reject_response_server_header_none(self):
+    def test_reject_response_no_server_header(self):
         server = ServerConnection(server_header=None)
-        with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
-            response = server.reject(http.HTTPStatus.NOT_FOUND, "Sorry folks.\n")
-        self.assertIsInstance(response, Response)
-        self.assertEqual(response.status_code, 404)
-        self.assertEqual(response.reason_phrase, "Not Found")
+        response = server.reject(http.HTTPStatus.OK, "Hello world!\n")
         self.assertNotIn("Server", response.headers)
-        self.assertEqual(response.body, b"Sorry folks.\n")
+
+    def test_reject_response_custom_server_header(self):
+        server = ServerConnection(server_header="websockets")
+        response = server.reject(http.HTTPStatus.OK, "Hello world!\n")
+        self.assertEqual(response.headers["Server"], "websockets")
 
 
 class MiscTests(unittest.TestCase):

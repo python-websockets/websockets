@@ -30,6 +30,12 @@ They may change at any time.
 
 *In development*
 
+New features
+............
+
+* Supported overriding or removing the ``User-Agent`` header in clients and the
+  ``Server`` header in servers.
+
 10.3
 ----
 

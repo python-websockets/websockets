@@ -34,6 +34,9 @@ To set the ``Origin``, ``Sec-WebSocket-Extensions``, or
 ``origin``, ``extensions``, or ``subprotocols`` arguments of
 :func:`~client.connect`.
 
+To override the ``User-Agent`` header, use the ``user_agent_header`` argument.
+Set it to :obj:`None` to remove the header.
+
 To set other HTTP headers, for example the ``Authorization`` header, use the
 ``extra_headers`` argument::
 

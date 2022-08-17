@@ -84,7 +84,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         ws_server: WebSocket server that created this connection.
 
     See :func:`serve` for the documentation of ``ws_handler``, ``logger``, ``origins``,
-    ``extensions``, ``subprotocols``, and ``extra_headers``.
+    ``extensions``, ``subprotocols``, ``extra_headers``, and ``server_header``.
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
@@ -108,6 +108,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
+        server_header: Optional[str] = USER_AGENT,
         process_request: Optional[
             Callable[[str, Headers], Awaitable[Optional[HTTPResponse]]]
         ] = None,
@@ -132,6 +133,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
+        self.server_header = server_header
         self._process_request = process_request
         self._select_subprotocol = select_subprotocol
 
@@ -216,7 +218,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     )
 
                 headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-                headers.setdefault("Server", USER_AGENT)
+                if self.server_header is not None:
+                    headers.setdefault("Server", self.server_header)
+
                 headers.setdefault("Content-Length", str(len(body)))
                 headers.setdefault("Content-Type", "text/plain")
                 headers.setdefault("Connection", "close")
@@ -635,7 +639,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             response_headers.update(extra_headers)
 
         response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-        response_headers.setdefault("Server", USER_AGENT)
+        if self.server_header is not None:
+            response_headers.setdefault("Server", self.server_header)
 
         self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
 
@@ -938,6 +943,9 @@ class Serve:
             a :data:`~websockets.datastructures.HeadersLike` or a callable
             taking the request path and headers in arguments and returning
             a :data:`~websockets.datastructures.HeadersLike`.
+        server_header: value of  the ``Server`` response header;
+            defauts to ``"Python/x.y.z websockets/X.Y"``;
+            :obj:`None` removes the header.
         process_request (Optional[Callable[[str, Headers], \
             Awaitable[Optional[Tuple[http.HTTPStatus, HeadersLike, bytes]]]]]):
             intercept HTTP request before the opening handshake;
@@ -980,6 +988,7 @@ class Serve:
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLikeOrCallable] = None,
+        server_header: Optional[str] = USER_AGENT,
         process_request: Optional[
             Callable[[str, Headers], Awaitable[Optional[HTTPResponse]]]
         ] = None,
@@ -1061,6 +1070,7 @@ class Serve:
             extensions=extensions,
             subprotocols=subprotocols,
             extra_headers=extra_headers,
+            server_header=server_header,
             process_request=process_request,
             select_subprotocol=select_subprotocol,
             logger=logger,

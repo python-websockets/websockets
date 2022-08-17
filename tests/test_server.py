@@ -608,6 +608,28 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertNotIn("Sec-WebSocket-Protocol", response.headers)
         self.assertIsNone(server.subprotocol)
 
+    def test_no_server_header(self):
+        server = ServerConnection(server_header=None)
+        request = self.make_request()
+        response = server.accept(request)
+        self.assertNotIn("Server", response.headers)
+
+    def test_custom_server_header(self):
+        server = ServerConnection(server_header="websockets")
+        request = self.make_request()
+        response = server.accept(request)
+        self.assertEqual(response.headers["Server"], "websockets")
+
+    def test_reject_response_no_server_header(self):
+        server = ServerConnection(server_header=None)
+        response = server.reject(http.HTTPStatus.OK, "Hello world!\n")
+        self.assertNotIn("Server", response.headers)
+
+    def test_reject_response_custom_server_header(self):
+        server = ServerConnection(server_header="websockets")
+        response = server.reject(http.HTTPStatus.OK, "Hello world!\n")
+        self.assertEqual(response.headers["Server"], "websockets")
+
 
 class MiscTests(unittest.TestCase):
     def test_bypass_handshake(self):

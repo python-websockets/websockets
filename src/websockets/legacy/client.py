@@ -70,7 +70,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     is closed with any other code.
 
     See :func:`connect` for the documentation of ``logger``, ``origin``,
-    ``extensions``, ``subprotocols``, and ``extra_headers``.
+    ``extensions``, ``subprotocols``, ``extra_headers``, and
+    ``user_agent_header``.
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
@@ -89,6 +90,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
+        user_agent_header: Optional[str] = USER_AGENT,
         **kwargs: Any,
     ) -> None:
         if logger is None:
@@ -98,6 +100,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
         self.extra_headers = extra_headers
+        self.user_agent_header = user_agent_header
 
     def write_http_request(self, path: str, headers: Headers) -> None:
         """
@@ -315,7 +318,8 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if self.extra_headers is not None:
             request_headers.update(self.extra_headers)
 
-        request_headers.setdefault("User-Agent", USER_AGENT)
+        if self.user_agent_header is not None:
+            request_headers.setdefault("User-Agent", self.user_agent_header)
 
         self.write_http_request(wsuri.resource_name, request_headers)
 
@@ -393,6 +397,9 @@ class Connect:
         subprotocols: list of supported subprotocols, in order of decreasing
             preference.
         extra_headers: arbitrary HTTP headers to add to the request.
+        user_agent_header: value of  the ``User-Agent`` request header;
+            defauts to ``"Python/x.y.z websockets/X.Y"``;
+            :obj:`None` removes the header.
         open_timeout: timeout for opening the connection in seconds;
             :obj:`None` to disable the timeout
 
@@ -438,6 +445,7 @@ class Connect:
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
         extra_headers: Optional[HeadersLike] = None,
+        user_agent_header: Optional[str] = USER_AGENT,
         open_timeout: Optional[float] = 10,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
@@ -503,6 +511,7 @@ class Connect:
             extensions=extensions,
             subprotocols=subprotocols,
             extra_headers=extra_headers,
+            user_agent_header=user_agent_header,
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,
             close_timeout=close_timeout,

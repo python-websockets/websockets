@@ -214,6 +214,9 @@ To set the ``Sec-WebSocket-Extensions`` or ``Sec-WebSocket-Protocol`` headers in
 the WebSocket handshake response, use the ``extensions`` or ``subprotocols``
 arguments of :func:`~server.serve`.
 
+To override the ``Server`` header, use the ``server_header`` argument. Set it to
+:obj:`None` to remove the header.
+
 To set other HTTP headers, use the ``extra_headers`` argument.
 
 How do I get the IP address of the client?

@@ -655,12 +655,27 @@ class CommonClientServerTests:
         self.assertIn("('X-Spam', 'Eggs')", req_headers)
 
     @with_server()
-    @with_client("/headers", extra_headers={"User-Agent": "Eggs"})
-    def test_protocol_custom_request_user_agent(self):
+    @with_client("/headers", extra_headers={"User-Agent": "websockets"})
+    def test_protocol_custom_user_agent_header_legacy(self):
         req_headers = self.loop.run_until_complete(self.client.recv())
         self.loop.run_until_complete(self.client.recv())
         self.assertEqual(req_headers.count("User-Agent"), 1)
-        self.assertIn("('User-Agent', 'Eggs')", req_headers)
+        self.assertIn("('User-Agent', 'websockets')", req_headers)
+
+    @with_server()
+    @with_client("/headers", user_agent_header=None)
+    def test_protocol_no_user_agent_header(self):
+        req_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
+        self.assertNotIn("User-Agent", req_headers)
+
+    @with_server()
+    @with_client("/headers", user_agent_header="websockets")
+    def test_protocol_custom_user_agent_header(self):
+        req_headers = self.loop.run_until_complete(self.client.recv())
+        self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(req_headers.count("User-Agent"), 1)
+        self.assertIn("('User-Agent', 'websockets')", req_headers)
 
     @with_server(extra_headers=lambda p, r: {"X-Spam": "Eggs"})
     @with_client("/headers")
@@ -682,13 +697,28 @@ class CommonClientServerTests:
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertIn("('X-Spam', 'Eggs')", resp_headers)
 
-    @with_server(extra_headers={"Server": "Eggs"})
+    @with_server(extra_headers={"Server": "websockets"})
     @with_client("/headers")
-    def test_protocol_custom_response_user_agent(self):
+    def test_protocol_custom_server_header_legacy(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(resp_headers.count("Server"), 1)
-        self.assertIn("('Server', 'Eggs')", resp_headers)
+        self.assertIn("('Server', 'websockets')", resp_headers)
+
+    @with_server(server_header=None)
+    @with_client("/headers")
+    def test_protocol_no_server_header(self):
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertNotIn("Server", resp_headers)
+
+    @with_server(server_header="websockets")
+    @with_client("/headers")
+    def test_protocol_custom_server_header(self):
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(resp_headers.count("Server"), 1)
+        self.assertIn("('Server', 'websockets')", resp_headers)
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_http_request_http_endpoint(self):
@@ -723,6 +753,16 @@ class CommonClientServerTests:
         self.loop.run_until_complete(self.client.send("Hello!"))
         self.loop.run_until_complete(self.client.recv())
         self.stop_client()
+
+    @with_server(create_protocol=HealthCheckServerProtocol, server_header=None)
+    def test_http_request_no_server_header(self):
+        response = self.loop.run_until_complete(self.make_http_request("/__health__/"))
+        self.assertNotIn("Server", response.headers)
+
+    @with_server(create_protocol=HealthCheckServerProtocol, server_header="websockets")
+    def test_http_request_custom_server_header(self):
+        response = self.loop.run_until_complete(self.make_http_request("/__health__/"))
+        self.assertEqual(response.headers["Server"], "websockets")
 
     def assert_client_raises_code(self, status_code):
         with self.assertRaises(InvalidStatusCode) as raised:

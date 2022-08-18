@@ -761,12 +761,16 @@ class CommonClientServerTests:
     @with_server(create_protocol=HealthCheckServerProtocol, server_header=None)
     def test_http_request_no_server_header(self):
         response = self.loop.run_until_complete(self.make_http_request("/__health__/"))
-        self.assertNotIn("Server", response.headers)
+
+        with contextlib.closing(response):
+            self.assertNotIn("Server", response.headers)
 
     @with_server(create_protocol=HealthCheckServerProtocol, server_header="websockets")
     def test_http_request_custom_server_header(self):
         response = self.loop.run_until_complete(self.make_http_request("/__health__/"))
-        self.assertEqual(response.headers["Server"], "websockets")
+
+        with contextlib.closing(response):
+            self.assertEqual(response.headers["Server"], "websockets")
 
     def assert_client_raises_code(self, status_code):
         with self.assertRaises(InvalidStatusCode) as raised:

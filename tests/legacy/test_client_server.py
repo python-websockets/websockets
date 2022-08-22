@@ -1214,14 +1214,27 @@ class CommonClientServerTests:
             server_ws = next(iter(self.server.websockets))
             self.server.close()
             with self.assertRaises(ConnectionClosed):
+                self.loop.run_until_complete(self.client.send("Hello!"))
                 self.loop.run_until_complete(self.client.recv())
 
-        # Websocket connection closes properly with 1001 Going Away.
+        # Server closed the connection with 1001 Going Away.
         self.assertEqual(self.client.close_code, 1001)
         self.assertEqual(server_ws.close_code, 1001)
 
     @with_server()
-    def test_server_shuts_down_waits_until_handlers_terminate(self):
+    def test_server_shuts_down_gracefully_during_connection_handling(self):
+        with self.temp_client():
+            server_ws = next(iter(self.server.websockets))
+            self.server.close(close_connections=False)
+            self.loop.run_until_complete(self.client.send("Hello!"))
+            self.loop.run_until_complete(self.client.recv())
+
+        # Client closed the connection with 1000 OK.
+        self.assertEqual(self.client.close_code, 1000)
+        self.assertEqual(server_ws.close_code, 1000)
+
+    @with_server()
+    def test_server_shuts_down_and_waits_until_handlers_terminate(self):
         # This handler waits a bit after the connection is closed in order
         # to test that wait_closed() really waits for handlers to complete.
         self.start_client("/slow_stop")

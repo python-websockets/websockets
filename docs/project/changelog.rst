@@ -30,6 +30,11 @@ They may change at any time.
 
 *In development*
 
+New features
+............
+
+* Made it possible to close a server without closing existing connections.
+
 10.4
 ----
 

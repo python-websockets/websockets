@@ -260,6 +260,21 @@ Here's an example that terminates cleanly when it receives SIGTERM on Unix:
 .. literalinclude:: ../../example/shutdown_server.py
     :emphasize-lines: 12-15,18
 
+How do I stop a server while keeping existing connections open?
+---------------------------------------------------------------
+
+Call the server's :meth:`~server.WebSocketServer.close` method with
+``close_connections=False``.
+
+Here's how to adapt the example just above::
+
+    async def server():
+        ...
+
+        server = await websockets.serve(echo, "localhost", 8765)
+        await stop
+        await server.close(close_connections=False)
+
 How do I run HTTP and WebSocket servers on the same port?
 ---------------------------------------------------------
 

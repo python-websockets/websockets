@@ -730,26 +730,30 @@ class WebSocketServer:
         """
         self.websockets.remove(protocol)
 
-    def close(self) -> None:
+    def close(self, close_connections: bool = True) -> None:
         """
         Close the server.
 
-        This method:
+        * Close the underlying :class:`~asyncio.Server`.
+        * When ``close_connections`` is :obj:`True`, which is the default,
+          close existing connections. Specifically:
 
-        * closes the underlying :class:`~asyncio.Server`;
-        * rejects new WebSocket connections with an HTTP 503 (service
-          unavailable) error; this happens when the server accepted the TCP
-          connection but didn't complete the WebSocket opening handshake prior
-          to closing;
-        * closes open WebSocket connections with close code 1001 (going away).
+          * Reject opening WebSocket connections with an HTTP 503 (service
+            unavailable) error. This happens when the server accepted the TCP
+            connection but didn't complete the opening handshake before closing.
+          * Close open WebSocket connections with close code 1001 (going away).
+
+        * Wait until all connection handlers terminate.
 
         :meth:`close` is idempotent.
 
         """
         if self.close_task is None:
-            self.close_task = self.get_loop().create_task(self._close())
+            self.close_task = self.get_loop().create_task(
+                self._close(close_connections)
+            )
 
-    async def _close(self) -> None:
+    async def _close(self, close_connections: bool) -> None:
         """
         Implementation of :meth:`close`.
 
@@ -770,21 +774,22 @@ class WebSocketServer:
         # register(). See https://bugs.python.org/issue34852 for details.
         await asyncio.sleep(0, **loop_if_py_lt_38(self.get_loop()))
 
-        # Close OPEN connections with status code 1001. Since the server was
-        # closed, handshake() closes OPENING connections with a HTTP 503
-        # error. Wait until all connections are closed.
+        if close_connections:
+            # Close OPEN connections with status code 1001. Since the server was
+            # closed, handshake() closes OPENING connections with a HTTP 503
+            # error. Wait until all connections are closed.
 
-        close_tasks = [
-            asyncio.create_task(websocket.close(1001))
-            for websocket in self.websockets
-            if websocket.state is not State.CONNECTING
-        ]
-        # asyncio.wait doesn't accept an empty first argument.
-        if close_tasks:
-            await asyncio.wait(
-                close_tasks,
-                **loop_if_py_lt_38(self.get_loop()),
-            )
+            close_tasks = [
+                asyncio.create_task(websocket.close(1001))
+                for websocket in self.websockets
+                if websocket.state is not State.CONNECTING
+            ]
+            # asyncio.wait doesn't accept an empty first argument.
+            if close_tasks:
+                await asyncio.wait(
+                    close_tasks,
+                    **loop_if_py_lt_38(self.get_loop()),
+                )
 
         # Wait until all connection handlers are complete.
 
@@ -903,17 +908,21 @@ class Serve:
     server performs the closing handshake and closes the connection.
 
     Awaiting :func:`serve` yields a :class:`WebSocketServer`. This object
-    provides :meth:`~WebSocketServer.close` and
-    :meth:`~WebSocketServer.wait_closed` methods for shutting down the server.
+    provides a :meth:`~WebSocketServer.close` method to shut down the server::
 
-    :func:`serve` can be used as an asynchronous context manager::
+        stop = asyncio.Future()  # set this future to exit the server
+
+        server = await serve(...)
+        await stop
+        await server.close()
+
+    :func:`serve` can be used as an asynchronous context manager. Then, the
+    server is shut down automatically when exiting the context::
 
         stop = asyncio.Future()  # set this future to exit the server
 
         async with serve(...):
             await stop
-
-    The server is shut down automatically when exiting the context.
 
     Args:
         ws_handler: connection handler. It receives the WebSocket connection,

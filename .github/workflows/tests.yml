@@ -16,7 +16,7 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
     - name: Install Python 3.x
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: "3.x"
     - name: Install tox
@@ -59,7 +59,7 @@ jobs:
     - name: Check out repository
       uses: actions/checkout@v2
     - name: Install Python ${{ matrix.python }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v4
       with:
         python-version: ${{ matrix.python }}
     - name: Install tox

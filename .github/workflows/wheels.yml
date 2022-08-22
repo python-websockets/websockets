@@ -12,7 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Install Python 3.x
       uses: actions/setup-python@v4
       with:
@@ -35,7 +35,7 @@ jobs:
           - macOS-latest
     steps:
     - name: Check out repository
-      uses: actions/checkout@v2
+      uses: actions/checkout@v3
     - name: Make extension build mandatory
       run: touch .cibuildwheel
     - name: Install Python 3.x

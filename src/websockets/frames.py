@@ -191,6 +191,8 @@ class Frame:
             extensions: list of extensions, applied in reverse order.
 
         Raises:
+            EOFError: if the connection is closed without a full WebSocket frame.
+            UnicodeDecodeError: if the frame contains invalid UTF-8.
             PayloadTooBig: if the frame's payload size exceeds ``max_size``.
             ProtocolError: if the frame contains incorrect values.
 

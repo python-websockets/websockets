@@ -32,6 +32,8 @@ def test_one_input(data):
         assert isinstance(exc.value, Frame)
         return  # input accepted
     except (
+        EOFError,  # connection is closed without a full WebSocket frame
+        UnicodeDecodeError,  # frame contains invalid UTF-8
         PayloadTooBig,  # frame's payload size exceeds ``max_size``
         ProtocolError,  # frame contains incorrect values
     ):

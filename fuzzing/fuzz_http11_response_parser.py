@@ -14,17 +14,20 @@ def test_one_input(data):
     reader.feed_data(data)
     reader.feed_eof()
 
+    parser = Response.parse(
+        reader.read_line,
+        reader.read_exact,
+        reader.read_to_eof,
+    )
     try:
-        Response.parse(
-            reader.read_line,
-            reader.read_exact,
-            reader.read_to_eof,
-        )
+        next(parser)
+    except StopIteration:
+        pass  # response is available in exc.value
     except (
-        EOFError,  # connection is closed without a full HTTP response.
-        SecurityError,  # response exceeds a security limit.
-        LookupError,  # response isn't well formatted.
-        ValueError,  # response isn't well formatted.
+        EOFError,  # connection is closed without a full HTTP response
+        SecurityError,  # response exceeds a security limit
+        LookupError,  # response isn't well formatted
+        ValueError,  # response isn't well formatted
     ):
         pass
 

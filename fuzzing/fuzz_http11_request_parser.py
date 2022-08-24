@@ -14,10 +14,14 @@ def test_one_input(data):
     reader.feed_data(data)
     reader.feed_eof()
 
+    parser = Request.parse(
+        reader.read_line,
+    )
+
     try:
-        Request.parse(
-            reader.read_line,
-        )
+        next(parser)
+    except StopIteration:
+        pass  # request is available in exc.value
     except (
         EOFError,  # connection is closed without a full HTTP request
         SecurityError,  # request exceeds a security limit

@@ -28,13 +28,16 @@ def test_one_input(data):
 
     try:
         next(parser)
-    except StopIteration:
-        pass  # response is available in exc.value
+    except StopIteration as exc:
+        assert isinstance(exc.value, Frame)
+        return  # input accepted
     except (
         PayloadTooBig,  # frame's payload size exceeds ``max_size``
         ProtocolError,  # frame contains incorrect values
     ):
-        pass
+        return  # input rejected with a documented exception
+
+    raise RuntimeError("parsing didn't complete")
 
 
 def main():

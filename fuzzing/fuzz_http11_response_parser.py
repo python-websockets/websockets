@@ -21,15 +21,18 @@ def test_one_input(data):
     )
     try:
         next(parser)
-    except StopIteration:
-        pass  # response is available in exc.value
+    except StopIteration as exc:
+        assert isinstance(exc.value, Response)
+        return  # input accepted
     except (
         EOFError,  # connection is closed without a full HTTP response
         SecurityError,  # response exceeds a security limit
         LookupError,  # response isn't well formatted
         ValueError,  # response isn't well formatted
     ):
-        pass
+        return  # input rejected with a documented exception
+
+    raise RuntimeError("parsing didn't complete")
 
 
 def main():

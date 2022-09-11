@@ -640,7 +640,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
         if self.server_header is not None:
-            response_headers.update("Server", self.server_header)
+            response_headers.update({"Server": self.server_header})
 
         self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
 

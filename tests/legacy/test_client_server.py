@@ -706,7 +706,7 @@ class CommonClientServerTests:
     def test_protocol_custom_server_header_legacy(self):
         self.loop.run_until_complete(self.client.recv())
         resp_headers = self.loop.run_until_complete(self.client.recv())
-        self.assertEqual(resp_headers.count("Server"), 1)
+        self.assertEqual(resp_headers.count("Server"), 2)
         self.assertIn("('Server', 'websockets')", resp_headers)
 
     @with_server(server_header=None)
@@ -723,6 +723,16 @@ class CommonClientServerTests:
         resp_headers = self.loop.run_until_complete(self.client.recv())
         self.assertEqual(resp_headers.count("Server"), 1)
         self.assertIn("('Server', 'websockets')", resp_headers)
+
+    @with_server(server_header="websockets", extra_headers={"Server": "another"})
+    @with_client("/headers")
+    def test_protocol_multiple_server_header(self):
+        self.loop.run_until_complete(self.client.recv())
+        resp_headers = self.loop.run_until_complete(self.client.recv())
+        self.assertEqual(resp_headers.count("Server"), 2)
+        print(resp_headers)
+        self.assertIn("('Server', 'websockets')", resp_headers)
+        self.assertIn("('Server', 'another')", resp_headers)
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_http_request_http_endpoint(self):

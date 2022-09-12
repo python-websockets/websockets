@@ -633,14 +633,16 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         if protocol_header is not None:
             response_headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        if callable(extra_headers):
-            extra_headers = extra_headers(path, self.request_headers)
-        if extra_headers is not None:
-            response_headers.update(extra_headers)
+        if self.server_header is not None:
+            response_headers.setdefault("Server", self.server_header)
 
         response_headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-        if self.server_header is not None:
-            response_headers["Server"] = self.server_header
+
+        if callable(extra_headers):
+            extra_headers = extra_headers(path, self.request_headers)
+
+        if extra_headers is not None:
+            response_headers.update(extra_headers)
 
         self.write_http_response(http.HTTPStatus.SWITCHING_PROTOCOLS, response_headers)
 

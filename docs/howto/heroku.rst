@@ -4,6 +4,14 @@ Deploy to Heroku
 This guide describes how to deploy a websockets server to Heroku_. The same
 principles should apply to other Platform as a Service providers.
 
+.. admonition:: Heroku no longer offers a free tier.
+    :class: attention
+
+    When this tutorial was written, in September 2021, Heroku offered a free
+    tier where a websockets app could run at no cost. In November 2022, Heroku
+    removed the free tier, making it impossible to maintain this document. As a
+    consequence, it isn't updated anymore and may be removed in the future.
+
 We're going to deploy a very simple app. The process would be identical for a
 more realistic app.
 
@@ -42,7 +50,7 @@ Here's the implementation of the app, an echo server. Save it in a file called
 ``app.py``:
 
 .. literalinclude:: ../../example/deployment/heroku/app.py
-    :language: text
+    :language: python
 
 Heroku expects the server to `listen on a specific port`_, which is provided
 in the ``$PORT`` environment variable. The app reads it and passes it to

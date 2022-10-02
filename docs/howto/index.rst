@@ -39,6 +39,7 @@ Once your application is ready, learn how to deploy it on various platforms.
 .. toctree::
    :titlesonly:
 
+   render
    heroku
    kubernetes
    supervisor

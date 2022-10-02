@@ -10,6 +10,7 @@ balancers
 bottlenecked
 bufferbloat
 bugfix
+buildpack
 bytestring
 bytestrings
 changelog
@@ -20,9 +21,11 @@ cryptocurrency
 ctrl
 deserialize
 django
+Dockerfile
 dyno
 fractalideas
 gunicorn
+healthz
 hypercorn
 iframe
 IPv
@@ -38,6 +41,7 @@ lookups
 MiB
 mypy
 nginx
+Paketo
 permessage
 pid
 proxying

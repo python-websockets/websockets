@@ -40,6 +40,7 @@ Once your application is ready, learn how to deploy it on various platforms.
    :titlesonly:
 
    render
+   fly
    heroku
    kubernetes
    supervisor

@@ -65,7 +65,7 @@ class ServerConnection(Connection):
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../topics/logging>` for details.
         server_header: value of  the ``Server`` response header;
-            defauts to ``"Python/x.y.z websockets/X.Y"``;
+            defaults to ``"Python/x.y.z websockets/X.Y"``;
             :obj:`None` removes the header.
 
     """

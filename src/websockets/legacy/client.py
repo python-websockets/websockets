@@ -398,7 +398,7 @@ class Connect:
             preference.
         extra_headers: arbitrary HTTP headers to add to the request.
         user_agent_header: value of  the ``User-Agent`` request header;
-            defauts to ``"Python/x.y.z websockets/X.Y"``;
+            defaults to ``"Python/x.y.z websockets/X.Y"``;
             :obj:`None` removes the header.
         open_timeout: timeout for opening the connection in seconds;
             :obj:`None` to disable the timeout

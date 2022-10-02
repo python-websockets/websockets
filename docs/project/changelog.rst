@@ -307,7 +307,7 @@ Backwards-incompatible changes
     :class: note
 
     While Python supports this, tools relying on static code analysis don't.
-    This breaks autocompletion in an IDE or type checking with mypy_.
+    This breaks auto-completion in an IDE or type checking with mypy_.
 
     .. _mypy: https://github.com/python/mypy
 

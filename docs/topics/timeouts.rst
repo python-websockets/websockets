@@ -11,7 +11,7 @@ long-lived connections, it is desirable to ensure that connections don't
 break, and if they do, to report the problem quickly.
 
 Connections can drop as a consequence of temporary network connectivity issues,
-which are very common, even within datacenters.
+which are very common, even within data centers.
 
 Furthermore, WebSocket builds on top of HTTP/1.1 where connections are
 short-lived, even with ``Connection: keep-alive``. Typically, HTTP/1.1

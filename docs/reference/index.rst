@@ -60,7 +60,7 @@ guarantees of behavior or backwards-compatibility for private APIs.
 
 For convenience, many public APIs can be imported from the ``websockets``
 package. However, this feature is incompatible with static code analysis. It
-breaks autocompletion in an IDE or type checking with mypy_. If you're using
+breaks auto-completion in an IDE or type checking with mypy_. If you're using
 such tools, use the real import paths.
 
 .. _mypy: https://github.com/python/mypy

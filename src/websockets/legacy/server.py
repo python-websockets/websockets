@@ -944,7 +944,7 @@ class Serve:
             taking the request path and headers in arguments and returning
             a :data:`~websockets.datastructures.HeadersLike`.
         server_header: value of  the ``Server`` response header;
-            defauts to ``"Python/x.y.z websockets/X.Y"``;
+            defaults to ``"Python/x.y.z websockets/X.Y"``;
             :obj:`None` removes the header.
         process_request (Optional[Callable[[str, Headers], \
             Awaitable[Optional[Tuple[http.HTTPStatus, HeadersLike, bytes]]]]]):

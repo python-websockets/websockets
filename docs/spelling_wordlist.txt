@@ -23,6 +23,7 @@ deserialize
 django
 Dockerfile
 dyno
+formatter
 fractalideas
 gunicorn
 healthz

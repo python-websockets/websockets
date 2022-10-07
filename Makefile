@@ -7,7 +7,7 @@ export PYTHONWARNINGS=default
 default: coverage style
 
 style:
-	isort src tests
+	isort --project websockets src tests
 	black src tests
 	flake8 src tests
 	mypy --strict src

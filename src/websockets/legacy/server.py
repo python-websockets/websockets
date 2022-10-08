@@ -712,7 +712,7 @@ class WebSocketServer:
             self.logger.info("server listening on %s", name)
 
         # Initialized here because we need a reference to the event loop.
-        # This should be moved back to __init__ in Python 3.10.
+        # This should be moved back to __init__ when dropping Python < 3.10.
         self.closed_waiter = server.get_loop().create_future()
 
     def register(self, protocol: WebSocketServerProtocol) -> None:

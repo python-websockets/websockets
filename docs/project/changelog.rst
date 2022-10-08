@@ -33,6 +33,8 @@ They may change at any time.
 New features
 ............
 
+* Validated compatibility with Python 3.11.
+
 * Supported overriding or removing the ``User-Agent`` header in clients and the
   ``Server`` header in servers.
 

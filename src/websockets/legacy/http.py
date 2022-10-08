@@ -192,7 +192,7 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     """
     # Security: this is bounded by the StreamReader's limit (default = 32 KiB).
     line = await stream.readline()
-    # Security: this guarantees header values are small (hard-coded = 4 KiB)
+    # Security: this guarantees header values are small (hard-coded = 8 KiB)
     if len(line) > MAX_LINE:
         raise SecurityError("line too long")
     # Not mandatory but safe - https://www.rfc-editor.org/rfc/rfc7230.html#section-3.5

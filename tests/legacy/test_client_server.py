@@ -233,6 +233,7 @@ class ClientServerTestsMixin:
             return await serve(handler, "localhost", 0, **kwargs)
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
             self.server = self.loop.run_until_complete(start_server())
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
@@ -259,6 +260,7 @@ class ClientServerTestsMixin:
             return await connect(server_uri, **kwargs)
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
             self.client = self.loop.run_until_complete(start_client())
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
@@ -536,6 +538,7 @@ class CommonClientServerTests:
     @with_server(process_request=legacy_process_request_OK)
     def test_process_request_argument_backwards_compatibility(self):
         with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
             response = self.loop.run_until_complete(self.make_http_request("/"))
 
         with contextlib.closing(response):
@@ -563,6 +566,7 @@ class CommonClientServerTests:
     @with_server(create_protocol=LegacyProcessRequestOKServerProtocol)
     def test_process_request_override_backwards_compatibility(self):
         with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
             response = self.loop.run_until_complete(self.make_http_request("/"))
 
         with contextlib.closing(response):
@@ -607,6 +611,7 @@ class CommonClientServerTests:
             for server_socket in self.server.sockets
         ]
         with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
             client_attrs = (self.client.host, self.client.port, self.client.secure)
         self.assertDeprecationWarnings(
             recorded_warnings,
@@ -620,6 +625,7 @@ class CommonClientServerTests:
 
         expected_server_attrs = ("localhost", 0, self.secure)
         with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
             self.loop.run_until_complete(self.client.send(""))
             server_attrs = self.loop.run_until_complete(self.client.recv())
         self.assertDeprecationWarnings(
@@ -1356,7 +1362,8 @@ class YieldFromTests(ClientServerTestsMixin, AsyncioTestCase):
     @with_server()
     def test_client(self):
         # @asyncio.coroutine is deprecated on Python ≥ 3.8
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
 
             @asyncio.coroutine
             def run_client():
@@ -1370,7 +1377,8 @@ class YieldFromTests(ClientServerTestsMixin, AsyncioTestCase):
 
     def test_server(self):
         # @asyncio.coroutine is deprecated on Python ≥ 3.8
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
 
             @asyncio.coroutine
             def run_server():

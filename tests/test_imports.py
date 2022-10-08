@@ -30,6 +30,7 @@ class ImportsTests(unittest.TestCase):
         )
 
         with warnings.catch_warnings(record=True) as recorded_warnings:
+            warnings.simplefilter("always")
             self.assertEqual(self.mod.bar, bar)
 
         self.assertEqual(len(recorded_warnings), 1)

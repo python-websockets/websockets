@@ -322,6 +322,7 @@ class CommonTests:
             return WebSocketCommonProtocol(ping_interval=None, timeout=5)
 
         with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
             protocol = self.loop.run_until_complete(create_protocol())
 
         self.assertEqual(protocol.close_timeout, 5)
@@ -332,6 +333,7 @@ class CommonTests:
         self.addCleanup(loop.close)
 
         with warnings.catch_warnings(record=True) as recorded:
+            warnings.simplefilter("always")
             protocol = WebSocketCommonProtocol(ping_interval=None, loop=loop)
 
         self.assertEqual(protocol.loop, loop)

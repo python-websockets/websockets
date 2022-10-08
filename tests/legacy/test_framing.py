@@ -17,7 +17,8 @@ class FramingTests(AsyncioTestCase):
         stream = asyncio.StreamReader(loop=self.loop)
         stream.feed_data(message)
         stream.feed_eof()
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             frame = self.loop.run_until_complete(
                 Frame.read(
                     stream.readexactly,
@@ -32,7 +33,8 @@ class FramingTests(AsyncioTestCase):
 
     def encode(self, frame, mask=False, extensions=None):
         write = unittest.mock.Mock()
-        with warnings.catch_warnings(record=True):
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore")
             frame.write(write, mask=mask, extensions=extensions)
         # Ensure the entire frame is sent with a single call to write().
         # Multiple calls cause TCP fragmentation and degrade performance.

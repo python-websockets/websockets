@@ -1,6 +1,5 @@
 import asyncio
 import contextlib
-import sys
 import unittest
 import unittest.mock
 import warnings
@@ -88,9 +87,16 @@ class CommonTests:
 
     def setUp(self):
         super().setUp()
-        with warnings.catch_warnings(record=True):
+
+        # This logic is encapsulated in a coroutine to prevent it from executing
+        # before the event loop is running which causes asyncio.get_event_loop()
+        # to raise a DeprecationWarning on Python ≥ 3.10.
+
+        async def create_protocol():
             # Disable pings to make it easier to test what frames are sent exactly.
-            self.protocol = WebSocketCommonProtocol(ping_interval=None)
+            return WebSocketCommonProtocol(ping_interval=None)
+
+        self.protocol = self.loop.run_until_complete(create_protocol())
         self.transport = TransportMock()
         self.transport.setup_mock(self.loop, self.protocol)
 
@@ -312,29 +318,24 @@ class CommonTests:
     # Test constructor.
 
     def test_timeout_backwards_compatibility(self):
+        async def create_protocol():
+            return WebSocketCommonProtocol(ping_interval=None, timeout=5)
+
         with warnings.catch_warnings(record=True) as recorded:
-            protocol = WebSocketCommonProtocol(timeout=5)
+            protocol = self.loop.run_until_complete(create_protocol())
 
         self.assertEqual(protocol.close_timeout, 5)
-
-        expected = ["rename timeout to close_timeout"]
-        if sys.version_info[:2] >= (3, 10):  # pragma: no cover
-            expected += ["There is no current event loop"]
-
-        self.assertDeprecationWarnings(recorded, expected)
+        self.assertDeprecationWarnings(recorded, ["rename timeout to close_timeout"])
 
     def test_loop_backwards_compatibility(self):
         loop = asyncio.new_event_loop()
         self.addCleanup(loop.close)
 
         with warnings.catch_warnings(record=True) as recorded:
-            protocol = WebSocketCommonProtocol(loop=loop)
+            protocol = WebSocketCommonProtocol(ping_interval=None, loop=loop)
 
         self.assertEqual(protocol.loop, loop)
-
-        expected = ["remove loop argument"]
-
-        self.assertDeprecationWarnings(recorded, expected)
+        self.assertDeprecationWarnings(recorded, ["remove loop argument"])
 
     # Test public attributes.
 
@@ -1151,18 +1152,27 @@ class CommonTests:
     # Test the protocol logic for sending keepalive pings.
 
     def restart_protocol_with_keepalive_ping(
-        self, ping_interval=3 * MS, ping_timeout=3 * MS
+        self,
+        ping_interval=3 * MS,
+        ping_timeout=3 * MS,
     ):
         initial_protocol = self.protocol
+
         # copied from tearDown
+
         self.transport.close()
         self.loop.run_until_complete(self.protocol.close())
+
         # copied from setUp, but enables keepalive pings
-        with warnings.catch_warnings(record=True):
-            self.protocol = WebSocketCommonProtocol(
+
+        async def create_protocol():
+            return WebSocketCommonProtocol(
                 ping_interval=ping_interval,
                 ping_timeout=ping_timeout,
             )
+
+        self.protocol = self.loop.run_until_complete(create_protocol())
+
         self.transport = TransportMock()
         self.transport.setup_mock(self.loop, self.protocol)
         self.protocol.is_client = initial_protocol.is_client

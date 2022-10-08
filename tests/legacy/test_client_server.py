@@ -226,16 +226,16 @@ class ClientServerTestsMixin:
         # Disable pings by default in tests.
         kwargs.setdefault("ping_interval", None)
 
+        # This logic is encapsulated in a coroutine to prevent it from executing
+        # before the event loop is running which causes asyncio.get_event_loop()
+        # to raise a DeprecationWarning on Python ≥ 3.10.
+        async def start_server():
+            return await serve(handler, "localhost", 0, **kwargs)
+
         with warnings.catch_warnings(record=True) as recorded_warnings:
-            start_server = serve(handler, "localhost", 0, **kwargs)
-            self.server = self.loop.run_until_complete(start_server)
+            self.server = self.loop.run_until_complete(start_server())
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
-        if (
-            sys.version_info[:2] >= (3, 10)
-            and "remove loop argument" not in expected_warnings
-        ):  # pragma: no cover
-            expected_warnings += ["There is no current event loop"]
         self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def start_client(
@@ -252,16 +252,16 @@ class ClientServerTestsMixin:
         except KeyError:
             server_uri = get_server_uri(self.server, secure, resource_name, user_info)
 
+        # This logic is encapsulated in a coroutine to prevent it from executing
+        # before the event loop is running which causes asyncio.get_event_loop()
+        # to raise a DeprecationWarning on Python ≥ 3.10.
+        async def start_client():
+            return await connect(server_uri, **kwargs)
+
         with warnings.catch_warnings(record=True) as recorded_warnings:
-            start_client = connect(server_uri, **kwargs)
-            self.client = self.loop.run_until_complete(start_client)
+            self.client = self.loop.run_until_complete(start_client())
 
         expected_warnings = [] if deprecation_warnings is None else deprecation_warnings
-        if (
-            sys.version_info[:2] >= (3, 10)
-            and "remove loop argument" not in expected_warnings
-        ):  # pragma: no cover
-            expected_warnings += ["There is no current event loop"]
         self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def stop_client(self):
@@ -465,25 +465,26 @@ class CommonClientServerTests:
             path = bytes(pathlib.Path(temp_dir) / "websockets")
 
             # Like self.start_server() but with unix_serve().
-            with warnings.catch_warnings(record=True) as recorded_warnings:
-                unix_server = unix_serve(default_handler, path, loop=self.loop)
-                self.server = self.loop.run_until_complete(unix_server)
-            self.assertDeprecationWarnings(recorded_warnings, ["remove loop argument"])
+            async def start_server():
+                return await unix_serve(default_handler, path)
+
+            self.server = self.loop.run_until_complete(start_server())
 
             try:
                 # Like self.start_client() but with unix_connect()
-                with warnings.catch_warnings(record=True) as recorded_warnings:
-                    unix_client = unix_connect(path, loop=self.loop)
-                    self.client = self.loop.run_until_complete(unix_client)
-                self.assertDeprecationWarnings(
-                    recorded_warnings, ["remove loop argument"]
-                )
+                async def start_client():
+                    return await unix_connect(path)
+
+                self.client = self.loop.run_until_complete(start_client())
+
                 try:
                     self.loop.run_until_complete(self.client.send("Hello!"))
                     reply = self.loop.run_until_complete(self.client.recv())
                     self.assertEqual(reply, "Hello!")
+
                 finally:
                     self.stop_client()
+
             finally:
                 self.stop_server()
 
@@ -1341,6 +1342,7 @@ class ClientServerOriginTests(ClientServerTestsMixin, AsyncioTestCase):
         self.assertEqual(self.loop.run_until_complete(self.client.recv()), "Hello!")
 
     @with_server(origins=[""])
+    # The deprecation warning is raised when a client connects to the server.
     @with_client(deprecation_warnings=["use None instead of '' in origins"])
     def test_checking_lack_of_origin_succeeds_backwards_compatibility(self):
         self.loop.run_until_complete(self.client.send("Hello!"))

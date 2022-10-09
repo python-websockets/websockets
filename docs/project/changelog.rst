@@ -35,6 +35,12 @@ New features
 
 * Validated compatibility with Python 3.11.
 
+* Added the :attr:`~legacy.protocol.WebSocketCommonProtocol.latency` property to
+  protocols.
+
+* Changed :attr:`~legacy.protocol.WebSocketCommonProtocol.ping` to return the
+  latency of the connection.
+
 * Supported overriding or removing the ``User-Agent`` header in clients and the
   ``Server`` header in servers.
 

@@ -20,6 +20,8 @@ infrastructure closes idle connections after 30 to 120 seconds.
 As a consequence, proxies may terminate WebSocket connections prematurely when
 no message was exchanged in 30 seconds.
 
+.. _keepalive:
+
 Keepalive in websockets
 -----------------------
 
@@ -101,26 +103,14 @@ Latency between a client and a server may increase for two reasons:
   the default timeout elapses. As a consequence, it closes the connection.
   This is a reasonable choice to prevent overload.
 
-  If traffic spikes cause unwanted timeouts and you're confident that the
-  server will catch up eventually, you can increase ``ping_timeout`` or you
-  can disable keepalive entirely with ``ping_interval=None``.
+  If traffic spikes cause unwanted timeouts and you're confident that the server
+  will catch up eventually, you can increase ``ping_timeout`` or you can set it
+  to :obj:`None` to disable heartbeat entirely.
 
   The same reasoning applies to situations where the server sends more traffic
   than the client can accept.
 
-You can monitor latency as follows:
-
-.. code-block:: python
-
-    import asyncio
-    import logging
-    import time
-
-    async def log_latency(websocket, logger):
-        t0 = time.perf_counter()
-        pong_waiter = await websocket.ping()
-        await pong_waiter
-        t1 = time.perf_counter()
-        logger.info("Connection latency: %.3f seconds", t1 - t0)
-
-    asyncio.create_task(log_latency(websocket, logging.getLogger()))
+The latency measured during the last exchange of Ping and Pong frames is
+available in the :attr:`~legacy.protocol.WebSocketCommonProtocol.latency`
+attribute. Alternatively, you can measure the latency at any time with the
+:attr:`~legacy.protocol.WebSocketCommonProtocol.ping` method.

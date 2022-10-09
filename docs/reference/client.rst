@@ -46,6 +46,8 @@ Using a connection
 
     .. autoproperty:: closed
 
+    .. autoattribute:: latency
+
     The following attributes are available after the opening handshake,
     once the WebSocket connection is open:
 

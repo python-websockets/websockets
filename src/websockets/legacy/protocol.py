@@ -7,6 +7,7 @@ import logging
 import random
 import ssl
 import struct
+import time
 import uuid
 import warnings
 from typing import (
@@ -21,6 +22,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Tuple,
     Union,
     cast,
 )
@@ -286,7 +288,19 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self._fragmented_message_waiter: Optional[asyncio.Future[None]] = None
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pings: Dict[bytes, asyncio.Future[None]] = {}
+        self.pings: Dict[bytes, Tuple[asyncio.Future[float], float]] = {}
+
+        self.latency: float = 0
+        """
+        Latency of the connection, in seconds.
+
+        This value is updated after sending a ping frame and receiving a
+        matching pong frame. Before the first ping, :attr:`latency` is ``0``.
+
+        By default, websockets enables a :ref:`keepalive <keepalive>` mechanism
+        that sends ping frames automatically at regular intervals. You can also
+        send ping frames and measure latency with :meth:`ping`.
+        """
 
         # Task running the data transfer.
         self.transfer_data_task: asyncio.Task[None]
@@ -802,8 +816,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         .. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
 
-        A ping may serve as a keepalive or as a check that the remote endpoint
-        received all messages up to this point
+        A ping may serve as a keepalive, as a check that the remote endpoint
+        received all messages up to this point, or to measure :attr:`latency`.
 
         Canceling :meth:`ping` is discouraged. If :meth:`ping` doesn't return
         immediately, it means the write buffer is full. If you don't want to
@@ -818,14 +832,16 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 containing four random bytes.
 
         Returns:
-            ~asyncio.Future: A future that will be completed when the
-            corresponding pong is received. You can ignore it if you
-            don't intend to wait.
+            ~asyncio.Future[float]: A future that will be completed when the
+            corresponding pong is received. You can ignore it if you don't
+            intend to wait. The result of the future is the latency of the
+            connection in seconds.
 
             ::
 
                 pong_waiter = await ws.ping()
-                await pong_waiter  # only if you want to wait for the pong
+                # only if you want to wait for the corresponding pong
+                latency = await pong_waiter
 
         Raises:
             ConnectionClosed: when the connection is closed.
@@ -846,12 +862,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         while data is None or data in self.pings:
             data = struct.pack("!I", random.getrandbits(32))
 
-        ping_future = self.loop.create_future()
-        self.pings[data] = ping_future
+        pong_waiter = self.loop.create_future()
+        # Resolution of time.monotonic() may be too low on Windows.
+        ping_timestamp = time.perf_counter()
+        self.pings[data] = (pong_waiter, ping_timestamp)
 
         await self.write_frame(True, OP_PING, data)
 
-        return asyncio.shield(ping_future)
+        return asyncio.shield(pong_waiter)
 
     async def pong(self, data: Data = b"") -> None:
         """
@@ -1122,15 +1140,17 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
             elif frame.opcode == OP_PONG:
                 if frame.data in self.pings:
+                    pong_timestamp = time.perf_counter()
                     # Sending a pong for only the most recent ping is legal.
                     # Acknowledge all previous pings too in that case.
                     ping_id = None
                     ping_ids = []
-                    for ping_id, ping in self.pings.items():
+                    for ping_id, (pong_waiter, ping_timestamp) in self.pings.items():
                         ping_ids.append(ping_id)
-                        if not ping.done():
-                            ping.set_result(None)
+                        if not pong_waiter.done():
+                            pong_waiter.set_result(pong_timestamp - ping_timestamp)
                         if ping_id == frame.data:
+                            self.latency = pong_timestamp - ping_timestamp
                             break
                     else:  # pragma: no cover
                         assert False, "ping_id is in self.pings"
@@ -1454,13 +1474,13 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         assert self.state is State.CLOSED
         exc = self.connection_closed_exc()
 
-        for ping in self.pings.values():
-            ping.set_exception(exc)
+        for pong_waiter, _ping_timestamp in self.pings.values():
+            pong_waiter.set_exception(exc)
             # If the exception is never retrieved, it will be logged when ping
             # is garbage-collected. This is confusing for users.
             # Given that ping is done (with an exception), canceling it does
             # nothing, but it prevents logging the exception.
-            ping.cancel()
+            pong_waiter.cancel()
 
     # asyncio.Protocol methods
 

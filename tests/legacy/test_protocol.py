@@ -938,33 +938,33 @@ class CommonTests:
         self.assertNoFrameSent()
 
     def test_acknowledge_ping(self):
-        ping = self.loop.run_until_complete(self.protocol.ping())
-        self.assertFalse(ping.done())
+        pong_waiter = self.loop.run_until_complete(self.protocol.ping())
+        self.assertFalse(pong_waiter.done())
         ping_frame = self.last_sent_frame()
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
         self.receive_frame(pong_frame)
         self.run_loop_once()
         self.run_loop_once()
-        self.assertTrue(ping.done())
+        self.assertTrue(pong_waiter.done())
 
     def test_abort_ping(self):
-        ping = self.loop.run_until_complete(self.protocol.ping())
+        pong_waiter = self.loop.run_until_complete(self.protocol.ping())
         # Remove the frame from the buffer, else close_connection() complains.
         self.last_sent_frame()
-        self.assertFalse(ping.done())
+        self.assertFalse(pong_waiter.done())
         self.close_connection()
-        self.assertTrue(ping.done())
-        self.assertIsInstance(ping.exception(), ConnectionClosed)
+        self.assertTrue(pong_waiter.done())
+        self.assertIsInstance(pong_waiter.exception(), ConnectionClosed)
 
     def test_abort_ping_does_not_log_exception_if_not_retreived(self):
         self.loop.run_until_complete(self.protocol.ping())
         # Get the internal Future, which isn't directly returned by ping().
-        (ping,) = self.protocol.pings.values()
+        ((pong_waiter, _timestamp),) = self.protocol.pings.values()
         # Remove the frame from the buffer, else close_connection() complains.
         self.last_sent_frame()
         self.close_connection()
         # Check a private attribute, for lack of a better solution.
-        self.assertFalse(ping._log_traceback)
+        self.assertFalse(pong_waiter._log_traceback)
 
     def test_acknowledge_previous_pings(self):
         pings = [
@@ -987,7 +987,7 @@ class CommonTests:
         self.assertFalse(pings[2][0].done())
 
     def test_acknowledge_aborted_ping(self):
-        ping = self.loop.run_until_complete(self.protocol.ping())
+        pong_waiter = self.loop.run_until_complete(self.protocol.ping())
         ping_frame = self.last_sent_frame()
         # Clog incoming queue. This lets connection_lost() abort pending pings
         # with a ConnectionClosed exception before transfer_data_task
@@ -1003,7 +1003,7 @@ class CommonTests:
         self.loop.run_until_complete(self.protocol.wait_closed())
         # Ping receives a ConnectionClosed exception.
         with self.assertRaises(ConnectionClosed):
-            ping.result()
+            pong_waiter.result()
 
         # transfer_data doesn't crash, which would be logged.
         with self.assertNoLogs():
@@ -1012,14 +1012,14 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.recv())
 
     def test_canceled_ping(self):
-        ping = self.loop.run_until_complete(self.protocol.ping())
+        pong_waiter = self.loop.run_until_complete(self.protocol.ping())
         ping_frame = self.last_sent_frame()
-        ping.cancel()
+        pong_waiter.cancel()
         pong_frame = Frame(True, OP_PONG, ping_frame.data)
         self.receive_frame(pong_frame)
         self.run_loop_once()
         self.run_loop_once()
-        self.assertTrue(ping.cancelled())
+        self.assertTrue(pong_waiter.cancelled())
 
     def test_duplicate_ping(self):
         self.loop.run_until_complete(self.protocol.ping(b"foobar"))
@@ -1027,6 +1027,23 @@ class CommonTests:
         with self.assertRaises(RuntimeError):
             self.loop.run_until_complete(self.protocol.ping(b"foobar"))
         self.assertNoFrameSent()
+
+    # Test the protocol's logic for measuring latency
+
+    def test_record_latency_on_pong(self):
+        self.assertEqual(self.protocol.latency, 0)
+        self.loop.run_until_complete(self.protocol.ping(b"test"))
+        self.receive_frame(Frame(True, OP_PONG, b"test"))
+        self.run_loop_once()
+        self.assertGreater(self.protocol.latency, 0)
+
+    def test_return_latency_on_pong(self):
+        pong_waiter = self.loop.run_until_complete(self.protocol.ping())
+        ping_frame = self.last_sent_frame()
+        pong_frame = Frame(True, OP_PONG, ping_frame.data)
+        self.receive_frame(pong_frame)
+        latency = self.loop.run_until_complete(pong_waiter)
+        self.assertGreater(latency, 0)
 
     # Test the protocol's logic for rebuilding fragmented messages.
 
@@ -1244,14 +1261,14 @@ class CommonTests:
         self.receive_frame(Frame(True, OP_TEXT, b"2"))
         # Ping is sent at 3ms.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
-        (ping_waiter,) = tuple(self.protocol.pings.values())
+        ((pong_waiter, _timestamp),) = self.protocol.pings.values()
         # Connection drops.
         self.receive_eof()
         self.loop.run_until_complete(self.protocol.wait_closed())
 
         # The ping waiter receives a ConnectionClosed exception.
         with self.assertRaises(ConnectionClosed):
-            ping_waiter.result()
+            pong_waiter.result()
         # The keepalive ping task terminated properly.
         self.assertIsNone(self.protocol.keepalive_ping_task.result())
 

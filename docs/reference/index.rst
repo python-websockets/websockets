@@ -37,9 +37,6 @@ are available on client connections created with :func:`~client.connect` and
 on server connections received in argument by the connection handler
 of :func:`~server.serve`.
 
-Since websockets provides the same API — and uses the same code — for client
-and server connections, common methods are documented in a "Both sides" page.
-
 .. toctree::
    :titlesonly:
 

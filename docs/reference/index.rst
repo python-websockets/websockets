@@ -58,9 +58,14 @@ Public API documented in the API reference are subject to the
 Anything that isn't listed in the API reference is a private API. There's no
 guarantees of behavior or backwards-compatibility for private APIs.
 
-For convenience, many public APIs can be imported from the ``websockets``
-package. However, this feature is incompatible with static code analysis. It
-breaks auto-completion in an IDE or type checking with mypy_. If you're using
-such tools, use the real import paths.
+.. admonition:: Convenience imports are incompatible with some development tools.
+    :class: caution
 
-.. _mypy: https://github.com/python/mypy
+    For convenience, most public APIs can be imported from the ``websockets``
+    package. However, this is incompatible with static code analysis.
+
+    It may break auto-completion and contextual documentation in IDEs, type
+    checking with mypy_, etc. If you're using such tools, stick to the full
+    import paths.
+
+    .. _mypy: https://github.com/python/mypy

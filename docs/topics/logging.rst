@@ -126,7 +126,8 @@ Here's how to include them in logs, assuming they're in the
 
     async with websockets.serve(
         ...,
-        logger=LoggerAdapter(logging.getLogger("websockets.server")),
+        # Python < 3.10 requires passing None as the second argument.
+        logger=LoggerAdapter(logging.getLogger("websockets.server"), None),
     ):
         ...
 
@@ -167,7 +168,8 @@ a :class:`~logging.LoggerAdapter`::
 
     async with websockets.serve(
         ...,
-        logger=LoggerAdapter(logging.getLogger("websockets.server")),
+        # Python < 3.10 requires passing None as the second argument.
+        logger=LoggerAdapter(logging.getLogger("websockets.server"), None),
     ):
         ...
 

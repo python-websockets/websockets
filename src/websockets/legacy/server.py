@@ -598,7 +598,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         # The connection may drop while process_request is running.
         if self.state is State.CLOSED:
-            raise self.connection_closed_exc()  # pragma: no cover
+            # This subclass of ConnectionError is silently ignored in handler().
+            raise BrokenPipeError("connection closed during opening handshake")
 
         # Change the response to a 503 error if the server is shutting down.
         if not self.ws_server.is_serving():

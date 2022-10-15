@@ -7,7 +7,6 @@ from websockets.connection import CONNECTING, OPEN
 from websockets.datastructures import Headers
 from websockets.exceptions import InvalidHeader, InvalidOrigin, InvalidUpgrade
 from websockets.frames import OP_TEXT, Frame
-from websockets.http import USER_AGENT
 from websockets.http11 import Request, Response
 from websockets.server import *
 
@@ -32,7 +31,6 @@ class ConnectTests(unittest.TestCase):
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Key: {KEY}\r\n"
                 f"Sec-WebSocket-Version: 13\r\n"
-                f"User-Agent: {USER_AGENT}\r\n"
                 f"\r\n"
             ).encode(),
         )
@@ -51,7 +49,6 @@ class ConnectTests(unittest.TestCase):
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Key: {KEY}\r\n"
                 f"Sec-WebSocket-Version: 13\r\n"
-                f"User-Agent: {USER_AGENT}\r\n"
                 f"\r\n"
             ).encode(),
         )
@@ -66,7 +63,6 @@ class ConnectTests(unittest.TestCase):
                     "Connection": "Upgrade",
                     "Sec-WebSocket-Key": KEY,
                     "Sec-WebSocket-Version": "13",
-                    "User-Agent": USER_AGENT,
                 }
             ),
         )
@@ -83,7 +79,6 @@ class AcceptRejectTests(unittest.TestCase):
                     "Connection": "Upgrade",
                     "Sec-WebSocket-Key": KEY,
                     "Sec-WebSocket-Version": "13",
-                    "User-Agent": USER_AGENT,
                 }
             ),
         )
@@ -102,7 +97,6 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Upgrade: websocket\r\n"
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Accept: {ACCEPT}\r\n"
-                f"Server: {USER_AGENT}\r\n"
                 f"\r\n".encode()
             ],
         )
@@ -123,7 +117,6 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Connection: close\r\n"
                 f"Content-Length: 13\r\n"
                 f"Content-Type: text/plain; charset=utf-8\r\n"
-                f"Server: {USER_AGENT}\r\n"
                 f"\r\n"
                 f"Sorry folks.\n".encode(),
                 b"",
@@ -147,7 +140,6 @@ class AcceptRejectTests(unittest.TestCase):
                     "Upgrade": "websocket",
                     "Connection": "Upgrade",
                     "Sec-WebSocket-Accept": ACCEPT,
-                    "Server": USER_AGENT,
                 }
             ),
         )
@@ -168,7 +160,6 @@ class AcceptRejectTests(unittest.TestCase):
                     "Connection": "close",
                     "Content-Length": "13",
                     "Content-Type": "text/plain; charset=utf-8",
-                    "Server": USER_AGENT,
                 }
             ),
         )
@@ -607,28 +598,6 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 101)
         self.assertNotIn("Sec-WebSocket-Protocol", response.headers)
         self.assertIsNone(server.subprotocol)
-
-    def test_no_server_header(self):
-        server = ServerConnection(server_header=None)
-        request = self.make_request()
-        response = server.accept(request)
-        self.assertNotIn("Server", response.headers)
-
-    def test_custom_server_header(self):
-        server = ServerConnection(server_header="websockets")
-        request = self.make_request()
-        response = server.accept(request)
-        self.assertEqual(response.headers["Server"], "websockets")
-
-    def test_reject_response_no_server_header(self):
-        server = ServerConnection(server_header=None)
-        response = server.reject(http.HTTPStatus.OK, "Hello world!\n")
-        self.assertNotIn("Server", response.headers)
-
-    def test_reject_response_custom_server_header(self):
-        server = ServerConnection(server_header="websockets")
-        response = server.reject(http.HTTPStatus.OK, "Hello world!\n")
-        self.assertEqual(response.headers["Server"], "websockets")
 
 
 class MiscTests(unittest.TestCase):

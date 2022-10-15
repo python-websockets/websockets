@@ -23,7 +23,6 @@ from .headers import (
     parse_subprotocol,
     parse_upgrade,
 )
-from .http import USER_AGENT
 from .http11 import Request, Response
 from .typing import (
     ConnectionOption,
@@ -64,9 +63,6 @@ class ClientConnection(Connection):
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../topics/logging>` for details.
-        user_agent_header: value of  the ``User-Agent`` request header;
-            defaults to ``"Python/x.y.z websockets/X.Y"``;
-            :obj:`None` removes the header.
 
     """
 
@@ -76,7 +72,6 @@ class ClientConnection(Connection):
         origin: Optional[Origin] = None,
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
-        user_agent_header: Optional[str] = USER_AGENT,
         state: State = CONNECTING,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
@@ -91,7 +86,6 @@ class ClientConnection(Connection):
         self.origin = origin
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
-        self.user_agent_header = user_agent_header
         self.key = generate_key()
 
     def connect(self) -> Request:  # noqa: F811
@@ -135,9 +129,6 @@ class ClientConnection(Connection):
         if self.available_subprotocols is not None:
             protocol_header = build_subprotocol(self.available_subprotocols)
             headers["Sec-WebSocket-Protocol"] = protocol_header
-
-        if self.user_agent_header is not None:
-            headers["User-Agent"] = self.user_agent_header
 
         return Request(self.wsuri.resource_name, headers)
 

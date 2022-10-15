@@ -7,7 +7,6 @@ from websockets.connection import CONNECTING, OPEN
 from websockets.datastructures import Headers
 from websockets.exceptions import InvalidHandshake, InvalidHeader
 from websockets.frames import OP_TEXT, Frame
-from websockets.http import USER_AGENT
 from websockets.http11 import Request, Response
 from websockets.uri import parse_uri
 from websockets.utils import accept_key
@@ -38,7 +37,6 @@ class ConnectTests(unittest.TestCase):
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Key: {KEY}\r\n"
                 f"Sec-WebSocket-Version: 13\r\n"
-                f"User-Agent: {USER_AGENT}\r\n"
                 f"\r\n".encode()
             ],
         )
@@ -58,7 +56,6 @@ class ConnectTests(unittest.TestCase):
                     "Connection": "Upgrade",
                     "Sec-WebSocket-Key": KEY,
                     "Sec-WebSocket-Version": "13",
-                    "User-Agent": USER_AGENT,
                 }
             ),
         )
@@ -130,7 +127,6 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Accept: {ACCEPT}\r\n"
                 f"Date: {DATE}\r\n"
-                f"Server: {USER_AGENT}\r\n"
                 f"\r\n"
             ).encode(),
         )
@@ -148,7 +144,6 @@ class AcceptRejectTests(unittest.TestCase):
             (
                 f"HTTP/1.1 404 Not Found\r\n"
                 f"Date: {DATE}\r\n"
-                f"Server: {USER_AGENT}\r\n"
                 f"Content-Length: 13\r\n"
                 f"Content-Type: text/plain; charset=utf-8\r\n"
                 f"Connection: close\r\n"
@@ -173,7 +168,6 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Connection: Upgrade\r\n"
                 f"Sec-WebSocket-Accept: {ACCEPT}\r\n"
                 f"Date: {DATE}\r\n"
-                f"Server: {USER_AGENT}\r\n"
                 f"\r\n"
             ).encode(),
         )
@@ -188,7 +182,6 @@ class AcceptRejectTests(unittest.TestCase):
                     "Connection": "Upgrade",
                     "Sec-WebSocket-Accept": ACCEPT,
                     "Date": DATE,
-                    "Server": USER_AGENT,
                 }
             ),
         )
@@ -202,7 +195,6 @@ class AcceptRejectTests(unittest.TestCase):
             (
                 f"HTTP/1.1 404 Not Found\r\n"
                 f"Date: {DATE}\r\n"
-                f"Server: {USER_AGENT}\r\n"
                 f"Content-Length: 13\r\n"
                 f"Content-Type: text/plain; charset=utf-8\r\n"
                 f"Connection: close\r\n"
@@ -218,7 +210,6 @@ class AcceptRejectTests(unittest.TestCase):
             Headers(
                 {
                     "Date": DATE,
-                    "Server": USER_AGENT,
                     "Content-Length": "13",
                     "Content-Type": "text/plain; charset=utf-8",
                     "Connection": "close",
@@ -573,22 +564,6 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidHandshake) as raised:
             raise client.handshake_exc
         self.assertEqual(str(raised.exception), "unsupported subprotocol: otherchat")
-
-    def test_no_user_agent_header(self):
-        client = ClientConnection(
-            parse_uri("wss://example.com/"),
-            user_agent_header=None,
-        )
-        request = client.connect()
-        self.assertNotIn("User-Agent", request.headers)
-
-    def test_custom_user_agent_header(self):
-        client = ClientConnection(
-            parse_uri("wss://example.com/"),
-            user_agent_header="websockets",
-        )
-        request = client.connect()
-        self.assertEqual(request.headers["User-Agent"], "websockets")
 
 
 class MiscTests(unittest.TestCase):

@@ -25,7 +25,6 @@ from .headers import (
     parse_subprotocol,
     parse_upgrade,
 )
-from .http import USER_AGENT
 from .http11 import Request, Response
 from .typing import (
     ConnectionOption,
@@ -64,9 +63,6 @@ class ServerConnection(Connection):
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../topics/logging>` for details.
-        server_header: value of  the ``Server`` response header;
-            defaults to ``"Python/x.y.z websockets/X.Y"``;
-            :obj:`None` removes the header.
 
     """
 
@@ -75,7 +71,6 @@ class ServerConnection(Connection):
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
-        server_header: Optional[str] = USER_AGENT,
         state: State = CONNECTING,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
@@ -89,7 +84,6 @@ class ServerConnection(Connection):
         self.origins = origins
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
-        self.server_header = server_header
 
     def accept(self, request: Request) -> Response:
         """
@@ -174,9 +168,6 @@ class ServerConnection(Connection):
 
         if protocol_header is not None:
             headers["Sec-WebSocket-Protocol"] = protocol_header
-
-        if self.server_header is not None:
-            headers["Server"] = self.server_header
 
         self.logger.info("connection open")
         return Response(101, "Switching Protocols", headers)
@@ -477,9 +468,6 @@ class ServerConnection(Connection):
                 ("Content-Type", "text/plain; charset=utf-8"),
             ]
         )
-        if self.server_header is not None:
-            headers["Server"] = self.server_header
-
         response = Response(status.value, status.phrase, headers, body)
         # When reject() is called from accept(), handshake_exc is already set.
         # If a user calls reject(), set handshake_exc to guarantee invariant:

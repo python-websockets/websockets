@@ -37,7 +37,7 @@ Backwards-incompatible changes
     :class: caution
 
     Aliases provide compatibility for all previously public APIs according to
-    the `backwards-compatibility policy`_
+    the `backwards-compatibility policy`_.
 
     * The ``connection`` module was renamed to ``protocol``.
 
@@ -66,6 +66,9 @@ New features
 ............
 
 * Made it possible to close a server without closing existing connections.
+
+* Added :attr:`~protocol.ServerProtocol.select_subprotocol` to customize
+  negotiation of subprotocols in the Sans-I/O layer.
 
 10.4
 ----

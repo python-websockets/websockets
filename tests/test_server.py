@@ -4,7 +4,12 @@ import unittest
 import unittest.mock
 
 from websockets.datastructures import Headers
-from websockets.exceptions import InvalidHeader, InvalidOrigin, InvalidUpgrade
+from websockets.exceptions import (
+    InvalidHeader,
+    InvalidOrigin,
+    InvalidUpgrade,
+    NegotiationError,
+)
 from websockets.frames import OP_TEXT, Frame
 from websockets.http11 import Request, Response
 from websockets.protocol import CONNECTING, OPEN
@@ -544,9 +549,12 @@ class AcceptRejectTests(unittest.TestCase):
         request = self.make_request()
         response = server.accept(request)
 
-        self.assertEqual(response.status_code, 101)
-        self.assertNotIn("Sec-WebSocket-Protocol", response.headers)
-        self.assertIsNone(server.subprotocol)
+        self.assertEqual(response.status_code, 400)
+        with self.assertRaisesRegex(
+            NegotiationError,
+            r"missing subprotocol",
+        ):
+            raise server.handshake_exc
 
     def test_subprotocol(self):
         server = ServerProtocol(subprotocols=["chat"])
@@ -571,8 +579,8 @@ class AcceptRejectTests(unittest.TestCase):
     def test_multiple_subprotocols(self):
         server = ServerProtocol(subprotocols=["superchat", "chat"])
         request = self.make_request()
-        request.headers["Sec-WebSocket-Protocol"] = "superchat"
         request.headers["Sec-WebSocket-Protocol"] = "chat"
+        request.headers["Sec-WebSocket-Protocol"] = "superchat"
         response = server.accept(request)
 
         self.assertEqual(response.status_code, 101)
@@ -591,6 +599,34 @@ class AcceptRejectTests(unittest.TestCase):
 
     def test_unsupported_subprotocol(self):
         server = ServerProtocol(subprotocols=["superchat", "chat"])
+        request = self.make_request()
+        request.headers["Sec-WebSocket-Protocol"] = "otherchat"
+        response = server.accept(request)
+
+        self.assertEqual(response.status_code, 400)
+        with self.assertRaisesRegex(
+            NegotiationError,
+            r"invalid subprotocol; expected one of superchat, chat",
+        ):
+            raise server.handshake_exc
+
+    @staticmethod
+    def optional_chat(protocol, subprotocols):
+        if "chat" in subprotocols:
+            return "chat"
+
+    def test_select_subprotocol(self):
+        server = ServerProtocol(select_subprotocol=self.optional_chat)
+        request = self.make_request()
+        request.headers["Sec-WebSocket-Protocol"] = "chat"
+        response = server.accept(request)
+
+        self.assertEqual(response.status_code, 101)
+        self.assertEqual(response.headers["Sec-WebSocket-Protocol"], "chat")
+        self.assertEqual(server.subprotocol, "chat")
+
+    def test_select_no_subprotocol(self):
+        server = ServerProtocol(select_subprotocol=self.optional_chat)
         request = self.make_request()
         request.headers["Sec-WebSocket-Protocol"] = "otherchat"
         response = server.accept(request)

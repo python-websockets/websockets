@@ -520,30 +520,28 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         server_subprotocols: Sequence[Subprotocol],
     ) -> Optional[Subprotocol]:
         """
-        Pick a subprotocol among those offered by the client.
+        Pick a subprotocol among those supported by the client and the server.
 
-        If several subprotocols are supported by the client and the server,
-        the default implementation selects the preferred subprotocol by
-        giving equal value to the priorities of the client and the server.
-        If no subprotocol is supported by the client and the server, it
-        proceeds without a subprotocol.
+        If several subprotocols are available, select the preferred subprotocol
+        by giving equal weight to the preferences of the client and the server.
 
-        This is unlikely to be the most useful implementation in practice.
-        Many servers providing a subprotocol will require that the client
-        uses that subprotocol. Such rules can be implemented in a subclass.
+        If no subprotocol is available, proceed without a subprotocol.
 
-        You may also override this method with the ``select_subprotocol``
-        argument of :func:`serve` and :class:`WebSocketServerProtocol`.
+        You may provide a ``select_subprotocol`` argument to :func:`serve` or
+        :class:`WebSocketServerProtocol` to override this logic. For example,
+        you could reject the handshake if the client doesn't support a
+        particular subprotocol, rather than accept the handshake without that
+        subprotocol.
 
         Args:
             client_subprotocols: list of subprotocols offered by the client.
             server_subprotocols: list of subprotocols available on the server.
 
         Returns:
-            Optional[Subprotocol]: Selected subprotocol.
+            Optional[Subprotocol]: Selected subprotocol, if a common subprotocol
+            was found.
 
             :obj:`None` to continue without a subprotocol.
-
 
         """
         if self._select_subprotocol is not None:

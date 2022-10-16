@@ -123,6 +123,8 @@ Sans-I/O
 
     .. automethod:: accept
 
+    .. automethod:: select_subprotocol
+
     .. automethod:: reject
 
     .. automethod:: send_response

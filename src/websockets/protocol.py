@@ -86,6 +86,7 @@ class Protocol:
     def __init__(
         self,
         side: Side,
+        *,
         state: State = OPEN,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,

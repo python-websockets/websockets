@@ -621,6 +621,6 @@ class BackwardsCompatibilityTests(DeprecationTestCase):
         ):
             from websockets.server import ServerConnection
 
-            server = ServerConnection("ws://localhost/")
+            server = ServerConnection()
 
         self.assertIsInstance(server, ServerProtocol)

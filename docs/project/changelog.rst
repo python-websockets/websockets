@@ -45,6 +45,13 @@ Backwards-incompatible changes
       ``client.ClientConnection`` classes were renamed to ``protocol.Protocol``,
       ``server.ServerProtocol``, and ``client.ClientProtocol``.
 
+.. admonition:: Sans-I/O protocol constructors now use keyword-only arguments.
+    :class: caution
+
+    If you instantiate :class:`~server.ServerProtocol` or
+    :class:`~client.ClientProtocol` directly, make sure you are using keyword
+    arguments.
+
 .. admonition:: Closing a connection without an empty close frame is OK.
     :class: note
 

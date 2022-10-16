@@ -69,6 +69,7 @@ class ServerProtocol(Protocol):
 
     def __init__(
         self,
+        *,
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,

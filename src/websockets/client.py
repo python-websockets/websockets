@@ -70,6 +70,7 @@ class ClientProtocol(Protocol):
     def __init__(
         self,
         wsuri: WebSocketURI,
+        *,
         origin: Optional[Origin] = None,
         extensions: Optional[Sequence[ClientExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,

@@ -68,7 +68,7 @@ class Request:
     def exception(self) -> Optional[Exception]:  # pragma: no cover
         warnings.warn(
             "Request.exception is deprecated; "
-            "use ServerConnection.handshake_exc instead",
+            "use ServerProtocol.handshake_exc instead",
             DeprecationWarning,
         )
         return self._exception
@@ -172,7 +172,7 @@ class Response:
     def exception(self) -> Optional[Exception]:  # pragma: no cover
         warnings.warn(
             "Response.exception is deprecated; "
-            "use ClientConnection.handshake_exc instead",
+            "use ClientProtocol.handshake_exc instead",
             DeprecationWarning,
         )
         return self._exception

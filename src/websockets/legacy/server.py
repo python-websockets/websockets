@@ -25,7 +25,6 @@ from typing import (
     cast,
 )
 
-from ..connection import State
 from ..datastructures import Headers, HeadersLike, MultipleValuesError
 from ..exceptions import (
     AbortHandshake,
@@ -45,6 +44,7 @@ from ..headers import (
     validate_subprotocols,
 )
 from ..http import USER_AGENT
+from ..protocol import State
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from .compatibility import loop_if_py_lt_38
 from .handshake import build_response, check_request

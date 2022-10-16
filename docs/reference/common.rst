@@ -57,9 +57,9 @@ asyncio
 Sans-I/O
 --------
 
-.. automodule:: websockets.connection
+.. automodule:: websockets.protocol
 
-.. autoclass:: Connection(side, state=State.OPEN, max_size=2 ** 20, logger=None)
+.. autoclass:: Protocol(side, state=State.OPEN, max_size=2 ** 20, logger=None)
 
     .. automethod:: receive_data
 

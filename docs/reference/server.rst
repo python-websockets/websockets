@@ -115,7 +115,7 @@ websockets supports HTTP Basic Authentication according to
 Sans-I/O
 --------
 
-.. autoclass:: ServerConnection(origins=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
+.. autoclass:: ServerProtocol(origins=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
 
     .. automethod:: receive_data
 

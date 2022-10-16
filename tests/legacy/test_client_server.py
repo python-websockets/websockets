@@ -16,7 +16,6 @@ import urllib.error
 import urllib.request
 import warnings
 
-from websockets.connection import State
 from websockets.datastructures import Headers
 from websockets.exceptions import (
     ConnectionClosed,
@@ -35,6 +34,7 @@ from websockets.legacy.client import *
 from websockets.legacy.handshake import build_response
 from websockets.legacy.http import read_response
 from websockets.legacy.server import *
+from websockets.protocol import State
 from websockets.uri import parse_uri
 
 from ..extensions.utils import (

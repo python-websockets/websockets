@@ -27,7 +27,6 @@ from typing import (
     cast,
 )
 
-from ..connection import State
 from ..datastructures import Headers
 from ..exceptions import (
     ConnectionClosed,
@@ -51,6 +50,7 @@ from ..frames import (
     prepare_ctrl,
     prepare_data,
 )
+from ..protocol import State
 from ..typing import Data, LoggerLike, Subprotocol
 from .compatibility import loop_if_py_lt_38
 from .framing import Frame

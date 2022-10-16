@@ -4,7 +4,6 @@ import unittest
 import unittest.mock
 import warnings
 
-from websockets.connection import State
 from websockets.exceptions import ConnectionClosed, InvalidState
 from websockets.frames import (
     OP_BINARY,
@@ -18,6 +17,7 @@ from websockets.frames import (
 from websockets.legacy.compatibility import loop_if_py_lt_38
 from websockets.legacy.framing import Frame
 from websockets.legacy.protocol import WebSocketCommonProtocol, broadcast
+from websockets.protocol import State
 
 from .utils import MS, AsyncioTestCase
 

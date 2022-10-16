@@ -218,6 +218,32 @@ class AcceptRejectTests(unittest.TestCase):
         )
         self.assertEqual(response.body, b"Sorry folks.\n")
 
+    def test_no_response(self):
+        with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
+            client = ClientProtocol(parse_uri("ws://example.com/test"))
+        client.connect()
+        client.receive_eof()
+        self.assertEqual(client.events_received(), [])
+
+    def test_partial_response(self):
+        with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
+            client = ClientProtocol(parse_uri("ws://example.com/test"))
+        client.connect()
+        client.receive_data(b"HTTP/1.1 101 Switching Protocols\r\n")
+        client.receive_eof()
+        self.assertEqual(client.events_received(), [])
+
+    def test_random_response(self):
+        with unittest.mock.patch("websockets.client.generate_key", return_value=KEY):
+            client = ClientProtocol(parse_uri("ws://example.com/test"))
+        client.connect()
+        client.receive_data(b"220 smtp.invalid\r\n")
+        client.receive_data(b"250 Hello relay.invalid\r\n")
+        client.receive_data(b"250 Ok\r\n")
+        client.receive_data(b"250 Ok\r\n")
+        client.receive_eof()
+        self.assertEqual(client.events_received(), [])
+
     def make_accept_response(self, client):
         request = client.connect()
         return Response(

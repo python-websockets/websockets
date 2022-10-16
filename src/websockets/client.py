@@ -316,11 +316,17 @@ class ClientProtocol(Protocol):
 
     def parse(self) -> Generator[None, None, None]:
         if self.state is CONNECTING:
-            response = yield from Response.parse(
-                self.reader.read_line,
-                self.reader.read_exact,
-                self.reader.read_to_eof,
-            )
+            try:
+                response = yield from Response.parse(
+                    self.reader.read_line,
+                    self.reader.read_exact,
+                    self.reader.read_to_eof,
+                )
+            except Exception as exc:
+                self.handshake_exc = exc
+                self.parser = self.discard()
+                next(self.parser)  # start coroutine
+                yield
 
             if self.debug:
                 code, phrase = response.status_code, response.reason_phrase
@@ -334,14 +340,15 @@ class ClientProtocol(Protocol):
                 self.process_response(response)
             except InvalidHandshake as exc:
                 response._exception = exc
+                self.events.append(response)
                 self.handshake_exc = exc
                 self.parser = self.discard()
                 next(self.parser)  # start coroutine
-            else:
-                assert self.state is CONNECTING
-                self.state = OPEN
-            finally:
-                self.events.append(response)
+                yield
+
+            assert self.state is CONNECTING
+            self.state = OPEN
+            self.events.append(response)
 
         yield from super().parse()
 

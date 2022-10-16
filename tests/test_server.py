@@ -72,6 +72,24 @@ class ConnectTests(unittest.TestCase):
             ),
         )
 
+    def test_no_request(self):
+        server = ServerProtocol()
+        server.receive_eof()
+        self.assertEqual(server.events_received(), [])
+
+    def test_partial_request(self):
+        server = ServerProtocol()
+        server.receive_data(b"GET /test HTTP/1.1\r\n")
+        server.receive_eof()
+        self.assertEqual(server.events_received(), [])
+
+    def test_random_request(self):
+        server = ServerProtocol()
+        server.receive_data(b"HELO relay.invalid\r\n")
+        server.receive_data(b"MAIL FROM: <alice@invalid>\r\n")
+        server.receive_data(b"RCPT TO: <bob@invalid>\r\n")
+        self.assertEqual(server.events_received(), [])
+
 
 class AcceptRejectTests(unittest.TestCase):
     def make_request(self):

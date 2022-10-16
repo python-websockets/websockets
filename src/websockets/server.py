@@ -541,7 +541,16 @@ class ServerProtocol(Protocol):
 
     def parse(self) -> Generator[None, None, None]:
         if self.state is CONNECTING:
-            request = yield from Request.parse(self.reader.read_line)
+            try:
+                request = yield from Request.parse(
+                    self.reader.read_line,
+                )
+            except Exception as exc:
+                self.handshake_exc = exc
+                self.send_eof()
+                self.parser = self.discard()
+                next(self.parser)  # start coroutine
+                yield
 
             if self.debug:
                 self.logger.debug("< GET %s HTTP/1.1", request.path)

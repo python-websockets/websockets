@@ -33,35 +33,36 @@ If you're building a client, parse the URI you'd like to connect to::
 Open a TCP connection to ``(wsuri.host, wsuri.port)`` and perform a TLS
 handshake if ``wsuri.secure`` is :obj:`True`.
 
-Initialize a :class:`~client.ClientConnection`::
+Initialize a :class:`~client.ClientProtocol`::
 
-    from websockets.client import ClientConnection
+    from websockets.client import ClientProtocol
 
-    connection = ClientConnection(wsuri)
+    protocol = ClientProtocol(wsuri)
 
 Create a WebSocket handshake request
-with :meth:`~client.ClientConnection.connect` and send it
-with :meth:`~client.ClientConnection.send_request`::
+with :meth:`~client.ClientProtocol.connect` and send it
+with :meth:`~client.ClientProtocol.send_request`::
 
-    request = connection.connect()
-    connection.send_request(request)
+    request = protocol.connect()
+    protocol.send_request(request)
 
-Then, call :meth:`~connection.Connection.data_to_send` and send its output to
+Then, call :meth:`~protocol.Protocol.data_to_send` and send its output to
 the network, as described in `Send data`_ below.
 
-The first event returned by :meth:`~connection.Connection.events_received` is
-the WebSocket handshake response.
+Once you receive enough data, as explained in `Receive data`_ below, the first
+event returned by :meth:`~protocol.Protocol.events_received` is the WebSocket
+handshake response.
 
 When the handshake fails, the reason is available in
-:attr:`~client.ClientConnection.handshake_exc`::
+:attr:`~client.ClientProtocol.handshake_exc`::
 
-    if connection.handshake_exc is not None:
-        raise connection.handshake_exc
+    if protocol.handshake_exc is not None:
+        raise protocol.handshake_exc
 
 Else, the WebSocket connection is open.
 
 A WebSocket client API usually performs the handshake then returns a wrapper
-around the network connection and the :class:`~client.ClientConnection`.
+around the network socket and the :class:`~client.ClientProtocol`.
 
 Server-side
 ...........
@@ -69,45 +70,46 @@ Server-side
 If you're building a server, accept network connections from clients and
 perform a TLS handshake if desired.
 
-For each connection, initialize a :class:`~server.ServerConnection`::
+For each connection, initialize a :class:`~server.ServerProtocol`::
 
-    from websockets.server import ServerConnection
+    from websockets.server import ServerProtocol
 
-    connection = ServerConnection()
+    protocol = ServerProtocol()
 
-The first event returned by :meth:`~connection.Connection.events_received` is
-the WebSocket handshake request.
+Once you receive enough data, as explained in `Receive data`_ below, the first
+event returned by :meth:`~protocol.Protocol.events_received` is the WebSocket
+handshake request.
 
 Create a WebSocket handshake response
-with :meth:`~server.ServerConnection.accept` and send it
-with :meth:`~server.ServerConnection.send_response`::
+with :meth:`~server.ServerProtocol.accept` and send it
+with :meth:`~server.ServerProtocol.send_response`::
 
-    response = connection.accept(request)
-    connection.send_response(response)
+    response = protocol.accept(request)
+    protocol.send_response(response)
 
 Alternatively, you may reject the WebSocket handshake and return an HTTP
-response with :meth:`~server.ServerConnection.reject`::
+response with :meth:`~server.ServerProtocol.reject`::
 
-    response = connection.reject(status, explanation)
-    connection.send_response(response)
+    response = protocol.reject(status, explanation)
+    protocol.send_response(response)
 
-Then, call :meth:`~connection.Connection.data_to_send` and send its output to
+Then, call :meth:`~protocol.Protocol.data_to_send` and send its output to
 the network, as described in `Send data`_ below.
 
-Even when you call :meth:`~server.ServerConnection.accept`, the WebSocket
+Even when you call :meth:`~server.ServerProtocol.accept`, the WebSocket
 handshake may fail if the request is incorrect or unsupported.
 
 When the handshake fails, the reason is available in
-:attr:`~server.ServerConnection.handshake_exc`::
+:attr:`~server.ServerProtocol.handshake_exc`::
 
-    if connection.handshake_exc is not None:
-        raise connection.handshake_exc
+    if protocol.handshake_exc is not None:
+        raise protocol.handshake_exc
 
 Else, the WebSocket connection is open.
 
-A WebSocket server API usually builds a wrapper around the network connection
-and the :class:`~server.ServerConnection`. Then it invokes a connection
-handler that accepts the wrapper in argument.
+A WebSocket server API usually builds a wrapper around the network socket and
+the :class:`~server.ServerProtocol`. Then it invokes a connection handler that
+accepts the wrapper in argument.
 
 It may also provide a way to close all connections and to shut down the server
 gracefully.
@@ -122,11 +124,11 @@ Go through the five steps below until you reach the end of the data stream.
 Receive data
 ............
 
-When receiving data from the network, feed it to the connection's
-:meth:`~connection.Connection.receive_data` method.
+When receiving data from the network, feed it to the protocol's
+:meth:`~protocol.Protocol.receive_data` method.
 
-When reaching the end of the data stream, call the connection's
-:meth:`~connection.Connection.receive_eof` method.
+When reaching the end of the data stream, call the protocol's
+:meth:`~protocol.Protocol.receive_eof` method.
 
 For example, if ``sock`` is a :obj:`~socket.socket`::
 
@@ -135,21 +137,21 @@ For example, if ``sock`` is a :obj:`~socket.socket`::
     except OSError:  # socket closed
         data = b""
     if data:
-        connection.receive_data(data)
+        protocol.receive_data(data)
     else:
-        connection.receive_eof()
+        protocol.receive_eof()
 
 These methods aren't expected to raise exceptions — unless you call them again
-after calling :meth:`~connection.Connection.receive_eof`, which is an error.
+after calling :meth:`~protocol.Protocol.receive_eof`, which is an error.
 (If you get an exception, please file a bug!)
 
 Send data
 .........
 
-Then, call :meth:`~connection.Connection.data_to_send` and send its output to
+Then, call :meth:`~protocol.Protocol.data_to_send` and send its output to
 the network::
 
-    for data in connection.data_to_send():
+    for data in protocol.data_to_send():
         if data:
             sock.sendall(data)
         else:
@@ -170,7 +172,7 @@ server starts the four-way TCP closing handshake. If the network fails at the
 wrong point, you can end up waiting until the TCP timeout, which is very long.
 
 To prevent dangling TCP connections when you expect the end of the data stream
-but you never reach it, call :meth:`~connection.Connection.close_expected`
+but you never reach it, call :meth:`~protocol.Protocol.close_expected`
 and, if it returns :obj:`True`, schedule closing the TCP connection after a
 short timeout::
 
@@ -185,11 +187,11 @@ data stream, possibly with an exception.
 Close TCP connection
 ....................
 
-If you called :meth:`~connection.Connection.receive_eof`, close the TCP
+If you called :meth:`~protocol.Protocol.receive_eof`, close the TCP
 connection now. This is a clean closure because the receive buffer is empty.
 
-After :meth:`~connection.Connection.receive_eof` signals the end of the read
-stream, :meth:`~connection.Connection.data_to_send` always signals the end of
+After :meth:`~protocol.Protocol.receive_eof` signals the end of the read
+stream, :meth:`~protocol.Protocol.data_to_send` always signals the end of
 the write stream, unless it already ended. So, at this point, the TCP
 connection is already half-closed. The only reason for closing it now is to
 release resources related to the socket.
@@ -199,8 +201,8 @@ Now you can exit the loop relaying data from the network to the application.
 Receive events
 ..............
 
-Finally, call :meth:`~connection.Connection.events_received` to obtain events
-parsed from the data provided to :meth:`~connection.Connection.receive_data`::
+Finally, call :meth:`~protocol.Protocol.events_received` to obtain events
+parsed from the data provided to :meth:`~protocol.Protocol.receive_data`::
 
     events = connection.events_received()
 
@@ -224,9 +226,9 @@ The connection object provides one method for each type of WebSocket frame.
 
 For sending a data frame:
 
-* :meth:`~connection.Connection.send_continuation`
-* :meth:`~connection.Connection.send_text`
-* :meth:`~connection.Connection.send_binary`
+* :meth:`~protocol.Protocol.send_continuation`
+* :meth:`~protocol.Protocol.send_text`
+* :meth:`~protocol.Protocol.send_binary`
 
 These methods raise :exc:`~exceptions.ProtocolError` if you don't set
 the :attr:`FIN <websockets.frames.Frame.fin>` bit correctly in fragmented
@@ -234,21 +236,21 @@ messages.
 
 For sending a control frame:
 
-* :meth:`~connection.Connection.send_close`
-* :meth:`~connection.Connection.send_ping`
-* :meth:`~connection.Connection.send_pong`
+* :meth:`~protocol.Protocol.send_close`
+* :meth:`~protocol.Protocol.send_ping`
+* :meth:`~protocol.Protocol.send_pong`
 
-:meth:`~connection.Connection.send_close` initiates the closing handshake.
+:meth:`~protocol.Protocol.send_close` initiates the closing handshake.
 See `Closing a connection`_ below for details.
 
 If you encounter an unrecoverable error and you must fail the WebSocket
-connection, call :meth:`~connection.Connection.fail`.
+connection, call :meth:`~protocol.Protocol.fail`.
 
-After any of the above, call :meth:`~connection.Connection.data_to_send` and
+After any of the above, call :meth:`~protocol.Protocol.data_to_send` and
 send its output to the network, as shown in `Send data`_ above.
 
-If you called :meth:`~connection.Connection.send_close`
-or :meth:`~connection.Connection.fail`, you expect the end of the data
+If you called :meth:`~protocol.Protocol.send_close`
+or :meth:`~protocol.Protocol.fail`, you expect the end of the data
 stream. You should follow the process described in `Close TCP connection`_
 above in order to prevent dangling TCP connections.
 
@@ -272,10 +274,10 @@ When a client wants to close the TCP connection:
 Applying the rules described earlier in this document gives the intended
 result. As a reminder, the rules are:
 
-* When :meth:`~connection.Connection.data_to_send` returns the empty
+* When :meth:`~protocol.Protocol.data_to_send` returns the empty
   bytestring, close the write side of the TCP connection.
 * When you reach the end of the read stream, close the TCP connection.
-* When :meth:`~connection.Connection.close_expected` returns :obj:`True`, if
+* When :meth:`~protocol.Protocol.close_expected` returns :obj:`True`, if
   you don't reach the end of the read stream quickly, close the TCP connection.
 
 Fragmentation
@@ -306,14 +308,14 @@ should happen automatically in a cooperative multitasking environment.
 
 However, you still have to make sure you don't break this property by
 accident. For example, serialize writes to the network
-when :meth:`~connection.Connection.data_to_send` returns multiple values to
+when :meth:`~protocol.Protocol.data_to_send` returns multiple values to
 prevent concurrent writes from interleaving incorrectly.
 
 Avoid buffers
 .............
 
 The Sans-I/O layer doesn't do any buffering. It makes events available in
-:meth:`~connection.Connection.events_received` as soon as they're received.
+:meth:`~protocol.Protocol.events_received` as soon as they're received.
 
 You should make incoming messages available to the application immediately and
 stop further processing until the application fetches them. This will usually

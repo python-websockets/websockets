@@ -15,7 +15,7 @@ Types
 
     .. autodata:: ExtensionParameter
 
-.. autodata:: websockets.connection.Event
+.. autodata:: websockets.protocol.Event
 
 .. autodata:: websockets.datastructures.HeadersLike
 

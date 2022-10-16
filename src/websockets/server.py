@@ -4,9 +4,9 @@ import base64
 import binascii
 import email.utils
 import http
-from typing import Generator, List, Optional, Sequence, Tuple, cast
+import warnings
+from typing import Any, Generator, List, Optional, Sequence, Tuple, cast
 
-from .connection import CONNECTING, OPEN, SERVER, Connection, State
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
     InvalidHandshake,
@@ -26,6 +26,7 @@ from .headers import (
     parse_upgrade,
 )
 from .http11 import Request, Response
+from .protocol import CONNECTING, OPEN, SERVER, Protocol, State
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
@@ -41,10 +42,10 @@ from .utils import accept_key
 from .legacy.server import *  # isort:skip  # noqa
 
 
-__all__ = ["ServerConnection"]
+__all__ = ["ServerProtocol"]
 
 
-class ServerConnection(Connection):
+class ServerProtocol(Protocol):
     """
     Sans-I/O implementation of a WebSocket server connection.
 
@@ -515,3 +516,12 @@ class ServerConnection(Connection):
             self.events.append(request)
 
         yield from super().parse()
+
+
+class ServerConnection(ServerProtocol):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        warnings.warn(
+            "ServerConnection was renamed to ServerProtocol",
+            DeprecationWarning,
+        )
+        super().__init__(*args, **kwargs)

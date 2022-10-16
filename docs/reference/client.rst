@@ -69,7 +69,7 @@ Using a connection
 Sans-I/O
 --------
 
-.. autoclass:: ClientConnection(wsuri, origin=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
+.. autoclass:: ClientProtocol(wsuri, origin=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
 
     .. automethod:: receive_data
 

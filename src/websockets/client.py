@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from typing import Generator, List, Optional, Sequence
+import warnings
+from typing import Any, Generator, List, Optional, Sequence
 
-from .connection import CLIENT, CONNECTING, OPEN, Connection, State
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
     InvalidHandshake,
@@ -24,6 +24,7 @@ from .headers import (
     parse_upgrade,
 )
 from .http11 import Request, Response
+from .protocol import CLIENT, CONNECTING, OPEN, Protocol, State
 from .typing import (
     ConnectionOption,
     ExtensionHeader,
@@ -40,10 +41,10 @@ from .utils import accept_key, generate_key
 from .legacy.client import *  # isort:skip  # noqa
 
 
-__all__ = ["ClientConnection"]
+__all__ = ["ClientProtocol"]
 
 
-class ClientConnection(Connection):
+class ClientProtocol(Protocol):
     """
     Sans-I/O implementation of a WebSocket client connection.
 
@@ -342,3 +343,12 @@ class ClientConnection(Connection):
                 self.events.append(response)
 
         yield from super().parse()
+
+
+class ClientConnection(ClientProtocol):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
+        warnings.warn(
+            "ClientConnection was renamed to ClientProtocol",
+            DeprecationWarning,
+        )
+        super().__init__(*args, **kwargs)

@@ -3,11 +3,11 @@ import logging
 import unittest
 import unittest.mock
 
-from websockets.connection import CONNECTING, OPEN
 from websockets.datastructures import Headers
 from websockets.exceptions import InvalidHeader, InvalidOrigin, InvalidUpgrade
 from websockets.frames import OP_TEXT, Frame
 from websockets.http11 import Request, Response
+from websockets.protocol import CONNECTING, OPEN
 from websockets.server import *
 
 from .extensions.utils import (
@@ -17,12 +17,12 @@ from .extensions.utils import (
     ServerRsv2ExtensionFactory,
 )
 from .test_utils import ACCEPT, KEY
-from .utils import DATE
+from .utils import DATE, DeprecationTestCase
 
 
 class ConnectTests(unittest.TestCase):
     def test_receive_connect(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         server.receive_data(
             (
                 f"GET /test HTTP/1.1\r\n"
@@ -40,7 +40,7 @@ class ConnectTests(unittest.TestCase):
         self.assertFalse(server.close_expected())
 
     def test_connect_request(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         server.receive_data(
             (
                 f"GET /test HTTP/1.1\r\n"
@@ -84,7 +84,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_send_accept(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
             response = server.accept(self.make_request())
         self.assertIsInstance(response, Response)
@@ -104,7 +104,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.state, OPEN)
 
     def test_send_reject(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
             response = server.reject(http.HTTPStatus.NOT_FOUND, "Sorry folks.\n")
         self.assertIsInstance(response, Response)
@@ -126,7 +126,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.state, CONNECTING)
 
     def test_accept_response(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
             response = server.accept(self.make_request())
         self.assertIsInstance(response, Response)
@@ -146,7 +146,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertIsNone(response.body)
 
     def test_reject_response(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
             response = server.reject(http.HTTPStatus.NOT_FOUND, "Sorry folks.\n")
         self.assertIsInstance(response, Response)
@@ -166,17 +166,17 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.body, b"Sorry folks.\n")
 
     def test_basic(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         response = server.accept(request)
 
         self.assertEqual(response.status_code, 101)
 
     def test_unexpected_exception(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         with unittest.mock.patch(
-            "websockets.server.ServerConnection.process_request",
+            "websockets.server.ServerProtocol.process_request",
             side_effect=Exception("BOOM"),
         ):
             response = server.accept(request)
@@ -187,7 +187,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(str(raised.exception), "BOOM")
 
     def test_missing_connection(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Connection"]
         response = server.accept(request)
@@ -199,7 +199,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(str(raised.exception), "missing Connection header")
 
     def test_invalid_connection(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Connection"]
         request.headers["Connection"] = "close"
@@ -212,7 +212,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(str(raised.exception), "invalid Connection header: close")
 
     def test_missing_upgrade(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Upgrade"]
         response = server.accept(request)
@@ -224,7 +224,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(str(raised.exception), "missing Upgrade header")
 
     def test_invalid_upgrade(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Upgrade"]
         request.headers["Upgrade"] = "h2c"
@@ -237,7 +237,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(str(raised.exception), "invalid Upgrade header: h2c")
 
     def test_missing_key(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Sec-WebSocket-Key"]
         response = server.accept(request)
@@ -248,7 +248,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(str(raised.exception), "missing Sec-WebSocket-Key header")
 
     def test_multiple_key(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         request.headers["Sec-WebSocket-Key"] = KEY
         response = server.accept(request)
@@ -263,7 +263,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_invalid_key(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Sec-WebSocket-Key"]
         request.headers["Sec-WebSocket-Key"] = "not Base64 data!"
@@ -277,7 +277,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_truncated_key(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Sec-WebSocket-Key"]
         request.headers["Sec-WebSocket-Key"] = KEY[
@@ -293,7 +293,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_missing_version(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Sec-WebSocket-Version"]
         response = server.accept(request)
@@ -304,7 +304,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(str(raised.exception), "missing Sec-WebSocket-Version header")
 
     def test_multiple_version(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         request.headers["Sec-WebSocket-Version"] = "11"
         response = server.accept(request)
@@ -319,7 +319,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_invalid_version(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         del request.headers["Sec-WebSocket-Version"]
         request.headers["Sec-WebSocket-Version"] = "11"
@@ -333,7 +333,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_no_origin(self):
-        server = ServerConnection(origins=["https://example.com"])
+        server = ServerProtocol(origins=["https://example.com"])
         request = self.make_request()
         response = server.accept(request)
 
@@ -343,7 +343,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(str(raised.exception), "missing Origin header")
 
     def test_origin(self):
-        server = ServerConnection(origins=["https://example.com"])
+        server = ServerProtocol(origins=["https://example.com"])
         request = self.make_request()
         request.headers["Origin"] = "https://example.com"
         response = server.accept(request)
@@ -352,7 +352,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.origin, "https://example.com")
 
     def test_unexpected_origin(self):
-        server = ServerConnection(origins=["https://example.com"])
+        server = ServerProtocol(origins=["https://example.com"])
         request = self.make_request()
         request.headers["Origin"] = "https://other.example.com"
         response = server.accept(request)
@@ -365,7 +365,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_multiple_origin(self):
-        server = ServerConnection(
+        server = ServerProtocol(
             origins=["https://example.com", "https://other.example.com"]
         )
         request = self.make_request()
@@ -384,7 +384,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_supported_origin(self):
-        server = ServerConnection(
+        server = ServerProtocol(
             origins=["https://example.com", "https://other.example.com"]
         )
         request = self.make_request()
@@ -395,7 +395,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.origin, "https://other.example.com")
 
     def test_unsupported_origin(self):
-        server = ServerConnection(
+        server = ServerProtocol(
             origins=["https://example.com", "https://other.example.com"]
         )
         request = self.make_request()
@@ -410,7 +410,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
 
     def test_no_origin_accepted(self):
-        server = ServerConnection(origins=[None])
+        server = ServerProtocol(origins=[None])
         request = self.make_request()
         response = server.accept(request)
 
@@ -418,7 +418,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertIsNone(server.origin)
 
     def test_no_extensions(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         response = server.accept(request)
 
@@ -427,7 +427,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [])
 
     def test_no_extension(self):
-        server = ServerConnection(extensions=[ServerOpExtensionFactory()])
+        server = ServerProtocol(extensions=[ServerOpExtensionFactory()])
         request = self.make_request()
         response = server.accept(request)
 
@@ -436,7 +436,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [])
 
     def test_extension(self):
-        server = ServerConnection(extensions=[ServerOpExtensionFactory()])
+        server = ServerProtocol(extensions=[ServerOpExtensionFactory()])
         request = self.make_request()
         request.headers["Sec-WebSocket-Extensions"] = "x-op; op"
         response = server.accept(request)
@@ -446,7 +446,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [OpExtension()])
 
     def test_unexpected_extension(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         request.headers["Sec-WebSocket-Extensions"] = "x-op; op"
         response = server.accept(request)
@@ -456,7 +456,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [])
 
     def test_unsupported_extension(self):
-        server = ServerConnection(extensions=[ServerRsv2ExtensionFactory()])
+        server = ServerProtocol(extensions=[ServerRsv2ExtensionFactory()])
         request = self.make_request()
         request.headers["Sec-WebSocket-Extensions"] = "x-op; op"
         response = server.accept(request)
@@ -466,7 +466,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [])
 
     def test_supported_extension_parameters(self):
-        server = ServerConnection(extensions=[ServerOpExtensionFactory("this")])
+        server = ServerProtocol(extensions=[ServerOpExtensionFactory("this")])
         request = self.make_request()
         request.headers["Sec-WebSocket-Extensions"] = "x-op; op=this"
         response = server.accept(request)
@@ -476,7 +476,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [OpExtension("this")])
 
     def test_unsupported_extension_parameters(self):
-        server = ServerConnection(extensions=[ServerOpExtensionFactory("this")])
+        server = ServerProtocol(extensions=[ServerOpExtensionFactory("this")])
         request = self.make_request()
         request.headers["Sec-WebSocket-Extensions"] = "x-op; op=that"
         response = server.accept(request)
@@ -486,7 +486,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [])
 
     def test_multiple_supported_extension_parameters(self):
-        server = ServerConnection(
+        server = ServerProtocol(
             extensions=[
                 ServerOpExtensionFactory("this"),
                 ServerOpExtensionFactory("that"),
@@ -501,7 +501,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [OpExtension("that")])
 
     def test_multiple_extensions(self):
-        server = ServerConnection(
+        server = ServerProtocol(
             extensions=[ServerOpExtensionFactory(), ServerRsv2ExtensionFactory()]
         )
         request = self.make_request()
@@ -516,7 +516,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [OpExtension(), Rsv2Extension()])
 
     def test_multiple_extensions_order(self):
-        server = ServerConnection(
+        server = ServerProtocol(
             extensions=[ServerOpExtensionFactory(), ServerRsv2ExtensionFactory()]
         )
         request = self.make_request()
@@ -531,7 +531,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.extensions, [Rsv2Extension(), OpExtension()])
 
     def test_no_subprotocols(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         response = server.accept(request)
 
@@ -540,7 +540,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertIsNone(server.subprotocol)
 
     def test_no_subprotocol(self):
-        server = ServerConnection(subprotocols=["chat"])
+        server = ServerProtocol(subprotocols=["chat"])
         request = self.make_request()
         response = server.accept(request)
 
@@ -549,7 +549,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertIsNone(server.subprotocol)
 
     def test_subprotocol(self):
-        server = ServerConnection(subprotocols=["chat"])
+        server = ServerProtocol(subprotocols=["chat"])
         request = self.make_request()
         request.headers["Sec-WebSocket-Protocol"] = "chat"
         response = server.accept(request)
@@ -559,7 +559,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.subprotocol, "chat")
 
     def test_unexpected_subprotocol(self):
-        server = ServerConnection()
+        server = ServerProtocol()
         request = self.make_request()
         request.headers["Sec-WebSocket-Protocol"] = "chat"
         response = server.accept(request)
@@ -569,7 +569,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertIsNone(server.subprotocol)
 
     def test_multiple_subprotocols(self):
-        server = ServerConnection(subprotocols=["superchat", "chat"])
+        server = ServerProtocol(subprotocols=["superchat", "chat"])
         request = self.make_request()
         request.headers["Sec-WebSocket-Protocol"] = "superchat"
         request.headers["Sec-WebSocket-Protocol"] = "chat"
@@ -580,7 +580,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.subprotocol, "superchat")
 
     def test_supported_subprotocol(self):
-        server = ServerConnection(subprotocols=["superchat", "chat"])
+        server = ServerProtocol(subprotocols=["superchat", "chat"])
         request = self.make_request()
         request.headers["Sec-WebSocket-Protocol"] = "chat"
         response = server.accept(request)
@@ -590,7 +590,7 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(server.subprotocol, "chat")
 
     def test_unsupported_subprotocol(self):
-        server = ServerConnection(subprotocols=["superchat", "chat"])
+        server = ServerProtocol(subprotocols=["superchat", "chat"])
         request = self.make_request()
         request.headers["Sec-WebSocket-Protocol"] = "otherchat"
         response = server.accept(request)
@@ -602,7 +602,7 @@ class AcceptRejectTests(unittest.TestCase):
 
 class MiscTests(unittest.TestCase):
     def test_bypass_handshake(self):
-        server = ServerConnection(state=OPEN)
+        server = ServerProtocol(state=OPEN)
         server.receive_data(b"\x81\x86\x00\x00\x00\x00Hello!")
         [frame] = server.events_received()
         self.assertEqual(frame, Frame(OP_TEXT, b"Hello!"))
@@ -610,5 +610,17 @@ class MiscTests(unittest.TestCase):
     def test_custom_logger(self):
         logger = logging.getLogger("test")
         with self.assertLogs("test", logging.DEBUG) as logs:
-            ServerConnection(logger=logger)
+            ServerProtocol(logger=logger)
         self.assertEqual(len(logs.records), 1)
+
+
+class BackwardsCompatibilityTests(DeprecationTestCase):
+    def test_server_connection_class(self):
+        with self.assertDeprecationWarning(
+            "ServerConnection was renamed to ServerProtocol"
+        ):
+            from websockets.server import ServerConnection
+
+            server = ServerConnection("ws://localhost/")
+
+        self.assertIsInstance(server, ServerProtocol)

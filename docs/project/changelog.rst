@@ -33,6 +33,18 @@ They may change at any time.
 Backwards-incompatible changes
 ..............................
 
+.. admonition:: The Sans-I/O implementation was moved.
+    :class: caution
+
+    Aliases provide compatibility for all previously public APIs according to
+    the `backwards-compatibility policy`_
+
+    * The ``connection`` module was renamed to ``protocol``.
+
+    * The ``connection.Connection``, ``server.ServerConnection``, and
+      ``client.ClientConnection`` classes were renamed to ``protocol.Protocol``,
+      ``server.ServerProtocol``, and ``client.ClientProtocol``.
+
 .. admonition:: Closing a connection without an empty close frame is OK.
     :class: note
 
@@ -42,7 +54,6 @@ Backwards-incompatible changes
 
     As a consequence, calling ``WebSocket.close()`` without arguments in a
     browser isn't reported as an error anymore.
-
 
 New features
 ............
@@ -86,8 +97,8 @@ Backwards-incompatible changes
 .. admonition:: The ``exception`` attribute of :class:`~http11.Request` and :class:`~http11.Response` is deprecated.
     :class: note
 
-    Use the ``handshake_exc`` attribute of :class:`~server.ServerConnection` and
-    :class:`~client.ClientConnection` instead.
+    Use the ``handshake_exc`` attribute of :class:`~server.ServerProtocol` and
+    :class:`~client.ClientProtocol` instead.
 
     See :doc:`../howto/sansio` for details.
 

@@ -57,6 +57,7 @@ class AsyncioTestCase(unittest.TestCase):
         self.loop.call_soon(self.loop.stop)
         self.loop.run_forever()
 
+    # Remove when dropping Python < 3.10
     @contextlib.contextmanager
     def assertNoLogs(self, logger="websockets", level=logging.ERROR):
         """

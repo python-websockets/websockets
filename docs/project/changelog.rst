@@ -44,6 +44,13 @@ New features
 * Supported overriding or removing the ``User-Agent`` header in clients and the
   ``Server`` header in servers.
 
+* Added deployment guides for more Platform as a Service providers.
+
+Improvements
+............
+
+* Improved FAQ.
+
 10.3
 ----
 

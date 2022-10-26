@@ -1371,7 +1371,7 @@ class ClientServerOriginTests(ClientServerTestsMixin, AsyncioTestCase):
 @unittest.skipIf(
     sys.version_info[:2] >= (3, 11), "asyncio.coroutine has been removed in Python 3.11"
 )
-class YieldFromTests(ClientServerTestsMixin, AsyncioTestCase):
+class YieldFromTests(ClientServerTestsMixin, AsyncioTestCase):  # pragma: no cover
     @with_server()
     def test_client(self):
         # @asyncio.coroutine is deprecated on Python ≥ 3.8

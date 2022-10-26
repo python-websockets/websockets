@@ -568,7 +568,7 @@ class Connection:
         # During an abnormal closure, execution ends here after catching an
         # exception. At this point, fail() replaced parse() by discard().
         yield
-        raise AssertionError("parse() shouldn't step after error")  # pragma: no cover
+        raise AssertionError("parse() shouldn't step after error")
 
     def discard(self) -> Generator[None, None, None]:
         """
@@ -598,7 +598,7 @@ class Connection:
         yield
         # Once the reader reaches EOF, its feed_data/eof() methods raise an
         # error, so our receive_data/eof() methods don't step the generator.
-        raise AssertionError("discard() shouldn't step after EOF")  # pragma: no cover
+        raise AssertionError("discard() shouldn't step after EOF")
 
     def recv_frame(self, frame: Frame) -> None:
         """
@@ -674,7 +674,7 @@ class Connection:
             self.parser = self.discard()
             next(self.parser)  # start coroutine
 
-        else:  # pragma: no cover
+        else:
             # This can't happen because Frame.parse() validates opcodes.
             raise AssertionError(f"unexpected opcode: {frame.opcode:02x}")
 

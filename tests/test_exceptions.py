@@ -157,3 +157,13 @@ class ExceptionsTests(unittest.TestCase):
         ]:
             with self.subTest(exception=exception):
                 self.assertEqual(str(exception), exception_str)
+
+    def test_connection_closed_attributes_backwards_compatibility(self):
+        exception = ConnectionClosed(Close(1000, "OK"), None, None)
+        self.assertEqual(exception.code, 1000)
+        self.assertEqual(exception.reason, "OK")
+
+    def test_connection_closed_attributes_backwards_compatibility_defaults(self):
+        exception = ConnectionClosed(None, None, None)
+        self.assertEqual(exception.code, 1006)
+        self.assertEqual(exception.reason, "")

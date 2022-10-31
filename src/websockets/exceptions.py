@@ -120,11 +120,15 @@ class ConnectionClosed(WebSocketException):
 
     @property
     def code(self) -> int:
-        return 1006 if self.rcvd is None else self.rcvd.code
+        if self.rcvd is None:
+            return 1006
+        return self.rcvd.code
 
     @property
     def reason(self) -> str:
-        return "" if self.rcvd is None else self.rcvd.reason
+        if self.rcvd is None:
+            return ""
+        return self.rcvd.reason
 
 
 class ConnectionClosedError(ConnectionClosed):

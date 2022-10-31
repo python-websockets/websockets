@@ -1,3 +1,4 @@
+import logging
 import unittest.mock
 
 from websockets.connection import *
@@ -1712,3 +1713,25 @@ class ExtensionsTests(ConnectionTestCase):
         server.extensions = [Rsv2Extension()]
         server.receive_data(b"\xaa\x80\x00\x44\x88\xcc")
         self.assertEqual(server.events_received(), [Frame(OP_PONG, b"")])
+
+
+class MiscTests(unittest.TestCase):
+    def test_client_default_logger(self):
+        client = Connection(CLIENT)
+        logger = logging.getLogger("websockets.client")
+        self.assertIs(client.logger, logger)
+
+    def test_server_default_logger(self):
+        server = Connection(SERVER)
+        logger = logging.getLogger("websockets.server")
+        self.assertIs(server.logger, logger)
+
+    def test_client_custom_logger(self):
+        logger = logging.getLogger("test")
+        client = Connection(CLIENT, logger=logger)
+        self.assertIs(client.logger, logger)
+
+    def test_server_custom_logger(self):
+        logger = logging.getLogger("test")
+        server = Connection(SERVER, logger=logger)
+        self.assertIs(server.logger, logger)

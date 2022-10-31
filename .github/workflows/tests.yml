@@ -9,8 +9,8 @@ on:
       - main
 
 jobs:
-  main:
-    name: Run code quality checks
+  coverage:
+    name: Run test coverage checks
     runs-on: ubuntu-latest
     steps:
     - name: Check out repository
@@ -23,6 +23,21 @@ jobs:
       run: pip install tox
     - name: Run tests with coverage
       run: tox -e coverage
+    - name: Run tests with per-module coverage
+      run: tox -e maxi_cov
+
+  quality:
+    name: Run code quality checks
+    runs-on: ubuntu-latest
+    steps:
+    - name: Check out repository
+      uses: actions/checkout@v3
+    - name: Install Python 3.x
+      uses: actions/setup-python@v4
+      with:
+        python-version: "3.x"
+    - name: Install tox
+      run: pip install tox
     - name: Check code formatting
       run: tox -e black
     - name: Check code style
@@ -34,7 +49,9 @@ jobs:
 
   matrix:
     name: Run tests on Python ${{ matrix.python }}
-    needs: main
+    needs:
+      - coverage
+      - quality
     runs-on: ubuntu-latest
     strategy:
       matrix:

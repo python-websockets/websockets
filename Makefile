@@ -1,4 +1,4 @@
-.PHONY: default style test coverage build clean
+.PHONY: default style test coverage maxi_cov build clean
 
 export PYTHONASYNCIODEBUG=1
 export PYTHONPATH=src
@@ -17,6 +17,11 @@ test:
 
 coverage:
 	coverage run --source src/websockets,tests -m unittest
+	coverage html
+	coverage report --show-missing --fail-under=100
+
+maxi_cov:
+	python tests/maxi_cov.py
 	coverage html
 	coverage report --show-missing --fail-under=100
 

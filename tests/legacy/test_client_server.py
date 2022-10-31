@@ -37,7 +37,7 @@ from websockets.legacy.http import read_response
 from websockets.legacy.server import *
 from websockets.uri import parse_uri
 
-from ..extensions.test_base import (
+from ..extensions.utils import (
     ClientNoOpExtensionFactory,
     NoOpExtension,
     ServerNoOpExtensionFactory,

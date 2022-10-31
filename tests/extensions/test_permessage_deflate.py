@@ -21,7 +21,7 @@ from websockets.frames import (
     Frame,
 )
 
-from .test_base import ClientNoOpExtensionFactory, ServerNoOpExtensionFactory
+from .utils import ClientNoOpExtensionFactory, ServerNoOpExtensionFactory
 
 
 class ExtensionTestsMixin:

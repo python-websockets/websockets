@@ -267,21 +267,15 @@ class ClientServerTestsMixin:
         self.assertDeprecationWarnings(recorded_warnings, expected_warnings)
 
     def stop_client(self):
-        try:
-            self.loop.run_until_complete(
-                asyncio.wait_for(self.client.close_connection_task, timeout=1)
-            )
-        except asyncio.TimeoutError:  # pragma: no cover
-            self.fail("Client failed to stop")
+        self.loop.run_until_complete(
+            asyncio.wait_for(self.client.close_connection_task, timeout=1)
+        )
 
     def stop_server(self):
         self.server.close()
-        try:
-            self.loop.run_until_complete(
-                asyncio.wait_for(self.server.wait_closed(), timeout=1)
-            )
-        except asyncio.TimeoutError:  # pragma: no cover
-            self.fail("Server failed to stop")
+        self.loop.run_until_complete(
+            asyncio.wait_for(self.server.wait_closed(), timeout=1)
+        )
 
     @contextlib.contextmanager
     def temp_server(self, **kwargs):
@@ -380,13 +374,13 @@ class CommonClientServerTests:
         with temp_test_redirecting_server(self):
             with self.assertRaises(InvalidHandshake):
                 with self.temp_client("/infinite"):
-                    self.fail("Did not raise")  # pragma: no cover
+                    self.fail("did not raise")
 
     def test_redirect_missing_location(self):
         with temp_test_redirecting_server(self):
             with self.assertRaises(InvalidHeader):
                 with self.temp_client("/missing_location"):
-                    self.fail("Did not raise")  # pragma: no cover
+                    self.fail("did not raise")
 
     def test_loop_backwards_compatibility(self):
         with self.temp_server(
@@ -1327,7 +1321,7 @@ class SecureClientServerTests(
         with temp_test_redirecting_server(self):
             with self.assertRaises(InvalidHandshake):
                 with self.temp_client("/force_insecure"):
-                    self.fail("Did not raise")  # pragma: no cover
+                    self.fail("did not raise")
 
 
 class ClientServerOriginTests(ClientServerTestsMixin, AsyncioTestCase):

@@ -361,12 +361,11 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             response = self._process_request(path, request_headers)
             if isinstance(response, Awaitable):
                 return await response
-            else:
-                # For backwards compatibility with 7.0.
-                warnings.warn(
-                    "declare process_request as a coroutine", DeprecationWarning
-                )
-                return response
+            # For backwards compatibility with 7.0.
+            warnings.warn(
+                "declare process_request as a coroutine", DeprecationWarning
+            )
+            return response
         return None
 
     @staticmethod

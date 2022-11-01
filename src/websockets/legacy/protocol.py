@@ -459,10 +459,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         if self.state is not State.CLOSED:
             return None
-        elif self.close_rcvd is None:
+        if self.close_rcvd is None:
             return 1006
-        else:
-            return self.close_rcvd.code
+        return self.close_rcvd.code
 
     @property
     def close_reason(self) -> Optional[str]:
@@ -477,10 +476,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         if self.state is not State.CLOSED:
             return None
-        elif self.close_rcvd is None:
+        if self.close_rcvd is None:
             return ""
-        else:
-            return self.close_rcvd.reason
+        return self.close_rcvd.reason
 
     async def __aiter__(self) -> AsyncIterator[Data]:
         """
@@ -562,10 +560,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             if not pop_message_waiter.done():
                 if self.legacy_recv:
                     return None  # type: ignore
-                else:
-                    # Wait until the connection is closed to raise
-                    # ConnectionClosed with the correct code and reason.
-                    await self.ensure_open()
+                # Wait until the connection is closed to raise
+                # ConnectionClosed with the correct code and reason.
+                await self.ensure_open()
 
         # Pop a message from the queue.
         message = self.messages.popleft()
@@ -937,8 +934,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             if self.transfer_data_task.done():
                 await asyncio.shield(self.close_connection_task)
                 raise self.connection_closed_exc()
-            else:
-                return
+            return
 
         if self.state is State.CLOSED:
             raise self.connection_closed_exc()
@@ -1129,7 +1125,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     pass
                 return None
 
-            elif frame.opcode == OP_PING:
+            if frame.opcode == OP_PING:
                 # Answer pings, unless connection is CLOSING.
                 if self.state is State.OPEN:
                     try:

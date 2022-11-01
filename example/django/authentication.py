@@ -1,13 +1,12 @@
 #!/usr/bin/env python
 
 import asyncio
+from sesame.utils import get_user
 
 import django
 import websockets
 
 django.setup()
-
-from sesame.utils import get_user
 
 
 async def handler(websocket):

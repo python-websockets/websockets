@@ -115,8 +115,7 @@ class Headers(MutableMapping[str, str]):
         value = self._dict[key.lower()]
         if len(value) == 1:
             return value[0]
-        else:
-            raise MultipleValuesError(key)
+        raise MultipleValuesError(key)
 
     def __setitem__(self, key: str, value: str) -> None:
         self._dict.setdefault(key.lower(), []).append(value)

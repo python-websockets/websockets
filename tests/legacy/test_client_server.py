@@ -160,10 +160,10 @@ def get_server_address(server):
 
     if server_socket.family == socket.AF_INET6:  # pragma: no cover
         return server_socket.getsockname()[:2]  # (no IPv6 on CI)
-    elif server_socket.family == socket.AF_INET:
+    if server_socket.family == socket.AF_INET:
         return server_socket.getsockname()
-    else:  # pragma: no cover
-        raise ValueError("expected an IPv6, IPv4, or Unix socket")
+    # pragma: no cover
+    raise ValueError("expected an IPv6, IPv4, or Unix socket")
 
 
 def get_server_uri(server, secure=False, resource_name="/", user_info=None):

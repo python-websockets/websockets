@@ -99,5 +99,4 @@ else:
                     and "not implemented yet" in str(exc)
                 ):
                     raise unittest.SkipTest(str(exc))
-                else:
-                    raise
+                raise

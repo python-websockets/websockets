@@ -179,10 +179,9 @@ class Connection:
         """
         if self.state is not CLOSED:
             return None
-        elif self.close_rcvd is None:
+        if self.close_rcvd is None:
             return 1006
-        else:
-            return self.close_rcvd.code
+        return self.close_rcvd.code
 
     @property
     def close_reason(self) -> Optional[str]:
@@ -197,10 +196,9 @@ class Connection:
         """
         if self.state is not CLOSED:
             return None
-        elif self.close_rcvd is None:
+        if self.close_rcvd is None:
             return ""
-        else:
-            return self.close_rcvd.reason
+        return self.close_rcvd.reason
 
     @property
     def close_exc(self) -> ConnectionClosed:

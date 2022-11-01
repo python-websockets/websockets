@@ -340,10 +340,9 @@ def prepare_data(data: Data) -> Tuple[int, bytes]:
     """
     if isinstance(data, str):
         return OP_TEXT, data.encode("utf-8")
-    elif isinstance(data, BytesLike):
+    if isinstance(data, BytesLike):
         return OP_BINARY, data
-    else:
-        raise TypeError("data must be str or bytes-like")
+    raise TypeError("data must be str or bytes-like")
 
 
 def prepare_ctrl(data: Data) -> bytes:
@@ -363,10 +362,9 @@ def prepare_ctrl(data: Data) -> bytes:
     """
     if isinstance(data, str):
         return data.encode("utf-8")
-    elif isinstance(data, BytesLike):
+    if isinstance(data, BytesLike):
         return bytes(data)
-    else:
-        raise TypeError("data must be str or bytes-like")
+    raise TypeError("data must be str or bytes-like")
 
 
 @dataclasses.dataclass
@@ -420,10 +418,9 @@ class Close:
             close = cls(code, reason)
             close.check()
             return close
-        elif len(data) == 0:
+        if len(data) == 0:
             return cls(1005, "")
-        else:
-            raise exceptions.ProtocolError("close frame too short")
+        raise exceptions.ProtocolError("close frame too short")
 
     def serialize(self) -> bytes:
         """

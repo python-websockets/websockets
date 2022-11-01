@@ -4,10 +4,9 @@ import asyncio
 import itertools
 import json
 
-import websockets
-
 from connect4 import PLAYER1, PLAYER2, Connect4
 
+import websockets
 
 async def handler(websocket):
     # Initialize a Connect Four game.

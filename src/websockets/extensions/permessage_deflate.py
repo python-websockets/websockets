@@ -396,7 +396,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         else:
             if server_max_window_bits is None:
                 raise exceptions.NegotiationError("expected server_max_window_bits")
-            elif server_max_window_bits > self.server_max_window_bits:
+            if server_max_window_bits > self.server_max_window_bits:
                 raise exceptions.NegotiationError("unsupported server_max_window_bits")
 
         # client_max_window_bits

@@ -3,14 +3,16 @@
 import asyncio
 import json
 
+from django.contrib.contenttypes.models import ContentType
+from sesame.utils import get_user
+
 import aioredis
 import django
 import websockets
 
 django.setup()
 
-from django.contrib.contenttypes.models import ContentType
-from sesame.utils import get_user
+
 
 
 CONNECTIONS = {}

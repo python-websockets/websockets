@@ -328,7 +328,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if "Location" not in response_headers:
                 raise InvalidHeader("Location")
             raise RedirectHandshake(response_headers["Location"])
-        elif status_code != 101:
+        if status_code != 101:
             raise InvalidStatusCode(status_code, response_headers)
 
         check_response(response_headers, key)

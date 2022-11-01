@@ -4,9 +4,9 @@ import asyncio
 import json
 import secrets
 
-import websockets
-
 from connect4 import PLAYER1, PLAYER2, Connect4
+
+import websockets
 
 
 JOIN = {}

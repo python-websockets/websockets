@@ -102,19 +102,15 @@ class ConnectionClosed(WebSocketException):
             if self.sent is None:
                 assert self.rcvd_then_sent is None
                 return "no close frame received or sent"
-            else:
-                assert self.rcvd_then_sent is None
-                return f"sent {self.sent}; no close frame received"
-        else:
-            if self.sent is None:
-                assert self.rcvd_then_sent is None
-                return f"received {self.rcvd}; no close frame sent"
-            else:
-                assert self.rcvd_then_sent is not None
-                if self.rcvd_then_sent:
-                    return f"received {self.rcvd}; then sent {self.sent}"
-                else:
-                    return f"sent {self.sent}; then received {self.rcvd}"
+            assert self.rcvd_then_sent is None
+            return f"sent {self.sent}; no close frame received"
+        if self.sent is None:
+            assert self.rcvd_then_sent is None
+            return f"received {self.rcvd}; no close frame sent"
+        assert self.rcvd_then_sent is not None
+        if self.rcvd_then_sent:
+            return f"received {self.rcvd}; then sent {self.sent}"
+        return f"sent {self.sent}; then received {self.rcvd}"
 
     # code and reason attributes are provided for backwards-compatibility
 
@@ -186,10 +182,9 @@ class InvalidHeader(InvalidHandshake):
     def __str__(self) -> str:
         if self.value is None:
             return f"missing {self.name} header"
-        elif self.value == "":
+        if self.value == "":
             return f"empty {self.name} header"
-        else:
-            return f"invalid {self.name} header: {self.value}"
+        return f"invalid {self.name} header: {self.value}"
 
 
 class InvalidHeaderFormat(InvalidHeader):
@@ -306,10 +301,9 @@ class InvalidParameterValue(NegotiationError):
     def __str__(self) -> str:
         if self.value is None:
             return f"missing value for parameter {self.name}"
-        elif self.value == "":
+        if self.value == "":
             return f"empty value for parameter {self.name}"
-        else:
-            return f"invalid value for parameter {self.name}: {self.value}"
+        return f"invalid value for parameter {self.name}: {self.value}"
 
 
 class AbortHandshake(InvalidHandshake):

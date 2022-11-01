@@ -11,21 +11,6 @@ import sys
 UNMAPPED_SRC_FILES = ["websockets/version.py"]
 UNMAPPED_TEST_FILES = ["tests/test_exports.py"]
 
-IGNORED_FILES = [
-    # */websockets matches src/websockets and .tox/**/site-packages/websockets.
-    # There are no tests for the __main__ module.
-    "*/websockets/__main__.py",
-    # This approach isn't applicable to the test suite of the legacy
-    # implementation, due to the huge test_client_server test module.
-    "*/websockets/legacy/*",
-    "tests/legacy/*",
-    # Test utilities don't fit anywhere because they are shared.
-    "tests/extensions/utils.py",
-    "tests/utils.py",
-    # There is no point measure the coverage of this script.
-    "tests/maxi_cov.py",
-]
-
 
 def check_environment():
     """Check that prerequisites for running this script are met."""
@@ -51,7 +36,6 @@ def get_mapping(src_dir="src"):
         os.path.join(src_dir, "websockets/**/*.py"),
         recursive=True,
     )
-
     test_files = glob.glob(
         "tests/**/*.py",
         recursive=True,
@@ -60,16 +44,16 @@ def get_mapping(src_dir="src"):
     src_files = [
         os.path.relpath(src_file, src_dir)
         for src_file in sorted(src_files)
+        if "legacy" not in os.path.dirname(src_file)
         if os.path.basename(src_file) != "__init__.py"
         and os.path.basename(src_file) != "__main__.py"
-        and "legacy" not in os.path.dirname(src_file)
     ]
     test_files = [
         test_file
         for test_file in sorted(test_files)
-        if os.path.basename(test_file) != "__init__.py"
+        if "legacy" not in os.path.dirname(test_file)
+        and os.path.basename(test_file) != "__init__.py"
         and os.path.basename(test_file).startswith("test_")
-        and "legacy" not in os.path.dirname(test_file)
     ]
 
     # Map source files to test files.
@@ -100,7 +84,30 @@ def get_mapping(src_dir="src"):
     return mapping
 
 
+def get_ignored_files(src_dir="src"):
+    """Return the list of files to exclude from coverage measurement."""
+
+    return [
+        # */websockets matches src/websockets and .tox/**/site-packages/websockets.
+        # There are no tests for the __main__ module.
+        "*/websockets/__main__.py",
+        # This approach isn't applicable to the test suite of the legacy
+        # implementation, due to the huge test_client_server test module.
+        "*/websockets/legacy/*",
+        "tests/legacy/*",
+    ] + [
+        # Exclude test utilities that are shared between several test modules.
+        # Also excludes this script.
+        test_file
+        for test_file in sorted(glob.glob("tests/**/*.py", recursive=True))
+        if "legacy" not in os.path.dirname(test_file)
+        and os.path.basename(test_file) != "__init__.py"
+        and not os.path.basename(test_file).startswith("test_")
+    ]
+
+
 def run_coverage(mapping, src_dir="src"):
+    print(get_ignored_files(src_dir))
     # Initialize a new coverage measurement session. The --source option
     # includes all files in the report, even if they're never imported.
     print("\nInitializing session\n", flush=True)
@@ -113,7 +120,7 @@ def run_coverage(mapping, src_dir="src"):
             "--source",
             ",".join([os.path.join(src_dir, "websockets"), "tests"]),
             "--omit",
-            ",".join(IGNORED_FILES),
+            ",".join(get_ignored_files(src_dir)),
             "-m",
             "unittest",
         ]

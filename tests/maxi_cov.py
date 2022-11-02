@@ -107,7 +107,6 @@ def get_ignored_files(src_dir="src"):
 
 
 def run_coverage(mapping, src_dir="src"):
-    print(get_ignored_files(src_dir))
     # Initialize a new coverage measurement session. The --source option
     # includes all files in the report, even if they're never imported.
     print("\nInitializing session\n", flush=True)

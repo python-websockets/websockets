@@ -220,8 +220,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Logger or LoggerAdapter for this connection.
         if logger is None:
             logger = logging.getLogger("websockets.protocol")
-        # https://github.com/python/typeshed/issues/5561
-        logger = cast(logging.Logger, logger)
         self.logger: LoggerLike = logging.LoggerAdapter(logger, {"websocket": self})
         """Logger for this connection."""
 

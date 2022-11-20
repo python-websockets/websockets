@@ -135,8 +135,8 @@ class ConnectionClosedError(ConnectionClosed):
     """
     Like :exc:`ConnectionClosed`, when the connection terminated with an error.
 
-    A close code other than 1000 (OK) or 1001 (going away) was received or
-    sent, or the closing handshake didn't complete properly.
+    A close frame with a code other than 1000 (OK) or 1001 (going away) was
+    received or sent, or the closing handshake didn't complete properly.
 
     """
 
@@ -145,7 +145,8 @@ class ConnectionClosedOK(ConnectionClosed):
     """
     Like :exc:`ConnectionClosed`, when the connection terminated properly.
 
-    A close code 1000 (OK) or 1001 (going away) was received and sent.
+    A close code with code 1000 (OK) or 1001 (going away) or without a code was
+    received and sent.
 
     """
 

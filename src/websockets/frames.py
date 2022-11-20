@@ -90,7 +90,11 @@ EXTERNAL_CLOSE_CODES = {
     1014,
 }
 
-OK_CLOSE_CODES = {1000, 1001}
+OK_CLOSE_CODES = {
+    1000,
+    1001,
+    1005,
+}
 
 
 BytesLike = bytes, bytearray, memoryview

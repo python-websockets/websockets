@@ -65,7 +65,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             await process(message)
 
     The iterator exits normally when the connection is closed with close code
-    1000 (OK) or 1001 (going away). It raises
+    1000 (OK) or 1001 (going away) or without a close code. It raises
     a :exc:`~websockets.exceptions.ConnectionClosedError` when the connection
     is closed with any other code.
 

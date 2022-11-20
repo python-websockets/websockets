@@ -30,6 +30,20 @@ They may change at any time.
 
 *In development*
 
+Backwards-incompatible changes
+..............................
+
+.. admonition:: Closing a connection without an empty close frame is OK.
+    :class: note
+
+    Receiving an empty close frame now results in
+    :exc:`~exceptions.ConnectionClosedOK` instead of
+    :exc:`~exceptions.ConnectionClosedError`.
+
+    As a consequence, calling ``WebSocket.close()`` without arguments in a
+    browser isn't reported as an error anymore.
+
+
 New features
 ............
 

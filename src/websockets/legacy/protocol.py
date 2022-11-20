@@ -485,9 +485,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         Iterate on incoming messages.
 
         The iterator  exits normally when the connection is closed with the
-        close code 1000 (OK) or 1001(going away). It raises
-        a :exc:`~websockets.exceptions.ConnectionClosedError` exception when
-        the connection is closed with any other code.
+        close code 1000 (OK) or 1001(going away) or without a close code. It
+        raises a :exc:`~websockets.exceptions.ConnectionClosedError` exception
+        when the connection is closed with any other code.
 
         """
         try:

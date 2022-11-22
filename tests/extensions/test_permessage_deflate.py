@@ -24,7 +24,7 @@ from websockets.frames import (
 from .utils import ClientNoOpExtensionFactory, ServerNoOpExtensionFactory
 
 
-class ExtensionTestsMixin:
+class PerMessageDeflateTestsMixin:
     def assertExtensionEqual(self, extension1, extension2):
         self.assertEqual(
             extension1.remote_no_context_takeover,
@@ -44,7 +44,7 @@ class ExtensionTestsMixin:
         )
 
 
-class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
+class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     def setUp(self):
         # Set up an instance of the permessage-deflate extension with the most
         # common settings. Since the extension is symmetrical, this instance
@@ -278,7 +278,9 @@ class PerMessageDeflateTests(unittest.TestCase, ExtensionTestsMixin):
             self.extension.decode(enc_frame, max_size=10)
 
 
-class ClientPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin):
+class ClientPerMessageDeflateFactoryTests(
+    unittest.TestCase, PerMessageDeflateTestsMixin
+):
     def test_name(self):
         assert ClientPerMessageDeflateFactory.name == "permessage-deflate"
 
@@ -616,7 +618,9 @@ class ClientPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin
                 )
 
 
-class ServerPerMessageDeflateFactoryTests(unittest.TestCase, ExtensionTestsMixin):
+class ServerPerMessageDeflateFactoryTests(
+    unittest.TestCase, PerMessageDeflateTestsMixin
+):
     def test_name(self):
         assert ServerPerMessageDeflateFactory.name == "permessage-deflate"
 

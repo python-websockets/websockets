@@ -38,7 +38,7 @@ setuptools.setup(
     url="https://github.com/aaugustin/websockets",
     author="Aymeric Augustin",
     author_email="aymeric.augustin@m4x.org",
-    license="BSD",
+    license="BSD-3-Clause",
     classifiers=[
         "Development Status :: 5 - Production/Stable",
         "Environment :: Web Environment",

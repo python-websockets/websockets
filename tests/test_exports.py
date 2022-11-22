@@ -25,7 +25,7 @@ combined_exports = (
 )
 
 
-class TestExportsAllSubmodules(unittest.TestCase):
+class ExportsTests(unittest.TestCase):
     def test_top_level_module_reexports_all_submodule_exports(self):
         self.assertEqual(set(combined_exports), set(websockets.__all__))
 

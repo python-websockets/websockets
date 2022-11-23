@@ -139,7 +139,7 @@ output logs as JSON with a bit of effort.
 
 First, we need a :class:`~logging.Formatter` that renders JSON:
 
-.. literalinclude:: ../../example/json_log_formatter.py
+.. literalinclude:: ../../example/logging/json_log_formatter.py
 
 Then, we configure logging to apply this formatter::
 

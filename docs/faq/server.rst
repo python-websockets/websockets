@@ -257,7 +257,7 @@ Exit the :func:`~server.serve` context manager.
 
 Here's an example that terminates cleanly when it receives SIGTERM on Unix:
 
-.. literalinclude:: ../../example/shutdown_server.py
+.. literalinclude:: ../../example/faq/shutdown_server.py
     :emphasize-lines: 12-15,18
 
 How do I stop a server while keeping existing connections open?
@@ -274,6 +274,18 @@ Here's how to adapt the example just above::
         server = await websockets.serve(echo, "localhost", 8765)
         await stop
         await server.close(close_connections=False)
+
+How do I implement a health check?
+----------------------------------
+
+Intercept WebSocket handshake requests with the
+:meth:`~server.WebSocketServerProtocol.process_request` hook.
+
+When a request is sent to the health check endpoint, treat is as an HTTP request
+and return a ``(status, headers, body)`` tuple, as in this example:
+
+.. literalinclude:: ../../example/faq/health_check_server.py
+    :emphasize-lines: 7-9,18
 
 How do I run HTTP and WebSocket servers on the same port?
 ---------------------------------------------------------

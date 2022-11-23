@@ -97,7 +97,7 @@ signal and exit the server to ensure a graceful shutdown.
 
 Here's an example:
 
-.. literalinclude:: ../../example/shutdown_server.py
+.. literalinclude:: ../../example/faq/shutdown_server.py
     :emphasize-lines: 12-15,18
 
 When exiting the context manager, :func:`~server.serve` closes all connections
@@ -177,5 +177,5 @@ websockets provide minimal support for responding to HTTP requests with the
 
 Here's an example:
 
-.. literalinclude:: ../../example/health_check_server.py
+.. literalinclude:: ../../example/faq/health_check_server.py
     :emphasize-lines: 7-9,18

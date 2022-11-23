@@ -74,7 +74,7 @@ You can close the connection.
 
 Here's an example that terminates cleanly when it receives SIGTERM on Unix:
 
-.. literalinclude:: ../../example/shutdown_client.py
+.. literalinclude:: ../../example/faq/shutdown_client.py
     :emphasize-lines: 10-13
 
 How do I disable TLS/SSL certificate verification?

@@ -67,7 +67,7 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
 
         Returns:
             bool: :obj:`True` if the handshake should continue;
-            :obj:`False` if it should fail with a HTTP 401 error.
+            :obj:`False` if it should fail with an HTTP 401 error.
 
         """
         if self._check_credentials is not None:
@@ -81,7 +81,7 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
         request_headers: Headers,
     ) -> Optional[HTTPResponse]:
         """
-        Check HTTP Basic Auth and return a HTTP 401 response if needed.
+        Check HTTP Basic Auth and return an HTTP 401 response if needed.
 
         """
         try:

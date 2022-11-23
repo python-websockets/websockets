@@ -329,9 +329,9 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         You may override this method in a :class:`WebSocketServerProtocol`
         subclass, for example:
 
-        * to return a HTTP 200 OK response on a given path; then a load
+        * to return an HTTP 200 OK response on a given path; then a load
           balancer can use this path for a health check;
-        * to authenticate the request and return a HTTP 401 Unauthorized or a
+        * to authenticate the request and return an HTTP 401 Unauthorized or an
           HTTP 403 Forbidden when authentication fails.
 
         You may also override this method with the ``process_request``
@@ -776,7 +776,7 @@ class WebSocketServer:
 
         if close_connections:
             # Close OPEN connections with status code 1001. Since the server was
-            # closed, handshake() closes OPENING connections with a HTTP 503
+            # closed, handshake() closes OPENING connections with an HTTP 503
             # error. Wait until all connections are closed.
 
             close_tasks = [

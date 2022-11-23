@@ -295,15 +295,15 @@ You don't.
 HTTP and WebSocket have widely different operational characteristics. Running
 them with the same server becomes inconvenient when you scale.
 
-Providing a HTTP server is out of scope for websockets. It only aims at
+Providing an HTTP server is out of scope for websockets. It only aims at
 providing a WebSocket server.
 
 There's limited support for returning HTTP responses with the
 :attr:`~server.WebSocketServerProtocol.process_request` hook.
 
-If you need more, pick a HTTP server and run it separately.
+If you need more, pick an HTTP server and run it separately.
 
-Alternatively, pick a HTTP framework that builds on top of ``websockets`` to
+Alternatively, pick an HTTP framework that builds on top of ``websockets`` to
 support WebSocket connections, like Sanic_.
 
 .. _Sanic: https://sanicframework.org/en/

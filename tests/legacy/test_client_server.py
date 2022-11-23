@@ -727,7 +727,7 @@ class CommonClientServerTests:
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_http_request_http_endpoint(self):
-        # Making a HTTP request to a HTTP endpoint succeeds.
+        # Making an HTTP request to an HTTP endpoint succeeds.
         response = self.loop.run_until_complete(self.make_http_request("/__health__/"))
 
         with contextlib.closing(response):
@@ -736,7 +736,7 @@ class CommonClientServerTests:
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_http_request_ws_endpoint(self):
-        # Making a HTTP request to a WS endpoint fails.
+        # Making an HTTP request to a WS endpoint fails.
         with self.assertRaises(urllib.error.HTTPError) as raised:
             self.loop.run_until_complete(self.make_http_request())
 
@@ -745,7 +745,7 @@ class CommonClientServerTests:
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_ws_connection_http_endpoint(self):
-        # Making a WS connection to a HTTP endpoint fails.
+        # Making a WS connection to an HTTP endpoint fails.
         with self.assertRaises(InvalidStatusCode) as raised:
             self.start_client("/__health__/")
 

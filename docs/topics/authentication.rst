@@ -78,7 +78,7 @@ WebSocket server.
 3. **Setting a cookie on the domain of the WebSocket URI.**
 
    Cookies are undoubtedly the most common and hardened mechanism for sending
-   credentials from a web application to a server. In a HTTP application,
+   credentials from a web application to a server. In an HTTP application,
    credentials would be a session identifier or a serialized, signed session.
 
    Unfortunately, when the WebSocket server runs on a different domain from
@@ -208,7 +208,7 @@ opening the connection:
     // ...
 
 The server intercepts the HTTP request, extracts the token and authenticates
-the user. If authentication fails, it returns a HTTP 401:
+the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 
@@ -254,7 +254,7 @@ This sequence must be synchronized between the main window and the iframe.
 This involves several events. Look at the full implementation for details.
 
 The server intercepts the HTTP request, extracts the token and authenticates
-the user. If authentication fails, it returns a HTTP 401:
+the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 
@@ -295,7 +295,7 @@ Since HTTP Basic Auth is designed to accept a username and a password rather
 than a token, we send ``token`` as username and the token as password.
 
 The server intercepts the HTTP request, extracts the token and authenticates
-the user. If authentication fails, it returns a HTTP 401:
+the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 

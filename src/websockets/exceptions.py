@@ -176,7 +176,7 @@ class InvalidMessage(InvalidHandshake):
 
 class InvalidHeader(InvalidHandshake):
     """
-    Raised when a HTTP header doesn't have a valid format or value.
+    Raised when an HTTP header doesn't have a valid format or value.
 
     """
 
@@ -195,7 +195,7 @@ class InvalidHeader(InvalidHandshake):
 
 class InvalidHeaderFormat(InvalidHeader):
     """
-    Raised when a HTTP header cannot be parsed.
+    Raised when an HTTP header cannot be parsed.
 
     The format of the header doesn't match the grammar for that header.
 
@@ -207,7 +207,7 @@ class InvalidHeaderFormat(InvalidHeader):
 
 class InvalidHeaderValue(InvalidHeader):
     """
-    Raised when a HTTP header has a wrong value.
+    Raised when an HTTP header has a wrong value.
 
     The format of the header is correct but a value isn't acceptable.
 
@@ -315,7 +315,7 @@ class InvalidParameterValue(NegotiationError):
 
 class AbortHandshake(InvalidHandshake):
     """
-    Raised to abort the handshake on purpose and return a HTTP response.
+    Raised to abort the handshake on purpose and return an HTTP response.
 
     This exception is an implementation detail.
 

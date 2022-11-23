@@ -369,7 +369,7 @@ common pattern in servers that handle different clients.
     it in the URI because URIs end up in logs.
 
     For the purposes of this tutorial, both approaches are equivalent because
-    the join key comes from a HTTP URL. There isn't much at risk anyway!
+    the join key comes from an HTTP URL. There isn't much at risk anyway!
 
 Now you can restore the logic for playing moves and you'll have a fully
 functional two-player game.

@@ -125,23 +125,23 @@ one another.
 
 On the client side, :meth:`~client.WebSocketClientProtocol.handshake`:
 
-- builds a HTTP request based on the ``uri`` and parameters passed to
+- builds an HTTP request based on the ``uri`` and parameters passed to
   :meth:`~client.connect`;
 - writes the HTTP request to the network;
-- reads a HTTP response from the network;
+- reads an HTTP response from the network;
 - checks the HTTP response, validates ``extensions`` and ``subprotocol``, and
   configures the protocol accordingly;
 - moves to the ``OPEN`` state.
 
 On the server side, :meth:`~server.WebSocketServerProtocol.handshake`:
 
-- reads a HTTP request from the network;
+- reads an HTTP request from the network;
 - calls :meth:`~server.WebSocketServerProtocol.process_request` which may
-  abort the WebSocket handshake and return a HTTP response instead; this
+  abort the WebSocket handshake and return an HTTP response instead; this
   hook only makes sense on the server side;
 - checks the HTTP request, negotiates ``extensions`` and ``subprotocol``, and
   configures the protocol accordingly;
-- builds a HTTP response based on the above and parameters passed to
+- builds an HTTP response based on the above and parameters passed to
   :meth:`~server.serve`;
 - writes the HTTP response to the network;
 - moves to the ``OPEN`` state;

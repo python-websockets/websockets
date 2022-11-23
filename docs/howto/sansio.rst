@@ -85,7 +85,7 @@ with :meth:`~server.ServerConnection.send_response`::
     response = connection.accept(request)
     connection.send_response(response)
 
-Alternatively, you may reject the WebSocket handshake and return a HTTP
+Alternatively, you may reject the WebSocket handshake and return an HTTP
 response with :meth:`~server.ServerConnection.reject`::
 
     response = connection.reject(status, explanation)

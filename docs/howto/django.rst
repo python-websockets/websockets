@@ -10,7 +10,7 @@ WebSocket, you have two main options.
 
 2. Deploying a separate WebSocket server next to your Django project. This
    technique is well suited when you need to add a small set of real-time
-   features — maybe a notification service — to a HTTP application.
+   features — maybe a notification service — to an HTTP application.
 
 .. _Channels: https://channels.readthedocs.io/
 

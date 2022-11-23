@@ -123,7 +123,7 @@ Why shouldn't I use ``websockets``?
 * If you're looking for a mixed HTTP / WebSocket library: ``websockets`` aims
   at being an excellent implementation of :rfc:`6455`: The WebSocket Protocol
   and :rfc:`7692`: Compression Extensions for WebSocket. Its support for HTTP
-  is minimal — just enough for a HTTP health check.
+  is minimal — just enough for an HTTP health check.
 
   If you want to do both in the same server, look at HTTP frameworks that
   build on top of ``websockets`` to support WebSocket connections, like

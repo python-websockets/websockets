@@ -163,7 +163,7 @@ page loads, draw the board:
       createBoard(board);
     });
 
-Open a shell, navigate to the directory containing these files, and start a
+Open a shell, navigate to the directory containing these files, and start an
 HTTP server:
 
 .. code-block:: console

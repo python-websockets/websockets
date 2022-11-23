@@ -104,7 +104,7 @@ can set ``logger`` to a :class:`~logging.LoggerAdapter` that enriches logs.
 For example, if the server is behind a reverse
 proxy, :attr:`~legacy.protocol.WebSocketCommonProtocol.remote_address` gives
 the IP address of the proxy, which isn't useful. IP addresses of clients are
-provided in a HTTP header set by the proxy.
+provided in an HTTP header set by the proxy.
 
 Here's how to include them in logs, assuming they're in the
 ``X-Forwarded-For`` header::

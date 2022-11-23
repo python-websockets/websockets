@@ -13,7 +13,7 @@ Part 3 - Deploy to the web
       web; you can play from any browser connected to the Internet.
 
 In the first and second parts of the tutorial, for local development, you ran
-a HTTP server on ``http://localhost:8000/`` with:
+an HTTP server on ``http://localhost:8000/`` with:
 
 .. code-block:: console
 

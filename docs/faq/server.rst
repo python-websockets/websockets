@@ -43,19 +43,44 @@ Why can only one client connect at a time?
 ------------------------------------------
 
 Your connection handler blocks the event loop. Look for blocking calls.
+
 Any call that may take some time must be asynchronous.
 
-For example, if you have::
+For example, this connection handler prevents the event loop from running during
+one second::
 
     async def handler(websocket):
         time.sleep(1)
+        ...
 
-change it to::
+Change it to::
 
     async def handler(websocket):
         await asyncio.sleep(1)
+        ...
 
-This is part of learning asyncio. It isn't specific to websockets.
+In addition, calling a coroutine doesn't guarantee that it will yield control to
+the event loop.
+
+For example, this connection handler blocks the event loop by sending messages
+continuously::
+
+    async def handler(websocket):
+        while True:
+            await websocket.send("firehose!")
+
+:meth:`~legacy.protocol.WebSocketCommonProtocol.send` completes synchronously as
+long as there's space in send buffers. The event loop never runs. (This pattern
+is uncommon in real-world applications. It occurs mostly in toy programs.)
+
+You can avoid the issue by yielding control to the event loop explicitly::
+
+    async def handler(websocket):
+        while True:
+            await websocket.send("firehose!")
+            await asyncio.sleep(0)
+
+All this is part of learning asyncio. It isn't specific to websockets.
 
 See also Python's documentation about `running blocking code`_.
 

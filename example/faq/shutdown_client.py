@@ -10,7 +10,7 @@ async def client():
         # Close the connection when receiving SIGTERM.
         loop = asyncio.get_running_loop()
         loop.add_signal_handler(
-            signal.SIGTERM, loop.create_task, websocket.close)
+            signal.SIGTERM, loop.create_task, websocket.close())
 
         # Process messages received on the connection.
         async for message in websocket:

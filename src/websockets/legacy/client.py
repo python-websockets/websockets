@@ -438,7 +438,7 @@ class Connect:
         self,
         uri: str,
         *,
-        create_protocol: Optional[Callable[[Any], WebSocketClientProtocol]] = None,
+        create_protocol: Optional[Callable[..., WebSocketClientProtocol]] = None,
         logger: Optional[LoggerLike] = None,
         compression: Optional[str] = "deflate",
         origin: Optional[Origin] = None,

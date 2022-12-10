@@ -991,7 +991,7 @@ class Serve:
         host: Optional[Union[str, Sequence[str]]] = None,
         port: Optional[int] = None,
         *,
-        create_protocol: Optional[Callable[[Any], WebSocketServerProtocol]] = None,
+        create_protocol: Optional[Callable[..., WebSocketServerProtocol]] = None,
         logger: Optional[LoggerLike] = None,
         compression: Optional[str] = "deflate",
         origins: Optional[Sequence[Optional[Origin]]] = None,

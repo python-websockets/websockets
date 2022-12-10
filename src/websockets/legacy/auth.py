@@ -118,7 +118,7 @@ def basic_auth_protocol_factory(
     realm: Optional[str] = None,
     credentials: Optional[Union[Credentials, Iterable[Credentials]]] = None,
     check_credentials: Optional[Callable[[str, str], Awaitable[bool]]] = None,
-    create_protocol: Optional[Callable[[Any], BasicAuthWebSocketServerProtocol]] = None,
+    create_protocol: Optional[Callable[..., BasicAuthWebSocketServerProtocol]] = None,
 ) -> Callable[[Any], BasicAuthWebSocketServerProtocol]:
     """
     Protocol factory that enforces HTTP Basic Auth.

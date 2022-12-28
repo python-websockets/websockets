@@ -172,6 +172,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self,
         *,
         logger: Optional[LoggerLike] = None,
+        ping_payload: Optional[str] = None,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
         close_timeout: Optional[float] = None,
@@ -205,6 +206,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         else:
             warnings.warn("remove loop argument", DeprecationWarning)
 
+        self.ping_payload = ping_payload
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
@@ -1266,7 +1268,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 # when connection_lost() calls abort_pings().
 
                 self.logger.debug("% sending keepalive ping")
-                pong_waiter = await self.ping()
+                pong_waiter = await self.ping(data=self.ping_payload)
 
                 if self.ping_timeout is not None:
                     try:

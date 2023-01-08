@@ -119,13 +119,13 @@ class HTTPAsyncTests(AsyncioTestCase):
             await read_headers(self.stream)
 
     async def test_headers_limit(self):
-        self.stream.feed_data(b"foo: bar\r\n" * 257 + b"\r\n")
+        self.stream.feed_data(b"foo: bar\r\n" * 129 + b"\r\n")
         with self.assertRaises(SecurityError):
             await read_headers(self.stream)
 
     async def test_line_limit(self):
-        # Header line contains 5 + 4104 + 2 = 4111 bytes.
-        self.stream.feed_data(b"foo: " + b"a" * 4104 + b"\r\n\r\n")
+        # Header line contains 5 + 8186 + 2 = 8193 bytes.
+        self.stream.feed_data(b"foo: " + b"a" * 8186 + b"\r\n\r\n")
         with self.assertRaises(SecurityError):
             await read_headers(self.stream)
 

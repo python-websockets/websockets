@@ -125,11 +125,11 @@ You can bind additional arguments to the protocol factory with
     import websockets
 
     class MyServerProtocol(websockets.WebSocketServerProtocol):
-        def __init__(self, extra_argument, *args, **kwargs):
+        def __init__(self, *args, extra_argument=None, **kwargs):
             super().__init__(*args, **kwargs)
             # do something with extra_argument
 
-    create_protocol = functools.partial(MyServerProtocol, extra_argument='spam')
+    create_protocol = functools.partial(MyServerProtocol, extra_argument=42)
     start_server = websockets.serve(..., create_protocol=create_protocol)
 
 This example was for a server. The same pattern applies on a client.

@@ -185,7 +185,7 @@ You can bind additional arguments to the connection handler with
     async def handler(websocket, extra_argument):
         ...
 
-    bound_handler = functools.partial(handler, extra_argument='spam')
+    bound_handler = functools.partial(handler, extra_argument=42)
     start_server = websockets.serve(bound_handler, ...)
 
 Another way to achieve this result is to define the ``handler`` coroutine in

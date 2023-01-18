@@ -67,7 +67,7 @@ New features
 
 * Made it possible to close a server without closing existing connections.
 
-* Added :attr:`~protocol.ServerProtocol.select_subprotocol` to customize
+* Added :attr:`~server.ServerProtocol.select_subprotocol` to customize
   negotiation of subprotocols in the Sans-I/O layer.
 
 10.4

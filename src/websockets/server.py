@@ -77,7 +77,12 @@ class ServerProtocol(Protocol):
         origins: Optional[Sequence[Optional[Origin]]] = None,
         extensions: Optional[Sequence[ServerExtensionFactory]] = None,
         subprotocols: Optional[Sequence[Subprotocol]] = None,
-        select_subprotocol: Optional[SelectSubprotocol] = None,
+        select_subprotocol: Optional[
+            Callable[
+                [ServerProtocol, Sequence[Subprotocol]],
+                Optional[Subprotocol],
+            ]
+        ] = None,
         state: State = CONNECTING,
         max_size: Optional[int] = 2**20,
         logger: Optional[LoggerLike] = None,
@@ -560,12 +565,6 @@ class ServerProtocol(Protocol):
             self.events.append(request)
 
         yield from super().parse()
-
-
-SelectSubprotocol = Callable[
-    [ServerProtocol, Sequence[Subprotocol]],
-    Optional[Subprotocol],
-]
 
 
 class ServerConnection(ServerProtocol):

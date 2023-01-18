@@ -119,7 +119,7 @@ def basic_auth_protocol_factory(
     credentials: Optional[Union[Credentials, Iterable[Credentials]]] = None,
     check_credentials: Optional[Callable[[str, str], Awaitable[bool]]] = None,
     create_protocol: Optional[Callable[..., BasicAuthWebSocketServerProtocol]] = None,
-) -> Callable[[Any], BasicAuthWebSocketServerProtocol]:
+) -> Callable[..., BasicAuthWebSocketServerProtocol]:
     """
     Protocol factory that enforces HTTP Basic Auth.
 
@@ -175,11 +175,7 @@ def basic_auth_protocol_factory(
             return hmac.compare_digest(expected_password, password)
 
     if create_protocol is None:
-        # Not sure why mypy cannot figure this out.
-        create_protocol = cast(
-            Callable[[Any], BasicAuthWebSocketServerProtocol],
-            BasicAuthWebSocketServerProtocol,
-        )
+        create_protocol = BasicAuthWebSocketServerProtocol
 
     return functools.partial(
         create_protocol,

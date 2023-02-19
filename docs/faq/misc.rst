@@ -33,8 +33,8 @@ Instead, use the real import paths e.g.::
     websockets.client.connect(...)
     websockets.server.serve(...)
 
-Why is websockets slower than another Python library in my benchmark?
-.....................................................................
+Why is websockets slower than another library in my benchmark?
+..............................................................
 
 Not all libraries are as feature-complete as websockets. For a fair benchmark,
 you should disable features that the other library doesn't provide. Typically,

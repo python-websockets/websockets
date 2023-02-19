@@ -109,10 +109,8 @@ Use :func:`~asyncio.wait_for`::
 
     await asyncio.wait_for(websocket.recv(), timeout=10)
 
-This technique works for most APIs, except for asynchronous context managers.
-See `issue 574`_.
-
-.. _issue 574: https://github.com/aaugustin/websockets/issues/574
+This technique works for most APIs. When it doesn't, for example with
+asynchronous context managers, websockets provides an ``open_timeout`` argument.
 
 How can I pass arguments to a custom protocol subclass?
 -------------------------------------------------------

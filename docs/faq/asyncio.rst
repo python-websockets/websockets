@@ -1,4 +1,4 @@
-asyncio usage
+Using asyncio
 =============
 
 .. currentmodule:: websockets

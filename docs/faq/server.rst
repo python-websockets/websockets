@@ -139,7 +139,7 @@ Add error handling according to the behavior you want if the user disconnected
 before the message could be sent.
 
 This example supports only one connection per user. To support concurrent
-connects by the same user, you can change ``CONNECTIONS`` to store a set of
+connections by the same user, you can change ``CONNECTIONS`` to store a set of
 connections for each user.
 
 If you're running multiple server processes, call ``message_user`` in each
@@ -213,7 +213,7 @@ client, as shown in the :doc:`tutorial <../intro/tutorial2>`. When you want to
 authenticate the connection before routing it, this is usually more convenient.
 
 Generally speaking, there is far less emphasis on the request path in WebSocket
-servers than in HTTP servers. When a WebSockt server provides a single endpoint,
+servers than in HTTP servers. When a WebSocket server provides a single endpoint,
 it may ignore the request path entirely.
 
 How do I access HTTP headers?

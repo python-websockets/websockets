@@ -47,6 +47,7 @@ def get_mapping(src_dir="src"):
         if "legacy" not in os.path.dirname(src_file)
         if os.path.basename(src_file) != "__init__.py"
         and os.path.basename(src_file) != "__main__.py"
+        and os.path.basename(src_file) != "compatibility.py"
     ]
     test_files = [
         test_file
@@ -89,8 +90,9 @@ def get_ignored_files(src_dir="src"):
 
     return [
         # */websockets matches src/websockets and .tox/**/site-packages/websockets.
-        # There are no tests for the __main__ module.
+        # There are no tests for the __main__ module and for compatibility modules.
         "*/websockets/__main__.py",
+        "*/websockets/*/compatibility.py",
         # This approach isn't applicable to the test suite of the legacy
         # implementation, due to the huge test_client_server test module.
         "*/websockets/legacy/*",

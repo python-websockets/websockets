@@ -8,6 +8,9 @@ on:
     branches:
       - main
 
+env:
+  WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 10
+
 jobs:
   coverage:
     name: Run test coverage checks

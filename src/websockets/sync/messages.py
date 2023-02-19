@@ -67,12 +67,12 @@ class Assembler:
         messages frame by frame, use :meth:`get_iter` instead.
 
         Args:
-            timeout: if a timeout is provided and elapses before a complete
+            timeout: If a timeout is provided and elapses before a complete
                 message is received, :meth:`get` raises :exc:`TimeoutError`.
 
         Raises:
-            EOFError: if the stream of frames has ended.
-            RuntimeError: if two threads run :meth:`get` or :meth:``get_iter`
+            EOFError: If the stream of frames has ended.
+            RuntimeError: If two threads run :meth:`get` or :meth:``get_iter`
                 concurrently.
 
         """
@@ -130,8 +130,8 @@ class Assembler:
         fragmented, use :meth:`get` instead.
 
         Raises:
-            EOFError: if the stream of frames has ended.
-            RuntimeError: if two threads run :meth:`get` or :meth:``get_iter`
+            EOFError: If the stream of frames has ended.
+            RuntimeError: If two threads run :meth:`get` or :meth:``get_iter`
                 concurrently.
 
         """
@@ -194,8 +194,8 @@ class Assembler:
         it doesn't, the behavior is undefined.
 
         Raises:
-            EOFError: if the stream of frames has ended.
-            RuntimeError: if two threads run :meth:`put` concurrently.
+            EOFError: If the stream of frames has ended.
+            RuntimeError: If two threads run :meth:`put` concurrently.
 
         """
         with self.mutex:

@@ -164,6 +164,8 @@ class ServerProtocol(Protocol):
                 f"Failed to open a WebSocket connection: {exc}.\n",
             )
         except Exception as exc:
+            # Handle exceptions raised by user-provided select_subprotocol and
+            # unexpected errors.
             request._exception = exc
             self.handshake_exc = exc
             self.logger.error("opening handshake failed", exc_info=True)

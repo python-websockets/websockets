@@ -31,7 +31,7 @@ class AssemblerTests(ThreadTestCase):
 
     def tearDown(self):
         """
-        Ensure the assembler goes back to its default state after each test.
+        Check that the assembler goes back to its default state after each test.
 
         This removes the need for testing various sequences.
 

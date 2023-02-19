@@ -127,7 +127,7 @@ class Frame:
 
     def __str__(self) -> str:
         """
-        Return a human-readable represention of a frame.
+        Return a human-readable representation of a frame.
 
         """
         coding = None
@@ -389,7 +389,7 @@ class Close:
 
     def __str__(self) -> str:
         """
-        Return a human-readable represention of a close code and reason.
+        Return a human-readable representation of a close code and reason.
 
         """
         if 3000 <= self.code < 4000:

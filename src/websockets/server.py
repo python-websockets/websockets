@@ -512,7 +512,7 @@ class ServerProtocol(Protocol):
         response = Response(status.value, status.phrase, headers, body)
         # When reject() is called from accept(), handshake_exc is already set.
         # If a user calls reject(), set handshake_exc to guarantee invariant:
-        # "handshake_exc is None if and only if opening handshake succeded."
+        # "handshake_exc is None if and only if opening handshake succeeded."
         if self.handshake_exc is None:
             self.handshake_exc = InvalidStatus(response)
         self.logger.info("connection failed (%d %s)", status.value, status.phrase)

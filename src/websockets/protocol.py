@@ -653,7 +653,7 @@ class Protocol:
             if self.state is OPEN:
                 # Echo the original data instead of re-serializing it with
                 # Close.serialize() because that fails when the close frame
-                # is empty and Close.parse() synthetizes a 1005 close code.
+                # is empty and Close.parse() synthesizes a 1005 close code.
                 # The rest is identical to send_close().
                 self.send_frame(Frame(OP_CLOSE, frame.data))
                 self.close_sent = self.close_rcvd

@@ -1120,7 +1120,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 try:
                     # Echo the original data instead of re-serializing it with
                     # Close.serialize() because that fails when the close frame
-                    # is empty and Close.parse() synthetizes a 1005 close code.
+                    # is empty and Close.parse() synthesizes a 1005 close code.
                     await self.write_close_frame(self.close_rcvd, frame.data)
                 except ConnectionClosed:
                     # Connection closed before we could echo the close frame.

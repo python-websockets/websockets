@@ -3,13 +3,11 @@ import contextlib
 import functools
 import http
 import logging
-import pathlib
 import platform
 import random
 import socket
 import ssl
 import sys
-import tempfile
 import unittest
 import unittest.mock
 import urllib.error
@@ -42,7 +40,7 @@ from ..extensions.utils import (
     NoOpExtension,
     ServerNoOpExtensionFactory,
 )
-from ..utils import CERTIFICATE, MS
+from ..utils import CERTIFICATE, MS, temp_unix_socket_path
 from .utils import AsyncioTestCase
 
 
@@ -447,9 +445,7 @@ class CommonClientServerTests:
 
     @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
     def test_unix_socket(self):
-        with tempfile.TemporaryDirectory() as temp_dir:
-            path = bytes(pathlib.Path(temp_dir) / "websockets")
-
+        with temp_unix_socket_path() as path:
             # Like self.start_server() but with unix_serve().
             async def start_server():
                 return await unix_serve(default_handler, path)
@@ -1445,8 +1441,7 @@ class ContextManagerTests(ClientServerTestsMixin, AsyncioTestCase):
             # Check that exiting the context manager closed the server.
             self.assertFalse(server.sockets)
 
-        with tempfile.TemporaryDirectory() as temp_dir:
-            path = bytes(pathlib.Path(temp_dir) / "websockets")
+        with temp_unix_socket_path() as path:
             self.loop.run_until_complete(run_server(path))
 
 

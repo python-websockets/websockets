@@ -3,6 +3,7 @@ import email.utils
 import os
 import pathlib
 import platform
+import tempfile
 import time
 import unittest
 import warnings
@@ -79,3 +80,9 @@ class DeprecationTestCase(unittest.TestCase):
         warning = recorded_warnings[0]
         self.assertEqual(warning.category, DeprecationWarning)
         self.assertEqual(str(warning.message), message)
+
+
+@contextlib.contextmanager
+def temp_unix_socket_path():
+    with tempfile.TemporaryDirectory() as temp_dir:
+        yield str(pathlib.Path(temp_dir) / "websockets")

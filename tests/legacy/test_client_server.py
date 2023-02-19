@@ -42,7 +42,8 @@ from ..extensions.utils import (
     NoOpExtension,
     ServerNoOpExtensionFactory,
 )
-from .utils import MS, AsyncioTestCase
+from ..utils import MS
+from .utils import AsyncioTestCase
 
 
 # Generate TLS certificate with:

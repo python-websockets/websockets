@@ -19,7 +19,8 @@ from websockets.legacy.framing import Frame
 from websockets.legacy.protocol import WebSocketCommonProtocol, broadcast
 from websockets.protocol import State
 
-from .utils import MS, AsyncioTestCase
+from ..utils import MS
+from .utils import AsyncioTestCase
 
 
 async def async_iterable(iterable):

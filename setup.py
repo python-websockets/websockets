@@ -20,7 +20,12 @@ long_description = re.sub(
 
 exec((root_dir / "src" / "websockets" / "version.py").read_text(encoding="utf-8"))
 
-packages = ["websockets", "websockets/legacy", "websockets/extensions"]
+packages = [
+    "websockets",
+    "websockets/extensions",
+    "websockets/legacy",
+    "websockets/sync",
+]
 
 ext_modules = [
     setuptools.Extension(

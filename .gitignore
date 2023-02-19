@@ -1,6 +1,8 @@
 *.pyc
 *.so
 .coverage
+.direnv
+.envrc
 .idea/
 .mypy_cache
 .tox

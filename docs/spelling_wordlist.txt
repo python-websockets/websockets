@@ -18,6 +18,7 @@ coroutine
 coroutines
 cryptocurrencies
 cryptocurrency
+css
 ctrl
 deserialize
 django
@@ -27,11 +28,13 @@ formatter
 fractalideas
 gunicorn
 healthz
+html
 hypercorn
 iframe
 IPv
 istio
 iterable
+js
 keepalive
 KiB
 kubernetes
@@ -40,12 +43,15 @@ linkerd
 liveness
 lookups
 MiB
+mutex
 mypy
 nginx
 Paketo
 permessage
 pid
+procfile
 proxying
+py
 pythonic
 reconnection
 redis
@@ -56,6 +62,7 @@ scalable
 stateful
 subclasses
 subclassing
+submodule
 subpackages
 subprotocol
 subprotocols
@@ -63,6 +70,7 @@ supervisord
 tidelift
 tls
 tox
+txt
 unregister
 uple
 uvicorn

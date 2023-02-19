@@ -88,7 +88,7 @@ class AsyncioTestCase(unittest.TestCase):
 
 # Unit for timeouts. May be increased on slow machines by setting the
 # WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
-MS = 0.001 * int(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", 1))
+MS = 0.001 * int(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", "1"))
 
 # asyncio's debug mode has a 10x performance penalty for this test suite.
 if os.environ.get("PYTHONASYNCIODEBUG"):  # pragma: no cover

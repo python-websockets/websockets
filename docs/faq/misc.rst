@@ -10,6 +10,8 @@ Often, this is because you created a script called ``websockets.py`` in your
 current working directory. Then ``import websockets`` imports this module
 instead of the websockets library.
 
+.. _real-import-paths:
+
 Why does my IDE fail to show documentation for websockets APIs?
 ...............................................................
 

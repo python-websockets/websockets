@@ -3,66 +3,91 @@ API reference
 
 .. currentmodule:: websockets
 
-websockets provides client and server implementations, as shown in
-the :doc:`getting started guide <../intro/index>`.
+:mod:`asyncio`
+--------------
 
-The process for opening and closing a WebSocket connection depends on which
-side you're implementing.
-
-* On the client side, connecting to a server with :func:`~client.connect`
-  yields a connection object that provides methods for interacting with the
-  connection. Your code can open a connection, then send or receive messages.
-
-  If you use :func:`~client.connect` as an asynchronous context manager,
-  then websockets closes the connection on exit. If not, then your code is
-  responsible for closing the connection.
-
-* On the server side, :func:`~server.serve` starts listening for client
-  connections and yields an server object that you can use to shut down
-  the server.
-
-  Then, when a client connects, the server initializes a connection object and
-  passes it to a handler coroutine, which is where your code can send or
-  receive messages. This pattern is called `inversion of control`_. It's
-  common in frameworks implementing servers.
-
-  When the handler coroutine terminates, websockets closes the connection. You
-  may also close it in the handler coroutine if you'd like.
-
-.. _inversion of control: https://en.wikipedia.org/wiki/Inversion_of_control
-
-Once the connection is open, the WebSocket protocol is symmetrical, except for
-low-level details that websockets manages under the hood. The same methods
-are available on client connections created with :func:`~client.connect` and
-on server connections received in argument by the connection handler
-of :func:`~server.serve`.
+This is the default implementation. It's ideal for servers that handle many
+clients concurrently.
 
 .. toctree::
    :titlesonly:
 
-   server
-   client
-   common
-   utilities
+   asyncio/server
+   asyncio/client
+   asyncio/common
+
+`Sans-I/O`_
+-----------
+
+This layer is designed for integrating in third-party libraries, typically
+application servers.
+
+.. _Sans-I/O: https://sans-io.readthedocs.io/
+
+.. toctree::
+   :titlesonly:
+
+   sansio/server
+   sansio/client
+   sansio/common
+
+Extensions
+----------
+
+The Per-Message Deflate extension is built in. You may also define custom
+extensions.
+
+.. toctree::
+   :titlesonly:
+
+   extensions
+
+Shared
+------
+
+These low-level API are shared by all implementations.
+
+.. toctree::
+   :titlesonly:
+
+   datastructures
    exceptions
    types
-   extensions
-   limitations
 
-Public API documented in the API reference are subject to the
+API stability
+-------------
+
+Public API documented in this API reference are subject to the
 :ref:`backwards-compatibility policy <backwards-compatibility policy>`.
 
 Anything that isn't listed in the API reference is a private API. There's no
 guarantees of behavior or backwards-compatibility for private APIs.
 
+Convenience imports
+-------------------
+
+For convenience, many public APIs can be imported directly from the
+``websockets`` package.
+
+
 .. admonition:: Convenience imports are incompatible with some development tools.
     :class: caution
 
-    For convenience, most public APIs can be imported from the ``websockets``
-    package. However, this is incompatible with static code analysis.
-
-    It may break auto-completion and contextual documentation in IDEs, type
-    checking with mypy_, etc. If you're using such tools, stick to the full
-    import paths.
+    Specifically, static code analysis tools don't understand them. This breaks
+    auto-completion and contextual documentation in IDEs, type checking with
+    mypy_, etc.
 
     .. _mypy: https://github.com/python/mypy
+
+    If you're using such tools, stick to the full import paths, as explained in
+    this FAQ: :ref:`real-import-paths`
+
+Limitations
+-----------
+
+There are a few known limitations in the current API.
+
+.. toctree::
+   :titlesonly:
+
+   limitations

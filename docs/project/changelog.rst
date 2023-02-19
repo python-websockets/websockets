@@ -22,8 +22,9 @@ When a release contains backwards-incompatible API changes, the major version
 is increased, else the minor version is increased. Patch versions are only for
 fixing regressions shortly after a release.
 
-Only documented APIs are public. Undocumented APIs are considered private.
-They may change at any time.
+Only documented API are public. Undocumented, private API may change without
+notice.
+
 
 11.0
 ----

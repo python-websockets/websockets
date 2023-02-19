@@ -98,7 +98,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     reasons, :meth:`close` completes in at most ``5 * close_timeout`` seconds
     for clients and ``4 * close_timeout`` for servers.
 
-    See the discussion of :doc:`timeouts <../topics/timeouts>` for details.
+    See the discussion of :doc:`timeouts <../../topics/timeouts>` for details.
 
     ``close_timeout`` needs to be a parameter of the protocol because
     websockets usually calls :meth:`close` implicitly upon exit:
@@ -141,12 +141,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     The default value is 64 KiB, equal to asyncio's default (based on the
     current implementation of ``FlowControlMixin``).
 
-    See the discussion of :doc:`memory usage <../topics/memory>` for details.
+    See the discussion of :doc:`memory usage <../../topics/memory>` for details.
 
     Args:
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.protocol")``;
-            see the :doc:`logging guide <../topics/logging>` for details.
+            see the :doc:`logging guide <../../topics/logging>` for details.
         ping_interval: delay between keepalive pings in seconds;
             :obj:`None` to disable keepalive pings.
         ping_timeout: timeout for keepalive pings in seconds;

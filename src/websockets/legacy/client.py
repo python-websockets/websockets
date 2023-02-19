@@ -385,10 +385,10 @@ class Connect:
             be set to a wrapper or a subclass to customize connection handling.
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
-            see the :doc:`logging guide <../topics/logging>` for details.
+            see the :doc:`logging guide <../../topics/logging>` for details.
         compression: shortcut that enables the "permessage-deflate" extension
             by default; may be set to :obj:`None` to disable compression;
-            see the :doc:`compression guide <../topics/compression>` for details.
+            see the :doc:`compression guide <../../topics/compression>` for details.
         origin: value of the ``Origin`` header. This is useful when connecting
             to a server that validates the ``Origin`` header to defend against
             Cross-Site WebSocket Hijacking attacks.

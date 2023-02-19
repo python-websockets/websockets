@@ -79,7 +79,7 @@ class Protocol:
         logger: logger for this connection; depending on ``side``,
             defaults to ``logging.getLogger("websockets.client")``
             or ``logging.getLogger("websockets.server")``;
-            see the :doc:`logging guide <../topics/logging>` for details.
+            see the :doc:`logging guide <../../topics/logging>` for details.
 
     """
 

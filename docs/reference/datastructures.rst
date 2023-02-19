@@ -1,10 +1,5 @@
-Utilities
-=========
-
-Broadcast
----------
-
-.. autofunction:: websockets.broadcast
+Data structures
+===============
 
 WebSocket events
 ----------------

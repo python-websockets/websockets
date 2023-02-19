@@ -1,13 +1,10 @@
-Server
-======
+Server (:mod:`asyncio`)
+=======================
 
 .. automodule:: websockets.server
 
-asyncio
--------
-
 Starting a server
-.................
+-----------------
 
 .. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, server_header="Python/x.y.z websockets/X.Y", process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
     :async:
@@ -16,7 +13,7 @@ Starting a server
     :async:
 
 Stopping a server
-.................
+-----------------
 
 .. autoclass:: WebSocketServer
 
@@ -35,7 +32,7 @@ Stopping a server
     .. autoattribute:: sockets
 
 Using a connection
-..................
+------------------
 
 .. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, logger=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, server_header="Python/x.y.z websockets/X.Y", process_request=None, select_subprotocol=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
 
@@ -93,7 +90,7 @@ Using a connection
 
 
 Basic authentication
-....................
+--------------------
 
 .. automodule:: websockets.auth
 
@@ -110,55 +107,7 @@ websockets supports HTTP Basic Authentication according to
 
     .. automethod:: check_credentials
 
-.. currentmodule:: websockets.server
+Broadcast
+---------
 
-Sans-I/O
---------
-
-.. autoclass:: ServerProtocol(origins=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
-
-    .. automethod:: receive_data
-
-    .. automethod:: receive_eof
-
-    .. automethod:: accept
-
-    .. automethod:: select_subprotocol
-
-    .. automethod:: reject
-
-    .. automethod:: send_response
-
-    .. automethod:: send_continuation
-
-    .. automethod:: send_text
-
-    .. automethod:: send_binary
-
-    .. automethod:: send_close
-
-    .. automethod:: send_ping
-
-    .. automethod:: send_pong
-
-    .. automethod:: fail
-
-    .. automethod:: events_received
-
-    .. automethod:: data_to_send
-
-    .. automethod:: close_expected
-
-    .. autoattribute:: id
-
-    .. autoattribute:: logger
-
-    .. autoproperty:: state
-
-    .. autoattribute:: handshake_exc
-
-    .. autoproperty:: close_code
-
-    .. autoproperty:: close_reason
-
-    .. autoproperty:: close_exc
+.. autofunction:: websockets.broadcast

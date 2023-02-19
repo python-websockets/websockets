@@ -664,7 +664,7 @@ class WebSocketServer:
     Args:
         logger: logger for this server;
             defaults to ``logging.getLogger("websockets.server")``;
-            see the :doc:`logging guide <../topics/logging>` for details.
+            see the :doc:`logging guide <../../topics/logging>` for details.
 
     """
 
@@ -934,10 +934,10 @@ class Serve:
             be set to a wrapper or a subclass to customize connection handling.
         logger: logger for this server;
             defaults to ``logging.getLogger("websockets.server")``;
-            see the :doc:`logging guide <../topics/logging>` for details.
+            see the :doc:`logging guide <../../topics/logging>` for details.
         compression: shortcut that enables the "permessage-deflate" extension
             by default; may be set to :obj:`None` to disable compression;
-            see the :doc:`compression guide <../topics/compression>` for details.
+            see the :doc:`compression guide <../../topics/compression>` for details.
         origins: acceptable values of the ``Origin`` header; include
             :obj:`None` in the list if the lack of an origin is acceptable.
             This is useful for defending against Cross-Site WebSocket

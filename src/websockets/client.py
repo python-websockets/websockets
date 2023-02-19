@@ -63,7 +63,7 @@ class ClientProtocol(Protocol):
             :obj:`None` to disable the limit.
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
-            see the :doc:`logging guide <../topics/logging>` for details.
+            see the :doc:`logging guide <../../topics/logging>` for details.
 
     """
 

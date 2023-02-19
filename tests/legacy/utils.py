@@ -2,9 +2,6 @@ import asyncio
 import contextlib
 import functools
 import logging
-import os
-import platform
-import time
 import unittest
 
 
@@ -84,19 +81,3 @@ class AsyncioTestCase(unittest.TestCase):
             set(str(recorded.message) for recorded in recorded_warnings),
             set(expected_warnings),
         )
-
-
-# Unit for timeouts. May be increased on slow machines by setting the
-# WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
-MS = 0.001 * int(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", "1"))
-
-# asyncio's debug mode has a 10x performance penalty for this test suite.
-if os.environ.get("PYTHONASYNCIODEBUG"):  # pragma: no cover
-    MS *= 10
-
-# PyPy has a performance penalty for this test suite.
-if platform.python_implementation() == "PyPy":  # pragma: no cover
-    MS *= 5
-
-# Ensure that timeouts are larger than the clock's resolution (for Windows).
-MS = max(MS, 2.5 * time.get_clock_info("monotonic").resolution)

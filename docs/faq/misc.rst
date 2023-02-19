@@ -33,6 +33,19 @@ Instead, use the real import paths e.g.::
     websockets.client.connect(...)
     websockets.server.serve(...)
 
+Why is the default implementation located in ``websockets.legacy``?
+...................................................................
+
+This is an artifact of websockets' history. For its first eight years, only the
+:mod:`asyncio`-based implementation existed. Then, the Sans-I/O implementation
+was added. Moving the code in a ``legacy`` submodule eased this refactoring and
+optimized maintainability.
+
+All public APIs were kept at their original locations. ``websockets.legacy``
+isn't a public API. It's only visible in the source code and in stack traces.
+There is no intent to deprecate this implementation — at least until a superior
+alternative exists.
+
 Why is websockets slower than another library in my benchmark?
 ..............................................................
 

@@ -1,10 +1,20 @@
 import contextlib
 import email.utils
 import os
+import pathlib
 import platform
 import time
 import unittest
 import warnings
+
+
+# Generate TLS certificate with:
+# $ openssl req -x509 -config test_localhost.cnf -days 15340 -newkey rsa:2048 \
+#       -out test_localhost.crt -keyout test_localhost.key
+# $ cat test_localhost.key test_localhost.crt > test_localhost.pem
+# $ rm test_localhost.key test_localhost.crt
+
+CERTIFICATE = bytes(pathlib.Path(__file__).with_name("test_localhost.pem"))
 
 
 DATE = email.utils.formatdate(usegmt=True)

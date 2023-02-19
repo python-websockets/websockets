@@ -39,8 +39,8 @@ Why is the default implementation located in ``websockets.legacy``?
 ...................................................................
 
 This is an artifact of websockets' history. For its first eight years, only the
-:mod:`asyncio`-based implementation existed. Then, the Sans-I/O implementation
-was added. Moving the code in a ``legacy`` submodule eased this refactoring and
+:mod:`asyncio` implementation existed. Then, the Sans-I/O implementation was
+added. Moving the code in a ``legacy`` submodule eased this refactoring and
 optimized maintainability.
 
 All public APIs were kept at their original locations. ``websockets.legacy``
@@ -60,11 +60,6 @@ you may need to disable:
 * UTF-8 decoding: send ``bytes`` rather than ``str``
 
 If websockets is still slower than another Python library, please file a bug.
-
-Can I use websockets without ``async`` and ``await``?
-.....................................................
-
-No, there is no convenient way to do this. You should use another library.
 
 Are there ``onopen``, ``onmessage``, ``onerror``, and ``onclose`` callbacks?
 ............................................................................

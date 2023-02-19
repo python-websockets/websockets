@@ -66,6 +66,17 @@ Backwards-incompatible changes
 New features
 ............
 
+.. admonition:: websockets 10.0 introduces a implementation on top of :mod:`threading`.
+    :class: important
+
+    It may be more convenient if you don't need to manage many connections and
+    you're more comfortable with :mod:`threading` than :mod:`asyncio`.
+
+    It is particularly suited to client applications that establish only one
+    connection. It may be used for servers handling few connections.
+
+    See :func:`~sync.client.connect` and :func:`~sync.server.serve` for details.
+
 * Made it possible to close a server without closing existing connections.
 
 * Added :attr:`~server.ServerProtocol.select_subprotocol` to customize

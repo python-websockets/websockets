@@ -130,7 +130,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         after this coroutine returns.
 
         Raises:
-            InvalidMessage: if the HTTP message is malformed or isn't an
+            InvalidMessage: If the HTTP message is malformed or isn't an
                 HTTP/1.1 GET response.
 
         """
@@ -273,15 +273,15 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         Args:
             wsuri: URI of the WebSocket server.
-            origin: value of the ``Origin`` header.
-            available_extensions: list of supported extensions, in order in
-                which they should be tried.
-            available_subprotocols: list of supported subprotocols, in order
-                of decreasing preference.
-            extra_headers: arbitrary HTTP headers to add to the request.
+            origin: Value of the ``Origin`` header.
+            extensions: List of supported extensions, in order in which they
+                should be negotiated and run.
+            subprotocols: List of supported subprotocols, in order of decreasing
+                preference.
+            extra_headers: Arbitrary HTTP headers to add to the handshake request.
 
         Raises:
-            InvalidHandshake: if the handshake fails.
+            InvalidHandshake: If the handshake fails.
 
         """
         request_headers = Headers()
@@ -376,28 +376,26 @@ class Connect:
 
     Args:
         uri: URI of the WebSocket server.
-        create_protocol: factory for the :class:`asyncio.Protocol` managing
-            the connection; defaults to :class:`WebSocketClientProtocol`; may
-            be set to a wrapper or a subclass to customize connection handling.
-        logger: logger for this connection;
-            defaults to ``logging.getLogger("websockets.client")``;
-            see the :doc:`logging guide <../../topics/logging>` for details.
-        compression: shortcut that enables the "permessage-deflate" extension
-            by default; may be set to :obj:`None` to disable compression;
-            see the :doc:`compression guide <../../topics/compression>` for details.
-        origin: value of the ``Origin`` header. This is useful when connecting
-            to a server that validates the ``Origin`` header to defend against
-            Cross-Site WebSocket Hijacking attacks.
-        extensions: list of supported extensions, in order in which they
-            should be tried.
-        subprotocols: list of supported subprotocols, in order of decreasing
+        create_protocol: Factory for the :class:`asyncio.Protocol` managing
+            the connection. It defaults to :class:`WebSocketClientProtocol`.
+            Set it to a wrapper or a subclass to customize connection handling.
+        logger: Logger for this client.
+            It defaults to ``logging.getLogger("websockets.client")``.
+            See the :doc:`logging guide <../../topics/logging>` for details.
+        compression: The "permessage-deflate" extension is enabled by default.
+            Set ``compression`` to :obj:`None` to disable it. See the
+            :doc:`compression guide <../../topics/compression>` for details.
+        origin: Value of the ``Origin`` header, for servers that require it.
+        extensions: List of supported extensions, in order in which they
+            should be negotiated and run.
+        subprotocols: List of supported subprotocols, in order of decreasing
             preference.
-        extra_headers: arbitrary HTTP headers to add to the request.
-        user_agent_header: value of  the ``User-Agent`` request header;
-            defaults to ``"Python/x.y.z websockets/X.Y"``;
-            :obj:`None` removes the header.
-        open_timeout: timeout for opening the connection in seconds;
-            :obj:`None` to disable the timeout
+        extra_headers: Arbitrary HTTP headers to add to the handshake request.
+        user_agent_header: Value of  the ``User-Agent`` request header.
+            It defaults to ``"Python/x.y.z websockets/X.Y"``.
+            Setting it to :obj:`None` removes the header.
+        open_timeout: Timeout for opening the connection in seconds.
+            :obj:`None` disables the timeout.
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
@@ -418,13 +416,10 @@ class Connect:
       the TCP connection. The host name from ``uri`` is still used in the TLS
       handshake for secure connections and in the ``Host`` header.
 
-    Returns:
-        WebSocketClientProtocol: WebSocket connection.
-
     Raises:
-        InvalidURI: if ``uri`` isn't a valid WebSocket URI.
-        InvalidHandshake: if the opening handshake fails.
-        ~asyncio.TimeoutError: if the opening handshake times out.
+        InvalidURI: If ``uri`` isn't a valid WebSocket URI.
+        InvalidHandshake: If the opening handshake fails.
+        ~asyncio.TimeoutError: If the opening handshake times out.
 
     """
 
@@ -705,7 +700,7 @@ def unix_connect(
     It's mainly useful for debugging servers listening on Unix sockets.
 
     Args:
-        path: file system path to the Unix socket.
+        path: File system path to the Unix socket.
         uri: URI of the WebSocket server; the host is used in the TLS
             handshake for secure connections and in the ``Host`` header.
 

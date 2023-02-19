@@ -30,37 +30,24 @@ with a focus on correctness, simplicity, robustness, and performance.
 
 .. _WebSocket: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
 
-Built on top of ``asyncio``, Python's standard asynchronous I/O framework, it
-provides an elegant coroutine-based API.
+Built on top of ``asyncio``, Python's standard asynchronous I/O framework, the
+default implementation provides an elegant coroutine-based API.
+
+An implementation on top of ``threading`` and a Sans-I/O implementation are also
+available.
 
 `Documentation is available on Read the Docs. <https://websockets.readthedocs.io/>`_
 
-Here's how a client sends and receives messages:
-
 .. copy-pasted because GitHub doesn't support the include directive
 
-.. code:: python
-
-    #!/usr/bin/env python
-
-    import asyncio
-    from websockets import connect
-
-    async def hello(uri):
-        async with connect(uri) as websocket:
-            await websocket.send("Hello world!")
-            await websocket.recv()
-
-    asyncio.run(hello("ws://localhost:8765"))
-
-And here's an echo server:
+Here's an echo server with the ``asyncio`` API:
 
 .. code:: python
 
     #!/usr/bin/env python
 
     import asyncio
-    from websockets import serve
+    from websockets.server import serve
 
     async def echo(websocket):
         async for message in websocket:
@@ -71,6 +58,24 @@ And here's an echo server:
             await asyncio.Future()  # run forever
 
     asyncio.run(main())
+
+Here's how a client sends and receives messages with the ``threading`` API:
+
+.. code:: python
+
+    #!/usr/bin/env python
+
+    import asyncio
+    from websockets.sync.client import connect
+
+    def hello():
+        with connect("ws://localhost:8765") as websocket:
+            websocket.send("Hello world!")
+            message = websocket.recv()
+            print(f"Received: {message}")
+
+    hello()
+
 
 Does that look good?
 
@@ -91,9 +96,8 @@ Why should I use ``websockets``?
 
 The development of ``websockets`` is shaped by four principles:
 
-1. **Correctness**: ``websockets`` is heavily tested for compliance
-   with :rfc:`6455`. Continuous integration fails under 100% branch
-   coverage.
+1. **Correctness**: ``websockets`` is heavily tested for compliance with
+   :rfc:`6455`. Continuous integration fails under 100% branch coverage.
 
 2. **Simplicity**: all you need to understand is ``msg = await ws.recv()`` and
    ``await ws.send(msg)``. ``websockets`` takes care of managing connections

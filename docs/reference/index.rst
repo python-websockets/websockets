@@ -16,6 +16,18 @@ clients concurrently.
    asyncio/client
    asyncio/common
 
+:mod:`threading`
+----------------
+
+This alternative implementation can be a good choice for clients.
+
+.. toctree::
+   :titlesonly:
+
+   sync/server
+   sync/client
+   sync/common
+
 `Sans-I/O`_
 -----------
 

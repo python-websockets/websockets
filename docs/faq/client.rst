@@ -43,6 +43,11 @@ To set other HTTP headers, for example the ``Authorization`` header, use the
     async with connect(..., extra_headers={"Authorization": ...}) as websocket:
         ...
 
+In the :mod:`threading` API, this argument is named ``additional_headers``::
+
+    with connect(..., additional_headers={"Authorization": ...}) as websocket:
+        ...
+
 How do I close a connection?
 ----------------------------
 

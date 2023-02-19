@@ -58,13 +58,13 @@ class ServerProtocol(Protocol):
             should be tried.
         subprotocols: list of supported subprotocols, in order of decreasing
             preference.
-        select_subprotocol: callback for selecting a subprotocol among
+        select_subprotocol: Callback for selecting a subprotocol among
             those supported by the client and the server. It has the same
             signature as the :meth:`select_subprotocol` method, including a
             :class:`ServerProtocol` instance as first argument.
         state: initial state of the WebSocket connection.
         max_size: maximum size of incoming messages in bytes;
-            :obj:`None` to disable the limit.
+            :obj:`None` disables the limit.
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../../topics/logging>` for details.
@@ -120,7 +120,7 @@ class ServerProtocol(Protocol):
             request: WebSocket handshake request event received from the client.
 
         Returns:
-            Response: WebSocket handshake response event to send to the client.
+            WebSocket handshake response event to send to the client.
 
         """
         try:

@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 
 import asyncio
-import websockets
+from websockets.sync.client import connect
 
-async def hello():
-    async with websockets.connect("ws://localhost:8765") as websocket:
-        await websocket.send("Hello world!")
-        await websocket.recv()
+def hello():
+    with connect("ws://localhost:8765") as websocket:
+        websocket.send("Hello world!")
+        message = websocket.recv()
+        print(f"Received: {message}")
 
-asyncio.run(hello())
+hello()

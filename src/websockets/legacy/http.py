@@ -56,12 +56,12 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, Headers]:
     body, it may be read from ``stream`` after this coroutine returns.
 
     Args:
-        stream: input to read the request from
+        stream: Input to read the request from.
 
     Raises:
-        EOFError: if the connection is closed without a full HTTP request
-        SecurityError: if the request exceeds a security limit
-        ValueError: if the request isn't well formatted
+        EOFError: If the connection is closed without a full HTTP request.
+        SecurityError: If the request exceeds a security limit.
+        ValueError: If the request isn't well formatted.
 
     """
     # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.1
@@ -103,12 +103,12 @@ async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, Headers
     body, it may be read from ``stream`` after this coroutine returns.
 
     Args:
-        stream: input to read the response from
+        stream: Input to read the response from.
 
     Raises:
-        EOFError: if the connection is closed without a full HTTP response
-        SecurityError: if the response exceeds a security limit
-        ValueError: if the response isn't well formatted
+        EOFError: If the connection is closed without a full HTTP response.
+        SecurityError: If the response exceeds a security limit.
+        ValueError: If the response isn't well formatted.
 
     """
     # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.2

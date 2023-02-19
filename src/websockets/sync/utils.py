@@ -12,7 +12,7 @@ class Deadline:
     Manage timeouts across multiple steps.
 
     Args:
-        timeout: time available in seconds; :obj:`None` if there is no limit.
+        timeout: Time available in seconds or :obj:`None` if there is no limit.
 
     """
 
@@ -28,15 +28,14 @@ class Deadline:
         Calculate a timeout from a deadline.
 
         Args:
-            raise_if_elapsed (bool): whether to raise :exc:`TimeoutError`
+            raise_if_elapsed (bool): Whether to raise :exc:`TimeoutError`
                 if the deadline lapsed.
 
         Raises:
-            TimeoutError: if the deadline lapsed.
+            TimeoutError: If the deadline lapsed.
 
         Returns:
-            Optional[float]: Time left in seconds;
-                :obj:`None` if there is no limit.
+            Time left in seconds or :obj:`None` if there is no limit.
 
         """
         if self.deadline is None:

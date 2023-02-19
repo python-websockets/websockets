@@ -354,15 +354,12 @@ class ServerProtocol(Protocol):
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values and self.available_extensions:
-
             parsed_header_values: List[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
             )
 
             for name, request_params in parsed_header_values:
-
                 for ext_factory in self.available_extensions:
-
                     # Skip non-matching extensions based on their name.
                     if ext_factory.name != name:
                         continue

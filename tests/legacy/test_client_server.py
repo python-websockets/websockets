@@ -212,7 +212,6 @@ class BarClientProtocol(WebSocketClientProtocol):
 
 
 class ClientServerTestsMixin:
-
     secure = False
 
     def setUp(self):
@@ -309,7 +308,6 @@ class ClientServerTestsMixin:
 
 
 class SecureClientServerTestsMixin(ClientServerTestsMixin):
-
     secure = True
 
     @property
@@ -1299,7 +1297,6 @@ class ClientServerTests(
 class SecureClientServerTests(
     CommonClientServerTests, SecureClientServerTestsMixin, AsyncioTestCase
 ):
-
     # The implementation of this test makes it hard to run it over TLS.
     test_client_connect_canceled_during_handshake = None
 
@@ -1462,7 +1459,6 @@ class ContextManagerTests(ClientServerTestsMixin, AsyncioTestCase):
 
 
 class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
-
     # This is a protocol-level feature, but since it's a high-level API, it is
     # much easier to exercise at the client or server level.
 

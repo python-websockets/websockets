@@ -32,7 +32,6 @@ class CheckWebSocketServerProtocol(BasicAuthWebSocketServerProtocol):
 
 
 class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
-
     create_protocol = basic_auth_protocol_factory(
         realm="auth-tests", credentials=("hello", "iloveyou")
     )

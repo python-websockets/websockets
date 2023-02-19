@@ -652,7 +652,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Fragmented message -- regular iterator.
 
         elif isinstance(message, Iterable):
-
             # Work around https://github.com/python/mypy/issues/6227
             message = cast(Iterable[Data], message)
 
@@ -1519,7 +1518,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.connection_lost_waiter.set_result(None)
 
         if True:  # pragma: no cover
-
             # Copied from asyncio.StreamReaderProtocol
             if self.reader is not None:
                 if exc is None:

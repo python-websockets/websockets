@@ -14,7 +14,6 @@ except ImportError:  # pragma: no cover
 
 
 class Frame(NamedTuple):
-
     fin: bool
     opcode: frames.Opcode
     data: bytes

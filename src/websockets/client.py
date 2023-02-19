@@ -222,7 +222,6 @@ class ClientProtocol(Protocol):
         extensions = headers.get_all("Sec-WebSocket-Extensions")
 
         if extensions:
-
             if self.available_extensions is None:
                 raise InvalidHandshake("no extensions supported")
 
@@ -231,9 +230,7 @@ class ClientProtocol(Protocol):
             )
 
             for name, response_params in parsed_extensions:
-
                 for extension_factory in self.available_extensions:
-
                     # Skip non-matching extensions based on their name.
                     if extension_factory.name != name:
                         continue
@@ -280,7 +277,6 @@ class ClientProtocol(Protocol):
         subprotocols = headers.get_all("Sec-WebSocket-Protocol")
 
         if subprotocols:
-
             if self.available_subprotocols is None:
                 raise InvalidHandshake("no subprotocols supported")
 

@@ -188,7 +188,6 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values:
-
             if available_extensions is None:
                 raise InvalidHandshake("no extensions supported")
 
@@ -197,9 +196,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             )
 
             for name, response_params in parsed_header_values:
-
                 for extension_factory in available_extensions:
-
                     # Skip non-matching extensions based on their name.
                     if extension_factory.name != name:
                         continue
@@ -245,7 +242,6 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         header_values = headers.get_all("Sec-WebSocket-Protocol")
 
         if header_values:
-
             if available_subprotocols is None:
                 raise InvalidHandshake("no subprotocols supported")
 

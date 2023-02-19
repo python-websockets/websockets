@@ -160,7 +160,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
         """
         try:
-
             try:
                 await self.handshake(
                     origins=self.origins,
@@ -443,15 +442,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values and available_extensions:
-
             parsed_header_values: List[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
             )
 
             for name, request_params in parsed_header_values:
-
                 for ext_factory in available_extensions:
-
                     # Skip non-matching extensions based on their name.
                     if ext_factory.name != name:
                         continue
@@ -503,7 +499,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         header_values = headers.get_all("Sec-WebSocket-Protocol")
 
         if header_values and available_subprotocols:
-
             parsed_header_values: List[Subprotocol] = sum(
                 [parse_subprotocol(header_value) for header_value in header_values], []
             )

@@ -42,17 +42,8 @@ from ..extensions.utils import (
     NoOpExtension,
     ServerNoOpExtensionFactory,
 )
-from ..utils import MS
+from ..utils import CERTIFICATE, MS
 from .utils import AsyncioTestCase
-
-
-# Generate TLS certificate with:
-# $ openssl req -x509 -config test_localhost.cnf -days 15340 -newkey rsa:2048 \
-#       -out test_localhost.crt -keyout test_localhost.key
-# $ cat test_localhost.key test_localhost.crt > test_localhost.pem
-# $ rm test_localhost.key test_localhost.crt
-
-testcert = bytes(pathlib.Path(__file__).parent.with_name("test_localhost.pem"))
 
 
 async def default_handler(ws):
@@ -314,13 +305,13 @@ class SecureClientServerTestsMixin(ClientServerTestsMixin):
     @property
     def server_context(self):
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-        ssl_context.load_cert_chain(testcert)
+        ssl_context.load_cert_chain(CERTIFICATE)
         return ssl_context
 
     @property
     def client_context(self):
         ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-        ssl_context.load_verify_locations(testcert)
+        ssl_context.load_verify_locations(CERTIFICATE)
         return ssl_context
 
     def start_server(self, **kwargs):

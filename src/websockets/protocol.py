@@ -75,7 +75,7 @@ class Protocol:
         side: :attr:`~Side.CLIENT` or :attr:`~Side.SERVER`.
         state: initial state of the WebSocket connection.
         max_size: maximum size of incoming messages in bytes;
-            :obj:`None` to disable the limit.
+            :obj:`None` disables the limit.
         logger: logger for this connection; depending on ``side``,
             defaults to ``logging.getLogger("websockets.client")``
             or ``logging.getLogger("websockets.server")``;
@@ -263,7 +263,8 @@ class Protocol:
 
         After calling this method:
 
-        - You must call :meth:`data_to_send` and send this data to the network.
+        - You must call :meth:`data_to_send` and send this data to the network;
+          it will return ``[b""]``, signaling the end of the stream, or ``[]``.
         - You aren't expected to call :meth:`events_received`; it won't return
           any new events.
 
@@ -481,8 +482,8 @@ class Protocol:
         """
         Tell if the TCP connection is expected to close soon.
 
-        Call this method immediately after any of the ``receive_*()`` or
-        :meth:`fail` methods.
+        Call this method immediately after any of the ``receive_*()``,
+        ``send_close()``, or :meth:`fail` methods.
 
         If it returns :obj:`True`, schedule closing the TCP connection after a
         short timeout if the other side hasn't already closed it.
@@ -509,6 +510,9 @@ class Protocol:
 
         :meth:`receive_data` and :meth:`receive_eof` run this generator
         coroutine until it needs more data or reaches EOF.
+
+        :meth:`parse` never raises an exception. Instead, it sets the
+        :attr:`parser_exc` and yields control.
 
         """
         try:

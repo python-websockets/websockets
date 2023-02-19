@@ -60,7 +60,7 @@ class ClientProtocol(Protocol):
             preference.
         state: initial state of the WebSocket connection.
         max_size: maximum size of incoming messages in bytes;
-            :obj:`None` to disable the limit.
+            :obj:`None` disables the limit.
         logger: logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../../topics/logging>` for details.

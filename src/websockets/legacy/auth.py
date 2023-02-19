@@ -135,20 +135,20 @@ def basic_auth_protocol_factory(
         )
 
     Args:
-        realm: indicates the scope of protection. It should contain only ASCII
-            characters because the encoding of non-ASCII characters is
-            undefined. Refer to section 2.2 of :rfc:`7235` for details.
-        credentials: defines hard coded authorized credentials. It can be a
+        realm: Scope of protection. It should contain only ASCII characters
+            because the encoding of non-ASCII characters is undefined.
+            Refer to section 2.2 of :rfc:`7235` for details.
+        credentials: Hard coded authorized credentials. It can be a
             ``(username, password)`` pair or a list of such pairs.
-        check_credentials: defines a coroutine that verifies credentials.
-            This coroutine receives ``username`` and ``password`` arguments
+        check_credentials: Coroutine that verifies credentials.
+            It receives ``username`` and ``password`` arguments
             and returns a :class:`bool`. One of ``credentials`` or
             ``check_credentials`` must be provided but not both.
-        create_protocol: factory that creates the protocol. By default, this
+        create_protocol: Factory that creates the protocol. By default, this
             is :class:`BasicAuthWebSocketServerProtocol`. It can be replaced
             by a subclass.
     Raises:
-        TypeError: if the ``credentials`` or ``check_credentials`` argument is
+        TypeError: If the ``credentials`` or ``check_credentials`` argument is
             wrong.
 
     """

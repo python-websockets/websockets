@@ -168,8 +168,8 @@ def connect(
             from ``uri``. You may call :func:`socket.create_connection` to
             create a suitable TCP socket.
         ssl_context: Configuration for enabling TLS on the connection.
-        server_hostname: Hostname for the TLS handshake. ``server_hostname``
-            overrides the hostname from ``uri``.
+        server_hostname: Host name for the TLS handshake. ``server_hostname``
+            overrides the host name from ``uri``.
         origin: Value of the ``Origin`` header, for servers that require it.
         extensions: List of supported extensions, in order in which they
             should be negotiated and run.

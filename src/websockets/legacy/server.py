@@ -657,9 +657,9 @@ class WebSocketServer:
     when shutting down.
 
     Args:
-        logger: logger for this server;
-            defaults to ``logging.getLogger("websockets.server")``;
-            see the :doc:`logging guide <../../topics/logging>` for details.
+        logger: Logger for this server.
+            It defaults to ``logging.getLogger("websockets.server")``.
+            See the :doc:`logging guide <../../topics/logging>` for details.
 
     """
 
@@ -918,43 +918,42 @@ class Serve:
             await stop
 
     Args:
-        ws_handler: connection handler. It receives the WebSocket connection,
+        ws_handler: Connection handler. It receives the WebSocket connection,
             which is a :class:`WebSocketServerProtocol`, in argument.
-        host: network interfaces the server is bound to;
-            see :meth:`~asyncio.loop.create_server` for details.
-        port: TCP port the server listens on;
-            see :meth:`~asyncio.loop.create_server` for details.
-        create_protocol: factory for the :class:`asyncio.Protocol` managing
-            the connection; defaults to :class:`WebSocketServerProtocol`; may
-            be set to a wrapper or a subclass to customize connection handling.
-        logger: logger for this server;
-            defaults to ``logging.getLogger("websockets.server")``;
-            see the :doc:`logging guide <../../topics/logging>` for details.
-        compression: shortcut that enables the "permessage-deflate" extension
-            by default; may be set to :obj:`None` to disable compression;
-            see the :doc:`compression guide <../../topics/compression>` for details.
-        origins: acceptable values of the ``Origin`` header; include
-            :obj:`None` in the list if the lack of an origin is acceptable.
-            This is useful for defending against Cross-Site WebSocket
-            Hijacking attacks.
-        extensions: list of supported extensions, in order in which they
-            should be tried.
-        subprotocols: list of supported subprotocols, in order of decreasing
+        host: Network interfaces the server binds to.
+            See :meth:`~asyncio.loop.create_server` for details.
+        port: TCP port the server listens on.
+            See :meth:`~asyncio.loop.create_server` for details.
+        create_protocol: Factory for the :class:`asyncio.Protocol` managing
+            the connection. It defaults to :class:`WebSocketServerProtocol`.
+            Set it to a wrapper or a subclass to customize connection handling.
+        logger: Logger for this server.
+            It defaults to ``logging.getLogger("websockets.server")``.
+            See the :doc:`logging guide <../../topics/logging>` for details.
+        compression: The "permessage-deflate" extension is enabled by default.
+            Set ``compression`` to :obj:`None` to disable it. See the
+            :doc:`compression guide <../../topics/compression>` for details.
+        origins: Acceptable values of the ``Origin`` header, for defending
+            against Cross-Site WebSocket Hijacking attacks. Include :obj:`None`
+            in the list if the lack of an origin is acceptable.
+        extensions: List of supported extensions, in order in which they
+            should be negotiated and run.
+        subprotocols: List of supported subprotocols, in order of decreasing
             preference.
         extra_headers (Union[HeadersLike, Callable[[str, Headers], HeadersLike]]):
-            arbitrary HTTP headers to add to the request; this can be
+            Arbitrary HTTP headers to add to the response. This can be
             a :data:`~websockets.datastructures.HeadersLike` or a callable
             taking the request path and headers in arguments and returning
             a :data:`~websockets.datastructures.HeadersLike`.
-        server_header: value of  the ``Server`` response header;
-            defaults to ``"Python/x.y.z websockets/X.Y"``;
-            :obj:`None` removes the header.
+        server_header: Value of  the ``Server`` response header.
+            It defaults to ``"Python/x.y.z websockets/X.Y"``.
+            Setting it to :obj:`None` removes the header.
         process_request (Optional[Callable[[str, Headers], \
             Awaitable[Optional[Tuple[http.HTTPStatus, HeadersLike, bytes]]]]]):
-            intercept HTTP request before the opening handshake;
-            see :meth:`~WebSocketServerProtocol.process_request` for details.
-        select_subprotocol: select a subprotocol supported by the client;
-            see :meth:`~WebSocketServerProtocol.select_subprotocol` for details.
+            Intercept HTTP request before the opening handshake.
+            See :meth:`~WebSocketServerProtocol.process_request` for details.
+        select_subprotocol: Select a subprotocol supported by the client.
+            See :meth:`~WebSocketServerProtocol.select_subprotocol` for details.
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
@@ -1137,17 +1136,18 @@ def unix_serve(
     **kwargs: Any,
 ) -> Serve:
     """
-    Similar to :func:`serve`, but for listening on Unix sockets.
+    Start a WebSocket server listening on a Unix socket.
 
-    This function builds upon the event
-    loop's :meth:`~asyncio.loop.create_unix_server` method.
+    This function is identical to :func:`serve`, except the ``host`` and
+    ``port`` arguments are replaced by ``path``. It is only available on Unix.
 
-    It is only available on Unix.
+    Unrecognized keyword arguments are passed the event loop's
+    :meth:`~asyncio.loop.create_unix_server` method.
 
     It's useful for deploying a server behind a reverse proxy such as nginx.
 
     Args:
-        path: file system path to the Unix socket.
+        path: File system path to the Unix socket.
 
     """
     return serve(ws_handler, path=path, unix=True, **kwargs)

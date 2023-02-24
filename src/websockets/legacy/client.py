@@ -535,6 +535,8 @@ class Connect:
             else:
                 # If sock is given, host and port shouldn't be specified.
                 host, port = None, None
+                if kwargs.get("ssl"):
+                    kwargs.setdefault("server_hostname", wsuri.host)
             # If host and port are given, override values from the URI.
             host = kwargs.pop("host", host)
             port = kwargs.pop("port", port)

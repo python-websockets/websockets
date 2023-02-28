@@ -344,5 +344,5 @@ All other patterns discussed above yield control to the event loop once per
 client because messages are sent by different tasks. This makes them slower
 than the built-in :func:`broadcast` function.
 
-There is no major difference between the performance of per-message queues and
+There is no major difference between the performance of per-client queues and
 publish–subscribe.

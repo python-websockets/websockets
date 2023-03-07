@@ -53,7 +53,7 @@ from ..frames import (
 )
 from ..protocol import State
 from ..typing import Data, LoggerLike, Subprotocol
-from .compatibility import loop_if_py_lt_38
+from .compatibility import asyncio_timeout, loop_if_py_lt_38
 from .framing import Frame
 
 
@@ -763,18 +763,15 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         """
         try:
-            await asyncio.wait_for(
-                self.write_close_frame(Close(code, reason)),
-                self.close_timeout,
-                **loop_if_py_lt_38(self.loop),
-            )
+            async with asyncio_timeout(self.close_timeout):
+                await self.write_close_frame(Close(code, reason))
         except asyncio.TimeoutError:
             # If the close frame cannot be sent because the send buffers
             # are full, the closing handshake won't complete anyway.
             # Fail the connection to shut down faster.
             self.fail_connection()
 
-        # If no close frame is received within the timeout, wait_for() cancels
+        # If no close frame is received within the timeout, asyncio_timeout() cancels
         # the data transfer task and raises TimeoutError.
 
         # If close() is called multiple times concurrently and one of these
@@ -784,11 +781,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         try:
             # If close() is canceled during the wait, self.transfer_data_task
             # is canceled before the timeout elapses.
-            await asyncio.wait_for(
-                self.transfer_data_task,
-                self.close_timeout,
-                **loop_if_py_lt_38(self.loop),
-            )
+            async with asyncio_timeout(self.close_timeout):
+                await self.transfer_data_task
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
 
@@ -1270,11 +1264,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
                 if self.ping_timeout is not None:
                     try:
-                        await asyncio.wait_for(
-                            pong_waiter,
-                            self.ping_timeout,
-                            **loop_if_py_lt_38(self.loop),
-                        )
+                        async with asyncio_timeout(self.ping_timeout):
+                            await pong_waiter
                         self.logger.debug("% received keepalive pong")
                     except asyncio.TimeoutError:
                         if self.debug:
@@ -1392,11 +1383,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         if not self.connection_lost_waiter.done():
             try:
-                await asyncio.wait_for(
-                    asyncio.shield(self.connection_lost_waiter),
-                    self.close_timeout,
-                    **loop_if_py_lt_38(self.loop),
-                )
+                async with asyncio_timeout(self.close_timeout):
+                    await asyncio.shield(self.connection_lost_waiter)
             except asyncio.TimeoutError:
                 pass
         # Re-check self.connection_lost_waiter.done() synchronously because

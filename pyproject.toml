@@ -39,6 +39,7 @@ branch = true
 omit = [
     # */websockets matches src/websockets and .tox/**/site-packages/websockets
     "*/websockets/__main__.py",
+    "*/websockets/legacy/async_timeout.py",
     "*/websockets/legacy/compatibility.py",
     "tests/maxi_cov.py",
 ]

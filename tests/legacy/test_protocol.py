@@ -932,6 +932,7 @@ class CommonTests:
         self.receive_frame(Frame(True, OP_PING, b"test"))
         self.receive_eof()
 
+        self.run_loop_once()
         with self.assertNoLogs():
             self.loop.run_until_complete(self.protocol.close())
 
@@ -1373,7 +1374,7 @@ class CommonTests:
         # Receive the incoming close frame right after self.protocol.close()
         # starts executing. This reproduces the error described in:
         # https://github.com/aaugustin/websockets/issues/339
-        self.loop.call_soon(self.receive_frame, self.remote_close)
+        self.receive_frame(self.remote_close)
         self.loop.call_soon(self.receive_eof_if_client)
 
         self.loop.run_until_complete(self.protocol.close(reason="local"))

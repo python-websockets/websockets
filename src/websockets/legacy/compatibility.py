@@ -5,6 +5,9 @@ import sys
 from typing import Any, Dict
 
 
+__all__ = ["asyncio_timeout", "loop_if_py_lt_38"]
+
+
 if sys.version_info[:2] >= (3, 8):
 
     def loop_if_py_lt_38(loop: asyncio.AbstractEventLoop) -> Dict[str, Any]:
@@ -22,3 +25,9 @@ else:
 
         """
         return {"loop": loop}
+
+
+if sys.version_info[:2] >= (3, 11):
+    from asyncio import timeout as asyncio_timeout  # noqa: F401
+else:
+    from .async_timeout import timeout as asyncio_timeout  # noqa: F401

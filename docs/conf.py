@@ -133,6 +133,11 @@ def linkcode_resolve(domain, info):
 
     return f"{code_url}/{file}#L{start}-L{end}"
 
+# Configure opengraph extension
+
+# Social cards don't support the SVG logo. Also, the text preview looks bad.
+ogp_social_cards = {"enable": False}
+
 
 # -- Options for HTML output -------------------------------------------------
 

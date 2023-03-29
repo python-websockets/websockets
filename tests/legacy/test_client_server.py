@@ -428,11 +428,7 @@ class CommonClientServerTests:
             self.assertFalse(client_socket.used_for_read)
             self.assertFalse(client_socket.used_for_write)
 
-            with self.temp_client(
-                sock=client_socket,
-                # "You must set server_hostname when using ssl without a host"
-                server_hostname="localhost" if self.secure else None,
-            ):
+            with self.temp_client(sock=client_socket):
                 self.loop.run_until_complete(self.client.send("Hello!"))
                 reply = self.loop.run_until_complete(self.client.recv())
                 self.assertEqual(reply, "Hello!")

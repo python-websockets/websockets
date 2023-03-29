@@ -111,7 +111,10 @@ class ClientTests(unittest.TestCase):
                     TimeoutError,
                     "timed out during handshake",
                 ):
-                    with run_client(server, open_timeout=3 * MS):
+                    # While it shouldn't take 50ms to open a connection, this
+                    # test becomes flaky in CI when setting a smaller timeout,
+                    # even after increasing WEBSOCKETS_TESTS_TIMEOUT_FACTOR.
+                    with run_client(server, open_timeout=5 * MS):
                         self.fail("did not raise")
             finally:
                 gate.set()

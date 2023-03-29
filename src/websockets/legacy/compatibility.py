@@ -14,7 +14,7 @@ if sys.version_info[:2] >= (3, 8):
         """
         return {}
 
-else:  # pragma: no cover
+else:
 
     def loop_if_py_lt_38(loop: asyncio.AbstractEventLoop) -> Dict[str, Any]:
         """

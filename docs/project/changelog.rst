@@ -82,6 +82,12 @@ New features
 * Added :attr:`~server.ServerProtocol.select_subprotocol` to customize
   negotiation of subprotocols in the Sans-I/O layer.
 
+Improvements
+............
+
+* Set ``server_hostname`` automatically on TLS connections when providing a
+  ``sock`` argument to :func:`~sync.client.connect`.
+
 10.4
 ----
 

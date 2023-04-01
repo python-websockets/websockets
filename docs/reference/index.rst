@@ -57,7 +57,7 @@ extensions.
 Shared
 ------
 
-These low-level API are shared by all implementations.
+These low-level APIs are shared by all implementations.
 
 .. toctree::
    :titlesonly:
@@ -69,7 +69,7 @@ These low-level API are shared by all implementations.
 API stability
 -------------
 
-Public API documented in this API reference are subject to the
+Public APIs documented in this API reference are subject to the
 :ref:`backwards-compatibility policy <backwards-compatibility policy>`.
 
 Anything that isn't listed in the API reference is a private API. There's no

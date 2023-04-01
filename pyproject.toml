@@ -33,3 +33,28 @@ changelog = "https://websockets.readthedocs.io/en/stable/project/changelog.html"
 documentation = "https://websockets.readthedocs.io/"
 funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme"
 tracker = "https://github.com/aaugustin/websockets/issues"
+
+[tool.coverage.run]
+branch = true
+omit = [
+    # */websockets matches src/websockets and .tox/**/site-packages/websockets
+    "*/websockets/__main__.py",
+    "*/websockets/legacy/compatibility.py",
+    "tests/maxi_cov.py",
+]
+
+[tool.coverage.paths]
+source = [
+    "src/websockets",
+   ".tox/*/lib/python*/site-packages/websockets",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "if self.debug:",
+    "pragma: no cover",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "self.fail\\(\".*\"\\)",
+    "@unittest.skip",
+]

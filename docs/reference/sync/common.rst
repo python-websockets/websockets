@@ -1,3 +1,5 @@
+:orphan:
+
 Both sides (:mod:`threading`)
 =============================
 

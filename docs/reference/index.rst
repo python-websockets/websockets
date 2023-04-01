@@ -25,7 +25,6 @@ clients concurrently.
 
    asyncio/server
    asyncio/client
-   asyncio/common
 
 :mod:`threading`
 ----------------
@@ -37,7 +36,6 @@ This alternative implementation can be a good choice for clients.
 
    sync/server
    sync/client
-   sync/common
 
 `Sans-I/O`_
 -----------
@@ -52,7 +50,6 @@ application servers.
 
    sansio/server
    sansio/client
-   sansio/common
 
 Extensions
 ----------

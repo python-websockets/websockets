@@ -352,11 +352,11 @@ def serve(
             <websockets.server.ServerProtocol.select_subprotocol>` method.
         process_request: Intercept the request during the opening handshake.
             Return an HTTP response to force the response or :obj:`None` to
-            continue normally. When you force a HTTP 101 Continue response,
+            continue normally. When you force an HTTP 101 Continue response,
             the handshake is successful. Else, the connection is aborted.
         process_response: Intercept the response during the opening handshake.
             Return an HTTP response to force the response or :obj:`None` to
-            continue normally. When you force a HTTP 101 Continue response,
+            continue normally. When you force an HTTP 101 Continue response,
             the handshake is successful. Else, the connection is aborted.
         server_header: Value of  the ``Server`` response header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``. Setting it to

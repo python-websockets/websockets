@@ -374,7 +374,7 @@ class InvalidState(WebSocketException, AssertionError):
 
 class InvalidURI(WebSocketException):
     """
-    Raised when connecting to an URI that isn't a valid WebSocket URI.
+    Raised when connecting to a URI that isn't a valid WebSocket URI.
 
     """
 

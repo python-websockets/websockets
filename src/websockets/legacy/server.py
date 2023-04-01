@@ -115,6 +115,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
+        open_timeout: Optional[float] = 10,
         **kwargs: Any,
     ) -> None:
         if logger is None:
@@ -136,6 +137,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self.server_header = server_header
         self._process_request = process_request
         self._select_subprotocol = select_subprotocol
+        self.open_timeout = open_timeout
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         """
@@ -161,15 +163,20 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         try:
             try:
-                await self.handshake(
-                    origins=self.origins,
-                    available_extensions=self.available_extensions,
-                    available_subprotocols=self.available_subprotocols,
-                    extra_headers=self.extra_headers,
+                await asyncio.wait_for(
+                    self.handshake(
+                        origins=self.origins,
+                        available_extensions=self.available_extensions,
+                        available_subprotocols=self.available_subprotocols,
+                        extra_headers=self.extra_headers,
+                    ),
+                    self.open_timeout,
                 )
             # Remove this branch when dropping support for Python < 3.8
             # because CancelledError no longer inherits Exception.
             except asyncio.CancelledError:  # pragma: no cover
+                raise
+            except asyncio.TimeoutError:  # pragma: no cover
                 raise
             except ConnectionError:
                 raise
@@ -954,6 +961,8 @@ class Serve:
             See :meth:`~WebSocketServerProtocol.process_request` for details.
         select_subprotocol: Select a subprotocol supported by the client.
             See :meth:`~WebSocketServerProtocol.select_subprotocol` for details.
+        open_timeout: Timeout for opening connections in seconds.
+            :obj:`None` disables the timeout.
 
     See :class:`~websockets.legacy.protocol.WebSocketCommonProtocol` for the
     documentation of ``ping_interval``, ``ping_timeout``, ``close_timeout``,
@@ -997,6 +1006,7 @@ class Serve:
         select_subprotocol: Optional[
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
         ] = None,
+        open_timeout: Optional[float] = 10,
         ping_interval: Optional[float] = 20,
         ping_timeout: Optional[float] = 20,
         close_timeout: Optional[float] = None,
@@ -1059,6 +1069,7 @@ class Serve:
             host=host,
             port=port,
             secure=secure,
+            open_timeout=open_timeout,
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,
             close_timeout=close_timeout,

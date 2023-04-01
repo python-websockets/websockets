@@ -63,6 +63,12 @@ Backwards-incompatible changes
     As a consequence, calling ``WebSocket.close()`` without arguments in a
     browser isn't reported as an error anymore.
 
+.. admonition:: :func:`~server.serve` times out on the opening handshake after 10 seconds by default.
+    :class: note
+
+    You can adjust the timeout with the ``open_timeout`` parameter. Set it to
+    :obj:`None` to disable the timeout entirely.
+
 New features
 ............
 
@@ -76,6 +82,8 @@ New features
     connection. It may be used for servers handling few connections.
 
     See :func:`~sync.client.connect` and :func:`~sync.server.serve` for details.
+
+* Added ``open_timeout`` to :func:`~server.serve`.
 
 * Made it possible to close a server without closing existing connections.
 

@@ -7,66 +7,32 @@ import setuptools
 
 root_dir = pathlib.Path(__file__).parent
 
-description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
+exec((root_dir / "src" / "websockets" / "version.py").read_text(encoding="utf-8"))
 
-long_description = (root_dir / "README.rst").read_text(encoding="utf-8")
-
-# PyPI disables the "raw" directive.
+# PyPI disables the "raw" directive. Remove this section of the README.
 long_description = re.sub(
     r"^\.\. raw:: html.*?^(?=\w)",
     "",
-    long_description,
+    (root_dir / "README.rst").read_text(encoding="utf-8"),
     flags=re.DOTALL | re.MULTILINE,
 )
 
-exec((root_dir / "src" / "websockets" / "version.py").read_text(encoding="utf-8"))
-
-packages = [
-    "websockets",
-    "websockets/extensions",
-    "websockets/legacy",
-    "websockets/sync",
-]
-
 # Set BUILD_EXTENSION to yes or no to force building or not building the
 # speedups extension. If unset, the extension is built only if possible.
-ext_modules = [] if os.environ.get("BUILD_EXTENSION") == "no" else [
-    setuptools.Extension(
-        "websockets.speedups",
-        sources=["src/websockets/speedups.c"],
-        optional=os.environ.get("BUILD_EXTENSION") != "yes",
-    )
-]
+if os.environ.get("BUILD_EXTENSION") == "no":
+    ext_modules = []
+else:
+    ext_modules = [
+        setuptools.Extension(
+            "websockets.speedups",
+            sources=["src/websockets/speedups.c"],
+            optional=os.environ.get("BUILD_EXTENSION") != "yes",
+        )
+    ]
 
+# Static values are declared in pyproject.toml.
 setuptools.setup(
-    name="websockets",
     version=version,
-    description=description,
     long_description=long_description,
-    url="https://github.com/aaugustin/websockets",
-    author="Aymeric Augustin",
-    author_email="aymeric.augustin@m4x.org",
-    license="BSD-3-Clause",
-    classifiers=[
-        "Development Status :: 5 - Production/Stable",
-        "Environment :: Web Environment",
-        "Intended Audience :: Developers",
-        "License :: OSI Approved :: BSD License",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: 3.7",
-        "Programming Language :: Python :: 3.8",
-        "Programming Language :: Python :: 3.9",
-        "Programming Language :: Python :: 3.10",
-        "Programming Language :: Python :: 3.11",
-    ],
-    package_dir={"": "src"},
-    package_data={"websockets": ["py.typed"]},
-    packages=packages,
     ext_modules=ext_modules,
-    include_package_data=True,
-    zip_safe=False,
-    python_requires=">=3.7",
-    test_loader="unittest:TestLoader",
 )

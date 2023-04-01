@@ -1,0 +1,35 @@
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "websockets"
+description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
+requires-python = ">=3.7"
+license = { text = "BSD-3-Clause" }
+authors = [
+    { name = "Aymeric Augustin", email = "aymeric.augustin@m4x.org" },
+]
+keywords = ["WebSocket"]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Environment :: Web Environment",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: BSD License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+]
+dynamic = ["version", "readme"]
+
+[project.urls]
+homepage = "https://github.com/aaugustin/websockets"
+changelog = "https://websockets.readthedocs.io/en/stable/project/changelog.html"
+documentation = "https://websockets.readthedocs.io/"
+funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme"
+tracker = "https://github.com/aaugustin/websockets/issues"

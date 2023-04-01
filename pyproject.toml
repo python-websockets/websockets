@@ -58,3 +58,19 @@ exclude_lines = [
     "self.fail\\(\".*\"\\)",
     "@unittest.skip",
 ]
+
+[tool.ruff]
+select = [
+    "E",  # pycodestyle
+    "F",  # Pyflakes
+    "W",  # pycodestyle
+    "I",  # isort
+]
+ignore = [
+    "F403",
+    "F405",
+]
+
+[tool.ruff.isort]
+combine-as-imports = true
+lines-after-imports = 2

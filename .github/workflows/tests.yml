@@ -44,9 +44,7 @@ jobs:
     - name: Check code formatting
       run: tox -e black
     - name: Check code style
-      run: tox -e flake8
-    - name: Check imports ordering
-      run: tox -e isort
+      run: tox -e ruff
     - name: Check types statically
       run: tox -e mypy
 

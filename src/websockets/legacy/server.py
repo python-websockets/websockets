@@ -552,10 +552,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         subprotocols = set(client_subprotocols) & set(server_subprotocols)
         if not subprotocols:
             return None
-        priority = lambda p: (
-            client_subprotocols.index(p) + server_subprotocols.index(p)
-        )
-        return sorted(subprotocols, key=priority)[0]
+        return sorted(
+            subprotocols,
+            key=lambda p: client_subprotocols.index(p) + server_subprotocols.index(p),
+        )[0]
 
     async def handshake(
         self,

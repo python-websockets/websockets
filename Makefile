@@ -1,18 +1,19 @@
-.PHONY: default style test coverage maxi_cov build clean
+.PHONY: default style types tests coverage maxi_cov build clean
 
 export PYTHONASYNCIODEBUG=1
 export PYTHONPATH=src
 export PYTHONWARNINGS=default
 
-default: coverage style
+default: style types tests
 
 style:
-	isort --project websockets src tests
 	black src tests
-	flake8 src tests
+	ruff --fix src tests
+
+types:
 	mypy --strict src
 
-test:
+tests:
 	python -m unittest
 
 coverage:

@@ -319,8 +319,8 @@ class ServerProtocol(Protocol):
         Accept or reject each extension proposed in the client request.
         Negotiate parameters for accepted extensions.
 
-        :rfc:`6455` leaves the rules up to the specification of each
-        :extension.
+        Per :rfc:`6455`, negotiation rules are defined by the specification of
+        each extension.
 
         To provide this level of flexibility, for each extension proposed by
         the client, we check for a match with each extension available in the

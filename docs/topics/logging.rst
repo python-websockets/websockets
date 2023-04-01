@@ -213,6 +213,11 @@ Here's what websockets logs at each level.
 * Exceptions raised by connection handler coroutines in servers
 * Exceptions resulting from bugs in websockets
 
+``WARNING``
+...........
+
+* Failures in :func:`~websockets.broadcast`
+
 ``INFO``
 ........
 

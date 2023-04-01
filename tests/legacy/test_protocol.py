@@ -1,5 +1,7 @@
 import asyncio
 import contextlib
+import logging
+import sys
 import unittest
 import unittest.mock
 import warnings
@@ -1468,25 +1470,75 @@ class CommonTests:
     def test_broadcast_skips_closed_connection(self):
         self.close_connection()
 
-        broadcast([self.protocol], "café")
+        with self.assertNoLogs():
+            broadcast([self.protocol], "café")
         self.assertNoFrameSent()
 
     def test_broadcast_skips_closing_connection(self):
         close_task = self.half_close_connection_local()
 
-        broadcast([self.protocol], "café")
+        with self.assertNoLogs():
+            broadcast([self.protocol], "café")
         self.assertNoFrameSent()
 
         self.loop.run_until_complete(close_task)  # cleanup
 
-    def test_broadcast_within_fragmented_text(self):
+    def test_broadcast_skips_connection_sending_fragmented_text(self):
         self.make_drain_slow()
         self.loop.create_task(self.protocol.send(["ca", "fé"]))
         self.run_loop_once()
         self.assertOneFrameSent(False, OP_TEXT, "ca".encode("utf-8"))
 
-        with self.assertRaises(RuntimeError):
+        with self.assertLogs("websockets", logging.WARNING) as logs:
             broadcast([self.protocol], "café")
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records][:2],
+            ["skipped broadcast: sending a fragmented message"],
+        )
+
+    @unittest.skipIf(
+        sys.version_info[:2] < (3, 11), "raise_exceptions requires Python 3.11+"
+    )
+    def test_broadcast_reports_connection_sending_fragmented_text(self):
+        self.make_drain_slow()
+        self.loop.create_task(self.protocol.send(["ca", "fé"]))
+        self.run_loop_once()
+        self.assertOneFrameSent(False, OP_TEXT, "ca".encode("utf-8"))
+
+        with self.assertRaises(ExceptionGroup) as raised:
+            broadcast([self.protocol], "café", raise_exceptions=True)
+
+        self.assertEqual(str(raised.exception), "skipped broadcast (1 sub-exception)")
+        self.assertEqual(
+            str(raised.exception.exceptions[0]), "sending a fragmented message"
+        )
+
+    def test_broadcast_skips_connection_failing_to_send(self):
+        # Configure mock to raise an exception when writing to the network.
+        self.protocol.transport.write.side_effect = RuntimeError
+
+        with self.assertLogs("websockets", logging.WARNING) as logs:
+            broadcast([self.protocol], "café")
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records][:2],
+            ["skipped broadcast: failed to write message"],
+        )
+
+    @unittest.skipIf(
+        sys.version_info[:2] < (3, 11), "raise_exceptions requires Python 3.11+"
+    )
+    def test_broadcast_reports_connection_failing_to_send(self):
+        # Configure mock to raise an exception when writing to the network.
+        self.protocol.transport.write.side_effect = RuntimeError("BOOM")
+
+        with self.assertRaises(ExceptionGroup) as raised:
+            broadcast([self.protocol], "café", raise_exceptions=True)
+
+        self.assertEqual(str(raised.exception), "skipped broadcast (1 sub-exception)")
+        self.assertEqual(str(raised.exception.exceptions[0]), "failed to write message")
+        self.assertEqual(str(raised.exception.exceptions[0].__cause__), "BOOM")
 
 
 class ServerTests(CommonTests, AsyncioTestCase):

@@ -1553,11 +1553,11 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
                         await ws.recv()
                 else:
                     # Exit block with an exception.
-                    raise Exception("BOOM!")
+                    raise Exception("BOOM")
                 pass  # work around bug in coverage
 
         with self.assertLogs("websockets", logging.INFO) as logs:
-            with self.assertRaisesRegex(Exception, "BOOM!"):
+            with self.assertRaisesRegex(Exception, "BOOM"):
                 self.loop.run_until_complete(run_client())
 
         # Iteration 1

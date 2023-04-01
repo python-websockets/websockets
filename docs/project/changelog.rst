@@ -85,6 +85,8 @@ New features
 Improvements
 ............
 
+* Improved error handling in :func:`~websockets.broadcast`.
+
 * Set ``server_hostname`` automatically on TLS connections when providing a
   ``sock`` argument to :func:`~sync.client.connect`.
 

@@ -3,6 +3,17 @@ API reference
 
 .. currentmodule:: websockets
 
+Features
+--------
+
+Check which implementations support which features and known limitations.
+
+.. toctree::
+   :titlesonly:
+
+   features
+
+
 :mod:`asyncio`
 --------------
 
@@ -93,13 +104,3 @@ For convenience, many public APIs can be imported directly from the
 
     If you're using such tools, stick to the full import paths, as explained in
     this FAQ: :ref:`real-import-paths`
-
-Limitations
------------
-
-There are a few known limitations in the current API.
-
-.. toctree::
-   :titlesonly:
-
-   limitations

@@ -1,3 +1,4 @@
+import os
 import pathlib
 import re
 
@@ -27,11 +28,13 @@ packages = [
     "websockets/sync",
 ]
 
-ext_modules = [
+# Set BUILD_EXTENSION to yes or no to force building or not building the
+# speedups extension. If unset, the extension is built only if possible.
+ext_modules = [] if os.environ.get("BUILD_EXTENSION") == "no" else [
     setuptools.Extension(
         "websockets.speedups",
         sources=["src/websockets/speedups.c"],
-        optional=not (root_dir / ".cibuildwheel").exists(),
+        optional=os.environ.get("BUILD_EXTENSION") != "yes",
     )
 ]
 

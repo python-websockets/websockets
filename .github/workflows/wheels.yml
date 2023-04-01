@@ -8,8 +8,10 @@ on:
 
 jobs:
   sdist:
-    name: Build source distribution
+    name: Build source distribution and architecture-independent wheel
     runs-on: ubuntu-latest
+    env:
+      BUILD_EXTENSION: no
     steps:
     - name: Check out repository
       uses: actions/checkout@v3
@@ -23,10 +25,20 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         path: dist/*.tar.gz
+    - name: Install wheel
+      run: pip install wheel
+    - name: Build wheel
+      run: python setup.py bdist_wheel
+    - name: Save wheel
+      uses: actions/upload-artifact@v3
+      with:
+        path: dist/*.whl
 
   wheels:
-    name: Build wheels on ${{ matrix.os }}
+    name: Build architecture-specific wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
+    env:
+      BUILD_EXTENSION: yes
     strategy:
       matrix:
         os:
@@ -36,8 +48,6 @@ jobs:
     steps:
     - name: Check out repository
       uses: actions/checkout@v3
-    - name: Make extension build mandatory
-      run: touch .cibuildwheel
     - name: Install Python 3.x
       uses: actions/setup-python@v4
       with:

@@ -198,6 +198,7 @@ def connect(
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
+        OSError: If the TCP connection fails.
         InvalidHandshake: If the opening handshake fails.
         TimeoutError: If the opening handshake times out.
 

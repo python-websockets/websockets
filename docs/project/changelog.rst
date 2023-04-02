@@ -25,11 +25,10 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
-
 11.0
 ----
 
-*In development*
+*April 2, 2023*
 
 Backwards-incompatible changes
 ..............................

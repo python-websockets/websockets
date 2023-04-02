@@ -29,6 +29,7 @@ from websockets.extensions.permessage_deflate import (
 )
 from websockets.http import USER_AGENT
 from websockets.legacy.client import *
+from websockets.legacy.compatibility import asyncio_timeout
 from websockets.legacy.handshake import build_response
 from websockets.legacy.http import read_response
 from websockets.legacy.server import *
@@ -1129,7 +1130,8 @@ class CommonClientServerTests:
 
         async def cancelled_client():
             start_client = connect(get_server_uri(self.server), sock=sock)
-            await asyncio.wait_for(start_client, 5 * MS)
+            async with asyncio_timeout(5 * MS):
+                await start_client
 
         with self.assertRaises(asyncio.TimeoutError):
             self.loop.run_until_complete(cancelled_client())

@@ -1361,7 +1361,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Abort the TCP connection. Buffers are discarded.
         if self.debug:
             self.logger.debug("x aborting TCP connection")
-        self.transport.abort()
+        # Due to a bug in coverage, this is erroneously reported as not covered.
+        self.transport.abort()  # pragma: no cover
 
         # connection_lost() is called quickly after aborting.
         await self.wait_for_connection_lost()

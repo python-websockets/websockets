@@ -1579,7 +1579,8 @@ class ServerTests(CommonTests, AsyncioTestCase):
             self.receive_frame(self.close_frame)
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        self.assertConnectionClosed(1000, "close")
+        # Due to a bug in coverage, this is erroneously reported as not covered.
+        self.assertConnectionClosed(1000, "close")  # pragma: no cover
 
     def test_local_close_connection_lost_timeout_after_close(self):
         self.protocol.close_timeout = 10 * MS
@@ -1596,7 +1597,8 @@ class ServerTests(CommonTests, AsyncioTestCase):
             self.receive_frame(self.close_frame)
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        self.assertConnectionClosed(1000, "close")
+        # Due to a bug in coverage, this is erroneously reported as not covered.
+        self.assertConnectionClosed(1000, "close")  # pragma: no cover
 
 
 class ClientTests(CommonTests, AsyncioTestCase):
@@ -1614,7 +1616,8 @@ class ClientTests(CommonTests, AsyncioTestCase):
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        self.assertConnectionClosed(1006, "")
+        # Due to a bug in coverage, this is erroneously reported as not covered.
+        self.assertConnectionClosed(1006, "")  # pragma: no cover
 
     def test_local_close_receive_close_frame_timeout(self):
         self.protocol.close_timeout = 10 * MS
@@ -1624,7 +1627,8 @@ class ClientTests(CommonTests, AsyncioTestCase):
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        self.assertConnectionClosed(1006, "")
+        # Due to a bug in coverage, this is erroneously reported as not covered.
+        self.assertConnectionClosed(1006, "")  # pragma: no cover
 
     def test_local_close_connection_lost_timeout_after_write_eof(self):
         self.protocol.close_timeout = 10 * MS
@@ -1639,7 +1643,8 @@ class ClientTests(CommonTests, AsyncioTestCase):
             self.receive_frame(self.close_frame)
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        self.assertConnectionClosed(1000, "close")
+        # Due to a bug in coverage, this is erroneously reported as not covered.
+        self.assertConnectionClosed(1000, "close")  # pragma: no cover
 
     def test_local_close_connection_lost_timeout_after_close(self):
         self.protocol.close_timeout = 10 * MS
@@ -1659,4 +1664,5 @@ class ClientTests(CommonTests, AsyncioTestCase):
             self.receive_frame(self.close_frame)
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        self.assertConnectionClosed(1000, "close")
+        # Due to a bug in coverage, this is erroneously reported as not covered.
+        self.assertConnectionClosed(1000, "close")  # pragma: no cover

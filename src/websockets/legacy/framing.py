@@ -9,7 +9,7 @@ from ..exceptions import PayloadTooBig, ProtocolError
 
 try:
     from ..speedups import apply_mask
-except ImportError:  # pragma: no cover
+except ImportError:
     from ..utils import apply_mask
 
 

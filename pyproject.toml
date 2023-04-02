@@ -51,6 +51,7 @@ source = [
 
 [tool.coverage.report]
 exclude_lines = [
+    "except ImportError:",
     "if self.debug:",
     "pragma: no cover",
     "raise AssertionError",

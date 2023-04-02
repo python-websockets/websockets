@@ -714,9 +714,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 await self.write_frame(False, opcode, data)
 
                 # Other fragments.
-                # coverage reports this code as not covered, but it is
-                # exercised by tests - changing it breaks the tests!
-                async for fragment in aiter_message:  # pragma: no cover
+                async for fragment in aiter_message:
                     confirm_opcode, data = prepare_data(fragment)
                     if confirm_opcode != opcode:
                         raise TypeError("data contains inconsistent types")
@@ -1150,8 +1148,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                         if ping_id == frame.data:
                             self.latency = pong_timestamp - ping_timestamp
                             break
-                    else:  # pragma: no cover
-                        assert False, "ping_id is in self.pings"
+                    else:
+                        raise AssertionError("solicited pong not found in pings")
                     # Remove acknowledged pings from self.pings.
                     for ping_id in ping_ids:
                         del self.pings[ping_id]
@@ -1320,9 +1318,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # A client should wait for a TCP close from the server.
             if self.is_client and hasattr(self, "transfer_data_task"):
                 if await self.wait_for_connection_lost():
-                    # Coverage marks this line as a partially executed branch.
-                    # I suspect a bug in coverage. Ignore it for now.
-                    return  # pragma: no cover
+                    return
                 if self.debug:
                     self.logger.debug("! timed out waiting for TCP close")
 
@@ -1340,9 +1336,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                     pass
 
                 if await self.wait_for_connection_lost():
-                    # Coverage marks this line as a partially executed branch.
-                    # I suspect a bug in coverage. Ignore it for now.
-                    return  # pragma: no cover
+                    return
                 if self.debug:
                     self.logger.debug("! timed out waiting for TCP close")
 
@@ -1378,9 +1372,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.transport.abort()
 
         # connection_lost() is called quickly after aborting.
-        # Coverage marks this line as a partially executed branch.
-        # I suspect a bug in coverage. Ignore it for now.
-        await self.wait_for_connection_lost()  # pragma: no cover
+        await self.wait_for_connection_lost()
 
     async def wait_for_connection_lost(self) -> bool:
         """

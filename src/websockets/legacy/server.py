@@ -840,7 +840,7 @@ class WebSocketServer:
         """
         return self.server.is_serving()
 
-    async def start_serving(self) -> None:
+    async def start_serving(self) -> None:  # pragma: no cover
         """
         See :meth:`asyncio.Server.start_serving`.
 
@@ -852,9 +852,9 @@ class WebSocketServer:
             await server.start_serving()
 
         """
-        await self.server.start_serving()  # pragma: no cover
+        await self.server.start_serving()
 
-    async def serve_forever(self) -> None:
+    async def serve_forever(self) -> None:  # pragma: no cover
         """
         See :meth:`asyncio.Server.serve_forever`.
 
@@ -870,7 +870,7 @@ class WebSocketServer:
         instead of exiting a :func:`serve` context.
 
         """
-        await self.server.serve_forever()  # pragma: no cover
+        await self.server.serve_forever()
 
     @property
     def sockets(self) -> Iterable[socket.socket]:
@@ -880,17 +880,17 @@ class WebSocketServer:
         """
         return self.server.sockets
 
-    async def __aenter__(self) -> WebSocketServer:
-        return self  # pragma: no cover
+    async def __aenter__(self) -> WebSocketServer:  # pragma: no cover
+        return self
 
     async def __aexit__(
         self,
         exc_type: Optional[Type[BaseException]],
         exc_value: Optional[BaseException],
         traceback: Optional[TracebackType],
-    ) -> None:
-        self.close()  # pragma: no cover
-        await self.wait_closed()  # pragma: no cover
+    ) -> None:  # pragma: no cover
+        self.close()
+        await self.wait_closed()
 
 
 class Serve:

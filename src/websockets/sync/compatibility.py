@@ -3,7 +3,7 @@ from __future__ import annotations
 
 try:
     from socket import create_server as socket_create_server
-except ImportError:  # pragma: no cover
+except ImportError:
     import socket
 
     def socket_create_server(address, family=socket.AF_INET):  # type: ignore

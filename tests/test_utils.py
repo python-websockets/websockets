@@ -82,7 +82,7 @@ class ApplyMaskTests(unittest.TestCase):
 
 try:
     from websockets.speedups import apply_mask as c_apply_mask
-except ImportError:  # pragma: no cover
+except ImportError:
     pass
 else:
 

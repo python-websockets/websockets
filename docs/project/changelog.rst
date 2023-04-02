@@ -93,6 +93,8 @@ New features
 Improvements
 ............
 
+* Added platform-independent wheels.
+
 * Improved error handling in :func:`~websockets.broadcast`.
 
 * Set ``server_hostname`` automatically on TLS connections when providing a

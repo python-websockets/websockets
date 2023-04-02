@@ -53,7 +53,7 @@ from ..frames import (
 )
 from ..protocol import State
 from ..typing import Data, LoggerLike, Subprotocol
-from .compatibility import asyncio_timeout, loop_if_py_lt_38
+from .compatibility import asyncio_timeout
 from .framing import Frame
 
 
@@ -244,7 +244,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self._paused = False
         self._drain_waiter: Optional[asyncio.Future[None]] = None
 
-        self._drain_lock = asyncio.Lock(**loop_if_py_lt_38(loop))
+        self._drain_lock = asyncio.Lock()
 
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.
@@ -339,7 +339,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 #     write(...); yield from drain()
                 # in a loop would never call connection_lost(), so it
                 # would not see an error when the socket is closed.
-                await asyncio.sleep(0, **loop_if_py_lt_38(self.loop))
+                await asyncio.sleep(0)
         await self._drain_helper()
 
     def connection_open(self) -> None:
@@ -551,7 +551,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 await asyncio.wait(
                     [pop_message_waiter, self.transfer_data_task],
                     return_when=asyncio.FIRST_COMPLETED,
-                    **loop_if_py_lt_38(self.loop),
                 )
             finally:
                 self._pop_message_waiter = None
@@ -1247,10 +1246,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         try:
             while True:
-                await asyncio.sleep(
-                    self.ping_interval,
-                    **loop_if_py_lt_38(self.loop),
-                )
+                await asyncio.sleep(self.ping_interval)
 
                 # ping() raises CancelledError if the connection is closed,
                 # when close_connection() cancels self.keepalive_ping_task.
@@ -1271,11 +1267,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                             self.logger.debug("! timed out waiting for keepalive pong")
                         self.fail_connection(1011, "keepalive ping timeout")
                         break
-
-        # Remove this branch when dropping support for Python < 3.8
-        # because CancelledError no longer inherits Exception.
-        except asyncio.CancelledError:
-            raise
 
         except ConnectionClosed:
             pass

@@ -137,10 +137,6 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         """
         try:
             status_code, reason, headers = await read_response(self.reader)
-        # Remove this branch when dropping support for Python < 3.8
-        # because CancelledError no longer inherits Exception.
-        except asyncio.CancelledError:  # pragma: no cover
-            raise
         except Exception as exc:
             raise InvalidMessage("did not receive a valid HTTP response") from exc
 
@@ -601,10 +597,6 @@ class Connect:
             try:
                 async with self as protocol:
                     yield protocol
-            # Remove this branch when dropping support for Python < 3.8
-            # because CancelledError no longer inherits Exception.
-            except asyncio.CancelledError:  # pragma: no cover
-                raise
             except Exception:
                 # Add a random initial delay between 0 and 5 seconds.
                 # See 7.2.3. Recovering from Abnormal Closure in RFC 6544.

@@ -46,7 +46,7 @@ from ..headers import (
 from ..http import USER_AGENT
 from ..protocol import State
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
-from .compatibility import asyncio_timeout, loop_if_py_lt_38
+from .compatibility import asyncio_timeout
 from .handshake import build_response, check_request
 from .http import read_request
 from .protocol import WebSocketCommonProtocol
@@ -170,10 +170,6 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                         available_subprotocols=self.available_subprotocols,
                         extra_headers=self.extra_headers,
                     )
-            # Remove this branch when dropping support for Python < 3.8
-            # because CancelledError no longer inherits Exception.
-            except asyncio.CancelledError:  # pragma: no cover
-                raise
             except asyncio.TimeoutError:  # pragma: no cover
                 raise
             except ConnectionError:
@@ -770,7 +766,7 @@ class WebSocketServer:
 
         # Wait until all accepted connections reach connection_made() and call
         # register(). See https://bugs.python.org/issue34852 for details.
-        await asyncio.sleep(0, **loop_if_py_lt_38(self.get_loop()))
+        await asyncio.sleep(0)
 
         if close_connections:
             # Close OPEN connections with status code 1001. Since the server was
@@ -784,18 +780,14 @@ class WebSocketServer:
             ]
             # asyncio.wait doesn't accept an empty first argument.
             if close_tasks:
-                await asyncio.wait(
-                    close_tasks,
-                    **loop_if_py_lt_38(self.get_loop()),
-                )
+                await asyncio.wait(close_tasks)
 
         # Wait until all connection handlers are complete.
 
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:
             await asyncio.wait(
-                [websocket.handler_task for websocket in self.websockets],
-                **loop_if_py_lt_38(self.get_loop()),
+                [websocket.handler_task for websocket in self.websockets]
             )
 
         # Tell wait_closed() to return.

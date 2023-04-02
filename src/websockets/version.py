@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import importlib.metadata
+
 
 __all__ = ["tag", "version", "commit"]
 
@@ -18,7 +20,7 @@ __all__ = ["tag", "version", "commit"]
 
 released = False
 
-tag = version = commit = "11.1"
+tag = version = commit = "12.0"
 
 
 if not released:  # pragma: no cover
@@ -56,8 +58,6 @@ if not released:  # pragma: no cover
 
         # Read version from package metadata if it is installed.
         try:
-            import importlib.metadata  # move up when dropping Python 3.7
-
             return importlib.metadata.version("websockets")
         except ImportError:
             pass

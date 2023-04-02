@@ -9,7 +9,8 @@ class AsyncioTestCase(unittest.TestCase):
     """
     Base class for tests that sets up an isolated event loop for each test.
 
-    Replace with IsolatedAsyncioTestCase when dropping Python < 3.8.
+    IsolatedAsyncioTestCase was introduced in Python 3.8 for similar purposes
+    but isn't a drop-in replacement.
 
     """
 

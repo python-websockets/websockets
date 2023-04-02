@@ -18,7 +18,6 @@ from ..http11 import Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, Subprotocol
-from .compatibility import socket_create_server
 from .connection import Connection
 from .utils import Deadline
 
@@ -397,9 +396,9 @@ def serve(
         if unix:
             if path is None:
                 raise TypeError("missing path argument")
-            sock = socket_create_server(path, family=socket.AF_UNIX)
+            sock = socket.create_server(path, family=socket.AF_UNIX)
         else:
-            sock = socket_create_server((host, port))
+            sock = socket.create_server((host, port))
     else:
         if path is not None:
             raise TypeError("path and sock arguments are incompatible")

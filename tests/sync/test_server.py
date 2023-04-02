@@ -12,7 +12,6 @@ from websockets.exceptions import (
     NegotiationError,
 )
 from websockets.http11 import Request, Response
-from websockets.sync.compatibility import socket_create_server
 from websockets.sync.server import *
 
 from ..utils import MS, temp_unix_socket_path
@@ -72,7 +71,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
     def test_existing_socket(self):
         """Server receives connection using a pre-existing socket."""
-        with socket_create_server(("localhost", 0)) as sock:
+        with socket.create_server(("localhost", 0)) as sock:
             with run_server(sock=sock):
                 # Build WebSocket URI to ensure we connect to the right socket.
                 with run_client("ws://{}:{}/".format(*sock.getsockname())) as client:

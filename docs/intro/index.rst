@@ -6,7 +6,7 @@ Getting started
 Requirements
 ------------
 
-websockets requires Python ≥ 3.7.
+websockets requires Python ≥ 3.8.
 
 .. admonition:: Use the most recent Python release
     :class: tip

@@ -1,6 +1,5 @@
 import contextlib
 import ssl
-import sys
 import threading
 
 from websockets.sync.server import *
@@ -19,8 +18,7 @@ SERVER_CONTEXT.load_cert_chain(CERTIFICATE)
 # It shouldn't happen too often, or else OpenSSL 1.1.1 would be unusable. If it
 # happens, we can look for a library-level fix, but it won't be easy.
 
-if sys.version_info[:2] >= (3, 8):  # pragma: no cover
-    SERVER_CONTEXT.num_tickets = 0
+SERVER_CONTEXT.num_tickets = 0
 
 
 def crash(ws):

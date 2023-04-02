@@ -1,7 +1,5 @@
 import contextlib
 import ssl
-import sys
-import warnings
 
 from websockets.sync.client import *
 from websockets.sync.server import WebSocketServer
@@ -18,20 +16,6 @@ __all__ = [
 
 CLIENT_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
 CLIENT_CONTEXT.load_verify_locations(CERTIFICATE)
-
-# Work around https://github.com/openssl/openssl/issues/7967
-
-# This bug causes connect() to hang in tests for the client. Including this
-# workaround acknowledges that the issue could happen outside of the test suite.
-
-# It shouldn't happen too often, or else OpenSSL 1.1.1 would be unusable. If it
-# happens, we can look for a library-level fix, but it won't be easy.
-
-if sys.version_info[:2] < (3, 8):  # pragma: no cover
-    # ssl.OP_NO_TLSv1_3 was introduced and deprecated on Python 3.7.
-    with warnings.catch_warnings():
-        warnings.simplefilter("ignore")
-        CLIENT_CONTEXT.options |= ssl.OP_NO_TLSv1_3
 
 
 @contextlib.contextmanager

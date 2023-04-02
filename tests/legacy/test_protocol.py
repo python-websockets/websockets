@@ -16,7 +16,6 @@ from websockets.frames import (
     OP_TEXT,
     Close,
 )
-from websockets.legacy.compatibility import loop_if_py_lt_38
 from websockets.legacy.framing import Frame
 from websockets.legacy.protocol import WebSocketCommonProtocol, broadcast
 from websockets.protocol import State
@@ -117,7 +116,7 @@ class CommonTests:
         original_drain = self.protocol._drain
 
         async def delayed_drain():
-            await asyncio.sleep(delay, **loop_if_py_lt_38(self.loop))
+            await asyncio.sleep(delay)
             await original_drain()
 
         self.protocol._drain = delayed_drain

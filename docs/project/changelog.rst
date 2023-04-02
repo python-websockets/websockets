@@ -25,10 +25,19 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
-11.1
+12.0
 ----
 
 *In development*
+
+Backwards-incompatible changes
+..............................
+
+.. admonition:: websockets 12.0 requires Python ≥ 3.8.
+    :class: tip
+
+    websockets 11.0 is the last version supporting Python 3.7.
+
 
 11.0
 ----

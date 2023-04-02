@@ -190,7 +190,6 @@ class CommonTests:
         close_frame_data = Close(code, reason).serialize()
         # Trigger the closing handshake from the local endpoint.
         close_task = self.loop.create_task(self.protocol.close(code, reason))
-        self.run_loop_once()  # wait_for executes
         self.run_loop_once()  # write_frame executes
         # Empty the outgoing data stream so we can make assertions later on.
         self.assertOneFrameSent(True, OP_CLOSE, close_frame_data)
@@ -919,6 +918,7 @@ class CommonTests:
         close_task = self.half_close_connection_local()
 
         self.receive_frame(Frame(True, OP_PING, b"test"))
+        self.run_loop_once()
 
         with self.assertNoLogs():
             self.loop.run_until_complete(self.protocol.close())
@@ -931,6 +931,7 @@ class CommonTests:
         # which prevents responding with a pong frame properly.
         self.receive_frame(Frame(True, OP_PING, b"test"))
         self.receive_eof()
+        self.run_loop_once()
 
         with self.assertNoLogs():
             self.loop.run_until_complete(self.protocol.close())
@@ -1362,6 +1363,7 @@ class CommonTests:
         # which prevents echoing the close frame properly.
         self.receive_frame(self.close_frame)
         self.receive_eof()
+        self.run_loop_once()
 
         with self.assertNoLogs():
             self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
@@ -1375,6 +1377,7 @@ class CommonTests:
         # https://github.com/aaugustin/websockets/issues/339
         self.loop.call_soon(self.receive_frame, self.remote_close)
         self.loop.call_soon(self.receive_eof_if_client)
+        self.run_loop_once()
 
         self.loop.run_until_complete(self.protocol.close(reason="local"))
 
@@ -1386,6 +1389,7 @@ class CommonTests:
 
     def test_close_preserves_incoming_frames(self):
         self.receive_frame(Frame(True, OP_TEXT, b"hello"))
+        self.run_loop_once()
 
         self.loop.call_later(MS, self.receive_frame, self.close_frame)
         self.loop.call_later(MS, self.receive_eof_if_client)
@@ -1573,6 +1577,7 @@ class ServerTests(CommonTests, AsyncioTestCase):
             # HACK: disable write_eof => other end drops connection emulation.
             self.transport._eof = True
             self.receive_frame(self.close_frame)
+            self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         self.assertConnectionClosed(1000, "close")
 
@@ -1589,6 +1594,7 @@ class ServerTests(CommonTests, AsyncioTestCase):
             # HACK: disable close => other end drops connection emulation.
             self.transport._closing = True
             self.receive_frame(self.close_frame)
+            self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         self.assertConnectionClosed(1000, "close")
 
@@ -1631,6 +1637,7 @@ class ClientTests(CommonTests, AsyncioTestCase):
             # HACK: disable write_eof => other end drops connection emulation.
             self.transport._eof = True
             self.receive_frame(self.close_frame)
+            self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         self.assertConnectionClosed(1000, "close")
 
@@ -1650,5 +1657,6 @@ class ClientTests(CommonTests, AsyncioTestCase):
             # HACK: disable close => other end drops connection emulation.
             self.transport._closing = True
             self.receive_frame(self.close_frame)
+            self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         self.assertConnectionClosed(1000, "close")

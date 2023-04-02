@@ -44,6 +44,7 @@ from ..headers import (
 from ..http import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
+from .compatibility import asyncio_timeout
 from .handshake import build_request, check_response
 from .http import read_response
 from .protocol import WebSocketCommonProtocol
@@ -650,7 +651,8 @@ class Connect:
         return self.__await_impl_timeout__().__await__()
 
     async def __await_impl_timeout__(self) -> WebSocketClientProtocol:
-        return await asyncio.wait_for(self.__await_impl__(), self.open_timeout)
+        async with asyncio_timeout(self.open_timeout):
+            return await self.__await_impl__()
 
     async def __await_impl__(self) -> WebSocketClientProtocol:
         for redirects in range(self.MAX_REDIRECTS_ALLOWED):

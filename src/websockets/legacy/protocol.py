@@ -107,7 +107,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
       context manager;
     * on the server side, when the connection handler terminates.
 
-    To apply a timeout to any other API, wrap it in :func:`~asyncio.wait_for`.
+    To apply a timeout to any other API, wrap it in :func:`~asyncio.timeout` or
+    :func:`~asyncio.wait_for`.
 
     The ``max_size`` parameter enforces the maximum size for incoming messages
     in bytes. The default value is 1 MiB. If a larger message is received,
@@ -513,7 +514,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         message. The next invocation of :meth:`recv` will return it.
 
         This makes it possible to enforce a timeout by wrapping :meth:`recv` in
-        :func:`~asyncio.wait_for`.
+        :func:`~asyncio.timeout` or :func:`~asyncio.wait_for`.
 
         Returns:
             Data: A string (:class:`str`) for a Text_ frame. A bytestring

@@ -46,7 +46,7 @@ from ..headers import (
 from ..http import USER_AGENT
 from ..protocol import State
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
-from .compatibility import loop_if_py_lt_38
+from .compatibility import asyncio_timeout, loop_if_py_lt_38
 from .handshake import build_response, check_request
 from .http import read_request
 from .protocol import WebSocketCommonProtocol
@@ -163,15 +163,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         try:
             try:
-                await asyncio.wait_for(
-                    self.handshake(
+                async with asyncio_timeout(self.open_timeout):
+                    await self.handshake(
                         origins=self.origins,
                         available_extensions=self.available_extensions,
                         available_subprotocols=self.available_subprotocols,
                         extra_headers=self.extra_headers,
-                    ),
-                    self.open_timeout,
-                )
+                    )
             # Remove this branch when dropping support for Python < 3.8
             # because CancelledError no longer inherits Exception.
             except asyncio.CancelledError:  # pragma: no cover

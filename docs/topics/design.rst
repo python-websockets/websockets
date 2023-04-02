@@ -437,7 +437,7 @@ propagate cancellation to them.
 prevent cancellation.
 
 :meth:`~legacy.protocol.WebSocketCommonProtocol.close` waits for the data transfer
-task to terminate with :func:`~asyncio.wait_for`. If it's canceled or if the
+task to terminate with :func:`~asyncio.timeout`. If it's canceled or if the
 timeout elapses, :attr:`~legacy.protocol.WebSocketCommonProtocol.transfer_data_task`
 is canceled, which is correct at this point.
 :meth:`~legacy.protocol.WebSocketCommonProtocol.close` then waits for

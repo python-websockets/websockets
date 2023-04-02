@@ -1,1 +1,1 @@
-from websockets.auth import *  # noqa
+from websockets.auth import *

@@ -145,8 +145,11 @@ class Frame(NamedTuple):
 
 
 # Backwards compatibility with previously documented public APIs
-
-from ..frames import Close, prepare_ctrl as encode_data, prepare_data  # noqa
+from ..frames import (  # noqa: E402, F401, I001
+    Close,
+    prepare_ctrl as encode_data,
+    prepare_data,
+)
 
 
 def parse_close(data: bytes) -> Tuple[int, str]:

@@ -39,7 +39,7 @@ from .utils import accept_key
 
 
 # See #940 for why lazy_import isn't used here for backwards compatibility.
-from .legacy.server import *  # isort:skip  # noqa
+from .legacy.server import *  # isort:skip  # noqa: I001
 
 
 __all__ = ["ServerProtocol"]

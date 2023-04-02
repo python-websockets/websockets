@@ -38,7 +38,7 @@ from .utils import accept_key, generate_key
 
 
 # See #940 for why lazy_import isn't used here for backwards compatibility.
-from .legacy.client import *  # isort:skip  # noqa
+from .legacy.client import *  # isort:skip  # noqa: I001
 
 
 __all__ = ["ClientProtocol"]
@@ -90,7 +90,7 @@ class ClientProtocol(Protocol):
         self.available_subprotocols = subprotocols
         self.key = generate_key()
 
-    def connect(self) -> Request:  # noqa: F811
+    def connect(self) -> Request:
         """
         Create a handshake request to open a connection.
 

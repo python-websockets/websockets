@@ -8,7 +8,7 @@ import threading
 
 
 try:
-    import readline  # noqa
+    import readline  # noqa: F401
 except ImportError:  # Windows has no `readline` normally
     pass
 

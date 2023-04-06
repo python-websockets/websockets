@@ -33,6 +33,14 @@ documentation = "https://websockets.readthedocs.io/"
 funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme"
 tracker = "https://github.com/aaugustin/websockets/issues"
 
+# On a macOS runner, build Intel, Universal, and Apple Silicon wheels.
+[tool.cibuildwheel.macos]
+archs = ["x86_64", "universal2", "arm64"]
+
+# On an Linux Intel runner with QEMU installed, build Intel and ARM wheels.
+[tool.cibuildwheel.linux]
+archs = ["auto", "aarch64"]
+
 [tool.coverage.run]
 branch = true
 omit = [

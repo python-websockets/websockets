@@ -59,9 +59,6 @@ jobs:
       uses: pypa/cibuildwheel@v2.12.1
       env:
         BUILD_EXTENSION: yes
-        CIBW_ARCHS_MACOS: "x86_64 universal2 arm64"
-        CIBW_ARCHS_LINUX: "auto aarch64"
-        CIBW_SKIP: cp36-*
     - name: Save wheels
       uses: actions/upload-artifact@v3
       with:

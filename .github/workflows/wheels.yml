@@ -10,8 +10,6 @@ jobs:
   sdist:
     name: Build source distribution and architecture-independent wheel
     runs-on: ubuntu-latest
-    env:
-      BUILD_EXTENSION: no
     steps:
     - name: Check out repository
       uses: actions/checkout@v3
@@ -28,6 +26,8 @@ jobs:
     - name: Install wheel
       run: pip install wheel
     - name: Build wheel
+      env:
+        BUILD_EXTENSION: no
       run: python setup.py bdist_wheel
     - name: Save wheel
       uses: actions/upload-artifact@v3
@@ -37,8 +37,6 @@ jobs:
   wheels:
     name: Build architecture-specific wheels on ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
-    env:
-      BUILD_EXTENSION: yes
     strategy:
       matrix:
         os:
@@ -60,6 +58,7 @@ jobs:
     - name: Build wheels
       uses: pypa/cibuildwheel@v2.12.1
       env:
+        BUILD_EXTENSION: yes
         CIBW_ARCHS_MACOS: "x86_64 universal2 arm64"
         CIBW_ARCHS_LINUX: "auto aarch64"
         CIBW_SKIP: cp36-*

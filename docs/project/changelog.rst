@@ -25,6 +25,16 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
+11.0.1
+------
+
+*April 6, 2023*
+
+Bug fixes
+.........
+
+* Restored the C extension in the source distribution.
+
 11.0
 ----
 

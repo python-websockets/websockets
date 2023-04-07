@@ -85,7 +85,7 @@ class Assembler:
                 raise EOFError("stream of frames ended")
 
             if self.get_in_progress:
-                raise RuntimeError("get or get_iter is already running")
+                raise RuntimeError("get() or get_iter() is already running")
 
             self.get_in_progress = True
 
@@ -144,7 +144,7 @@ class Assembler:
                 raise EOFError("stream of frames ended")
 
             if self.get_in_progress:
-                raise RuntimeError("get or get_iter is already running")
+                raise RuntimeError("get() or get_iter() is already running")
 
             chunks = self.chunks
             self.chunks = []

@@ -97,7 +97,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # Configure viewcode extension.
 from websockets.version import commit
 
-code_url = f"https://github.com/aaugustin/websockets/blob/{commit}"
+code_url = f"https://github.com/python-websockets/websockets/blob/{commit}"
 
 def linkcode_resolve(domain, info):
     # Non-linkable objects from the starter kit in the tutorial.

@@ -78,7 +78,7 @@ Both sides
     | Heartbeat                          | ✅     | ❌     | —      |
     +------------------------------------+--------+--------+--------+
 
-.. _#479: https://github.com/aaugustin/websockets/issues/479
+.. _#479: https://github.com/python-websockets/websockets/issues/479
 
 Server
 ------
@@ -162,9 +162,9 @@ Client
     | (`#475`_)                          |        |        |        |
     +------------------------------------+--------+--------+--------+
 
-.. _#364: https://github.com/aaugustin/websockets/issues/364
-.. _#475: https://github.com/aaugustin/websockets/issues/475
-.. _#784: https://github.com/aaugustin/websockets/issues/784
+.. _#364: https://github.com/python-websockets/websockets/issues/364
+.. _#475: https://github.com/python-websockets/websockets/issues/475
+.. _#784: https://github.com/python-websockets/websockets/issues/784
 
 Known limitations
 -----------------
@@ -172,7 +172,7 @@ Known limitations
 There is no way to control compression of outgoing frames on a per-frame basis
 (`#538`_). If compression is enabled, all frames are compressed.
 
-.. _#538: https://github.com/aaugustin/websockets/issues/538
+.. _#538: https://github.com/python-websockets/websockets/issues/538
 
 The client API doesn't attempt to guarantee that there is no more than one
 connection to a given IP address in a CONNECTING state. This behavior is

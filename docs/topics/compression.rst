@@ -158,7 +158,7 @@ corpus.
 
 Defaults must be safe for all applications, hence a more conservative choice.
 
-.. _compression/benchmark.py: https://github.com/aaugustin/websockets/blob/main/experiments/compression/benchmark.py
+.. _compression/benchmark.py: https://github.com/python-websockets/websockets/blob/main/experiments/compression/benchmark.py
 
 The benchmark focuses on compression because it's more expensive than
 decompression. Indeed, leaving aside small allocations, theoretical memory
@@ -199,7 +199,7 @@ like the server side:
 3. On a more pragmatic note, some servers misbehave badly when a client
    configures compression settings. `AWS API Gateway`_ is the worst offender.
 
-   .. _AWS API Gateway: https://github.com/aaugustin/websockets/issues/1065
+   .. _AWS API Gateway: https://github.com/python-websockets/websockets/issues/1065
 
    Unfortunately, even though websockets is right and AWS is wrong, many users
    jump to the conclusion that websockets doesn't work.

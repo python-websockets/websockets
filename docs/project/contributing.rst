@@ -10,7 +10,7 @@ This project and everyone participating in it is governed by the `Code of
 Conduct`_. By participating, you are expected to uphold this code. Please
 report inappropriate behavior to aymeric DOT augustin AT fractalideas DOT com.
 
-.. _Code of Conduct: https://github.com/aaugustin/websockets/blob/main/CODE_OF_CONDUCT.md
+.. _Code of Conduct: https://github.com/python-websockets/websockets/blob/main/CODE_OF_CONDUCT.md
 
 *(If I'm the person with the inappropriate behavior, please accept my
 apologies. I know I can mess up. I can't expect you to tell me, but if you
@@ -31,8 +31,8 @@ If you're wondering why things are done in a certain way, the :doc:`design
 document <../topics/design>` provides lots of details about the internals of
 websockets.
 
-.. _issue: https://github.com/aaugustin/websockets/issues/new
-.. _pull request: https://github.com/aaugustin/websockets/compare/
+.. _issue: https://github.com/python-websockets/websockets/issues/new
+.. _pull request: https://github.com/python-websockets/websockets/compare/
 
 Questions
 ---------

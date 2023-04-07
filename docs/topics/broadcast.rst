@@ -51,7 +51,7 @@ message, or else it will never let the server run. That's why it includes
 
 A complete example is available in the `experiments/broadcast`_ directory.
 
-.. _experiments/broadcast: https://github.com/aaugustin/websockets/tree/main/experiments/broadcast
+.. _experiments/broadcast: https://github.com/python-websockets/websockets/tree/main/experiments/broadcast
 
 The naive way
 -------------

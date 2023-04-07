@@ -1373,7 +1373,7 @@ class CommonTests:
     def test_simultaneous_close(self):
         # Receive the incoming close frame right after self.protocol.close()
         # starts executing. This reproduces the error described in:
-        # https://github.com/aaugustin/websockets/issues/339
+        # https://github.com/python-websockets/websockets/issues/339
         self.loop.call_soon(self.receive_frame, self.remote_close)
         self.loop.call_soon(self.receive_eof_if_client)
         self.run_loop_once()

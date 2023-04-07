@@ -198,7 +198,7 @@ in ``main.js``:
 You can take this strategy one step further by checking the address of the
 HTTP server and determining the address of the WebSocket server accordingly.
 
-Add this function to ``main.js``; replace ``aaugustin`` by your GitHub
+Add this function to ``main.js``; replace ``python-websockets`` by your GitHub
 username and ``websockets-tutorial`` by the name of your app on Heroku:
 
 .. literalinclude:: ../../example/tutorial/step3/main.js
@@ -226,12 +226,12 @@ Deploy the web application
 
 Go to GitHub and create a new repository called ``websockets-tutorial``.
 
-Push your code to this repository. You must replace ``aaugustin`` by your
-GitHub username in the following command:
+Push your code to this repository. You must replace ``python-websockets`` by
+your GitHub username in the following command:
 
 .. code-block:: console
 
-    $ git remote add origin git@github.com:aaugustin/websockets-tutorial.git
+    $ git remote add origin git@github.com:python-websockets/websockets-tutorial.git
     $ git push -u origin main
     Enumerating objects: 11, done.
     Counting objects: 100% (11/11), done.

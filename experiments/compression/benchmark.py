@@ -20,7 +20,7 @@ def _corpus():
     OAUTH_TOKEN = getpass.getpass("OAuth Token? ")
     COMMIT_API = (
         f'curl -H "Authorization: token {OAUTH_TOKEN}" '
-        f"https://api.github.com/repos/aaugustin/websockets/git/commits/:sha"
+        f"https://api.github.com/repos/python-websockets/websockets/git/commits/:sha"
     )
 
     commits = []

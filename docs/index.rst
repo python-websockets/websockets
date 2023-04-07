@@ -12,8 +12,8 @@ websockets
 .. |pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |tests| image:: https://img.shields.io/github/checks-status/aaugustin/websockets/main?label=tests
-   :target: https://github.com/aaugustin/websockets/actions/workflows/tests.yml
+.. |tests| image:: https://img.shields.io/github/checks-status/python-websockets/websockets/main?label=tests
+   :target: https://github.com/python-websockets/websockets/actions/workflows/tests.yml
 
 .. |docs| image:: https://img.shields.io/readthedocs/websockets.svg
    :target: https://websockets.readthedocs.io/

@@ -13,8 +13,8 @@
 .. |pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
 
-.. |tests| image:: https://img.shields.io/github/checks-status/aaugustin/websockets/main?label=tests
-   :target: https://github.com/aaugustin/websockets/actions/workflows/tests.yml
+.. |tests| image:: https://img.shields.io/github/checks-status/python-websockets/websockets/main?label=tests
+   :target: https://github.com/python-websockets/websockets/actions/workflows/tests.yml
 
 .. |docs| image:: https://img.shields.io/readthedocs/websockets.svg
    :target: https://websockets.readthedocs.io/
@@ -84,7 +84,7 @@ Does that look good?
 .. raw:: html
 
     <hr>
-    <img align="left" height="150" width="150" src="https://raw.githubusercontent.com/aaugustin/websockets/main/logo/tidelift.png">
+    <img align="left" height="150" width="150" src="https://raw.githubusercontent.com/python-websockets/websockets/main/logo/tidelift.png">
     <h3 align="center"><i>websockets for enterprise</i></h3>
     <p align="center"><i>Available as part of the Tidelift Subscription</i></p>
     <p align="center"><i>The maintainers of websockets and thousands of other packages are working with Tidelift to deliver commercial support and maintenance for the open source dependencies you use to build your applications. Save time, reduce risk, and improve code health, while paying the maintainers of the exact dependencies you use. <a href="https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme">Learn more.</a></i></p>
@@ -147,13 +147,13 @@ contact`_. Tidelift will coordinate the fix and disclosure.
 
 For anything else, please open an issue_ or send a `pull request`_.
 
-.. _issue: https://github.com/aaugustin/websockets/issues/new
-.. _pull request: https://github.com/aaugustin/websockets/compare/
+.. _issue: https://github.com/python-websockets/websockets/issues/new
+.. _pull request: https://github.com/python-websockets/websockets/compare/
 
 Participants must uphold the `Contributor Covenant code of conduct`_.
 
-.. _Contributor Covenant code of conduct: https://github.com/aaugustin/websockets/blob/main/CODE_OF_CONDUCT.md
+.. _Contributor Covenant code of conduct: https://github.com/python-websockets/websockets/blob/main/CODE_OF_CONDUCT.md
 
 ``websockets`` is released under the `BSD license`_.
 
-.. _BSD license: https://github.com/aaugustin/websockets/blob/main/LICENSE
+.. _BSD license: https://github.com/python-websockets/websockets/blob/main/LICENSE

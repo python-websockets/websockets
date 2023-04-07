@@ -225,7 +225,7 @@ Improvements
 * Reverted optimization of default compression settings for clients, mainly to
   avoid triggering bugs in poorly implemented servers like `AWS API Gateway`_.
 
-  .. _AWS API Gateway: https://github.com/aaugustin/websockets/issues/1065
+  .. _AWS API Gateway: https://github.com/python-websockets/websockets/issues/1065
 
 * Mirrored the entire :class:`~asyncio.Server` API
   in :class:`~server.WebSocketServer`.

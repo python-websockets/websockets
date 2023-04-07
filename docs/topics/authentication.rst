@@ -152,7 +152,7 @@ The `experiments/authentication`_ directory demonstrates these techniques.
 
 Run the experiment in an environment where websockets is installed:
 
-.. _experiments/authentication: https://github.com/aaugustin/websockets/tree/main/experiments/authentication
+.. _experiments/authentication: https://github.com/python-websockets/websockets/tree/main/experiments/authentication
 
 .. code-block:: console
 

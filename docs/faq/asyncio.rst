@@ -41,7 +41,7 @@ every coroutine.
 
 See `issue 867`_.
 
-.. _issue 867: https://github.com/aaugustin/websockets/issues/867
+.. _issue 867: https://github.com/python-websockets/websockets/issues/867
 
 Why am I having problems with threads?
 --------------------------------------

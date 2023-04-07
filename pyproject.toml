@@ -27,11 +27,11 @@ classifiers = [
 dynamic = ["version", "readme"]
 
 [project.urls]
-homepage = "https://github.com/python-websockets/websockets"
-changelog = "https://websockets.readthedocs.io/en/stable/project/changelog.html"
-documentation = "https://websockets.readthedocs.io/"
-funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme"
-tracker = "https://github.com/python-websockets/websockets/issues"
+Homepage = "https://github.com/python-websockets/websockets"
+Changelog = "https://websockets.readthedocs.io/en/stable/project/changelog.html"
+Documentation = "https://websockets.readthedocs.io/"
+Funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme"
+Tracker = "https://github.com/python-websockets/websockets/issues"
 
 # On a macOS runner, build Intel, Universal, and Apple Silicon wheels.
 [tool.cibuildwheel.macos]

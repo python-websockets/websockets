@@ -52,8 +52,9 @@ def get_mapping(src_dir="src"):
         os.path.relpath(src_file, src_dir)
         for src_file in sorted(src_files)
         if "legacy" not in os.path.dirname(src_file)
-        if os.path.basename(src_file) != "__init__.py"
+        and os.path.basename(src_file) != "__init__.py"
         and os.path.basename(src_file) != "__main__.py"
+        and os.path.basename(src_file) != "async_timeout.py"
         and os.path.basename(src_file) != "compatibility.py"
     ]
     test_files = [
@@ -102,7 +103,8 @@ def get_ignored_files(src_dir="src"):
         "*/websockets/typing.py",
         # We don't test compatibility modules with previous versions of Python
         # or websockets (import locations).
-        "*/websockets/*/compatibility.py",
+        "*/websockets/asyncio/async_timeout.py",
+        "*/websockets/asyncio/compatibility.py",
         "*/websockets/auth.py",
         # This approach isn't applicable to the test suite of the legacy
         # implementation, due to the huge test_client_server test module.

@@ -14,6 +14,7 @@ import urllib.error
 import urllib.request
 import warnings
 
+from websockets.asyncio.compatibility import asyncio_timeout
 from websockets.datastructures import Headers
 from websockets.exceptions import (
     ConnectionClosed,
@@ -30,7 +31,6 @@ from websockets.extensions.permessage_deflate import (
 from websockets.frames import CloseCode
 from websockets.http import USER_AGENT
 from websockets.legacy.client import *
-from websockets.legacy.compatibility import asyncio_timeout
 from websockets.legacy.handshake import build_response
 from websockets.legacy.http import read_response
 from websockets.legacy.server import *

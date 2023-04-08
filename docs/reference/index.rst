@@ -26,6 +26,18 @@ clients concurrently.
    asyncio/server
    asyncio/client
 
+:mod:`asyncio` (new)
+--------------------
+
+This is a rewrite of the :mod:`asyncio` implementation. It will become the
+default in the future.
+
+.. toctree::
+   :titlesonly:
+
+   new-asyncio/server
+   new-asyncio/client
+
 :mod:`threading`
 ----------------
 

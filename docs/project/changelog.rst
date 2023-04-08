@@ -52,7 +52,7 @@ Backwards-incompatible changes
         async def handler(request, path):
           ...
 
-    You should switch to the recommended pattern since 10.1::
+    You should switch to the pattern recommended since version 10.1::
 
         async def handler(request):
             path = request.path  # only if handler() uses the path argument
@@ -60,6 +60,16 @@ Backwards-incompatible changes
 
 New features
 ............
+
+.. admonition:: websockets 11.0 introduces a new :mod:`asyncio` implementation.
+    :class: important
+
+    This new implementation is intended to be a drop-in replacement for the
+    current implementation. It will become the default in a future release.
+    Please try it and report any issue that you encounter!
+
+    See :func:`websockets.asyncio.client.connect` and
+    :func:`websockets.asyncio.server.serve` for details.
 
 * Validated compatibility with Python 3.12.
 
@@ -175,7 +185,8 @@ New features
     It is particularly suited to client applications that establish only one
     connection. It may be used for servers handling few connections.
 
-    See :func:`~sync.client.connect` and :func:`~sync.server.serve` for details.
+    See :func:`websockets.sync.client.connect` and
+    :func:`websockets.sync.server.serve` for details.
 
 * Added ``open_timeout`` to :func:`~server.serve`.
 

@@ -133,7 +133,7 @@ When reaching the end of the data stream, call the protocol's
 For example, if ``sock`` is a :obj:`~socket.socket`::
 
     try:
-        data = sock.recv(4096)
+        data = sock.recv(65536)
     except OSError:  # socket closed
         data = b""
     if data:

@@ -23,8 +23,6 @@ __all__ = ["Connection"]
 
 logger = logging.getLogger(__name__)
 
-BUFSIZE = 65536
-
 
 class Connection:
     """
@@ -38,6 +36,8 @@ class Connection:
     :class:`~websockets.sync.server.ServerConnection`.
 
     """
+
+    recv_bufsize = 65536
 
     def __init__(
         self,
@@ -525,7 +525,7 @@ class Connection:
                 try:
                     if self.close_deadline is not None:
                         self.socket.settimeout(self.close_deadline.timeout())
-                    data = self.socket.recv(BUFSIZE)
+                    data = self.socket.recv(self.recv_bufsize)
                 except Exception as exc:
                     if self.debug:
                         self.logger.debug("error while receiving data", exc_info=True)

@@ -38,6 +38,17 @@ Backwards-incompatible changes
 
     websockets 11.0 is the last version supporting Python 3.7.
 
+11.0.2
+------
+
+*April 18, 2023*
+
+Bug fixes
+.........
+
+* Fixed a deadlock in the :mod:`threading` implementation when closing a
+  connection without reading all messages.
+
 11.0.1
 ------
 

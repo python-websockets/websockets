@@ -25,6 +25,17 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
+11.0.2
+------
+
+*April 18, 2023*
+
+Bug fixes
+.........
+
+* Fixed a deadlock in the :mod:`threading` implementation when closing a
+  connection without reading all messages.
+
 11.0.1
 ------
 

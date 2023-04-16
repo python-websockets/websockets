@@ -458,6 +458,49 @@ class ClientConnectionTests(unittest.TestCase):
         # Remove socket.timeout when dropping Python < 3.10.
         self.assertIsInstance(exc.__cause__, (socket.timeout, TimeoutError))
 
+    def test_close_waits_for_recv(self):
+        self.remote_connection.send("😀")
+
+        close_thread = threading.Thread(target=self.connection.close)
+        close_thread.start()
+
+        # Let close() initiate the closing handshake and send a close frame.
+        time.sleep(MS)
+        self.assertTrue(close_thread.is_alive())
+
+        # Connection isn't closed yet.
+        self.connection.recv()
+
+        # Let close() receive a close frame and finish the closing handshake.
+        time.sleep(MS)
+        self.assertFalse(close_thread.is_alive())
+
+        # Connection is closed now.
+        with self.assertRaises(ConnectionClosedOK) as raised:
+            self.connection.recv()
+
+        exc = raised.exception
+        self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
+        self.assertIsNone(exc.__cause__)
+
+    def test_close_timeout_waiting_for_recv(self):
+        self.remote_connection.send("😀")
+
+        close_thread = threading.Thread(target=self.connection.close)
+        close_thread.start()
+
+        # Let close() time out during the closing handshake.
+        time.sleep(3 * MS)
+        self.assertFalse(close_thread.is_alive())
+
+        # Connection is closed now.
+        with self.assertRaises(ConnectionClosedError) as raised:
+            self.connection.recv()
+
+        exc = raised.exception
+        self.assertEqual(str(exc), "sent 1000 (OK); no close frame received")
+        self.assertIsInstance(exc.__cause__, TimeoutError)
+
     def test_close_idempotency(self):
         """close does nothing if the connection is already closed."""
         self.connection.close()

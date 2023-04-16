@@ -382,8 +382,9 @@ class Connection:
         """
         Perform the closing handshake.
 
-        :meth:`close` waits for the other end to complete the handshake and
-        for the TCP connection to terminate.
+        :meth:`close` waits for the other end to complete the handshake, for the
+        TCP connection to terminate, and for all incoming messages to be read
+        with :meth:`recv`.
 
         :meth:`close` is idempotent: it doesn't do anything once the
         connection is closed.
@@ -574,9 +575,13 @@ class Connection:
                 # Given that automatic responses write small amounts of data,
                 # this should be uncommon, so we don't handle the edge case.
 
-                for event in events:
-                    # This isn't expected to raise an exception.
-                    self.process_event(event)
+                try:
+                    for event in events:
+                        # This may raise EOFError if the closing handshake
+                        # times out while a message is waiting to be read.
+                        self.process_event(event)
+                except EOFError:
+                    break
 
             # Breaking out of the while True: ... loop means that we believe
             # that the socket doesn't work anymore.
@@ -600,7 +605,6 @@ class Connection:
             self.protocol.state = CLOSED
         finally:
             # This isn't expected to raise an exception.
-            self.recv_messages.close()
             self.close_socket()
 
     @contextlib.contextmanager
@@ -745,13 +749,16 @@ class Connection:
 
     def close_socket(self) -> None:
         """
-        Shutdown and close socket.
+        Shutdown and close socket. Close message assembler.
 
-        shutdown() is required to interrupt recv() on Linux.
+        Calling close_socket() guarantees that recv_events() terminates. Indeed,
+        recv_events() may block only on socket.recv() or on recv_messages.put().
 
         """
+        # shutdown() is required to interrupt recv() on Linux.
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
         except OSError:
             pass  # socket is already closed
         self.socket.close()
+        self.recv_messages.close()

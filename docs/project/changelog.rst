@@ -105,7 +105,7 @@ Backwards-incompatible changes
 New features
 ............
 
-.. admonition:: websockets 10.0 introduces a implementation on top of :mod:`threading`.
+.. admonition:: websockets 11.0 introduces a implementation on top of :mod:`threading`.
     :class: important
 
     It may be more convenient if you don't need to manage many connections and

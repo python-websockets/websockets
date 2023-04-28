@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import http
 import logging
-import os
-import select
+import selectors
 import socket
 import ssl
 import threading
@@ -199,7 +198,6 @@ class WebSocketServer:
         if logger is None:
             logger = logging.getLogger("websockets.server")
         self.logger = logger
-        self.shutdown_watcher, self.shutdown_notifier = os.pipe()
 
     def serve_forever(self) -> None:
         """
@@ -214,15 +212,14 @@ class WebSocketServer:
                 server.serve_forever()
 
         """
-        poller = select.poll()
-        poller.register(self.socket)
-        poller.register(self.shutdown_watcher)
+        poller = selectors.DefaultSelector()
+        poller.register(self.socket, selectors.EVENT_READ)
 
         while True:
-            poller.poll()
+            poller.select()
             try:
                 # If the socket is closed, this will raise an exception and exit
-                # the loop. So we don't need to check the return value of poll().
+                # the loop. So we don't need to check the return value of select().
                 sock, addr = self.socket.accept()
             except OSError:
                 break
@@ -235,7 +232,6 @@ class WebSocketServer:
 
         """
         self.socket.close()
-        os.write(self.shutdown_notifier, b"x")
 
     def fileno(self) -> int:
         """

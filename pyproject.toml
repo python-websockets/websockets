@@ -61,6 +61,7 @@ source = [
 exclude_lines = [
     "except ImportError:",
     "if self.debug:",
+    "if sys.platform != \"win32\":",
     "pragma: no cover",
     "raise AssertionError",
     "raise NotImplementedError",

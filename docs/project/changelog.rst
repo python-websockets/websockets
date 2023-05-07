@@ -25,6 +25,16 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
+11.0.3
+------
+
+*May 7, 2023*
+
+Bug fixes
+.........
+
+* Fixed the :mod:`threading` implementation of servers on Windows.
+
 11.0.2
 ------
 

@@ -18,7 +18,7 @@ __all__ = ["tag", "version", "commit"]
 
 released = True
 
-tag = version = commit = "11.0.2"
+tag = version = commit = "11.0.3"
 
 
 if not released:  # pragma: no cover

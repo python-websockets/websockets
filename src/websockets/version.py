@@ -46,7 +46,11 @@ if not released:  # pragma: no cover
                 text=True,
             ).stdout.strip()
         # subprocess.run raises FileNotFoundError if git isn't on $PATH.
-        except (FileNotFoundError, subprocess.CalledProcessError):
+        except (
+            FileNotFoundError,
+            subprocess.CalledProcessError,
+            subprocess.TimeoutExpired,
+        ):
             pass
         else:
             description_re = r"[0-9.]+-([0-9]+)-(g[0-9a-f]{7,}(?:-dirty)?)"

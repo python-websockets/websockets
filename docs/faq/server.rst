@@ -252,10 +252,12 @@ It's available in :attr:`~legacy.protocol.WebSocketCommonProtocol.remote_address
     async def handler(websocket):
         remote_ip = websocket.remote_address[0]
 
-How do I set the IP addresses my server listens on?
----------------------------------------------------
+How do I set the IP addresses that my server listens on?
+--------------------------------------------------------
 
-Look at the ``host`` argument of :meth:`~asyncio.loop.create_server`.
+Use the ``host`` argument of :meth:`~asyncio.loop.create_server`::
+
+    await websockets.serve(handler, host="192.168.0.1", port=8080)
 
 :func:`~server.serve` accepts the same arguments as
 :meth:`~asyncio.loop.create_server`.

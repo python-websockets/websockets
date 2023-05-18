@@ -48,6 +48,16 @@ In the :mod:`threading` API, this argument is named ``additional_headers``::
     with connect(..., additional_headers={"Authorization": ...}) as websocket:
         ...
 
+How do I force the IP address that the client connects to?
+----------------------------------------------------------
+
+Use the ``host`` argument of :meth:`~asyncio.loop.create_connection`::
+
+    await websockets.connect("ws://example.com", host="192.168.0.1")
+
+:func:`~client.connect` accepts the same arguments as
+:meth:`~asyncio.loop.create_connection`.
+
 How do I close a connection?
 ----------------------------
 

@@ -761,18 +761,13 @@ class WebSocketServer:
         # Stop accepting new connections.
         self.server.close()
 
-        # Wait until self.server.close() completes.
-        await self.server.wait_closed()
-
         # Wait until all accepted connections reach connection_made() and call
         # register(). See https://bugs.python.org/issue34852 for details.
         await asyncio.sleep(0)
 
         if close_connections:
-            # Close OPEN connections with status code 1001. Since the server was
-            # closed, handshake() closes OPENING connections with an HTTP 503
-            # error. Wait until all connections are closed.
-
+            # Close OPEN connections with close code 1001. After server.close(),
+            # handshake() closes OPENING connections with an HTTP 503 error.
             close_tasks = [
                 asyncio.create_task(websocket.close(1001))
                 for websocket in self.websockets
@@ -782,8 +777,10 @@ class WebSocketServer:
             if close_tasks:
                 await asyncio.wait(close_tasks)
 
-        # Wait until all connection handlers are complete.
+        # Wait until all TCP connections are closed.
+        await self.server.wait_closed()
 
+        # Wait until all connection handlers terminate.
         # asyncio.wait doesn't accept an empty first argument.
         if self.websockets:
             await asyncio.wait(

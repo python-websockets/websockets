@@ -174,6 +174,11 @@ There is no way to control compression of outgoing frames on a per-frame basis
 
 .. _#538: https://github.com/python-websockets/websockets/issues/538
 
+The server doesn't check the Host header and respond with a HTTP 400 Bad Request
+if it is missing or invalid (`#1246`).
+
+.. _#1246: https://github.com/python-websockets/websockets/issues/1246
+
 The client API doesn't attempt to guarantee that there is no more than one
 connection to a given IP address in a CONNECTING state. This behavior is
 `mandated by RFC 6455`_. However, :func:`~client.connect()` isn't the right

@@ -190,6 +190,12 @@ class HealthCheckServerProtocol(WebSocketServerProtocol):
             return http.HTTPStatus.OK, [("X-Access", "OK")], b"status = green\n"
 
 
+class ProcessRequestReturningIntProtocol(WebSocketServerProtocol):
+    async def process_request(self, path, request_headers):
+        if path == "/__health__/":
+            return 200, [], b"OK\n"
+
+
 class SlowOpeningHandshakeProtocol(WebSocketServerProtocol):
     async def process_request(self, path, request_headers):
         await asyncio.sleep(10 * MS)
@@ -756,6 +762,14 @@ class CommonClientServerTests:
 
         with contextlib.closing(response):
             self.assertEqual(response.headers["Server"], "websockets")
+
+    @with_server(create_protocol=ProcessRequestReturningIntProtocol)
+    def test_process_request_returns_int_status(self):
+        response = self.loop.run_until_complete(self.make_http_request("/__health__/"))
+
+        with contextlib.closing(response):
+            self.assertEqual(response.code, 200)
+            self.assertEqual(response.read(), b"OK\n")
 
     def assert_client_raises_code(self, status_code):
         with self.assertRaises(InvalidStatusCode) as raised:

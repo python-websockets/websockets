@@ -188,6 +188,12 @@ class AcceptRejectTests(unittest.TestCase):
         )
         self.assertEqual(response.body, b"Sorry folks.\n")
 
+    def test_reject_response_supports_int_status(self):
+        server = ServerProtocol()
+        response = server.reject(404, "Sorry folks.\n")
+        self.assertEqual(response.status_code, 404)
+        self.assertEqual(response.reason_phrase, "Not Found")
+
     def test_basic(self):
         server = ServerProtocol()
         request = self.make_request()

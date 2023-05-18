@@ -499,6 +499,8 @@ class ServerProtocol(Protocol):
             Response: WebSocket handshake response event to send to the client.
 
         """
+        # If a user passes an int instead of a HTTPStatus, fix it automatically.
+        status = http.HTTPStatus(status)
         body = text.encode()
         headers = Headers(
             [

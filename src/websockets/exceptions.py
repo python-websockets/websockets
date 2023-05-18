@@ -334,7 +334,8 @@ class AbortHandshake(InvalidHandshake):
         headers: datastructures.HeadersLike,
         body: bytes = b"",
     ) -> None:
-        self.status = status
+        # If a user passes an int instead of a HTTPStatus, fix it automatically.
+        self.status = http.HTTPStatus(status)
         self.headers = datastructures.Headers(headers)
         self.body = body
 

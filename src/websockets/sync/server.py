@@ -11,6 +11,8 @@ import threading
 from types import TracebackType
 from typing import Any, Callable, Optional, Sequence, Type
 
+from websockets.frames import CloseCode
+
 from ..extensions.base import ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
 from ..headers import validate_subprotocols
@@ -497,7 +499,7 @@ def serve(
             handler(connection)
         except Exception:
             protocol.logger.error("connection handler failed", exc_info=True)
-            connection.close(1011)
+            connection.close(CloseCode.INTERNAL_ERROR)
         else:
             connection.close()
 

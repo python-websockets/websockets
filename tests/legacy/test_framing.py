@@ -6,7 +6,7 @@ import unittest.mock
 import warnings
 
 from websockets.exceptions import PayloadTooBig, ProtocolError
-from websockets.frames import OP_BINARY, OP_CLOSE, OP_PING, OP_PONG, OP_TEXT
+from websockets.frames import OP_BINARY, OP_CLOSE, OP_PING, OP_PONG, OP_TEXT, CloseCode
 from websockets.legacy.framing import *
 
 from .utils import AsyncioTestCase
@@ -187,11 +187,11 @@ class ParseAndSerializeCloseTests(unittest.TestCase):
         self.assertEqual(parsed, (code, reason))
 
     def test_parse_close_and_serialize_close(self):
-        self.assertCloseData(1000, "", b"\x03\xe8")
-        self.assertCloseData(1000, "OK", b"\x03\xe8OK")
+        self.assertCloseData(CloseCode.NORMAL_CLOSURE, "", b"\x03\xe8")
+        self.assertCloseData(CloseCode.NORMAL_CLOSURE, "OK", b"\x03\xe8OK")
 
     def test_parse_close_empty(self):
-        self.assertEqual(parse_close(b""), (1005, ""))
+        self.assertEqual(parse_close(b""), (CloseCode.NO_STATUS_RCVD, ""))
 
     def test_parse_close_errors(self):
         with self.assertRaises(ProtocolError):

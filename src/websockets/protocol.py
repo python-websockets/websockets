@@ -23,6 +23,7 @@ from .frames import (
     OP_PONG,
     OP_TEXT,
     Close,
+    CloseCode,
     Frame,
 )
 from .http11 import Request, Response
@@ -181,7 +182,7 @@ class Protocol:
         if self.state is not CLOSED:
             return None
         elif self.close_rcvd is None:
-            return 1006
+            return CloseCode.ABNORMAL_CLOSURE
         else:
             return self.close_rcvd.code
 
@@ -362,7 +363,7 @@ class Protocol:
         if code is None:
             if reason != "":
                 raise ProtocolError("cannot send a reason without a code")
-            close = Close(1005, "")
+            close = Close(CloseCode.NO_STATUS_RCVD, "")
             data = b""
         else:
             close = Close(code, reason)
@@ -419,7 +420,7 @@ class Protocol:
         # sent if it's CLOSING), except when failing the connection because
         # of an error reading from or writing to the network.
         if self.state is OPEN:
-            if code != 1006:
+            if code != CloseCode.ABNORMAL_CLOSURE:
                 close = Close(code, reason)
                 data = close.serialize()
                 self.send_frame(Frame(OP_CLOSE, data))
@@ -549,25 +550,25 @@ class Protocol:
                 self.recv_frame(frame)
 
         except ProtocolError as exc:
-            self.fail(1002, str(exc))
+            self.fail(CloseCode.PROTOCOL_ERROR, str(exc))
             self.parser_exc = exc
 
         except EOFError as exc:
-            self.fail(1006, str(exc))
+            self.fail(CloseCode.ABNORMAL_CLOSURE, str(exc))
             self.parser_exc = exc
 
         except UnicodeDecodeError as exc:
-            self.fail(1007, f"{exc.reason} at position {exc.start}")
+            self.fail(CloseCode.INVALID_DATA, f"{exc.reason} at position {exc.start}")
             self.parser_exc = exc
 
         except PayloadTooBig as exc:
-            self.fail(1009, str(exc))
+            self.fail(CloseCode.MESSAGE_TOO_BIG, str(exc))
             self.parser_exc = exc
 
         except Exception as exc:
             self.logger.error("parser failed", exc_info=True)
             # Don't include exception details, which may be security-sensitive.
-            self.fail(1011)
+            self.fail(CloseCode.INTERNAL_ERROR)
             self.parser_exc = exc
 
         # During an abnormal closure, execution ends here after catching an

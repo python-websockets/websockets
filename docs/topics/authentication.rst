@@ -189,7 +189,7 @@ connection:
         token = await websocket.recv()
         user = get_user(token)
         if user is None:
-            await websocket.close(1011, "authentication failed")
+            await websocket.close(CloseCode.INTERNAL_ERROR, "authentication failed")
             return
 
         ...

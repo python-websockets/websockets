@@ -54,8 +54,8 @@ There are several reasons why long-lived connections may be lost:
 If you're facing a reproducible issue, :ref:`enable debug logs <debugging>` to
 see when and how connections are closed.
 
-What does ``ConnectionClosedError: sent 1011 (unexpected error) keepalive ping timeout; no close frame received`` mean?
------------------------------------------------------------------------------------------------------------------------
+What does ``ConnectionClosedError: sent 1011 (internal error) keepalive ping timeout; no close frame received`` mean?
+---------------------------------------------------------------------------------------------------------------------
 
 If you're seeing this traceback in the logs of a server:
 
@@ -70,7 +70,7 @@ If you're seeing this traceback in the logs of a server:
 
     Traceback (most recent call last):
       ...
-    websockets.exceptions.ConnectionClosedError: sent 1011 (unexpected error) keepalive ping timeout; no close frame received
+    websockets.exceptions.ConnectionClosedError: sent 1011 (internal error) keepalive ping timeout; no close frame received
 
 or if a client crashes with this traceback:
 
@@ -84,7 +84,7 @@ or if a client crashes with this traceback:
 
     Traceback (most recent call last):
       ...
-    websockets.exceptions.ConnectionClosedError: sent 1011 (unexpected error) keepalive ping timeout; no close frame received
+    websockets.exceptions.ConnectionClosedError: sent 1011 (internal error) keepalive ping timeout; no close frame received
 
 it means that the WebSocket connection suffered from excessive latency and was
 closed after reaching the timeout of websockets' keepalive mechanism.

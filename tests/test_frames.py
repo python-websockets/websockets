@@ -5,6 +5,7 @@ import unittest.mock
 
 from websockets.exceptions import PayloadTooBig, ProtocolError
 from websockets.frames import *
+from websockets.frames import CloseCode
 from websockets.streams import StreamReader
 
 from .utils import GeneratorTestCase
@@ -444,18 +445,42 @@ class CloseTests(unittest.TestCase):
         self.assertEqual(parsed, close)
 
     def test_str(self):
-        self.assertEqual(str(Close(1000, "")), "1000 (OK)")
-        self.assertEqual(str(Close(1001, "Bye!")), "1001 (going away) Bye!")
-        self.assertEqual(str(Close(3000, "")), "3000 (registered)")
-        self.assertEqual(str(Close(4000, "")), "4000 (private use)")
-        self.assertEqual(str(Close(5000, "")), "5000 (unknown)")
+        self.assertEqual(
+            str(Close(CloseCode.NORMAL_CLOSURE, "")),
+            "1000 (OK)",
+        )
+        self.assertEqual(
+            str(Close(CloseCode.GOING_AWAY, "Bye!")),
+            "1001 (going away) Bye!",
+        )
+        self.assertEqual(
+            str(Close(3000, "")),
+            "3000 (registered)",
+        )
+        self.assertEqual(
+            str(Close(4000, "")),
+            "4000 (private use)",
+        )
+        self.assertEqual(
+            str(Close(5000, "")),
+            "5000 (unknown)",
+        )
 
     def test_parse_and_serialize(self):
-        self.assertCloseData(Close(1001, ""), b"\x03\xe9")
-        self.assertCloseData(Close(1000, "OK"), b"\x03\xe8OK")
+        self.assertCloseData(
+            Close(CloseCode.NORMAL_CLOSURE, "OK"),
+            b"\x03\xe8OK",
+        )
+        self.assertCloseData(
+            Close(CloseCode.GOING_AWAY, ""),
+            b"\x03\xe9",
+        )
 
     def test_parse_empty(self):
-        self.assertEqual(Close.parse(b""), Close(1005, ""))
+        self.assertEqual(
+            Close.parse(b""),
+            Close(CloseCode.NO_STATUS_RCVD, ""),
+        )
 
     def test_parse_errors(self):
         with self.assertRaises(ProtocolError):

@@ -11,6 +11,7 @@ django.setup()
 
 from django.contrib.contenttypes.models import ContentType
 from sesame.utils import get_user
+from websockets.frames import CloseCode
 
 
 CONNECTIONS = {}
@@ -33,7 +34,7 @@ async def handler(websocket):
     sesame = await websocket.recv()
     user = await asyncio.to_thread(get_user, sesame)
     if user is None:
-        await websocket.close(1011, "authentication failed")
+        await websocket.close(CloseCode.INTERNAL_ERROR, "authentication failed")
         return
 
     ct_ids = await asyncio.to_thread(get_content_types, user)

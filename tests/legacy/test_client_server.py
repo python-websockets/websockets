@@ -27,6 +27,7 @@ from websockets.extensions.permessage_deflate import (
     PerMessageDeflate,
     ServerPerMessageDeflateFactory,
 )
+from websockets.frames import CloseCode
 from websockets.http import USER_AGENT
 from websockets.legacy.client import *
 from websockets.legacy.compatibility import asyncio_timeout
@@ -1150,7 +1151,7 @@ class CommonClientServerTests:
                 self.loop.run_until_complete(self.client.recv())
 
         # Connection ends with an unexpected error.
-        self.assertEqual(self.client.close_code, 1011)
+        self.assertEqual(self.client.close_code, CloseCode.INTERNAL_ERROR)
 
     @with_server()
     @unittest.mock.patch("websockets.legacy.server.WebSocketServerProtocol.close")
@@ -1163,7 +1164,7 @@ class CommonClientServerTests:
             self.assertEqual(reply, "Hello!")
 
         # Connection ends with an abnormal closure.
-        self.assertEqual(self.client.close_code, 1006)
+        self.assertEqual(self.client.close_code, CloseCode.ABNORMAL_CLOSURE)
 
     @with_server()
     @with_client()
@@ -1196,8 +1197,8 @@ class CommonClientServerTests:
                 self.loop.run_until_complete(self.client.recv())
 
         # Server closed the connection with 1001 Going Away.
-        self.assertEqual(self.client.close_code, 1001)
-        self.assertEqual(server_ws.close_code, 1001)
+        self.assertEqual(self.client.close_code, CloseCode.GOING_AWAY)
+        self.assertEqual(server_ws.close_code, CloseCode.GOING_AWAY)
 
     @with_server()
     def test_server_shuts_down_gracefully_during_connection_handling(self):
@@ -1208,8 +1209,8 @@ class CommonClientServerTests:
             self.loop.run_until_complete(self.client.recv())
 
         # Client closed the connection with 1000 OK.
-        self.assertEqual(self.client.close_code, 1000)
-        self.assertEqual(server_ws.close_code, 1000)
+        self.assertEqual(self.client.close_code, CloseCode.NORMAL_CLOSURE)
+        self.assertEqual(server_ws.close_code, CloseCode.NORMAL_CLOSURE)
 
     @with_server()
     def test_server_shuts_down_and_waits_until_handlers_terminate(self):
@@ -1271,7 +1272,7 @@ class CommonClientServerTests:
             self.assertEqual(reply, "Hello!")
 
         # Connection ends with an abnormal closure.
-        self.assertEqual(self.client.close_code, 1006)
+        self.assertEqual(self.client.close_code, CloseCode.ABNORMAL_CLOSURE)
 
 
 class ClientServerTests(
@@ -1467,12 +1468,12 @@ class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
 
         self.assertEqual(messages, self.MESSAGES)
 
-    async def echo_handler_1001(ws):
+    async def echo_handler_going_away(ws):
         for message in AsyncIteratorTests.MESSAGES:
             await ws.send(message)
-        await ws.close(1001)
+        await ws.close(CloseCode.GOING_AWAY)
 
-    @with_server(handler=echo_handler_1001)
+    @with_server(handler=echo_handler_going_away)
     def test_iterate_on_messages_going_away_exit_ok(self):
         messages = []
 
@@ -1486,12 +1487,12 @@ class AsyncIteratorTests(ClientServerTestsMixin, AsyncioTestCase):
 
         self.assertEqual(messages, self.MESSAGES)
 
-    async def echo_handler_1011(ws):
+    async def echo_handler_internal_error(ws):
         for message in AsyncIteratorTests.MESSAGES:
             await ws.send(message)
-        await ws.close(1011)
+        await ws.close(CloseCode.INTERNAL_ERROR)
 
-    @with_server(handler=echo_handler_1011)
+    @with_server(handler=echo_handler_internal_error)
     def test_iterate_on_messages_internal_error_exit_not_ok(self):
         messages = []
 

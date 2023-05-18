@@ -38,6 +38,11 @@ Backwards-incompatible changes
 
     websockets 11.0 is the last version supporting Python 3.7.
 
+Improvements
+............
+
+* Added :class:`~frames.CloseCode`.
+
 11.0.3
 ------
 

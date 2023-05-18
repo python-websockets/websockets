@@ -2,49 +2,80 @@ import unittest
 
 from websockets.datastructures import Headers
 from websockets.exceptions import *
-from websockets.frames import Close
+from websockets.frames import Close, CloseCode
 from websockets.http11 import Response
 
 
 class ExceptionsTests(unittest.TestCase):
     def test_str(self):
         for exception, exception_str in [
-            # fmt: off
             (
                 WebSocketException("something went wrong"),
                 "something went wrong",
             ),
             (
-                ConnectionClosed(Close(1000, ""), Close(1000, ""), True),
+                ConnectionClosed(
+                    Close(CloseCode.NORMAL_CLOSURE, ""),
+                    Close(CloseCode.NORMAL_CLOSURE, ""),
+                    True,
+                ),
                 "received 1000 (OK); then sent 1000 (OK)",
             ),
             (
-                ConnectionClosed(Close(1001, "Bye!"), Close(1001, "Bye!"), False),
+                ConnectionClosed(
+                    Close(CloseCode.GOING_AWAY, "Bye!"),
+                    Close(CloseCode.GOING_AWAY, "Bye!"),
+                    False,
+                ),
                 "sent 1001 (going away) Bye!; then received 1001 (going away) Bye!",
             ),
             (
-                ConnectionClosed(Close(1000, "race"), Close(1000, "cond"), True),
+                ConnectionClosed(
+                    Close(CloseCode.NORMAL_CLOSURE, "race"),
+                    Close(CloseCode.NORMAL_CLOSURE, "cond"),
+                    True,
+                ),
                 "received 1000 (OK) race; then sent 1000 (OK) cond",
             ),
             (
-                ConnectionClosed(Close(1000, "cond"), Close(1000, "race"), False),
+                ConnectionClosed(
+                    Close(CloseCode.NORMAL_CLOSURE, "cond"),
+                    Close(CloseCode.NORMAL_CLOSURE, "race"),
+                    False,
+                ),
                 "sent 1000 (OK) race; then received 1000 (OK) cond",
             ),
             (
-                ConnectionClosed(None, Close(1009, ""), None),
+                ConnectionClosed(
+                    None,
+                    Close(CloseCode.MESSAGE_TOO_BIG, ""),
+                    None,
+                ),
                 "sent 1009 (message too big); no close frame received",
             ),
             (
-                ConnectionClosed(Close(1002, ""), None, None),
+                ConnectionClosed(
+                    Close(CloseCode.PROTOCOL_ERROR, ""),
+                    None,
+                    None,
+                ),
                 "received 1002 (protocol error); no close frame sent",
             ),
             (
-                ConnectionClosedOK(Close(1000, ""), Close(1000, ""), True),
+                ConnectionClosedOK(
+                    Close(CloseCode.NORMAL_CLOSURE, ""),
+                    Close(CloseCode.NORMAL_CLOSURE, ""),
+                    True,
+                ),
                 "received 1000 (OK); then sent 1000 (OK)",
             ),
             (
-                ConnectionClosedError(None, None, None),
-                "no close frame received or sent"
+                ConnectionClosedError(
+                    None,
+                    None,
+                    None,
+                ),
+                "no close frame received or sent",
             ),
             (
                 InvalidHandshake("invalid request"),
@@ -75,11 +106,8 @@ class ExceptionsTests(unittest.TestCase):
                 "invalid Name header: Value",
             ),
             (
-                InvalidHeaderFormat(
-                    "Sec-WebSocket-Protocol", "expected token", "a=|", 3
-                ),
-                "invalid Sec-WebSocket-Protocol header: "
-                "expected token at 3 in a=|",
+                InvalidHeaderFormat("Sec-WebSocket-Protocol", "exp. token", "a=|", 3),
+                "invalid Sec-WebSocket-Protocol header: exp. token at 3 in a=|",
             ),
             (
                 InvalidHeaderValue("Sec-WebSocket-Version", "42"),
@@ -153,17 +181,16 @@ class ExceptionsTests(unittest.TestCase):
                 ProtocolError("invalid opcode: 7"),
                 "invalid opcode: 7",
             ),
-            # fmt: on
         ]:
             with self.subTest(exception=exception):
                 self.assertEqual(str(exception), exception_str)
 
     def test_connection_closed_attributes_backwards_compatibility(self):
-        exception = ConnectionClosed(Close(1000, "OK"), None, None)
-        self.assertEqual(exception.code, 1000)
+        exception = ConnectionClosed(Close(CloseCode.NORMAL_CLOSURE, "OK"), None, None)
+        self.assertEqual(exception.code, CloseCode.NORMAL_CLOSURE)
         self.assertEqual(exception.reason, "OK")
 
     def test_connection_closed_attributes_backwards_compatibility_defaults(self):
         exception = ConnectionClosed(None, None, None)
-        self.assertEqual(exception.code, 1006)
+        self.assertEqual(exception.code, CloseCode.ABNORMAL_CLOSURE)
         self.assertEqual(exception.reason, "")

@@ -11,18 +11,31 @@ WebSocket events
     .. autoclass:: Opcode
 
         .. autoattribute:: CONT
-
         .. autoattribute:: TEXT
-
         .. autoattribute:: BINARY
-
         .. autoattribute:: CLOSE
-
         .. autoattribute:: PING
-
         .. autoattribute:: PONG
 
     .. autoclass:: Close
+
+    .. autoclass:: CloseCode
+
+        .. autoattribute:: OK
+        .. autoattribute:: GOING_AWAY
+        .. autoattribute:: PROTOCOL_ERROR
+        .. autoattribute:: UNSUPPORTED_DATA
+        .. autoattribute:: NO_STATUS_RCVD
+        .. autoattribute:: CONNECTION_CLOSED_ABNORMALLY
+        .. autoattribute:: INVALID_DATA
+        .. autoattribute:: POLICY_VIOLATION
+        .. autoattribute:: MESSAGE_TOO_BIG
+        .. autoattribute:: MANDATORY_EXTENSION
+        .. autoattribute:: INTERNAL_ERROR
+        .. autoattribute:: SERVICE_RESTART
+        .. autoattribute:: TRY_AGAIN_LATER
+        .. autoattribute:: BAD_GATEWAY
+        .. autoattribute:: TLS_FAILURE
 
 HTTP events
 -----------

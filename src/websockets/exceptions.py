@@ -121,7 +121,7 @@ class ConnectionClosed(WebSocketException):
     @property
     def code(self) -> int:
         if self.rcvd is None:
-            return 1006
+            return frames.CloseCode.ABNORMAL_CLOSURE
         return self.rcvd.code
 
     @property

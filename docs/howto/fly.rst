@@ -174,5 +174,4 @@ away).
     Connection closed: 1001 (going away).
 
 If graceful shutdown wasn't working, the server wouldn't perform a closing
-handshake and the connection would be closed with code 1006 (connection closed
-abnormally).
+handshake and the connection would be closed with code 1006 (abnormal closure).

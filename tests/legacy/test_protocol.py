@@ -15,6 +15,7 @@ from websockets.frames import (
     OP_PONG,
     OP_TEXT,
     Close,
+    CloseCode,
 )
 from websockets.legacy.framing import Frame
 from websockets.legacy.protocol import WebSocketCommonProtocol, broadcast
@@ -121,9 +122,21 @@ class CommonTests:
 
         self.protocol._drain = delayed_drain
 
-    close_frame = Frame(True, OP_CLOSE, Close(1000, "close").serialize())
-    local_close = Frame(True, OP_CLOSE, Close(1000, "local").serialize())
-    remote_close = Frame(True, OP_CLOSE, Close(1000, "remote").serialize())
+    close_frame = Frame(
+        True,
+        OP_CLOSE,
+        Close(CloseCode.NORMAL_CLOSURE, "close").serialize(),
+    )
+    local_close = Frame(
+        True,
+        OP_CLOSE,
+        Close(CloseCode.NORMAL_CLOSURE, "local").serialize(),
+    )
+    remote_close = Frame(
+        True,
+        OP_CLOSE,
+        Close(CloseCode.NORMAL_CLOSURE, "remote").serialize(),
+    )
 
     def receive_frame(self, frame):
         """
@@ -157,7 +170,7 @@ class CommonTests:
         if self.protocol.is_client:
             self.receive_eof()
 
-    def close_connection(self, code=1000, reason="close"):
+    def close_connection(self, code=CloseCode.NORMAL_CLOSURE, reason="close"):
         """
         Execute a closing handshake.
 
@@ -175,7 +188,11 @@ class CommonTests:
 
         assert self.protocol.state is State.CLOSED
 
-    def half_close_connection_local(self, code=1000, reason="close"):
+    def half_close_connection_local(
+        self,
+        code=CloseCode.NORMAL_CLOSURE,
+        reason="close",
+    ):
         """
         Start a closing handshake but do not complete it.
 
@@ -205,7 +222,11 @@ class CommonTests:
         # This task must be awaited or canceled by the caller.
         return close_task
 
-    def half_close_connection_remote(self, code=1000, reason="close"):
+    def half_close_connection_remote(
+        self,
+        code=CloseCode.NORMAL_CLOSURE,
+        reason="close",
+    ):
         """
         Receive a closing handshake but do not complete it.
 
@@ -299,10 +320,10 @@ class CommonTests:
         # The following line guarantees that connection_lost was called.
         self.assertEqual(self.protocol.state, State.CLOSED)
         # No close frame was received.
-        self.assertEqual(self.protocol.close_code, 1006)
+        self.assertEqual(self.protocol.close_code, CloseCode.ABNORMAL_CLOSURE)
         self.assertEqual(self.protocol.close_reason, "")
         # A close frame was sent -- unless the connection was already lost.
-        if code == 1006:
+        if code == CloseCode.ABNORMAL_CLOSURE:
             self.assertNoFrameSent()
         else:
             self.assertOneFrameSent(True, OP_CLOSE, Close(code, message).serialize())
@@ -391,11 +412,11 @@ class CommonTests:
         self.assertTrue(wait_closed.done())
 
     def test_close_code(self):
-        self.close_connection(1001, "Bye!")
-        self.assertEqual(self.protocol.close_code, 1001)
+        self.close_connection(CloseCode.GOING_AWAY, "Bye!")
+        self.assertEqual(self.protocol.close_code, CloseCode.GOING_AWAY)
 
     def test_close_reason(self):
-        self.close_connection(1001, "Bye!")
+        self.close_connection(CloseCode.GOING_AWAY, "Bye!")
         self.assertEqual(self.protocol.close_reason, "Bye!")
 
     def test_close_code_not_set(self):
@@ -439,24 +460,24 @@ class CommonTests:
     def test_recv_protocol_error(self):
         self.receive_frame(Frame(True, OP_CONT, "café".encode("utf-8")))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1002, "")
+        self.assertConnectionFailed(CloseCode.PROTOCOL_ERROR, "")
 
     def test_recv_unicode_error(self):
         self.receive_frame(Frame(True, OP_TEXT, "café".encode("latin-1")))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1007, "")
+        self.assertConnectionFailed(CloseCode.INVALID_DATA, "")
 
     def test_recv_text_payload_too_big(self):
         self.protocol.max_size = 1024
         self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8") * 205))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1009, "")
+        self.assertConnectionFailed(CloseCode.MESSAGE_TOO_BIG, "")
 
     def test_recv_binary_payload_too_big(self):
         self.protocol.max_size = 1024
         self.receive_frame(Frame(True, OP_BINARY, b"tea" * 342))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1009, "")
+        self.assertConnectionFailed(CloseCode.MESSAGE_TOO_BIG, "")
 
     def test_recv_text_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
@@ -531,7 +552,7 @@ class CommonTests:
 
         self.protocol.read_message = read_message
         self.process_invalid_frames()
-        self.assertConnectionFailed(1011, "")
+        self.assertConnectionFailed(CloseCode.INTERNAL_ERROR, "")
 
     def test_recv_canceled(self):
         recv = self.loop.create_task(self.protocol.recv())
@@ -667,7 +688,7 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.send(["café", b"tea"]))
         self.assertFramesSent(
             (False, OP_TEXT, "café".encode("utf-8")),
-            (True, OP_CLOSE, Close(1011, "").serialize()),
+            (True, OP_CLOSE, Close(CloseCode.INTERNAL_ERROR, "").serialize()),
         )
 
     def test_send_iterable_prevents_concurrent_send(self):
@@ -741,7 +762,7 @@ class CommonTests:
             )
         self.assertFramesSent(
             (False, OP_TEXT, "café".encode("utf-8")),
-            (True, OP_CLOSE, Close(1011, "").serialize()),
+            (True, OP_CLOSE, Close(CloseCode.INTERNAL_ERROR, "").serialize()),
         )
 
     def test_send_async_iterable_prevents_concurrent_send(self):
@@ -1068,14 +1089,14 @@ class CommonTests:
         self.receive_frame(Frame(False, OP_TEXT, "café".encode("utf-8") * 100))
         self.receive_frame(Frame(True, OP_CONT, "café".encode("utf-8") * 105))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1009, "")
+        self.assertConnectionFailed(CloseCode.MESSAGE_TOO_BIG, "")
 
     def test_fragmented_binary_payload_too_big(self):
         self.protocol.max_size = 1024
         self.receive_frame(Frame(False, OP_BINARY, b"tea" * 171))
         self.receive_frame(Frame(True, OP_CONT, b"tea" * 171))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1009, "")
+        self.assertConnectionFailed(CloseCode.MESSAGE_TOO_BIG, "")
 
     def test_fragmented_text_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
@@ -1104,7 +1125,7 @@ class CommonTests:
         # Missing the second part of the fragmented frame.
         self.receive_frame(Frame(True, OP_BINARY, b"tea"))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1002, "")
+        self.assertConnectionFailed(CloseCode.PROTOCOL_ERROR, "")
 
     def test_close_handshake_in_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
@@ -1114,12 +1135,12 @@ class CommonTests:
         # can be interjected in the middle of a fragmented message and that a
         # close frame must be echoed. Even though there's an unterminated
         # message, technically, the closing handshake was successful.
-        self.assertConnectionClosed(1005, "")
+        self.assertConnectionClosed(CloseCode.NO_STATUS_RCVD, "")
 
     def test_connection_close_in_fragmented_text(self):
         self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
         self.process_invalid_frames()
-        self.assertConnectionFailed(1006, "")
+        self.assertConnectionFailed(CloseCode.ABNORMAL_CLOSURE, "")
 
     # Test miscellaneous code paths to ensure full coverage.
 
@@ -1127,7 +1148,7 @@ class CommonTests:
         # Test calling connection_lost without going through close_connection.
         self.protocol.connection_lost(None)
 
-        self.assertConnectionFailed(1006, "")
+        self.assertConnectionFailed(CloseCode.ABNORMAL_CLOSURE, "")
 
     def test_ensure_open_before_opening_handshake(self):
         # Simulate a bug by forcibly reverting the protocol state.
@@ -1168,7 +1189,7 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.recv())
 
         connection_closed_exc = context.exception
-        self.assertEqual(connection_closed_exc.code, 1000)
+        self.assertEqual(connection_closed_exc.code, CloseCode.NORMAL_CLOSURE)
         self.assertEqual(connection_closed_exc.reason, "close")
 
     # Test the protocol logic for sending keepalive pings.
@@ -1228,7 +1249,9 @@ class CommonTests:
         # Connection is closed at 6ms.
         self.loop.run_until_complete(asyncio.sleep(4 * MS))
         self.assertOneFrameSent(
-            True, OP_CLOSE, Close(1011, "keepalive ping timeout").serialize()
+            True,
+            OP_CLOSE,
+            Close(CloseCode.INTERNAL_ERROR, "keepalive ping timeout").serialize(),
         )
 
         # The keepalive ping task is complete.
@@ -1328,13 +1351,13 @@ class CommonTests:
         # Run the closing handshake.
         self.loop.run_until_complete(self.protocol.close(reason="close"))
 
-        self.assertConnectionClosed(1000, "close")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
         self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
 
-        self.assertConnectionClosed(1000, "close")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertNoFrameSent()
 
     def test_remote_close(self):
@@ -1347,13 +1370,13 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(self.protocol.recv())
 
-        self.assertConnectionClosed(1000, "close")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
         self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
 
-        self.assertConnectionClosed(1000, "close")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertNoFrameSent()
 
     def test_remote_close_and_connection_lost(self):
@@ -1367,7 +1390,7 @@ class CommonTests:
         with self.assertNoLogs():
             self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
 
-        self.assertConnectionClosed(1000, "close")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertOneFrameSent(*self.close_frame)
 
     def test_simultaneous_close(self):
@@ -1380,7 +1403,7 @@ class CommonTests:
 
         self.loop.run_until_complete(self.protocol.close(reason="local"))
 
-        self.assertConnectionClosed(1000, "remote")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "remote")
         # The current implementation sends a close frame in response to the
         # close frame received from the remote end. It skips the close frame
         # that should be sent as a result of calling close().
@@ -1394,7 +1417,7 @@ class CommonTests:
         self.loop.call_later(MS, self.receive_eof_if_client)
         self.loop.run_until_complete(self.protocol.close(reason="close"))
 
-        self.assertConnectionClosed(1000, "close")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertOneFrameSent(*self.close_frame)
 
         next_message = self.loop.run_until_complete(self.protocol.recv())
@@ -1407,14 +1430,14 @@ class CommonTests:
         self.run_loop_once()
         self.loop.run_until_complete(self.protocol.close(reason="close"))
 
-        self.assertConnectionFailed(1002, "")
+        self.assertConnectionFailed(CloseCode.PROTOCOL_ERROR, "")
 
     def test_close_connection_lost(self):
         self.receive_eof()
         self.run_loop_once()
         self.loop.run_until_complete(self.protocol.close(reason="close"))
 
-        self.assertConnectionFailed(1006, "")
+        self.assertConnectionFailed(CloseCode.ABNORMAL_CLOSURE, "")
 
     def test_local_close_during_recv(self):
         recv = self.loop.create_task(self.protocol.recv())
@@ -1427,7 +1450,7 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(recv)
 
-        self.assertConnectionClosed(1000, "close")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
 
     # There is no test_remote_close_during_recv because it would be identical
     # to test_remote_close.
@@ -1442,7 +1465,7 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed):
             self.loop.run_until_complete(send)
 
-        self.assertConnectionClosed(1000, "close")
+        self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
 
     # There is no test_local_close_during_send because this cannot really
     # happen, considering that writes are serialized.
@@ -1557,7 +1580,7 @@ class ServerTests(CommonTests, AsyncioTestCase):
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(9 * MS, 19 * MS):
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        self.assertConnectionClosed(1006, "")
+        self.assertConnectionClosed(CloseCode.ABNORMAL_CLOSURE, "")
 
     def test_local_close_receive_close_frame_timeout(self):
         self.protocol.close_timeout = 10 * MS
@@ -1565,7 +1588,7 @@ class ServerTests(CommonTests, AsyncioTestCase):
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(9 * MS, 19 * MS):
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        self.assertConnectionClosed(1006, "")
+        self.assertConnectionClosed(CloseCode.ABNORMAL_CLOSURE, "")
 
     def test_local_close_connection_lost_timeout_after_write_eof(self):
         self.protocol.close_timeout = 10 * MS
@@ -1579,7 +1602,10 @@ class ServerTests(CommonTests, AsyncioTestCase):
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(1000, "close")  # pragma: no cover
+        self.assertConnectionClosed(  # pragma: no cover
+            CloseCode.NORMAL_CLOSURE,
+            "close",
+        )
 
     def test_local_close_connection_lost_timeout_after_close(self):
         self.protocol.close_timeout = 10 * MS
@@ -1597,7 +1623,10 @@ class ServerTests(CommonTests, AsyncioTestCase):
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(1000, "close")  # pragma: no cover
+        self.assertConnectionClosed(  # pragma: no cover
+            CloseCode.NORMAL_CLOSURE,
+            "close",
+        )
 
 
 class ClientTests(CommonTests, AsyncioTestCase):
@@ -1616,7 +1645,10 @@ class ClientTests(CommonTests, AsyncioTestCase):
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(1006, "")  # pragma: no cover
+        self.assertConnectionClosed(  # pragma: no cover
+            CloseCode.ABNORMAL_CLOSURE,
+            "",
+        )
 
     def test_local_close_receive_close_frame_timeout(self):
         self.protocol.close_timeout = 10 * MS
@@ -1627,7 +1659,10 @@ class ClientTests(CommonTests, AsyncioTestCase):
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(1006, "")  # pragma: no cover
+        self.assertConnectionClosed(  # pragma: no cover
+            CloseCode.ABNORMAL_CLOSURE,
+            "",
+        )
 
     def test_local_close_connection_lost_timeout_after_write_eof(self):
         self.protocol.close_timeout = 10 * MS
@@ -1643,7 +1678,10 @@ class ClientTests(CommonTests, AsyncioTestCase):
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(1000, "close")  # pragma: no cover
+        self.assertConnectionClosed(  # pragma: no cover
+            CloseCode.NORMAL_CLOSURE,
+            "close",
+        )
 
     def test_local_close_connection_lost_timeout_after_close(self):
         self.protocol.close_timeout = 10 * MS
@@ -1664,4 +1702,7 @@ class ClientTests(CommonTests, AsyncioTestCase):
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
         # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(1000, "close")  # pragma: no cover
+        self.assertConnectionClosed(  # pragma: no cover
+            CloseCode.NORMAL_CLOSURE,
+            "close",
+        )

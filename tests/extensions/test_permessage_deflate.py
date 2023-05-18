@@ -18,6 +18,7 @@ from websockets.frames import (
     OP_PONG,
     OP_TEXT,
     Close,
+    CloseCode,
     Frame,
 )
 
@@ -74,7 +75,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_encode_decode_close_frame(self):
-        frame = Frame(OP_CLOSE, Close(1000, "").serialize())
+        frame = Frame(OP_CLOSE, Close(CloseCode.NORMAL_CLOSURE, "").serialize())
 
         self.assertEqual(self.extension.encode(frame), frame)
 

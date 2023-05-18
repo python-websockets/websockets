@@ -158,7 +158,7 @@ closes the connection:
     $ python -m websockets ws://localhost:8888/
     Connected to ws://localhost:8888.
     > not a token
-    Connection closed: 1011 (unexpected error) authentication failed.
+    Connection closed: 1011 (internal error) authentication failed.
 
 You can also test from a browser by generating a new token and running the
 following code in the JavaScript console of the browser:

@@ -8,13 +8,14 @@ import websockets
 django.setup()
 
 from sesame.utils import get_user
+from websockets.frames import CloseCode
 
 
 async def handler(websocket):
     sesame = await websocket.recv()
     user = await asyncio.to_thread(get_user, sesame)
     if user is None:
-        await websocket.close(1011, "authentication failed")
+        await websocket.close(CloseCode.INTERNAL_ERROR, "authentication failed")
         return
 
     await websocket.send(f"Hello {user}!")

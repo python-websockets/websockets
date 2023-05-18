@@ -77,7 +77,7 @@ shut down gracefully:
     < Hey there!
     Connection closed: 1001 (going away).
 
-If it didn't, you'd get code 1006 (connection closed abnormally).
+If it didn't, you'd get code 1006 (abnormal closure).
 
 Deploy application
 ------------------

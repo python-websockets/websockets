@@ -10,7 +10,7 @@ import uuid
 from unittest.mock import patch
 
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
-from websockets.frames import Frame, Opcode
+from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol
 from websockets.sync.connection import *
 
@@ -134,7 +134,7 @@ class ClientConnectionTests(unittest.TestCase):
     def test_iter_connection_closed_error(self):
         """__iter__ raises ConnnectionClosedError after an error."""
         iterator = iter(self.connection)
-        self.remote_connection.close(code=1011)
+        self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
         with self.assertRaises(ConnectionClosedError):
             next(iterator)
 
@@ -168,7 +168,7 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_recv_connection_closed_error(self):
         """recv raises ConnectionClosedError after an error."""
-        self.remote_connection.close(code=1011)
+        self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
         with self.assertRaises(ConnectionClosedError):
             self.connection.recv()
 
@@ -248,7 +248,7 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_recv_streaming_connection_closed_error(self):
         """recv_streaming raises ConnectionClosedError after an error."""
-        self.remote_connection.close(code=1011)
+        self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
         with self.assertRaises(ConnectionClosedError):
             list(self.connection.recv_streaming())
 
@@ -322,7 +322,7 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_send_connection_closed_error(self):
         """send raises ConnectionClosedError after an error."""
-        self.remote_connection.close(code=1011)
+        self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
         with self.assertRaises(ConnectionClosedError):
             self.connection.send("😀")
 
@@ -400,7 +400,7 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_close_explicit_code_reason(self):
         """close sends a close frame with a given code and reason."""
-        self.connection.close(1001, "bye!")
+        self.connection.close(CloseCode.GOING_AWAY, "bye!")
         self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe9bye!"))
 
     def test_close_waits_for_close_frame(self):
@@ -567,7 +567,7 @@ class ClientConnectionTests(unittest.TestCase):
         exc = raised.exception
         self.assertEqual(
             str(exc),
-            "sent 1011 (unexpected error) close during fragmented message; "
+            "sent 1011 (internal error) close during fragmented message; "
             "no close frame received",
         )
         self.assertIsNone(exc.__cause__)

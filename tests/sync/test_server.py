@@ -64,8 +64,8 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             with run_client(server) as client:
                 with self.assertRaisesRegex(
                     ConnectionClosedError,
-                    r"received 1011 \(unexpected error\); "
-                    r"then sent 1011 \(unexpected error\)",
+                    r"received 1011 \(internal error\); "
+                    r"then sent 1011 \(internal error\)",
                 ):
                     client.recv()
 

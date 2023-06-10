@@ -3,7 +3,7 @@
 import asyncio
 import websockets
 
-async def hello(websocket):
+async def hello(websocket, path):
     name = await websocket.recv()
     print(f"<<< {name}")
 

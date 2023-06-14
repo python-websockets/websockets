@@ -23,7 +23,7 @@ DATE = email.utils.formatdate(usegmt=True)
 
 # Unit for timeouts. May be increased on slow machines by setting the
 # WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
-MS = 0.001 * int(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", "1"))
+MS = 0.001 * float(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", "1"))
 
 # PyPy has a performance penalty for this test suite.
 if platform.python_implementation() == "PyPy":  # pragma: no cover

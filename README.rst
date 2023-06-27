@@ -65,7 +65,6 @@ Here's how a client sends and receives messages with the ``threading`` API:
 
     #!/usr/bin/env python
 
-    import asyncio
     from websockets.sync.client import connect
 
     def hello():

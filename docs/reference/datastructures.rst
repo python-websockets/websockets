@@ -21,12 +21,12 @@ WebSocket events
 
     .. autoclass:: CloseCode
 
-        .. autoattribute:: OK
+        .. autoattribute:: NORMAL_CLOSURE
         .. autoattribute:: GOING_AWAY
         .. autoattribute:: PROTOCOL_ERROR
         .. autoattribute:: UNSUPPORTED_DATA
         .. autoattribute:: NO_STATUS_RCVD
-        .. autoattribute:: CONNECTION_CLOSED_ABNORMALLY
+        .. autoattribute:: ABNORMAL_CLOSURE
         .. autoattribute:: INVALID_DATA
         .. autoattribute:: POLICY_VIOLATION
         .. autoattribute:: MESSAGE_TOO_BIG
@@ -35,7 +35,7 @@ WebSocket events
         .. autoattribute:: SERVICE_RESTART
         .. autoattribute:: TRY_AGAIN_LATER
         .. autoattribute:: BAD_GATEWAY
-        .. autoattribute:: TLS_FAILURE
+        .. autoattribute:: TLS_HANDSHAKE
 
 HTTP events
 -----------

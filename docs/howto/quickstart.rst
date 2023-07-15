@@ -57,9 +57,6 @@ Here's how to adapt the server to encrypt connections. You must download
 :download:`localhost.pem <../../example/quickstart/localhost.pem>` and save it
 in the same directory as ``server_secure.py``.
 
-See the documentation of the :mod:`ssl` module for details on configuring the
-TLS context securely.
-
 .. literalinclude:: ../../example/quickstart/server_secure.py
     :caption: server_secure.py
     :language: python
@@ -78,6 +75,15 @@ self-signed certificate.
 When connecting to a secure WebSocket server with a valid certificate — any
 certificate signed by a CA that your Python installation trusts — you can
 simply pass ``ssl=True`` to :func:`~client.connect`.
+
+.. admonition:: Configure the TLS context securely
+    :class: attention
+
+    This example demonstrates the ``ssl`` argument with a TLS certificate shared
+    between the client and the server. This is a simplistic setup.
+
+    Please review the advice and security considerations in the documentation of
+    the :mod:`ssl` module to configure the TLS context securely.
 
 Connect from a browser
 ----------------------

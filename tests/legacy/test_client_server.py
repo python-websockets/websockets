@@ -397,9 +397,9 @@ class CommonClientServerTests:
         wsuri = parse_uri(uri)
 
         # Change host and port to invalid values.
-        changed_uri = uri.replace(wsuri.host, "example.com").replace(
-            str(wsuri.port), str(65535 - wsuri.port)
-        )
+        scheme = "wss" if wsuri.secure else "ws"
+        port = 65535 - wsuri.port
+        changed_uri = f"{scheme}://example.com:{port}/"
 
         with self.temp_client(uri=changed_uri, host=wsuri.host, port=wsuri.port):
             self.loop.run_until_complete(self.client.send("Hello!"))

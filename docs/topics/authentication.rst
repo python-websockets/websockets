@@ -343,6 +343,6 @@ To authenticate a websockets client with HTTP Bearer Authentication
 
     async with websockets.connect(
         "wss://example.com",
-        extra_headers={"Authorization": f"Bearer {token}"}
+        additional_headers={"Authorization": f"Bearer {token}"}
     ) as websocket:
         ...

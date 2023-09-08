@@ -41,7 +41,7 @@ from .utils import accept_key, generate_key
 from .legacy.client import *  # isort:skip  # noqa: I001
 
 
-__all__ = ["ClientProtocol"]
+__all__ = ["ClientProtocol", "WebSocketClientProtocol", "connect"]
 
 
 class ClientProtocol(Protocol):

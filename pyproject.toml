@@ -62,6 +62,7 @@ exclude_lines = [
     "except ImportError:",
     "if self.debug:",
     "if sys.platform != \"win32\":",
+    "if typing.TYPE_CHECKING:",
     "pragma: no cover",
     "raise AssertionError",
     "raise NotImplementedError",

@@ -12,29 +12,6 @@ instead of the websockets library.
 
 .. _real-import-paths:
 
-Why does my IDE fail to show documentation for websockets APIs?
-...............................................................
-
-You are probably using the convenience imports e.g.::
-
-    import websockets
-
-    websockets.connect(...)
-    websockets.serve(...)
-
-This is incompatible with static code analysis. It may break auto-completion and
-contextual documentation in IDEs, type checking with mypy_, etc.
-
-.. _mypy: https://github.com/python/mypy
-
-Instead, use the real import paths e.g.::
-
-    import websockets.client
-    import websockets.server
-
-    websockets.client.connect(...)
-    websockets.server.serve(...)
-
 Why is the default implementation located in ``websockets.legacy``?
 ...................................................................
 

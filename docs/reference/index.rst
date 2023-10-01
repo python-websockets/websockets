@@ -88,16 +88,3 @@ Convenience imports
 
 For convenience, many public APIs can be imported directly from the
 ``websockets`` package.
-
-
-.. admonition:: Convenience imports are incompatible with some development tools.
-    :class: caution
-
-    Specifically, static code analysis tools don't understand them. This breaks
-    auto-completion and contextual documentation in IDEs, type checking with
-    mypy_, etc.
-
-    .. _mypy: https://github.com/python/mypy
-
-    If you're using such tools, stick to the full import paths, as explained in
-    this FAQ: :ref:`real-import-paths`

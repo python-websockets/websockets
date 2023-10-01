@@ -3,6 +3,7 @@ import unittest
 import websockets
 import websockets.auth
 import websockets.client
+import websockets.datastructures
 import websockets.exceptions
 import websockets.legacy.protocol
 import websockets.server
@@ -13,11 +14,11 @@ import websockets.uri
 combined_exports = (
     websockets.auth.__all__
     + websockets.client.__all__
+    + websockets.datastructures.__all__
     + websockets.exceptions.__all__
     + websockets.legacy.protocol.__all__
     + websockets.server.__all__
     + websockets.typing.__all__
-    + websockets.uri.__all__
 )
 
 

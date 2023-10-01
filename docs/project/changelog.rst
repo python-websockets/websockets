@@ -41,6 +41,11 @@ Backwards-incompatible changes
 Improvements
 ............
 
+* Made convenience imports from ``websockets`` compatible with static code
+  analysis tools such as auto-completion in an IDE or type checking with mypy_.
+
+  .. _mypy: https://github.com/python/mypy
+
 * Added :class:`~frames.CloseCode`.
 
 11.0.3

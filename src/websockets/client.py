@@ -38,10 +38,12 @@ from .utils import accept_key, generate_key
 
 
 # See #940 for why lazy_import isn't used here for backwards compatibility.
+# See #1400 for why listing compatibility imports in __all__ helps PyCharm.
 from .legacy.client import *  # isort:skip  # noqa: I001
+from .legacy.client import __all__ as legacy__all__
 
 
-__all__ = ["ClientProtocol"]
+__all__ = ["ClientProtocol"] + legacy__all__
 
 
 class ClientProtocol(Protocol):

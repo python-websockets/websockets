@@ -192,8 +192,8 @@ class HealthCheckServerProtocol(WebSocketServerProtocol):
 
 class ProcessRequestReturningIntProtocol(WebSocketServerProtocol):
     async def process_request(self, path, request_headers):
-        if path == "/__health__/":
-            return 200, [], b"OK\n"
+        assert path == "/__health__/"
+        return 200, [], b"OK\n"
 
 
 class SlowOpeningHandshakeProtocol(WebSocketServerProtocol):

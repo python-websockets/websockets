@@ -1597,12 +1597,12 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
         self.assertEqual(
             [record.getMessage() for record in logs.records][4:-1],
             [
-                "connection failed (503 Service Unavailable)",
+                "connection rejected (503 Service Unavailable)",
                 "connection closed",
                 "! connect failed; reconnecting in 0.0 seconds",
             ]
             + [
-                "connection failed (503 Service Unavailable)",
+                "connection rejected (503 Service Unavailable)",
                 "connection closed",
                 "! connect failed again; retrying in 0 seconds",
             ]

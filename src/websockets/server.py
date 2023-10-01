@@ -516,7 +516,7 @@ class ServerProtocol(Protocol):
         # "handshake_exc is None if and only if opening handshake succeeded."
         if self.handshake_exc is None:
             self.handshake_exc = InvalidStatus(response)
-        self.logger.info("connection failed (%d %s)", status.value, status.phrase)
+        self.logger.info("connection rejected (%d %s)", status.value, status.phrase)
         return response
 
     def send_response(self, response: Response) -> None:

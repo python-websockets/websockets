@@ -227,7 +227,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
                 self.write_http_response(status, headers, body)
                 self.logger.info(
-                    "connection failed (%d %s)", status.value, status.phrase
+                    "connection rejected (%d %s)", status.value, status.phrase
                 )
                 await self.close_transport()
                 return

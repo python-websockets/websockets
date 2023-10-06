@@ -217,6 +217,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                         ),
                     )
 
+                status = http.HTTPStatus(status)
                 headers.setdefault("Date", email.utils.formatdate(usegmt=True))
                 if self.server_header is not None:
                     headers.setdefault("Server", self.server_header)

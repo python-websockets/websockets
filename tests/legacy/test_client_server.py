@@ -543,6 +543,17 @@ class CommonClientServerTests:
         with contextlib.closing(response):
             self.assertEqual(response.code, 200)
 
+    class ProcessRequestOKServerProtocolNumeric(WebSocketServerProtocol):
+        async def process_request(self, path, request_headers):
+            return 200, [], b"OK\n"
+
+    @with_server(create_protocol=ProcessRequestOKServerProtocolNumeric)
+    def test_numeric_response_code(self):
+        response = self.loop.run_until_complete(self.make_http_request("/"))
+
+        with contextlib.closing(response):
+            self.assertEqual(response.code, 200)
+
     class LegacyProcessRequestOKServerProtocol(WebSocketServerProtocol):
         def process_request(self, path, request_headers):
             return http.HTTPStatus.OK, [], b"OK\n"

@@ -1,4 +1,4 @@
-name: Build wheels
+name: Make release
 
 on:
   push:
@@ -64,8 +64,8 @@ jobs:
       with:
         path: wheelhouse/*.whl
 
-  release:
-    name: Release
+  upload:
+    name: Upload
     needs:
       - sdist
       - wheels

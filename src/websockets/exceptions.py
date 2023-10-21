@@ -34,6 +34,7 @@ import http
 from typing import Optional
 
 from . import datastructures, frames, http11
+from .typing import StatusLike
 
 
 __all__ = [
@@ -330,7 +331,7 @@ class AbortHandshake(InvalidHandshake):
 
     def __init__(
         self,
-        status: http.HTTPStatus,
+        status: StatusLike,
         headers: datastructures.HeadersLike,
         body: bytes = b"",
     ) -> None:

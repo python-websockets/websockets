@@ -45,7 +45,7 @@ from ..headers import (
 )
 from ..http import USER_AGENT
 from ..protocol import State
-from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
+from ..typing import ExtensionHeader, LoggerLike, Origin, StatusLike, Subprotocol
 from .compatibility import asyncio_timeout
 from .handshake import build_response, check_request
 from .http import read_request
@@ -57,7 +57,7 @@ __all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
 
 HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]]
 
-HTTPResponse = Tuple[http.HTTPStatus, HeadersLike, bytes]
+HTTPResponse = Tuple[StatusLike, HeadersLike, bytes]
 
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):
@@ -349,7 +349,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             request_headers: request headers.
 
         Returns:
-            Optional[Tuple[http.HTTPStatus, HeadersLike, bytes]]: :obj:`None`
+            Optional[Tuple[StatusLike, HeadersLike, bytes]]: :obj:`None`
             to continue the WebSocket handshake normally.
 
             An HTTP response, represented by a 3-uple of the response status,
@@ -943,7 +943,7 @@ class Serve:
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
         process_request (Optional[Callable[[str, Headers], \
-            Awaitable[Optional[Tuple[http.HTTPStatus, HeadersLike, bytes]]]]]):
+            Awaitable[Optional[Tuple[StatusLike, HeadersLike, bytes]]]]]):
             Intercept HTTP request before the opening handshake.
             See :meth:`~WebSocketServerProtocol.process_request` for details.
         select_subprotocol: Select a subprotocol supported by the client.

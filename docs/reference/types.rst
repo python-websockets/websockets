@@ -7,6 +7,8 @@ Types
 
     .. autodata:: LoggerLike
 
+    .. autodata:: StatusLike
+
     .. autodata:: Origin
 
     .. autodata:: Subprotocol

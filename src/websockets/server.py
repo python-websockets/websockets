@@ -32,6 +32,7 @@ from .typing import (
     ExtensionHeader,
     LoggerLike,
     Origin,
+    StatusLike,
     Subprotocol,
     UpgradeProtocol,
 )
@@ -480,7 +481,7 @@ class ServerProtocol(Protocol):
 
     def reject(
         self,
-        status: http.HTTPStatus,
+        status: StatusLike,
         text: str,
     ) -> Response:
         """

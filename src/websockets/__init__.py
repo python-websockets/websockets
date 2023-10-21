@@ -61,6 +61,7 @@ __all__ = [
     "ExtensionName",
     "ExtensionParameter",
     "LoggerLike",
+    "StatusLike",
     "Origin",
     "Subprotocol",
 ]
@@ -115,6 +116,7 @@ if typing.TYPE_CHECKING:
         ExtensionParameter,
         LoggerLike,
         Origin,
+        StatusLike,
         Subprotocol,
     )
 else:
@@ -176,6 +178,7 @@ else:
             "ExtensionParameter": ".typing",
             "LoggerLike": ".typing",
             "Origin": ".typing",
+            "StatusLike": "typing",
             "Subprotocol": ".typing",
         },
         deprecated_aliases={

@@ -28,7 +28,7 @@ notice.
 12.0
 ----
 
-*In development*
+*October 21, 2023*
 
 Backwards-incompatible changes
 ..............................

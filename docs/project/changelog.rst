@@ -46,6 +46,8 @@ Improvements
 
   .. _mypy: https://github.com/python/mypy
 
+* Accepted a plain :class:`int` where an :class:`~http.HTTPStatus` is expected.
+
 * Added :class:`~frames.CloseCode`.
 
 11.0.3

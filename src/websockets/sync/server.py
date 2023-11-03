@@ -11,10 +11,9 @@ import threading
 from types import TracebackType
 from typing import Any, Callable, Optional, Sequence, Type
 
-from websockets.frames import CloseCode
-
 from ..extensions.base import ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
+from ..frames import CloseCode
 from ..headers import validate_subprotocols
 from ..http import USER_AGENT
 from ..http11 import Request, Response

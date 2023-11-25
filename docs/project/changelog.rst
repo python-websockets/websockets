@@ -30,6 +30,11 @@ notice.
 
 *In development*
 
+New features
+............
+
+* Validated compatibility with Python 3.12.
+
 12.0
 ----
 

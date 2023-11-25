@@ -18,9 +18,9 @@ __all__ = ["tag", "version", "commit"]
 # When tagging a release, set `released = True`.
 # After tagging a release, set `released = False` and increment `tag`.
 
-released = True
+released = False
 
-tag = version = commit = "12.0"
+tag = version = commit = "12.1"
 
 
 if not released:  # pragma: no cover

@@ -20,7 +20,7 @@ jobs:
     - name: Build sdist
       run: python setup.py sdist
     - name: Save sdist
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: dist/*.tar.gz
     - name: Install wheel
@@ -30,7 +30,7 @@ jobs:
         BUILD_EXTENSION: no
       run: python setup.py bdist_wheel
     - name: Save wheel
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: dist/*.whl
 
@@ -60,7 +60,7 @@ jobs:
       env:
         BUILD_EXTENSION: yes
     - name: Save wheels
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         path: wheelhouse/*.whl
 

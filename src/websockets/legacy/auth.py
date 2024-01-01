@@ -159,7 +159,7 @@ def basic_auth_protocol_factory(
         if is_credentials(credentials):
             credentials_list = [cast(Credentials, credentials)]
         elif isinstance(credentials, Iterable):
-            credentials_list = list(credentials)
+            credentials_list = list(cast(Iterable[Credentials], credentials))
             if not all(is_credentials(item) for item in credentials_list):
                 raise TypeError(f"invalid credentials argument: {credentials}")
         else:

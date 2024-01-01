@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import http
 import logging
-from typing import List, NewType, Optional, Tuple, Union
+from typing import Any, List, NewType, Optional, Tuple, Union
 
 
 __all__ = [
@@ -28,7 +28,7 @@ Data = Union[str, bytes]
 """
 
 
-LoggerLike = Union[logging.Logger, logging.LoggerAdapter]
+LoggerLike = Union[logging.Logger, logging.LoggerAdapter[Any]]
 """Types accepted where a :class:`~logging.Logger` is expected."""
 
 

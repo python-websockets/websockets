@@ -8,8 +8,15 @@ import subprocess
 import sys
 
 
-UNMAPPED_SRC_FILES = ["websockets/version.py"]
-UNMAPPED_TEST_FILES = ["tests/test_exports.py"]
+UNMAPPED_SRC_FILES = [
+    "websockets/auth.py",
+    "websockets/typing.py",
+    "websockets/version.py",
+]
+
+UNMAPPED_TEST_FILES = [
+    "tests/test_exports.py",
+]
 
 
 def check_environment():
@@ -60,7 +67,7 @@ def get_mapping(src_dir="src"):
     # Map source files to test files.
 
     mapping = {}
-    unmapped_test_files = []
+    unmapped_test_files = set()
 
     for test_file in test_files:
         dir_name, file_name = os.path.split(test_file)
@@ -73,26 +80,30 @@ def get_mapping(src_dir="src"):
         if src_file in src_files:
             mapping[src_file] = test_file
         else:
-            unmapped_test_files.append(test_file)
+            unmapped_test_files.add(test_file)
 
-    unmapped_src_files = list(set(src_files) - set(mapping))
+    unmapped_src_files = set(src_files) - set(mapping)
 
     # Ensure that all files are mapped.
 
-    assert unmapped_src_files == UNMAPPED_SRC_FILES
-    assert unmapped_test_files == UNMAPPED_TEST_FILES
+    assert unmapped_src_files == set(UNMAPPED_SRC_FILES)
+    assert unmapped_test_files == set(UNMAPPED_TEST_FILES)
 
     return mapping
 
 
 def get_ignored_files(src_dir="src"):
     """Return the list of files to exclude from coverage measurement."""
-
+    # */websockets matches src/websockets and .tox/**/site-packages/websockets.
     return [
-        # */websockets matches src/websockets and .tox/**/site-packages/websockets.
-        # There are no tests for the __main__ module and for compatibility modules.
+        # There are no tests for the __main__ module.
         "*/websockets/__main__.py",
+        # There is nothing to test on type declarations.
+        "*/websockets/typing.py",
+        # We don't test compatibility modules with previous versions of Python
+        # or websockets (import locations).
         "*/websockets/*/compatibility.py",
+        "*/websockets/auth.py",
         # This approach isn't applicable to the test suite of the legacy
         # implementation, due to the huge test_client_server test module.
         "*/websockets/legacy/*",
@@ -125,7 +136,7 @@ def run_coverage(mapping, src_dir="src"):
             "-m",
             "unittest",
         ]
-        + UNMAPPED_TEST_FILES,
+        + list(UNMAPPED_TEST_FILES),
         check=True,
     )
     # Append coverage of each source module by the corresponding test module.

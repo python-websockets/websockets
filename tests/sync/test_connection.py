@@ -656,13 +656,17 @@ class ClientConnectionTests(unittest.TestCase):
         """Connection has a logger attribute."""
         self.assertIsInstance(self.connection.logger, logging.LoggerAdapter)
 
-    def test_local_address(self):
-        """Connection has a local_address attribute."""
-        self.assertIsNotNone(self.connection.local_address)
+    @unittest.mock.patch("socket.socket.getsockname", return_value=("sock", 1234))
+    def test_local_address(self, getsockname):
+        """Connection provides a local_address attribute."""
+        self.assertEqual(self.connection.local_address, ("sock", 1234))
+        getsockname.assert_called_with()
 
-    def test_remote_address(self):
-        """Connection has a remote_address attribute."""
-        self.assertIsNotNone(self.connection.remote_address)
+    @unittest.mock.patch("socket.socket.getpeername", return_value=("peer", 1234))
+    def test_remote_address(self, getpeername):
+        """Connection provides a remote_address attribute."""
+        self.assertEqual(self.connection.remote_address, ("peer", 1234))
+        getpeername.assert_called_with()
 
     def test_request(self):
         """Connection has a request attribute."""

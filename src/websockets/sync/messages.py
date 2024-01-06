@@ -5,7 +5,7 @@ import queue
 import threading
 from typing import Iterator, List, Optional, cast
 
-from ..frames import Frame, Opcode
+from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 from ..typing import Data
 
 
@@ -25,8 +25,11 @@ class Assembler:
         # primitives provided by the threading and queue modules.
         self.mutex = threading.Lock()
 
-        # We create a latch with two events to ensure proper interleaving of
-        # writing and reading messages.
+        # We create a latch with two events to synchronize the production of
+        # frames and the consumption of messages (or frames) without a buffer.
+        # This design requires a switch between the library thread and the user
+        # thread for each message; that shouldn't be a performance bottleneck.
+
         # put() sets this event to tell get() that a message can be fetched.
         self.message_complete = threading.Event()
         # get() sets this event to let put() that the message was fetched.
@@ -72,8 +75,10 @@ class Assembler:
 
         Raises:
             EOFError: If the stream of frames has ended.
-            RuntimeError: If two threads run :meth:`get` or :meth:``get_iter`
+            RuntimeError: If two threads run :meth:`get` or :meth:`get_iter`
                 concurrently.
+            TimeoutError: If a timeout is provided and elapses before a
+                complete message is received.
 
         """
         with self.mutex:
@@ -131,7 +136,7 @@ class Assembler:
 
         Raises:
             EOFError: If the stream of frames has ended.
-            RuntimeError: If two threads run :meth:`get` or :meth:``get_iter`
+            RuntimeError: If two threads run :meth:`get` or :meth:`get_iter`
                 concurrently.
 
         """
@@ -159,11 +164,10 @@ class Assembler:
             self.get_in_progress = True
 
         # Locking with get_in_progress ensures only one thread can get here.
-        yield from chunks
-        while True:
-            chunk = self.chunks_queue.get()
-            if chunk is None:
-                break
+        chunk: Optional[Data]
+        for chunk in chunks:
+            yield chunk
+        while (chunk := self.chunks_queue.get()) is not None:
             yield chunk
 
         with self.mutex:
@@ -205,15 +209,12 @@ class Assembler:
             if self.put_in_progress:
                 raise RuntimeError("put is already running")
 
-            if frame.opcode is Opcode.TEXT:
+            if frame.opcode is OP_TEXT:
                 self.decoder = UTF8Decoder(errors="strict")
-            elif frame.opcode is Opcode.BINARY:
+            elif frame.opcode is OP_BINARY:
                 self.decoder = None
-            elif frame.opcode is Opcode.CONT:
-                pass
             else:
-                # Ignore control frames.
-                return
+                assert frame.opcode is OP_CONT
 
             data: Data
             if self.decoder is not None:
@@ -242,6 +243,7 @@ class Assembler:
             self.put_in_progress = True
 
         # Release the lock to allow get() to run and eventually set the event.
+        # Locking with put_in_progress ensures only one coroutine can get here.
         self.message_fetched.wait()
 
         with self.mutex:

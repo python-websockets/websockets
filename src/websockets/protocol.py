@@ -630,8 +630,9 @@ class Protocol:
         elif frame.opcode is OP_PING:
             # 5.5.2. Ping: "Upon receipt of a Ping frame, an endpoint MUST
             # send a Pong frame in response"
-            pong_frame = Frame(OP_PONG, frame.data)
-            self.send_frame(pong_frame)
+            if self.state is OPEN:
+                pong_frame = Frame(OP_PONG, frame.data)
+                self.send_frame(pong_frame)
 
         elif frame.opcode is OP_PONG:
             # 5.5.3 Pong: "A response to an unsolicited Pong frame is not

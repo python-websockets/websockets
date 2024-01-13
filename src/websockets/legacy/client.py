@@ -640,38 +640,35 @@ class Connect:
 
     def __await__(self) -> Generator[Any, None, WebSocketClientProtocol]:
         # Create a suitable iterator by calling __await__ on a coroutine.
-        return self.__await_impl_timeout__().__await__()
-
-    async def __await_impl_timeout__(self) -> WebSocketClientProtocol:
-        async with asyncio_timeout(self.open_timeout):
-            return await self.__await_impl__()
+        return self.__await_impl__().__await__()
 
     async def __await_impl__(self) -> WebSocketClientProtocol:
-        for redirects in range(self.MAX_REDIRECTS_ALLOWED):
-            _transport, _protocol = await self._create_connection()
-            protocol = cast(WebSocketClientProtocol, _protocol)
-            try:
-                await protocol.handshake(
-                    self._wsuri,
-                    origin=protocol.origin,
-                    available_extensions=protocol.available_extensions,
-                    available_subprotocols=protocol.available_subprotocols,
-                    extra_headers=protocol.extra_headers,
-                )
-            except RedirectHandshake as exc:
-                protocol.fail_connection()
-                await protocol.wait_closed()
-                self.handle_redirect(exc.uri)
-            # Avoid leaking a connected socket when the handshake fails.
-            except (Exception, asyncio.CancelledError):
-                protocol.fail_connection()
-                await protocol.wait_closed()
-                raise
+        async with asyncio_timeout(self.open_timeout):
+            for _redirects in range(self.MAX_REDIRECTS_ALLOWED):
+                _transport, _protocol = await self._create_connection()
+                protocol = cast(WebSocketClientProtocol, _protocol)
+                try:
+                    await protocol.handshake(
+                        self._wsuri,
+                        origin=protocol.origin,
+                        available_extensions=protocol.available_extensions,
+                        available_subprotocols=protocol.available_subprotocols,
+                        extra_headers=protocol.extra_headers,
+                    )
+                except RedirectHandshake as exc:
+                    protocol.fail_connection()
+                    await protocol.wait_closed()
+                    self.handle_redirect(exc.uri)
+                # Avoid leaking a connected socket when the handshake fails.
+                except (Exception, asyncio.CancelledError):
+                    protocol.fail_connection()
+                    await protocol.wait_closed()
+                    raise
+                else:
+                    self.protocol = protocol
+                    return protocol
             else:
-                self.protocol = protocol
-                return protocol
-        else:
-            raise SecurityError("too many redirects")
+                raise SecurityError("too many redirects")
 
     # ... = yield from connect(...) - remove when dropping Python < 3.10
 

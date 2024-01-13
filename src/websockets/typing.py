@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import http
 import logging
+import typing
 from typing import Any, List, NewType, Optional, Tuple, Union
 
 
@@ -28,8 +29,12 @@ Data = Union[str, bytes]
 """
 
 
-LoggerLike = Union[logging.Logger, logging.LoggerAdapter[Any]]
-"""Types accepted where a :class:`~logging.Logger` is expected."""
+if typing.TYPE_CHECKING:
+    LoggerLike = Union[logging.Logger, logging.LoggerAdapter[Any]]
+    """Types accepted where a :class:`~logging.Logger` is expected."""
+else:  # remove this branch when dropping support for Python < 3.11
+    LoggerLike = Union[logging.Logger, logging.LoggerAdapter]
+    """Types accepted where a :class:`~logging.Logger` is expected."""
 
 
 StatusLike = Union[http.HTTPStatus, int]

@@ -18,6 +18,6 @@ async def hello(websocket):
 async def main():
     socket_path = os.path.join(os.path.dirname(__file__), "socket")
     async with websockets.unix_serve(hello, socket_path):
-        await asyncio.Future()  # run forever
+        await asyncio.get_running_loop().create_future()  # run forever
 
 asyncio.run(main())

@@ -16,6 +16,6 @@ async def main():
             realm="example", credentials=("mary", "p@ssw0rd")
         ),
     ):
-        await asyncio.Future()  # run forever
+        await asyncio.get_running_loop().create_future()  # run forever
 
 asyncio.run(main())

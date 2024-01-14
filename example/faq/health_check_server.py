@@ -17,6 +17,6 @@ async def main():
         echo, "localhost", 8765,
         process_request=health_check,
     ):
-        await asyncio.Future()  # run forever
+        await asyncio.get_running_loop().create_future()  # run forever
 
 asyncio.run(main())

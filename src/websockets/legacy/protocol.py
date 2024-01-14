@@ -664,7 +664,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 return
             opcode, data = prepare_data(fragment)
 
-            self._fragmented_message_waiter = asyncio.Future()
+            self._fragmented_message_waiter = self.loop.create_future()
             try:
                 # First fragment.
                 await self.write_frame(False, opcode, data)
@@ -709,7 +709,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 return
             opcode, data = prepare_data(fragment)
 
-            self._fragmented_message_waiter = asyncio.Future()
+            self._fragmented_message_waiter = self.loop.create_future()
             try:
                 # First fragment.
                 await self.write_frame(False, opcode, data)

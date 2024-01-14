@@ -27,10 +27,11 @@ async def relay(queue, websocket):
 
 class PubSub:
     def __init__(self):
-        self.waiter = asyncio.Future()
+        self.waiter = asyncio.get_running_loop().create_future()
 
     def publish(self, value):
-        waiter, self.waiter = self.waiter, asyncio.Future()
+        waiter = self.waiter
+        self.waiter = asyncio.get_running_loop().create_future()
         waiter.set_result((value, self.waiter))
 
     async def subscribe(self):

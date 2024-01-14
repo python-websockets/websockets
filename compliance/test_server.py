@@ -21,7 +21,7 @@ async def echo(ws):
 async def main():
     with websockets.serve(echo, HOST, PORT, max_size=2 ** 25, max_queue=1):
         try:
-            await asyncio.Future()
+            await asyncio.get_running_loop().create_future()  # run forever
         except KeyboardInterrupt:
             pass
 

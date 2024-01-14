@@ -195,7 +195,7 @@ Create an ``app.py`` file next to ``connect4.py`` with this content:
 
     async def main():
         async with websockets.serve(handler, "", 8001):
-            await asyncio.Future()  # run forever
+            await asyncio.get_running_loop().create_future()  # run forever
 
 
     if __name__ == "__main__":

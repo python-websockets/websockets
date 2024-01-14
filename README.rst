@@ -55,7 +55,7 @@ Here's an echo server with the ``asyncio`` API:
 
     async def main():
         async with serve(echo, "localhost", 8765):
-            await asyncio.Future()  # run forever
+            await asyncio.get_running_loop().create_future()  # run forever
 
     asyncio.run(main())
 

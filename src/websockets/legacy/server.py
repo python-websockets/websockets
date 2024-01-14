@@ -897,7 +897,8 @@ class Serve:
     Awaiting :func:`serve` yields a :class:`WebSocketServer`. This object
     provides a :meth:`~WebSocketServer.close` method to shut down the server::
 
-        stop = asyncio.Future()  # set this future to exit the server
+        # set this future to exit the server
+        stop = asyncio.get_running_loop().create_future()
 
         server = await serve(...)
         await stop
@@ -906,7 +907,8 @@ class Serve:
     :func:`serve` can be used as an asynchronous context manager. Then, the
     server is shut down automatically when exiting the context::
 
-        stop = asyncio.Future()  # set this future to exit the server
+        # set this future to exit the server
+        stop = asyncio.get_running_loop().create_future()
 
         async with serve(...):
             await stop

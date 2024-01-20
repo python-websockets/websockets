@@ -195,6 +195,8 @@ def connect(
             the connection. Set it to a wrapper or a subclass to customize
             connection handling.
 
+    Any other keyword arguments are passed to :func:`~socket.create_connection`.
+
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
         OSError: If the TCP connection fails.
@@ -245,10 +247,8 @@ def connect(
                 assert path is not None  # mypy cannot figure this out
                 sock.connect(path)
             else:
-                sock = socket.create_connection(
-                    (wsuri.host, wsuri.port),
-                    deadline.timeout(),
-                )
+                kwargs.setdefault("timeout", deadline.timeout())
+                sock = socket.create_connection((wsuri.host, wsuri.port), **kwargs)
             sock.settimeout(None)
 
         # Disable Nagle algorithm

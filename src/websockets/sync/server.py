@@ -379,6 +379,9 @@ def serve(
         create_connection: Factory for the :class:`ServerConnection` managing
             the connection. Set it to a wrapper or a subclass to customize
             connection handling.
+
+    Any other keyword arguments are passed to :func:`~socket.create_server`.
+
     """
 
     # Process parameters
@@ -404,9 +407,10 @@ def serve(
         if unix:
             if path is None:
                 raise TypeError("missing path argument")
-            sock = socket.create_server(path, family=socket.AF_UNIX)
+            kwargs.setdefault("family", socket.AF_UNIX)
+            sock = socket.create_server(path, **kwargs)
         else:
-            sock = socket.create_server((host, port))
+            sock = socket.create_server((host, port), **kwargs)
     else:
         if path is not None:
             raise TypeError("path and sock arguments are incompatible")

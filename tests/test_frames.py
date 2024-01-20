@@ -77,14 +77,14 @@ class FrameTests(FramesTestCase):
 
     def test_non_ascii_text_unmasked(self):
         self.assertFrameData(
-            Frame(OP_TEXT, "café".encode("utf-8")),
+            Frame(OP_TEXT, "café".encode()),
             b"\x81\x05caf\xc3\xa9",
             mask=False,
         )
 
     def test_non_ascii_text_masked(self):
         self.assertFrameData(
-            Frame(OP_TEXT, "café".encode("utf-8")),
+            Frame(OP_TEXT, "café".encode()),
             b"\x81\x85\x64\xbe\xee\x7e\x07\xdf\x88\xbd\xcd",
             mask=True,
         )

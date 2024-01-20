@@ -66,7 +66,7 @@ def _run(data):
             for _ in range(REPEAT):
                 for item in data:
                     if isinstance(item, str):
-                        item = item.encode("utf-8")
+                        item = item.encode()
                     # Taken from PerMessageDeflate.encode
                     item = encoder.compress(item) + encoder.flush(zlib.Z_SYNC_FLUSH)
                     if item.endswith(b"\x00\x00\xff\xff"):

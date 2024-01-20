@@ -287,7 +287,7 @@ class Connection:
                         "cannot call send while another thread "
                         "is already running send"
                     )
-                self.protocol.send_text(message.encode("utf-8"))
+                self.protocol.send_text(message.encode())
 
         elif isinstance(message, BytesLike):
             with self.send_context():
@@ -324,7 +324,7 @@ class Connection:
                             )
                         self.send_in_progress = True
                         self.protocol.send_text(
-                            chunk.encode("utf-8"),
+                            chunk.encode(),
                             fin=False,
                         )
                 elif isinstance(chunk, BytesLike):
@@ -349,7 +349,7 @@ class Connection:
                         with self.send_context():
                             assert self.send_in_progress
                             self.protocol.send_continuation(
-                                chunk.encode("utf-8"),
+                                chunk.encode(),
                                 fin=False,
                             )
                     elif isinstance(chunk, BytesLike) and not text:
@@ -630,7 +630,7 @@ class Connection:
         socket::
 
             with self.send_context():
-                self.protocol.send_text(message.encode("utf-8"))
+                self.protocol.send_text(message.encode())
 
         When the connection isn't open on entry, when the connection is expected
         to close on exit, or when an unexpected error happens, terminating the

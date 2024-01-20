@@ -364,7 +364,7 @@ def prepare_data(data: Data) -> Tuple[int, bytes]:
 
     """
     if isinstance(data, str):
-        return OP_TEXT, data.encode("utf-8")
+        return OP_TEXT, data.encode()
     elif isinstance(data, BytesLike):
         return OP_BINARY, data
     else:
@@ -387,7 +387,7 @@ def prepare_ctrl(data: Data) -> bytes:
 
     """
     if isinstance(data, str):
-        return data.encode("utf-8")
+        return data.encode()
     elif isinstance(data, BytesLike):
         return bytes(data)
     else:
@@ -456,7 +456,7 @@ class Close:
 
         """
         self.check()
-        return struct.pack("!H", self.code) + self.reason.encode("utf-8")
+        return struct.pack("!H", self.code) + self.reason.encode()
 
     def check(self) -> None:
         """

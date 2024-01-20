@@ -428,7 +428,7 @@ class CommonTests:
     # Test the recv coroutine.
 
     def test_recv_text(self):
-        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode()))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, "café")
 
@@ -458,7 +458,7 @@ class CommonTests:
             self.loop.run_until_complete(self.protocol.recv())
 
     def test_recv_protocol_error(self):
-        self.receive_frame(Frame(True, OP_CONT, "café".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_CONT, "café".encode()))
         self.process_invalid_frames()
         self.assertConnectionFailed(CloseCode.PROTOCOL_ERROR, "")
 
@@ -469,7 +469,7 @@ class CommonTests:
 
     def test_recv_text_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8") * 205))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode() * 205))
         self.process_invalid_frames()
         self.assertConnectionFailed(CloseCode.MESSAGE_TOO_BIG, "")
 
@@ -481,7 +481,7 @@ class CommonTests:
 
     def test_recv_text_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
-        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8") * 205))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode() * 205))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, "café" * 205)
 
@@ -498,7 +498,7 @@ class CommonTests:
                 asyncio.wait_for(asyncio.shield(recv), timeout=MS)
             )
 
-        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode()))
         data = self.loop.run_until_complete(recv)
         self.assertEqual(data, "café")
 
@@ -507,7 +507,7 @@ class CommonTests:
         # Test internals because it's hard to verify buffers from the outside.
         self.assertEqual(list(self.protocol.messages), [])
 
-        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode()))
         self.run_loop_once()
         self.assertEqual(list(self.protocol.messages), ["café"])
 
@@ -535,7 +535,7 @@ class CommonTests:
         self.protocol.max_queue = None
 
         for _ in range(100):
-            self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
+            self.receive_frame(Frame(True, OP_TEXT, "café".encode()))
             self.run_loop_once()
 
         # Incoming message queue can contain at least 100 messages.
@@ -562,7 +562,7 @@ class CommonTests:
             self.loop.run_until_complete(recv)
 
         # The next frame doesn't disappear in a vacuum (it used to).
-        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode()))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, "café")
 
@@ -570,15 +570,13 @@ class CommonTests:
         recv = self.loop.create_task(
             asyncio.wait_for(self.protocol.recv(), timeout=0.000_001)
         )
-        self.loop.call_soon(
-            self.receive_frame, Frame(True, OP_TEXT, "café".encode("utf-8"))
-        )
+        self.loop.call_soon(self.receive_frame, Frame(True, OP_TEXT, "café".encode()))
 
         with self.assertRaises(asyncio.TimeoutError):
             self.loop.run_until_complete(recv)
 
         # The previous frame doesn't disappear in a vacuum (it used to).
-        self.receive_frame(Frame(True, OP_TEXT, "tea".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_TEXT, "tea".encode()))
         data = self.loop.run_until_complete(self.protocol.recv())
         # If we're getting "tea" there, it means "café" was swallowed (ha, ha).
         self.assertEqual(data, "café")
@@ -586,7 +584,7 @@ class CommonTests:
     def test_recv_when_transfer_data_cancelled(self):
         # Clog incoming queue.
         self.protocol.max_queue = 1
-        self.receive_frame(Frame(True, OP_TEXT, "café".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_TEXT, "café".encode()))
         self.receive_frame(Frame(True, OP_BINARY, b"tea"))
         self.run_loop_once()
 
@@ -620,7 +618,7 @@ class CommonTests:
 
     def test_send_text(self):
         self.loop.run_until_complete(self.protocol.send("café"))
-        self.assertOneFrameSent(True, OP_TEXT, "café".encode("utf-8"))
+        self.assertOneFrameSent(True, OP_TEXT, "café".encode())
 
     def test_send_binary(self):
         self.loop.run_until_complete(self.protocol.send(b"tea"))
@@ -647,9 +645,9 @@ class CommonTests:
     def test_send_iterable_text(self):
         self.loop.run_until_complete(self.protocol.send(["ca", "fé"]))
         self.assertFramesSent(
-            (False, OP_TEXT, "ca".encode("utf-8")),
-            (False, OP_CONT, "fé".encode("utf-8")),
-            (True, OP_CONT, "".encode("utf-8")),
+            (False, OP_TEXT, "ca".encode()),
+            (False, OP_CONT, "fé".encode()),
+            (True, OP_CONT, "".encode()),
         )
 
     def test_send_iterable_binary(self):
@@ -687,7 +685,7 @@ class CommonTests:
         with self.assertRaises(TypeError):
             self.loop.run_until_complete(self.protocol.send(["café", b"tea"]))
         self.assertFramesSent(
-            (False, OP_TEXT, "café".encode("utf-8")),
+            (False, OP_TEXT, "café".encode()),
             (True, OP_CLOSE, Close(CloseCode.INTERNAL_ERROR, "").serialize()),
         )
 
@@ -710,18 +708,18 @@ class CommonTests:
         self.loop.run_until_complete(run_concurrently())
 
         self.assertFramesSent(
-            (False, OP_TEXT, "ca".encode("utf-8")),
-            (False, OP_CONT, "fé".encode("utf-8")),
-            (True, OP_CONT, "".encode("utf-8")),
+            (False, OP_TEXT, "ca".encode()),
+            (False, OP_CONT, "fé".encode()),
+            (True, OP_CONT, "".encode()),
             (True, OP_BINARY, b"tea"),
         )
 
     def test_send_async_iterable_text(self):
         self.loop.run_until_complete(self.protocol.send(async_iterable(["ca", "fé"])))
         self.assertFramesSent(
-            (False, OP_TEXT, "ca".encode("utf-8")),
-            (False, OP_CONT, "fé".encode("utf-8")),
-            (True, OP_CONT, "".encode("utf-8")),
+            (False, OP_TEXT, "ca".encode()),
+            (False, OP_CONT, "fé".encode()),
+            (True, OP_CONT, "".encode()),
         )
 
     def test_send_async_iterable_binary(self):
@@ -761,7 +759,7 @@ class CommonTests:
                 self.protocol.send(async_iterable(["café", b"tea"]))
             )
         self.assertFramesSent(
-            (False, OP_TEXT, "café".encode("utf-8")),
+            (False, OP_TEXT, "café".encode()),
             (True, OP_CLOSE, Close(CloseCode.INTERNAL_ERROR, "").serialize()),
         )
 
@@ -784,9 +782,9 @@ class CommonTests:
         self.loop.run_until_complete(run_concurrently())
 
         self.assertFramesSent(
-            (False, OP_TEXT, "ca".encode("utf-8")),
-            (False, OP_CONT, "fé".encode("utf-8")),
-            (True, OP_CONT, "".encode("utf-8")),
+            (False, OP_TEXT, "ca".encode()),
+            (False, OP_CONT, "fé".encode()),
+            (True, OP_CONT, "".encode()),
             (True, OP_BINARY, b"tea"),
         )
 
@@ -829,7 +827,7 @@ class CommonTests:
 
     def test_ping_text(self):
         self.loop.run_until_complete(self.protocol.ping("café"))
-        self.assertOneFrameSent(True, OP_PING, "café".encode("utf-8"))
+        self.assertOneFrameSent(True, OP_PING, "café".encode())
 
     def test_ping_binary(self):
         self.loop.run_until_complete(self.protocol.ping(b"tea"))
@@ -882,7 +880,7 @@ class CommonTests:
 
     def test_pong_text(self):
         self.loop.run_until_complete(self.protocol.pong("café"))
-        self.assertOneFrameSent(True, OP_PONG, "café".encode("utf-8"))
+        self.assertOneFrameSent(True, OP_PONG, "café".encode())
 
     def test_pong_binary(self):
         self.loop.run_until_complete(self.protocol.pong(b"tea"))
@@ -1072,8 +1070,8 @@ class CommonTests:
     # Test the protocol's logic for rebuilding fragmented messages.
 
     def test_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
-        self.receive_frame(Frame(True, OP_CONT, "fé".encode("utf-8")))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode()))
+        self.receive_frame(Frame(True, OP_CONT, "fé".encode()))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, "café")
 
@@ -1086,8 +1084,8 @@ class CommonTests:
 
     def test_fragmented_text_payload_too_big(self):
         self.protocol.max_size = 1024
-        self.receive_frame(Frame(False, OP_TEXT, "café".encode("utf-8") * 100))
-        self.receive_frame(Frame(True, OP_CONT, "café".encode("utf-8") * 105))
+        self.receive_frame(Frame(False, OP_TEXT, "café".encode() * 100))
+        self.receive_frame(Frame(True, OP_CONT, "café".encode() * 105))
         self.process_invalid_frames()
         self.assertConnectionFailed(CloseCode.MESSAGE_TOO_BIG, "")
 
@@ -1100,8 +1098,8 @@ class CommonTests:
 
     def test_fragmented_text_no_max_size(self):
         self.protocol.max_size = None  # for test coverage
-        self.receive_frame(Frame(False, OP_TEXT, "café".encode("utf-8") * 100))
-        self.receive_frame(Frame(True, OP_CONT, "café".encode("utf-8") * 105))
+        self.receive_frame(Frame(False, OP_TEXT, "café".encode() * 100))
+        self.receive_frame(Frame(True, OP_CONT, "café".encode() * 105))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, "café" * 205)
 
@@ -1113,22 +1111,22 @@ class CommonTests:
         self.assertEqual(data, b"tea" * 342)
 
     def test_control_frame_within_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode()))
         self.receive_frame(Frame(True, OP_PING, b""))
-        self.receive_frame(Frame(True, OP_CONT, "fé".encode("utf-8")))
+        self.receive_frame(Frame(True, OP_CONT, "fé".encode()))
         data = self.loop.run_until_complete(self.protocol.recv())
         self.assertEqual(data, "café")
         self.assertOneFrameSent(True, OP_PONG, b"")
 
     def test_unterminated_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode()))
         # Missing the second part of the fragmented frame.
         self.receive_frame(Frame(True, OP_BINARY, b"tea"))
         self.process_invalid_frames()
         self.assertConnectionFailed(CloseCode.PROTOCOL_ERROR, "")
 
     def test_close_handshake_in_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode()))
         self.receive_frame(Frame(True, OP_CLOSE, b""))
         self.process_invalid_frames()
         # The RFC may have overlooked this case: it says that control frames
@@ -1138,7 +1136,7 @@ class CommonTests:
         self.assertConnectionClosed(CloseCode.NO_STATUS_RCVD, "")
 
     def test_connection_close_in_fragmented_text(self):
-        self.receive_frame(Frame(False, OP_TEXT, "ca".encode("utf-8")))
+        self.receive_frame(Frame(False, OP_TEXT, "ca".encode()))
         self.process_invalid_frames()
         self.assertConnectionFailed(CloseCode.ABNORMAL_CLOSURE, "")
 
@@ -1472,7 +1470,7 @@ class CommonTests:
 
     def test_broadcast_text(self):
         broadcast([self.protocol], "café")
-        self.assertOneFrameSent(True, OP_TEXT, "café".encode("utf-8"))
+        self.assertOneFrameSent(True, OP_TEXT, "café".encode())
 
     def test_broadcast_binary(self):
         broadcast([self.protocol], b"tea")
@@ -1489,8 +1487,8 @@ class CommonTests:
     def test_broadcast_two_clients(self):
         broadcast([self.protocol, self.protocol], "café")
         self.assertFramesSent(
-            (True, OP_TEXT, "café".encode("utf-8")),
-            (True, OP_TEXT, "café".encode("utf-8")),
+            (True, OP_TEXT, "café".encode()),
+            (True, OP_TEXT, "café".encode()),
         )
 
     def test_broadcast_skips_closed_connection(self):
@@ -1513,7 +1511,7 @@ class CommonTests:
         self.make_drain_slow()
         self.loop.create_task(self.protocol.send(["ca", "fé"]))
         self.run_loop_once()
-        self.assertOneFrameSent(False, OP_TEXT, "ca".encode("utf-8"))
+        self.assertOneFrameSent(False, OP_TEXT, "ca".encode())
 
         with self.assertLogs("websockets", logging.WARNING) as logs:
             broadcast([self.protocol], "café")
@@ -1530,7 +1528,7 @@ class CommonTests:
         self.make_drain_slow()
         self.loop.create_task(self.protocol.send(["ca", "fé"]))
         self.run_loop_once()
-        self.assertOneFrameSent(False, OP_TEXT, "ca".encode("utf-8"))
+        self.assertOneFrameSent(False, OP_TEXT, "ca".encode())
 
         with self.assertRaises(ExceptionGroup) as raised:
             broadcast([self.protocol], "café", raise_exceptions=True)

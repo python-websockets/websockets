@@ -84,7 +84,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     # Data frames are encoded and decoded.
 
     def test_encode_decode_text_frame(self):
-        frame = Frame(OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode())
 
         enc_frame = self.extension.encode(frame)
 
@@ -112,9 +112,9 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame, frame)
 
     def test_encode_decode_fragmented_text_frame(self):
-        frame1 = Frame(OP_TEXT, "café".encode("utf-8"), fin=False)
-        frame2 = Frame(OP_CONT, " & ".encode("utf-8"), fin=False)
-        frame3 = Frame(OP_CONT, "croissants".encode("utf-8"))
+        frame1 = Frame(OP_TEXT, "café".encode(), fin=False)
+        frame2 = Frame(OP_CONT, " & ".encode(), fin=False)
+        frame3 = Frame(OP_CONT, "croissants".encode())
 
         enc_frame1 = self.extension.encode(frame1)
         enc_frame2 = self.extension.encode(frame2)
@@ -168,7 +168,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame2, frame2)
 
     def test_no_decode_text_frame(self):
-        frame = Frame(OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode())
 
         # Try decoding a frame that wasn't encoded.
         self.assertEqual(self.extension.decode(frame), frame)
@@ -180,9 +180,9 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_decode_fragmented_text_frame(self):
-        frame1 = Frame(OP_TEXT, "café".encode("utf-8"), fin=False)
-        frame2 = Frame(OP_CONT, " & ".encode("utf-8"), fin=False)
-        frame3 = Frame(OP_CONT, "croissants".encode("utf-8"))
+        frame1 = Frame(OP_TEXT, "café".encode(), fin=False)
+        frame2 = Frame(OP_CONT, " & ".encode(), fin=False)
+        frame3 = Frame(OP_CONT, "croissants".encode())
 
         dec_frame1 = self.extension.decode(frame1)
         dec_frame2 = self.extension.decode(frame2)
@@ -203,7 +203,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame2, frame2)
 
     def test_context_takeover(self):
-        frame = Frame(OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode())
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -215,7 +215,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         # No context takeover when decoding messages.
         self.extension = PerMessageDeflate(True, False, 15, 15)
 
-        frame = Frame(OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode())
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -233,7 +233,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         # No context takeover when encoding and decoding messages.
         self.extension = PerMessageDeflate(True, True, 15, 15)
 
-        frame = Frame(OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode())
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -253,7 +253,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         # Configure an extension so that no compression actually occurs.
         extension = PerMessageDeflate(False, False, 15, 15, {"level": 0})
 
-        frame = Frame(OP_TEXT, "café".encode("utf-8"))
+        frame = Frame(OP_TEXT, "café".encode())
 
         enc_frame = extension.encode(frame)
 
@@ -269,7 +269,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     # Frames aren't decoded beyond max_size.
 
     def test_decompress_max_size(self):
-        frame = Frame(OP_TEXT, ("a" * 20).encode("utf-8"))
+        frame = Frame(OP_TEXT, ("a" * 20).encode())
 
         enc_frame = self.extension.encode(frame)
 

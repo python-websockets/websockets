@@ -7,7 +7,7 @@ Both sides  (`Sans-I/O`_)
 
 .. automodule:: websockets.protocol
 
-.. autoclass:: Protocol(side, state=State.OPEN, max_size=2 ** 20, logger=None)
+.. autoclass:: Protocol
 
     .. automethod:: receive_data
 

@@ -5,7 +5,7 @@ Client (`Sans-I/O`_)
 
 .. currentmodule:: websockets.client
 
-.. autoclass:: ClientProtocol(wsuri, origin=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
+.. autoclass:: ClientProtocol
 
     .. automethod:: receive_data
 

@@ -5,7 +5,7 @@ Server (`Sans-I/O`_)
 
 .. currentmodule:: websockets.server
 
-.. autoclass:: ServerProtocol(origins=None, extensions=None, subprotocols=None, state=State.CONNECTING, max_size=2 ** 20, logger=None)
+.. autoclass:: ServerProtocol
 
     .. automethod:: receive_data
 

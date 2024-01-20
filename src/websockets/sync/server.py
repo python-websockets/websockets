@@ -266,11 +266,9 @@ def serve(
     host: Optional[str] = None,
     port: Optional[int] = None,
     *,
-    # TCP/TLS — unix and path are only for unix_serve()
+    # TCP/TLS
     sock: Optional[socket.socket] = None,
     ssl_context: Optional[ssl.SSLContext] = None,
-    unix: bool = False,
-    path: Optional[str] = None,
     # WebSocket
     origins: Optional[Sequence[Optional[Origin]]] = None,
     extensions: Optional[Sequence[ServerExtensionFactory]] = None,
@@ -304,6 +302,7 @@ def serve(
     logger: Optional[LoggerLike] = None,
     # Escape hatch for advanced customization
     create_connection: Optional[Type[ServerConnection]] = None,
+    **kwargs: Any,
 ) -> WebSocketServer:
     """
     Create a WebSocket server listening on ``host`` and ``port``.
@@ -396,6 +395,10 @@ def serve(
         create_connection = ServerConnection
 
     # Bind socket and listen
+
+    # Private APIs for unix_connect()
+    unix: bool = kwargs.pop("unix", False)
+    path: Optional[str] = kwargs.pop("path", None)
 
     if sock is None:
         if unix:
@@ -515,8 +518,9 @@ def unix_serve(
     """
     Create a WebSocket server listening on a Unix socket.
 
-    This function is identical to :func:`serve`, except the ``host`` and
-    ``port`` arguments are replaced by ``path``. It's only available on Unix.
+    This function accepts the same keyword arguments as :func:`serve`.
+
+    It's only available on Unix.
 
     It's useful for deploying a server behind a reverse proxy such as nginx.
 

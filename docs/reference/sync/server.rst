@@ -6,9 +6,9 @@ Server (:mod:`threading`)
 Creating a server
 -----------------
 
-.. autofunction:: serve(handler, host=None, port=None, *, sock=None, ssl_context=None, origins=None, extensions=None, subprotocols=None, select_subprotocol=None, process_request=None, process_response=None, server_header="Python/x.y.z websockets/X.Y", compression="deflate", open_timeout=10, close_timeout=10, max_size=2 ** 20, logger=None, create_connection=None)
+.. autofunction:: serve
 
-.. autofunction:: unix_serve(handler, path=None, *, sock=None, ssl_context=None, origins=None, extensions=None, subprotocols=None, select_subprotocol=None, process_request=None, process_response=None, server_header="Python/x.y.z websockets/X.Y", compression="deflate", open_timeout=10, close_timeout=10, max_size=2 ** 20, logger=None, create_connection=None)
+.. autofunction:: unix_serve
 
 Running a server
 ----------------

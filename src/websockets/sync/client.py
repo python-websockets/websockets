@@ -126,12 +126,10 @@ class ClientConnection(Connection):
 def connect(
     uri: str,
     *,
-    # TCP/TLS — unix and path are only for unix_connect()
+    # TCP/TLS
     sock: Optional[socket.socket] = None,
     ssl_context: Optional[ssl.SSLContext] = None,
     server_hostname: Optional[str] = None,
-    unix: bool = False,
-    path: Optional[str] = None,
     # WebSocket
     origin: Optional[Origin] = None,
     extensions: Optional[Sequence[ClientExtensionFactory]] = None,
@@ -148,6 +146,7 @@ def connect(
     logger: Optional[LoggerLike] = None,
     # Escape hatch for advanced customization
     create_connection: Optional[Type[ClientConnection]] = None,
+    **kwargs: Any,
 ) -> ClientConnection:
     """
     Connect to the WebSocket server at ``uri``.
@@ -210,13 +209,15 @@ def connect(
     if not wsuri.secure and ssl_context is not None:
         raise TypeError("ssl_context argument is incompatible with a ws:// URI")
 
+    # Private APIs for unix_connect()
+    unix: bool = kwargs.pop("unix", False)
+    path: Optional[str] = kwargs.pop("path", None)
+
     if unix:
         if path is None and sock is None:
             raise TypeError("missing path argument")
         elif path is not None and sock is not None:
             raise TypeError("path and sock arguments are incompatible")
-    else:
-        assert path is None  # private argument, only set by unix_connect()
 
     if subprotocols is not None:
         validate_subprotocols(subprotocols)
@@ -241,7 +242,7 @@ def connect(
             if unix:
                 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 sock.settimeout(deadline.timeout())
-                assert path is not None  # validated above -- this is for mpypy
+                assert path is not None  # mypy cannot figure this out
                 sock.connect(path)
             else:
                 sock = socket.create_connection(
@@ -308,8 +309,9 @@ def unix_connect(
     """
     Connect to a WebSocket server listening on a Unix socket.
 
-    This function is identical to :func:`connect`, except for the additional
-    ``path`` argument. It's only available on Unix.
+    This function accepts the same keyword arguments as :func:`connect`.
+
+    It's only available on Unix.
 
     It's mainly useful for debugging servers listening on Unix sockets.
 

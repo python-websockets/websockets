@@ -97,9 +97,9 @@ class Request:
                 line or raises an exception if there isn't enough data
 
         Raises:
-            EOFError: if the connection is closed without a full HTTP request.
-            SecurityError: if the request exceeds a security limit.
-            ValueError: if the request isn't well formatted.
+            EOFError: If the connection is closed without a full HTTP request.
+            SecurityError: If the request exceeds a security limit.
+            ValueError: If the request isn't well formatted.
 
         """
         # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.1
@@ -201,10 +201,10 @@ class Response:
                 of the stream.
 
         Raises:
-            EOFError: if the connection is closed without a full HTTP response.
-            SecurityError: if the response exceeds a security limit.
-            LookupError: if the response isn't well formatted.
-            ValueError: if the response isn't well formatted.
+            EOFError: If the connection is closed without a full HTTP response.
+            SecurityError: If the response exceeds a security limit.
+            LookupError: If the response isn't well formatted.
+            ValueError: If the response isn't well formatted.
 
         """
         # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.2
@@ -299,9 +299,9 @@ def parse_headers(
             or raises an exception if there isn't enough data.
 
     Raises:
-        EOFError: if the connection is closed without complete headers.
-        SecurityError: if the request exceeds a security limit.
-        ValueError: if the request isn't well formatted.
+        EOFError: If the connection is closed without complete headers.
+        SecurityError: If the request exceeds a security limit.
+        ValueError: If the request isn't well formatted.
 
     """
     # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2
@@ -350,8 +350,8 @@ def parse_line(
             or raises an exception if there isn't enough data.
 
     Raises:
-        EOFError: if the connection is closed without a CRLF.
-        SecurityError: if the response exceeds a security limit.
+        EOFError: If the connection is closed without a CRLF.
+        SecurityError: If the response exceeds a security limit.
 
     """
     try:

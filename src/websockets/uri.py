@@ -69,7 +69,7 @@ def parse_uri(uri: str) -> WebSocketURI:
         Parsed WebSocket URI.
 
     Raises:
-        InvalidURI: if ``uri`` isn't a valid WebSocket URI.
+        InvalidURI: If ``uri`` isn't a valid WebSocket URI.
 
     """
     parsed = urllib.parse.urlparse(uri)

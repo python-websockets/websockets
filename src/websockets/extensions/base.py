@@ -35,7 +35,7 @@ class Extension:
             Decoded frame.
 
         Raises:
-            PayloadTooBig: if decoding the payload exceeds ``max_size``.
+            PayloadTooBig: If decoding the payload exceeds ``max_size``.
 
         """
         raise NotImplementedError
@@ -89,7 +89,7 @@ class ClientExtensionFactory:
             An extension instance.
 
         Raises:
-            NegotiationError: if parameters aren't acceptable.
+            NegotiationError: If parameters aren't acceptable.
 
         """
         raise NotImplementedError
@@ -121,7 +121,7 @@ class ServerExtensionFactory:
             extension and an extension instance.
 
         Raises:
-            NegotiationError: to reject the offer, if parameters received from
+            NegotiationError: To reject the offer, if parameters received from
                 the client aren't acceptable.
 
         """

@@ -103,7 +103,7 @@ def parse_token(header: str, pos: int, header_name: str) -> Tuple[str, int]:
     Return the token value and the new position.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     match = _token_re.match(header, pos)
@@ -127,7 +127,7 @@ def parse_quoted_string(header: str, pos: int, header_name: str) -> Tuple[str, i
     Return the unquoted value and the new position.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     match = _quoted_string_re.match(header, pos)
@@ -180,7 +180,7 @@ def parse_list(
     Return a list of items.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     # Per https://www.rfc-editor.org/rfc/rfc7230.html#section-7, "a recipient
@@ -234,7 +234,7 @@ def parse_connection_option(
     Return the protocol value and the new position.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     item, pos = parse_token(header, pos, header_name)
@@ -251,7 +251,7 @@ def parse_connection(header: str) -> List[ConnectionOption]:
         header: value of the ``Connection`` header.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     return parse_list(parse_connection_option, header, 0, "Connection")
@@ -271,7 +271,7 @@ def parse_upgrade_protocol(
     Return the protocol value and the new position.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     match = _protocol_re.match(header, pos)
@@ -292,7 +292,7 @@ def parse_upgrade(header: str) -> List[UpgradeProtocol]:
         header: Value of the ``Upgrade`` header.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     return parse_list(parse_upgrade_protocol, header, 0, "Upgrade")
@@ -307,7 +307,7 @@ def parse_extension_item_param(
     Return a ``(name, value)`` pair and the new position.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     # Extract parameter name.
@@ -344,7 +344,7 @@ def parse_extension_item(
     list of ``(name, value)`` pairs, and the new position.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     # Extract extension name.
@@ -379,7 +379,7 @@ def parse_extension(header: str) -> List[ExtensionHeader]:
     Parameter values are :obj:`None` when no value is provided.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     return parse_list(parse_extension_item, header, 0, "Sec-WebSocket-Extensions")
@@ -431,7 +431,7 @@ def parse_subprotocol_item(
     Return the subprotocol value and the new position.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     item, pos = parse_token(header, pos, header_name)
@@ -445,7 +445,7 @@ def parse_subprotocol(header: str) -> List[Subprotocol]:
     Return a list of WebSocket subprotocols.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     return parse_list(parse_subprotocol_item, header, 0, "Sec-WebSocket-Protocol")
@@ -505,7 +505,7 @@ def parse_token68(header: str, pos: int, header_name: str) -> Tuple[str, int]:
     Return the token value and the new position.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
+        InvalidHeaderFormat: On invalid inputs.
 
     """
     match = _token68_re.match(header, pos)
@@ -535,8 +535,8 @@ def parse_authorization_basic(header: str) -> Tuple[str, str]:
         header: Value of the ``Authorization`` header.
 
     Raises:
-        InvalidHeaderFormat: on invalid inputs.
-        InvalidHeaderValue: on unsupported inputs.
+        InvalidHeaderFormat: On invalid inputs.
+        InvalidHeaderValue: On unsupported inputs.
 
     """
     # https://www.rfc-editor.org/rfc/rfc7235.html#section-2.1

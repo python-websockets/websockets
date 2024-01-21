@@ -144,7 +144,7 @@ class ClientProtocol(Protocol):
             request: WebSocket handshake response received from the server.
 
         Raises:
-            InvalidHandshake: if the handshake response is invalid.
+            InvalidHandshake: If the handshake response is invalid.
 
         """
 
@@ -216,7 +216,7 @@ class ClientProtocol(Protocol):
             List of accepted extensions.
 
         Raises:
-            InvalidHandshake: to abort the handshake.
+            InvalidHandshake: To abort the handshake.
 
         """
         accepted_extensions: List[Extension] = []

@@ -217,7 +217,7 @@ class ServerProtocol(Protocol):
             ``Sec-WebSocket-Protocol`` headers for the handshake response.
 
         Raises:
-            InvalidHandshake: if the handshake request is invalid;
+            InvalidHandshake: If the handshake request is invalid;
                 then the server must return 400 Bad Request error.
 
         """
@@ -296,8 +296,8 @@ class ServerProtocol(Protocol):
            origin, if it is acceptable.
 
         Raises:
-            InvalidHandshake: if the Origin header is invalid.
-            InvalidOrigin: if the origin isn't acceptable.
+            InvalidHandshake: If the Origin header is invalid.
+            InvalidOrigin: If the origin isn't acceptable.
 
         """
         # "The user agent MUST NOT include more than one Origin header field"
@@ -347,7 +347,7 @@ class ServerProtocol(Protocol):
             accepted extensions.
 
         Raises:
-            InvalidHandshake: if the Sec-WebSocket-Extensions header is invalid.
+            InvalidHandshake: If the Sec-WebSocket-Extensions header is invalid.
 
         """
         response_header_value: Optional[str] = None
@@ -404,7 +404,7 @@ class ServerProtocol(Protocol):
            ``Sec-WebSocket-Protocol`` response header.
 
         Raises:
-            InvalidHandshake: if the Sec-WebSocket-Subprotocol header is invalid.
+            InvalidHandshake: If the Sec-WebSocket-Subprotocol header is invalid.
 
         """
         subprotocols: Sequence[Subprotocol] = sum(
@@ -453,7 +453,7 @@ class ServerProtocol(Protocol):
             :obj:`None` to continue without a subprotocol.
 
         Raises:
-            NegotiationError: custom implementations may raise this exception
+            NegotiationError: Custom implementations may raise this exception
                 to abort the handshake with an HTTP 400 error.
 
         """

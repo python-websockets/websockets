@@ -217,7 +217,7 @@ class Protocol:
         known only once the connection is closed.
 
         Raises:
-            AssertionError: if the connection isn't closed yet.
+            AssertionError: If the connection isn't closed yet.
 
         """
         assert self.state is CLOSED, "connection isn't closed yet"
@@ -252,7 +252,7 @@ class Protocol:
         - You should call :meth:`events_received` and process resulting events.
 
         Raises:
-            EOFError: if :meth:`receive_eof` was called earlier.
+            EOFError: If :meth:`receive_eof` was called earlier.
 
         """
         self.reader.feed_data(data)
@@ -270,7 +270,7 @@ class Protocol:
           any new events.
 
         Raises:
-            EOFError: if :meth:`receive_eof` was called earlier.
+            EOFError: If :meth:`receive_eof` was called earlier.
 
         """
         self.reader.feed_eof()
@@ -292,7 +292,7 @@ class Protocol:
                 of a fragmented message and to :obj:`False` otherwise.
 
         Raises:
-            ProtocolError: if a fragmented message isn't in progress.
+            ProtocolError: If a fragmented message isn't in progress.
 
         """
         if not self.expect_continuation_frame:
@@ -313,7 +313,7 @@ class Protocol:
                 a fragmented message.
 
         Raises:
-            ProtocolError: if a fragmented message is in progress.
+            ProtocolError: If a fragmented message is in progress.
 
         """
         if self.expect_continuation_frame:
@@ -334,7 +334,7 @@ class Protocol:
                 a fragmented message.
 
         Raises:
-            ProtocolError: if a fragmented message is in progress.
+            ProtocolError: If a fragmented message is in progress.
 
         """
         if self.expect_continuation_frame:
@@ -354,7 +354,7 @@ class Protocol:
             reason: close reason.
 
         Raises:
-            ProtocolError: if a fragmented message is being sent, if the code
+            ProtocolError: If a fragmented message is being sent, if the code
                 isn't valid, or if a reason is provided without a code
 
         """
@@ -412,7 +412,7 @@ class Protocol:
             reason: close reason
 
         Raises:
-            ProtocolError: if the code isn't valid.
+            ProtocolError: If the code isn't valid.
         """
         # 7.1.7. Fail the WebSocket Connection
 

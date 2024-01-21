@@ -271,7 +271,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         after this coroutine returns.
 
         Raises:
-            InvalidMessage: if the HTTP message is malformed or isn't an
+            InvalidMessage: If the HTTP message is malformed or isn't an
                 HTTP/1.1 GET request.
 
         """
@@ -381,7 +381,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             origins: Optional list of acceptable origins.
 
         Raises:
-            InvalidOrigin: if the origin isn't acceptable.
+            InvalidOrigin: If the origin isn't acceptable.
 
         """
         # "The user agent MUST NOT include more than one Origin header field"
@@ -432,7 +432,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             extensions: Optional list of supported extensions.
 
         Raises:
-            InvalidHandshake: to abort the handshake with an HTTP 400 error.
+            InvalidHandshake: To abort the handshake with an HTTP 400 error.
 
         """
         response_header_value: Optional[str] = None
@@ -492,7 +492,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             available_subprotocols: Optional list of supported subprotocols.
 
         Raises:
-            InvalidHandshake: to abort the handshake with an HTTP 400 error.
+            InvalidHandshake: To abort the handshake with an HTTP 400 error.
 
         """
         subprotocol: Optional[Subprotocol] = None
@@ -574,7 +574,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             path of the URI of the request.
 
         Raises:
-            InvalidHandshake: if the handshake fails.
+            InvalidHandshake: If the handshake fails.
 
         """
         path, request_headers = await self.read_http_request()

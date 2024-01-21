@@ -216,10 +216,10 @@ class Frame:
             extensions: List of extensions, applied in reverse order.
 
         Raises:
-            EOFError: if the connection is closed without a full WebSocket frame.
-            UnicodeDecodeError: if the frame contains invalid UTF-8.
-            PayloadTooBig: if the frame's payload size exceeds ``max_size``.
-            ProtocolError: if the frame contains incorrect values.
+            EOFError: If the connection is closed without a full WebSocket frame.
+            UnicodeDecodeError: If the frame contains invalid UTF-8.
+            PayloadTooBig: If the frame's payload size exceeds ``max_size``.
+            ProtocolError: If the frame contains incorrect values.
 
         """
         # Read the header.
@@ -285,7 +285,7 @@ class Frame:
             extensions: List of extensions, applied in order.
 
         Raises:
-            ProtocolError: if the frame contains incorrect values.
+            ProtocolError: If the frame contains incorrect values.
 
         """
         self.check()
@@ -334,7 +334,7 @@ class Frame:
         Check that reserved bits and opcode have acceptable values.
 
         Raises:
-            ProtocolError: if a reserved bit or the opcode is invalid.
+            ProtocolError: If a reserved bit or the opcode is invalid.
 
         """
         if self.rsv1 or self.rsv2 or self.rsv3:
@@ -360,7 +360,7 @@ def prepare_data(data: Data) -> Tuple[int, bytes]:
     object.
 
     Raises:
-        TypeError: if ``data`` doesn't have a supported type.
+        TypeError: If ``data`` doesn't have a supported type.
 
     """
     if isinstance(data, str):
@@ -383,7 +383,7 @@ def prepare_ctrl(data: Data) -> bytes:
     If ``data`` is a bytes-like object, return a :class:`bytes` object.
 
     Raises:
-        TypeError: if ``data`` doesn't have a supported type.
+        TypeError: If ``data`` doesn't have a supported type.
 
     """
     if isinstance(data, str):
@@ -435,8 +435,8 @@ class Close:
             data: Payload of the close frame.
 
         Raises:
-            ProtocolError: if data is ill-formed.
-            UnicodeDecodeError: if the reason isn't valid UTF-8.
+            ProtocolError: If data is ill-formed.
+            UnicodeDecodeError: If the reason isn't valid UTF-8.
 
         """
         if len(data) >= 2:
@@ -463,7 +463,7 @@ class Close:
         Check that the close code has a valid value for a close frame.
 
         Raises:
-            ProtocolError: if the close code is invalid.
+            ProtocolError: If the close code is invalid.
 
         """
         if not (self.code in EXTERNAL_CLOSE_CODES or 3000 <= self.code < 5000):

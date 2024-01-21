@@ -349,8 +349,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             request_headers: request headers.
 
         Returns:
-            Optional[Tuple[StatusLike, HeadersLike, bytes]]: :obj:`None`
-            to continue the WebSocket handshake normally.
+            Tuple[StatusLike, HeadersLike, bytes] | None: :obj:`None` to
+            continue the WebSocket handshake normally.
 
             An HTTP response, represented by a 3-uple of the response status,
             headers, and body, to abort the WebSocket handshake and return
@@ -534,8 +534,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             server_subprotocols: list of subprotocols available on the server.
 
         Returns:
-            Optional[Subprotocol]: Selected subprotocol, if a common subprotocol
-            was found.
+            Selected subprotocol, if a common subprotocol was found.
 
             :obj:`None` to continue without a subprotocol.
 
@@ -572,7 +571,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 the handshake succeeds.
 
         Returns:
-            str: path of the URI of the request.
+            path of the URI of the request.
 
         Raises:
             InvalidHandshake: if the handshake fails.
@@ -968,7 +967,7 @@ class Serve:
       outside of websockets.
 
     Returns:
-        WebSocketServer: WebSocket server.
+        WebSocket server.
 
     """
 

@@ -518,7 +518,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         :func:`~asyncio.timeout` or :func:`~asyncio.wait_for`.
 
         Returns:
-            Data: A string (:class:`str`) for a Text_ frame. A bytestring
+            A string (:class:`str`) for a Text_ frame. A bytestring
             (:class:`bytes`) for a Binary_ frame.
 
             .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
@@ -805,7 +805,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         await asyncio.shield(self.connection_lost_waiter)
 
-    async def ping(self, data: Optional[Data] = None) -> Awaitable[None]:
+    async def ping(self, data: Optional[Data] = None) -> Awaitable[float]:
         """
         Send a Ping_.
 
@@ -827,10 +827,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 containing four random bytes.
 
         Returns:
-            ~asyncio.Future[float]: A future that will be completed when the
-            corresponding pong is received. You can ignore it if you don't
-            intend to wait. The result of the future is the latency of the
-            connection in seconds.
+            A future that will be completed when the corresponding pong is
+            received. You can ignore it if you don't intend to wait. The result
+            of the future is the latency of the connection in seconds.
 
             ::
 

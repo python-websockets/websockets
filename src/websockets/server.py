@@ -213,7 +213,6 @@ class ServerProtocol(Protocol):
             request: WebSocket handshake request received from the client.
 
         Returns:
-            Tuple[str, Optional[str], Optional[str]]:
             ``Sec-WebSocket-Accept``, ``Sec-WebSocket-Extensions``, and
             ``Sec-WebSocket-Protocol`` headers for the handshake response.
 
@@ -294,7 +293,7 @@ class ServerProtocol(Protocol):
             headers: WebSocket handshake request headers.
 
         Returns:
-           Optional[Origin]: origin, if it is acceptable.
+           origin, if it is acceptable.
 
         Raises:
             InvalidHandshake: if the Origin header is invalid.
@@ -344,8 +343,8 @@ class ServerProtocol(Protocol):
             headers: WebSocket handshake request headers.
 
         Returns:
-            Tuple[Optional[str], List[Extension]]: ``Sec-WebSocket-Extensions``
-            HTTP response header and list of accepted extensions.
+            ``Sec-WebSocket-Extensions`` HTTP response header and list of
+            accepted extensions.
 
         Raises:
             InvalidHandshake: if the Sec-WebSocket-Extensions header is invalid.
@@ -401,8 +400,8 @@ class ServerProtocol(Protocol):
             headers: WebSocket handshake request headers.
 
         Returns:
-           Optional[Subprotocol]: Subprotocol, if one was selected; this is
-           also the value of the ``Sec-WebSocket-Protocol`` response header.
+           Subprotocol, if one was selected; this is also the value of the
+           ``Sec-WebSocket-Protocol`` response header.
 
         Raises:
             InvalidHandshake: if the Sec-WebSocket-Subprotocol header is invalid.
@@ -449,8 +448,7 @@ class ServerProtocol(Protocol):
             subprotocols: list of subprotocols offered by the client.
 
         Returns:
-            Optional[Subprotocol]: Selected subprotocol, if a common subprotocol
-            was found.
+            Selected subprotocol, if a common subprotocol was found.
 
             :obj:`None` to continue without a subprotocol.
 
@@ -499,7 +497,7 @@ class ServerProtocol(Protocol):
             text: HTTP response body; will be encoded to UTF-8.
 
         Returns:
-            Response: WebSocket handshake response event to send to the client.
+            WebSocket handshake response event to send to the client.
 
         """
         # If a user passes an int instead of a HTTPStatus, fix it automatically.

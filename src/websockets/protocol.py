@@ -452,7 +452,7 @@ class Protocol:
         Process resulting events, likely by passing them to the application.
 
         Returns:
-            List[Event]: Events read from the connection.
+            Events read from the connection.
         """
         events, self.events = self.events, []
         return events
@@ -473,7 +473,7 @@ class Protocol:
         connection.
 
         Returns:
-            List[bytes]: Data to write to the connection.
+            Data to write to the connection.
 
         """
         writes, self.writes = self.writes, []
@@ -490,7 +490,7 @@ class Protocol:
         short timeout if the other side hasn't already closed it.
 
         Returns:
-            bool: Whether the TCP connection is expected to close soon.
+            Whether the TCP connection is expected to close soon.
 
         """
         # We expect a TCP close if and only if we sent a close frame:

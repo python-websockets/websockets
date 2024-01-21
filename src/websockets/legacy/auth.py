@@ -66,7 +66,7 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
             password: HTTP Basic Auth password.
 
         Returns:
-            bool: :obj:`True` if the handshake should continue;
+            :obj:`True` if the handshake should continue;
             :obj:`False` if it should fail with an HTTP 401 error.
 
         """

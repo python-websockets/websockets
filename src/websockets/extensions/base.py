@@ -32,7 +32,7 @@ class Extension:
             max_size: maximum payload size in bytes.
 
         Returns:
-            Frame: Decoded frame.
+            Decoded frame.
 
         Raises:
             PayloadTooBig: if decoding the payload exceeds ``max_size``.
@@ -48,7 +48,7 @@ class Extension:
             frame (Frame): outgoing frame.
 
         Returns:
-            Frame: Encoded frame.
+            Encoded frame.
 
         """
         raise NotImplementedError
@@ -68,7 +68,7 @@ class ClientExtensionFactory:
         Build parameters to send to the server for this extension.
 
         Returns:
-            List[ExtensionParameter]: Parameters to send to the server.
+            Parameters to send to the server.
 
         """
         raise NotImplementedError
@@ -88,7 +88,7 @@ class ClientExtensionFactory:
                 accepted extensions.
 
         Returns:
-            Extension: An extension instance.
+            An extension instance.
 
         Raises:
             NegotiationError: if parameters aren't acceptable.
@@ -121,9 +121,8 @@ class ServerExtensionFactory:
                 accepted extensions.
 
         Returns:
-            Tuple[List[ExtensionParameter], Extension]: To accept the offer,
-            parameters to send to the client for this extension and an
-            extension instance.
+            To accept the offer, parameters to send to the client for this
+            extension and an extension instance.
 
         Raises:
             NegotiationError: to reject the offer, if parameters received from

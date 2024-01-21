@@ -24,7 +24,7 @@ def build_request(headers: Headers) -> str:
         headers: Handshake request headers.
 
     Returns:
-        str: ``key`` that must be passed to :func:`check_response`.
+        ``key`` that must be passed to :func:`check_response`.
 
     """
     key = generate_key()
@@ -48,7 +48,7 @@ def check_request(headers: Headers) -> str:
         headers: Handshake request headers.
 
     Returns:
-        str: ``key`` that must be passed to :func:`build_response`.
+        ``key`` that must be passed to :func:`build_response`.
 
     Raises:
         InvalidHandshake: If the handshake request is invalid.

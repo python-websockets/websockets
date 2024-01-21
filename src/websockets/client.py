@@ -101,7 +101,7 @@ class ClientProtocol(Protocol):
         You can modify it before sending it, for example to add HTTP headers.
 
         Returns:
-            Request: WebSocket handshake request event to send to the server.
+            WebSocket handshake request event to send to the server.
 
         """
         headers = Headers()
@@ -213,7 +213,7 @@ class ClientProtocol(Protocol):
             headers: WebSocket handshake response headers.
 
         Returns:
-            List[Extension]: List of accepted extensions.
+            List of accepted extensions.
 
         Raises:
             InvalidHandshake: to abort the handshake.
@@ -271,7 +271,7 @@ class ClientProtocol(Protocol):
             headers: WebSocket handshake response headers.
 
         Returns:
-           Optional[Subprotocol]: Subprotocol, if one was selected.
+           Subprotocol, if one was selected.
 
         """
         subprotocol: Optional[Subprotocol] = None

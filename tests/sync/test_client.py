@@ -28,12 +28,13 @@ class ClientTests(unittest.TestCase):
         # The connection will be open for the server but failed for the client.
         # Use a connection handler that exits immediately to avoid an exception.
         with run_server(do_nothing, process_response=remove_accept_header) as server:
-            with self.assertRaisesRegex(
-                InvalidHandshake,
-                "missing Sec-WebSocket-Accept header",
-            ):
+            with self.assertRaises(InvalidHandshake) as raised:
                 with run_client(server, close_timeout=MS):
                     self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "missing Sec-WebSocket-Accept header",
+            )
 
     def test_tcp_connection_fails(self):
         """Client fails to connect to server."""
@@ -107,15 +108,16 @@ class ClientTests(unittest.TestCase):
         # Use a connection handler that exits immediately to avoid an exception.
         with run_server(do_nothing, process_request=stall_connection) as server:
             try:
-                with self.assertRaisesRegex(
-                    TimeoutError,
-                    "timed out during handshake",
-                ):
+                with self.assertRaises(TimeoutError) as raised:
                     # While it shouldn't take 50ms to open a connection, this
                     # test becomes flaky in CI when setting a smaller timeout,
                     # even after increasing WEBSOCKETS_TESTS_TIMEOUT_FACTOR.
                     with run_client(server, open_timeout=5 * MS):
                         self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "timed out during handshake",
+                )
             finally:
                 gate.set()
 
@@ -126,12 +128,13 @@ class ClientTests(unittest.TestCase):
             self.close_socket()
 
         with run_server(process_request=close_connection) as server:
-            with self.assertRaisesRegex(
-                ConnectionError,
-                "connection closed during handshake",
-            ):
+            with self.assertRaises(ConnectionError) as raised:
                 with run_client(server):
                     self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "connection closed during handshake",
+            )
 
 
 class SecureClientTests(unittest.TestCase):
@@ -167,24 +170,26 @@ class SecureClientTests(unittest.TestCase):
     def test_reject_invalid_server_certificate(self):
         """Client rejects certificate where server certificate isn't trusted."""
         with run_server(ssl=SERVER_CONTEXT) as server:
-            with self.assertRaisesRegex(
-                ssl.SSLCertVerificationError,
-                r"certificate verify failed: self[ -]signed certificate",
-            ):
+            with self.assertRaises(ssl.SSLCertVerificationError) as raised:
                 # The test certificate isn't trusted system-wide.
                 with run_client(server, secure=True):
                     self.fail("did not raise")
+            self.assertIn(
+                "certificate verify failed: self signed certificate",
+                str(raised.exception).replace("-", " "),
+            )
 
     def test_reject_invalid_server_hostname(self):
         """Client rejects certificate where server hostname doesn't match."""
         with run_server(ssl=SERVER_CONTEXT) as server:
-            with self.assertRaisesRegex(
-                ssl.SSLCertVerificationError,
-                r"certificate verify failed: Hostname mismatch",
-            ):
+            with self.assertRaises(ssl.SSLCertVerificationError) as raised:
                 # This hostname isn't included in the test certificate.
                 with run_client(server, ssl=CLIENT_CONTEXT, server_hostname="invalid"):
                     self.fail("did not raise")
+            self.assertIn(
+                "certificate verify failed: Hostname mismatch",
+                str(raised.exception),
+            )
 
 
 @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
@@ -231,45 +236,50 @@ class SecureUnixClientTests(unittest.TestCase):
 class ClientUsageErrorsTests(unittest.TestCase):
     def test_ssl_without_secure_uri(self):
         """Client rejects ssl when URI isn't secure."""
-        with self.assertRaisesRegex(
-            TypeError,
-            "ssl argument is incompatible with a ws:// URI",
-        ):
+        with self.assertRaises(TypeError) as raised:
             connect("ws://localhost/", ssl=CLIENT_CONTEXT)
+        self.assertEqual(
+            str(raised.exception),
+            "ssl argument is incompatible with a ws:// URI",
+        )
 
     def test_unix_without_path_or_sock(self):
         """Unix client requires path when sock isn't provided."""
-        with self.assertRaisesRegex(
-            TypeError,
-            "missing path argument",
-        ):
+        with self.assertRaises(TypeError) as raised:
             unix_connect()
+        self.assertEqual(
+            str(raised.exception),
+            "missing path argument",
+        )
 
     def test_unix_with_path_and_sock(self):
         """Unix client rejects path when sock is provided."""
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.addCleanup(sock.close)
-        with self.assertRaisesRegex(
-            TypeError,
-            "path and sock arguments are incompatible",
-        ):
+        with self.assertRaises(TypeError) as raised:
             unix_connect(path="/", sock=sock)
+        self.assertEqual(
+            str(raised.exception),
+            "path and sock arguments are incompatible",
+        )
 
     def test_invalid_subprotocol(self):
         """Client rejects single value of subprotocols."""
-        with self.assertRaisesRegex(
-            TypeError,
-            "subprotocols must be a list",
-        ):
+        with self.assertRaises(TypeError) as raised:
             connect("ws://localhost/", subprotocols="chat")
+        self.assertEqual(
+            str(raised.exception),
+            "subprotocols must be a list, not a str",
+        )
 
     def test_unsupported_compression(self):
         """Client rejects incorrect value of compression."""
-        with self.assertRaisesRegex(
-            ValueError,
-            "unsupported compression: False",
-        ):
+        with self.assertRaises(ValueError) as raised:
             connect("ws://localhost/", compression=False)
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported compression: False",
+        )
 
 
 class BackwardsCompatibilityTests(DeprecationTestCase):

@@ -213,7 +213,10 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 500)
         with self.assertRaises(Exception) as raised:
             raise server.handshake_exc
-        self.assertEqual(str(raised.exception), "BOOM")
+        self.assertEqual(
+            str(raised.exception),
+            "BOOM",
+        )
 
     def test_missing_connection(self):
         server = ServerProtocol()
@@ -225,7 +228,10 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.headers["Upgrade"], "websocket")
         with self.assertRaises(InvalidUpgrade) as raised:
             raise server.handshake_exc
-        self.assertEqual(str(raised.exception), "missing Connection header")
+        self.assertEqual(
+            str(raised.exception),
+            "missing Connection header",
+        )
 
     def test_invalid_connection(self):
         server = ServerProtocol()
@@ -238,7 +244,10 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.headers["Upgrade"], "websocket")
         with self.assertRaises(InvalidUpgrade) as raised:
             raise server.handshake_exc
-        self.assertEqual(str(raised.exception), "invalid Connection header: close")
+        self.assertEqual(
+            str(raised.exception),
+            "invalid Connection header: close",
+        )
 
     def test_missing_upgrade(self):
         server = ServerProtocol()
@@ -250,7 +259,10 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.headers["Upgrade"], "websocket")
         with self.assertRaises(InvalidUpgrade) as raised:
             raise server.handshake_exc
-        self.assertEqual(str(raised.exception), "missing Upgrade header")
+        self.assertEqual(
+            str(raised.exception),
+            "missing Upgrade header",
+        )
 
     def test_invalid_upgrade(self):
         server = ServerProtocol()
@@ -263,7 +275,10 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.headers["Upgrade"], "websocket")
         with self.assertRaises(InvalidUpgrade) as raised:
             raise server.handshake_exc
-        self.assertEqual(str(raised.exception), "invalid Upgrade header: h2c")
+        self.assertEqual(
+            str(raised.exception),
+            "invalid Upgrade header: h2c",
+        )
 
     def test_missing_key(self):
         server = ServerProtocol()
@@ -274,7 +289,10 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
             raise server.handshake_exc
-        self.assertEqual(str(raised.exception), "missing Sec-WebSocket-Key header")
+        self.assertEqual(
+            str(raised.exception),
+            "missing Sec-WebSocket-Key header",
+        )
 
     def test_multiple_key(self):
         server = ServerProtocol()
@@ -302,7 +320,8 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidHeader) as raised:
             raise server.handshake_exc
         self.assertEqual(
-            str(raised.exception), "invalid Sec-WebSocket-Key header: not Base64 data!"
+            str(raised.exception),
+            "invalid Sec-WebSocket-Key header: not Base64 data!",
         )
 
     def test_truncated_key(self):
@@ -318,7 +337,8 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidHeader) as raised:
             raise server.handshake_exc
         self.assertEqual(
-            str(raised.exception), f"invalid Sec-WebSocket-Key header: {KEY[:16]}"
+            str(raised.exception),
+            f"invalid Sec-WebSocket-Key header: {KEY[:16]}",
         )
 
     def test_missing_version(self):
@@ -330,7 +350,10 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 400)
         with self.assertRaises(InvalidHeader) as raised:
             raise server.handshake_exc
-        self.assertEqual(str(raised.exception), "missing Sec-WebSocket-Version header")
+        self.assertEqual(
+            str(raised.exception),
+            "missing Sec-WebSocket-Version header",
+        )
 
     def test_multiple_version(self):
         server = ServerProtocol()
@@ -358,7 +381,8 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidHeader) as raised:
             raise server.handshake_exc
         self.assertEqual(
-            str(raised.exception), "invalid Sec-WebSocket-Version header: 11"
+            str(raised.exception),
+            "invalid Sec-WebSocket-Version header: 11",
         )
 
     def test_no_origin(self):
@@ -369,7 +393,10 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertEqual(response.status_code, 403)
         with self.assertRaises(InvalidOrigin) as raised:
             raise server.handshake_exc
-        self.assertEqual(str(raised.exception), "missing Origin header")
+        self.assertEqual(
+            str(raised.exception),
+            "missing Origin header",
+        )
 
     def test_origin(self):
         server = ServerProtocol(origins=["https://example.com"])
@@ -390,7 +417,8 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidOrigin) as raised:
             raise server.handshake_exc
         self.assertEqual(
-            str(raised.exception), "invalid Origin header: https://other.example.com"
+            str(raised.exception),
+            "invalid Origin header: https://other.example.com",
         )
 
     def test_multiple_origin(self):
@@ -435,7 +463,8 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidOrigin) as raised:
             raise server.handshake_exc
         self.assertEqual(
-            str(raised.exception), "invalid Origin header: https://original.example.com"
+            str(raised.exception),
+            "invalid Origin header: https://original.example.com",
         )
 
     def test_no_origin_accepted(self):
@@ -574,11 +603,12 @@ class AcceptRejectTests(unittest.TestCase):
         response = server.accept(request)
 
         self.assertEqual(response.status_code, 400)
-        with self.assertRaisesRegex(
-            NegotiationError,
-            r"missing subprotocol",
-        ):
+        with self.assertRaises(NegotiationError) as raised:
             raise server.handshake_exc
+        self.assertEqual(
+            str(raised.exception),
+            "missing subprotocol",
+        )
 
     def test_subprotocol(self):
         server = ServerProtocol(subprotocols=["chat"])
@@ -628,11 +658,12 @@ class AcceptRejectTests(unittest.TestCase):
         response = server.accept(request)
 
         self.assertEqual(response.status_code, 400)
-        with self.assertRaisesRegex(
-            NegotiationError,
-            r"invalid subprotocol; expected one of superchat, chat",
-        ):
+        with self.assertRaises(NegotiationError) as raised:
             raise server.handshake_exc
+        self.assertEqual(
+            str(raised.exception),
+            "invalid subprotocol; expected one of superchat, chat",
+        )
 
     @staticmethod
     def optional_chat(protocol, subprotocols):

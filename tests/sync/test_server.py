@@ -41,33 +41,36 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             del request.headers["Sec-WebSocket-Key"]
 
         with run_server(process_request=remove_key_header) as server:
-            with self.assertRaisesRegex(
-                InvalidStatus,
-                "server rejected WebSocket connection: HTTP 400",
-            ):
+            with self.assertRaises(InvalidStatus) as raised:
                 with run_client(server):
                     self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 400",
+            )
 
     def test_connection_handler_returns(self):
         """Connection handler returns."""
         with run_server(do_nothing) as server:
             with run_client(server) as client:
-                with self.assertRaisesRegex(
-                    ConnectionClosedOK,
-                    r"received 1000 \(OK\); then sent 1000 \(OK\)",
-                ):
+                with self.assertRaises(ConnectionClosedOK) as raised:
                     client.recv()
+                self.assertEqual(
+                    str(raised.exception),
+                    "received 1000 (OK); then sent 1000 (OK)",
+                )
 
     def test_connection_handler_raises_exception(self):
         """Connection handler raises an exception."""
         with run_server(crash) as server:
             with run_client(server) as client:
-                with self.assertRaisesRegex(
-                    ConnectionClosedError,
-                    r"received 1011 \(internal error\); "
-                    r"then sent 1011 \(internal error\)",
-                ):
+                with self.assertRaises(ConnectionClosedError) as raised:
                     client.recv()
+                self.assertEqual(
+                    str(raised.exception),
+                    "received 1011 (internal error); "
+                    "then sent 1011 (internal error)",
+                )
 
     def test_existing_socket(self):
         """Server receives connection using a pre-existing socket."""
@@ -100,12 +103,13 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             raise NegotiationError
 
         with run_server(select_subprotocol=select_subprotocol) as server:
-            with self.assertRaisesRegex(
-                InvalidStatus,
-                "server rejected WebSocket connection: HTTP 400",
-            ):
+            with self.assertRaises(InvalidStatus) as raised:
                 with run_client(server):
                     self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 400",
+            )
 
     def test_select_subprotocol_raises_exception(self):
         """Server returns an error if select_subprotocol raises an exception."""
@@ -114,12 +118,13 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             raise RuntimeError
 
         with run_server(select_subprotocol=select_subprotocol) as server:
-            with self.assertRaisesRegex(
-                InvalidStatus,
-                "server rejected WebSocket connection: HTTP 500",
-            ):
+            with self.assertRaises(InvalidStatus) as raised:
                 with run_client(server):
                     self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 500",
+            )
 
     def test_process_request(self):
         """Server runs process_request before processing the handshake."""
@@ -139,12 +144,13 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             return ws.protocol.reject(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
         with run_server(process_request=process_request) as server:
-            with self.assertRaisesRegex(
-                InvalidStatus,
-                "server rejected WebSocket connection: HTTP 403",
-            ):
+            with self.assertRaises(InvalidStatus) as raised:
                 with run_client(server):
                     self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 403",
+            )
 
     def test_process_request_raises_exception(self):
         """Server returns an error if process_request raises an exception."""
@@ -153,12 +159,13 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             raise RuntimeError
 
         with run_server(process_request=process_request) as server:
-            with self.assertRaisesRegex(
-                InvalidStatus,
-                "server rejected WebSocket connection: HTTP 500",
-            ):
+            with self.assertRaises(InvalidStatus) as raised:
                 with run_client(server):
                     self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 500",
+            )
 
     def test_process_response(self):
         """Server runs process_response after processing the handshake."""
@@ -193,12 +200,13 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             raise RuntimeError
 
         with run_server(process_response=process_response) as server:
-            with self.assertRaisesRegex(
-                InvalidStatus,
-                "server rejected WebSocket connection: HTTP 500",
-            ):
+            with self.assertRaises(InvalidStatus) as raised:
                 with run_client(server):
                     self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 500",
+            )
 
     def test_override_server(self):
         """Server can override Server header with server_header."""
@@ -334,37 +342,41 @@ class SecureUnixServerTests(EvalShellMixin, unittest.TestCase):
 class ServerUsageErrorsTests(unittest.TestCase):
     def test_unix_without_path_or_sock(self):
         """Unix server requires path when sock isn't provided."""
-        with self.assertRaisesRegex(
-            TypeError,
-            "missing path argument",
-        ):
+        with self.assertRaises(TypeError) as raised:
             unix_serve(eval_shell)
+        self.assertEqual(
+            str(raised.exception),
+            "missing path argument",
+        )
 
     def test_unix_with_path_and_sock(self):
         """Unix server rejects path when sock is provided."""
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.addCleanup(sock.close)
-        with self.assertRaisesRegex(
-            TypeError,
-            "path and sock arguments are incompatible",
-        ):
+        with self.assertRaises(TypeError) as raised:
             unix_serve(eval_shell, path="/", sock=sock)
+        self.assertEqual(
+            str(raised.exception),
+            "path and sock arguments are incompatible",
+        )
 
     def test_invalid_subprotocol(self):
         """Server rejects single value of subprotocols."""
-        with self.assertRaisesRegex(
-            TypeError,
-            "subprotocols must be a list",
-        ):
+        with self.assertRaises(TypeError) as raised:
             serve(eval_shell, subprotocols="chat")
+        self.assertEqual(
+            str(raised.exception),
+            "subprotocols must be a list, not a str",
+        )
 
     def test_unsupported_compression(self):
         """Server rejects incorrect value of compression."""
-        with self.assertRaisesRegex(
-            ValueError,
-            "unsupported compression: False",
-        ):
+        with self.assertRaises(ValueError) as raised:
             serve(eval_shell, compression=False)
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported compression: False",
+        )
 
 
 class WebSocketServerTests(unittest.TestCase):

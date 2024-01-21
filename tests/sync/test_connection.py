@@ -177,12 +177,13 @@ class ClientConnectionTests(unittest.TestCase):
         recv_thread = threading.Thread(target=self.connection.recv)
         recv_thread.start()
 
-        with self.assertRaisesRegex(
-            RuntimeError,
+        with self.assertRaises(RuntimeError) as raised:
+            self.connection.recv()
+        self.assertEqual(
+            str(raised.exception),
             "cannot call recv while another thread "
             "is already running recv or recv_streaming",
-        ):
-            self.connection.recv()
+        )
 
         self.remote_connection.send("")
         recv_thread.join()
@@ -194,12 +195,13 @@ class ClientConnectionTests(unittest.TestCase):
         )
         recv_streaming_thread.start()
 
-        with self.assertRaisesRegex(
-            RuntimeError,
+        with self.assertRaises(RuntimeError) as raised:
+            self.connection.recv()
+        self.assertEqual(
+            str(raised.exception),
             "cannot call recv while another thread "
             "is already running recv or recv_streaming",
-        ):
-            self.connection.recv()
+        )
 
         self.remote_connection.send("")
         recv_streaming_thread.join()
@@ -257,12 +259,13 @@ class ClientConnectionTests(unittest.TestCase):
         recv_thread = threading.Thread(target=self.connection.recv)
         recv_thread.start()
 
-        with self.assertRaisesRegex(
-            RuntimeError,
+        with self.assertRaises(RuntimeError) as raised:
+            list(self.connection.recv_streaming())
+        self.assertEqual(
+            str(raised.exception),
             "cannot call recv_streaming while another thread "
             "is already running recv or recv_streaming",
-        ):
-            list(self.connection.recv_streaming())
+        )
 
         self.remote_connection.send("")
         recv_thread.join()
@@ -274,12 +277,13 @@ class ClientConnectionTests(unittest.TestCase):
         )
         recv_streaming_thread.start()
 
-        with self.assertRaisesRegex(
-            RuntimeError,
+        with self.assertRaises(RuntimeError) as raised:
+            list(self.connection.recv_streaming())
+        self.assertEqual(
+            str(raised.exception),
             r"cannot call recv_streaming while another thread "
             r"is already running recv or recv_streaming",
-        ):
-            list(self.connection.recv_streaming())
+        )
 
         self.remote_connection.send("")
         recv_streaming_thread.join()
@@ -355,11 +359,12 @@ class ClientConnectionTests(unittest.TestCase):
             [b"\x01\x02", b"\xfe\xff"],
         ]:
             with self.subTest(message=message):
-                with self.assertRaisesRegex(
-                    RuntimeError,
-                    "cannot call send while another thread is already running send",
-                ):
+                with self.assertRaises(RuntimeError) as raised:
                     self.connection.send(message)
+                self.assertEqual(
+                    str(raised.exception),
+                    "cannot call send while another thread is already running send",
+                )
 
         exit_gate.set()
         send_thread.join()
@@ -598,11 +603,12 @@ class ClientConnectionTests(unittest.TestCase):
         """ping rejects the same payload until receiving the pong."""
         with self.remote_connection.protocol_mutex:  # block response to ping
             pong_waiter = self.connection.ping("idem")
-            with self.assertRaisesRegex(
-                RuntimeError,
-                "already waiting for a pong with the same data",
-            ):
+            with self.assertRaises(RuntimeError) as raised:
                 self.connection.ping("idem")
+            self.assertEqual(
+                str(raised.exception),
+                "already waiting for a pong with the same data",
+            )
         self.assertTrue(pong_waiter.wait(MS))
         self.connection.ping("idem")  # doesn't raise an exception
 

@@ -1331,20 +1331,24 @@ class ClientServerOriginTests(ClientServerTestsMixin, AsyncioTestCase):
 
     @with_server(origins=["http://localhost"])
     def test_checking_origin_fails(self):
-        with self.assertRaisesRegex(
-            InvalidHandshake, "server rejected WebSocket connection: HTTP 403"
-        ):
+        with self.assertRaises(InvalidHandshake) as raised:
             self.start_client(origin="http://otherhost")
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 403",
+        )
 
     @with_server(origins=["http://localhost"])
     def test_checking_origins_fails_with_multiple_headers(self):
-        with self.assertRaisesRegex(
-            InvalidHandshake, "server rejected WebSocket connection: HTTP 400"
-        ):
+        with self.assertRaises(InvalidHandshake) as raised:
             self.start_client(
                 origin="http://localhost",
                 extra_headers=[("Origin", "http://otherhost")],
             )
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 400",
+        )
 
     @with_server(origins=[None])
     @with_client()
@@ -1574,8 +1578,9 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
                 pass  # work around bug in coverage
 
         with self.assertLogs("websockets", logging.INFO) as logs:
-            with self.assertRaisesRegex(Exception, "BOOM"):
+            with self.assertRaises(Exception) as raised:
                 self.loop.run_until_complete(run_client())
+            self.assertEqual(str(raised.exception), "BOOM")
 
         # Iteration 1
         self.assertEqual(

@@ -31,30 +31,48 @@ class HTTPAsyncTests(AsyncioTestCase):
 
     async def test_read_request_empty(self):
         self.stream.feed_eof()
-        with self.assertRaisesRegex(
-            EOFError, "connection closed while reading HTTP request line"
-        ):
+        with self.assertRaises(EOFError) as raised:
             await read_request(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "connection closed while reading HTTP request line",
+        )
 
     async def test_read_request_invalid_request_line(self):
         self.stream.feed_data(b"GET /\r\n\r\n")
-        with self.assertRaisesRegex(ValueError, "invalid HTTP request line: GET /"):
+        with self.assertRaises(ValueError) as raised:
             await read_request(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP request line: GET /",
+        )
 
     async def test_read_request_unsupported_method(self):
         self.stream.feed_data(b"OPTIONS * HTTP/1.1\r\n\r\n")
-        with self.assertRaisesRegex(ValueError, "unsupported HTTP method: OPTIONS"):
+        with self.assertRaises(ValueError) as raised:
             await read_request(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported HTTP method: OPTIONS",
+        )
 
     async def test_read_request_unsupported_version(self):
         self.stream.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
-        with self.assertRaisesRegex(ValueError, "unsupported HTTP version: HTTP/1.0"):
+        with self.assertRaises(ValueError) as raised:
             await read_request(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported HTTP version: HTTP/1.0",
+        )
 
     async def test_read_request_invalid_header(self):
         self.stream.feed_data(b"GET /chat HTTP/1.1\r\nOops\r\n")
-        with self.assertRaisesRegex(ValueError, "invalid HTTP header line: Oops"):
+        with self.assertRaises(ValueError) as raised:
             await read_request(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP header line: Oops",
+        )
 
     async def test_read_response(self):
         # Example from the protocol overview in RFC 6455
@@ -73,40 +91,66 @@ class HTTPAsyncTests(AsyncioTestCase):
 
     async def test_read_response_empty(self):
         self.stream.feed_eof()
-        with self.assertRaisesRegex(
-            EOFError, "connection closed while reading HTTP status line"
-        ):
+        with self.assertRaises(EOFError) as raised:
             await read_response(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "connection closed while reading HTTP status line",
+        )
 
     async def test_read_request_invalid_status_line(self):
         self.stream.feed_data(b"Hello!\r\n")
-        with self.assertRaisesRegex(ValueError, "invalid HTTP status line: Hello!"):
+        with self.assertRaises(ValueError) as raised:
             await read_response(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP status line: Hello!",
+        )
 
     async def test_read_response_unsupported_version(self):
         self.stream.feed_data(b"HTTP/1.0 400 Bad Request\r\n\r\n")
-        with self.assertRaisesRegex(ValueError, "unsupported HTTP version: HTTP/1.0"):
+        with self.assertRaises(ValueError) as raised:
             await read_response(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported HTTP version: HTTP/1.0",
+        )
 
     async def test_read_response_invalid_status(self):
         self.stream.feed_data(b"HTTP/1.1 OMG WTF\r\n\r\n")
-        with self.assertRaisesRegex(ValueError, "invalid HTTP status code: OMG"):
+        with self.assertRaises(ValueError) as raised:
             await read_response(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP status code: OMG",
+        )
 
     async def test_read_response_unsupported_status(self):
         self.stream.feed_data(b"HTTP/1.1 007 My name is Bond\r\n\r\n")
-        with self.assertRaisesRegex(ValueError, "unsupported HTTP status code: 007"):
+        with self.assertRaises(ValueError) as raised:
             await read_response(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported HTTP status code: 007",
+        )
 
     async def test_read_response_invalid_reason(self):
         self.stream.feed_data(b"HTTP/1.1 200 \x7f\r\n\r\n")
-        with self.assertRaisesRegex(ValueError, "invalid HTTP reason phrase: \\x7f"):
+        with self.assertRaises(ValueError) as raised:
             await read_response(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP reason phrase: \x7f",
+        )
 
     async def test_read_response_invalid_header(self):
         self.stream.feed_data(b"HTTP/1.1 500 Internal Server Error\r\nOops\r\n")
-        with self.assertRaisesRegex(ValueError, "invalid HTTP header line: Oops"):
+        with self.assertRaises(ValueError) as raised:
             await read_response(self.stream)
+        self.assertEqual(
+            str(raised.exception),
+            "invalid HTTP header line: Oops",
+        )
 
     async def test_header_name(self):
         self.stream.feed_data(b"foo bar: baz qux\r\n\r\n")

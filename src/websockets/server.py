@@ -53,22 +53,22 @@ class ServerProtocol(Protocol):
     Sans-I/O implementation of a WebSocket server connection.
 
     Args:
-        origins: acceptable values of the ``Origin`` header; include
+        origins: Acceptable values of the ``Origin`` header; include
             :obj:`None` in the list if the lack of an origin is acceptable.
             This is useful for defending against Cross-Site WebSocket
             Hijacking attacks.
-        extensions: list of supported extensions, in order in which they
+        extensions: List of supported extensions, in order in which they
             should be tried.
-        subprotocols: list of supported subprotocols, in order of decreasing
+        subprotocols: List of supported subprotocols, in order of decreasing
             preference.
         select_subprotocol: Callback for selecting a subprotocol among
             those supported by the client and the server. It has the same
             signature as the :meth:`select_subprotocol` method, including a
             :class:`ServerProtocol` instance as first argument.
-        state: initial state of the WebSocket connection.
-        max_size: maximum size of incoming messages in bytes;
+        state: Initial state of the WebSocket connection.
+        max_size: Maximum size of incoming messages in bytes;
             :obj:`None` disables the limit.
-        logger: logger for this connection;
+        logger: Logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../../topics/logging>` for details.
 
@@ -445,7 +445,7 @@ class ServerProtocol(Protocol):
                     return "chat"
 
         Args:
-            subprotocols: list of subprotocols offered by the client.
+            subprotocols: List of subprotocols offered by the client.
 
         Returns:
             Selected subprotocol, if a common subprotocol was found.

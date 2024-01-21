@@ -345,8 +345,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         from shutting down.
 
         Args:
-            path: request path, including optional query string.
-            request_headers: request headers.
+            path: Request path, including optional query string.
+            request_headers: Request headers.
 
         Returns:
             Tuple[StatusLike, HeadersLike, bytes] | None: :obj:`None` to
@@ -377,8 +377,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Handle the Origin HTTP request header.
 
         Args:
-            headers: request headers.
-            origins: optional list of acceptable origins.
+            headers: Request headers.
+            origins: Optional list of acceptable origins.
 
         Raises:
             InvalidOrigin: if the origin isn't acceptable.
@@ -428,8 +428,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         order of extensions, may be implemented by overriding this method.
 
         Args:
-            headers: request headers.
-            extensions: optional list of supported extensions.
+            headers: Request headers.
+            extensions: Optional list of supported extensions.
 
         Raises:
             InvalidHandshake: to abort the handshake with an HTTP 400 error.
@@ -488,8 +488,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         as the selected subprotocol.
 
         Args:
-            headers: request headers.
-            available_subprotocols: optional list of supported subprotocols.
+            headers: Request headers.
+            available_subprotocols: Optional list of supported subprotocols.
 
         Raises:
             InvalidHandshake: to abort the handshake with an HTTP 400 error.
@@ -530,8 +530,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         subprotocol.
 
         Args:
-            client_subprotocols: list of subprotocols offered by the client.
-            server_subprotocols: list of subprotocols available on the server.
+            client_subprotocols: List of subprotocols offered by the client.
+            server_subprotocols: List of subprotocols available on the server.
 
         Returns:
             Selected subprotocol, if a common subprotocol was found.
@@ -561,13 +561,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         Perform the server side of the opening handshake.
 
         Args:
-            origins: list of acceptable values of the Origin HTTP header;
+            origins: List of acceptable values of the Origin HTTP header;
                 include :obj:`None` if the lack of an origin is acceptable.
-            extensions: list of supported extensions, in order in which they
+            extensions: List of supported extensions, in order in which they
                 should be tried.
-            subprotocols: list of supported subprotocols, in order of
+            subprotocols: List of supported subprotocols, in order of
                 decreasing preference.
-            extra_headers: arbitrary HTTP headers to add to the response when
+            extra_headers: Arbitrary HTTP headers to add to the response when
                 the handshake succeeds.
 
         Returns:

@@ -74,10 +74,10 @@ class Protocol:
 
     Args:
         side: :attr:`~Side.CLIENT` or :attr:`~Side.SERVER`.
-        state: initial state of the WebSocket connection.
-        max_size: maximum size of incoming messages in bytes;
+        state: Initial state of the WebSocket connection.
+        max_size: Maximum size of incoming messages in bytes;
             :obj:`None` disables the limit.
-        logger: logger for this connection; depending on ``side``,
+        logger: Logger for this connection; depending on ``side``,
             defaults to ``logging.getLogger("websockets.client")``
             or ``logging.getLogger("websockets.server")``;
             see the :doc:`logging guide <../../topics/logging>` for details.

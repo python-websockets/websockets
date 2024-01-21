@@ -289,7 +289,7 @@ def parse_upgrade(header: str) -> List[UpgradeProtocol]:
     Return a list of HTTP protocols.
 
     Args:
-        header: value of the ``Upgrade`` header.
+        header: Value of the ``Upgrade`` header.
 
     Raises:
         InvalidHeaderFormat: on invalid inputs.
@@ -486,7 +486,7 @@ def build_www_authenticate_basic(realm: str) -> str:
     Build a ``WWW-Authenticate`` header for HTTP Basic Auth.
 
     Args:
-        realm: identifier of the protection space.
+        realm: Identifier of the protection space.
 
     """
     # https://www.rfc-editor.org/rfc/rfc7617.html#section-2
@@ -532,7 +532,7 @@ def parse_authorization_basic(header: str) -> Tuple[str, str]:
     Return a ``(username, password)`` tuple.
 
     Args:
-        header: value of the ``Authorization`` header.
+        header: Value of the ``Authorization`` header.
 
     Raises:
         InvalidHeaderFormat: on invalid inputs.

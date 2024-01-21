@@ -28,8 +28,8 @@ class Extension:
         Decode an incoming frame.
 
         Args:
-            frame (Frame): incoming frame.
-            max_size: maximum payload size in bytes.
+            frame: Incoming frame.
+            max_size: Maximum payload size in bytes.
 
         Returns:
             Decoded frame.
@@ -45,7 +45,7 @@ class Extension:
         Encode an outgoing frame.
 
         Args:
-            frame (Frame): outgoing frame.
+            frame: Outgoing frame.
 
         Returns:
             Encoded frame.
@@ -82,10 +82,8 @@ class ClientExtensionFactory:
         Process parameters received from the server.
 
         Args:
-            params (Sequence[ExtensionParameter]): parameters received from
-                the server for this extension.
-            accepted_extensions (Sequence[Extension]): list of previously
-                accepted extensions.
+            params: Parameters received from the server for this extension.
+            accepted_extensions: List of previously accepted extensions.
 
         Returns:
             An extension instance.
@@ -115,10 +113,8 @@ class ServerExtensionFactory:
         Process parameters received from the client.
 
         Args:
-            params (Sequence[ExtensionParameter]): parameters received from
-                the client for this extension.
-            accepted_extensions (Sequence[Extension]): list of previously
-                accepted extensions.
+            params: Parameters received from the client for this extension.
+            accepted_extensions: List of previously accepted extensions.
 
         Returns:
             To accept the offer, parameters to send to the client for this

@@ -624,8 +624,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         error or a network failure.
 
         Args:
-            message (Union[Data, Iterable[Data], AsyncIterable[Data]): message
-                to send.
+            message: Message to send.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -822,9 +821,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         effect.
 
         Args:
-            data (Optional[Data]): payload of the ping; a string will be
-                encoded to UTF-8; or :obj:`None` to generate a payload
-                containing four random bytes.
+            data: Payload of the ping. A string will be encoded to UTF-8.
+                If ``data`` is :obj:`None`, the payload is four random bytes.
 
         Returns:
             A future that will be completed when the corresponding pong is
@@ -878,8 +876,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         wait, you should close the connection.
 
         Args:
-            data (Data): Payload of the pong. A string will be encoded to
-                UTF-8.
+            data: Payload of the pong. A string will be encoded to UTF-8.
 
         Raises:
             ConnectionClosed: When the connection is closed.

@@ -152,7 +152,7 @@ class Headers(MutableMapping[str, str]):
         Return the (possibly empty) list of all values for a header.
 
         Args:
-            key: header name.
+            key: Header name.
 
         """
         return self._dict.get(key.lower(), [])

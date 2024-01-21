@@ -28,7 +28,7 @@ class Deadline:
         Calculate a timeout from a deadline.
 
         Args:
-            raise_if_elapsed (bool): Whether to raise :exc:`TimeoutError`
+            raise_if_elapsed: Whether to raise :exc:`TimeoutError`
                 if the deadline lapsed.
 
         Raises:

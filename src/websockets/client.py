@@ -53,17 +53,17 @@ class ClientProtocol(Protocol):
     Args:
         wsuri: URI of the WebSocket server, parsed
             with :func:`~websockets.uri.parse_uri`.
-        origin: value of the ``Origin`` header. This is useful when connecting
+        origin: Value of the ``Origin`` header. This is useful when connecting
             to a server that validates the ``Origin`` header to defend against
             Cross-Site WebSocket Hijacking attacks.
-        extensions: list of supported extensions, in order in which they
+        extensions: List of supported extensions, in order in which they
             should be tried.
-        subprotocols: list of supported subprotocols, in order of decreasing
+        subprotocols: List of supported subprotocols, in order of decreasing
             preference.
-        state: initial state of the WebSocket connection.
-        max_size: maximum size of incoming messages in bytes;
+        state: Initial state of the WebSocket connection.
+        max_size: Maximum size of incoming messages in bytes;
             :obj:`None` disables the limit.
-        logger: logger for this connection;
+        logger: Logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../../topics/logging>` for details.
 

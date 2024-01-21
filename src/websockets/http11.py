@@ -93,7 +93,7 @@ class Request:
         body, it may be read from the data stream after :meth:`parse` returns.
 
         Args:
-            read_line: generator-based coroutine that reads a LF-terminated
+            read_line: Generator-based coroutine that reads a LF-terminated
                 line or raises an exception if there isn't enough data
 
         Raises:
@@ -193,11 +193,11 @@ class Response:
         characters. Other characters are represented with surrogate escapes.
 
         Args:
-            read_line: generator-based coroutine that reads a LF-terminated
+            read_line: Generator-based coroutine that reads a LF-terminated
                 line or raises an exception if there isn't enough data.
-            read_exact: generator-based coroutine that reads the requested
+            read_exact: Generator-based coroutine that reads the requested
                 bytes or raises an exception if there isn't enough data.
-            read_to_eof: generator-based coroutine that reads until the end
+            read_to_eof: Generator-based coroutine that reads until the end
                 of the stream.
 
         Raises:
@@ -295,7 +295,7 @@ def parse_headers(
     Non-ASCII characters are represented with surrogate escapes.
 
     Args:
-        read_line: generator-based coroutine that reads a LF-terminated line
+        read_line: Generator-based coroutine that reads a LF-terminated line
             or raises an exception if there isn't enough data.
 
     Raises:
@@ -346,7 +346,7 @@ def parse_line(
     CRLF is stripped from the return value.
 
     Args:
-        read_line: generator-based coroutine that reads a LF-terminated line
+        read_line: Generator-based coroutine that reads a LF-terminated line
             or raises an exception if there isn't enough data.
 
     Raises:

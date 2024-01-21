@@ -208,12 +208,12 @@ class Frame:
         This is a generator-based coroutine.
 
         Args:
-            read_exact: generator-based coroutine that reads the requested
+            read_exact: Generator-based coroutine that reads the requested
                 bytes or raises an exception if there isn't enough data.
-            mask: whether the frame should be masked i.e. whether the read
+            mask: Whether the frame should be masked i.e. whether the read
                 happens on the server side.
-            max_size: maximum payload size in bytes.
-            extensions: list of extensions, applied in reverse order.
+            max_size: Maximum payload size in bytes.
+            extensions: List of extensions, applied in reverse order.
 
         Raises:
             EOFError: if the connection is closed without a full WebSocket frame.
@@ -280,9 +280,9 @@ class Frame:
         Serialize a WebSocket frame.
 
         Args:
-            mask: whether the frame should be masked i.e. whether the write
+            mask: Whether the frame should be masked i.e. whether the write
                 happens on the client side.
-            extensions: list of extensions, applied in order.
+            extensions: List of extensions, applied in order.
 
         Raises:
             ProtocolError: if the frame contains incorrect values.
@@ -432,7 +432,7 @@ class Close:
         Parse the payload of a close frame.
 
         Args:
-            data: payload of the close frame.
+            data: Payload of the close frame.
 
         Raises:
             ProtocolError: if data is ill-formed.

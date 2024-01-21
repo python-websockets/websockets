@@ -268,14 +268,14 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
     value or to an integer value to include them with this value.
 
     Args:
-        server_no_context_takeover: prevent server from using context takeover.
-        client_no_context_takeover: prevent client from using context takeover.
-        server_max_window_bits: maximum size of the server's LZ77 sliding window
+        server_no_context_takeover: Prevent server from using context takeover.
+        client_no_context_takeover: Prevent client from using context takeover.
+        server_max_window_bits: Maximum size of the server's LZ77 sliding window
             in bits, between 8 and 15.
-        client_max_window_bits: maximum size of the client's LZ77 sliding window
+        client_max_window_bits: Maximum size of the client's LZ77 sliding window
             in bits, between 8 and 15, or :obj:`True` to indicate support without
             setting a limit.
-        compress_settings: additional keyword arguments for :func:`zlib.compressobj`,
+        compress_settings: Additional keyword arguments for :func:`zlib.compressobj`,
             excluding ``wbits``.
 
     """
@@ -468,15 +468,15 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
     value or to an integer value to include them with this value.
 
     Args:
-        server_no_context_takeover: prevent server from using context takeover.
-        client_no_context_takeover: prevent client from using context takeover.
-        server_max_window_bits: maximum size of the server's LZ77 sliding window
+        server_no_context_takeover: Prevent server from using context takeover.
+        client_no_context_takeover: Prevent client from using context takeover.
+        server_max_window_bits: Maximum size of the server's LZ77 sliding window
             in bits, between 8 and 15.
-        client_max_window_bits: maximum size of the client's LZ77 sliding window
+        client_max_window_bits: Maximum size of the client's LZ77 sliding window
             in bits, between 8 and 15.
-        compress_settings: additional keyword arguments for :func:`zlib.compressobj`,
+        compress_settings: Additional keyword arguments for :func:`zlib.compressobj`,
             excluding ``wbits``.
-        require_client_max_window_bits: do not enable compression at all if
+        require_client_max_window_bits: Do not enable compression at all if
             client doesn't advertise support for ``client_max_window_bits``;
             the default behavior is to enable compression without enforcing
             ``client_max_window_bits``.

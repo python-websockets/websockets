@@ -25,7 +25,8 @@ def run_client(wsuri_or_server, secure=None, resource_name="/", **kwargs):
     else:
         assert isinstance(wsuri_or_server, WebSocketServer)
         if secure is None:
-            secure = "ssl_context" in kwargs
+            # Backwards compatibility: ssl used to be called ssl_context.
+            secure = "ssl" in kwargs or "ssl_context" in kwargs
         protocol = "wss" if secure else "ws"
         host, port = wsuri_or_server.socket.getsockname()
         wsuri = f"{protocol}://{host}:{port}{resource_name}"

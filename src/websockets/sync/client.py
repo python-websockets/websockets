@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import socket
-import ssl
+import ssl as ssl_module
 import threading
+import warnings
 from typing import Any, Optional, Sequence, Type
 
 from ..client import ClientProtocol
@@ -128,7 +129,7 @@ def connect(
     *,
     # TCP/TLS
     sock: Optional[socket.socket] = None,
-    ssl_context: Optional[ssl.SSLContext] = None,
+    ssl: Optional[ssl_module.SSLContext] = None,
     server_hostname: Optional[str] = None,
     # WebSocket
     origin: Optional[Origin] = None,
@@ -166,7 +167,7 @@ def connect(
         sock: Preexisting TCP socket. ``sock`` overrides the host and port
             from ``uri``. You may call :func:`socket.create_connection` to
             create a suitable TCP socket.
-        ssl_context: Configuration for enabling TLS on the connection.
+        ssl: Configuration for enabling TLS on the connection.
         server_hostname: Host name for the TLS handshake. ``server_hostname``
             overrides the host name from ``uri``.
         origin: Value of the ``Origin`` header, for servers that require it.
@@ -207,9 +208,14 @@ def connect(
 
     # Process parameters
 
+    # Backwards compatibility: ssl used to be called ssl_context.
+    if ssl is None and "ssl_context" in kwargs:
+        ssl = kwargs.pop("ssl_context")
+        warnings.warn("ssl_context was renamed to ssl", DeprecationWarning)
+
     wsuri = parse_uri(uri)
-    if not wsuri.secure and ssl_context is not None:
-        raise TypeError("ssl_context argument is incompatible with a ws:// URI")
+    if not wsuri.secure and ssl is not None:
+        raise TypeError("ssl argument is incompatible with a ws:// URI")
 
     # Private APIs for unix_connect()
     unix: bool = kwargs.pop("unix", False)
@@ -259,12 +265,12 @@ def connect(
         # Initialize TLS wrapper and perform TLS handshake
 
         if wsuri.secure:
-            if ssl_context is None:
-                ssl_context = ssl.create_default_context()
+            if ssl is None:
+                ssl = ssl_module.create_default_context()
             if server_hostname is None:
                 server_hostname = wsuri.host
             sock.settimeout(deadline.timeout())
-            sock = ssl_context.wrap_socket(sock, server_hostname=server_hostname)
+            sock = ssl.wrap_socket(sock, server_hostname=server_hostname)
             sock.settimeout(None)
 
         # Initialize WebSocket connection
@@ -318,12 +324,13 @@ def unix_connect(
     Args:
         path: File system path to the Unix socket.
         uri: URI of the WebSocket server. ``uri`` defaults to
-            ``ws://localhost/`` or, when a ``ssl_context`` is provided, to
+            ``ws://localhost/`` or, when a ``ssl`` is provided, to
             ``wss://localhost/``.
 
     """
     if uri is None:
-        if kwargs.get("ssl_context") is None:
+        # Backwards compatibility: ssl used to be called ssl_context.
+        if kwargs.get("ssl") is None and kwargs.get("ssl_context") is None:
             uri = "ws://localhost/"
         else:
             uri = "wss://localhost/"

@@ -7,7 +7,7 @@ from websockets.exceptions import InvalidHandshake
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 from websockets.sync.client import *
 
-from ..utils import MS, temp_unix_socket_path
+from ..utils import MS, DeprecationTestCase, temp_unix_socket_path
 from .client import CLIENT_CONTEXT, run_client, run_unix_client
 from .server import SERVER_CONTEXT, do_nothing, run_server, run_unix_server
 
@@ -137,18 +137,18 @@ class ClientTests(unittest.TestCase):
 class SecureClientTests(unittest.TestCase):
     def test_connection(self):
         """Client connects to server securely."""
-        with run_server(ssl_context=SERVER_CONTEXT) as server:
-            with run_client(server, ssl_context=CLIENT_CONTEXT) as client:
+        with run_server(ssl=SERVER_CONTEXT) as server:
+            with run_client(server, ssl=CLIENT_CONTEXT) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
                 self.assertEqual(client.socket.version()[:3], "TLS")
 
     def test_set_server_hostname_implicitly(self):
         """Client sets server_hostname to the host in the WebSocket URI."""
         with temp_unix_socket_path() as path:
-            with run_unix_server(path, ssl_context=SERVER_CONTEXT):
+            with run_unix_server(path, ssl=SERVER_CONTEXT):
                 with run_unix_client(
                     path,
-                    ssl_context=CLIENT_CONTEXT,
+                    ssl=CLIENT_CONTEXT,
                     uri="wss://overridden/",
                 ) as client:
                     self.assertEqual(client.socket.server_hostname, "overridden")
@@ -156,17 +156,17 @@ class SecureClientTests(unittest.TestCase):
     def test_set_server_hostname_explicitly(self):
         """Client sets server_hostname to the value provided in argument."""
         with temp_unix_socket_path() as path:
-            with run_unix_server(path, ssl_context=SERVER_CONTEXT):
+            with run_unix_server(path, ssl=SERVER_CONTEXT):
                 with run_unix_client(
                     path,
-                    ssl_context=CLIENT_CONTEXT,
+                    ssl=CLIENT_CONTEXT,
                     server_hostname="overridden",
                 ) as client:
                     self.assertEqual(client.socket.server_hostname, "overridden")
 
     def test_reject_invalid_server_certificate(self):
         """Client rejects certificate where server certificate isn't trusted."""
-        with run_server(ssl_context=SERVER_CONTEXT) as server:
+        with run_server(ssl=SERVER_CONTEXT) as server:
             with self.assertRaisesRegex(
                 ssl.SSLCertVerificationError,
                 r"certificate verify failed: self[ -]signed certificate",
@@ -177,15 +177,13 @@ class SecureClientTests(unittest.TestCase):
 
     def test_reject_invalid_server_hostname(self):
         """Client rejects certificate where server hostname doesn't match."""
-        with run_server(ssl_context=SERVER_CONTEXT) as server:
+        with run_server(ssl=SERVER_CONTEXT) as server:
             with self.assertRaisesRegex(
                 ssl.SSLCertVerificationError,
                 r"certificate verify failed: Hostname mismatch",
             ):
                 # This hostname isn't included in the test certificate.
-                with run_client(
-                    server, ssl_context=CLIENT_CONTEXT, server_hostname="invalid"
-                ):
+                with run_client(server, ssl=CLIENT_CONTEXT, server_hostname="invalid"):
                     self.fail("did not raise")
 
 
@@ -212,8 +210,8 @@ class SecureUnixClientTests(unittest.TestCase):
     def test_connection(self):
         """Client connects to server securely over a Unix socket."""
         with temp_unix_socket_path() as path:
-            with run_unix_server(path, ssl_context=SERVER_CONTEXT):
-                with run_unix_client(path, ssl_context=CLIENT_CONTEXT) as client:
+            with run_unix_server(path, ssl=SERVER_CONTEXT):
+                with run_unix_client(path, ssl=CLIENT_CONTEXT) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
                     self.assertEqual(client.socket.version()[:3], "TLS")
 
@@ -221,23 +219,23 @@ class SecureUnixClientTests(unittest.TestCase):
         """Client sets server_hostname to the host in the WebSocket URI."""
         # This is part of the documented behavior of unix_connect().
         with temp_unix_socket_path() as path:
-            with run_unix_server(path, ssl_context=SERVER_CONTEXT):
+            with run_unix_server(path, ssl=SERVER_CONTEXT):
                 with run_unix_client(
                     path,
-                    ssl_context=CLIENT_CONTEXT,
+                    ssl=CLIENT_CONTEXT,
                     uri="wss://overridden/",
                 ) as client:
                     self.assertEqual(client.socket.server_hostname, "overridden")
 
 
 class ClientUsageErrorsTests(unittest.TestCase):
-    def test_ssl_context_without_secure_uri(self):
-        """Client rejects ssl_context when URI isn't secure."""
+    def test_ssl_without_secure_uri(self):
+        """Client rejects ssl when URI isn't secure."""
         with self.assertRaisesRegex(
             TypeError,
-            "ssl_context argument is incompatible with a ws:// URI",
+            "ssl argument is incompatible with a ws:// URI",
         ):
-            connect("ws://localhost/", ssl_context=CLIENT_CONTEXT)
+            connect("ws://localhost/", ssl=CLIENT_CONTEXT)
 
     def test_unix_without_path_or_sock(self):
         """Unix client requires path when sock isn't provided."""
@@ -272,3 +270,12 @@ class ClientUsageErrorsTests(unittest.TestCase):
             "unsupported compression: False",
         ):
             connect("ws://localhost/", compression=False)
+
+
+class BackwardsCompatibilityTests(DeprecationTestCase):
+    def test_ssl_context_argument(self):
+        """Client supports the deprecated ssl_context argument."""
+        with run_server(ssl=SERVER_CONTEXT) as server:
+            with self.assertDeprecationWarning("ssl_context was renamed to ssl"):
+                with run_client(server, ssl_context=CLIENT_CONTEXT):
+                    pass

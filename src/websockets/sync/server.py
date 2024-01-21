@@ -5,9 +5,10 @@ import logging
 import os
 import selectors
 import socket
-import ssl
+import ssl as ssl_module
 import sys
 import threading
+import warnings
 from types import TracebackType
 from typing import Any, Callable, Optional, Sequence, Type
 
@@ -268,7 +269,7 @@ def serve(
     *,
     # TCP/TLS
     sock: Optional[socket.socket] = None,
-    ssl_context: Optional[ssl.SSLContext] = None,
+    ssl: Optional[ssl_module.SSLContext] = None,
     # WebSocket
     origins: Optional[Sequence[Optional[Origin]]] = None,
     extensions: Optional[Sequence[ServerExtensionFactory]] = None,
@@ -337,7 +338,7 @@ def serve(
         sock: Preexisting TCP socket. ``sock`` replaces ``host`` and ``port``.
             You may call :func:`socket.create_server` to create a suitable TCP
             socket.
-        ssl_context: Configuration for enabling TLS on the connection.
+        ssl: Configuration for enabling TLS on the connection.
         origins: Acceptable values of the ``Origin`` header, for defending
             against Cross-Site WebSocket Hijacking attacks. Include :obj:`None`
             in the list if the lack of an origin is acceptable.
@@ -386,6 +387,11 @@ def serve(
 
     # Process parameters
 
+    # Backwards compatibility: ssl used to be called ssl_context.
+    if ssl is None and "ssl_context" in kwargs:
+        ssl = kwargs.pop("ssl_context")
+        warnings.warn("ssl_context was renamed to ssl", DeprecationWarning)
+
     if subprotocols is not None:
         validate_subprotocols(subprotocols)
 
@@ -417,8 +423,8 @@ def serve(
 
     # Initialize TLS wrapper
 
-    if ssl_context is not None:
-        sock = ssl_context.wrap_socket(
+    if ssl is not None:
+        sock = ssl.wrap_socket(
             sock,
             server_side=True,
             # Delay TLS handshake until after we set a timeout on the socket.
@@ -441,9 +447,10 @@ def serve(
 
             # Perform TLS handshake
 
-            if ssl_context is not None:
+            if ssl is not None:
                 sock.settimeout(deadline.timeout())
-                assert isinstance(sock, ssl.SSLSocket)  # mypy cannot figure this out
+                # mypy cannot figure this out
+                assert isinstance(sock, ssl_module.SSLSocket)
                 sock.do_handshake()
                 sock.settimeout(None)
 

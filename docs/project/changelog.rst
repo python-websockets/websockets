@@ -25,10 +25,22 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
-12.1
+13.0
 ----
 
 *In development*
+
+Backwards-incompatible changes
+..............................
+
+.. admonition:: The ``ssl_context`` argument of :func:`~sync.client.connect`
+    and :func:`~sync.server.serve` is renamed to ``ssl``.
+    :class: note
+
+    This aligns the API of the :mod:`threading` implementation with the
+    :mod:`asyncio` implementation.
+
+    For backwards compatibility, ``ssl_context`` is still supported.
 
 New features
 ............

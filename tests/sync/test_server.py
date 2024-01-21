@@ -14,7 +14,7 @@ from websockets.exceptions import (
 from websockets.http11 import Request, Response
 from websockets.sync.server import *
 
-from ..utils import MS, temp_unix_socket_path
+from ..utils import MS, DeprecationTestCase, temp_unix_socket_path
 from .client import CLIENT_CONTEXT, run_client, run_unix_client
 from .server import (
     SERVER_CONTEXT,
@@ -274,20 +274,20 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 class SecureServerTests(EvalShellMixin, unittest.TestCase):
     def test_connection(self):
         """Server receives secure connection from client."""
-        with run_server(ssl_context=SERVER_CONTEXT) as server:
-            with run_client(server, ssl_context=CLIENT_CONTEXT) as client:
+        with run_server(ssl=SERVER_CONTEXT) as server:
+            with run_client(server, ssl=CLIENT_CONTEXT) as client:
                 self.assertEval(client, "ws.protocol.state.name", "OPEN")
                 self.assertEval(client, "ws.socket.version()[:3]", "TLS")
 
     def test_timeout_during_tls_handshake(self):
         """Server times out before receiving TLS handshake request from client."""
-        with run_server(ssl_context=SERVER_CONTEXT, open_timeout=MS) as server:
+        with run_server(ssl=SERVER_CONTEXT, open_timeout=MS) as server:
             with socket.create_connection(server.socket.getsockname()) as sock:
                 self.assertEqual(sock.recv(4096), b"")
 
     def test_connection_closed_during_tls_handshake(self):
         """Server reads EOF before receiving TLS handshake request from client."""
-        with run_server(ssl_context=SERVER_CONTEXT) as server:
+        with run_server(ssl=SERVER_CONTEXT) as server:
             # Patch handler to record a reference to the thread running it.
             server_thread = None
             conn_received = threading.Event()
@@ -325,8 +325,8 @@ class SecureUnixServerTests(EvalShellMixin, unittest.TestCase):
     def test_connection(self):
         """Server receives secure connection from client over a Unix socket."""
         with temp_unix_socket_path() as path:
-            with run_unix_server(path, ssl_context=SERVER_CONTEXT):
-                with run_unix_client(path, ssl_context=CLIENT_CONTEXT) as client:
+            with run_unix_server(path, ssl=SERVER_CONTEXT):
+                with run_unix_client(path, ssl=CLIENT_CONTEXT) as client:
                     self.assertEval(client, "ws.protocol.state.name", "OPEN")
                     self.assertEval(client, "ws.socket.version()[:3]", "TLS")
 
@@ -386,3 +386,12 @@ class WebSocketServerTests(unittest.TestCase):
             # Check that the server socket is closed.
             with self.assertRaises(OSError):
                 server.socket.accept()
+
+
+class BackwardsCompatibilityTests(DeprecationTestCase):
+    def test_ssl_context_argument(self):
+        """Client supports the deprecated ssl_context argument."""
+        with self.assertDeprecationWarning("ssl_context was renamed to ssl"):
+            with run_server(ssl_context=SERVER_CONTEXT) as server:
+                with run_client(server, ssl=CLIENT_CONTEXT):
+                    pass

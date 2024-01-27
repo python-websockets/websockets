@@ -297,6 +297,8 @@ class Protocol:
         """
         if not self.expect_continuation_frame:
             raise ProtocolError("unexpected continuation frame")
+        if self._state is not OPEN:
+            raise InvalidState(f"connection is {self.state.name.lower()}")
         self.expect_continuation_frame = not fin
         self.send_frame(Frame(OP_CONT, data, fin))
 
@@ -318,6 +320,8 @@ class Protocol:
         """
         if self.expect_continuation_frame:
             raise ProtocolError("expected a continuation frame")
+        if self._state is not OPEN:
+            raise InvalidState(f"connection is {self.state.name.lower()}")
         self.expect_continuation_frame = not fin
         self.send_frame(Frame(OP_TEXT, data, fin))
 
@@ -339,6 +343,8 @@ class Protocol:
         """
         if self.expect_continuation_frame:
             raise ProtocolError("expected a continuation frame")
+        if self._state is not OPEN:
+            raise InvalidState(f"connection is {self.state.name.lower()}")
         self.expect_continuation_frame = not fin
         self.send_frame(Frame(OP_BINARY, data, fin))
 
@@ -358,6 +364,10 @@ class Protocol:
                 without a code.
 
         """
+        # While RFC 6455 doesn't rule out sending more than one close Frame,
+        # websockets is conservative in what it sends and doesn't allow that.
+        if self._state is not OPEN:
+            raise InvalidState(f"connection is {self.state.name.lower()}")
         if code is None:
             if reason != "":
                 raise ProtocolError("cannot send a reason without a code")
@@ -383,6 +393,9 @@ class Protocol:
             data: payload containing arbitrary binary data.
 
         """
+        # RFC 6455 allows control frames after starting the closing handshake.
+        if self._state is not OPEN and self._state is not CLOSING:
+            raise InvalidState(f"connection is {self.state.name.lower()}")
         self.send_frame(Frame(OP_PING, data))
 
     def send_pong(self, data: bytes) -> None:
@@ -396,6 +409,9 @@ class Protocol:
             data: payload containing arbitrary binary data.
 
         """
+        # RFC 6455 allows control frames after starting the closing handshake.
+        if self._state is not OPEN and self._state is not CLOSING:
+            raise InvalidState(f"connection is {self.state.name.lower()}")
         self.send_frame(Frame(OP_PONG, data))
 
     def fail(self, code: int, reason: str = "") -> None:
@@ -675,6 +691,8 @@ class Protocol:
             # 1.4. Closing Handshake: "after receiving a control frame
             # indicating the connection should be closed, a peer discards
             # any further data received."
+            # RFC 6455 allows reading Ping and Pong frames after a Close frame.
+            # However, that doesn't seem useful; websockets doesn't support it.
             self.parser = self.discard()
             next(self.parser)  # start coroutine
 
@@ -687,15 +705,13 @@ class Protocol:
     # Private methods for sending events.
 
     def send_frame(self, frame: Frame) -> None:
-        if self.state is not OPEN:
-            raise InvalidState(
-                f"cannot write to a WebSocket in the {self.state.name} state"
-            )
-
         if self.debug:
             self.logger.debug("> %s", frame)
         self.writes.append(
-            frame.serialize(mask=self.side is CLIENT, extensions=self.extensions)
+            frame.serialize(
+                mask=self.side is CLIENT,
+                extensions=self.extensions,
+            )
         )
 
     def send_eof(self) -> None:

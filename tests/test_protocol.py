@@ -465,15 +465,17 @@ class TextTests(ProtocolTestCase):
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(InvalidState) as raised:
             client.send_text(b"")
+        self.assertEqual(str(raised.exception), "connection is closing")
 
     def test_server_sends_text_after_sending_close(self):
         server = Protocol(SERVER)
         server.send_close(CloseCode.NORMAL_CLOSURE)
         self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(InvalidState) as raised:
             server.send_text(b"")
+        self.assertEqual(str(raised.exception), "connection is closing")
 
     def test_client_receives_text_after_receiving_close(self):
         client = Protocol(CLIENT)
@@ -679,15 +681,17 @@ class BinaryTests(ProtocolTestCase):
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(InvalidState) as raised:
             client.send_binary(b"")
+        self.assertEqual(str(raised.exception), "connection is closing")
 
     def test_server_sends_binary_after_sending_close(self):
         server = Protocol(SERVER)
         server.send_close(CloseCode.NORMAL_CLOSURE)
         self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(InvalidState) as raised:
             server.send_binary(b"")
+        self.assertEqual(str(raised.exception), "connection is closing")
 
     def test_client_receives_binary_after_receiving_close(self):
         client = Protocol(CLIENT)
@@ -956,6 +960,37 @@ class CloseTests(ProtocolTestCase):
         )
         self.assertIs(server.state, CLOSING)
 
+    def test_client_sends_close_twice(self):
+        client = Protocol(CLIENT)
+        with self.enforce_mask(b"\x00\x00\x00\x00"):
+            client.send_close(CloseCode.GOING_AWAY)
+        self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
+        with self.assertRaises(InvalidState) as raised:
+            client.send_close(CloseCode.GOING_AWAY)
+        self.assertEqual(str(raised.exception), "connection is closing")
+
+    def test_server_sends_close_twice(self):
+        server = Protocol(SERVER)
+        server.send_close(CloseCode.NORMAL_CLOSURE)
+        self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
+        with self.assertRaises(InvalidState) as raised:
+            server.send_close(CloseCode.NORMAL_CLOSURE)
+        self.assertEqual(str(raised.exception), "connection is closing")
+
+    def test_client_sends_close_after_connection_is_closed(self):
+        client = Protocol(CLIENT)
+        client.receive_eof()
+        with self.assertRaises(InvalidState) as raised:
+            client.send_close(CloseCode.GOING_AWAY)
+        self.assertEqual(str(raised.exception), "connection is closed")
+
+    def test_server_sends_close_after_connection_is_closed(self):
+        server = Protocol(SERVER)
+        server.receive_eof()
+        with self.assertRaises(InvalidState) as raised:
+            server.send_close(CloseCode.NORMAL_CLOSURE)
+        self.assertEqual(str(raised.exception), "connection is closed")
+
 
 class PingTests(ProtocolTestCase):
     """
@@ -1072,35 +1107,23 @@ class PingTests(ProtocolTestCase):
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
-        # The spec says: "An endpoint MAY send a Ping frame any time (...)
-        # before the connection is closed" but websockets doesn't support
-        # sending a Ping frame after a Close frame.
-        with self.assertRaises(InvalidState) as raised:
+        with self.enforce_mask(b"\x00\x44\x88\xcc"):
             client.send_ping(b"")
-        self.assertEqual(
-            str(raised.exception),
-            "cannot write to a WebSocket in the CLOSING state",
-        )
+        self.assertEqual(client.data_to_send(), [b"\x89\x80\x00\x44\x88\xcc"])
 
     def test_server_sends_ping_after_sending_close(self):
         server = Protocol(SERVER)
         server.send_close(CloseCode.NORMAL_CLOSURE)
         self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
-        # The spec says: "An endpoint MAY send a Ping frame any time (...)
-        # before the connection is closed" but websockets doesn't support
-        # sending a Ping frame after a Close frame.
-        with self.assertRaises(InvalidState) as raised:
-            server.send_ping(b"")
-        self.assertEqual(
-            str(raised.exception),
-            "cannot write to a WebSocket in the CLOSING state",
-        )
+        server.send_ping(b"")
+        self.assertEqual(server.data_to_send(), [b"\x89\x00"])
 
     def test_client_receives_ping_after_receiving_close(self):
         client = Protocol(CLIENT)
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, CloseCode.NORMAL_CLOSURE)
         client.receive_data(b"\x89\x04\x22\x66\xaa\xee")
+        # websockets ignores control frames after a close frame.
         self.assertFrameReceived(client, None)
         self.assertFrameSent(client, None)
 
@@ -1109,8 +1132,23 @@ class PingTests(ProtocolTestCase):
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, CloseCode.GOING_AWAY)
         server.receive_data(b"\x89\x84\x00\x44\x88\xcc\x22\x22\x22\x22")
+        # websockets ignores control frames after a close frame.
         self.assertFrameReceived(server, None)
         self.assertFrameSent(server, None)
+
+    def test_client_sends_ping_after_connection_is_closed(self):
+        client = Protocol(CLIENT)
+        client.receive_eof()
+        with self.assertRaises(InvalidState) as raised:
+            client.send_ping(b"")
+        self.assertEqual(str(raised.exception), "connection is closed")
+
+    def test_server_sends_ping_after_connection_is_closed(self):
+        server = Protocol(SERVER)
+        server.receive_eof()
+        with self.assertRaises(InvalidState) as raised:
+            server.send_ping(b"")
+        self.assertEqual(str(raised.exception), "connection is closed")
 
 
 class PongTests(ProtocolTestCase):
@@ -1212,23 +1250,23 @@ class PongTests(ProtocolTestCase):
         with self.enforce_mask(b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
-        # websockets doesn't support sending a Pong frame after a Close frame.
-        with self.assertRaises(InvalidState):
+        with self.enforce_mask(b"\x00\x44\x88\xcc"):
             client.send_pong(b"")
+        self.assertEqual(client.data_to_send(), [b"\x8a\x80\x00\x44\x88\xcc"])
 
     def test_server_sends_pong_after_sending_close(self):
         server = Protocol(SERVER)
         server.send_close(CloseCode.NORMAL_CLOSURE)
         self.assertEqual(server.data_to_send(), [b"\x88\x02\x03\xe8"])
-        # websockets doesn't support sending a Pong frame after a Close frame.
-        with self.assertRaises(InvalidState):
-            server.send_pong(b"")
+        server.send_pong(b"")
+        self.assertEqual(server.data_to_send(), [b"\x8a\x00"])
 
     def test_client_receives_pong_after_receiving_close(self):
         client = Protocol(CLIENT)
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertConnectionClosing(client, CloseCode.NORMAL_CLOSURE)
         client.receive_data(b"\x8a\x04\x22\x66\xaa\xee")
+        # websockets ignores control frames after a close frame.
         self.assertFrameReceived(client, None)
         self.assertFrameSent(client, None)
 
@@ -1237,8 +1275,23 @@ class PongTests(ProtocolTestCase):
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertConnectionClosing(server, CloseCode.GOING_AWAY)
         server.receive_data(b"\x8a\x84\x00\x44\x88\xcc\x22\x22\x22\x22")
+        # websockets ignores control frames after a close frame.
         self.assertFrameReceived(server, None)
         self.assertFrameSent(server, None)
+
+    def test_client_sends_pong_after_connection_is_closed(self):
+        client = Protocol(CLIENT)
+        client.receive_eof()
+        with self.assertRaises(InvalidState) as raised:
+            client.send_pong(b"")
+        self.assertEqual(str(raised.exception), "connection is closed")
+
+    def test_server_sends_pong_after_connection_is_closed(self):
+        server = Protocol(SERVER)
+        server.receive_eof()
+        with self.assertRaises(InvalidState) as raised:
+            server.send_pong(b"")
+        self.assertEqual(str(raised.exception), "connection is closed")
 
 
 class FailTests(ProtocolTestCase):
@@ -1370,8 +1423,9 @@ class FragmentationTests(ProtocolTestCase):
             client.send_close()
         self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
         self.assertIs(client.state, CLOSING)
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(InvalidState) as raised:
             client.send_continuation(b"Eggs", fin=True)
+        self.assertEqual(str(raised.exception), "connection is closing")
 
     def test_server_send_close_in_fragmented_message(self):
         server = Protocol(SERVER)
@@ -1380,8 +1434,9 @@ class FragmentationTests(ProtocolTestCase):
         server.send_close()
         self.assertEqual(server.data_to_send(), [b"\x88\x00"])
         self.assertIs(server.state, CLOSING)
-        with self.assertRaises(InvalidState):
+        with self.assertRaises(InvalidState) as raised:
             server.send_continuation(b"Eggs", fin=True)
+        self.assertEqual(str(raised.exception), "connection is closing")
 
     def test_client_receive_close_in_fragmented_message(self):
         client = Protocol(CLIENT)

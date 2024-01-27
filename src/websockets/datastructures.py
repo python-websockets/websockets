@@ -172,11 +172,9 @@ class SupportsKeysAndGetItem(Protocol):  # pragma: no cover
 
     """
 
-    def keys(self) -> Iterable[str]:
-        ...
+    def keys(self) -> Iterable[str]: ...
 
-    def __getitem__(self, key: str) -> str:
-        ...
+    def __getitem__(self, key: str) -> str: ...
 
 
 HeadersLike = Union[

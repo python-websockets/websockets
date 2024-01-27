@@ -37,12 +37,14 @@ class ProtocolTestCase(FramesTestCase):
 
         """
         frames_sent = [
-            None
-            if write is SEND_EOF
-            else self.parse(
-                write,
-                mask=connection.side is CLIENT,
-                extensions=connection.extensions,
+            (
+                None
+                if write is SEND_EOF
+                else self.parse(
+                    write,
+                    mask=connection.side is CLIENT,
+                    extensions=connection.extensions,
+                )
             )
             for write in connection.data_to_send()
         ]

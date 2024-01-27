@@ -354,12 +354,10 @@ class Protocol:
             reason: close reason.
 
         Raises:
-            ProtocolError: If a fragmented message is being sent, if the code
-                isn't valid, or if a reason is provided without a code
+            ProtocolError: If the code isn't valid or if a reason is provided
+                without a code.
 
         """
-        if self.expect_continuation_frame:
-            raise ProtocolError("expected a continuation frame")
         if code is None:
             if reason != "":
                 raise ProtocolError("cannot send a reason without a code")

@@ -1364,26 +1364,22 @@ class FragmentationTests(ProtocolTestCase):
         client = Protocol(CLIENT)
         client.send_text(b"Spam", fin=False)
         self.assertFrameSent(client, Frame(OP_TEXT, b"Spam", fin=False))
-        # The spec says: "An endpoint MUST be capable of handling control
-        # frames in the middle of a fragmented message." However, since the
-        # endpoint must not send a data frame after a close frame, a close
-        # frame can't be "in the middle" of a fragmented message.
-        with self.assertRaises(ProtocolError) as raised:
-            client.send_close(CloseCode.GOING_AWAY)
-        self.assertEqual(str(raised.exception), "expected a continuation frame")
-        client.send_continuation(b"Eggs", fin=True)
+        with self.enforce_mask(b"\x3c\x3c\x3c\x3c"):
+            client.send_close()
+        self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
+        self.assertIs(client.state, CLOSING)
+        with self.assertRaises(InvalidState):
+            client.send_continuation(b"Eggs", fin=True)
 
     def test_server_send_close_in_fragmented_message(self):
-        server = Protocol(CLIENT)
+        server = Protocol(SERVER)
         server.send_text(b"Spam", fin=False)
         self.assertFrameSent(server, Frame(OP_TEXT, b"Spam", fin=False))
-        # The spec says: "An endpoint MUST be capable of handling control
-        # frames in the middle of a fragmented message." However, since the
-        # endpoint must not send a data frame after a close frame, a close
-        # frame can't be "in the middle" of a fragmented message.
-        with self.assertRaises(ProtocolError) as raised:
-            server.send_close(CloseCode.NORMAL_CLOSURE)
-        self.assertEqual(str(raised.exception), "expected a continuation frame")
+        server.send_close()
+        self.assertEqual(server.data_to_send(), [b"\x88\x00"])
+        self.assertIs(server.state, CLOSING)
+        with self.assertRaises(InvalidState):
+            server.send_continuation(b"Eggs", fin=True)
 
     def test_client_receive_close_in_fragmented_message(self):
         client = Protocol(CLIENT)
@@ -1392,10 +1388,6 @@ class FragmentationTests(ProtocolTestCase):
             client,
             Frame(OP_TEXT, b"Spam", fin=False),
         )
-        # The spec says: "An endpoint MUST be capable of handling control
-        # frames in the middle of a fragmented message." However, since the
-        # endpoint must not send a data frame after a close frame, a close
-        # frame can't be "in the middle" of a fragmented message.
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertIsInstance(client.parser_exc, ProtocolError)
         self.assertEqual(str(client.parser_exc), "incomplete fragmented message")
@@ -1410,10 +1402,6 @@ class FragmentationTests(ProtocolTestCase):
             server,
             Frame(OP_TEXT, b"Spam", fin=False),
         )
-        # The spec says: "An endpoint MUST be capable of handling control
-        # frames in the middle of a fragmented message." However, since the
-        # endpoint must not send a data frame after a close frame, a close
-        # frame can't be "in the middle" of a fragmented message.
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertIsInstance(server.parser_exc, ProtocolError)
         self.assertEqual(str(server.parser_exc), "incomplete fragmented message")

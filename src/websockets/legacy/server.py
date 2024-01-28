@@ -1168,9 +1168,7 @@ def remove_path_argument(
             pass
         else:
             # ws_handler accepts two arguments; activate backwards compatibility.
-
-            # Enable deprecation warning and announce deprecation in 11.0.
-            # warnings.warn("remove second argument of ws_handler", DeprecationWarning)
+            warnings.warn("remove second argument of ws_handler", DeprecationWarning)
 
             async def _ws_handler(websocket: WebSocketServerProtocol) -> Any:
                 return await cast(

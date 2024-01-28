@@ -480,8 +480,7 @@ class CommonClientServerTests:
 
         with self.temp_server(
             handler=handler_with_path,
-            # Enable deprecation warning and announce deprecation in 11.0.
-            # deprecation_warnings=["remove second argument of ws_handler"],
+            deprecation_warnings=["remove second argument of ws_handler"],
         ):
             with self.temp_client("/path"):
                 self.assertEqual(
@@ -497,8 +496,7 @@ class CommonClientServerTests:
 
         with self.temp_server(
             handler=bound_handler_with_path,
-            # Enable deprecation warning and announce deprecation in 11.0.
-            # deprecation_warnings=["remove second argument of ws_handler"],
+            deprecation_warnings=["remove second argument of ws_handler"],
         ):
             with self.temp_client("/path"):
                 self.assertEqual(

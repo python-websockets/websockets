@@ -43,6 +43,21 @@ Backwards-incompatible changes
 
     For backwards compatibility, ``ssl_context`` is still supported.
 
+.. admonition:: Receiving the request path in the second parameter of connection
+    handlers is deprecated.
+    :class: note
+
+    If you implemented the connection handler of a server as::
+
+        async def handler(request, path):
+          ...
+
+    You should switch to the recommended pattern since 10.1::
+
+        async def handler(request):
+            path = request.path  # only if handler() uses the path argument
+            ...
+
 New features
 ............
 
@@ -257,20 +272,19 @@ New features
 
 * Added a tutorial.
 
-* Made the second parameter of connection handlers optional. It will be
-  deprecated in the next major release. The request path is available in
-  the :attr:`~legacy.protocol.WebSocketCommonProtocol.path` attribute of
-  the first argument.
+* Made the second parameter of connection handlers optional. The request path is
+  available in the :attr:`~legacy.protocol.WebSocketCommonProtocol.path`
+  attribute of the first argument.
 
   If you implemented the connection handler of a server as::
 
       async def handler(request, path):
           ...
 
-  You should replace it by::
+  You should replace it with::
 
       async def handler(request):
-          path = request.path  # if handler() uses the path argument
+          path = request.path  # only if handler() uses the path argument
           ...
 
 * Added ``python -m websockets --version``.

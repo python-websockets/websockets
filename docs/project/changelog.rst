@@ -34,7 +34,8 @@ Backwards-incompatible changes
 ..............................
 
 .. admonition:: The ``ssl_context`` argument of :func:`~sync.client.connect`
-    and :func:`~sync.server.serve` is renamed to ``ssl``.
+    and :func:`~sync.server.serve` in the :mod:`threading` implementation is
+    renamed to ``ssl``.
     :class: note
 
     This aligns the API of the :mod:`threading` implementation with the
@@ -140,7 +141,8 @@ Backwards-incompatible changes
     As a consequence, calling ``WebSocket.close()`` without arguments in a
     browser isn't reported as an error anymore.
 
-.. admonition:: :func:`~server.serve` times out on the opening handshake after 10 seconds by default.
+.. admonition:: :func:`~server.serve` times out on the opening handshake after
+    10 seconds by default.
     :class: note
 
     You can adjust the timeout with the ``open_timeout`` parameter. Set it to
@@ -149,7 +151,7 @@ Backwards-incompatible changes
 New features
 ............
 
-.. admonition:: websockets 11.0 introduces a implementation on top of :mod:`threading`.
+.. admonition:: websockets 11.0 introduces a :mod:`threading` implementation.
     :class: important
 
     It may be more convenient if you don't need to manage many connections and
@@ -211,7 +213,8 @@ Improvements
 Backwards-incompatible changes
 ..............................
 
-.. admonition:: The ``exception`` attribute of :class:`~http11.Request` and :class:`~http11.Response` is deprecated.
+.. admonition:: The ``exception`` attribute of :class:`~http11.Request` and
+    :class:`~http11.Response` is deprecated.
     :class: note
 
     Use the ``handshake_exc`` attribute of :class:`~server.ServerProtocol` and
@@ -565,11 +568,11 @@ Backwards-incompatible changes
 .. admonition:: ``process_request`` is now expected to be a coroutine.
     :class: note
 
-    If you're passing a ``process_request`` argument to
-    :func:`~server.serve` or :class:`~server.WebSocketServerProtocol`, or if
-    you're overriding
+    If you're passing a ``process_request`` argument to :func:`~server.serve`
+    or :class:`~server.WebSocketServerProtocol`, or if you're overriding
     :meth:`~server.WebSocketServerProtocol.process_request` in a subclass,
-    define it with ``async def`` instead of ``def``. Previously, both were supported.
+    define it with ``async def`` instead of ``def``. Previously, both were
+    supported.
 
     For backwards compatibility, functions are still accepted, but mixing
     functions and coroutines won't work in some inheritance scenarios.

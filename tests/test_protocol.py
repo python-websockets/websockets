@@ -714,7 +714,7 @@ class CloseTests(ProtocolTestCase):
     """
     Test close frames.
 
-    See RFC 6544:
+    See RFC 6455:
 
     5.5.1. Close
     7.1.6.  The WebSocket Connection Close Reason
@@ -994,7 +994,7 @@ class CloseTests(ProtocolTestCase):
 
 class PingTests(ProtocolTestCase):
     """
-    Test ping. See 5.5.2. Ping in RFC 6544.
+    Test ping. See 5.5.2. Ping in RFC 6455.
 
     """
 
@@ -1153,7 +1153,7 @@ class PingTests(ProtocolTestCase):
 
 class PongTests(ProtocolTestCase):
     """
-    Test pong frames. See 5.5.3. Pong in RFC 6544.
+    Test pong frames. See 5.5.3. Pong in RFC 6455.
 
     """
 
@@ -1298,7 +1298,7 @@ class FailTests(ProtocolTestCase):
     """
     Test failing the connection.
 
-    See 7.1.7. Fail the WebSocket Connection in RFC 6544.
+    See 7.1.7. Fail the WebSocket Connection in RFC 6455.
 
     """
 
@@ -1321,7 +1321,7 @@ class FragmentationTests(ProtocolTestCase):
     """
     Test message fragmentation.
 
-    See 5.4. Fragmentation in RFC 6544.
+    See 5.4. Fragmentation in RFC 6455.
 
     """
 

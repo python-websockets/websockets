@@ -599,7 +599,7 @@ class Connect:
                     yield protocol
             except Exception:
                 # Add a random initial delay between 0 and 5 seconds.
-                # See 7.2.3. Recovering from Abnormal Closure in RFC 6544.
+                # See 7.2.3. Recovering from Abnormal Closure in RFC 6455.
                 if backoff_delay == self.BACKOFF_MIN:
                     initial_delay = random.random() * self.BACKOFF_INITIAL
                     self.logger.info(

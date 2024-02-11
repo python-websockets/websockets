@@ -25,7 +25,7 @@ __all__ = ["connect", "unix_connect", "ClientConnection"]
 
 class ClientConnection(Connection):
     """
-    Threaded implementation of a WebSocket client connection.
+    :mod:`threading` implementation of a WebSocket client connection.
 
     :class:`ClientConnection` provides :meth:`recv` and :meth:`send` methods for
     receiving and sending messages.
@@ -157,7 +157,7 @@ def connect(
 
     :func:`connect` may be used as a context manager::
 
-        async with websockets.sync.client.connect(...) as websocket:
+        with websockets.sync.client.connect(...) as websocket:
             ...
 
     The connection is closed automatically when exiting the context.
@@ -273,19 +273,18 @@ def connect(
             sock = ssl.wrap_socket(sock, server_hostname=server_hostname)
             sock.settimeout(None)
 
-        # Initialize WebSocket connection
+        # Initialize WebSocket protocol
 
         protocol = ClientProtocol(
             wsuri,
             origin=origin,
             extensions=extensions,
             subprotocols=subprotocols,
-            state=CONNECTING,
             max_size=max_size,
             logger=logger,
         )
 
-        # Initialize WebSocket protocol
+        # Initialize WebSocket connection
 
         connection = create_connection(
             sock,

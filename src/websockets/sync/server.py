@@ -30,7 +30,7 @@ __all__ = ["serve", "unix_serve", "ServerConnection", "WebSocketServer"]
 
 class ServerConnection(Connection):
     """
-    Threaded implementation of a WebSocket server connection.
+    :mod:`threading` implementation of a WebSocket server connection.
 
     :class:`ServerConnection` provides :meth:`recv` and :meth:`send` methods for
     receiving and sending messages.
@@ -188,6 +188,8 @@ class WebSocketServer:
         handler: Handler for one connection. Receives the socket and address
             returned by :meth:`~socket.socket.accept`.
         logger: Logger for this server.
+            It defaults to ``logging.getLogger("websockets.server")``.
+            See the :doc:`logging guide <../../topics/logging>` for details.
 
     """
 
@@ -311,16 +313,16 @@ def serve(
     Whenever a client connects, the server creates a :class:`ServerConnection`,
     performs the opening handshake, and delegates to the ``handler``.
 
-    The handler receives a :class:`ServerConnection` instance, which you can use
-    to send and receive messages.
+    The handler receives the :class:`ServerConnection` instance, which you can
+    use to send and receive messages.
 
     Once the handler completes, either normally or with an exception, the server
     performs the closing handshake and closes the connection.
 
-    :class:`WebSocketServer` mirrors the API of
+    This function returns a :class:`WebSocketServer` whose API mirrors
     :class:`~socketserver.BaseServer`. Treat it as a context manager to ensure
-    that it will be closed and call the :meth:`~WebSocketServer.serve_forever`
-    method to serve requests::
+    that it will be closed and call :meth:`~WebSocketServer.serve_forever` to
+    serve requests::
 
         def handler(websocket):
             ...
@@ -454,15 +456,13 @@ def serve(
                 sock.do_handshake()
                 sock.settimeout(None)
 
-            # Create a closure so that select_subprotocol has access to self.
-
+            # Create a closure to give select_subprotocol access to connection.
             protocol_select_subprotocol: Optional[
                 Callable[
                     [ServerProtocol, Sequence[Subprotocol]],
                     Optional[Subprotocol],
                 ]
             ] = None
-
             if select_subprotocol is not None:
 
                 def protocol_select_subprotocol(
@@ -475,19 +475,18 @@ def serve(
                     assert protocol is connection.protocol
                     return select_subprotocol(connection, subprotocols)
 
-            # Initialize WebSocket connection
+            # Initialize WebSocket protocol
 
             protocol = ServerProtocol(
                 origins=origins,
                 extensions=extensions,
                 subprotocols=subprotocols,
                 select_subprotocol=protocol_select_subprotocol,
-                state=CONNECTING,
                 max_size=max_size,
                 logger=logger,
             )
 
-            # Initialize WebSocket protocol
+            # Initialize WebSocket connection
 
             assert create_connection is not None  # help mypy
             connection = create_connection(
@@ -522,7 +521,7 @@ def serve(
 
 
 def unix_serve(
-    handler: Callable[[ServerConnection], Any],
+    handler: Callable[[ServerConnection], None],
     path: Optional[str] = None,
     **kwargs: Any,
 ) -> WebSocketServer:
@@ -541,4 +540,4 @@ def unix_serve(
         path: File system path to the Unix socket.
 
     """
-    return serve(handler, path=path, unix=True, **kwargs)
+    return serve(handler, unix=True, path=path, **kwargs)

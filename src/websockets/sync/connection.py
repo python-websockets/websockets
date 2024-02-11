@@ -21,12 +21,10 @@ from .utils import Deadline
 
 __all__ = ["Connection"]
 
-logger = logging.getLogger(__name__)
-
 
 class Connection:
     """
-    Threaded implementation of a WebSocket connection.
+    :mod:`threading` implementation of a WebSocket connection.
 
     :class:`Connection` provides APIs shared between WebSocket servers and
     clients.
@@ -82,7 +80,7 @@ class Connection:
         self.close_deadline: Optional[Deadline] = None
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pings: Dict[bytes, threading.Event] = {}
+        self.ping_waiters: Dict[bytes, threading.Event] = {}
 
         # Receiving events from the socket.
         self.recv_events_thread = threading.Thread(target=self.recv_events)
@@ -90,7 +88,7 @@ class Connection:
 
         # Exception raised in recv_events, to be chained to ConnectionClosed
         # in the user thread in order to show why the TCP connection dropped.
-        self.recv_events_exc: Optional[BaseException] = None
+        self.recv_exc: Optional[BaseException] = None
 
     # Public attributes
 
@@ -198,7 +196,7 @@ class Connection:
         try:
             return self.recv_messages.get(timeout)
         except EOFError:
-            raise self.protocol.close_exc from self.recv_events_exc
+            raise self.protocol.close_exc from self.recv_exc
         except RuntimeError:
             raise RuntimeError(
                 "cannot call recv while another thread "
@@ -229,9 +227,10 @@ class Connection:
 
         """
         try:
-            yield from self.recv_messages.get_iter()
+            for frame in self.recv_messages.get_iter():
+                yield frame
         except EOFError:
-            raise self.protocol.close_exc from self.recv_events_exc
+            raise self.protocol.close_exc from self.recv_exc
         except RuntimeError:
             raise RuntimeError(
                 "cannot call recv_streaming while another thread "
@@ -273,7 +272,7 @@ class Connection:
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If a connection is busy sending a fragmented message.
+            RuntimeError: If the connection is sending a fragmented message.
             TypeError: If ``message`` doesn't have a supported type.
 
         """
@@ -449,15 +448,15 @@ class Connection:
 
         with self.send_context():
             # Protect against duplicates if a payload is explicitly set.
-            if data in self.pings:
+            if data in self.ping_waiters:
                 raise RuntimeError("already waiting for a pong with the same data")
 
             # Generate a unique random payload otherwise.
-            while data is None or data in self.pings:
+            while data is None or data in self.ping_waiters:
                 data = struct.pack("!I", random.getrandbits(32))
 
             pong_waiter = threading.Event()
-            self.pings[data] = pong_waiter
+            self.ping_waiters[data] = pong_waiter
             self.protocol.send_ping(data)
             return pong_waiter
 
@@ -504,22 +503,22 @@ class Connection:
         """
         with self.protocol_mutex:
             # Ignore unsolicited pong.
-            if data not in self.pings:
+            if data not in self.ping_waiters:
                 return
             # Sending a pong for only the most recent ping is legal.
             # Acknowledge all previous pings too in that case.
             ping_id = None
             ping_ids = []
-            for ping_id, ping in self.pings.items():
+            for ping_id, ping in self.ping_waiters.items():
                 ping_ids.append(ping_id)
                 ping.set()
                 if ping_id == data:
                     break
             else:
                 raise AssertionError("solicited pong not found in pings")
-            # Remove acknowledged pings from self.pings.
+            # Remove acknowledged pings from self.ping_waiters.
             for ping_id in ping_ids:
-                del self.pings[ping_id]
+                del self.ping_waiters[ping_id]
 
     def recv_events(self) -> None:
         """
@@ -541,10 +540,10 @@ class Connection:
                         self.logger.debug("error while receiving data", exc_info=True)
                     # When the closing handshake is initiated by our side,
                     # recv() may block until send_context() closes the socket.
-                    # In that case, send_context() already set recv_events_exc.
-                    # Calling set_recv_events_exc() avoids overwriting it.
+                    # In that case, send_context() already set recv_exc.
+                    # Calling set_recv_exc() avoids overwriting it.
                     with self.protocol_mutex:
-                        self.set_recv_events_exc(exc)
+                        self.set_recv_exc(exc)
                     break
 
                 if data == b"":
@@ -552,7 +551,7 @@ class Connection:
 
                 # Acquire the connection lock.
                 with self.protocol_mutex:
-                    # Feed incoming data to the connection.
+                    # Feed incoming data to the protocol.
                     self.protocol.receive_data(data)
 
                     # This isn't expected to raise an exception.
@@ -568,7 +567,7 @@ class Connection:
                         # set by send_context(), in case of a race condition
                         # i.e. send_context() closes the socket after recv()
                         # returns above but before send_data() calls send().
-                        self.set_recv_events_exc(exc)
+                        self.set_recv_exc(exc)
                         break
 
                     if self.protocol.close_expected():
@@ -595,7 +594,7 @@ class Connection:
             # Breaking out of the while True: ... loop means that we believe
             # that the socket doesn't work anymore.
             with self.protocol_mutex:
-                # Feed the end of the data stream to the connection.
+                # Feed the end of the data stream to the protocol.
                 self.protocol.receive_eof()
 
                 # This isn't expected to generate events.
@@ -609,7 +608,7 @@ class Connection:
             # This branch should never run. It's a safety net in case of bugs.
             self.logger.error("unexpected internal error", exc_info=True)
             with self.protocol_mutex:
-                self.set_recv_events_exc(exc)
+                self.set_recv_exc(exc)
             # We don't know where we crashed. Force protocol state to CLOSED.
             self.protocol.state = CLOSED
         finally:
@@ -668,7 +667,6 @@ class Connection:
                         wait_for_close = True
                         # If the connection is expected to close soon, set the
                         # close deadline based on the close timeout.
-
                         # Since we tested earlier that protocol.state was OPEN
                         # (or CONNECTING) and we didn't release protocol_mutex,
                         # it is certain that self.close_deadline is still None.
@@ -710,11 +708,11 @@ class Connection:
                 # original_exc is never set when wait_for_close is True.
                 assert original_exc is None
                 original_exc = TimeoutError("timed out while closing connection")
-                # Set recv_events_exc before closing the socket in order to get
+                # Set recv_exc before closing the socket in order to get
                 # proper exception reporting.
                 raise_close_exc = True
                 with self.protocol_mutex:
-                    self.set_recv_events_exc(original_exc)
+                    self.set_recv_exc(original_exc)
 
         # If an error occurred, close the socket to terminate the connection and
         # raise an exception.
@@ -745,16 +743,16 @@ class Connection:
                 except OSError:  # socket already closed
                     pass
 
-    def set_recv_events_exc(self, exc: Optional[BaseException]) -> None:
+    def set_recv_exc(self, exc: Optional[BaseException]) -> None:
         """
-        Set recv_events_exc, if not set yet.
+        Set recv_exc, if not set yet.
 
         This method requires holding protocol_mutex.
 
         """
         assert self.protocol_mutex.locked()
-        if self.recv_events_exc is None:
-            self.recv_events_exc = exc
+        if self.recv_exc is None:
+            self.recv_exc = exc
 
     def close_socket(self) -> None:
         """

@@ -649,9 +649,7 @@ class WebSocketServer:
     """
     WebSocket server returned by :func:`serve`.
 
-    This class provides the same interface as :class:`~asyncio.Server`,
-    notably the :meth:`~asyncio.Server.close`
-    and :meth:`~asyncio.Server.wait_closed` methods.
+    This class mirrors the API of :class:`~asyncio.Server`.
 
     It keeps track of WebSocket connections in order to close them properly
     when shutting down.

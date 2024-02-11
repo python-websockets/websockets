@@ -102,7 +102,8 @@ def get_ignored_files(src_dir="src"):
         "*/websockets/typing.py",
         # We don't test compatibility modules with previous versions of Python
         # or websockets (import locations).
-        "*/websockets/*/compatibility.py",
+        "*/websockets/asyncio/async_timeout.py",
+        "*/websockets/asyncio/compatibility.py",
         "*/websockets/auth.py",
         # This approach isn't applicable to the test suite of the legacy
         # implementation, due to the huge test_client_server test module.

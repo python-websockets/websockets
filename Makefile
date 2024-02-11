@@ -17,7 +17,7 @@ tests:
 	python -m unittest
 
 coverage:
-	coverage run --source src/websockets,tests -m unittest
+	coverage run --source src/websockets,tests -m unittest tests/asyncio/test_*.py
 	coverage html
 	coverage report --show-missing --fail-under=100
 

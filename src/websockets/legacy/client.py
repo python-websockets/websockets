@@ -20,6 +20,7 @@ from typing import (
     cast,
 )
 
+from ..asyncio.compatibility import asyncio_timeout
 from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
     InvalidHandshake,
@@ -44,7 +45,6 @@ from ..headers import (
 from ..http import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
-from .compatibility import asyncio_timeout
 from .handshake import build_request, check_response
 from .http import read_response
 from .protocol import WebSocketCommonProtocol

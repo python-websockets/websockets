@@ -3,6 +3,7 @@ import email.utils
 import os
 import pathlib
 import platform
+import ssl
 import tempfile
 import time
 import unittest
@@ -16,6 +17,23 @@ import warnings
 # $ rm test_localhost.key test_localhost.crt
 
 CERTIFICATE = bytes(pathlib.Path(__file__).with_name("test_localhost.pem"))
+
+CLIENT_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+CLIENT_CONTEXT.load_verify_locations(CERTIFICATE)
+
+
+SERVER_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
+SERVER_CONTEXT.load_cert_chain(CERTIFICATE)
+
+# Work around https://github.com/openssl/openssl/issues/7967
+
+# This bug causes connect() to hang in tests for the client. Including this
+# workaround acknowledges that the issue could happen outside of the test suite.
+
+# It shouldn't happen too often, or else OpenSSL 1.1.1 would be unusable. If it
+# happens, we can look for a library-level fix, but it won't be easy.
+
+SERVER_CONTEXT.num_tickets = 0
 
 
 DATE = email.utils.formatdate(usegmt=True)

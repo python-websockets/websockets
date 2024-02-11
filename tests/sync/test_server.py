@@ -14,10 +14,15 @@ from websockets.exceptions import (
 from websockets.http11 import Request, Response
 from websockets.sync.server import *
 
-from ..utils import MS, DeprecationTestCase, temp_unix_socket_path
-from .client import CLIENT_CONTEXT, run_client, run_unix_client
-from .server import (
+from ..utils import (
+    CLIENT_CONTEXT,
+    MS,
     SERVER_CONTEXT,
+    DeprecationTestCase,
+    temp_unix_socket_path,
+)
+from .client import run_client, run_unix_client
+from .server import (
     EvalShellMixin,
     crash,
     do_nothing,

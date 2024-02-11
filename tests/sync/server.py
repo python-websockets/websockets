@@ -1,24 +1,7 @@
 import contextlib
-import ssl
 import threading
 
 from websockets.sync.server import *
-
-from ..utils import CERTIFICATE
-
-
-SERVER_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-SERVER_CONTEXT.load_cert_chain(CERTIFICATE)
-
-# Work around https://github.com/openssl/openssl/issues/7967
-
-# This bug causes connect() to hang in tests for the client. Including this
-# workaround acknowledges that the issue could happen outside of the test suite.
-
-# It shouldn't happen too often, or else OpenSSL 1.1.1 would be unusable. If it
-# happens, we can look for a library-level fix, but it won't be easy.
-
-SERVER_CONTEXT.num_tickets = 0
 
 
 def crash(ws):

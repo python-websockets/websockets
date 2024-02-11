@@ -1,21 +1,13 @@
 import contextlib
-import ssl
 
 from websockets.sync.client import *
 from websockets.sync.server import WebSocketServer
 
-from ..utils import CERTIFICATE
-
 
 __all__ = [
-    "CLIENT_CONTEXT",
     "run_client",
     "run_unix_client",
 ]
-
-
-CLIENT_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-CLIENT_CONTEXT.load_verify_locations(CERTIFICATE)
 
 
 @contextlib.contextmanager

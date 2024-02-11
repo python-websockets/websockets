@@ -7,9 +7,15 @@ from websockets.exceptions import InvalidHandshake
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 from websockets.sync.client import *
 
-from ..utils import MS, DeprecationTestCase, temp_unix_socket_path
-from .client import CLIENT_CONTEXT, run_client, run_unix_client
-from .server import SERVER_CONTEXT, do_nothing, run_server, run_unix_server
+from ..utils import (
+    CLIENT_CONTEXT,
+    MS,
+    SERVER_CONTEXT,
+    DeprecationTestCase,
+    temp_unix_socket_path,
+)
+from .client import run_client, run_unix_client
+from .server import do_nothing, run_server, run_unix_server
 
 
 class ClientTests(unittest.TestCase):

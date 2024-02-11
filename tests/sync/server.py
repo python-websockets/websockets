@@ -25,8 +25,8 @@ class EvalShellMixin:
 
 
 @contextlib.contextmanager
-def run_server(ws_handler=eval_shell, host="localhost", port=0, **kwargs):
-    with serve(ws_handler, host, port, **kwargs) as server:
+def run_server(handler=eval_shell, host="localhost", port=0, **kwargs):
+    with serve(handler, host, port, **kwargs) as server:
         thread = threading.Thread(target=server.serve_forever)
         thread.start()
         try:
@@ -37,8 +37,8 @@ def run_server(ws_handler=eval_shell, host="localhost", port=0, **kwargs):
 
 
 @contextlib.contextmanager
-def run_unix_server(path, ws_handler=eval_shell, **kwargs):
-    with unix_serve(ws_handler, path, **kwargs) as server:
+def run_unix_server(path, handler=eval_shell, **kwargs):
+    with unix_serve(handler, path, **kwargs) as server:
         thread = threading.Thread(target=server.serve_forever)
         thread.start()
         try:

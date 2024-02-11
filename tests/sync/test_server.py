@@ -39,21 +39,6 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             with run_client(server) as client:
                 self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
-    def test_connection_fails(self):
-        """Server receives connection from client but the handshake fails."""
-
-        def remove_key_header(self, request):
-            del request.headers["Sec-WebSocket-Key"]
-
-        with run_server(process_request=remove_key_header) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                with run_client(server):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 400",
-            )
-
     def test_connection_handler_returns(self):
         """Connection handler returns."""
         with run_server(do_nothing) as server:
@@ -81,8 +66,8 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         """Server receives connection using a pre-existing socket."""
         with socket.create_server(("localhost", 0)) as sock:
             with run_server(sock=sock):
-                # Build WebSocket URI to ensure we connect to the right socket.
-                with run_client("ws://{}:{}/".format(*sock.getsockname())) as client:
+                uri = "ws://{}:{}/".format(*sock.getsockname())
+                with run_client(uri) as client:
                     self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
     def test_select_subprotocol(self):
@@ -185,7 +170,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 self.assertEval(client, "ws.process_response_ran", "True")
 
     def test_process_response_override_response(self):
-        """Server runs process_response after processing the handshake."""
+        """Server runs process_response and overrides the handshake response."""
 
         def process_response(ws, request, response):
             headers = response.headers.copy()
@@ -252,6 +237,21 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         with run_server(create_connection=create_connection) as server:
             with run_client(server) as client:
                 self.assertEval(client, "ws.create_connection_ran", "True")
+
+    def test_handshake_fails(self):
+        """Server receives connection from client but the handshake fails."""
+
+        def remove_key_header(self, request):
+            del request.headers["Sec-WebSocket-Key"]
+
+        with run_server(process_request=remove_key_header) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                with run_client(server):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 400",
+            )
 
     def test_timeout_during_handshake(self):
         """Server times out before receiving handshake request from client."""

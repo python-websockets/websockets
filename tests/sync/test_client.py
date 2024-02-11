@@ -3,7 +3,7 @@ import ssl
 import threading
 import unittest
 
-from websockets.exceptions import InvalidHandshake
+from websockets.exceptions import InvalidHandshake, InvalidURI
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 from websockets.sync.client import *
 
@@ -24,29 +24,6 @@ class ClientTests(unittest.TestCase):
         with run_server() as server:
             with run_client(server) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
-
-    def test_connection_fails(self):
-        """Client connects to server but the handshake fails."""
-
-        def remove_accept_header(self, request, response):
-            del response.headers["Sec-WebSocket-Accept"]
-
-        # The connection will be open for the server but failed for the client.
-        # Use a connection handler that exits immediately to avoid an exception.
-        with run_server(do_nothing, process_response=remove_accept_header) as server:
-            with self.assertRaises(InvalidHandshake) as raised:
-                with run_client(server, close_timeout=MS):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "missing Sec-WebSocket-Accept header",
-            )
-
-    def test_tcp_connection_fails(self):
-        """Client fails to connect to server."""
-        with self.assertRaises(OSError):
-            with run_client("ws://localhost:54321"):  # invalid port
-                self.fail("did not raise")
 
     def test_existing_socket(self):
         """Client connects using a pre-existing socket."""
@@ -103,6 +80,35 @@ class ClientTests(unittest.TestCase):
             with run_client(server, create_connection=create_connection) as client:
                 self.assertTrue(client.create_connection_ran)
 
+    def test_invalid_uri(self):
+        """Client receives an invalid URI."""
+        with self.assertRaises(InvalidURI):
+            with run_client("http://localhost"):  # invalid scheme
+                self.fail("did not raise")
+
+    def test_tcp_connection_fails(self):
+        """Client fails to connect to server."""
+        with self.assertRaises(OSError):
+            with run_client("ws://localhost:54321"):  # invalid port
+                self.fail("did not raise")
+
+    def test_handshake_fails(self):
+        """Client connects to server but the handshake fails."""
+
+        def remove_accept_header(self, request, response):
+            del response.headers["Sec-WebSocket-Accept"]
+
+        # The connection will be open for the server but failed for the client.
+        # Use a connection handler that exits immediately to avoid an exception.
+        with run_server(do_nothing, process_response=remove_accept_header) as server:
+            with self.assertRaises(InvalidHandshake) as raised:
+                with run_client(server, close_timeout=MS):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "missing Sec-WebSocket-Accept header",
+            )
+
     def test_timeout_during_handshake(self):
         """Client times out before receiving handshake response from server."""
         gate = threading.Event()
@@ -115,10 +121,7 @@ class ClientTests(unittest.TestCase):
         with run_server(do_nothing, process_request=stall_connection) as server:
             try:
                 with self.assertRaises(TimeoutError) as raised:
-                    # While it shouldn't take 50ms to open a connection, this
-                    # test becomes flaky in CI when setting a smaller timeout,
-                    # even after increasing WEBSOCKETS_TESTS_TIMEOUT_FACTOR.
-                    with run_client(server, open_timeout=5 * MS):
+                    with run_client(server, open_timeout=2 * MS):
                         self.fail("did not raise")
                 self.assertEqual(
                     str(raised.exception),

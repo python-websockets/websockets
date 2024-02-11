@@ -60,7 +60,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     :class:`WebSocketClientProtocol` provides :meth:`recv` and :meth:`send`
     coroutines for receiving and sending messages.
 
-    It supports asynchronous iteration to receive incoming messages::
+    It supports asynchronous iteration to receive messages::
 
         async for message in websocket:
             await process(message)

@@ -75,6 +75,13 @@ async def redirect_request(path, headers, test, status):
         location = "/"
     elif path == "/infinite":
         location = get_server_uri(test.server, test.secure, "/infinite")
+    elif path == "/cross_origin":
+        uri = get_server_uri(test.server, test.secure, "/")
+        wsuri = parse_uri(uri)
+        # Change host and port to invalid values.
+        scheme = "wss" if test.secure else "ws"
+        port = 65535 - wsuri.port
+        location = f"{scheme}://example.com:{port}/"
     elif path == "/force_insecure":
         location = get_server_uri(test.server, False, "/")
     elif path == "/missing_location":
@@ -1319,6 +1326,17 @@ class SecureClientServerTests(
         with temp_test_redirecting_server(self):
             with self.assertRaises(InvalidHandshake):
                 with self.temp_client("/force_insecure"):
+                    self.fail("did not raise")
+
+    def test_cross_origin_redirect_with_explicit_host_fails(self):
+        with temp_test_redirecting_server(self):
+            uri = get_server_uri(self.server, self.secure)
+            wsuri = parse_uri(uri)
+            host = wsuri.host
+            with self.assertRaisesRegex(
+                InvalidHandshake, "cannot redirect cross-origin when host or port is set"
+            ):
+                with self.temp_client("/cross_origin", host=host):
                     self.fail("did not raise")
 
 

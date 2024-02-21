@@ -515,24 +515,30 @@ class Connect:
             loop=_loop,
         )
 
+        host: Optional[str] = kwargs.pop("host", None)
+        port: Optional[int] = kwargs.pop("port", None)
+        self._is_host_or_port_overridden = host is not None or port is not None
+
         if kwargs.pop("unix", False):
+            # If path is given, host and port shouldn't be specified.
+            if self._is_host_or_port_overridden:
+                raise ValueError("cannot set both Unix path and host or port")
             path: Optional[str] = kwargs.pop("path", None)
             create_connection = functools.partial(
                 loop.create_unix_connection, factory, path, **kwargs
             )
         else:
-            host: Optional[str]
-            port: Optional[int]
             if kwargs.get("sock") is None:
-                host, port = wsuri.host, wsuri.port
+                # If host and port are given, override values from the URI.
+                host = host or wsuri.host
+                port = port or wsuri.port
             else:
                 # If sock is given, host and port shouldn't be specified.
+                if self._is_host_or_port_overridden:
+                    raise ValueError("cannot set both sock and host or port")
                 host, port = None, None
                 if kwargs.get("ssl"):
                     kwargs.setdefault("server_hostname", wsuri.host)
-            # If host and port are given, override values from the URI.
-            host = kwargs.pop("host", host)
-            port = kwargs.pop("port", port)
             create_connection = functools.partial(
                 loop.create_connection, factory, host, port, **kwargs
             )
@@ -562,10 +568,25 @@ class Connect:
             old_wsuri.host == new_wsuri.host and old_wsuri.port == new_wsuri.port
         )
 
+        # Redirect isn't compatible with an already connected socket.
+        # (Same-origin redirect would be possible if the server keeps
+        # the connection alive, but let's keep things simple.)
+        if self._create_connection.keywords.get("sock") is not None:
+            raise InvalidHandshake("cannot redirect when sock is set")
+
         # Rewrite the host and port arguments for cross-origin redirects.
         # This preserves connection overrides with the host and port
         # arguments if the redirect points to the same host and port.
         if not same_origin:
+            # Prevent cross-origin redirects when host and port are overridden
+            # or when Unix path is set, because this poses a security risk.
+            # If you need to control exactly where you're connecting,
+            # you aren't expecting to be redirected somewhere else.
+            if self._is_host_or_port_overridden:
+                raise InvalidHandshake("cannot redirect cross-origin when host or port is set")
+            elif self._create_connection.keywords.get("path") is not None:
+                raise InvalidHandshake("cannot redirect cross-origin when Unix path is set")
+
             # Replace the host and port argument passed to the protocol factory.
             factory = self._create_connection.args[0]
             factory = functools.partial(

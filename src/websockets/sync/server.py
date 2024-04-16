@@ -233,6 +233,9 @@ class WebSocketServer:
                 sock, addr = self.socket.accept()
             except OSError:
                 break
+            # Since there isn't a mechanism for tracking connections and waiting
+            # for them to terminate, we cannot use daemon threads, or else all
+            # connections would be terminate brutally when closing the server.
             thread = threading.Thread(target=self.handler, args=(sock, addr))
             thread.start()
 

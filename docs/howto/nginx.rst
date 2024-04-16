@@ -17,9 +17,9 @@ Save this app to ``app.py``:
 .. literalinclude:: ../../example/deployment/nginx/app.py
     :emphasize-lines: 21,23
 
-We'd like to nginx to connect to websockets servers via Unix sockets in order
-to avoid the overhead of TCP for communicating between processes running in
-the same OS.
+We'd like nginx to connect to websockets servers via Unix sockets in order to
+avoid the overhead of TCP for communicating between processes running in the
+same OS.
 
 We start the app with :func:`~websockets.server.unix_serve`. Each server
 process listens on a different socket thanks to an environment variable set

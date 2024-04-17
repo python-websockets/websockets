@@ -573,6 +573,10 @@ class Connect:
                 *factory.args,
                 **dict(factory.keywords, host=new_wsuri.host, port=new_wsuri.port),
             )
+            # Fix the issue of "The plain HTTP request was sent to HTTPS port" 
+            # caused by forgetting to enable SSL after redirecting from ws to wss.
+            if new_wsuri.secure:
+                self._create_connection.keywords["ssl"] = True
             # Replace the host and port argument passed to create_connection.
             self._create_connection = functools.partial(
                 self._create_connection.func,

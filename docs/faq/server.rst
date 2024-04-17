@@ -300,7 +300,8 @@ Here's how to adapt the example just above::
 
         server = await websockets.serve(echo, "localhost", 8765)
         await stop
-        await server.close(close_connections=False)
+        server.close(close_connections=False)
+        await server.wait_closed()
 
 How do I implement a health check?
 ----------------------------------

@@ -899,7 +899,8 @@ class Serve:
 
         server = await serve(...)
         await stop
-        await server.close()
+        server.close()
+        await server.wait_closed()
 
     :func:`serve` can be used as an asynchronous context manager. Then, the
     server is shut down automatically when exiting the context::

@@ -1637,5 +1637,5 @@ def broadcast(
                     exc_info=True,
                 )
 
-    if raise_exceptions:
+    if raise_exceptions and exceptions:
         raise ExceptionGroup("skipped broadcast", exceptions)

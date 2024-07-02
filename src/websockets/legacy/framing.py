@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import struct
-from typing import Any, Awaitable, Callable, NamedTuple, Optional, Sequence, Tuple
+from typing import Any, Awaitable, Callable, NamedTuple, Sequence
 
 from .. import extensions, frames
 from ..exceptions import PayloadTooBig, ProtocolError
@@ -44,8 +44,8 @@ class Frame(NamedTuple):
         reader: Callable[[int], Awaitable[bytes]],
         *,
         mask: bool,
-        max_size: Optional[int] = None,
-        extensions: Optional[Sequence[extensions.Extension]] = None,
+        max_size: int | None = None,
+        extensions: Sequence[extensions.Extension] | None = None,
     ) -> Frame:
         """
         Read a WebSocket frame.
@@ -122,7 +122,7 @@ class Frame(NamedTuple):
         write: Callable[[bytes], Any],
         *,
         mask: bool,
-        extensions: Optional[Sequence[extensions.Extension]] = None,
+        extensions: Sequence[extensions.Extension] | None = None,
     ) -> None:
         """
         Write a WebSocket frame.
@@ -152,7 +152,7 @@ from ..frames import (  # noqa: E402, F401, I001
 )
 
 
-def parse_close(data: bytes) -> Tuple[int, str]:
+def parse_close(data: bytes) -> tuple[int, str]:
     """
     Parse the payload from a close frame.
 

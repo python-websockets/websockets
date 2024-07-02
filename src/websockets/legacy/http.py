@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Tuple
 
 from ..datastructures import Headers
 from ..exceptions import SecurityError
@@ -42,7 +41,7 @@ _token_re = re.compile(rb"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 
-async def read_request(stream: asyncio.StreamReader) -> Tuple[str, Headers]:
+async def read_request(stream: asyncio.StreamReader) -> tuple[str, Headers]:
     """
     Read an HTTP/1.1 GET request and return ``(path, headers)``.
 
@@ -91,7 +90,7 @@ async def read_request(stream: asyncio.StreamReader) -> Tuple[str, Headers]:
     return path, headers
 
 
-async def read_response(stream: asyncio.StreamReader) -> Tuple[int, str, Headers]:
+async def read_response(stream: asyncio.StreamReader) -> tuple[int, str, Headers]:
     """
     Read an HTTP/1.1 response and return ``(status_code, reason, headers)``.
 

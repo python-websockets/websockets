@@ -79,6 +79,6 @@ class AsyncioTestCase(unittest.TestCase):
         for recorded in recorded_warnings:
             self.assertEqual(type(recorded.message), DeprecationWarning)
         self.assertEqual(
-            set(str(recorded.message) for recorded in recorded_warnings),
+            {str(recorded.message) for recorded in recorded_warnings},
             set(expected_warnings),
         )

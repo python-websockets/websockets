@@ -3,7 +3,6 @@ import json
 from django.contrib.admin.models import LogEntry
 from django.db.models.signals import post_save
 from django.dispatch import receiver
-
 from django_redis import get_redis_connection
 
 

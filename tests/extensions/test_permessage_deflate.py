@@ -113,8 +113,8 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
 
     def test_encode_decode_fragmented_text_frame(self):
         frame1 = Frame(OP_TEXT, "café".encode(), fin=False)
-        frame2 = Frame(OP_CONT, " & ".encode(), fin=False)
-        frame3 = Frame(OP_CONT, "croissants".encode())
+        frame2 = Frame(OP_CONT, b" & ", fin=False)
+        frame3 = Frame(OP_CONT, b"croissants")
 
         enc_frame1 = self.extension.encode(frame1)
         enc_frame2 = self.extension.encode(frame2)
@@ -181,8 +181,8 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
 
     def test_no_decode_fragmented_text_frame(self):
         frame1 = Frame(OP_TEXT, "café".encode(), fin=False)
-        frame2 = Frame(OP_CONT, " & ".encode(), fin=False)
-        frame3 = Frame(OP_CONT, "croissants".encode())
+        frame2 = Frame(OP_CONT, b" & ", fin=False)
+        frame3 = Frame(OP_CONT, b"croissants")
 
         dec_frame1 = self.extension.decode(frame1)
         dec_frame2 = self.extension.decode(frame2)

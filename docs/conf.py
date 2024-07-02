@@ -8,8 +8,8 @@ import datetime
 import importlib
 import inspect
 import os
-import subprocess
 import sys
+
 
 # -- Path setup --------------------------------------------------------------
 
@@ -25,7 +25,6 @@ project = "websockets"
 copyright = f"2013-{datetime.date.today().year}, Aymeric Augustin and contributors"
 author = "Aymeric Augustin"
 
-from websockets.version import tag as version, version as release
 
 
 # -- General configuration ---------------------------------------------------
@@ -79,6 +78,7 @@ autodoc_typehints_description_target = "documented"
 # Workaround for https://github.com/sphinx-doc/sphinx/issues/9560
 from sphinx.domains.python import PythonDomain
 
+
 assert PythonDomain.object_types["data"].roles == ("data", "obj")
 PythonDomain.object_types["data"].roles = ("data", "class", "obj")
 
@@ -96,6 +96,7 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
 # Configure viewcode extension.
 from websockets.version import commit
+
 
 code_url = f"https://github.com/python-websockets/websockets/blob/{commit}"
 

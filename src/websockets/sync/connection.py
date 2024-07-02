@@ -8,7 +8,7 @@ import struct
 import threading
 import uuid
 from types import TracebackType
-from typing import Any, Dict, Iterable, Iterator, Mapping, Optional, Type, Union
+from typing import Any, Iterable, Iterator, Mapping
 
 from ..exceptions import ConnectionClosed, ConnectionClosedOK, ProtocolError
 from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode, prepare_ctrl

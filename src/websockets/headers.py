@@ -4,7 +4,7 @@ import base64
 import binascii
 import ipaddress
 import re
-from typing import Callable, List, Optional, Sequence, Tuple, TypeVar, cast
+from typing import Callable, Sequence, TypeVar, cast
 
 from . import exceptions
 from .typing import (

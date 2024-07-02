@@ -3,7 +3,9 @@
 # Server example with HTTP Basic Authentication over TLS
 
 import asyncio
+
 import websockets
+
 
 async def hello(websocket):
     greeting = f"Hello {websocket.username}!"

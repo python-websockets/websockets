@@ -15,12 +15,9 @@ from typing import (
     Callable,
     Generator,
     Iterable,
-    List,
     Optional,
     Sequence,
-    Set,
     Tuple,
-    Type,
     Union,
     cast,
 )

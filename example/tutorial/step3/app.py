@@ -7,7 +7,6 @@ import secrets
 import signal
 
 import websockets
-
 from connect4 import PLAYER1, PLAYER2, Connect4
 
 

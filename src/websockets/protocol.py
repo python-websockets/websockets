@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import uuid
-from typing import Generator, List, Optional, Type, Union
+from typing import Generator, Union
 
 from .exceptions import (
     ConnectionClosed,

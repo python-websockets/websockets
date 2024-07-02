@@ -3,7 +3,9 @@
 # WS client example with HTTP Basic Authentication
 
 import asyncio
+
 import websockets
+
 
 async def hello():
     uri = "ws://mary:p@ssw0rd@localhost:8765"

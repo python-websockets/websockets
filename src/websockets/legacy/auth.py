@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import hmac
 import http
-from typing import Any, Awaitable, Callable, Iterable, Optional, Tuple, Union, cast
+from typing import Any, Awaitable, Callable, Iterable, Tuple, cast
 
 from ..datastructures import Headers
 from ..exceptions import InvalidHeader

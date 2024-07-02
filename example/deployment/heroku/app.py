@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 
 import asyncio
-import signal
 import os
+import signal
 
 import websockets
 

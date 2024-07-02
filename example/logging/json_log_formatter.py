@@ -1,6 +1,7 @@
+import datetime
 import json
 import logging
-import datetime
+
 
 class JSONFormatter(logging.Formatter):
     """

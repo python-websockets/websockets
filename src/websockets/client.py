@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Any, Generator, List, Optional, Sequence
+from typing import Any, Generator, Sequence
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (

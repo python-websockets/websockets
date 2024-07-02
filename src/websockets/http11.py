@@ -3,7 +3,7 @@ from __future__ import annotations
 import dataclasses
 import re
 import warnings
-from typing import Callable, Generator, Optional
+from typing import Callable, Generator
 
 from . import datastructures, exceptions
 

@@ -5,6 +5,7 @@ import asyncio
 import django
 import websockets
 
+
 django.setup()
 
 from sesame.utils import get_user

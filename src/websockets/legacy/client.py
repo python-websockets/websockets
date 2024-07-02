@@ -12,11 +12,7 @@ from typing import (
     AsyncIterator,
     Callable,
     Generator,
-    List,
-    Optional,
     Sequence,
-    Tuple,
-    Type,
     cast,
 )
 

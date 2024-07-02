@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 import urllib.parse
-from typing import Optional, Tuple
 
 from . import exceptions
 

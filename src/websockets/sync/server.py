@@ -10,7 +10,7 @@ import sys
 import threading
 import warnings
 from types import TracebackType
-from typing import Any, Callable, Optional, Sequence, Type
+from typing import Any, Callable, Sequence
 
 from ..extensions.base import ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate

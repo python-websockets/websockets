@@ -5,7 +5,7 @@ import enum
 import io
 import secrets
 import struct
-from typing import Callable, Generator, Optional, Sequence, Tuple
+from typing import Callable, Generator, Sequence
 
 from . import exceptions, extensions
 from .typing import Data

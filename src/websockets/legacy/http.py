@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import asyncio
 import re
-from typing import Tuple
 
 from ..datastructures import Headers
 from ..exceptions import SecurityError

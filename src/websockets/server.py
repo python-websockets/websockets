@@ -5,7 +5,7 @@ import binascii
 import email.utils
 import http
 import warnings
-from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple, cast
+from typing import Any, Callable, Generator, Optional, Sequence, cast
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (

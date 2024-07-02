@@ -3,7 +3,7 @@ from __future__ import annotations
 import codecs
 import queue
 import threading
-from typing import Iterator, List, Optional, cast
+from typing import Iterator, Optional, cast
 
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 from ..typing import Data

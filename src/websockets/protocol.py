@@ -89,8 +89,8 @@ class Protocol:
         side: Side,
         *,
         state: State = OPEN,
-        max_size: Optional[int] = 2**20,
-        logger: Optional[LoggerLike] = None,
+        max_size: int | None = 2**20,
+        logger: LoggerLike | None = None,
     ) -> None:
         # Unique identifier. For logs.
         self.id: uuid.UUID = uuid.uuid4()
@@ -116,24 +116,24 @@ class Protocol:
 
         # Current size of incoming message in bytes. Only set while reading a
         # fragmented message i.e. a data frames with the FIN bit not set.
-        self.cur_size: Optional[int] = None
+        self.cur_size: int | None = None
 
         # True while sending a fragmented message i.e. a data frames with the
         # FIN bit not set.
         self.expect_continuation_frame = False
 
         # WebSocket protocol parameters.
-        self.origin: Optional[Origin] = None
-        self.extensions: List[Extension] = []
-        self.subprotocol: Optional[Subprotocol] = None
+        self.origin: Origin | None = None
+        self.extensions: list[Extension] = []
+        self.subprotocol: Subprotocol | None = None
 
         # Close code and reason, set when a close frame is sent or received.
-        self.close_rcvd: Optional[Close] = None
-        self.close_sent: Optional[Close] = None
-        self.close_rcvd_then_sent: Optional[bool] = None
+        self.close_rcvd: Close | None = None
+        self.close_sent: Close | None = None
+        self.close_rcvd_then_sent: bool | None = None
 
         # Track if an exception happened during the handshake.
-        self.handshake_exc: Optional[Exception] = None
+        self.handshake_exc: Exception | None = None
         """
         Exception to raise if the opening handshake failed.
 
@@ -146,11 +146,11 @@ class Protocol:
 
         # Parser state.
         self.reader = StreamReader()
-        self.events: List[Event] = []
-        self.writes: List[bytes] = []
+        self.events: list[Event] = []
+        self.writes: list[bytes] = []
         self.parser = self.parse()
         next(self.parser)  # start coroutine
-        self.parser_exc: Optional[Exception] = None
+        self.parser_exc: Exception | None = None
 
     @property
     def state(self) -> State:
@@ -169,7 +169,7 @@ class Protocol:
         self._state = state
 
     @property
-    def close_code(self) -> Optional[int]:
+    def close_code(self) -> int | None:
         """
         `WebSocket close code`_.
 
@@ -187,7 +187,7 @@ class Protocol:
             return self.close_rcvd.code
 
     @property
-    def close_reason(self) -> Optional[str]:
+    def close_reason(self) -> str | None:
         """
         `WebSocket close reason`_.
 
@@ -221,7 +221,7 @@ class Protocol:
 
         """
         assert self.state is CLOSED, "connection isn't closed yet"
-        exc_type: Type[ConnectionClosed]
+        exc_type: type[ConnectionClosed]
         if (
             self.close_rcvd is not None
             and self.close_sent is not None
@@ -348,7 +348,7 @@ class Protocol:
         self.expect_continuation_frame = not fin
         self.send_frame(Frame(OP_BINARY, data, fin))
 
-    def send_close(self, code: Optional[int] = None, reason: str = "") -> None:
+    def send_close(self, code: int | None = None, reason: str = "") -> None:
         """
         Send a `Close frame`_.
 
@@ -457,7 +457,7 @@ class Protocol:
 
     # Public method for getting incoming events after receiving data.
 
-    def events_received(self) -> List[Event]:
+    def events_received(self) -> list[Event]:
         """
         Fetch events generated from data received from the network.
 
@@ -473,7 +473,7 @@ class Protocol:
 
     # Public method for getting outgoing data after receiving data or sending events.
 
-    def data_to_send(self) -> List[bytes]:
+    def data_to_send(self) -> list[bytes]:
         """
         Obtain data to send to the network.
 

@@ -7,7 +7,7 @@ from typing import Any, Dict, Iterable, Optional
 __all__ = ["lazy_import"]
 
 
-def import_name(name: str, source: str, namespace: Dict[str, Any]) -> Any:
+def import_name(name: str, source: str, namespace: dict[str, Any]) -> Any:
     """
     Import ``name`` from ``source`` in ``namespace``.
 
@@ -29,9 +29,9 @@ def import_name(name: str, source: str, namespace: Dict[str, Any]) -> Any:
 
 
 def lazy_import(
-    namespace: Dict[str, Any],
-    aliases: Optional[Dict[str, str]] = None,
-    deprecated_aliases: Optional[Dict[str, str]] = None,
+    namespace: dict[str, Any],
+    aliases: dict[str, str] | None = None,
+    deprecated_aliases: dict[str, str] | None = None,
 ) -> None:
     """
     Provide lazy, module-level imports.

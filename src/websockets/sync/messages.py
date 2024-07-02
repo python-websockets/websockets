@@ -41,10 +41,10 @@ class Assembler:
         self.put_in_progress = False
 
         # Decoder for text frames, None for binary frames.
-        self.decoder: Optional[codecs.IncrementalDecoder] = None
+        self.decoder: codecs.IncrementalDecoder | None = None
 
         # Buffer of frames belonging to the same message.
-        self.chunks: List[Data] = []
+        self.chunks: list[Data] = []
 
         # When switching from "buffering" to "streaming", we use a thread-safe
         # queue for transferring frames from the writing thread (library code)
@@ -54,12 +54,12 @@ class Assembler:
 
         # Stream data from frames belonging to the same message.
         # Remove quotes around type when dropping Python < 3.9.
-        self.chunks_queue: Optional["queue.SimpleQueue[Optional[Data]]"] = None
+        self.chunks_queue: queue.SimpleQueue[Optional[Data]] | None = None
 
         # This flag marks the end of the connection.
         self.closed = False
 
-    def get(self, timeout: Optional[float] = None) -> Data:
+    def get(self, timeout: float | None = None) -> Data:
         """
         Read the next message.
 
@@ -164,7 +164,7 @@ class Assembler:
             self.get_in_progress = True
 
         # Locking with get_in_progress ensures only one thread can get here.
-        chunk: Optional[Data]
+        chunk: Data | None
         for chunk in chunks:
             yield chunk
         while (chunk := self.chunks_queue.get()) is not None:

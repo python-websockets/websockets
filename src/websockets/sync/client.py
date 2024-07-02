@@ -52,7 +52,7 @@ class ClientConnection(Connection):
         socket: socket.socket,
         protocol: ClientProtocol,
         *,
-        close_timeout: Optional[float] = 10,
+        close_timeout: float | None = 10,
     ) -> None:
         self.protocol: ClientProtocol
         self.response_rcvd = threading.Event()
@@ -64,9 +64,9 @@ class ClientConnection(Connection):
 
     def handshake(
         self,
-        additional_headers: Optional[HeadersLike] = None,
-        user_agent_header: Optional[str] = USER_AGENT,
-        timeout: Optional[float] = None,
+        additional_headers: HeadersLike | None = None,
+        user_agent_header: str | None = USER_AGENT,
+        timeout: float | None = None,
     ) -> None:
         """
         Perform the opening handshake.
@@ -128,25 +128,25 @@ def connect(
     uri: str,
     *,
     # TCP/TLS
-    sock: Optional[socket.socket] = None,
-    ssl: Optional[ssl_module.SSLContext] = None,
-    server_hostname: Optional[str] = None,
+    sock: socket.socket | None = None,
+    ssl: ssl_module.SSLContext | None = None,
+    server_hostname: str | None = None,
     # WebSocket
-    origin: Optional[Origin] = None,
-    extensions: Optional[Sequence[ClientExtensionFactory]] = None,
-    subprotocols: Optional[Sequence[Subprotocol]] = None,
-    additional_headers: Optional[HeadersLike] = None,
-    user_agent_header: Optional[str] = USER_AGENT,
-    compression: Optional[str] = "deflate",
+    origin: Origin | None = None,
+    extensions: Sequence[ClientExtensionFactory] | None = None,
+    subprotocols: Sequence[Subprotocol] | None = None,
+    additional_headers: HeadersLike | None = None,
+    user_agent_header: str | None = USER_AGENT,
+    compression: str | None = "deflate",
     # Timeouts
-    open_timeout: Optional[float] = 10,
-    close_timeout: Optional[float] = 10,
+    open_timeout: float | None = 10,
+    close_timeout: float | None = 10,
     # Limits
-    max_size: Optional[int] = 2**20,
+    max_size: int | None = 2**20,
     # Logging
-    logger: Optional[LoggerLike] = None,
+    logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
-    create_connection: Optional[Type[ClientConnection]] = None,
+    create_connection: type[ClientConnection] | None = None,
     **kwargs: Any,
 ) -> ClientConnection:
     """
@@ -219,7 +219,7 @@ def connect(
 
     # Private APIs for unix_connect()
     unix: bool = kwargs.pop("unix", False)
-    path: Optional[str] = kwargs.pop("path", None)
+    path: str | None = kwargs.pop("path", None)
 
     if unix:
         if path is None and sock is None:
@@ -307,8 +307,8 @@ def connect(
 
 
 def unix_connect(
-    path: Optional[str] = None,
-    uri: Optional[str] = None,
+    path: str | None = None,
+    uri: str | None = None,
     **kwargs: Any,
 ) -> ClientConnection:
     """

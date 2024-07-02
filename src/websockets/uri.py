@@ -33,8 +33,8 @@ class WebSocketURI:
     port: int
     path: str
     query: str
-    username: Optional[str] = None
-    password: Optional[str] = None
+    username: str | None = None
+    password: str | None = None
 
     @property
     def resource_name(self) -> str:
@@ -47,7 +47,7 @@ class WebSocketURI:
         return resource_name
 
     @property
-    def user_info(self) -> Optional[Tuple[str, str]]:
+    def user_info(self) -> tuple[str, str] | None:
         if self.username is None:
             return None
         assert self.password is not None

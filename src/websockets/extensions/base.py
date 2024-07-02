@@ -22,7 +22,7 @@ class Extension:
         self,
         frame: frames.Frame,
         *,
-        max_size: Optional[int] = None,
+        max_size: int | None = None,
     ) -> frames.Frame:
         """
         Decode an incoming frame.
@@ -63,7 +63,7 @@ class ClientExtensionFactory:
     name: ExtensionName
     """Extension identifier."""
 
-    def get_request_params(self) -> List[ExtensionParameter]:
+    def get_request_params(self) -> list[ExtensionParameter]:
         """
         Build parameters to send to the server for this extension.
 
@@ -108,7 +108,7 @@ class ServerExtensionFactory:
         self,
         params: Sequence[ExtensionParameter],
         accepted_extensions: Sequence[Extension],
-    ) -> Tuple[List[ExtensionParameter], Extension]:
+    ) -> tuple[list[ExtensionParameter], Extension]:
         """
         Process parameters received from the client.
 

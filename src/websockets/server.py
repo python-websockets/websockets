@@ -77,18 +77,18 @@ class ServerProtocol(Protocol):
     def __init__(
         self,
         *,
-        origins: Optional[Sequence[Optional[Origin]]] = None,
-        extensions: Optional[Sequence[ServerExtensionFactory]] = None,
-        subprotocols: Optional[Sequence[Subprotocol]] = None,
-        select_subprotocol: Optional[
+        origins: Sequence[Origin | None] | None = None,
+        extensions: Sequence[ServerExtensionFactory] | None = None,
+        subprotocols: Sequence[Subprotocol] | None = None,
+        select_subprotocol: None | (
             Callable[
                 [ServerProtocol, Sequence[Subprotocol]],
-                Optional[Subprotocol],
+                Subprotocol | None,
             ]
-        ] = None,
+        ) = None,
         state: State = CONNECTING,
-        max_size: Optional[int] = 2**20,
-        logger: Optional[LoggerLike] = None,
+        max_size: int | None = 2**20,
+        logger: LoggerLike | None = None,
     ):
         super().__init__(
             side=SERVER,
@@ -200,7 +200,7 @@ class ServerProtocol(Protocol):
     def process_request(
         self,
         request: Request,
-    ) -> Tuple[str, Optional[str], Optional[str]]:
+    ) -> tuple[str, str | None, str | None]:
         """
         Check a handshake request and negotiate extensions and subprotocol.
 
@@ -223,7 +223,7 @@ class ServerProtocol(Protocol):
         """
         headers = request.headers
 
-        connection: List[ConnectionOption] = sum(
+        connection: list[ConnectionOption] = sum(
             [parse_connection(value) for value in headers.get_all("Connection")], []
         )
 
@@ -232,7 +232,7 @@ class ServerProtocol(Protocol):
                 "Connection", ", ".join(connection) if connection else None
             )
 
-        upgrade: List[UpgradeProtocol] = sum(
+        upgrade: list[UpgradeProtocol] = sum(
             [parse_upgrade(value) for value in headers.get_all("Upgrade")], []
         )
 
@@ -285,7 +285,7 @@ class ServerProtocol(Protocol):
             protocol_header,
         )
 
-    def process_origin(self, headers: Headers) -> Optional[Origin]:
+    def process_origin(self, headers: Headers) -> Origin | None:
         """
         Handle the Origin HTTP request header.
 
@@ -314,7 +314,7 @@ class ServerProtocol(Protocol):
     def process_extensions(
         self,
         headers: Headers,
-    ) -> Tuple[Optional[str], List[Extension]]:
+    ) -> tuple[str | None, list[Extension]]:
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.
 
@@ -350,15 +350,15 @@ class ServerProtocol(Protocol):
             InvalidHandshake: If the Sec-WebSocket-Extensions header is invalid.
 
         """
-        response_header_value: Optional[str] = None
+        response_header_value: str | None = None
 
-        extension_headers: List[ExtensionHeader] = []
-        accepted_extensions: List[Extension] = []
+        extension_headers: list[ExtensionHeader] = []
+        accepted_extensions: list[Extension] = []
 
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values and self.available_extensions:
-            parsed_header_values: List[ExtensionHeader] = sum(
+            parsed_header_values: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
             )
 
@@ -392,7 +392,7 @@ class ServerProtocol(Protocol):
 
         return response_header_value, accepted_extensions
 
-    def process_subprotocol(self, headers: Headers) -> Optional[Subprotocol]:
+    def process_subprotocol(self, headers: Headers) -> Subprotocol | None:
         """
         Handle the Sec-WebSocket-Protocol HTTP request header.
 
@@ -420,7 +420,7 @@ class ServerProtocol(Protocol):
     def select_subprotocol(
         self,
         subprotocols: Sequence[Subprotocol],
-    ) -> Optional[Subprotocol]:
+    ) -> Subprotocol | None:
         """
         Pick a subprotocol among those offered by the client.
 

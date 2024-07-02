@@ -90,9 +90,9 @@ class ConnectionClosed(WebSocketException):
 
     def __init__(
         self,
-        rcvd: Optional[frames.Close],
-        sent: Optional[frames.Close],
-        rcvd_then_sent: Optional[bool] = None,
+        rcvd: frames.Close | None,
+        sent: frames.Close | None,
+        rcvd_then_sent: bool | None = None,
     ) -> None:
         self.rcvd = rcvd
         self.sent = sent
@@ -181,7 +181,7 @@ class InvalidHeader(InvalidHandshake):
 
     """
 
-    def __init__(self, name: str, value: Optional[str] = None) -> None:
+    def __init__(self, name: str, value: str | None = None) -> None:
         self.name = name
         self.value = value
 
@@ -221,7 +221,7 @@ class InvalidOrigin(InvalidHeader):
 
     """
 
-    def __init__(self, origin: Optional[str]) -> None:
+    def __init__(self, origin: str | None) -> None:
         super().__init__("Origin", origin)
 
 
@@ -301,7 +301,7 @@ class InvalidParameterValue(NegotiationError):
 
     """
 
-    def __init__(self, name: str, value: Optional[str]) -> None:
+    def __init__(self, name: str, value: str | None) -> None:
         self.name = name
         self.value = value
 

@@ -39,14 +39,14 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
     encoding of non-ASCII characters is undefined.
     """
 
-    username: Optional[str] = None
+    username: str | None = None
     """Username of the authenticated user."""
 
     def __init__(
         self,
         *args: Any,
-        realm: Optional[str] = None,
-        check_credentials: Optional[Callable[[str, str], Awaitable[bool]]] = None,
+        realm: str | None = None,
+        check_credentials: Callable[[str, str], Awaitable[bool]] | None = None,
         **kwargs: Any,
     ) -> None:
         if realm is not None:
@@ -79,7 +79,7 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
         self,
         path: str,
         request_headers: Headers,
-    ) -> Optional[HTTPResponse]:
+    ) -> HTTPResponse | None:
         """
         Check HTTP Basic Auth and return an HTTP 401 response if needed.
 
@@ -115,10 +115,10 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
 
 
 def basic_auth_protocol_factory(
-    realm: Optional[str] = None,
-    credentials: Optional[Union[Credentials, Iterable[Credentials]]] = None,
-    check_credentials: Optional[Callable[[str, str], Awaitable[bool]]] = None,
-    create_protocol: Optional[Callable[..., BasicAuthWebSocketServerProtocol]] = None,
+    realm: str | None = None,
+    credentials: Credentials | Iterable[Credentials] | None = None,
+    check_credentials: Callable[[str, str], Awaitable[bool]] | None = None,
+    create_protocol: Callable[..., BasicAuthWebSocketServerProtocol] | None = None,
 ) -> Callable[..., BasicAuthWebSocketServerProtocol]:
     """
     Protocol factory that enforces HTTP Basic Auth.

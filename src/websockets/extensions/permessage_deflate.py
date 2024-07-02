@@ -36,7 +36,7 @@ class PerMessageDeflate(Extension):
         local_no_context_takeover: bool,
         remote_max_window_bits: int,
         local_max_window_bits: int,
-        compress_settings: Optional[Dict[Any, Any]] = None,
+        compress_settings: dict[Any, Any] | None = None,
     ) -> None:
         """
         Configure the Per-Message Deflate extension.
@@ -84,7 +84,7 @@ class PerMessageDeflate(Extension):
         self,
         frame: frames.Frame,
         *,
-        max_size: Optional[int] = None,
+        max_size: int | None = None,
     ) -> frames.Frame:
         """
         Decode an incoming frame.
@@ -174,14 +174,14 @@ class PerMessageDeflate(Extension):
 def _build_parameters(
     server_no_context_takeover: bool,
     client_no_context_takeover: bool,
-    server_max_window_bits: Optional[int],
-    client_max_window_bits: Optional[Union[int, bool]],
-) -> List[ExtensionParameter]:
+    server_max_window_bits: int | None,
+    client_max_window_bits: int | bool | None,
+) -> list[ExtensionParameter]:
     """
     Build a list of ``(name, value)`` pairs for some compression parameters.
 
     """
-    params: List[ExtensionParameter] = []
+    params: list[ExtensionParameter] = []
     if server_no_context_takeover:
         params.append(("server_no_context_takeover", None))
     if client_no_context_takeover:
@@ -197,7 +197,7 @@ def _build_parameters(
 
 def _extract_parameters(
     params: Sequence[ExtensionParameter], *, is_server: bool
-) -> Tuple[bool, bool, Optional[int], Optional[Union[int, bool]]]:
+) -> tuple[bool, bool, int | None, int | bool | None]:
     """
     Extract compression parameters from a list of ``(name, value)`` pairs.
 
@@ -207,8 +207,8 @@ def _extract_parameters(
     """
     server_no_context_takeover: bool = False
     client_no_context_takeover: bool = False
-    server_max_window_bits: Optional[int] = None
-    client_max_window_bits: Optional[Union[int, bool]] = None
+    server_max_window_bits: int | None = None
+    client_max_window_bits: int | bool | None = None
 
     for name, value in params:
         if name == "server_no_context_takeover":
@@ -286,9 +286,9 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         self,
         server_no_context_takeover: bool = False,
         client_no_context_takeover: bool = False,
-        server_max_window_bits: Optional[int] = None,
-        client_max_window_bits: Optional[Union[int, bool]] = True,
-        compress_settings: Optional[Dict[str, Any]] = None,
+        server_max_window_bits: int | None = None,
+        client_max_window_bits: int | bool | None = True,
+        compress_settings: dict[str, Any] | None = None,
     ) -> None:
         """
         Configure the Per-Message Deflate extension factory.
@@ -314,7 +314,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         self.client_max_window_bits = client_max_window_bits
         self.compress_settings = compress_settings
 
-    def get_request_params(self) -> List[ExtensionParameter]:
+    def get_request_params(self) -> list[ExtensionParameter]:
         """
         Build request parameters.
 
@@ -433,7 +433,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
 
 def enable_client_permessage_deflate(
-    extensions: Optional[Sequence[ClientExtensionFactory]],
+    extensions: Sequence[ClientExtensionFactory] | None,
 ) -> Sequence[ClientExtensionFactory]:
     """
     Enable Per-Message Deflate with default settings in client extensions.
@@ -489,9 +489,9 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         self,
         server_no_context_takeover: bool = False,
         client_no_context_takeover: bool = False,
-        server_max_window_bits: Optional[int] = None,
-        client_max_window_bits: Optional[int] = None,
-        compress_settings: Optional[Dict[str, Any]] = None,
+        server_max_window_bits: int | None = None,
+        client_max_window_bits: int | None = None,
+        compress_settings: dict[str, Any] | None = None,
         require_client_max_window_bits: bool = False,
     ) -> None:
         """
@@ -524,7 +524,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         self,
         params: Sequence[ExtensionParameter],
         accepted_extensions: Sequence[Extension],
-    ) -> Tuple[List[ExtensionParameter], PerMessageDeflate]:
+    ) -> tuple[list[ExtensionParameter], PerMessageDeflate]:
         """
         Process request parameters.
 
@@ -635,7 +635,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
 
 def enable_server_permessage_deflate(
-    extensions: Optional[Sequence[ServerExtensionFactory]],
+    extensions: Sequence[ServerExtensionFactory] | None,
 ) -> Sequence[ServerExtensionFactory]:
     """
     Enable Per-Message Deflate with default settings in server extensions.

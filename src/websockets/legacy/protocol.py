@@ -173,21 +173,21 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     def __init__(
         self,
         *,
-        logger: Optional[LoggerLike] = None,
-        ping_interval: Optional[float] = 20,
-        ping_timeout: Optional[float] = 20,
-        close_timeout: Optional[float] = None,
-        max_size: Optional[int] = 2**20,
-        max_queue: Optional[int] = 2**5,
+        logger: LoggerLike | None = None,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
+        close_timeout: float | None = None,
+        max_size: int | None = 2**20,
+        max_queue: int | None = 2**5,
         read_limit: int = 2**16,
         write_limit: int = 2**16,
         # The following arguments are kept only for backwards compatibility.
-        host: Optional[str] = None,
-        port: Optional[int] = None,
-        secure: Optional[bool] = None,
+        host: str | None = None,
+        port: int | None = None,
+        secure: bool | None = None,
         legacy_recv: bool = False,
-        loop: Optional[asyncio.AbstractEventLoop] = None,
-        timeout: Optional[float] = None,
+        loop: asyncio.AbstractEventLoop | None = None,
+        timeout: float | None = None,
     ) -> None:
         if legacy_recv:  # pragma: no cover
             warnings.warn("legacy_recv is deprecated", DeprecationWarning)
@@ -243,7 +243,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # Copied from asyncio.FlowControlMixin
         self._paused = False
-        self._drain_waiter: Optional[asyncio.Future[None]] = None
+        self._drain_waiter: asyncio.Future[None] | None = None
 
         self._drain_lock = asyncio.Lock()
 
@@ -264,14 +264,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """Opening handshake response headers."""
 
         # WebSocket protocol parameters.
-        self.extensions: List[Extension] = []
-        self.subprotocol: Optional[Subprotocol] = None
+        self.extensions: list[Extension] = []
+        self.subprotocol: Subprotocol | None = None
         """Subprotocol, if one was negotiated."""
 
         # Close code and reason, set when a close frame is sent or received.
-        self.close_rcvd: Optional[Close] = None
-        self.close_sent: Optional[Close] = None
-        self.close_rcvd_then_sent: Optional[bool] = None
+        self.close_rcvd: Close | None = None
+        self.close_sent: Close | None = None
+        self.close_rcvd_then_sent: bool | None = None
 
         # Completed when the connection state becomes CLOSED. Translates the
         # :meth:`connection_lost` callback to a :class:`~asyncio.Future`
@@ -281,14 +281,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # Queue of received messages.
         self.messages: Deque[Data] = collections.deque()
-        self._pop_message_waiter: Optional[asyncio.Future[None]] = None
-        self._put_message_waiter: Optional[asyncio.Future[None]] = None
+        self._pop_message_waiter: asyncio.Future[None] | None = None
+        self._put_message_waiter: asyncio.Future[None] | None = None
 
         # Protect sending fragmented messages.
-        self._fragmented_message_waiter: Optional[asyncio.Future[None]] = None
+        self._fragmented_message_waiter: asyncio.Future[None] | None = None
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pings: Dict[bytes, Tuple[asyncio.Future[float], float]] = {}
+        self.pings: dict[bytes, tuple[asyncio.Future[float], float]] = {}
 
         self.latency: float = 0
         """
@@ -306,7 +306,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.transfer_data_task: asyncio.Task[None]
 
         # Exception that occurred during data transfer, if any.
-        self.transfer_data_exc: Optional[BaseException] = None
+        self.transfer_data_exc: BaseException | None = None
 
         # Task sending keepalive pings.
         self.keepalive_ping_task: asyncio.Task[None]
@@ -363,19 +363,19 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.close_connection_task = self.loop.create_task(self.close_connection())
 
     @property
-    def host(self) -> Optional[str]:
+    def host(self) -> str | None:
         alternative = "remote_address" if self.is_client else "local_address"
         warnings.warn(f"use {alternative}[0] instead of host", DeprecationWarning)
         return self._host
 
     @property
-    def port(self) -> Optional[int]:
+    def port(self) -> int | None:
         alternative = "remote_address" if self.is_client else "local_address"
         warnings.warn(f"use {alternative}[1] instead of port", DeprecationWarning)
         return self._port
 
     @property
-    def secure(self) -> Optional[bool]:
+    def secure(self) -> bool | None:
         warnings.warn("don't use secure", DeprecationWarning)
         return self._secure
 
@@ -447,7 +447,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         return self.state is State.CLOSED
 
     @property
-    def close_code(self) -> Optional[int]:
+    def close_code(self) -> int | None:
         """
         WebSocket close code, defined in `section 7.1.5 of RFC 6455`_.
 
@@ -465,7 +465,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             return self.close_rcvd.code
 
     @property
-    def close_reason(self) -> Optional[str]:
+    def close_reason(self) -> str | None:
         """
         WebSocket close reason, defined in `section 7.1.6 of RFC 6455`_.
 
@@ -579,7 +579,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     async def send(
         self,
-        message: Union[Data, Iterable[Data], AsyncIterable[Data]],
+        message: Data | Iterable[Data] | AsyncIterable[Data],
     ) -> None:
         """
         Send a message.
@@ -804,7 +804,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         await asyncio.shield(self.connection_lost_waiter)
 
-    async def ping(self, data: Optional[Data] = None) -> Awaitable[float]:
+    async def ping(self, data: Data | None = None) -> Awaitable[float]:
         """
         Send a Ping_.
 
@@ -1017,7 +1017,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             self.transfer_data_exc = exc
             self.fail_connection(CloseCode.INTERNAL_ERROR)
 
-    async def read_message(self) -> Optional[Data]:
+    async def read_message(self) -> Data | None:
         """
         Read a single message from the connection.
 
@@ -1044,7 +1044,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             return frame.data.decode("utf-8") if text else frame.data
 
         # 5.4. Fragmentation
-        fragments: List[Data] = []
+        fragments: list[Data] = []
         max_size = self.max_size
         if text:
             decoder_factory = codecs.getincrementaldecoder("utf-8")
@@ -1090,7 +1090,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         return ("" if text else b"").join(fragments)
 
-    async def read_data_frame(self, max_size: Optional[int]) -> Optional[Frame]:
+    async def read_data_frame(self, max_size: int | None) -> Frame | None:
         """
         Read a single data frame from the connection.
 
@@ -1153,7 +1153,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             else:
                 return frame
 
-    async def read_frame(self, max_size: Optional[int]) -> Frame:
+    async def read_frame(self, max_size: int | None) -> Frame:
         """
         Read a single frame from the connection.
 
@@ -1205,7 +1205,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         await self.drain()
 
     async def write_close_frame(
-        self, close: Close, data: Optional[bytes] = None
+        self, close: Close, data: bytes | None = None
     ) -> None:
         """
         Write a close frame if and only if the connection state is OPEN.
@@ -1484,7 +1484,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Copied from asyncio.StreamReaderProtocol
         self.reader.set_transport(transport)
 
-    def connection_lost(self, exc: Optional[Exception]) -> None:
+    def connection_lost(self, exc: Exception | None) -> None:
         """
         7.1.4. The WebSocket Connection is Closed.
 

@@ -73,12 +73,12 @@ class ClientProtocol(Protocol):
         self,
         wsuri: WebSocketURI,
         *,
-        origin: Optional[Origin] = None,
-        extensions: Optional[Sequence[ClientExtensionFactory]] = None,
-        subprotocols: Optional[Sequence[Subprotocol]] = None,
+        origin: Origin | None = None,
+        extensions: Sequence[ClientExtensionFactory] | None = None,
+        subprotocols: Sequence[Subprotocol] | None = None,
         state: State = CONNECTING,
-        max_size: Optional[int] = 2**20,
-        logger: Optional[LoggerLike] = None,
+        max_size: int | None = 2**20,
+        logger: LoggerLike | None = None,
     ):
         super().__init__(
             side=CLIENT,
@@ -153,7 +153,7 @@ class ClientProtocol(Protocol):
 
         headers = response.headers
 
-        connection: List[ConnectionOption] = sum(
+        connection: list[ConnectionOption] = sum(
             [parse_connection(value) for value in headers.get_all("Connection")], []
         )
 
@@ -162,7 +162,7 @@ class ClientProtocol(Protocol):
                 "Connection", ", ".join(connection) if connection else None
             )
 
-        upgrade: List[UpgradeProtocol] = sum(
+        upgrade: list[UpgradeProtocol] = sum(
             [parse_upgrade(value) for value in headers.get_all("Upgrade")], []
         )
 
@@ -188,7 +188,7 @@ class ClientProtocol(Protocol):
 
         self.subprotocol = self.process_subprotocol(headers)
 
-    def process_extensions(self, headers: Headers) -> List[Extension]:
+    def process_extensions(self, headers: Headers) -> list[Extension]:
         """
         Handle the Sec-WebSocket-Extensions HTTP response header.
 
@@ -219,7 +219,7 @@ class ClientProtocol(Protocol):
             InvalidHandshake: To abort the handshake.
 
         """
-        accepted_extensions: List[Extension] = []
+        accepted_extensions: list[Extension] = []
 
         extensions = headers.get_all("Sec-WebSocket-Extensions")
 
@@ -227,7 +227,7 @@ class ClientProtocol(Protocol):
             if self.available_extensions is None:
                 raise InvalidHandshake("no extensions supported")
 
-            parsed_extensions: List[ExtensionHeader] = sum(
+            parsed_extensions: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in extensions], []
             )
 
@@ -261,7 +261,7 @@ class ClientProtocol(Protocol):
 
         return accepted_extensions
 
-    def process_subprotocol(self, headers: Headers) -> Optional[Subprotocol]:
+    def process_subprotocol(self, headers: Headers) -> Subprotocol | None:
         """
         Handle the Sec-WebSocket-Protocol HTTP response header.
 
@@ -274,7 +274,7 @@ class ClientProtocol(Protocol):
            Subprotocol, if one was selected.
 
         """
-        subprotocol: Optional[Subprotocol] = None
+        subprotocol: Subprotocol | None = None
 
         subprotocols = headers.get_all("Sec-WebSocket-Protocol")
 

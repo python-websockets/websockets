@@ -97,25 +97,25 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def __init__(
         self,
-        ws_handler: Union[
-            Callable[[WebSocketServerProtocol], Awaitable[Any]],
-            Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
-        ],
+        ws_handler: (
+            Callable[[WebSocketServerProtocol], Awaitable[Any]] |
+            Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+        ),
         ws_server: WebSocketServer,
         *,
-        logger: Optional[LoggerLike] = None,
-        origins: Optional[Sequence[Optional[Origin]]] = None,
-        extensions: Optional[Sequence[ServerExtensionFactory]] = None,
-        subprotocols: Optional[Sequence[Subprotocol]] = None,
-        extra_headers: Optional[HeadersLikeOrCallable] = None,
-        server_header: Optional[str] = USER_AGENT,
-        process_request: Optional[
-            Callable[[str, Headers], Awaitable[Optional[HTTPResponse]]]
-        ] = None,
-        select_subprotocol: Optional[
+        logger: LoggerLike | None = None,
+        origins: Sequence[Origin | None] | None = None,
+        extensions: Sequence[ServerExtensionFactory] | None = None,
+        subprotocols: Sequence[Subprotocol] | None = None,
+        extra_headers: HeadersLikeOrCallable | None = None,
+        server_header: str | None = USER_AGENT,
+        process_request: None | (
+            Callable[[str, Headers], Awaitable[HTTPResponse | None]]
+        ) = None,
+        select_subprotocol: None | (
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
-        ] = None,
-        open_timeout: Optional[float] = 10,
+        ) = None,
+        open_timeout: float | None = 10,
         **kwargs: Any,
     ) -> None:
         if logger is None:
@@ -263,7 +263,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             self.ws_server.unregister(self)
             self.logger.info("connection closed")
 
-    async def read_http_request(self) -> Tuple[str, Headers]:
+    async def read_http_request(self) -> tuple[str, Headers]:
         """
         Read request line and headers from the HTTP request.
 
@@ -293,7 +293,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         return path, headers
 
     def write_http_response(
-        self, status: http.HTTPStatus, headers: Headers, body: Optional[bytes] = None
+        self, status: http.HTTPStatus, headers: Headers, body: bytes | None = None
     ) -> None:
         """
         Write status line and headers to the HTTP response.
@@ -322,7 +322,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     async def process_request(
         self, path: str, request_headers: Headers
-    ) -> Optional[HTTPResponse]:
+    ) -> HTTPResponse | None:
         """
         Intercept the HTTP request and return an HTTP response if appropriate.
 
@@ -371,8 +371,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     @staticmethod
     def process_origin(
-        headers: Headers, origins: Optional[Sequence[Optional[Origin]]] = None
-    ) -> Optional[Origin]:
+        headers: Headers, origins: Sequence[Origin | None] | None = None
+    ) -> Origin | None:
         """
         Handle the Origin HTTP request header.
 
@@ -398,8 +398,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     @staticmethod
     def process_extensions(
         headers: Headers,
-        available_extensions: Optional[Sequence[ServerExtensionFactory]],
-    ) -> Tuple[Optional[str], List[Extension]]:
+        available_extensions: Sequence[ServerExtensionFactory] | None,
+    ) -> tuple[str | None, list[Extension]]:
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.
 
@@ -435,15 +435,15 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             InvalidHandshake: To abort the handshake with an HTTP 400 error.
 
         """
-        response_header_value: Optional[str] = None
+        response_header_value: str | None = None
 
-        extension_headers: List[ExtensionHeader] = []
-        accepted_extensions: List[Extension] = []
+        extension_headers: list[ExtensionHeader] = []
+        accepted_extensions: list[Extension] = []
 
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values and available_extensions:
-            parsed_header_values: List[ExtensionHeader] = sum(
+            parsed_header_values: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
             )
 
@@ -479,8 +479,8 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     # Not @staticmethod because it calls self.select_subprotocol()
     def process_subprotocol(
-        self, headers: Headers, available_subprotocols: Optional[Sequence[Subprotocol]]
-    ) -> Optional[Subprotocol]:
+        self, headers: Headers, available_subprotocols: Sequence[Subprotocol] | None
+    ) -> Subprotocol | None:
         """
         Handle the Sec-WebSocket-Protocol HTTP request header.
 
@@ -495,12 +495,12 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             InvalidHandshake: To abort the handshake with an HTTP 400 error.
 
         """
-        subprotocol: Optional[Subprotocol] = None
+        subprotocol: Subprotocol | None = None
 
         header_values = headers.get_all("Sec-WebSocket-Protocol")
 
         if header_values and available_subprotocols:
-            parsed_header_values: List[Subprotocol] = sum(
+            parsed_header_values: list[Subprotocol] = sum(
                 [parse_subprotocol(header_value) for header_value in header_values], []
             )
 
@@ -514,7 +514,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         self,
         client_subprotocols: Sequence[Subprotocol],
         server_subprotocols: Sequence[Subprotocol],
-    ) -> Optional[Subprotocol]:
+    ) -> Subprotocol | None:
         """
         Pick a subprotocol among those supported by the client and the server.
 
@@ -552,10 +552,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     async def handshake(
         self,
-        origins: Optional[Sequence[Optional[Origin]]] = None,
-        available_extensions: Optional[Sequence[ServerExtensionFactory]] = None,
-        available_subprotocols: Optional[Sequence[Subprotocol]] = None,
-        extra_headers: Optional[HeadersLikeOrCallable] = None,
+        origins: Sequence[Origin | None] | None = None,
+        available_extensions: Sequence[ServerExtensionFactory] | None = None,
+        available_subprotocols: Sequence[Subprotocol] | None = None,
+        extra_headers: HeadersLikeOrCallable | None = None,
     ) -> str:
         """
         Perform the server side of the opening handshake.
@@ -661,16 +661,16 @@ class WebSocketServer:
 
     """
 
-    def __init__(self, logger: Optional[LoggerLike] = None):
+    def __init__(self, logger: LoggerLike | None = None):
         if logger is None:
             logger = logging.getLogger("websockets.server")
         self.logger = logger
 
         # Keep track of active connections.
-        self.websockets: Set[WebSocketServerProtocol] = set()
+        self.websockets: set[WebSocketServerProtocol] = set()
 
         # Task responsible for closing the server and terminating connections.
-        self.close_task: Optional[asyncio.Task[None]] = None
+        self.close_task: asyncio.Task[None] | None = None
 
         # Completed when the server is closed and connections are terminated.
         self.closed_waiter: asyncio.Future[None]
@@ -869,9 +869,9 @@ class WebSocketServer:
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:  # pragma: no cover
         self.close()
         await self.wait_closed()
@@ -971,39 +971,39 @@ class Serve:
 
     def __init__(
         self,
-        ws_handler: Union[
-            Callable[[WebSocketServerProtocol], Awaitable[Any]],
-            Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
-        ],
-        host: Optional[Union[str, Sequence[str]]] = None,
-        port: Optional[int] = None,
+        ws_handler: (
+            Callable[[WebSocketServerProtocol], Awaitable[Any]] |
+            Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+        ),
+        host: str | Sequence[str] | None = None,
+        port: int | None = None,
         *,
-        create_protocol: Optional[Callable[..., WebSocketServerProtocol]] = None,
-        logger: Optional[LoggerLike] = None,
-        compression: Optional[str] = "deflate",
-        origins: Optional[Sequence[Optional[Origin]]] = None,
-        extensions: Optional[Sequence[ServerExtensionFactory]] = None,
-        subprotocols: Optional[Sequence[Subprotocol]] = None,
-        extra_headers: Optional[HeadersLikeOrCallable] = None,
-        server_header: Optional[str] = USER_AGENT,
-        process_request: Optional[
-            Callable[[str, Headers], Awaitable[Optional[HTTPResponse]]]
-        ] = None,
-        select_subprotocol: Optional[
+        create_protocol: Callable[..., WebSocketServerProtocol] | None = None,
+        logger: LoggerLike | None = None,
+        compression: str | None = "deflate",
+        origins: Sequence[Origin | None] | None = None,
+        extensions: Sequence[ServerExtensionFactory] | None = None,
+        subprotocols: Sequence[Subprotocol] | None = None,
+        extra_headers: HeadersLikeOrCallable | None = None,
+        server_header: str | None = USER_AGENT,
+        process_request: None | (
+            Callable[[str, Headers], Awaitable[HTTPResponse | None]]
+        ) = None,
+        select_subprotocol: None | (
             Callable[[Sequence[Subprotocol], Sequence[Subprotocol]], Subprotocol]
-        ] = None,
-        open_timeout: Optional[float] = 10,
-        ping_interval: Optional[float] = 20,
-        ping_timeout: Optional[float] = 20,
-        close_timeout: Optional[float] = None,
-        max_size: Optional[int] = 2**20,
-        max_queue: Optional[int] = 2**5,
+        ) = None,
+        open_timeout: float | None = 10,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
+        close_timeout: float | None = None,
+        max_size: int | None = 2**20,
+        max_queue: int | None = 2**5,
         read_limit: int = 2**16,
         write_limit: int = 2**16,
         **kwargs: Any,
     ) -> None:
         # Backwards compatibility: close_timeout used to be called timeout.
-        timeout: Optional[float] = kwargs.pop("timeout", None)
+        timeout: float | None = kwargs.pop("timeout", None)
         if timeout is None:
             timeout = 10
         else:
@@ -1013,7 +1013,7 @@ class Serve:
             close_timeout = timeout
 
         # Backwards compatibility: create_protocol used to be called klass.
-        klass: Optional[Type[WebSocketServerProtocol]] = kwargs.pop("klass", None)
+        klass: type[WebSocketServerProtocol] | None = kwargs.pop("klass", None)
         if klass is None:
             klass = WebSocketServerProtocol
         else:
@@ -1026,7 +1026,7 @@ class Serve:
         legacy_recv: bool = kwargs.pop("legacy_recv", False)
 
         # Backwards compatibility: the loop parameter used to be supported.
-        _loop: Optional[asyncio.AbstractEventLoop] = kwargs.pop("loop", None)
+        _loop: asyncio.AbstractEventLoop | None = kwargs.pop("loop", None)
         if _loop is None:
             loop = asyncio.get_event_loop()
         else:
@@ -1076,7 +1076,7 @@ class Serve:
         )
 
         if kwargs.pop("unix", False):
-            path: Optional[str] = kwargs.pop("path", None)
+            path: str | None = kwargs.pop("path", None)
             # unix_serve(path) must not specify host and port parameters.
             assert host is None and port is None
             create_server = functools.partial(
@@ -1098,9 +1098,9 @@ class Serve:
 
     async def __aexit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         self.ws_server.close()
         await self.ws_server.wait_closed()
@@ -1125,11 +1125,11 @@ serve = Serve
 
 
 def unix_serve(
-    ws_handler: Union[
-        Callable[[WebSocketServerProtocol], Awaitable[Any]],
-        Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
-    ],
-    path: Optional[str] = None,
+    ws_handler: (
+        Callable[[WebSocketServerProtocol], Awaitable[Any]] |
+        Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+    ),
+    path: str | None = None,
     **kwargs: Any,
 ) -> Serve:
     """
@@ -1151,10 +1151,10 @@ def unix_serve(
 
 
 def remove_path_argument(
-    ws_handler: Union[
-        Callable[[WebSocketServerProtocol], Awaitable[Any]],
-        Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
-    ]
+    ws_handler: (
+        Callable[[WebSocketServerProtocol], Awaitable[Any]] |
+        Callable[[WebSocketServerProtocol, str], Awaitable[Any]]
+    )
 ) -> Callable[[WebSocketServerProtocol], Awaitable[Any]]:
     try:
         inspect.signature(ws_handler).bind(None)

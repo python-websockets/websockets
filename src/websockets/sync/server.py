@@ -57,7 +57,7 @@ class ServerConnection(Connection):
         socket: socket.socket,
         protocol: ServerProtocol,
         *,
-        close_timeout: Optional[float] = 10,
+        close_timeout: float | None = 10,
     ) -> None:
         self.protocol: ServerProtocol
         self.request_rcvd = threading.Event()
@@ -69,20 +69,20 @@ class ServerConnection(Connection):
 
     def handshake(
         self,
-        process_request: Optional[
+        process_request: None | (
             Callable[
                 [ServerConnection, Request],
-                Optional[Response],
+                Response | None,
             ]
-        ] = None,
-        process_response: Optional[
+        ) = None,
+        process_response: None | (
             Callable[
                 [ServerConnection, Request, Response],
-                Optional[Response],
+                Response | None,
             ]
-        ] = None,
-        server_header: Optional[str] = USER_AGENT,
-        timeout: Optional[float] = None,
+        ) = None,
+        server_header: str | None = USER_AGENT,
+        timeout: float | None = None,
     ) -> None:
         """
         Perform the opening handshake.
@@ -197,7 +197,7 @@ class WebSocketServer:
         self,
         socket: socket.socket,
         handler: Callable[[socket.socket, Any], None],
-        logger: Optional[LoggerLike] = None,
+        logger: LoggerLike | None = None,
     ):
         self.socket = socket
         self.handler = handler
@@ -260,54 +260,54 @@ class WebSocketServer:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         self.shutdown()
 
 
 def serve(
     handler: Callable[[ServerConnection], None],
-    host: Optional[str] = None,
-    port: Optional[int] = None,
+    host: str | None = None,
+    port: int | None = None,
     *,
     # TCP/TLS
-    sock: Optional[socket.socket] = None,
-    ssl: Optional[ssl_module.SSLContext] = None,
+    sock: socket.socket | None = None,
+    ssl: ssl_module.SSLContext | None = None,
     # WebSocket
-    origins: Optional[Sequence[Optional[Origin]]] = None,
-    extensions: Optional[Sequence[ServerExtensionFactory]] = None,
-    subprotocols: Optional[Sequence[Subprotocol]] = None,
-    select_subprotocol: Optional[
+    origins: Sequence[Origin | None] | None = None,
+    extensions: Sequence[ServerExtensionFactory] | None = None,
+    subprotocols: Sequence[Subprotocol] | None = None,
+    select_subprotocol: None | (
         Callable[
             [ServerConnection, Sequence[Subprotocol]],
-            Optional[Subprotocol],
+            Subprotocol | None,
         ]
-    ] = None,
-    process_request: Optional[
+    ) = None,
+    process_request: None | (
         Callable[
             [ServerConnection, Request],
-            Optional[Response],
+            Response | None,
         ]
-    ] = None,
-    process_response: Optional[
+    ) = None,
+    process_response: None | (
         Callable[
             [ServerConnection, Request, Response],
-            Optional[Response],
+            Response | None,
         ]
-    ] = None,
-    server_header: Optional[str] = USER_AGENT,
-    compression: Optional[str] = "deflate",
+    ) = None,
+    server_header: str | None = USER_AGENT,
+    compression: str | None = "deflate",
     # Timeouts
-    open_timeout: Optional[float] = 10,
-    close_timeout: Optional[float] = 10,
+    open_timeout: float | None = 10,
+    close_timeout: float | None = 10,
     # Limits
-    max_size: Optional[int] = 2**20,
+    max_size: int | None = 2**20,
     # Logging
-    logger: Optional[LoggerLike] = None,
+    logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
-    create_connection: Optional[Type[ServerConnection]] = None,
+    create_connection: type[ServerConnection] | None = None,
     **kwargs: Any,
 ) -> WebSocketServer:
     """
@@ -412,7 +412,7 @@ def serve(
 
     # Private APIs for unix_connect()
     unix: bool = kwargs.pop("unix", False)
-    path: Optional[str] = kwargs.pop("path", None)
+    path: str | None = kwargs.pop("path", None)
 
     if sock is None:
         if unix:
@@ -460,18 +460,18 @@ def serve(
                 sock.settimeout(None)
 
             # Create a closure to give select_subprotocol access to connection.
-            protocol_select_subprotocol: Optional[
+            protocol_select_subprotocol: None | (
                 Callable[
                     [ServerProtocol, Sequence[Subprotocol]],
-                    Optional[Subprotocol],
+                    Subprotocol | None,
                 ]
-            ] = None
+            ) = None
             if select_subprotocol is not None:
 
                 def protocol_select_subprotocol(
                     protocol: ServerProtocol,
                     subprotocols: Sequence[Subprotocol],
-                ) -> Optional[Subprotocol]:
+                ) -> Subprotocol | None:
                     # mypy doesn't know that select_subprotocol is immutable.
                     assert select_subprotocol is not None
                     # Ensure this function is only used in the intended context.
@@ -525,7 +525,7 @@ def serve(
 
 def unix_serve(
     handler: Callable[[ServerConnection], None],
-    path: Optional[str] = None,
+    path: str | None = None,
     **kwargs: Any,
 ) -> WebSocketServer:
     """

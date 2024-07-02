@@ -62,10 +62,10 @@ class Request:
     headers: datastructures.Headers
     # body isn't useful is the context of this library.
 
-    _exception: Optional[Exception] = None
+    _exception: Exception | None = None
 
     @property
-    def exception(self) -> Optional[Exception]:  # pragma: no cover
+    def exception(self) -> Exception | None:  # pragma: no cover
         warnings.warn(
             "Request.exception is deprecated; "
             "use ServerProtocol.handshake_exc instead",
@@ -164,12 +164,12 @@ class Response:
     status_code: int
     reason_phrase: str
     headers: datastructures.Headers
-    body: Optional[bytes] = None
+    body: bytes | None = None
 
-    _exception: Optional[Exception] = None
+    _exception: Exception | None = None
 
     @property
-    def exception(self) -> Optional[Exception]:  # pragma: no cover
+    def exception(self) -> Exception | None:  # pragma: no cover
         warnings.warn(
             "Response.exception is deprecated; "
             "use ClientProtocol.handshake_exc instead",
@@ -245,7 +245,7 @@ class Response:
         if 100 <= status_code < 200 or status_code == 204 or status_code == 304:
             body = None
         else:
-            content_length: Optional[int]
+            content_length: int | None
             try:
                 # MultipleValuesError is sufficiently unlikely that we don't
                 # attempt to handle it. Instead we document that its parent

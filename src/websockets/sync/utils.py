@@ -16,14 +16,14 @@ class Deadline:
 
     """
 
-    def __init__(self, timeout: Optional[float]) -> None:
-        self.deadline: Optional[float]
+    def __init__(self, timeout: float | None) -> None:
+        self.deadline: float | None
         if timeout is None:
             self.deadline = None
         else:
             self.deadline = time.monotonic() + timeout
 
-    def timeout(self, *, raise_if_elapsed: bool = True) -> Optional[float]:
+    def timeout(self, *, raise_if_elapsed: bool = True) -> float | None:
         """
         Calculate a timeout from a deadline.
 

@@ -8,7 +8,7 @@ default: style types tests
 
 style:
 	black src tests
-	ruff --fix src tests
+	ruff check --fix src tests
 
 types:
 	mypy --strict src

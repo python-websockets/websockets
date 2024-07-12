@@ -70,7 +70,7 @@ exclude_lines = [
     "@unittest.skip",
 ]
 
-[tool.ruff]
+[tool.ruff.lint]
 select = [
     "E",  # pycodestyle
     "F",  # Pyflakes
@@ -82,6 +82,6 @@ ignore = [
     "F405",
 ]
 
-[tool.ruff.isort]
+[tool.ruff.lint.isort]
 combine-as-imports = true
 lines-after-imports = 2

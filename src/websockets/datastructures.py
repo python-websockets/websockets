@@ -177,6 +177,7 @@ class SupportsKeysAndGetItem(Protocol):  # pragma: no cover
     def __getitem__(self, key: str) -> str: ...
 
 
+# Change to Headers | Mapping[str, str] | ... when dropping Python < 3.10.
 HeadersLike = Union[
     Headers,
     Mapping[str, str],

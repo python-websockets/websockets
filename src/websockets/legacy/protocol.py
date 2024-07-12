@@ -23,7 +23,6 @@ from typing import (
     List,
     Mapping,
     Tuple,
-    Union,
     cast,
 )
 
@@ -578,7 +577,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     async def send(
         self,
-        message: Union[Data, Iterable[Data], AsyncIterable[Data]],
+        message: Data | Iterable[Data] | AsyncIterable[Data],
     ) -> None:
         """
         Send a message.

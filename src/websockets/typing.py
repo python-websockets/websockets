@@ -19,6 +19,7 @@ __all__ = [
 
 # Public types used in the signature of public APIs
 
+# Change to str | bytes when dropping Python < 3.10.
 Data = Union[str, bytes]
 """Types supported in a WebSocket message:
 :class:`str` for a Text_ frame, :class:`bytes` for a Binary_.
@@ -29,6 +30,7 @@ Data = Union[str, bytes]
 """
 
 
+# Change to logging.Logger | ... when dropping Python < 3.10.
 if typing.TYPE_CHECKING:
     LoggerLike = Union[logging.Logger, logging.LoggerAdapter[Any]]
     """Types accepted where a :class:`~logging.Logger` is expected."""
@@ -37,6 +39,7 @@ else:  # remove this branch when dropping support for Python < 3.11
     """Types accepted where a :class:`~logging.Logger` is expected."""
 
 
+# Change to http.HTTPStatus | int when dropping Python < 3.10.
 StatusLike = Union[http.HTTPStatus, int]
 """
 Types accepted where an :class:`~http.HTTPStatus` is expected."""

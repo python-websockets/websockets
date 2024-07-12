@@ -3,7 +3,7 @@ from __future__ import annotations
 import functools
 import hmac
 import http
-from typing import Any, Awaitable, Callable, Iterable, Tuple, Union, cast
+from typing import Any, Awaitable, Callable, Iterable, Tuple, cast
 
 from ..datastructures import Headers
 from ..exceptions import InvalidHeader
@@ -116,7 +116,7 @@ class BasicAuthWebSocketServerProtocol(WebSocketServerProtocol):
 
 def basic_auth_protocol_factory(
     realm: str | None = None,
-    credentials: Union[Credentials, Iterable[Credentials]] | None = None,
+    credentials: Credentials | Iterable[Credentials] | None = None,
     check_credentials: Callable[[str, str], Awaitable[bool]] | None = None,
     create_protocol: Callable[..., BasicAuthWebSocketServerProtocol] | None = None,
 ) -> Callable[..., BasicAuthWebSocketServerProtocol]:

@@ -8,7 +8,7 @@ import struct
 import threading
 import uuid
 from types import TracebackType
-from typing import Any, Dict, Iterable, Iterator, Mapping, Type, Union
+from typing import Any, Dict, Iterable, Iterator, Mapping, Type
 
 from ..exceptions import ConnectionClosed, ConnectionClosedOK, ProtocolError
 from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode, prepare_ctrl
@@ -242,7 +242,7 @@ class Connection:
                 "is already running recv or recv_streaming"
             ) from None
 
-    def send(self, message: Union[Data, Iterable[Data]]) -> None:
+    def send(self, message: Data | Iterable[Data]) -> None:
         """
         Send a message.
 

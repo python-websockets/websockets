@@ -38,6 +38,7 @@ __all__ = [
     "SEND_EOF",
 ]
 
+# Change to Request | Response | Frame when dropping Python < 3.10.
 Event = Union[Request, Response, Frame]
 """Events that :meth:`~Protocol.events_received` may return."""
 

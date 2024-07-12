@@ -54,6 +54,7 @@ from .protocol import WebSocketCommonProtocol
 __all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
 
 
+# Change to HeadersLike | ... when dropping Python < 3.10.
 HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]]
 
 HTTPResponse = Tuple[StatusLike, HeadersLike, bytes]
@@ -96,10 +97,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def __init__(
         self,
-        ws_handler: Union[
-            Callable[[WebSocketServerProtocol], Awaitable[Any]],
-            Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
-        ],
+        ws_handler: (
+            Callable[[WebSocketServerProtocol], Awaitable[Any]]
+            | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+        ),
         ws_server: WebSocketServer,
         *,
         logger: LoggerLike | None = None,
@@ -934,7 +935,7 @@ class Serve:
             should be negotiated and run.
         subprotocols: List of supported subprotocols, in order of decreasing
             preference.
-        extra_headers (Union[HeadersLike, Callable[[str, Headers], HeadersLike]]):
+        extra_headers (HeadersLike | Callable[[str, Headers] | HeadersLike]):
             Arbitrary HTTP headers to add to the response. This can be
             a :data:`~websockets.datastructures.HeadersLike` or a callable
             taking the request path and headers in arguments and returning
@@ -972,11 +973,11 @@ class Serve:
 
     def __init__(
         self,
-        ws_handler: Union[
-            Callable[[WebSocketServerProtocol], Awaitable[Any]],
-            Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
-        ],
-        host: Union[str, Sequence[str]] | None = None,
+        ws_handler: (
+            Callable[[WebSocketServerProtocol], Awaitable[Any]]
+            | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+        ),
+        host: str | Sequence[str] | None = None,
         port: int | None = None,
         *,
         create_protocol: Callable[..., WebSocketServerProtocol] | None = None,
@@ -1126,10 +1127,10 @@ serve = Serve
 
 
 def unix_serve(
-    ws_handler: Union[
-        Callable[[WebSocketServerProtocol], Awaitable[Any]],
-        Callable[[WebSocketServerProtocol, str], Awaitable[Any]],  # deprecated
-    ],
+    ws_handler: (
+        Callable[[WebSocketServerProtocol], Awaitable[Any]]
+        | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+    ),
     path: str | None = None,
     **kwargs: Any,
 ) -> Serve:
@@ -1152,10 +1153,10 @@ def unix_serve(
 
 
 def remove_path_argument(
-    ws_handler: Union[
-        Callable[[WebSocketServerProtocol], Awaitable[Any]],
-        Callable[[WebSocketServerProtocol, str], Awaitable[Any]],
-    ]
+    ws_handler: (
+        Callable[[WebSocketServerProtocol], Awaitable[Any]]
+        | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]
+    )
 ) -> Callable[[WebSocketServerProtocol], Awaitable[Any]]:
     try:
         inspect.signature(ws_handler).bind(None)

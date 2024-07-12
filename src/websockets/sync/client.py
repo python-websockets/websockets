@@ -4,7 +4,7 @@ import socket
 import ssl as ssl_module
 import threading
 import warnings
-from typing import Any, Sequence, Type
+from typing import Any, Sequence
 
 from ..client import ClientProtocol
 from ..datastructures import HeadersLike
@@ -146,7 +146,7 @@ def connect(
     # Logging
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
-    create_connection: Type[ClientConnection] | None = None,
+    create_connection: type[ClientConnection] | None = None,
     **kwargs: Any,
 ) -> ClientConnection:
     """

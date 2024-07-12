@@ -2,10 +2,8 @@ from __future__ import annotations
 
 from typing import (
     Any,
-    Dict,
     Iterable,
     Iterator,
-    List,
     Mapping,
     MutableMapping,
     Protocol,
@@ -72,8 +70,8 @@ class Headers(MutableMapping[str, str]):
 
     # Like dict, Headers accepts an optional "mapping or iterable" argument.
     def __init__(self, *args: HeadersLike, **kwargs: str) -> None:
-        self._dict: Dict[str, List[str]] = {}
-        self._list: List[Tuple[str, str]] = []
+        self._dict: dict[str, list[str]] = {}
+        self._list: list[tuple[str, str]] = []
         self.update(*args, **kwargs)
 
     def __str__(self) -> str:
@@ -147,7 +145,7 @@ class Headers(MutableMapping[str, str]):
 
     # Methods for handling multiple values
 
-    def get_all(self, key: str) -> List[str]:
+    def get_all(self, key: str) -> list[str]:
         """
         Return the (possibly empty) list of all values for a header.
 
@@ -157,7 +155,7 @@ class Headers(MutableMapping[str, str]):
         """
         return self._dict.get(key.lower(), [])
 
-    def raw_items(self) -> Iterator[Tuple[str, str]]:
+    def raw_items(self) -> Iterator[tuple[str, str]]:
         """
         Return an iterator of all values as ``(name, value)`` pairs.
 
@@ -181,6 +179,7 @@ class SupportsKeysAndGetItem(Protocol):  # pragma: no cover
 HeadersLike = Union[
     Headers,
     Mapping[str, str],
+    # Change to tuple[str, str] when dropping Python < 3.9.
     Iterable[Tuple[str, str]],
     SupportsKeysAndGetItem,
 ]

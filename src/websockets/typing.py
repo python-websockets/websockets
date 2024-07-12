@@ -56,13 +56,15 @@ Subprotocol = NewType("Subprotocol", str)
 ExtensionName = NewType("ExtensionName", str)
 """Name of a WebSocket extension."""
 
-# Change to str | None when dropping Python < 3.10.
+# Change to tuple[str, Optional[str]] when dropping Python < 3.9.
+# Change to tuple[str, str | None] when dropping Python < 3.10.
 ExtensionParameter = Tuple[str, Optional[str]]
 """Parameter of a WebSocket extension."""
 
 
 # Private types
 
+# Change to tuple[.., list[...]] when dropping Python < 3.9.
 ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
 """Extension in a ``Sec-WebSocket-Extensions`` header."""
 

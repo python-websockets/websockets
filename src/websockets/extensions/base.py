@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Sequence, Tuple
+from typing import Sequence
 
 from .. import frames
 from ..typing import ExtensionName, ExtensionParameter
@@ -63,7 +63,7 @@ class ClientExtensionFactory:
     name: ExtensionName
     """Extension identifier."""
 
-    def get_request_params(self) -> List[ExtensionParameter]:
+    def get_request_params(self) -> list[ExtensionParameter]:
         """
         Build parameters to send to the server for this extension.
 
@@ -108,7 +108,7 @@ class ServerExtensionFactory:
         self,
         params: Sequence[ExtensionParameter],
         accepted_extensions: Sequence[Extension],
-    ) -> Tuple[List[ExtensionParameter], Extension]:
+    ) -> tuple[list[ExtensionParameter], Extension]:
         """
         Process parameters received from the client.
 

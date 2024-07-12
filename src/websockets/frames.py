@@ -5,7 +5,7 @@ import enum
 import io
 import secrets
 import struct
-from typing import Callable, Generator, Sequence, Tuple
+from typing import Callable, Generator, Sequence
 
 from . import exceptions, extensions
 from .typing import Data
@@ -353,7 +353,7 @@ class Frame:
                 raise exceptions.ProtocolError("fragmented control frame")
 
 
-def prepare_data(data: Data) -> Tuple[int, bytes]:
+def prepare_data(data: Data) -> tuple[int, bytes]:
     """
     Convert a string or byte-like object to an opcode and a bytes-like object.
 

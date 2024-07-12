@@ -12,10 +12,7 @@ from typing import (
     AsyncIterator,
     Callable,
     Generator,
-    List,
     Sequence,
-    Tuple,
-    Type,
     cast,
 )
 
@@ -122,7 +119,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         self.transport.write(request.encode())
 
-    async def read_http_response(self) -> Tuple[int, Headers]:
+    async def read_http_response(self) -> tuple[int, Headers]:
         """
         Read status line and headers from the HTTP response.
 
@@ -152,7 +149,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
     def process_extensions(
         headers: Headers,
         available_extensions: Sequence[ClientExtensionFactory] | None,
-    ) -> List[Extension]:
+    ) -> list[Extension]:
         """
         Handle the Sec-WebSocket-Extensions HTTP response header.
 
@@ -179,7 +176,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         order of extensions, may be implemented by overriding this method.
 
         """
-        accepted_extensions: List[Extension] = []
+        accepted_extensions: list[Extension] = []
 
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
@@ -187,7 +184,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
             if available_extensions is None:
                 raise InvalidHandshake("no extensions supported")
 
-            parsed_header_values: List[ExtensionHeader] = sum(
+            parsed_header_values: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
             )
 
@@ -455,7 +452,7 @@ class Connect:
             close_timeout = timeout
 
         # Backwards compatibility: create_protocol used to be called klass.
-        klass: Type[WebSocketClientProtocol] | None = kwargs.pop("klass", None)
+        klass: type[WebSocketClientProtocol] | None = kwargs.pop("klass", None)
         if klass is None:
             klass = WebSocketClientProtocol
         else:
@@ -629,7 +626,7 @@ class Connect:
 
     async def __aexit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:

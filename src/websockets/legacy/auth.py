@@ -13,6 +13,7 @@ from .server import HTTPResponse, WebSocketServerProtocol
 
 __all__ = ["BasicAuthWebSocketServerProtocol", "basic_auth_protocol_factory"]
 
+# Change to tuple[str, str] when dropping Python < 3.9.
 Credentials = Tuple[str, str]
 
 

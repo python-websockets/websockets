@@ -18,11 +18,8 @@ from typing import (
     Awaitable,
     Callable,
     Deque,
-    Dict,
     Iterable,
-    List,
     Mapping,
-    Tuple,
     cast,
 )
 
@@ -262,7 +259,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """Opening handshake response headers."""
 
         # WebSocket protocol parameters.
-        self.extensions: List[Extension] = []
+        self.extensions: list[Extension] = []
         self.subprotocol: Subprotocol | None = None
         """Subprotocol, if one was negotiated."""
 
@@ -286,7 +283,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self._fragmented_message_waiter: asyncio.Future[None] | None = None
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pings: Dict[bytes, Tuple[asyncio.Future[float], float]] = {}
+        self.pings: dict[bytes, tuple[asyncio.Future[float], float]] = {}
 
         self.latency: float = 0
         """
@@ -1042,7 +1039,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             return frame.data.decode("utf-8") if text else frame.data
 
         # 5.4. Fragmentation
-        fragments: List[Data] = []
+        fragments: list[Data] = []
         max_size = self.max_size
         if text:
             decoder_factory = codecs.getincrementaldecoder("utf-8")

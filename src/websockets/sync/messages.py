@@ -3,7 +3,7 @@ from __future__ import annotations
 import codecs
 import queue
 import threading
-from typing import Iterator, List, cast
+from typing import Iterator, cast
 
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 from ..typing import Data
@@ -44,7 +44,7 @@ class Assembler:
         self.decoder: codecs.IncrementalDecoder | None = None
 
         # Buffer of frames belonging to the same message.
-        self.chunks: List[Data] = []
+        self.chunks: list[Data] = []
 
         # When switching from "buffering" to "streaming", we use a thread-safe
         # queue for transferring frames from the writing thread (library code)

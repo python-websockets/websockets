@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import struct
-from typing import Any, Awaitable, Callable, NamedTuple, Sequence, Tuple
+from typing import Any, Awaitable, Callable, NamedTuple, Sequence
 
 from .. import extensions, frames
 from ..exceptions import PayloadTooBig, ProtocolError
@@ -152,7 +152,7 @@ from ..frames import (  # noqa: E402, F401, I001
 )
 
 
-def parse_close(data: bytes) -> Tuple[int, str]:
+def parse_close(data: bytes) -> tuple[int, str]:
     """
     Parse the payload from a close frame.
 

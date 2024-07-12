@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import dataclasses
 import urllib.parse
-from typing import Tuple
 
 from . import exceptions
 
@@ -47,7 +46,7 @@ class WebSocketURI:
         return resource_name
 
     @property
-    def user_info(self) -> Tuple[str, str] | None:
+    def user_info(self) -> tuple[str, str] | None:
         if self.username is None:
             return None
         assert self.password is not None

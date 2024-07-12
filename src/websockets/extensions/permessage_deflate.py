@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import dataclasses
 import zlib
-from typing import Any, Dict, List, Sequence, Tuple
+from typing import Any, Sequence
 
 from .. import exceptions, frames
 from ..typing import ExtensionName, ExtensionParameter
@@ -36,7 +36,7 @@ class PerMessageDeflate(Extension):
         local_no_context_takeover: bool,
         remote_max_window_bits: int,
         local_max_window_bits: int,
-        compress_settings: Dict[Any, Any] | None = None,
+        compress_settings: dict[Any, Any] | None = None,
     ) -> None:
         """
         Configure the Per-Message Deflate extension.
@@ -176,12 +176,12 @@ def _build_parameters(
     client_no_context_takeover: bool,
     server_max_window_bits: int | None,
     client_max_window_bits: int | bool | None,
-) -> List[ExtensionParameter]:
+) -> list[ExtensionParameter]:
     """
     Build a list of ``(name, value)`` pairs for some compression parameters.
 
     """
-    params: List[ExtensionParameter] = []
+    params: list[ExtensionParameter] = []
     if server_no_context_takeover:
         params.append(("server_no_context_takeover", None))
     if client_no_context_takeover:
@@ -197,7 +197,7 @@ def _build_parameters(
 
 def _extract_parameters(
     params: Sequence[ExtensionParameter], *, is_server: bool
-) -> Tuple[bool, bool, int | None, int | bool | None]:
+) -> tuple[bool, bool, int | None, int | bool | None]:
     """
     Extract compression parameters from a list of ``(name, value)`` pairs.
 
@@ -288,7 +288,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         client_no_context_takeover: bool = False,
         server_max_window_bits: int | None = None,
         client_max_window_bits: int | bool | None = True,
-        compress_settings: Dict[str, Any] | None = None,
+        compress_settings: dict[str, Any] | None = None,
     ) -> None:
         """
         Configure the Per-Message Deflate extension factory.
@@ -314,7 +314,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         self.client_max_window_bits = client_max_window_bits
         self.compress_settings = compress_settings
 
-    def get_request_params(self) -> List[ExtensionParameter]:
+    def get_request_params(self) -> list[ExtensionParameter]:
         """
         Build request parameters.
 
@@ -491,7 +491,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         client_no_context_takeover: bool = False,
         server_max_window_bits: int | None = None,
         client_max_window_bits: int | None = None,
-        compress_settings: Dict[str, Any] | None = None,
+        compress_settings: dict[str, Any] | None = None,
         require_client_max_window_bits: bool = False,
     ) -> None:
         """
@@ -524,7 +524,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         self,
         params: Sequence[ExtensionParameter],
         accepted_extensions: Sequence[Extension],
-    ) -> Tuple[List[ExtensionParameter], PerMessageDeflate]:
+    ) -> tuple[list[ExtensionParameter], PerMessageDeflate]:
         """
         Process request parameters.
 

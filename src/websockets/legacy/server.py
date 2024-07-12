@@ -15,11 +15,8 @@ from typing import (
     Callable,
     Generator,
     Iterable,
-    List,
     Sequence,
-    Set,
     Tuple,
-    Type,
     Union,
     cast,
 )
@@ -57,6 +54,7 @@ __all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
 # Change to HeadersLike | ... when dropping Python < 3.10.
 HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]]
 
+# Change to tuple[...] when dropping Python < 3.9.
 HTTPResponse = Tuple[StatusLike, HeadersLike, bytes]
 
 
@@ -263,7 +261,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             self.ws_server.unregister(self)
             self.logger.info("connection closed")
 
-    async def read_http_request(self) -> Tuple[str, Headers]:
+    async def read_http_request(self) -> tuple[str, Headers]:
         """
         Read request line and headers from the HTTP request.
 
@@ -349,7 +347,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
             request_headers: Request headers.
 
         Returns:
-            Tuple[StatusLike, HeadersLike, bytes] | None: :obj:`None` to
+            tuple[StatusLike, HeadersLike, bytes] | None: :obj:`None` to
             continue the WebSocket handshake normally.
 
             An HTTP response, represented by a 3-uple of the response status,
@@ -401,7 +399,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
     def process_extensions(
         headers: Headers,
         available_extensions: Sequence[ServerExtensionFactory] | None,
-    ) -> Tuple[str | None, List[Extension]]:
+    ) -> tuple[str | None, list[Extension]]:
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.
 
@@ -439,13 +437,13 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         response_header_value: str | None = None
 
-        extension_headers: List[ExtensionHeader] = []
-        accepted_extensions: List[Extension] = []
+        extension_headers: list[ExtensionHeader] = []
+        accepted_extensions: list[Extension] = []
 
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values and available_extensions:
-            parsed_header_values: List[ExtensionHeader] = sum(
+            parsed_header_values: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
             )
 
@@ -502,7 +500,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         header_values = headers.get_all("Sec-WebSocket-Protocol")
 
         if header_values and available_subprotocols:
-            parsed_header_values: List[Subprotocol] = sum(
+            parsed_header_values: list[Subprotocol] = sum(
                 [parse_subprotocol(header_value) for header_value in header_values], []
             )
 
@@ -669,7 +667,7 @@ class WebSocketServer:
         self.logger = logger
 
         # Keep track of active connections.
-        self.websockets: Set[WebSocketServerProtocol] = set()
+        self.websockets: set[WebSocketServerProtocol] = set()
 
         # Task responsible for closing the server and terminating connections.
         self.close_task: asyncio.Task[None] | None = None
@@ -871,7 +869,7 @@ class WebSocketServer:
 
     async def __aexit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:  # pragma: no cover
@@ -944,7 +942,7 @@ class Serve:
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
         process_request (Callable[[str, Headers], \
-            Awaitable[Tuple[StatusLike, HeadersLike, bytes] | None]] | None):
+            Awaitable[tuple[StatusLike, HeadersLike, bytes] | None]] | None):
             Intercept HTTP request before the opening handshake.
             See :meth:`~WebSocketServerProtocol.process_request` for details.
         select_subprotocol: Select a subprotocol supported by the client.
@@ -1015,7 +1013,7 @@ class Serve:
             close_timeout = timeout
 
         # Backwards compatibility: create_protocol used to be called klass.
-        klass: Type[WebSocketServerProtocol] | None = kwargs.pop("klass", None)
+        klass: type[WebSocketServerProtocol] | None = kwargs.pop("klass", None)
         if klass is None:
             klass = WebSocketServerProtocol
         else:
@@ -1100,7 +1098,7 @@ class Serve:
 
     async def __aexit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:

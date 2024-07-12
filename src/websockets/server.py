@@ -5,7 +5,7 @@ import binascii
 import email.utils
 import http
 import warnings
-from typing import Any, Callable, Generator, List, Sequence, Tuple, cast
+from typing import Any, Callable, Generator, Sequence, cast
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
@@ -201,7 +201,7 @@ class ServerProtocol(Protocol):
     def process_request(
         self,
         request: Request,
-    ) -> Tuple[str, str | None, str | None]:
+    ) -> tuple[str, str | None, str | None]:
         """
         Check a handshake request and negotiate extensions and subprotocol.
 
@@ -224,7 +224,7 @@ class ServerProtocol(Protocol):
         """
         headers = request.headers
 
-        connection: List[ConnectionOption] = sum(
+        connection: list[ConnectionOption] = sum(
             [parse_connection(value) for value in headers.get_all("Connection")], []
         )
 
@@ -233,7 +233,7 @@ class ServerProtocol(Protocol):
                 "Connection", ", ".join(connection) if connection else None
             )
 
-        upgrade: List[UpgradeProtocol] = sum(
+        upgrade: list[UpgradeProtocol] = sum(
             [parse_upgrade(value) for value in headers.get_all("Upgrade")], []
         )
 
@@ -317,7 +317,7 @@ class ServerProtocol(Protocol):
     def process_extensions(
         self,
         headers: Headers,
-    ) -> Tuple[str | None, List[Extension]]:
+    ) -> tuple[str | None, list[Extension]]:
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.
 
@@ -355,13 +355,13 @@ class ServerProtocol(Protocol):
         """
         response_header_value: str | None = None
 
-        extension_headers: List[ExtensionHeader] = []
-        accepted_extensions: List[Extension] = []
+        extension_headers: list[ExtensionHeader] = []
+        accepted_extensions: list[Extension] = []
 
         header_values = headers.get_all("Sec-WebSocket-Extensions")
 
         if header_values and self.available_extensions:
-            parsed_header_values: List[ExtensionHeader] = sum(
+            parsed_header_values: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
             )
 

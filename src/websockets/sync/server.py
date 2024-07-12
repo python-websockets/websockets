@@ -10,7 +10,7 @@ import sys
 import threading
 import warnings
 from types import TracebackType
-from typing import Any, Callable, Sequence, Type
+from typing import Any, Callable, Sequence
 
 from ..extensions.base import ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
@@ -262,7 +262,7 @@ class WebSocketServer:
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
@@ -312,7 +312,7 @@ def serve(
     # Logging
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
-    create_connection: Type[ServerConnection] | None = None,
+    create_connection: type[ServerConnection] | None = None,
     **kwargs: Any,
 ) -> WebSocketServer:
     """

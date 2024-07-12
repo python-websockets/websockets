@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Any, Generator, List, Sequence
+from typing import Any, Generator, Sequence
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
@@ -153,7 +153,7 @@ class ClientProtocol(Protocol):
 
         headers = response.headers
 
-        connection: List[ConnectionOption] = sum(
+        connection: list[ConnectionOption] = sum(
             [parse_connection(value) for value in headers.get_all("Connection")], []
         )
 
@@ -162,7 +162,7 @@ class ClientProtocol(Protocol):
                 "Connection", ", ".join(connection) if connection else None
             )
 
-        upgrade: List[UpgradeProtocol] = sum(
+        upgrade: list[UpgradeProtocol] = sum(
             [parse_upgrade(value) for value in headers.get_all("Upgrade")], []
         )
 
@@ -188,7 +188,7 @@ class ClientProtocol(Protocol):
 
         self.subprotocol = self.process_subprotocol(headers)
 
-    def process_extensions(self, headers: Headers) -> List[Extension]:
+    def process_extensions(self, headers: Headers) -> list[Extension]:
         """
         Handle the Sec-WebSocket-Extensions HTTP response header.
 
@@ -219,7 +219,7 @@ class ClientProtocol(Protocol):
             InvalidHandshake: To abort the handshake.
 
         """
-        accepted_extensions: List[Extension] = []
+        accepted_extensions: list[Extension] = []
 
         extensions = headers.get_all("Sec-WebSocket-Extensions")
 
@@ -227,7 +227,7 @@ class ClientProtocol(Protocol):
             if self.available_extensions is None:
                 raise InvalidHandshake("no extensions supported")
 
-            parsed_extensions: List[ExtensionHeader] = sum(
+            parsed_extensions: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in extensions], []
             )
 

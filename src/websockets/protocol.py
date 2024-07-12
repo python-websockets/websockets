@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import uuid
-from typing import Generator, List, Type, Union
+from typing import Generator, Union
 
 from .exceptions import (
     ConnectionClosed,
@@ -125,7 +125,7 @@ class Protocol:
 
         # WebSocket protocol parameters.
         self.origin: Origin | None = None
-        self.extensions: List[Extension] = []
+        self.extensions: list[Extension] = []
         self.subprotocol: Subprotocol | None = None
 
         # Close code and reason, set when a close frame is sent or received.
@@ -147,8 +147,8 @@ class Protocol:
 
         # Parser state.
         self.reader = StreamReader()
-        self.events: List[Event] = []
-        self.writes: List[bytes] = []
+        self.events: list[Event] = []
+        self.writes: list[bytes] = []
         self.parser = self.parse()
         next(self.parser)  # start coroutine
         self.parser_exc: Exception | None = None
@@ -222,7 +222,7 @@ class Protocol:
 
         """
         assert self.state is CLOSED, "connection isn't closed yet"
-        exc_type: Type[ConnectionClosed]
+        exc_type: type[ConnectionClosed]
         if (
             self.close_rcvd is not None
             and self.close_sent is not None
@@ -458,7 +458,7 @@ class Protocol:
 
     # Public method for getting incoming events after receiving data.
 
-    def events_received(self) -> List[Event]:
+    def events_received(self) -> list[Event]:
         """
         Fetch events generated from data received from the network.
 
@@ -474,7 +474,7 @@ class Protocol:
 
     # Public method for getting outgoing data after receiving data or sending events.
 
-    def data_to_send(self) -> List[bytes]:
+    def data_to_send(self) -> list[bytes]:
         """
         Obtain data to send to the network.
 

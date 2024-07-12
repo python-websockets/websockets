@@ -8,7 +8,7 @@ import struct
 import threading
 import uuid
 from types import TracebackType
-from typing import Any, Dict, Iterable, Iterator, Mapping, Type
+from typing import Any, Iterable, Iterator, Mapping
 
 from ..exceptions import ConnectionClosed, ConnectionClosedOK, ProtocolError
 from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode, prepare_ctrl
@@ -80,7 +80,7 @@ class Connection:
         self.close_deadline: Deadline | None = None
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.ping_waiters: Dict[bytes, threading.Event] = {}
+        self.ping_waiters: dict[bytes, threading.Event] = {}
 
         # Receiving events from the socket. This thread explicitly is marked as
         # to support creating a connection in a non-daemon thread then using it
@@ -140,7 +140,7 @@ class Connection:
 
     def __exit__(
         self,
-        exc_type: Type[BaseException] | None,
+        exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:

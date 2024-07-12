@@ -53,7 +53,7 @@ Subprotocol = NewType("Subprotocol", str)
 ExtensionName = NewType("ExtensionName", str)
 """Name of a WebSocket extension."""
 
-
+# Change to str | None when dropping Python < 3.10.
 ExtensionParameter = Tuple[str, Optional[str]]
 """Parameter of a WebSocket extension."""
 

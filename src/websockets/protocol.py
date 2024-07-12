@@ -3,7 +3,7 @@ from __future__ import annotations
 import enum
 import logging
 import uuid
-from typing import Generator, List, Optional, Type, Union
+from typing import Generator, List, Type, Union
 
 from .exceptions import (
     ConnectionClosed,
@@ -89,8 +89,8 @@ class Protocol:
         side: Side,
         *,
         state: State = OPEN,
-        max_size: Optional[int] = 2**20,
-        logger: Optional[LoggerLike] = None,
+        max_size: int | None = 2**20,
+        logger: LoggerLike | None = None,
     ) -> None:
         # Unique identifier. For logs.
         self.id: uuid.UUID = uuid.uuid4()
@@ -116,24 +116,24 @@ class Protocol:
 
         # Current size of incoming message in bytes. Only set while reading a
         # fragmented message i.e. a data frames with the FIN bit not set.
-        self.cur_size: Optional[int] = None
+        self.cur_size: int | None = None
 
         # True while sending a fragmented message i.e. a data frames with the
         # FIN bit not set.
         self.expect_continuation_frame = False
 
         # WebSocket protocol parameters.
-        self.origin: Optional[Origin] = None
+        self.origin: Origin | None = None
         self.extensions: List[Extension] = []
-        self.subprotocol: Optional[Subprotocol] = None
+        self.subprotocol: Subprotocol | None = None
 
         # Close code and reason, set when a close frame is sent or received.
-        self.close_rcvd: Optional[Close] = None
-        self.close_sent: Optional[Close] = None
-        self.close_rcvd_then_sent: Optional[bool] = None
+        self.close_rcvd: Close | None = None
+        self.close_sent: Close | None = None
+        self.close_rcvd_then_sent: bool | None = None
 
         # Track if an exception happened during the handshake.
-        self.handshake_exc: Optional[Exception] = None
+        self.handshake_exc: Exception | None = None
         """
         Exception to raise if the opening handshake failed.
 
@@ -150,7 +150,7 @@ class Protocol:
         self.writes: List[bytes] = []
         self.parser = self.parse()
         next(self.parser)  # start coroutine
-        self.parser_exc: Optional[Exception] = None
+        self.parser_exc: Exception | None = None
 
     @property
     def state(self) -> State:
@@ -169,7 +169,7 @@ class Protocol:
         self._state = state
 
     @property
-    def close_code(self) -> Optional[int]:
+    def close_code(self) -> int | None:
         """
         `WebSocket close code`_.
 
@@ -187,7 +187,7 @@ class Protocol:
             return self.close_rcvd.code
 
     @property
-    def close_reason(self) -> Optional[str]:
+    def close_reason(self) -> str | None:
         """
         `WebSocket close reason`_.
 
@@ -348,7 +348,7 @@ class Protocol:
         self.expect_continuation_frame = not fin
         self.send_frame(Frame(OP_BINARY, data, fin))
 
-    def send_close(self, code: Optional[int] = None, reason: str = "") -> None:
+    def send_close(self, code: int | None = None, reason: str = "") -> None:
         """
         Send a `Close frame`_.
 

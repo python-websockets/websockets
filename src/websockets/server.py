@@ -5,7 +5,7 @@ import binascii
 import email.utils
 import http
 import warnings
-from typing import Any, Callable, Generator, List, Optional, Sequence, Tuple, cast
+from typing import Any, Callable, Generator, List, Sequence, Tuple, cast
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
@@ -77,18 +77,19 @@ class ServerProtocol(Protocol):
     def __init__(
         self,
         *,
-        origins: Optional[Sequence[Optional[Origin]]] = None,
-        extensions: Optional[Sequence[ServerExtensionFactory]] = None,
-        subprotocols: Optional[Sequence[Subprotocol]] = None,
-        select_subprotocol: Optional[
+        origins: Sequence[Origin | None] | None = None,
+        extensions: Sequence[ServerExtensionFactory] | None = None,
+        subprotocols: Sequence[Subprotocol] | None = None,
+        select_subprotocol: (
             Callable[
                 [ServerProtocol, Sequence[Subprotocol]],
-                Optional[Subprotocol],
+                Subprotocol | None,
             ]
-        ] = None,
+            | None
+        ) = None,
         state: State = CONNECTING,
-        max_size: Optional[int] = 2**20,
-        logger: Optional[LoggerLike] = None,
+        max_size: int | None = 2**20,
+        logger: LoggerLike | None = None,
     ):
         super().__init__(
             side=SERVER,
@@ -200,7 +201,7 @@ class ServerProtocol(Protocol):
     def process_request(
         self,
         request: Request,
-    ) -> Tuple[str, Optional[str], Optional[str]]:
+    ) -> Tuple[str, str | None, str | None]:
         """
         Check a handshake request and negotiate extensions and subprotocol.
 
@@ -285,7 +286,7 @@ class ServerProtocol(Protocol):
             protocol_header,
         )
 
-    def process_origin(self, headers: Headers) -> Optional[Origin]:
+    def process_origin(self, headers: Headers) -> Origin | None:
         """
         Handle the Origin HTTP request header.
 
@@ -303,9 +304,11 @@ class ServerProtocol(Protocol):
         # "The user agent MUST NOT include more than one Origin header field"
         # per https://www.rfc-editor.org/rfc/rfc6454.html#section-7.3.
         try:
-            origin = cast(Optional[Origin], headers.get("Origin"))
+            origin = headers.get("Origin")
         except MultipleValuesError as exc:
             raise InvalidHeader("Origin", "more than one Origin header found") from exc
+        if origin is not None:
+            origin = cast(Origin, origin)
         if self.origins is not None:
             if origin not in self.origins:
                 raise InvalidOrigin(origin)
@@ -314,7 +317,7 @@ class ServerProtocol(Protocol):
     def process_extensions(
         self,
         headers: Headers,
-    ) -> Tuple[Optional[str], List[Extension]]:
+    ) -> Tuple[str | None, List[Extension]]:
         """
         Handle the Sec-WebSocket-Extensions HTTP request header.
 
@@ -350,7 +353,7 @@ class ServerProtocol(Protocol):
             InvalidHandshake: If the Sec-WebSocket-Extensions header is invalid.
 
         """
-        response_header_value: Optional[str] = None
+        response_header_value: str | None = None
 
         extension_headers: List[ExtensionHeader] = []
         accepted_extensions: List[Extension] = []
@@ -392,7 +395,7 @@ class ServerProtocol(Protocol):
 
         return response_header_value, accepted_extensions
 
-    def process_subprotocol(self, headers: Headers) -> Optional[Subprotocol]:
+    def process_subprotocol(self, headers: Headers) -> Subprotocol | None:
         """
         Handle the Sec-WebSocket-Protocol HTTP request header.
 
@@ -420,7 +423,7 @@ class ServerProtocol(Protocol):
     def select_subprotocol(
         self,
         subprotocols: Sequence[Subprotocol],
-    ) -> Optional[Subprotocol]:
+    ) -> Subprotocol | None:
         """
         Pick a subprotocol among those offered by the client.
 

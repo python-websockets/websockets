@@ -4,7 +4,7 @@ import base64
 import binascii
 import ipaddress
 import re
-from typing import Callable, List, Optional, Sequence, Tuple, TypeVar, cast
+from typing import Callable, List, Sequence, Tuple, TypeVar, cast
 
 from . import exceptions
 from .typing import (
@@ -63,7 +63,7 @@ def build_host(host: str, port: int, secure: bool) -> str:
 # https://www.rfc-editor.org/rfc/rfc7230.html#appendix-B.
 
 
-def peek_ahead(header: str, pos: int) -> Optional[str]:
+def peek_ahead(header: str, pos: int) -> str | None:
     """
     Return the next character from ``header`` at the given position.
 
@@ -314,7 +314,7 @@ def parse_extension_item_param(
     name, pos = parse_token(header, pos, header_name)
     pos = parse_OWS(header, pos)
     # Extract parameter value, if there is one.
-    value: Optional[str] = None
+    value: str | None = None
     if peek_ahead(header, pos) == "=":
         pos = parse_OWS(header, pos + 1)
         if peek_ahead(header, pos) == '"':

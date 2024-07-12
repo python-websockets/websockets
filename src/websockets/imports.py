@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable
 
 
 __all__ = ["lazy_import"]
@@ -30,8 +30,8 @@ def import_name(name: str, source: str, namespace: Dict[str, Any]) -> Any:
 
 def lazy_import(
     namespace: Dict[str, Any],
-    aliases: Optional[Dict[str, str]] = None,
-    deprecated_aliases: Optional[Dict[str, str]] = None,
+    aliases: Dict[str, str] | None = None,
+    deprecated_aliases: Dict[str, str] | None = None,
 ) -> None:
     """
     Provide lazy, module-level imports.

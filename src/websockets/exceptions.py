@@ -31,7 +31,6 @@
 from __future__ import annotations
 
 import http
-from typing import Optional
 
 from . import datastructures, frames, http11
 from .typing import StatusLike
@@ -78,11 +77,11 @@ class ConnectionClosed(WebSocketException):
     Raised when trying to interact with a closed connection.
 
     Attributes:
-        rcvd (Optional[Close]): if a close frame was received, its code and
+        rcvd (Close | None): if a close frame was received, its code and
             reason are available in ``rcvd.code`` and ``rcvd.reason``.
-        sent (Optional[Close]): if a close frame was sent, its code and reason
+        sent (Close | None): if a close frame was sent, its code and reason
             are available in ``sent.code`` and ``sent.reason``.
-        rcvd_then_sent (Optional[bool]): if close frames were received and
+        rcvd_then_sent (bool | None): if close frames were received and
             sent, this attribute tells in which order this happened, from the
             perspective of this side of the connection.
 
@@ -90,9 +89,9 @@ class ConnectionClosed(WebSocketException):
 
     def __init__(
         self,
-        rcvd: Optional[frames.Close],
-        sent: Optional[frames.Close],
-        rcvd_then_sent: Optional[bool] = None,
+        rcvd: frames.Close | None,
+        sent: frames.Close | None,
+        rcvd_then_sent: bool | None = None,
     ) -> None:
         self.rcvd = rcvd
         self.sent = sent
@@ -181,7 +180,7 @@ class InvalidHeader(InvalidHandshake):
 
     """
 
-    def __init__(self, name: str, value: Optional[str] = None) -> None:
+    def __init__(self, name: str, value: str | None = None) -> None:
         self.name = name
         self.value = value
 
@@ -221,7 +220,7 @@ class InvalidOrigin(InvalidHeader):
 
     """
 
-    def __init__(self, origin: Optional[str]) -> None:
+    def __init__(self, origin: str | None) -> None:
         super().__init__("Origin", origin)
 
 
@@ -301,7 +300,7 @@ class InvalidParameterValue(NegotiationError):
 
     """
 
-    def __init__(self, name: str, value: Optional[str]) -> None:
+    def __init__(self, name: str, value: str | None) -> None:
         self.name = name
         self.value = value
 

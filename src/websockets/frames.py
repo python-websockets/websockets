@@ -5,7 +5,7 @@ import enum
 import io
 import secrets
 import struct
-from typing import Callable, Generator, Optional, Sequence, Tuple
+from typing import Callable, Generator, Sequence, Tuple
 
 from . import exceptions, extensions
 from .typing import Data
@@ -205,8 +205,8 @@ class Frame:
         read_exact: Callable[[int], Generator[None, None, bytes]],
         *,
         mask: bool,
-        max_size: Optional[int] = None,
-        extensions: Optional[Sequence[extensions.Extension]] = None,
+        max_size: int | None = None,
+        extensions: Sequence[extensions.Extension] | None = None,
     ) -> Generator[None, None, Frame]:
         """
         Parse a WebSocket frame.
@@ -280,7 +280,7 @@ class Frame:
         self,
         *,
         mask: bool,
-        extensions: Optional[Sequence[extensions.Extension]] = None,
+        extensions: Sequence[extensions.Extension] | None = None,
     ) -> bytes:
         """
         Serialize a WebSocket frame.

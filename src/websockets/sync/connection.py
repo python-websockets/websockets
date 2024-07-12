@@ -8,7 +8,7 @@ import struct
 import threading
 import uuid
 from types import TracebackType
-from typing import Any, Dict, Iterable, Iterator, Mapping, Optional, Type, Union
+from typing import Any, Dict, Iterable, Iterator, Mapping, Type, Union
 
 from ..exceptions import ConnectionClosed, ConnectionClosedOK, ProtocolError
 from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode, prepare_ctrl
@@ -42,7 +42,7 @@ class Connection:
         socket: socket.socket,
         protocol: Protocol,
         *,
-        close_timeout: Optional[float] = 10,
+        close_timeout: float | None = 10,
     ) -> None:
         self.socket = socket
         self.protocol = protocol
@@ -62,9 +62,9 @@ class Connection:
         self.debug = self.protocol.debug
 
         # HTTP handshake request and response.
-        self.request: Optional[Request] = None
+        self.request: Request | None = None
         """Opening handshake request."""
-        self.response: Optional[Response] = None
+        self.response: Response | None = None
         """Opening handshake response."""
 
         # Mutex serializing interactions with the protocol.
@@ -77,7 +77,7 @@ class Connection:
         self.send_in_progress = False
 
         # Deadline for the closing handshake.
-        self.close_deadline: Optional[Deadline] = None
+        self.close_deadline: Deadline | None = None
 
         # Mapping of ping IDs to pong waiters, in chronological order.
         self.ping_waiters: Dict[bytes, threading.Event] = {}
@@ -93,7 +93,7 @@ class Connection:
 
         # Exception raised in recv_events, to be chained to ConnectionClosed
         # in the user thread in order to show why the TCP connection dropped.
-        self.recv_exc: Optional[BaseException] = None
+        self.recv_exc: BaseException | None = None
 
     # Public attributes
 
@@ -124,7 +124,7 @@ class Connection:
         return self.socket.getpeername()
 
     @property
-    def subprotocol(self) -> Optional[Subprotocol]:
+    def subprotocol(self) -> Subprotocol | None:
         """
         Subprotocol negotiated during the opening handshake.
 
@@ -140,9 +140,9 @@ class Connection:
 
     def __exit__(
         self,
-        exc_type: Optional[Type[BaseException]],
-        exc_value: Optional[BaseException],
-        traceback: Optional[TracebackType],
+        exc_type: Type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
     ) -> None:
         if exc_type is None:
             self.close()
@@ -166,7 +166,7 @@ class Connection:
         except ConnectionClosedOK:
             return
 
-    def recv(self, timeout: Optional[float] = None) -> Data:
+    def recv(self, timeout: float | None = None) -> Data:
         """
         Receive the next message.
 
@@ -420,7 +420,7 @@ class Connection:
             # They mean that the connection is closed, which was the goal.
             pass
 
-    def ping(self, data: Optional[Data] = None) -> threading.Event:
+    def ping(self, data: Data | None = None) -> threading.Event:
         """
         Send a Ping_.
 
@@ -647,7 +647,7 @@ class Connection:
         # Should we close the socket and raise ConnectionClosed?
         raise_close_exc = False
         # What exception should we chain ConnectionClosed to?
-        original_exc: Optional[BaseException] = None
+        original_exc: BaseException | None = None
 
         # Acquire the protocol lock.
         with self.protocol_mutex:
@@ -748,7 +748,7 @@ class Connection:
                 except OSError:  # socket already closed
                     pass
 
-    def set_recv_exc(self, exc: Optional[BaseException]) -> None:
+    def set_recv_exc(self, exc: BaseException | None) -> None:
         """
         Set recv_exc, if not set yet.
 

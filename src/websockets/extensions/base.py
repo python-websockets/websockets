@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List, Optional, Sequence, Tuple
+from typing import List, Sequence, Tuple
 
 from .. import frames
 from ..typing import ExtensionName, ExtensionParameter
@@ -22,7 +22,7 @@ class Extension:
         self,
         frame: frames.Frame,
         *,
-        max_size: Optional[int] = None,
+        max_size: int | None = None,
     ) -> frames.Frame:
         """
         Decode an incoming frame.

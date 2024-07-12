@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import warnings
-from typing import Any, Generator, List, Optional, Sequence
+from typing import Any, Generator, List, Sequence
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
@@ -73,12 +73,12 @@ class ClientProtocol(Protocol):
         self,
         wsuri: WebSocketURI,
         *,
-        origin: Optional[Origin] = None,
-        extensions: Optional[Sequence[ClientExtensionFactory]] = None,
-        subprotocols: Optional[Sequence[Subprotocol]] = None,
+        origin: Origin | None = None,
+        extensions: Sequence[ClientExtensionFactory] | None = None,
+        subprotocols: Sequence[Subprotocol] | None = None,
         state: State = CONNECTING,
-        max_size: Optional[int] = 2**20,
-        logger: Optional[LoggerLike] = None,
+        max_size: int | None = 2**20,
+        logger: LoggerLike | None = None,
     ):
         super().__init__(
             side=CLIENT,
@@ -261,7 +261,7 @@ class ClientProtocol(Protocol):
 
         return accepted_extensions
 
-    def process_subprotocol(self, headers: Headers) -> Optional[Subprotocol]:
+    def process_subprotocol(self, headers: Headers) -> Subprotocol | None:
         """
         Handle the Sec-WebSocket-Protocol HTTP response header.
 
@@ -274,7 +274,7 @@ class ClientProtocol(Protocol):
            Subprotocol, if one was selected.
 
         """
-        subprotocol: Optional[Subprotocol] = None
+        subprotocol: Subprotocol | None = None
 
         subprotocols = headers.get_all("Sec-WebSocket-Protocol")
 

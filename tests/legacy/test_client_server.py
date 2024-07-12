@@ -65,7 +65,7 @@ async def default_handler(ws):
         await ws.wait_closed()
         await asyncio.sleep(2 * MS)
     else:
-        await ws.send((await ws.recv()))
+        await ws.send(await ws.recv())
 
 
 async def redirect_request(path, headers, test, status):

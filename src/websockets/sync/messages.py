@@ -53,8 +53,7 @@ class Assembler:
         # value marking the end of the message, superseding message_complete.
 
         # Stream data from frames belonging to the same message.
-        # Remove quotes around type when dropping Python < 3.9.
-        self.chunks_queue: "queue.SimpleQueue[Data | None] | None" = None
+        self.chunks_queue: queue.SimpleQueue[Data | None] | None = None
 
         # This flag marks the end of the connection.
         self.closed = False

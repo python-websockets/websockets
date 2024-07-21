@@ -34,8 +34,20 @@ if not released:  # pragma: no cover
         file_path = pathlib.Path(__file__)
         root_dir = file_path.parents[0 if file_path.name == "setup.py" else 2]
 
-        # Read version from git if available. This prevents reading stale
-        # information from src/websockets.egg-info after building a sdist.
+        # Read version from package metadata if it is installed.
+        try:
+            version = importlib.metadata.version("websockets")
+        except ImportError:
+            pass
+        else:
+            # Check that this file belongs to the installed package.
+            files = importlib.metadata.files("websockets")
+            if files:
+                version_file = [f for f in files if f.name == file_path.name][0]
+                if version_file.locate() == file_path:
+                    return version
+
+        # Read version from git if available.
         try:
             description = subprocess.run(
                 ["git", "describe", "--dirty", "--tags", "--long"],
@@ -60,12 +72,6 @@ if not released:  # pragma: no cover
             distance, remainder = match.groups()
             remainder = remainder.replace("-", ".")  # required by PEP 440
             return f"{tag}.dev{distance}+{remainder}"
-
-        # Read version from package metadata if it is installed.
-        try:
-            return importlib.metadata.version("websockets")
-        except ImportError:
-            pass
 
         # Avoid crashing if the development version cannot be determined.
         return f"{tag}.dev0+gunknown"

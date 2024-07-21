@@ -55,7 +55,8 @@ if not released:  # pragma: no cover
         else:
             description_re = r"[0-9.]+-([0-9]+)-(g[0-9a-f]{7,}(?:-dirty)?)"
             match = re.fullmatch(description_re, description)
-            assert match is not None
+            if match is None:
+                raise ValueError(f"Unexpected git description: {description}")
             distance, remainder = match.groups()
             remainder = remainder.replace("-", ".")  # required by PEP 440
             return f"{tag}.dev{distance}+{remainder}"
@@ -75,7 +76,8 @@ if not released:  # pragma: no cover
         # Extract commit from version, falling back to tag if not available.
         version_re = r"[0-9.]+\.dev[0-9]+\+g([0-9a-f]{7,}|unknown)(?:\.dirty)?"
         match = re.fullmatch(version_re, version)
-        assert match is not None
+        if match is None:
+            raise ValueError(f"Unexpected version: {version}")
         (commit,) = match.groups()
         return tag if commit == "unknown" else commit
 

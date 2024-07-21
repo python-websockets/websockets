@@ -178,6 +178,11 @@ def basic_auth_protocol_factory(
     if create_protocol is None:
         create_protocol = BasicAuthWebSocketServerProtocol
 
+    # Help mypy and avoid this error: "type[BasicAuthWebSocketServerProtocol] |
+    # Callable[..., BasicAuthWebSocketServerProtocol]" not callable  [misc]
+    create_protocol = cast(
+        Callable[..., BasicAuthWebSocketServerProtocol], create_protocol
+    )
     return functools.partial(
         create_protocol,
         realm=realm,

@@ -1045,6 +1045,9 @@ class Serve:
         if subprotocols is not None:
             validate_subprotocols(subprotocols)
 
+        # Help mypy and avoid this error: "type[WebSocketServerProtocol] |
+        # Callable[..., WebSocketServerProtocol]" not callable  [misc]
+        create_protocol = cast(Callable[..., WebSocketServerProtocol], create_protocol)
         factory = functools.partial(
             create_protocol,
             # For backwards compatibility with 10.0 or earlier. Done here in

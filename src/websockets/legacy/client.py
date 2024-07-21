@@ -489,6 +489,9 @@ class Connect:
         if subprotocols is not None:
             validate_subprotocols(subprotocols)
 
+        # Help mypy and avoid this error: "type[WebSocketClientProtocol] |
+        # Callable[..., WebSocketClientProtocol]" not callable  [misc]
+        create_protocol = cast(Callable[..., WebSocketClientProtocol], create_protocol)
         factory = functools.partial(
             create_protocol,
             logger=logger,
@@ -641,8 +644,7 @@ class Connect:
     async def __await_impl__(self) -> WebSocketClientProtocol:
         async with asyncio_timeout(self.open_timeout):
             for _redirects in range(self.MAX_REDIRECTS_ALLOWED):
-                _transport, _protocol = await self._create_connection()
-                protocol = cast(WebSocketClientProtocol, _protocol)
+                _transport, protocol = await self._create_connection()
                 try:
                     await protocol.handshake(
                         self._wsuri,

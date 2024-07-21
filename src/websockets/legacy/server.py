@@ -199,10 +199,14 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                 elif isinstance(exc, InvalidHandshake):
                     if self.debug:
                         self.logger.debug("! invalid handshake", exc_info=True)
+                    exc_str = f"{exc}"
+                    while exc.__cause__ is not None:
+                        exc = exc.__cause__
+                        exc_str += f"; {exc}"
                     status, headers, body = (
                         http.HTTPStatus.BAD_REQUEST,
                         Headers(),
-                        f"Failed to open a WebSocket connection: {exc}.\n".encode(),
+                        f"Failed to open a WebSocket connection: {exc_str}.\n".encode(),
                     )
                 else:
                     self.logger.error("opening handshake failed", exc_info=True)

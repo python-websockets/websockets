@@ -75,6 +75,8 @@ async def redirect_request(path, headers, test, status):
         location = "/"
     elif path == "/infinite":
         location = get_server_uri(test.server, test.secure, "/infinite")
+    elif path == "/force_secure":
+        location = get_server_uri(test.server, True, "/")
     elif path == "/force_insecure":
         location = get_server_uri(test.server, False, "/")
     elif path == "/missing_location":
@@ -1290,7 +1292,16 @@ class CommonClientServerTests:
 class ClientServerTests(
     CommonClientServerTests, ClientServerTestsMixin, AsyncioTestCase
 ):
-    pass
+
+    def test_redirect_secure(self):
+        with temp_test_redirecting_server(self):
+            # websockets doesn't support serving non-TLS and TLS connections
+            # from the same server and this test suite makes it difficult to
+            # run two servers. Therefore, we expect the redirect to create a
+            # TLS client connection to a non-TLS server, which will fail.
+            with self.assertRaises(ssl.SSLError):
+                with self.temp_client("/force_secure"):
+                    self.fail("did not raise")
 
 
 class SecureClientServerTests(

@@ -558,21 +558,27 @@ class Connect:
             raise SecurityError("redirect from WSS to WS")
 
         same_origin = (
-            old_wsuri.host == new_wsuri.host and old_wsuri.port == new_wsuri.port
+            old_wsuri.secure == new_wsuri.secure
+            and old_wsuri.host == new_wsuri.host
+            and old_wsuri.port == new_wsuri.port
         )
 
-        # Rewrite the host and port arguments for cross-origin redirects.
+        # Rewrite secure, host, and port for cross-origin redirects.
         # This preserves connection overrides with the host and port
         # arguments if the redirect points to the same host and port.
         if not same_origin:
-            # Replace the host and port argument passed to the protocol factory.
             factory = self._create_connection.args[0]
+            # Support TLS upgrade.
+            if not old_wsuri.secure and new_wsuri.secure:
+                factory.keywords["secure"] = True
+                self._create_connection.keywords.setdefault("ssl", True)
+            # Replace secure, host, and port arguments of the protocol factory.
             factory = functools.partial(
                 factory.func,
                 *factory.args,
                 **dict(factory.keywords, host=new_wsuri.host, port=new_wsuri.port),
             )
-            # Replace the host and port argument passed to create_connection.
+            # Replace secure, host, and port arguments of create_connection.
             self._create_connection = functools.partial(
                 self._create_connection.func,
                 *(factory, new_wsuri.host, new_wsuri.port),

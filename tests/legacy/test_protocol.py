@@ -1472,8 +1472,22 @@ class CommonTests:
         broadcast([self.protocol], "café")
         self.assertOneFrameSent(True, OP_TEXT, "café".encode())
 
+    @unittest.skipIf(
+        sys.version_info[:2] < (3, 11), "raise_exceptions requires Python 3.11+"
+    )
+    def test_broadcast_text_reports_no_errors(self):
+        broadcast([self.protocol], "café", raise_exceptions=True)
+        self.assertOneFrameSent(True, OP_TEXT, "café".encode())
+
     def test_broadcast_binary(self):
         broadcast([self.protocol], b"tea")
+        self.assertOneFrameSent(True, OP_BINARY, b"tea")
+
+    @unittest.skipIf(
+        sys.version_info[:2] < (3, 11), "raise_exceptions requires Python 3.11+"
+    )
+    def test_broadcast_binary_reports_no_errors(self):
+        broadcast([self.protocol], b"tea", raise_exceptions=True)
         self.assertOneFrameSent(True, OP_BINARY, b"tea")
 
     def test_broadcast_type_error(self):

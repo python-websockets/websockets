@@ -43,9 +43,11 @@ if not released:  # pragma: no cover
             # Check that this file belongs to the installed package.
             files = importlib.metadata.files("websockets")
             if files:
-                version_file = [f for f in files if f.name == file_path.name][0]
-                if version_file.locate() == file_path:
-                    return version
+                version_files = [f for f in files if f.name == file_path.name]
+                if version_files:
+                    version_file = version_files[0]
+                    if version_file.locate() == file_path:
+                        return version
 
         # Read version from git if available.
         try:

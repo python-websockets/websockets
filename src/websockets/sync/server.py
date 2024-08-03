@@ -200,7 +200,7 @@ class WebSocketServer:
         socket: socket.socket,
         handler: Callable[[socket.socket, Any], None],
         logger: LoggerLike | None = None,
-    ):
+    ) -> None:
         self.socket = socket
         self.handler = handler
         if logger is None:

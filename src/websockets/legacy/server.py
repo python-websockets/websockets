@@ -666,7 +666,7 @@ class WebSocketServer:
 
     """
 
-    def __init__(self, logger: LoggerLike | None = None):
+    def __init__(self, logger: LoggerLike | None = None) -> None:
         if logger is None:
             logger = logging.getLogger("websockets.server")
         self.logger = logger

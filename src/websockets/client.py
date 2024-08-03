@@ -79,7 +79,7 @@ class ClientProtocol(Protocol):
         state: State = CONNECTING,
         max_size: int | None = 2**20,
         logger: LoggerLike | None = None,
-    ):
+    ) -> None:
         super().__init__(
             side=CLIENT,
             state=state,

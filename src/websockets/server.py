@@ -163,10 +163,11 @@ class ServerProtocol(Protocol):
             self.handshake_exc = exc
             if self.debug:
                 self.logger.debug("! invalid handshake", exc_info=True)
-            exc_str = f"{exc}"
-            while exc.__cause__ is not None:
-                exc = exc.__cause__
-                exc_str += f"; {exc}"
+            exc_chain = cast(BaseException, exc)
+            exc_str = f"{exc_chain}"
+            while exc_chain.__cause__ is not None:
+                exc_chain = exc_chain.__cause__
+                exc_str += f"; {exc_chain}"
             return self.reject(
                 http.HTTPStatus.BAD_REQUEST,
                 f"Failed to open a WebSocket connection: {exc_str}.\n",

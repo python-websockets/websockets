@@ -1584,7 +1584,6 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
                 else:
                     # Exit block with an exception.
                     raise Exception("BOOM")
-                pass  # work around bug in coverage
 
         with self.assertLogs("websockets", logging.INFO) as logs:
             with self.assertRaises(Exception) as raised:

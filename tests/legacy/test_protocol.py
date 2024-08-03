@@ -1613,8 +1613,7 @@ class ServerTests(CommonTests, AsyncioTestCase):
             self.receive_frame(self.close_frame)
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(  # pragma: no cover
+        self.assertConnectionClosed(
             CloseCode.NORMAL_CLOSURE,
             "close",
         )
@@ -1634,8 +1633,7 @@ class ServerTests(CommonTests, AsyncioTestCase):
             self.receive_frame(self.close_frame)
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(  # pragma: no cover
+        self.assertConnectionClosed(
             CloseCode.NORMAL_CLOSURE,
             "close",
         )
@@ -1656,8 +1654,7 @@ class ClientTests(CommonTests, AsyncioTestCase):
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(  # pragma: no cover
+        self.assertConnectionClosed(
             CloseCode.ABNORMAL_CLOSURE,
             "",
         )
@@ -1670,8 +1667,7 @@ class ClientTests(CommonTests, AsyncioTestCase):
         # Check the timing within -1/+9ms for robustness.
         with self.assertCompletesWithin(19 * MS, 29 * MS):
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(  # pragma: no cover
+        self.assertConnectionClosed(
             CloseCode.ABNORMAL_CLOSURE,
             "",
         )
@@ -1689,8 +1685,7 @@ class ClientTests(CommonTests, AsyncioTestCase):
             self.receive_frame(self.close_frame)
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(  # pragma: no cover
+        self.assertConnectionClosed(
             CloseCode.NORMAL_CLOSURE,
             "close",
         )
@@ -1713,8 +1708,7 @@ class ClientTests(CommonTests, AsyncioTestCase):
             self.receive_frame(self.close_frame)
             self.run_loop_once()
             self.loop.run_until_complete(self.protocol.close(reason="close"))
-        # Due to a bug in coverage, this is erroneously reported as not covered.
-        self.assertConnectionClosed(  # pragma: no cover
+        self.assertConnectionClosed(
             CloseCode.NORMAL_CLOSURE,
             "close",
         )

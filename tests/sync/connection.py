@@ -8,7 +8,7 @@ class InterceptingConnection(Connection):
     """
     Connection subclass that can intercept outgoing packets.
 
-    By interfacing with this connection, you can simulate network conditions
+    By interfacing with this connection, we simulate network conditions
     affecting what the component being tested receives during a test.
 
     """
@@ -80,7 +80,7 @@ class InterceptingConnection(Connection):
 
 class InterceptingSocket:
     """
-    Socket wrapper that intercepts calls to sendall and shutdown.
+    Socket wrapper that intercepts calls to ``sendall()`` and ``shutdown()``.
 
     This is coupled to the implementation, which relies on these two methods.
 

@@ -1,5 +1,14 @@
 import logging
+import os
 
 
-# Avoid displaying stack traces at the ERROR logging level.
-logging.basicConfig(level=logging.CRITICAL)
+format = "%(asctime)s %(levelname)s %(name)s %(message)s"
+
+if bool(os.environ.get("WEBSOCKETS_DEBUG")):  # pragma: no cover
+    # Display every frame sent or received in debug mode.
+    level = logging.DEBUG
+else:
+    # Hide stack traces of exceptions.
+    level = logging.CRITICAL
+
+logging.basicConfig(format=format, level=level)

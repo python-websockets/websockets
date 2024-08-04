@@ -373,6 +373,7 @@ class Connection:
 
             except RuntimeError:
                 # We didn't start sending a fragmented message.
+                # The connection is still usable.
                 raise
 
             except Exception:
@@ -756,7 +757,7 @@ class Connection:
 
         """
         assert self.protocol_mutex.locked()
-        if self.recv_exc is None:
+        if self.recv_exc is None:  # pragma: no branch
             self.recv_exc = exc
 
     def close_socket(self) -> None:

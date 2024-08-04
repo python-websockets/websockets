@@ -246,13 +246,15 @@ class ClientConnectionTests(unittest.TestCase):
         """recv_streaming raises ConnectionClosedOK after a normal closure."""
         self.remote_connection.close()
         with self.assertRaises(ConnectionClosedOK):
-            list(self.connection.recv_streaming())
+            for _ in self.connection.recv_streaming():
+                self.fail("did not raise")
 
     def test_recv_streaming_connection_closed_error(self):
         """recv_streaming raises ConnectionClosedError after an error."""
         self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
         with self.assertRaises(ConnectionClosedError):
-            list(self.connection.recv_streaming())
+            for _ in self.connection.recv_streaming():
+                self.fail("did not raise")
 
     def test_recv_streaming_during_recv(self):
         """recv_streaming raises RuntimeError when called concurrently with recv."""
@@ -260,7 +262,8 @@ class ClientConnectionTests(unittest.TestCase):
         recv_thread.start()
 
         with self.assertRaises(RuntimeError) as raised:
-            list(self.connection.recv_streaming())
+            for _ in self.connection.recv_streaming():
+                self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another thread "
@@ -278,7 +281,8 @@ class ClientConnectionTests(unittest.TestCase):
         recv_streaming_thread.start()
 
         with self.assertRaises(RuntimeError) as raised:
-            list(self.connection.recv_streaming())
+            for _ in self.connection.recv_streaming():
+                self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
             r"cannot call recv_streaming while another thread "
@@ -374,7 +378,7 @@ class ClientConnectionTests(unittest.TestCase):
         """send does nothing when called with an empty iterable."""
         self.connection.send([])
         self.connection.close()
-        self.assertEqual(list(iter(self.remote_connection)), [])
+        self.assertEqual(list(self.remote_connection), [])
 
     def test_send_mixed_iterable(self):
         """send raises TypeError when called with an iterable of inconsistent types."""
@@ -437,7 +441,7 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_close_timeout_waiting_for_close_frame(self):
         """close times out if no close frame is received."""
-        with self.drop_eof_rcvd(), self.drop_frames_rcvd():
+        with self.drop_frames_rcvd(), self.drop_eof_rcvd():
             self.connection.close()
 
         with self.assertRaises(ConnectionClosedError) as raised:
@@ -464,6 +468,10 @@ class ClientConnectionTests(unittest.TestCase):
         self.assertIsInstance(exc.__cause__, (socket.timeout, TimeoutError))
 
     def test_close_waits_for_recv(self):
+        # The sync implementation doesn't have a buffer for incoming messsages.
+        # It requires reading incoming frames until the close frame is reached.
+        # This behavior — close() blocks until recv() is called — is less than
+        # ideal and inconsistent with the asyncio implementation.
         self.remote_connection.send("😀")
 
         close_thread = threading.Thread(target=self.connection.close)
@@ -547,6 +555,25 @@ class ClientConnectionTests(unittest.TestCase):
 
         close_thread.join()
 
+    def test_close_during_recv(self):
+        """close aborts recv when called concurrently with recv."""
+
+        def closer():
+            time.sleep(MS)
+            self.connection.close()
+
+        close_thread = threading.Thread(target=closer)
+        close_thread.start()
+
+        with self.assertRaises(ConnectionClosedOK) as raised:
+            self.connection.recv()
+
+        exc = raised.exception
+        self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
+        self.assertIsNone(exc.__cause__)
+
+        close_thread.join()
+
     def test_close_during_send(self):
         """close fails the connection when called concurrently with send."""
         close_gate = threading.Event()
@@ -599,41 +626,44 @@ class ClientConnectionTests(unittest.TestCase):
         self.connection.ping(b"ping")
         self.assertFrameSent(Frame(Opcode.PING, b"ping"))
 
-    def test_ping_duplicate_payload(self):
-        """ping rejects the same payload until receiving the pong."""
-        with self.remote_connection.protocol_mutex:  # block response to ping
-            pong_waiter = self.connection.ping("idem")
-            with self.assertRaises(RuntimeError) as raised:
-                self.connection.ping("idem")
-            self.assertEqual(
-                str(raised.exception),
-                "already waiting for a pong with the same data",
-            )
-        self.assertTrue(pong_waiter.wait(MS))
-        self.connection.ping("idem")  # doesn't raise an exception
-
     def test_acknowledge_ping(self):
         """ping is acknowledged by a pong with the same payload."""
-        with self.drop_frames_rcvd():
+        with self.drop_frames_rcvd():  # drop automatic response to ping
             pong_waiter = self.connection.ping("this")
-            self.assertFalse(pong_waiter.wait(MS))
         self.remote_connection.pong("this")
         self.assertTrue(pong_waiter.wait(MS))
 
     def test_acknowledge_ping_non_matching_pong(self):
         """ping isn't acknowledged by a pong with a different payload."""
-        with self.drop_frames_rcvd():
+        with self.drop_frames_rcvd():  # drop automatic response to ping
             pong_waiter = self.connection.ping("this")
         self.remote_connection.pong("that")
         self.assertFalse(pong_waiter.wait(MS))
 
     def test_acknowledge_previous_ping(self):
         """ping is acknowledged by a pong with the same payload as a later ping."""
-        with self.drop_frames_rcvd():
+        with self.drop_frames_rcvd():  # drop automatic response to ping
             pong_waiter = self.connection.ping("this")
             self.connection.ping("that")
         self.remote_connection.pong("that")
         self.assertTrue(pong_waiter.wait(MS))
+
+    def test_ping_duplicate_payload(self):
+        """ping rejects the same payload until receiving the pong."""
+        with self.drop_frames_rcvd():  # drop automatic response to ping
+            pong_waiter = self.connection.ping("idem")
+
+        with self.assertRaises(RuntimeError) as raised:
+            self.connection.ping("idem")
+        self.assertEqual(
+            str(raised.exception),
+            "already waiting for a pong with the same data",
+        )
+
+        self.remote_connection.pong("idem")
+        self.assertTrue(pong_waiter.wait(MS))
+
+        self.connection.ping("idem")  # doesn't raise an exception
 
     # Test pong.
 

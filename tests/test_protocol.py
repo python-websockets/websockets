@@ -1590,18 +1590,14 @@ class EOFTests(ProtocolTestCase):
         client.receive_data(b"\x88\x00")
         self.assertConnectionClosing(client)
         client.receive_eof()
-        with self.assertRaises(EOFError) as raised:
-            client.receive_eof()
-        self.assertEqual(str(raised.exception), "stream ended")
+        client.receive_eof()  # this is idempotent
 
     def test_server_receives_eof_after_eof(self):
         server = Protocol(SERVER)
         server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
         self.assertConnectionClosing(server)
         server.receive_eof()
-        with self.assertRaises(EOFError) as raised:
-            server.receive_eof()
-        self.assertEqual(str(raised.exception), "stream ended")
+        server.receive_eof()  # this is idempotent
 
 
 class TCPCloseTests(ProtocolTestCase):

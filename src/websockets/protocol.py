@@ -270,10 +270,11 @@ class Protocol:
         - You aren't expected to call :meth:`events_received`; it won't return
           any new events.
 
-        Raises:
-            EOFError: If :meth:`receive_eof` was called earlier.
+        :meth:`receive_eof` is idempotent.
 
         """
+        if self.reader.eof:
+            return
         self.reader.feed_eof()
         next(self.parser)
 

@@ -1175,9 +1175,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     async def drain(self) -> None:
         try:
-            # drain() cannot be called concurrently by multiple coroutines:
-            # http://bugs.python.org/issue29930. Remove this lock when no
-            # version of Python where this bugs exists is supported anymore.
+            # drain() cannot be called concurrently by multiple coroutines.
+            # See https://github.com/python/cpython/issues/74116 for details.
+            # This workaround can be removed when dropping Python < 3.10.
             async with self._drain_lock:
                 # Handle flow control automatically.
                 await self._drain()

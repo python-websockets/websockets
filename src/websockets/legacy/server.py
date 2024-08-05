@@ -764,7 +764,8 @@ class WebSocketServer:
         self.server.close()
 
         # Wait until all accepted connections reach connection_made() and call
-        # register(). See https://bugs.python.org/issue34852 for details.
+        # register(). See https://github.com/python/cpython/issues/79033 for
+        # details. This workaround can be removed when dropping Python < 3.11.
         await asyncio.sleep(0)
 
         if close_connections:

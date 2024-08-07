@@ -1036,7 +1036,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # Shortcut for the common case - no fragmentation
         if frame.fin:
-            return frame.data.decode("utf-8") if text else frame.data
+            return frame.data.decode() if text else frame.data
 
         # 5.4. Fragmentation
         fragments: list[Data] = []

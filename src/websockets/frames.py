@@ -447,7 +447,7 @@ class Close:
         """
         if len(data) >= 2:
             (code,) = struct.unpack("!H", data[:2])
-            reason = data[2:].decode("utf-8")
+            reason = data[2:].decode()
             close = cls(code, reason)
             close.check()
             return close

@@ -172,7 +172,7 @@ class Connection(asyncio.Protocol):
         except ConnectionClosedOK:
             return
 
-    async def recv(self) -> Data:
+    async def recv(self, decode: bool | None = None) -> Data:
         """
         Receive the next message.
 
@@ -192,12 +192,25 @@ class Connection(asyncio.Protocol):
         When the message is fragmented, :meth:`recv` waits until all fragments
         are received, reassembles them, and returns the whole message.
 
+        Args:
+            decode: Set this flag to override the default behavior of returning
+                :class:`str` or :class:`bytes`. See below for details.
+
         Returns:
             A string (:class:`str`) for a Text_ frame or a bytestring
             (:class:`bytes`) for a Binary_ frame.
 
             .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
             .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+
+            You may override this behavior with the ``decode`` argument:
+
+            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames
+              and return a bytestring (:class:`bytes`). This may be useful to
+              optimize performance when decoding isn't needed.
+            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
+              and return a string (:class:`str`). This is useful for servers
+              that send binary frames instead of text frames.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -206,7 +219,7 @@ class Connection(asyncio.Protocol):
 
         """
         try:
-            return await self.recv_messages.get()
+            return await self.recv_messages.get(decode)
         except EOFError:
             raise self.protocol.close_exc from self.recv_exc
         except RuntimeError:
@@ -215,7 +228,7 @@ class Connection(asyncio.Protocol):
                 "is already running recv or recv_streaming"
             ) from None
 
-    async def recv_streaming(self) -> AsyncIterator[Data]:
+    async def recv_streaming(self, decode: bool | None = None) -> AsyncIterator[Data]:
         """
         Receive the next message frame by frame.
 
@@ -232,12 +245,25 @@ class Connection(asyncio.Protocol):
         iterator in a partially consumed state, making the connection unusable.
         Instead, you should close the connection with :meth:`close`.
 
+        Args:
+            decode: Set this flag to override the default behavior of returning
+                :class:`str` or :class:`bytes`. See below for details.
+
         Returns:
             An iterator of strings (:class:`str`) for a Text_ frame or
             bytestrings (:class:`bytes`) for a Binary_ frame.
 
             .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
             .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+
+            You may override this behavior with the ``decode`` argument:
+
+            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames
+              and return bytestrings (:class:`bytes`). This may be useful to
+              optimize performance when decoding isn't needed.
+            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
+              and return strings (:class:`str`). This is useful for servers
+              that send binary frames instead of text frames.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -246,7 +272,7 @@ class Connection(asyncio.Protocol):
 
         """
         try:
-            async for frame in self.recv_messages.get_iter():
+            async for frame in self.recv_messages.get_iter(decode):
                 yield frame
         except EOFError:
             raise self.protocol.close_exc from self.recv_exc

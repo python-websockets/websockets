@@ -121,6 +121,11 @@ class Assembler:
         received, then it reassembles the message and returns it. To receive
         messages frame by frame, use :meth:`get_iter` instead.
 
+        Args:
+            decode: :obj:`False` disables UTF-8 decoding of text frames and
+                returns :class:`bytes`. :obj:`True` forces UTF-8 decoding of
+                binary frames and returns :class:`str`.
+
         Raises:
             EOFError: If the stream of frames has ended.
             RuntimeError: If two coroutines run :meth:`get` or :meth:`get_iter`
@@ -182,6 +187,11 @@ class Assembler:
 
         This method only makes sense for fragmented messages. If messages aren't
         fragmented, use :meth:`get` instead.
+
+        Args:
+            decode: :obj:`False` disables UTF-8 decoding of text frames and
+                returns :class:`bytes`. :obj:`True` forces UTF-8 decoding of
+                binary frames and returns :class:`str`.
 
         Raises:
             EOFError: If the stream of frames has ended.

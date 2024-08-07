@@ -167,6 +167,16 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         await self.remote_connection.send(b"\x01\x02\xfe\xff")
         self.assertEqual(await self.connection.recv(), b"\x01\x02\xfe\xff")
 
+    async def test_recv_encoded_text(self):
+        """recv receives an UTF-8 encoded text message."""
+        await self.remote_connection.send("😀")
+        self.assertEqual(await self.connection.recv(decode=False), "😀".encode())
+
+    async def test_recv_decoded_binary(self):
+        """recv receives an UTF-8 decoded binary message."""
+        await self.remote_connection.send("😀".encode())
+        self.assertEqual(await self.connection.recv(decode=True), "😀")
+
     async def test_recv_fragmented_text(self):
         """recv receives a fragmented text message."""
         await self.remote_connection.send(["😀", "😀"])
@@ -269,6 +279,22 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             await alist(self.connection.recv_streaming()),
             [b"\x01\x02\xfe\xff"],
+        )
+
+    async def test_recv_streaming_encoded_text(self):
+        """recv_streaming receives an UTF-8 encoded text message."""
+        await self.remote_connection.send("😀")
+        self.assertEqual(
+            await alist(self.connection.recv_streaming(decode=False)),
+            ["😀".encode()],
+        )
+
+    async def test_recv_streaming_decoded_binary(self):
+        """recv_streaming receives a UTF-8 decoded binary message."""
+        await self.remote_connection.send("😀".encode())
+        self.assertEqual(
+            await alist(self.connection.recv_streaming(decode=True)),
+            ["😀"],
         )
 
     async def test_recv_streaming_fragmented_text(self):

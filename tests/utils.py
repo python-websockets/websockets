@@ -45,11 +45,11 @@ MS = 0.001 * float(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", "1"))
 
 # PyPy has a performance penalty for this test suite.
 if platform.python_implementation() == "PyPy":  # pragma: no cover
-    MS *= 5
+    MS *= 2
 
-# asyncio's debug mode has a 10x performance penalty for this test suite.
+# asyncio's debug mode has a performance penalty for this test suite.
 if os.environ.get("PYTHONASYNCIODEBUG"):  # pragma: no cover
-    MS *= 10
+    MS *= 2
 
 # Ensure that timeouts are larger than the clock's resolution (for Windows).
 MS = max(MS, 2.5 * time.get_clock_info("monotonic").resolution)

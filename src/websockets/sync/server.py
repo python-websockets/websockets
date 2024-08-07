@@ -268,6 +268,14 @@ class WebSocketServer:
     ) -> None:
         self.shutdown()
 
+def is_websocket(connection):
+    """
+    return True if the connection is a websocket
+
+    """
+    upgrade_header = connection.__dict__.get('request').headers.get('Upgrade', '')
+    connection_header = connection.__dict__.get('request').headers.get('Connection', '')
+    return upgrade_header.lower() == 'websocket' and connection_header.lower() == 'upgrade'
 
 def serve(
     handler: Callable[[ServerConnection], None],
@@ -517,7 +525,8 @@ def serve(
             return
 
         try:
-            handler(connection)
+            if is_websocket(connection):
+                handler(connection)
         except Exception:
             protocol.logger.error("connection handler failed", exc_info=True)
             connection.close(CloseCode.INTERNAL_ERROR)

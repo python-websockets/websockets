@@ -38,7 +38,7 @@ from ..headers import (
     parse_subprotocol,
     validate_subprotocols,
 )
-from ..http import USER_AGENT
+from ..http11 import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
 from .handshake import build_request, check_response
@@ -307,7 +307,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
         if self.extra_headers is not None:
             request_headers.update(self.extra_headers)
 
-        if self.user_agent_header is not None:
+        if self.user_agent_header:
             request_headers.setdefault("User-Agent", self.user_agent_header)
 
         self.write_http_request(wsuri.resource_name, request_headers)

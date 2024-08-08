@@ -11,8 +11,7 @@ from ..datastructures import HeadersLike
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import validate_subprotocols
-from ..http import USER_AGENT
-from ..http11 import Response
+from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..typing import LoggerLike, Origin, Subprotocol
 from ..uri import parse_uri

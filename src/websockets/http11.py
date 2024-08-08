@@ -1,23 +1,43 @@
 from __future__ import annotations
 
 import dataclasses
+import os
 import re
+import sys
 import warnings
 from typing import Callable, Generator
 
 from . import datastructures, exceptions
+from .version import version as websockets_version
 
+
+__all__ = ["SERVER", "USER_AGENT", "Request", "Response"]
+
+
+PYTHON_VERSION = "{}.{}".format(*sys.version_info)
+
+# User-Agent header for HTTP requests.
+USER_AGENT = os.environ.get(
+    "WEBSOCKETS_USER_AGENT",
+    f"Python/{PYTHON_VERSION} websockets/{websockets_version}",
+)
+
+# Server header for HTTP responses.
+SERVER = os.environ.get(
+    "WEBSOCKETS_SERVER",
+    f"Python/{PYTHON_VERSION} websockets/{websockets_version}",
+)
 
 # Maximum total size of headers is around 128 * 8 KiB = 1 MiB.
-MAX_HEADERS = 128
+MAX_NUM_HEADERS = int(os.environ.get("WEBSOCKETS_MAX_NUM_HEADERS", "128"))
 
 # Limit request line and header lines. 8KiB is the most common default
 # configuration of popular HTTP servers.
-MAX_LINE = 8192
+MAX_LINE_LENGTH = int(os.environ.get("WEBSOCKETS_MAX_LINE_LENGTH", "8192"))
 
 # Support for HTTP response bodies is intended to read an error message
 # returned by a server. It isn't designed to perform large file transfers.
-MAX_BODY = 2**20  # 1 MiB
+MAX_BODY_SIZE = int(os.environ.get("WEBSOCKETS_MAX_BODY_SIZE", "1_048_576"))  # 1 MiB
 
 
 def d(value: bytes) -> str:
@@ -258,12 +278,12 @@ class Response:
 
             if content_length is None:
                 try:
-                    body = yield from read_to_eof(MAX_BODY)
+                    body = yield from read_to_eof(MAX_BODY_SIZE)
                 except RuntimeError:
                     raise exceptions.SecurityError(
-                        f"body too large: over {MAX_BODY} bytes"
+                        f"body too large: over {MAX_BODY_SIZE} bytes"
                     )
-            elif content_length > MAX_BODY:
+            elif content_length > MAX_BODY_SIZE:
                 raise exceptions.SecurityError(
                     f"body too large: {content_length} bytes"
                 )
@@ -309,7 +329,7 @@ def parse_headers(
     # We don't attempt to support obsolete line folding.
 
     headers = datastructures.Headers()
-    for _ in range(MAX_HEADERS + 1):
+    for _ in range(MAX_NUM_HEADERS + 1):
         try:
             line = yield from parse_line(read_line)
         except EOFError as exc:
@@ -355,7 +375,7 @@ def parse_line(
 
     """
     try:
-        line = yield from read_line(MAX_LINE)
+        line = yield from read_line(MAX_LINE_LENGTH)
     except RuntimeError:
         raise exceptions.SecurityError("line too long")
     # Not mandatory but safe - https://www.rfc-editor.org/rfc/rfc7230.html#section-3.5

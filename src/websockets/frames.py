@@ -3,6 +3,7 @@ from __future__ import annotations
 import dataclasses
 import enum
 import io
+import os
 import secrets
 import struct
 from typing import Callable, Generator, Sequence
@@ -146,8 +147,8 @@ class Frame:
     rsv2: bool = False
     rsv3: bool = False
 
-    # Monkey-patch if you want to see more in logs. Should be a multiple of 3.
-    MAX_LOG = 75
+    # Configure if you want to see more in logs. Should be a multiple of 3.
+    MAX_LOG_SIZE = int(os.environ.get("WEBSOCKETS_MAX_LOG_SIZE", "75"))
 
     def __str__(self) -> str:
         """
@@ -166,8 +167,8 @@ class Frame:
             # We'll show at most the first 16 bytes and the last 8 bytes.
             # Encode just what we need, plus two dummy bytes to elide later.
             binary = self.data
-            if len(binary) > self.MAX_LOG // 3:
-                cut = (self.MAX_LOG // 3 - 1) // 3  # by default cut = 8
+            if len(binary) > self.MAX_LOG_SIZE // 3:
+                cut = (self.MAX_LOG_SIZE // 3 - 1) // 3  # by default cut = 8
                 binary = b"".join([binary[: 2 * cut], b"\x00\x00", binary[-cut:]])
             data = " ".join(f"{byte:02x}" for byte in binary)
         elif self.opcode is OP_CLOSE:
@@ -183,16 +184,16 @@ class Frame:
                 coding = "text"
             except (UnicodeDecodeError, AttributeError):
                 binary = self.data
-                if len(binary) > self.MAX_LOG // 3:
-                    cut = (self.MAX_LOG // 3 - 1) // 3  # by default cut = 8
+                if len(binary) > self.MAX_LOG_SIZE // 3:
+                    cut = (self.MAX_LOG_SIZE // 3 - 1) // 3  # by default cut = 8
                     binary = b"".join([binary[: 2 * cut], b"\x00\x00", binary[-cut:]])
                 data = " ".join(f"{byte:02x}" for byte in binary)
                 coding = "binary"
         else:
             data = "''"
 
-        if len(data) > self.MAX_LOG:
-            cut = self.MAX_LOG // 3 - 1  # by default cut = 24
+        if len(data) > self.MAX_LOG_SIZE:
+            cut = self.MAX_LOG_SIZE // 3 - 1  # by default cut = 24
             data = data[: 2 * cut] + "..." + data[-cut:]
 
         metadata = ", ".join(filter(None, [coding, length, non_final]))

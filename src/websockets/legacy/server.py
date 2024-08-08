@@ -40,7 +40,7 @@ from ..headers import (
     parse_subprotocol,
     validate_subprotocols,
 )
-from ..http import USER_AGENT
+from ..http11 import SERVER
 from ..protocol import State
 from ..typing import ExtensionHeader, LoggerLike, Origin, StatusLike, Subprotocol
 from .handshake import build_response, check_request
@@ -106,7 +106,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         extensions: Sequence[ServerExtensionFactory] | None = None,
         subprotocols: Sequence[Subprotocol] | None = None,
         extra_headers: HeadersLikeOrCallable | None = None,
-        server_header: str | None = USER_AGENT,
+        server_header: str | None = SERVER,
         process_request: (
             Callable[[str, Headers], Awaitable[HTTPResponse | None]] | None
         ) = None,
@@ -221,7 +221,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
                     )
 
                 headers.setdefault("Date", email.utils.formatdate(usegmt=True))
-                if self.server_header is not None:
+                if self.server_header:
                     headers.setdefault("Server", self.server_header)
 
                 headers.setdefault("Content-Length", str(len(body)))
@@ -992,7 +992,7 @@ class Serve:
         extensions: Sequence[ServerExtensionFactory] | None = None,
         subprotocols: Sequence[Subprotocol] | None = None,
         extra_headers: HeadersLikeOrCallable | None = None,
-        server_header: str | None = USER_AGENT,
+        server_header: str | None = SERVER,
         process_request: (
             Callable[[str, Headers], Awaitable[HTTPResponse | None]] | None
         ) = None,

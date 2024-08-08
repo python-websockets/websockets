@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import re
 
 from ..datastructures import Headers
@@ -9,8 +10,8 @@ from ..exceptions import SecurityError
 
 __all__ = ["read_request", "read_response"]
 
-MAX_HEADERS = 128
-MAX_LINE = 8192
+MAX_NUM_HEADERS = int(os.environ.get("WEBSOCKETS_MAX_NUM_HEADERS", "128"))
+MAX_LINE_LENGTH = int(os.environ.get("WEBSOCKETS_MAX_LINE_LENGTH", "8192"))
 
 
 def d(value: bytes) -> str:
@@ -154,7 +155,7 @@ async def read_headers(stream: asyncio.StreamReader) -> Headers:
     # We don't attempt to support obsolete line folding.
 
     headers = Headers()
-    for _ in range(MAX_HEADERS + 1):
+    for _ in range(MAX_NUM_HEADERS + 1):
         try:
             line = await read_line(stream)
         except EOFError as exc:
@@ -192,7 +193,7 @@ async def read_line(stream: asyncio.StreamReader) -> bytes:
     # Security: this is bounded by the StreamReader's limit (default = 32 KiB).
     line = await stream.readline()
     # Security: this guarantees header values are small (hard-coded = 8 KiB)
-    if len(line) > MAX_LINE:
+    if len(line) > MAX_LINE_LENGTH:
         raise SecurityError("line too long")
     # Not mandatory but safe - https://www.rfc-editor.org/rfc/rfc7230.html#section-3.5
     if not line.endswith(b"\r\n"):

@@ -85,6 +85,7 @@ These low-level APIs are shared by all implementations.
    datastructures
    exceptions
    types
+   variables
 
 API stability
 -------------

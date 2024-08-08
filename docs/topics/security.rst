@@ -1,6 +1,8 @@
 Security
 ========
 
+.. currentmodule:: websockets
+
 Encryption
 ----------
 
@@ -27,15 +29,33 @@ an amplification factor of 1000 between network traffic and memory usage.
 Configuring a server to :doc:`optimize memory usage <memory>` will improve
 security in addition to improving performance.
 
-Other limits
-------------
+HTTP limits
+-----------
 
-websockets implements additional limits on the amount of data it accepts in
-order to minimize exposure to security vulnerabilities.
+In the opening handshake, websockets applies limits to the amount of data that
+it accepts in order to minimize exposure to denial of service attacks.
 
-In the opening handshake, websockets limits the number of HTTP headers to 256
-and the size of an individual header to 4096 bytes. These limits are 10 to 20
-times larger than what's expected in standard use cases. They're hard-coded.
+The request or status line is limited to 8192 bytes. Each header line, including
+the name and value, is limited to 8192 bytes too. No more than 128 HTTP headers
+are allowed. When the HTTP response includes a body, it is limited to 1 MiB.
 
-If you need to change these limits, you can monkey-patch the constants in
-``websockets.http11``.
+You may change these limits by setting the :envvar:`WEBSOCKETS_MAX_LINE_LENGTH`,
+:envvar:`WEBSOCKETS_MAX_NUM_HEADERS`, and :envvar:`WEBSOCKETS_MAX_BODY_SIZE`
+environment variables respectively.
+
+Identification
+--------------
+
+By default, websockets identifies itself with a ``Server`` or ``User-Agent``
+header in the format ``"Python/x.y.z websockets/X.Y"``.
+
+You can set the ``server_header`` argument of :func:`~server.serve` or the
+``user_agent_header`` argument of :func:`~client.connect` to configure another
+value. Setting them to :obj:`None` removes the header.
+
+Alternatively, you can set the :envvar:`WEBSOCKETS_SERVER` and
+:envvar:`WEBSOCKETS_USER_AGENT` environment variables respectively. Setting them
+to an empty string removes the header.
+
+If both the argument and the environment variable are set, the argument takes
+precedence.

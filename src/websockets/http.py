@@ -1,10 +1,8 @@
 from __future__ import annotations
 
-import sys
 import typing
 
 from .imports import lazy_import
-from .version import version as websockets_version
 
 
 # For backwards compatibility:
@@ -26,10 +24,3 @@ else:
             "read_response": ".legacy.http",
         },
     )
-
-
-__all__ = ["USER_AGENT"]
-
-
-PYTHON_VERSION = "{}.{}".format(*sys.version_info)
-USER_AGENT = f"Python/{PYTHON_VERSION} websockets/{websockets_version}"

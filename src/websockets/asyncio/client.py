@@ -9,8 +9,7 @@ from ..datastructures import HeadersLike
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import validate_subprotocols
-from ..http import USER_AGENT
-from ..http11 import Response
+from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
 from ..typing import LoggerLike, Origin, Subprotocol
 from ..uri import parse_uri
@@ -71,7 +70,7 @@ class ClientConnection(Connection):
             self.request = self.protocol.connect()
             if additional_headers is not None:
                 self.request.headers.update(additional_headers)
-            if user_agent_header is not None:
+            if user_agent_header:
                 self.request.headers["User-Agent"] = user_agent_header
             self.protocol.send_request(self.request)
 

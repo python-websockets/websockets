@@ -73,6 +73,12 @@ New features
 
 * Validated compatibility with Python 3.12.
 
+* Added :doc:`environment variables <../reference/variables>` to configure debug
+  logs, the ``Server`` and ``User-Agent`` headers, as well as security limits.
+
+  If you were monkey-patching constants, be aware that they were renamed, which
+  will break your configuration. You must switch to the environment variables.
+
 12.0
 ----
 

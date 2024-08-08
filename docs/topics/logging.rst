@@ -76,6 +76,10 @@ Here's how to enable debug logs for development::
         level=logging.DEBUG,
     )
 
+By default, websockets elides the content of messages to improve readability.
+If you want to see more, you can increase the :envvar:`WEBSOCKETS_MAX_LOG_SIZE`
+environment variable. The default value is 75.
+
 Furthermore, websockets adds a ``websocket`` attribute to log records, so you
 can include additional information about the current connection in logs.
 

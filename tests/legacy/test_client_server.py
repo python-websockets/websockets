@@ -29,7 +29,7 @@ from websockets.extensions.permessage_deflate import (
     ServerPerMessageDeflateFactory,
 )
 from websockets.frames import CloseCode
-from websockets.http import USER_AGENT
+from websockets.http11 import USER_AGENT
 from websockets.legacy.client import *
 from websockets.legacy.handshake import build_response
 from websockets.legacy.http import read_response

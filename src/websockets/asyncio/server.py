@@ -20,8 +20,7 @@ from websockets.frames import CloseCode
 from ..extensions.base import ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
 from ..headers import validate_subprotocols
-from ..http import USER_AGENT
-from ..http11 import Request, Response
+from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, Subprotocol
@@ -88,7 +87,7 @@ class ServerConnection(Connection):
             ]
             | None
         ) = None,
-        server_header: str | None = USER_AGENT,
+        server_header: str | None = SERVER,
     ) -> None:
         """
         Perform the opening handshake.
@@ -131,7 +130,7 @@ class ServerConnection(Connection):
                 assert isinstance(response, Response)  # help mypy
                 self.response = response
 
-            if server_header is not None:
+            if server_header:
                 self.response.headers["Server"] = server_header
 
             response = None
@@ -243,7 +242,7 @@ class WebSocketServer:
             ]
             | None
         ) = None,
-        server_header: str | None = USER_AGENT,
+        server_header: str | None = SERVER,
         open_timeout: float | None = 10,
         logger: LoggerLike | None = None,
     ) -> None:
@@ -631,7 +630,7 @@ class serve:
             ]
             | None
         ) = None,
-        server_header: str | None = USER_AGENT,
+        server_header: str | None = SERVER,
         compression: str | None = "deflate",
         # Timeouts
         open_timeout: float | None = 10,

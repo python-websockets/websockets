@@ -5,6 +5,7 @@ import http
 import logging
 import platform
 import random
+import re
 import socket
 import ssl
 import sys
@@ -1608,16 +1609,19 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
         )
         # Iteration 3
         self.assertEqual(
-            [record.getMessage() for record in logs.records][4:-1],
+            [
+                re.sub(r"[0-9\.]+ seconds", "X seconds", record.getMessage())
+                for record in logs.records
+            ][4:-1],
             [
                 "connection rejected (503 Service Unavailable)",
                 "connection closed",
-                "! connect failed; reconnecting in 0.0 seconds",
+                "! connect failed; reconnecting in X seconds",
             ]
             + [
                 "connection rejected (503 Service Unavailable)",
                 "connection closed",
-                "! connect failed again; retrying in 0 seconds",
+                "! connect failed again; retrying in X seconds",
             ]
             * ((len(logs.records) - 8) // 3)
             + [

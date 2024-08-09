@@ -363,7 +363,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
         async def process_request(ws, _request):
             while ws.server.is_serving():
-                await asyncio.sleep(0)
+                await asyncio.sleep(0)  # pragma: no cover
 
         async with run_server(process_request=process_request) as server:
             asyncio.get_running_loop().call_later(MS, server.close)

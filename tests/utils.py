@@ -43,12 +43,13 @@ DATE = email.utils.formatdate(usegmt=True)
 # WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
 MS = 0.001 * float(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", "1"))
 
-# PyPy has a performance penalty for this test suite.
+# PyPy, asyncio's debug mode, and coverage penalize performance of this
+# test suite. Increase timeouts to reduce the risk of spurious failures.
 if platform.python_implementation() == "PyPy":  # pragma: no cover
     MS *= 2
-
-# asyncio's debug mode has a performance penalty for this test suite.
 if os.environ.get("PYTHONASYNCIODEBUG"):  # pragma: no cover
+    MS *= 2
+if os.environ.get("COVERAGE_RUN"):  # pragma: no branch
     MS *= 2
 
 # Ensure that timeouts are larger than the clock's resolution (for Windows).

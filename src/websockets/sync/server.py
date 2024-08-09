@@ -222,7 +222,13 @@ class WebSocketServer:
 
         """
         poller = selectors.DefaultSelector()
-        poller.register(self.socket, selectors.EVENT_READ)
+        try:
+            poller.register(self.socket, selectors.EVENT_READ)
+        except ValueError:  # pragma: no cover
+            # If shutdown() is called before poller.register(),
+            # the socket is closed and poller.register() raises
+            # ValueError: Invalid file descriptor: -1
+            return
         if sys.platform != "win32":
             poller.register(self.shutdown_watcher, selectors.EVENT_READ)
 

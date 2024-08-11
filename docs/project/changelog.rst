@@ -71,7 +71,7 @@ New features
     See :func:`websockets.asyncio.client.connect` and
     :func:`websockets.asyncio.server.serve` for details.
 
-* Validated compatibility with Python 3.12.
+* Validated compatibility with Python 3.12 and 3.13.
 
 * Added :doc:`environment variables <../reference/variables>` to configure debug
   logs, the ``Server`` and ``User-Agent`` headers, as well as security limits.

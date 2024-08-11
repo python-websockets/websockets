@@ -3,6 +3,9 @@ Miscellaneous
 
 .. currentmodule:: websockets
 
+.. Remove this question when dropping Python < 3.13, which provides natively
+.. a good error message in this case.
+
 Why do I get the error: ``module 'websockets' has no attribute '...'``?
 .......................................................................
 

@@ -564,8 +564,7 @@ class Connection(asyncio.Protocol):
 
             pong_waiter = self.loop.create_future()
             # The event loop's default clock is time.monotonic(). Its resolution
-            # is a bit low on Windows (~16ms). We cannot use time.perf_counter()
-            # because it doesn't count time elapsed while the process sleeps.
+            # is a bit low on Windows (~16ms). This is improved in Python 3.13.
             ping_timestamp = self.loop.time()
             self.pong_waiters[data] = (pong_waiter, ping_timestamp)
             self.protocol.send_ping(data)

@@ -62,6 +62,7 @@ jobs:
           - "3.10"
           - "3.11"
           - "3.12"
+          - "3.13"
           - "pypy-3.9"
           - "pypy-3.10"
         is_main:
@@ -78,6 +79,7 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python }}
+        allow-prereleases: true
     - name: Install tox
       run: pip install tox
     - name: Run tests

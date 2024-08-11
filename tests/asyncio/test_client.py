@@ -156,27 +156,27 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_set_server_hostname_implicitly(self):
         """Client sets server_hostname to the host in the WebSocket URI."""
-        with temp_unix_socket_path() as path:
-            async with run_unix_server(path, ssl=SERVER_CONTEXT):
-                async with run_unix_client(
-                    path,
-                    ssl=CLIENT_CONTEXT,
-                    uri="wss://overridden/",
-                ) as client:
-                    ssl_object = client.transport.get_extra_info("ssl_object")
-                    self.assertEqual(ssl_object.server_hostname, "overridden")
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            host, port = get_server_host_port(server)
+            async with run_client(
+                "wss://overridden/",
+                host=host,
+                port=port,
+                ssl=CLIENT_CONTEXT,
+            ) as client:
+                ssl_object = client.transport.get_extra_info("ssl_object")
+                self.assertEqual(ssl_object.server_hostname, "overridden")
 
     async def test_set_server_hostname_explicitly(self):
         """Client sets server_hostname to the value provided in argument."""
-        with temp_unix_socket_path() as path:
-            async with run_unix_server(path, ssl=SERVER_CONTEXT):
-                async with run_unix_client(
-                    path,
-                    ssl=CLIENT_CONTEXT,
-                    server_hostname="overridden",
-                ) as client:
-                    ssl_object = client.transport.get_extra_info("ssl_object")
-                    self.assertEqual(ssl_object.server_hostname, "overridden")
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            async with run_client(
+                server,
+                ssl=CLIENT_CONTEXT,
+                server_hostname="overridden",
+            ) as client:
+                ssl_object = client.transport.get_extra_info("ssl_object")
+                self.assertEqual(ssl_object.server_hostname, "overridden")
 
     async def test_reject_invalid_server_certificate(self):
         """Client rejects certificate where server certificate isn't trusted."""

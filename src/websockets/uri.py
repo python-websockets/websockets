@@ -23,7 +23,7 @@ class WebSocketURI:
         username: Available when the URI contains `User Information`_.
         password: Available when the URI contains `User Information`_.
 
-    .. _User Information: https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.1
+    .. _User Information: https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.1
 
     """
 

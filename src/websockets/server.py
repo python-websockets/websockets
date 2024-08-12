@@ -307,7 +307,7 @@ class ServerProtocol(Protocol):
 
         """
         # "The user agent MUST NOT include more than one Origin header field"
-        # per https://www.rfc-editor.org/rfc/rfc6454.html#section-7.3.
+        # per https://datatracker.ietf.org/doc/html/rfc6454#section-7.3.
         try:
             origin = headers.get("Origin")
         except MultipleValuesError as exc:

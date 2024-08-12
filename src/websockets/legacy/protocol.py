@@ -80,14 +80,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     especially in the presence of proxies with short timeouts on inactive
     connections. Set ``ping_interval`` to :obj:`None` to disable this behavior.
 
-    .. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
+    .. _Ping: https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2
 
     If the corresponding Pong_ frame isn't received within ``ping_timeout``
     seconds, the connection is considered unusable and is closed with code 1011.
     This ensures that the remote endpoint remains responsive. Set
     ``ping_timeout`` to :obj:`None` to disable this behavior.
 
-    .. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
+    .. _Pong: https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.3
 
     See the discussion of :doc:`timeouts <../../topics/timeouts>` for details.
 
@@ -447,7 +447,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         WebSocket close code, defined in `section 7.1.5 of RFC 6455`_.
 
         .. _section 7.1.5 of RFC 6455:
-            https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.5
+            https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5
 
         :obj:`None` if the connection isn't closed yet.
 
@@ -465,7 +465,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         WebSocket close reason, defined in `section 7.1.6 of RFC 6455`_.
 
         .. _section 7.1.6 of RFC 6455:
-            https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.6
+            https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.6
 
         :obj:`None` if the connection isn't closed yet.
 
@@ -516,8 +516,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             A string (:class:`str`) for a Text_ frame. A bytestring
             (:class:`bytes`) for a Binary_ frame.
 
-            .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-            .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+            .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+            .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -583,8 +583,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         bytes-like object (:class:`bytes`, :class:`bytearray`, or
         :class:`memoryview`) is sent as a Binary_ frame.
 
-        .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-        .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+        .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+        .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
         :meth:`send` also accepts an iterable or an asynchronous iterable of
         strings, bytestrings, or bytes-like objects to enable fragmentation_.
@@ -592,7 +592,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         All items must be of the same type, or else :meth:`send` will raise a
         :exc:`TypeError` and the connection will be closed.
 
-        .. _fragmentation: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.4
+        .. _fragmentation: https://datatracker.ietf.org/doc/html/rfc6455#section-5.4
 
         :meth:`send` rejects dict-like objects because this is often an error.
         (If you want to send the keys of a dict-like object as fragments, call
@@ -803,7 +803,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         Send a Ping_.
 
-        .. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
+        .. _Ping: https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2
 
         A ping may serve as a keepalive, as a check that the remote endpoint
         received all messages up to this point, or to measure :attr:`latency`.
@@ -862,7 +862,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         Send a Pong_.
 
-        .. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
+        .. _Pong: https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.3
 
         An unsolicited pong may serve as a unidirectional heartbeat.
 
@@ -1559,8 +1559,8 @@ def broadcast(
     object (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) is sent
     as a Binary_ frame.
 
-    .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-    .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+    .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+    .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
     :func:`broadcast` pushes the message synchronously to all connections even
     if their write buffers are overflowing. There's no backpressure.

@@ -48,7 +48,7 @@ def d(value: bytes) -> str:
     return value.decode(errors="backslashreplace")
 
 
-# See https://www.rfc-editor.org/rfc/rfc7230.html#appendix-B.
+# See https://datatracker.ietf.org/doc/html/rfc7230#appendix-B.
 
 # Regex for validating header names.
 
@@ -122,7 +122,7 @@ class Request:
             ValueError: If the request isn't well formatted.
 
         """
-        # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.1
+        # https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1
 
         # Parsing is simple because fixed values are expected for method and
         # version and because path isn't checked. Since WebSocket software tends
@@ -146,7 +146,7 @@ class Request:
 
         headers = yield from parse_headers(read_line)
 
-        # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.3.3
+        # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3
 
         if "Transfer-Encoding" in headers:
             raise NotImplementedError("transfer codings aren't supported")
@@ -227,7 +227,7 @@ class Response:
             ValueError: If the response isn't well formatted.
 
         """
-        # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.1.2
+        # https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.2
 
         try:
             status_line = yield from parse_line(read_line)
@@ -255,7 +255,7 @@ class Response:
 
         headers = yield from parse_headers(read_line)
 
-        # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.3.3
+        # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3
 
         if "Transfer-Encoding" in headers:
             raise NotImplementedError("transfer codings aren't supported")
@@ -324,7 +324,7 @@ def parse_headers(
         ValueError: If the request isn't well formatted.
 
     """
-    # https://www.rfc-editor.org/rfc/rfc7230.html#section-3.2
+    # https://datatracker.ietf.org/doc/html/rfc7230#section-3.2
 
     # We don't attempt to support obsolete line folding.
 
@@ -378,7 +378,7 @@ def parse_line(
         line = yield from read_line(MAX_LINE_LENGTH)
     except RuntimeError:
         raise exceptions.SecurityError("line too long")
-    # Not mandatory but safe - https://www.rfc-editor.org/rfc/rfc7230.html#section-3.5
+    # Not mandatory but safe - https://datatracker.ietf.org/doc/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):
         raise EOFError("line without CRLF")
     return line[:-2]

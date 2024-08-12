@@ -262,7 +262,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
 
     Parameters behave as described in `section 7.1 of RFC 7692`_.
 
-    .. _section 7.1 of RFC 7692: https://www.rfc-editor.org/rfc/rfc7692.html#section-7.1
+    .. _section 7.1 of RFC 7692: https://datatracker.ietf.org/doc/html/rfc7692#section-7.1
 
     Set them to :obj:`True` to include them in the negotiation offer without a
     value or to an integer value to include them with this value.
@@ -462,7 +462,7 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
 
     Parameters behave as described in `section 7.1 of RFC 7692`_.
 
-    .. _section 7.1 of RFC 7692: https://www.rfc-editor.org/rfc/rfc7692.html#section-7.1
+    .. _section 7.1 of RFC 7692: https://datatracker.ietf.org/doc/html/rfc7692#section-7.1
 
     Set them to :obj:`True` to include them in the negotiation offer without a
     value or to an integer value to include them with this value.

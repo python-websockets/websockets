@@ -175,7 +175,7 @@ class Protocol:
         `WebSocket close code`_.
 
         .. _WebSocket close code:
-            https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.5
+            https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5
 
         :obj:`None` if the connection isn't closed yet.
 
@@ -193,7 +193,7 @@ class Protocol:
         `WebSocket close reason`_.
 
         .. _WebSocket close reason:
-            https://www.rfc-editor.org/rfc/rfc6455.html#section-7.1.6
+            https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.6
 
         :obj:`None` if the connection isn't closed yet.
 

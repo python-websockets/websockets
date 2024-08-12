@@ -24,8 +24,8 @@ Data = Union[str, bytes]
 """Types supported in a WebSocket message:
 :class:`str` for a Text_ frame, :class:`bytes` for a Binary_.
 
-.. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-.. _Binary : https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+.. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+.. _Binary : https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
 """
 

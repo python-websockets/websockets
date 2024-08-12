@@ -40,7 +40,7 @@ def build_host(host: str, port: int, secure: bool) -> str:
     Build a ``Host`` header.
 
     """
-    # https://www.rfc-editor.org/rfc/rfc3986.html#section-3.2.2
+    # https://datatracker.ietf.org/doc/html/rfc3986#section-3.2.2
     # IPv6 addresses must be enclosed in brackets.
     try:
         address = ipaddress.ip_address(host)
@@ -59,8 +59,8 @@ def build_host(host: str, port: int, secure: bool) -> str:
 
 
 # To avoid a dependency on a parsing library, we implement manually the ABNF
-# described in https://www.rfc-editor.org/rfc/rfc6455.html#section-9.1 and
-# https://www.rfc-editor.org/rfc/rfc7230.html#appendix-B.
+# described in https://datatracker.ietf.org/doc/html/rfc6455#section-9.1 and
+# https://datatracker.ietf.org/doc/html/rfc7230#appendix-B.
 
 
 def peek_ahead(header: str, pos: int) -> str | None:
@@ -183,7 +183,7 @@ def parse_list(
         InvalidHeaderFormat: On invalid inputs.
 
     """
-    # Per https://www.rfc-editor.org/rfc/rfc7230.html#section-7, "a recipient
+    # Per https://datatracker.ietf.org/doc/html/rfc7230#section-7, "a recipient
     # MUST parse and ignore a reasonable number of empty list elements";
     # hence while loops that remove extra delimiters.
 
@@ -320,7 +320,7 @@ def parse_extension_item_param(
         if peek_ahead(header, pos) == '"':
             pos_before = pos  # for proper error reporting below
             value, pos = parse_quoted_string(header, pos, header_name)
-            # https://www.rfc-editor.org/rfc/rfc6455.html#section-9.1 says:
+            # https://datatracker.ietf.org/doc/html/rfc6455#section-9.1 says:
             # the value after quoted-string unescaping MUST conform to
             # the 'token' ABNF.
             if _token_re.fullmatch(value) is None:
@@ -489,7 +489,7 @@ def build_www_authenticate_basic(realm: str) -> str:
         realm: Identifier of the protection space.
 
     """
-    # https://www.rfc-editor.org/rfc/rfc7617.html#section-2
+    # https://datatracker.ietf.org/doc/html/rfc7617#section-2
     realm = build_quoted_string(realm)
     charset = build_quoted_string("UTF-8")
     return f"Basic realm={realm}, charset={charset}"
@@ -539,8 +539,8 @@ def parse_authorization_basic(header: str) -> tuple[str, str]:
         InvalidHeaderValue: On unsupported inputs.
 
     """
-    # https://www.rfc-editor.org/rfc/rfc7235.html#section-2.1
-    # https://www.rfc-editor.org/rfc/rfc7617.html#section-2
+    # https://datatracker.ietf.org/doc/html/rfc7235#section-2.1
+    # https://datatracker.ietf.org/doc/html/rfc7617#section-2
     scheme, pos = parse_token(header, 0, "Authorization")
     if scheme.lower() != "basic":
         raise exceptions.InvalidHeaderValue(
@@ -580,7 +580,7 @@ def build_authorization_basic(username: str, password: str) -> str:
     This is the reverse of :func:`parse_authorization_basic`.
 
     """
-    # https://www.rfc-editor.org/rfc/rfc7617.html#section-2
+    # https://datatracker.ietf.org/doc/html/rfc7617#section-2
     assert ":" not in username
     user_pass = f"{username}:{password}"
     basic_credentials = base64.b64encode(user_pass.encode()).decode()

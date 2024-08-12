@@ -200,8 +200,8 @@ class Connection(asyncio.Protocol):
             A string (:class:`str`) for a Text_ frame or a bytestring
             (:class:`bytes`) for a Binary_ frame.
 
-            .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-            .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+            .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+            .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
             You may override this behavior with the ``decode`` argument:
 
@@ -253,8 +253,8 @@ class Connection(asyncio.Protocol):
             An iterator of strings (:class:`str`) for a Text_ frame or
             bytestrings (:class:`bytes`) for a Binary_ frame.
 
-            .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-            .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+            .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+            .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
             You may override this behavior with the ``decode`` argument:
 
@@ -290,8 +290,8 @@ class Connection(asyncio.Protocol):
         bytes-like object (:class:`bytes`, :class:`bytearray`, or
         :class:`memoryview`) is sent as a Binary_ frame.
 
-        .. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
-        .. _Binary: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+        .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+        .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
         :meth:`send` also accepts an iterable or an asynchronous iterable of
         strings, bytestrings, or bytes-like objects to enable fragmentation_.
@@ -299,7 +299,7 @@ class Connection(asyncio.Protocol):
         All items must be of the same type, or else :meth:`send` will raise a
         :exc:`TypeError` and the connection will be closed.
 
-        .. _fragmentation: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.4
+        .. _fragmentation: https://datatracker.ietf.org/doc/html/rfc6455#section-5.4
 
         :meth:`send` rejects dict-like objects because this is often an error.
         (If you really want to send the keys of a dict-like object as fragments,
@@ -524,7 +524,7 @@ class Connection(asyncio.Protocol):
         """
         Send a Ping_.
 
-        .. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
+        .. _Ping: https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.2
 
         A ping may serve as a keepalive or as a check that the remote endpoint
         received all messages up to this point
@@ -574,7 +574,7 @@ class Connection(asyncio.Protocol):
         """
         Send a Pong_.
 
-        .. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
+        .. _Pong: https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.3
 
         An unsolicited pong may serve as a unidirectional heartbeat.
 

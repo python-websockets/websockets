@@ -1,7 +1,7 @@
 :orphan:
 
-Both sides (:mod:`asyncio` - new)
-=================================
+Both sides (new :mod:`asyncio`)
+===============================
 
 .. automodule:: websockets.asyncio.connection
 

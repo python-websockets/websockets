@@ -21,8 +21,8 @@ cryptocurrency
 css
 ctrl
 deserialize
-django
 dev
+django
 Dockerfile
 dyno
 formatter
@@ -44,6 +44,7 @@ linkerd
 liveness
 lookups
 MiB
+middleware
 mutex
 mypy
 nginx
@@ -77,8 +78,8 @@ uple
 uvicorn
 uvloop
 virtualenv
-WebSocket
 websocket
+WebSocket
 websockets
 ws
 wsgi

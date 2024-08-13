@@ -1,5 +1,5 @@
-Server (:mod:`asyncio` - new)
-=============================
+Server (new :mod:`asyncio`)
+===========================
 
 .. automodule:: websockets.asyncio.server
 

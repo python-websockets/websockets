@@ -8,6 +8,14 @@ In a hurry? Check out these examples.
 
    quickstart
 
+Upgrading from the legacy :mod:`asyncio` implementation to the new one?
+Read this.
+
+.. toctree::
+   :titlesonly:
+
+   upgrade
+
 If you're stuck, perhaps you'll find the answer here.
 
 .. toctree::

@@ -1,7 +1,7 @@
 :orphan:
 
-Both sides (:mod:`asyncio`)
-===========================
+Both sides (legacy :mod:`asyncio`)
+==================================
 
 .. automodule:: websockets.legacy.protocol
 

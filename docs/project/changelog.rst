@@ -25,6 +25,8 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
+.. _13.0:
+
 13.0
 ----
 
@@ -66,10 +68,10 @@ New features
 
     This new implementation is intended to be a drop-in replacement for the
     current implementation. It will become the default in a future release.
-    Please try it and report any issue that you encounter!
 
-    See :func:`websockets.asyncio.client.connect` and
-    :func:`websockets.asyncio.server.serve` for details.
+    Please try it and report any issue that you encounter! The :doc:`upgrade
+    guide <../howto/upgrade>` explains everything you need to know about the
+    upgrade process.
 
 * Validated compatibility with Python 3.12 and 3.13.
 
@@ -78,6 +80,8 @@ New features
 
   If you were monkey-patching constants, be aware that they were renamed, which
   will break your configuration. You must switch to the environment variables.
+
+.. _12.0:
 
 12.0
 ----
@@ -134,6 +138,8 @@ Bug fixes
 .........
 
 * Restored the C extension in the source distribution.
+
+.. _11.0:
 
 11.0
 ----
@@ -211,6 +217,8 @@ Improvements
 * Set ``server_hostname`` automatically on TLS connections when providing a
   ``sock`` argument to :func:`~sync.client.connect`.
 
+.. _10.4:
+
 10.4
 ----
 
@@ -237,6 +245,8 @@ Improvements
 
 * Improved FAQ.
 
+.. _10.3:
+
 10.3
 ----
 
@@ -259,6 +269,8 @@ Improvements
 
 * Reduced noise in logs when :mod:`ssl` or :mod:`zlib` raise exceptions.
 
+.. _10.2:
+
 10.2
 ----
 
@@ -278,6 +290,8 @@ Bug fixes
   :func:`functools.partial`.
 
 * Avoided leaking open sockets when :func:`~client.connect` is canceled.
+
+.. _10.1:
 
 10.1
 ----
@@ -327,6 +341,8 @@ Bug fixes
 .........
 
 * Avoided half-closing TCP connections that are already closed.
+
+.. _10.0:
 
 10.0
 ----
@@ -434,6 +450,8 @@ Bug fixes
 
 * Avoided a crash when receiving a ping while the connection is closing.
 
+.. _9.1:
+
 9.1
 ---
 
@@ -471,6 +489,8 @@ Bug fixes
 .........
 
 * Fixed issues with the packaging of the 9.0 release.
+
+.. _9.0:
 
 9.0
 ---
@@ -549,6 +569,8 @@ Bug fixes
 * Ensured cancellation always propagates, even on Python versions where
   :exc:`~asyncio.CancelledError` inherits :exc:`Exception`.
 
+.. _8.1:
+
 8.1
 ---
 
@@ -582,6 +604,8 @@ Bug fixes
 
 * Restored the ability to import ``WebSocketProtocolError`` from
   ``websockets``.
+
+.. _8.0:
 
 8.0
 ---
@@ -692,6 +716,8 @@ Bug fixes
 
 * Avoided a crash when a ``extra_headers`` callable returns :obj:`None`.
 
+.. _7.0:
+
 7.0
 ---
 
@@ -786,6 +812,8 @@ Bug fixes
   :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`:
   canceling it at the wrong time could result in messages being dropped.
 
+.. _6.0:
+
 6.0
 ---
 
@@ -839,6 +867,8 @@ Bug fixes
 
 * Fixed a regression in 5.0 that broke some invocations of
   :func:`~server.serve` and :func:`~client.connect`.
+
+.. _5.0:
 
 5.0
 ---
@@ -925,6 +955,8 @@ Bug fixes
 
 * Fixed issues with the packaging of the 4.0 release.
 
+.. _4.0:
+
 4.0
 ---
 
@@ -984,6 +1016,8 @@ Bug fixes
 * Stopped leaking pending tasks when :meth:`~asyncio.Task.cancel` is called on
   a connection while it's being closed.
 
+.. _3.4:
+
 3.4
 ---
 
@@ -1027,6 +1061,8 @@ Bug fixes
 * Providing a ``sock`` argument to :func:`~client.connect` no longer
   crashes.
 
+.. _3.3:
+
 3.3
 ---
 
@@ -1047,6 +1083,8 @@ Bug fixes
 
 * Avoided crashing on concurrent writes on slow connections.
 
+.. _3.2:
+
 3.2
 ---
 
@@ -1063,6 +1101,8 @@ Improvements
 
 * Made server shutdown more robust.
 
+.. _3.1:
+
 3.1
 ---
 
@@ -1077,6 +1117,8 @@ Bug fixes
 .........
 
 * Avoided a warning when closing a connection before the opening handshake.
+
+.. _3.0:
 
 3.0
 ---
@@ -1135,6 +1177,8 @@ Improvements
 
 * Improved documentation.
 
+.. _2.7:
+
 2.7
 ---
 
@@ -1149,6 +1193,8 @@ Improvements
 ............
 
 * Refreshed documentation.
+
+.. _2.6:
 
 2.6
 ---
@@ -1166,6 +1212,8 @@ Bug fixes
 .........
 
 * Avoided TCP fragmentation of small frames.
+
+.. _2.5:
 
 2.5
 ---
@@ -1200,6 +1248,8 @@ Bug fixes
 * Canceling :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` no longer
   drops the next message.
 
+.. _2.4:
+
 2.4
 ---
 
@@ -1213,6 +1263,8 @@ New features
 * Added ``loop`` argument to :func:`~client.connect` and
   :func:`~server.serve`.
 
+.. _2.3:
+
 2.3
 ---
 
@@ -1223,6 +1275,8 @@ Improvements
 
 * Improved compliance of close codes.
 
+.. _2.2:
+
 2.2
 ---
 
@@ -1232,6 +1286,8 @@ New features
 ............
 
 * Added support for limiting message size.
+
+.. _2.1:
 
 2.1
 ---
@@ -1246,6 +1302,8 @@ New features
 * Added support for providing and checking Origin_.
 
 .. _Origin: https://www.rfc-editor.org/rfc/rfc6455.html#section-10.2
+
+.. _2.0:
 
 2.0
 ---
@@ -1274,6 +1332,8 @@ New features
 ............
 
 * Added flow control for outgoing data.
+
+.. _1.0:
 
 1.0
 ---

@@ -89,6 +89,8 @@ class Assembler:
     # coverage reports incorrectly: "line NN didn't jump to the function exit"
     def __init__(  # pragma: no cover
         self,
+        high: int = 16,
+        low: int | None = None,
         pause: Callable[[], Any] = lambda: None,
         resume: Callable[[], Any] = lambda: None,
     ) -> None:
@@ -99,11 +101,16 @@ class Assembler:
         # call to Protocol.data_received() could produce thousands of frames,
         # which must be buffered. Instead, we pause reading when the buffer goes
         # above the high limit and we resume when it goes under the low limit.
-        self.high = 16
-        self.low = 4
-        self.paused = False
+        if low is None:
+            low = high // 4
+        if low < 0:
+            raise ValueError("low must be positive or equal to zero")
+        if high < low:
+            raise ValueError("high must be greater than or equal to low")
+        self.high, self.low = high, low
         self.pause = pause
         self.resume = resume
+        self.paused = False
 
         # This flag prevents concurrent calls to get() by user code.
         self.get_in_progress = False
@@ -253,14 +260,6 @@ class Assembler:
 
         self.frames.put(frame)
         self.maybe_pause()
-
-    def get_limits(self) -> tuple[int, int]:
-        """Return low and high water marks for flow control."""
-        return self.low, self.high
-
-    def set_limits(self, low: int = 4, high: int = 16) -> None:
-        """Configure low and high water marks for flow control."""
-        self.low, self.high = low, high
 
     def maybe_pause(self) -> None:
         """Pause the writer if queue is above the high water mark."""

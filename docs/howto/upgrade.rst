@@ -115,26 +115,6 @@ In other words, the following pattern isn't supported::
     async for websocket in connect(...):  # this doesn't work yet
         ...
 
-Configuring buffers
-...................
-
-The new implementation doesn't provide a way to configure read and write buffers
-yet.
-
-In practice, :func:`~asyncio.client.connect` and :func:`~asyncio.server.serve`
-don't accept the ``max_queue``, ``read_limit``, and ``write_limit`` arguments.
-
-Here's the most likely outcome:
-
-* ``max_queue`` will be implemented but its semantics will change from "maximum
-  number of messages" to "maximum number of frames", which makes a difference
-  when messages are fragmented.
-* ``read_limit`` won't be implemented because the buffer that it configured was
-  removed from the new implementation. The queue that ``max_queue`` configures
-  is the only read buffer now.
-* ``write_limit`` will be implemented as in the original implementation.
-  Alternatively, the same functionality could be exposed with a different API.
-
 .. _Update import paths:
 
 Import paths
@@ -340,18 +320,60 @@ client. The list of subprotocols supported by the server was removed because
 ``select_subprotocols`` already knows which subprotocols it may select and under
 which conditions.
 
-Miscellaneous changes
-.....................
+Arguments of :func:`~asyncio.client.connect` and :func:`~asyncio.server.serve`
+..............................................................................
 
-The first argument of :func:`~asyncio.server.serve` is called ``handler`` instead
-of ``ws_handler``. It's usually passed as a positional argument, making this
-change transparent. If you're passing it as a keyword argument, you must update
-its name.
+``ws_handler`` → ``handler``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The first argument of :func:`~asyncio.server.serve` is now called ``handler``
+instead of ``ws_handler``. It's usually passed as a positional argument, making
+this change transparent. If you're passing it as a keyword argument, you must
+update its name.
+
+``create_protocol`` → ``create_connection``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The keyword argument of :func:`~asyncio.server.serve` for customizing the
-creation of the connection object is called ``create_connection`` instead of
+creation of the connection object is now called ``create_connection`` instead of
 ``create_protocol``. It must return a :class:`~asyncio.server.ServerConnection`
-instead of a :class:`~server.WebSocketServerProtocol`. If you were customizing
-connection objects, you should check the new implementation and possibly redo
-your customization. Keep in mind that the changes to ``process_request`` and
-``select_subprotocol`` remove most use cases for ``create_connection``.
+instead of a :class:`~server.WebSocketServerProtocol`.
+
+If you were customizing connection objects, you should check the new
+implementation and possibly redo your customization. Keep in mind that the
+changes to ``process_request`` and ``select_subprotocol`` remove most use cases
+for ``create_connection``.
+
+``max_queue``
+~~~~~~~~~~~~~
+
+The ``max_queue`` argument of :func:`~asyncio.client.connect` and
+:func:`~asyncio.server.serve` has a new meaning but achieves a similar effect.
+
+It is now the high-water mark of a buffer of incoming frames. It defaults to 16
+frames. It used to be the size of a buffer of incoming messages that refilled as
+soon as a message was read. It used to default to 32 messages.
+
+This can make a difference when messages are fragmented in several frames. In
+that case, you may want to increase ``max_queue``. If you're writing a high
+performance server and you know that you're receiving fragmented messages,
+probably you should adopt :meth:`~asyncio.connection.Connection.recv_streaming`
+and optimize the performance of reads again. In all other cases, given how
+uncommon fragmentation is, you shouldn't worry about this change.
+
+``read_limit``
+~~~~~~~~~~~~~~
+
+The ``read_limit`` argument doesn't exist in the new implementation because it
+doesn't buffer data received from the network in a
+:class:`~asyncio.StreamReader`. With a better design, this buffer could be
+removed.
+
+The buffer of incoming frames configured by ``max_queue`` is the only read
+buffer now.
+
+``write_limit``
+~~~~~~~~~~~~~~~
+
+The ``write_limit`` argument of :func:`~asyncio.client.connect` and
+:func:`~asyncio.server.serve` defaults to 32 KiB instead of 64 KiB.

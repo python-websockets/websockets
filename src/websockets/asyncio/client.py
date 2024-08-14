@@ -49,11 +49,15 @@ class ClientConnection(Connection):
         protocol: ClientProtocol,
         *,
         close_timeout: float | None = 10,
+        max_queue: int | tuple[int, int | None] = 16,
+        write_limit: int | tuple[int, int | None] = 2**15,
     ) -> None:
         self.protocol: ClientProtocol
         super().__init__(
             protocol,
             close_timeout=close_timeout,
+            max_queue=max_queue,
+            write_limit=write_limit,
         )
         self.response_rcvd: asyncio.Future[None] = self.loop.create_future()
 
@@ -146,6 +150,14 @@ class connect:
             :obj:`None` disables the timeout.
         max_size: Maximum size of incoming messages in bytes.
             :obj:`None` disables the limit.
+        max_queue: High-water mark of the buffer where frames are received.
+            It defaults to 16 frames. The low-water mark defaults to ``max_queue
+            // 4``. You may pass a ``(high, low)`` tuple to set the high-water
+            and low-water marks.
+        write_limit: High-water mark of write buffer in bytes. It is passed to
+            :meth:`~asyncio.WriteTransport.set_write_buffer_limits`. It defaults
+            to 32 KiB. You may pass a ``(high, low)`` tuple to set the
+            high-water and low-water marks.
         logger: Logger for this client.
             It defaults to ``logging.getLogger("websockets.client")``.
             See the :doc:`logging guide <../../topics/logging>` for details.
@@ -199,6 +211,8 @@ class connect:
         close_timeout: float | None = 10,
         # Limits
         max_size: int | None = 2**20,
+        max_queue: int | tuple[int, int | None] = 16,
+        write_limit: int | tuple[int, int | None] = 2**15,
         # Logging
         logger: LoggerLike | None = None,
         # Escape hatch for advanced customization
@@ -243,6 +257,8 @@ class connect:
             connection = create_connection(
                 protocol,
                 close_timeout=close_timeout,
+                max_queue=max_queue,
+                write_limit=write_limit,
             )
             return connection
 

@@ -4,7 +4,7 @@ import logging
 import socket
 import unittest
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from websockets.asyncio.compatibility import TimeoutError, aiter, anext, asyncio_timeout
 from websockets.asyncio.connection import *
@@ -866,6 +866,42 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         """pong sends a pong frame with a payload provided as binary."""
         await self.connection.pong(b"pong")
         await self.assertFrameSent(Frame(Opcode.PONG, b"pong"))
+
+    # Test parameters.
+
+    async def test_close_timeout(self):
+        """close_timeout parameter configures close timeout."""
+        connection = Connection(Protocol(self.LOCAL), close_timeout=42 * MS)
+        self.assertEqual(connection.close_timeout, 42 * MS)
+
+    async def test_max_queue(self):
+        """max_queue parameter configures high-water mark of frames buffer."""
+        connection = Connection(Protocol(self.LOCAL), max_queue=4)
+        transport = Mock()
+        connection.connection_made(transport)
+        self.assertEqual(connection.recv_messages.high, 4)
+
+    async def test_max_queue_tuple(self):
+        """max_queue parameter configures high-water mark of frames buffer."""
+        connection = Connection(Protocol(self.LOCAL), max_queue=(4, 2))
+        transport = Mock()
+        connection.connection_made(transport)
+        self.assertEqual(connection.recv_messages.high, 4)
+        self.assertEqual(connection.recv_messages.low, 2)
+
+    async def test_write_limit(self):
+        """write_limit parameter configures high-water mark of write buffer."""
+        connection = Connection(Protocol(self.LOCAL), write_limit=4096)
+        transport = Mock()
+        connection.connection_made(transport)
+        transport.set_write_buffer_limits.assert_called_once_with(4096, None)
+
+    async def test_write_limits(self):
+        """write_limit parameter configures high and low-water marks of write buffer."""
+        connection = Connection(Protocol(self.LOCAL), write_limit=(4096, 2048))
+        transport = Mock()
+        connection.connection_made(transport)
+        transport.set_write_buffer_limits.assert_called_once_with(4096, 2048)
 
     # Test attributes.
 

@@ -48,9 +48,17 @@ class Connection(asyncio.Protocol):
         protocol: Protocol,
         *,
         close_timeout: float | None = 10,
+        max_queue: int | tuple[int, int | None] = 16,
+        write_limit: int | tuple[int, int | None] = 2**15,
     ) -> None:
         self.protocol = protocol
         self.close_timeout = close_timeout
+        if isinstance(max_queue, int):
+            max_queue = (max_queue, None)
+        self.max_queue = max_queue
+        if isinstance(write_limit, int):
+            write_limit = (write_limit, None)
+        self.write_limit = write_limit
 
         # Inject reference to this instance in the protocol's logger.
         self.protocol.logger = logging.LoggerAdapter(
@@ -803,11 +811,13 @@ class Connection(asyncio.Protocol):
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         transport = cast(asyncio.Transport, transport)
-        self.transport = transport
         self.recv_messages = Assembler(
-            pause=self.transport.pause_reading,
-            resume=self.transport.resume_reading,
+            *self.max_queue,
+            pause=transport.pause_reading,
+            resume=transport.resume_reading,
         )
+        transport.set_write_buffer_limits(*self.write_limit)
+        self.transport = transport
 
     def connection_lost(self, exc: Exception | None) -> None:
         self.protocol.receive_eof()  # receive_eof is idempotent

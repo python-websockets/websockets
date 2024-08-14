@@ -70,8 +70,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.pause = unittest.mock.Mock()
         self.resume = unittest.mock.Mock()
-        self.assembler = Assembler(pause=self.pause, resume=self.resume)
-        self.assembler.set_limits(low=1, high=2)
+        self.assembler = Assembler(high=2, low=1, pause=self.pause, resume=self.resume)
 
     # Test get
 
@@ -455,17 +454,25 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
             await alist(self.assembler.get_iter())
         self.assembler.close()  # let task terminate
 
-    # Test getting and setting limits
+    # Test setting limits
 
-    async def test_get_limits(self):
-        """get_limits returns low and high water marks."""
-        low, high = self.assembler.get_limits()
-        self.assertEqual(low, 1)
-        self.assertEqual(high, 2)
+    async def test_set_high_water_mark(self):
+        """high sets the high-water mark."""
+        assembler = Assembler(high=10)
+        self.assertEqual(assembler.high, 10)
 
-    async def test_set_limits(self):
-        """set_limits changes low and high water marks."""
-        self.assembler.set_limits(low=2, high=4)
-        low, high = self.assembler.get_limits()
-        self.assertEqual(low, 2)
-        self.assertEqual(high, 4)
+    async def test_set_high_and_low_water_mark(self):
+        """high sets the high-water mark."""
+        assembler = Assembler(high=10, low=5)
+        self.assertEqual(assembler.high, 10)
+        self.assertEqual(assembler.low, 5)
+
+    async def test_set_invalid_high_water_mark(self):
+        """high must be a non-negative integer."""
+        with self.assertRaises(ValueError):
+            Assembler(high=-1)
+
+    async def test_set_invalid_low_water_mark(self):
+        """low must be higher than high."""
+        with self.assertRaises(ValueError):
+            Assembler(low=10, high=5)

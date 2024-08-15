@@ -4,8 +4,8 @@ import asyncio
 import statistics
 import tracemalloc
 
-import websockets
-from websockets.extensions import permessage_deflate
+from websockets.asyncio.client import connect
+from websockets.extensions.permessage_deflate import ClientPerMessageDeflateFactory
 
 
 CLIENTS = 20
@@ -16,16 +16,16 @@ WB, ML = 12, 5
 MEM_SIZE = []
 
 
-async def client(client):
+async def client(num):
     # Space out connections to make them sequential.
-    await asyncio.sleep(client * INTERVAL)
+    await asyncio.sleep(num * INTERVAL)
 
     tracemalloc.start()
 
-    async with websockets.connect(
+    async with connect(
         "ws://localhost:8765",
         extensions=[
-            permessage_deflate.ClientPerMessageDeflateFactory(
+            ClientPerMessageDeflateFactory(
                 server_max_window_bits=WB,
                 client_max_window_bits=WB,
                 compress_settings={"memLevel": ML},
@@ -42,11 +42,13 @@ async def client(client):
         tracemalloc.stop()
 
         # Hold connection open until the end of the test.
-        await asyncio.sleep(CLIENTS * INTERVAL)
+        await asyncio.sleep((CLIENTS + 1 - num) * INTERVAL)
 
 
 async def clients():
-    await asyncio.gather(*[client(client) for client in range(CLIENTS + 1)])
+    # Start one more client than necessary because we will ignore
+    # non-representative results from the first connection.
+    await asyncio.gather(*[client(num) for num in range(CLIENTS + 1)])
 
 
 asyncio.run(clients())

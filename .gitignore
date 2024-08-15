@@ -8,7 +8,7 @@
 .tox
 build/
 compliance/reports/
-experiments/compression/corpus.pkl
+experiments/compression/corpus/
 dist/
 docs/_build/
 htmlcov/

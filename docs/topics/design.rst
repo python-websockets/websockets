@@ -488,55 +488,6 @@ they're drained. That's why all APIs that write frames are asynchronous.
 Of course, it's still possible for an application to create its own unbounded
 buffers and break the backpressure. Be careful with queues.
 
-
-.. _buffers:
-
-Buffers
--------
-
-.. note::
-
-    This section discusses buffers from the perspective of a server but it
-    applies to clients as well.
-
-An asynchronous systems works best when its buffers are almost always empty.
-
-For example, if a client sends data too fast for a server, the queue of
-incoming messages will be constantly full. The server will always be 32
-messages (by default) behind the client. This consumes memory and increases
-latency for no good reason. The problem is called bufferbloat.
-
-If buffers are almost always full and that problem cannot be solved by adding
-capacity — typically because the system is bottlenecked by the output and
-constantly regulated by backpressure — reducing the size of buffers minimizes
-negative consequences.
-
-By default websockets has rather high limits. You can decrease them according
-to your application's characteristics.
-
-Bufferbloat can happen at every level in the stack where there is a buffer.
-For each connection, the receiving side contains these buffers:
-
-- OS buffers: tuning them is an advanced optimization.
-- :class:`~asyncio.StreamReader` bytes buffer: the default limit is 64 KiB.
-  You can set another limit by passing a ``read_limit`` keyword argument to
-  :func:`~client.connect()` or :func:`~server.serve`.
-- Incoming messages :class:`~collections.deque`: its size depends both on
-  the size and the number of messages it contains. By default the maximum
-  UTF-8 encoded size is 1 MiB and the maximum number is 32. In the worst case,
-  after UTF-8 decoding, a single message could take up to 4 MiB of memory and
-  the overall memory consumption could reach 128 MiB. You should adjust these
-  limits by setting the ``max_size`` and ``max_queue`` keyword arguments of
-  :func:`~client.connect()` or :func:`~server.serve` according to your
-  application's requirements.
-
-For each connection, the sending side contains these buffers:
-
-- :class:`~asyncio.StreamWriter` bytes buffer: the default size is 64 KiB.
-  You can set another limit by passing a ``write_limit`` keyword argument to
-  :func:`~client.connect()` or :func:`~server.serve`.
-- OS buffers: tuning them is an advanced optimization.
-
 Concurrency
 -----------
 

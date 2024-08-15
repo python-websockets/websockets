@@ -6,8 +6,8 @@ import signal
 import statistics
 import tracemalloc
 
-import websockets
-from websockets.extensions import permessage_deflate
+from websockets.asyncio.server import serve
+from websockets.extensions.permessage_deflate import ServerPerMessageDeflateFactory
 
 
 CLIENTS = 20
@@ -44,12 +44,12 @@ async def server():
     print()
     loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
 
-    async with websockets.serve(
+    async with serve(
         handler,
         "localhost",
         8765,
         extensions=[
-            permessage_deflate.ServerPerMessageDeflateFactory(
+            ServerPerMessageDeflateFactory(
                 server_max_window_bits=WB,
                 client_max_window_bits=WB,
                 compress_settings={"memLevel": ML},
@@ -63,7 +63,7 @@ async def server():
 asyncio.run(server())
 
 
-# First connection may incur non-representative setup costs.
+# First connection incurs non-representative setup costs.
 del MEM_SIZE[0]
 
 print(f"µ = {statistics.mean(MEM_SIZE) / 1024:.1f} KiB")

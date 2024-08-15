@@ -62,7 +62,8 @@ class PerMessageDeflate(Extension):
 
         if not self.local_no_context_takeover:
             self.encoder = zlib.compressobj(
-                wbits=-self.local_max_window_bits, **self.compress_settings
+                wbits=-self.local_max_window_bits,
+                **self.compress_settings,
             )
 
         # To handle continuation frames properly, we must keep track of
@@ -156,7 +157,8 @@ class PerMessageDeflate(Extension):
             # Re-initialize per-message decoder.
             if self.local_no_context_takeover:
                 self.encoder = zlib.compressobj(
-                    wbits=-self.local_max_window_bits, **self.compress_settings
+                    wbits=-self.local_max_window_bits,
+                    **self.compress_settings,
                 )
 
         # Compress data.

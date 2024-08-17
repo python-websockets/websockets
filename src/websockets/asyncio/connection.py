@@ -138,6 +138,18 @@ class Connection(asyncio.Protocol):
         return self.transport.get_extra_info("peername")
 
     @property
+    def state(self) -> State:
+        """
+        State of the WebSocket connection, defined in :rfc:`6455`.
+
+        This attribute is provided for completeness. Typical applications
+        shouldn't check its value. Instead, they should call :meth:`~recv` or
+        :meth:`send` and handle :exc:`~exceptions.ConnectionClosed` exceptions.
+
+        """
+        return self.protocol.state
+
+    @property
     def subprotocol(self) -> Subprotocol | None:
         """
         Subprotocol negotiated during the opening handshake.

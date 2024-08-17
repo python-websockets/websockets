@@ -33,6 +33,8 @@ Both sides (new :mod:`asyncio`)
 
     .. autoproperty:: remote_address
 
+    .. autoproperty:: state
+
     The following attributes are available after the opening handshake,
     once the WebSocket connection is open:
 

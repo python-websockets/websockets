@@ -156,7 +156,7 @@ class Protocol:
     @property
     def state(self) -> State:
         """
-        WebSocket connection state.
+        State of the WebSocket connection.
 
         Defined in 4.1, 4.2, 7.1.3, and 7.1.4 of :rfc:`6455`.
 

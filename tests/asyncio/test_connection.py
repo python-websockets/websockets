@@ -11,7 +11,7 @@ from websockets.asyncio.compatibility import TimeoutError, aiter, anext, asyncio
 from websockets.asyncio.connection import *
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 from websockets.frames import CloseCode, Frame, Opcode
-from websockets.protocol import CLIENT, SERVER, Protocol
+from websockets.protocol import CLIENT, SERVER, Protocol, State
 
 from ..protocol import RecordingProtocol
 from ..utils import MS
@@ -929,6 +929,10 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         """Connection provides a remote_address attribute."""
         self.assertEqual(self.connection.remote_address, ("peer", 1234))
         get_extra_info.assert_called_with("peername")
+
+    async def test_state(self):
+        """Connection has a state attribute."""
+        self.assertEqual(self.connection.state, State.OPEN)
 
     async def test_request(self):
         """Connection has a request attribute."""

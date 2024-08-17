@@ -1473,7 +1473,8 @@ class CommonTests:
         self.assertOneFrameSent(True, OP_TEXT, "café".encode())
 
     @unittest.skipIf(
-        sys.version_info[:2] < (3, 11), "raise_exceptions requires Python 3.11+"
+        sys.version_info[:2] < (3, 11),
+        "raise_exceptions requires Python 3.11+",
     )
     def test_broadcast_text_reports_no_errors(self):
         broadcast([self.protocol], "café", raise_exceptions=True)
@@ -1484,7 +1485,8 @@ class CommonTests:
         self.assertOneFrameSent(True, OP_BINARY, b"tea")
 
     @unittest.skipIf(
-        sys.version_info[:2] < (3, 11), "raise_exceptions requires Python 3.11+"
+        sys.version_info[:2] < (3, 11),
+        "raise_exceptions requires Python 3.11+",
     )
     def test_broadcast_binary_reports_no_errors(self):
         broadcast([self.protocol], b"tea", raise_exceptions=True)
@@ -1536,7 +1538,8 @@ class CommonTests:
         )
 
     @unittest.skipIf(
-        sys.version_info[:2] < (3, 11), "raise_exceptions requires Python 3.11+"
+        sys.version_info[:2] < (3, 11),
+        "raise_exceptions requires Python 3.11+",
     )
     def test_broadcast_reports_connection_sending_fragmented_text(self):
         self.make_drain_slow()
@@ -1565,7 +1568,8 @@ class CommonTests:
         )
 
     @unittest.skipIf(
-        sys.version_info[:2] < (3, 11), "raise_exceptions requires Python 3.11+"
+        sys.version_info[:2] < (3, 11),
+        "raise_exceptions requires Python 3.11+",
     )
     def test_broadcast_reports_connection_failing_to_send(self):
         # Configure mock to raise an exception when writing to the network.

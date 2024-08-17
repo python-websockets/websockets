@@ -6,6 +6,7 @@ import contextlib
 import logging
 import random
 import struct
+import sys
 import uuid
 from types import TracebackType
 from typing import (
@@ -27,7 +28,7 @@ from .compatibility import TimeoutError, aiter, anext, asyncio_timeout_at
 from .messages import Assembler
 
 
-__all__ = ["Connection"]
+__all__ = ["Connection", "broadcast"]
 
 
 class Connection(asyncio.Protocol):
@@ -338,7 +339,6 @@ class Connection(asyncio.Protocol):
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If the connection busy sending a fragmented message.
             TypeError: If ``message`` doesn't have a supported type.
 
         """
@@ -488,7 +488,7 @@ class Connection(asyncio.Protocol):
                 self.fragmented_send_waiter = None
 
         else:
-            raise TypeError("data must be bytes, str, iterable, or async iterable")
+            raise TypeError("data must be str, bytes, iterable, or async iterable")
 
     async def close(self, code: int = 1000, reason: str = "") -> None:
         """
@@ -673,7 +673,7 @@ class Connection(asyncio.Protocol):
         On entry, :meth:`send_context` checks that the connection is open; on
         exit, it writes outgoing data to the socket::
 
-            async async with self.send_context():
+            async with self.send_context():
                 self.protocol.send_text(message.encode())
 
         When the connection isn't open on entry, when the connection is expected
@@ -916,3 +916,95 @@ class Connection(asyncio.Protocol):
         # As a consequence, they never need to write after receiving EOF, so
         # there's no reason to keep the transport open by returning True.
         # Besides, that doesn't work on TLS connections.
+
+
+def broadcast(
+    connections: Iterable[Connection],
+    message: Data,
+    raise_exceptions: bool = False,
+) -> None:
+    """
+    Broadcast a message to several WebSocket connections.
+
+    A string (:class:`str`) is sent as a Text_ frame. A bytestring or bytes-like
+    object (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) is sent
+    as a Binary_ frame.
+
+    .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+    .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+    :func:`broadcast` pushes the message synchronously to all connections even
+    if their write buffers are overflowing. There's no backpressure.
+
+    If you broadcast messages faster than a connection can handle them, messages
+    will pile up in its write buffer until the connection times out. Keep
+    ``ping_interval`` and ``ping_timeout`` low to prevent excessive memory usage
+    from slow connections.
+
+    Unlike :meth:`~Connection.send`, :func:`broadcast` doesn't support sending
+    fragmented messages. Indeed, fragmentation is useful for sending large
+    messages without buffering them in memory, while :func:`broadcast` buffers
+    one copy per connection as fast as possible.
+
+    :func:`broadcast` skips connections that aren't open in order to avoid
+    errors on connections where the closing handshake is in progress.
+
+    :func:`broadcast` ignores failures to write the message on some connections.
+    It continues writing to other connections. On Python 3.11 and above, you may
+    set ``raise_exceptions`` to :obj:`True` to record failures and raise all
+    exceptions in a :pep:`654` :exc:`ExceptionGroup`.
+
+    Args:
+        websockets: WebSocket connections to which the message will be sent.
+        message: Message to send.
+        raise_exceptions: Whether to raise an exception in case of failures.
+
+    Raises:
+        TypeError: If ``message`` doesn't have a supported type.
+
+    """
+    if isinstance(message, str):
+        send_method = "send_text"
+        message = message.encode()
+    elif isinstance(message, BytesLike):
+        send_method = "send_binary"
+    else:
+        raise TypeError("data must be str or bytes")
+
+    if raise_exceptions:
+        if sys.version_info[:2] < (3, 11):  # pragma: no cover
+            raise ValueError("raise_exceptions requires at least Python 3.11")
+        exceptions = []
+
+    for connection in connections:
+        if connection.protocol.state is not OPEN:
+            continue
+
+        if connection.fragmented_send_waiter is not None:
+            if raise_exceptions:
+                exception = RuntimeError("sending a fragmented message")
+                exceptions.append(exception)
+            else:
+                connection.logger.warning(
+                    "skipped broadcast: sending a fragmented message",
+                )
+            continue
+
+        try:
+            # Call connection.protocol.send_text or send_binary.
+            # Either way, message is already converted to bytes.
+            getattr(connection.protocol, send_method)(message)
+            connection.send_data()
+        except Exception as write_exception:
+            if raise_exceptions:
+                exception = RuntimeError("failed to write message")
+                exception.__cause__ = write_exception
+                exceptions.append(exception)
+            else:
+                connection.logger.warning(
+                    "skipped broadcast: failed to write message",
+                    exc_info=True,
+                )
+
+    if raise_exceptions and exceptions:
+        raise ExceptionGroup("skipped broadcast", exceptions)

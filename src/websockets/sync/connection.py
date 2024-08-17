@@ -387,7 +387,7 @@ class Connection:
                 raise
 
         else:
-            raise TypeError("data must be bytes, str, or iterable")
+            raise TypeError("data must be str, bytes, or iterable")
 
     def close(self, code: int = CloseCode.NORMAL_CLOSURE, reason: str = "") -> None:
         """

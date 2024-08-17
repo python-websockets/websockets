@@ -110,4 +110,4 @@ websockets supports HTTP Basic Authentication according to
 Broadcast
 ---------
 
-.. autofunction:: websockets.broadcast
+.. autofunction:: websockets.legacy.protocol.broadcast

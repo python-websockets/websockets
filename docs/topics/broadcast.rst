@@ -1,21 +1,22 @@
-Broadcasting messages
-=====================
+Broadcasting
+============
 
 .. currentmodule:: websockets
 
-
-.. admonition:: If you just want to send a message to all connected clients,
-    use :func:`broadcast`.
+.. admonition:: If you want to send a message to all connected clients,
+    use :func:`~asyncio.connection.broadcast`.
     :class: tip
 
-    If you want to learn about its design in depth, continue reading this
-    document.
+    If you want to learn about its design, continue reading this document.
+
+    For the legacy :mod:`asyncio` implementation, use
+    :func:`~legacy.protocol.broadcast`.
 
 WebSocket servers often send the same message to all connected clients or to a
 subset of clients for which the message is relevant.
 
-Let's explore options for broadcasting a message, explain the design
-of :func:`broadcast`, and discuss alternatives.
+Let's explore options for broadcasting a message, explain the design of
+:func:`~asyncio.connection.broadcast`, and discuss alternatives.
 
 For each option, we'll provide a connection handler called ``handler()`` and a
 function or coroutine called ``broadcast()`` that sends a message to all
@@ -24,7 +25,7 @@ connected clients.
 Integrating them is left as an exercise for the reader. You could start with::
 
     import asyncio
-    import websockets
+    from websockets.asyncio.server import serve
 
     async def handler(websocket):
         ...
@@ -39,7 +40,7 @@ Integrating them is left as an exercise for the reader. You could start with::
             await broadcast(message)
 
     async def main():
-        async with websockets.serve(handler, "localhost", 8765):
+        async with serve(handler, "localhost", 8765):
             await broadcast_messages()  # runs forever
 
     if __name__ == "__main__":
@@ -82,11 +83,13 @@ to::
 
 Here's a coroutine that broadcasts a message to all clients::
 
+    from websockets import ConnectionClosed
+
     async def broadcast(message):
         for websocket in CLIENTS.copy():
             try:
                 await websocket.send(message)
-            except websockets.ConnectionClosed:
+            except ConnectionClosed:
                 pass
 
 There are two tricks in this version of ``broadcast()``.
@@ -117,11 +120,11 @@ which is usually outside of the control of the server.
 
 If you know for sure that you will never write more than ``write_limit`` bytes
 within ``ping_interval + ping_timeout``, then websockets will terminate slow
-connections before the write buffer has time to fill up.
+connections before the write buffer can fill up.
 
-Don't set extreme ``write_limit``, ``ping_interval``, and ``ping_timeout``
-values to ensure that this condition holds. Set reasonable values and use the
-built-in :func:`broadcast` function instead.
+Don't set extreme values of ``write_limit``, ``ping_interval``, or
+``ping_timeout`` to ensure that this condition holds! Instead, set reasonable
+values and use the built-in :func:`~asyncio.connection.broadcast` function.
 
 The concurrent way
 ------------------
@@ -134,7 +137,7 @@ Let's modify ``broadcast()`` to send messages concurrently::
     async def send(websocket, message):
         try:
             await websocket.send(message)
-        except websockets.ConnectionClosed:
+        except ConnectionClosed:
             pass
 
     def broadcast(message):
@@ -179,20 +182,20 @@ doesn't work well when broadcasting a message to thousands of clients.
 
 When you're sending messages to a single client, you don't want to send them
 faster than the network can transfer them and the client accept them. This is
-why :meth:`~server.WebSocketServerProtocol.send` checks if the write buffer
-is full and, if it is, waits until it drain, giving the network and the
-client time to catch up. This provides backpressure.
+why :meth:`~asyncio.server.ServerConnection.send` checks if the write buffer is
+above the high-water mark and, if it is, waits until it drains, giving the
+network and the client time to catch up. This provides backpressure.
 
 Without backpressure, you could pile up data in the write buffer until the
 server process runs out of memory and the operating system kills it.
 
-The :meth:`~server.WebSocketServerProtocol.send` API is designed to enforce
+The :meth:`~asyncio.server.ServerConnection.send` API is designed to enforce
 backpressure by default. This helps users of websockets write robust programs
 even if they never heard about backpressure.
 
 For comparison, :class:`asyncio.StreamWriter` requires users to understand
-backpressure and to await :meth:`~asyncio.StreamWriter.drain` explicitly
-after each :meth:`~asyncio.StreamWriter.write`.
+backpressure and to await :meth:`~asyncio.StreamWriter.drain` after each
+:meth:`~asyncio.StreamWriter.write` — or at least sufficiently frequently.
 
 When broadcasting messages, backpressure consists in slowing down all clients
 in an attempt to let the slowest client catch up. With thousands of clients,
@@ -203,14 +206,14 @@ How do we avoid running out of memory when slow clients can't keep up with the
 broadcast rate, then? The most straightforward option is to disconnect them.
 
 If a client gets too far behind, eventually it reaches the limit defined by
-``ping_timeout`` and websockets terminates the connection. You can read the
-discussion of :doc:`keepalive and timeouts <./timeouts>` for details.
+``ping_timeout`` and websockets terminates the connection. You can refer to
+the discussion of :doc:`keepalive and timeouts <timeouts>` for details.
 
-How :func:`broadcast` works
----------------------------
+How :func:`~asyncio.connection.broadcast` works
+-----------------------------------------------
 
-The built-in :func:`broadcast` function is similar to the naive way. The main
-difference is that it doesn't apply backpressure.
+The built-in :func:`~asyncio.connection.broadcast` function is similar to the
+naive way. The main difference is that it doesn't apply backpressure.
 
 This provides the best performance by avoiding the overhead of scheduling and
 running one task per client.
@@ -321,9 +324,9 @@ the asynchronous iterator returned by ``subscribe()``.
 Performance considerations
 --------------------------
 
-The built-in :func:`broadcast` function sends all messages without yielding
-control to the event loop. So does the naive way when the network and clients
-are fast and reliable.
+The built-in :func:`~asyncio.connection.broadcast` function sends all messages
+without yielding control to the event loop. So does the naive way when the
+network and clients are fast and reliable.
 
 For each client, a WebSocket frame is prepared and sent to the network. This
 is the minimum amount of work required to broadcast a message.
@@ -343,7 +346,7 @@ However, this isn't possible in general for two reasons:
 
 All other patterns discussed above yield control to the event loop once per
 client because messages are sent by different tasks. This makes them slower
-than the built-in :func:`broadcast` function.
+than the built-in :func:`~asyncio.connection.broadcast` function.
 
 There is no major difference between the performance of per-client queues and
 publish–subscribe.

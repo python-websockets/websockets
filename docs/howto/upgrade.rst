@@ -70,12 +70,6 @@ Missing features
     If your application relies on one of them, you should stick to the original
     implementation until the new implementation supports it in a future release.
 
-Broadcast
-.........
-
-The new implementation doesn't support :doc:`broadcasting messages
-<../topics/broadcast>` yet.
-
 Keepalive
 .........
 
@@ -178,8 +172,8 @@ Server APIs
 | :class:`websockets.server.WebSocketServerProtocol`           |br| |                                                     |
 | ``websockets.legacy.server.WebSocketServerProtocol``              |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| :func:`websockets.broadcast`                                 |br| | *not available yet*                                 |
-| ``websockets.legacy.protocol.broadcast()``                        |                                                     |
+| ``websockets.broadcast``                                     |br| | :func:`websockets.asyncio.connection.broadcast`     |
+| :func:`websockets.legacy.protocol.broadcast()`                    |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.BasicAuthWebSocketServerProtocol``              |br| | *not available yet*                                 |
 | :class:`websockets.auth.BasicAuthWebSocketServerProtocol`    |br| |                                                     |

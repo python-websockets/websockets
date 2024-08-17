@@ -70,3 +70,8 @@ Using a connection
     .. autoattribute:: response
 
     .. autoproperty:: subprotocol
+
+Broadcast
+---------
+
+.. autofunction:: websockets.asyncio.connection.broadcast

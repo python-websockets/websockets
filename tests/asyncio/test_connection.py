@@ -2,6 +2,7 @@ import asyncio
 import contextlib
 import logging
 import socket
+import sys
 import unittest
 import uuid
 from unittest.mock import Mock, patch
@@ -1003,6 +1004,161 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         exc = raised.exception
         self.assertEqual(str(exc), "no close frame received or sent")
         self.assertIsInstance(exc.__cause__, AssertionError)
+
+    # Test broadcast.
+
+    async def test_broadcast_text(self):
+        """broadcast broadcasts a text message."""
+        broadcast([self.connection], "😀")
+        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    @unittest.skipIf(
+        sys.version_info[:2] < (3, 11),
+        "raise_exceptions requires Python 3.11+",
+    )
+    async def test_broadcast_text_reports_no_errors(self):
+        """broadcast broadcasts a text message without raising exceptions."""
+        broadcast([self.connection], "😀", raise_exceptions=True)
+        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    async def test_broadcast_binary(self):
+        """broadcast broadcasts a binary message."""
+        broadcast([self.connection], b"\x01\x02\xfe\xff")
+        await self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+
+    @unittest.skipIf(
+        sys.version_info[:2] < (3, 11),
+        "raise_exceptions requires Python 3.11+",
+    )
+    async def test_broadcast_binary_reports_no_errors(self):
+        """broadcast broadcasts a binary message without raising exceptions."""
+        broadcast([self.connection], b"\x01\x02\xfe\xff", raise_exceptions=True)
+        await self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+
+    async def test_broadcast_no_clients(self):
+        """broadcast does nothing when called with an empty list of clients."""
+        broadcast([], "😀")
+        await self.assertNoFrameSent()
+
+    async def test_broadcast_two_clients(self):
+        """broadcast broadcasts a message to several clients."""
+        broadcast([self.connection, self.connection], "😀")
+        await self.assertFramesSent(
+            [
+                Frame(Opcode.TEXT, "😀".encode()),
+                Frame(Opcode.TEXT, "😀".encode()),
+            ]
+        )
+
+    async def test_broadcast_skips_closed_connection(self):
+        """broadcast ignores closed connections."""
+        await self.connection.close()
+        await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+
+        with self.assertNoLogs():
+            broadcast([self.connection], "😀")
+        await self.assertNoFrameSent()
+
+    async def test_broadcast_skips_closing_connection(self):
+        """broadcast ignores closing connections."""
+        async with self.delay_frames_rcvd(MS):
+            close_task = asyncio.create_task(self.connection.close())
+            await asyncio.sleep(0)
+            await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+
+            with self.assertNoLogs():
+                broadcast([self.connection], "😀")
+            await self.assertNoFrameSent()
+
+        await close_task
+
+    async def test_broadcast_skips_connection_with_send_blocked(self):
+        """broadcast logs a warning when a connection is blocked in send."""
+        gate = asyncio.get_running_loop().create_future()
+
+        async def fragments():
+            yield "⏳"
+            await gate
+
+        send_task = asyncio.create_task(self.connection.send(fragments()))
+        await asyncio.sleep(MS)
+        await self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+
+        with self.assertLogs("websockets", logging.WARNING) as logs:
+            broadcast([self.connection], "😀")
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records][:2],
+            ["skipped broadcast: sending a fragmented message"],
+        )
+
+        gate.set_result(None)
+        await send_task
+
+    @unittest.skipIf(
+        sys.version_info[:2] < (3, 11),
+        "raise_exceptions requires Python 3.11+",
+    )
+    async def test_broadcast_reports_connection_with_send_blocked(self):
+        """broadcast raises exceptions for connections blocked in send."""
+        gate = asyncio.get_running_loop().create_future()
+
+        async def fragments():
+            yield "⏳"
+            await gate
+
+        send_task = asyncio.create_task(self.connection.send(fragments()))
+        await asyncio.sleep(MS)
+        await self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+
+        with self.assertRaises(ExceptionGroup) as raised:
+            broadcast([self.connection], "😀", raise_exceptions=True)
+
+        self.assertEqual(str(raised.exception), "skipped broadcast (1 sub-exception)")
+        exc = raised.exception.exceptions[0]
+        self.assertEqual(str(exc), "sending a fragmented message")
+        self.assertIsInstance(exc, RuntimeError)
+
+        gate.set_result(None)
+        await send_task
+
+    async def test_broadcast_skips_connection_failing_to_send(self):
+        """broadcast logs a warning when a connection fails to send."""
+        # Inject a fault by shutting down the transport for writing.
+        self.transport.write_eof()
+
+        with self.assertLogs("websockets", logging.WARNING) as logs:
+            broadcast([self.connection], "😀")
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records][:2],
+            ["skipped broadcast: failed to write message"],
+        )
+
+    @unittest.skipIf(
+        sys.version_info[:2] < (3, 11),
+        "raise_exceptions requires Python 3.11+",
+    )
+    async def test_broadcast_reports_connection_failing_to_send(self):
+        """broadcast raises exceptions for connections failing to send."""
+        # Inject a fault by shutting down the transport for writing.
+        self.transport.write_eof()
+
+        with self.assertRaises(ExceptionGroup) as raised:
+            broadcast([self.connection], "😀", raise_exceptions=True)
+
+        self.assertEqual(str(raised.exception), "skipped broadcast (1 sub-exception)")
+        exc = raised.exception.exceptions[0]
+        self.assertEqual(str(exc), "failed to write message")
+        self.assertIsInstance(exc, RuntimeError)
+        cause = exc.__cause__
+        self.assertEqual(str(cause), "Cannot call write() after write_eof()")
+        self.assertIsInstance(cause, RuntimeError)
+
+    async def test_broadcast_type_error(self):
+        """broadcast raises TypeError when called with an unsupported type."""
+        with self.assertRaises(TypeError):
+            broadcast([self.connection], ["⏳", "⌛️"])
 
 
 class ServerConnectionTests(ClientConnectionTests):

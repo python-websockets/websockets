@@ -102,7 +102,7 @@ Record all connections in a global variable::
         finally:
             CONNECTIONS.remove(websocket)
 
-Then, call :func:`~websockets.broadcast`::
+Then, call :func:`~asyncio.connection.broadcast`::
 
     import websockets
 

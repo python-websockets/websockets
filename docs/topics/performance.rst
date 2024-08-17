@@ -1,6 +1,8 @@
 Performance
 ===========
 
+.. currentmodule:: websockets
+
 Here are tips to optimize performance.
 
 uvloop
@@ -16,5 +18,5 @@ application.)
 broadcast
 ---------
 
-:func:`~websockets.broadcast` is the most efficient way to send a message to
-many clients.
+:func:`~asyncio.connection.broadcast` is the most efficient way to send a
+message to many clients.

@@ -6,7 +6,9 @@ import os
 import sys
 import time
 
-import websockets
+from websockets import ConnectionClosed
+from websockets.asyncio.server import serve
+from websockets.asyncio.connection import broadcast
 
 
 CLIENTS = set()
@@ -15,7 +17,7 @@ CLIENTS = set()
 async def send(websocket, message):
     try:
         await websocket.send(message)
-    except websockets.ConnectionClosed:
+    except ConnectionClosed:
         pass
 
 
@@ -43,9 +45,6 @@ class PubSub:
     __aiter__ = subscribe
 
 
-PUBSUB = PubSub()
-
-
 async def handler(websocket, method=None):
     if method in ["default", "naive", "task", "wait"]:
         CLIENTS.add(websocket)
@@ -63,14 +62,18 @@ async def handler(websocket, method=None):
             CLIENTS.remove(queue)
             relay_task.cancel()
     elif method == "pubsub":
+        global PUBSUB
         async for message in PUBSUB:
             await websocket.send(message)
     else:
         raise NotImplementedError(f"unsupported method: {method}")
 
 
-async def broadcast(method, size, delay):
+async def broadcast_messages(method, size, delay):
     """Broadcast messages at regular intervals."""
+    if method == "pubsub":
+        global PUBSUB
+        PUBSUB = PubSub()
     load_average = 0
     time_average = 0
     pc1, pt1 = time.perf_counter_ns(), time.process_time_ns()
@@ -90,7 +93,7 @@ async def broadcast(method, size, delay):
         message = str(time.time_ns()).encode() + b" " + os.urandom(size - 20)
 
         if method == "default":
-            websockets.broadcast(CLIENTS, message)
+            broadcast(CLIENTS, message)
         elif method == "naive":
             # Since the loop can yield control, make a copy of CLIENTS
             # to avoid: RuntimeError: Set changed size during iteration
@@ -128,14 +131,14 @@ async def broadcast(method, size, delay):
 
 
 async def main(method, size, delay):
-    async with websockets.serve(
+    async with serve(
         functools.partial(handler, method=method),
         "localhost",
         8765,
         compression=None,
         ping_timeout=None,
     ):
-        await broadcast(method, size, delay)
+        await broadcast_messages(method, size, delay)
 
 
 if __name__ == "__main__":

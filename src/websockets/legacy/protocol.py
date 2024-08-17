@@ -1570,18 +1570,17 @@ def broadcast(
     ``ping_interval`` and ``ping_timeout`` low to prevent excessive memory usage
     from slow connections.
 
-    Unlike :meth:`~websockets.server.WebSocketServerProtocol.send`,
-    :func:`broadcast` doesn't support sending fragmented messages. Indeed,
-    fragmentation is useful for sending large messages without buffering them in
-    memory, while :func:`broadcast` buffers one copy per connection as fast as
-    possible.
+    Unlike :meth:`~WebSocketCommonProtocol.send`, :func:`broadcast` doesn't
+    support sending fragmented messages. Indeed, fragmentation is useful for
+    sending large messages without buffering them in memory, while
+    :func:`broadcast` buffers one copy per connection as fast as possible.
 
     :func:`broadcast` skips connections that aren't open in order to avoid
     errors on connections where the closing handshake is in progress.
 
     :func:`broadcast` ignores failures to write the message on some connections.
-    It continues writing to other connections. On Python 3.11 and above, you
-    may set ``raise_exceptions`` to :obj:`True` to record failures and raise all
+    It continues writing to other connections. On Python 3.11 and above, you may
+    set ``raise_exceptions`` to :obj:`True` to record failures and raise all
     exceptions in a :pep:`654` :exc:`ExceptionGroup`.
 
     Args:
@@ -1615,6 +1614,7 @@ def broadcast(
                 websocket.logger.warning(
                     "skipped broadcast: sending a fragmented message",
                 )
+            continue
 
         try:
             websocket.write_frame_sync(True, opcode, data)

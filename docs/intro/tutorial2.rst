@@ -482,7 +482,7 @@ you're using this pattern:
         ...
 
 Since this is a very common pattern in WebSocket servers, websockets provides
-the :func:`broadcast` helper for this purpose:
+the :func:`~legacy.protocol.broadcast` helper for this purpose:
 
 .. code-block:: python
 
@@ -494,13 +494,14 @@ the :func:`broadcast` helper for this purpose:
 
         ...
 
-Calling :func:`broadcast` once is more efficient than
+Calling :func:`legacy.protocol.broadcast` once is more efficient than
 calling :meth:`~legacy.protocol.WebSocketCommonProtocol.send` in a loop.
 
-However, there's a subtle difference in behavior. Did you notice that there's
-no ``await`` in the second version? Indeed, :func:`broadcast` is a function,
-not a coroutine like :meth:`~legacy.protocol.WebSocketCommonProtocol.send`
-or :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`.
+However, there's a subtle difference in behavior. Did you notice that there's no
+``await`` in the second version? Indeed, :func:`legacy.protocol.broadcast` is a
+function, not a coroutine like
+:meth:`~legacy.protocol.WebSocketCommonProtocol.send` or
+:meth:`~legacy.protocol.WebSocketCommonProtocol.recv`.
 
 It's quite obvious why :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`
 is a coroutine. When you want to receive the next message, you have to wait
@@ -521,7 +522,8 @@ That said, when you're sending the same messages to many clients in a loop,
 applying backpressure in this way can become counterproductive. When you're
 broadcasting, you don't want to slow down everyone to the pace of the slowest
 clients; you want to drop clients that cannot keep up with the data stream.
-That's why :func:`broadcast` doesn't wait until write buffers drain.
+That's why :func:`legacy.protocol.broadcast` doesn't wait until write buffers
+drain.
 
 For our Connect Four game, there's no difference in practice: the total amount
 of data sent on a connection for a game of Connect Four is less than 64 KB,

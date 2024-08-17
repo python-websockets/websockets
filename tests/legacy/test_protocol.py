@@ -1533,7 +1533,7 @@ class CommonTests:
             broadcast([self.protocol], "café")
 
         self.assertEqual(
-            [record.getMessage() for record in logs.records][:2],
+            [record.getMessage() for record in logs.records],
             ["skipped broadcast: sending a fragmented message"],
         )
 
@@ -1563,7 +1563,7 @@ class CommonTests:
             broadcast([self.protocol], "café")
 
         self.assertEqual(
-            [record.getMessage() for record in logs.records][:2],
+            [record.getMessage() for record in logs.records],
             ["skipped broadcast: failed to write message"],
         )
 

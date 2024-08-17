@@ -70,17 +70,6 @@ Missing features
     If your application relies on one of them, you should stick to the original
     implementation until the new implementation supports it in a future release.
 
-Keepalive
-.........
-
-The new implementation doesn't provide a :ref:`keepalive mechanism <keepalive>`
-yet.
-
-As a consequence, :func:`~asyncio.client.connect` and
-:func:`~asyncio.server.serve` don't accept the ``ping_interval`` and
-``ping_timeout`` arguments and the
-:attr:`~legacy.protocol.WebSocketCommonProtocol.latency` property doesn't exist.
-
 HTTP Basic Authentication
 .........................
 

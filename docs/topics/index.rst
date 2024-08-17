@@ -11,7 +11,7 @@ Get a deeper understanding of how websockets is built and why.
    authentication
    broadcast
    compression
-   timeouts
+   keepalive
    design
    memory
    security

@@ -1,5 +1,5 @@
-Timeouts
-========
+Keepalive and latency
+=====================
 
 .. currentmodule:: websockets
 
@@ -49,9 +49,9 @@ This mechanism serves two purposes:
    application gets a :exc:`~exceptions.ConnectionClosed` exception.
 
 Timings are configurable with the ``ping_interval`` and ``ping_timeout``
-arguments of :func:`~client.connect` and :func:`~server.serve`. Shorter values
-will detect connection drops faster but they will increase network traffic and
-they will be more sensitive to latency.
+arguments of :func:`~asyncio.client.connect` and :func:`~asyncio.server.serve`.
+Shorter values will detect connection drops faster but they will increase
+network traffic and they will be more sensitive to latency.
 
 Setting ``ping_interval`` to :obj:`None` disables the whole keepalive and
 heartbeat mechanism.
@@ -111,6 +111,6 @@ Latency between a client and a server may increase for two reasons:
   than the client can accept.
 
 The latency measured during the last exchange of Ping and Pong frames is
-available in the :attr:`~legacy.protocol.WebSocketCommonProtocol.latency`
-attribute. Alternatively, you can measure the latency at any time with the
-:attr:`~legacy.protocol.WebSocketCommonProtocol.ping` method.
+available in the :attr:`~asyncio.connection.Connection.latency` attribute.
+Alternatively, you can measure the latency at any time with the
+:attr:`~asyncio.connection.Connection.ping` method.

@@ -63,6 +63,21 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             async with run_client(server, compression=None) as client:
                 self.assertEqual(client.protocol.extensions, [])
 
+    async def test_keepalive_is_enabled(self):
+        """Client enables keepalive and measures latency by default."""
+        async with run_server() as server:
+            async with run_client(server, ping_interval=MS) as client:
+                self.assertEqual(client.latency, 0)
+                await asyncio.sleep(2 * MS)
+                self.assertGreater(client.latency, 0)
+
+    async def test_disable_keepalive(self):
+        """Client disables keepalive."""
+        async with run_server() as server:
+            async with run_client(server, ping_interval=None) as client:
+                await asyncio.sleep(2 * MS)
+                self.assertEqual(client.latency, 0)
+
     async def test_custom_connection_factory(self):
         """Client runs ClientConnection factory provided in create_connection."""
 

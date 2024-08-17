@@ -868,6 +868,93 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         await self.connection.pong(b"pong")
         await self.assertFrameSent(Frame(Opcode.PONG, b"pong"))
 
+    # Test keepalive.
+
+    @patch("random.getrandbits")
+    async def test_keepalive(self, getrandbits):
+        """keepalive sends pings."""
+        self.connection.ping_interval = 2 * MS
+        getrandbits.return_value = 1918987876
+        self.connection.start_keepalive()
+        await asyncio.sleep(3 * MS)
+        await self.assertFrameSent(Frame(Opcode.PING, b"rand"))
+
+    @patch("random.getrandbits")
+    async def test_keepalive_times_out(self, getrandbits):
+        """keepalive closes the connection if ping_timeout elapses."""
+        self.connection.ping_interval = 4 * MS
+        self.connection.ping_timeout = 2 * MS
+        async with self.drop_frames_rcvd():
+            getrandbits.return_value = 1918987876
+            self.connection.start_keepalive()
+            await asyncio.sleep(4 * MS)
+            # Exiting the context manager sleeps for MS.
+        await self.assertFrameSent(Frame(Opcode.PING, b"rand"))
+        await asyncio.sleep(MS)
+        await self.assertFrameSent(
+            Frame(Opcode.CLOSE, b"\x03\xf3keepalive ping timeout")
+        )
+
+    @patch("random.getrandbits")
+    async def test_keepalive_ignores_timeout(self, getrandbits):
+        """keepalive ignores timeouts if ping_timeout isn't set."""
+        self.connection.ping_interval = 4 * MS
+        self.connection.ping_timeout = None
+        async with self.drop_frames_rcvd():
+            getrandbits.return_value = 1918987876
+            self.connection.start_keepalive()
+            await asyncio.sleep(4 * MS)
+            # Exiting the context manager sleeps for MS.
+        await self.assertFrameSent(Frame(Opcode.PING, b"rand"))
+        await asyncio.sleep(MS)
+        await self.assertNoFrameSent()
+
+    async def test_disable_keepalive(self):
+        """keepalive is disabled when ping_interval is None."""
+        self.connection.ping_interval = None
+        self.connection.start_keepalive()
+        await asyncio.sleep(3 * MS)
+        await self.assertNoFrameSent()
+
+    async def test_keepalive_terminates_while_sleeping(self):
+        """keepalive task terminates while waiting to send a ping."""
+        self.connection.ping_interval = 2 * MS
+        self.connection.start_keepalive()
+        await asyncio.sleep(MS)
+        await self.connection.close()
+        self.assertTrue(self.connection.keepalive_task.done())
+
+    async def test_keepalive_terminates_while_waiting_for_pong(self):
+        """keepalive task terminates while waiting to receive a pong."""
+        self.connection.ping_interval = 2 * MS
+        async with self.drop_frames_rcvd():
+            self.connection.start_keepalive()
+            await asyncio.sleep(2 * MS)
+            # Exiting the context manager sleeps for MS.
+        await self.connection.close()
+        self.assertTrue(self.connection.keepalive_task.done())
+
+    async def test_keepalive_reports_errors(self):
+        """keepalive reports unexpected errors in logs."""
+        self.connection.ping_interval = 2 * MS
+        # Inject a fault by raising an exception in a pending pong waiter.
+        async with self.drop_frames_rcvd():
+            self.connection.start_keepalive()
+            await asyncio.sleep(2 * MS)
+            # Exiting the context manager sleeps for MS.
+        pong_waiter = next(iter(self.connection.pong_waiters.values()))[0]
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            pong_waiter.set_exception(Exception("BOOM"))
+            await asyncio.sleep(0)
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["keepalive ping failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["BOOM"],
+        )
+
     # Test parameters.
 
     async def test_close_timeout(self):
@@ -1092,7 +1179,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             broadcast([self.connection], "😀")
 
         self.assertEqual(
-            [record.getMessage() for record in logs.records][:2],
+            [record.getMessage() for record in logs.records],
             ["skipped broadcast: sending a fragmented message"],
         )
 
@@ -1135,7 +1222,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             broadcast([self.connection], "😀")
 
         self.assertEqual(
-            [record.getMessage() for record in logs.records][:2],
+            [record.getMessage() for record in logs.records],
             ["skipped broadcast: failed to write message"],
         )
 

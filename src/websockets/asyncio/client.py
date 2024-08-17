@@ -37,10 +37,11 @@ class ClientConnection(Connection):
     :exc:`~websockets.exceptions.ConnectionClosedError` when the connection is
     closed with any other code.
 
+    The ``ping_interval``, ``ping_timeout``, ``close_timeout``, ``max_queue``,
+    and ``write_limit`` arguments the same meaning as in :func:`connect`.
+
     Args:
         protocol: Sans-I/O connection.
-        close_timeout: Timeout for closing the connection in seconds.
-            :obj:`None` disables the timeout.
 
     """
 
@@ -48,6 +49,8 @@ class ClientConnection(Connection):
         self,
         protocol: ClientProtocol,
         *,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
         max_queue: int | tuple[int, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
@@ -55,6 +58,8 @@ class ClientConnection(Connection):
         self.protocol: ClientProtocol
         super().__init__(
             protocol,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
             close_timeout=close_timeout,
             max_queue=max_queue,
             write_limit=write_limit,
@@ -84,7 +89,9 @@ class ClientConnection(Connection):
         if self.response is None:
             raise ConnectionError("connection closed during handshake")
 
-        if self.protocol.handshake_exc is not None:
+        if self.protocol.handshake_exc is None:
+            self.start_keepalive()
+        else:
             try:
                 async with asyncio_timeout(self.close_timeout):
                     await self.connection_lost_waiter
@@ -146,6 +153,10 @@ class connect:
             :doc:`compression guide <../../topics/compression>` for details.
         open_timeout: Timeout for opening the connection in seconds.
             :obj:`None` disables the timeout.
+        ping_interval: Interval between keepalive pings in seconds.
+            :obj:`None` disables keepalive.
+        ping_timeout: Timeout for keepalive pings in seconds.
+            :obj:`None` disables timeouts.
         close_timeout: Timeout for closing the connection in seconds.
             :obj:`None` disables the timeout.
         max_size: Maximum size of incoming messages in bytes.
@@ -208,6 +219,8 @@ class connect:
         compression: str | None = "deflate",
         # Timeouts
         open_timeout: float | None = 10,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
         # Limits
         max_size: int | None = 2**20,
@@ -256,6 +269,8 @@ class connect:
             # This is a connection in websockets and a protocol in asyncio.
             connection = create_connection(
                 protocol,
+                ping_interval=ping_interval,
+                ping_timeout=ping_timeout,
                 close_timeout=close_timeout,
                 max_queue=max_queue,
                 write_limit=write_limit,

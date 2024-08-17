@@ -312,6 +312,27 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             async with run_client(server) as client:
                 await self.assertEval(client, "ws.protocol.extensions", "[]")
 
+    async def test_keepalive_is_enabled(self):
+        """Server enables keepalive and measures latency."""
+        async with run_server(ping_interval=MS) as server:
+            async with run_client(server) as client:
+                await client.send("ws.latency")
+                latency = eval(await client.recv())
+                self.assertEqual(latency, 0)
+                await asyncio.sleep(2 * MS)
+                await client.send("ws.latency")
+                latency = eval(await client.recv())
+                self.assertGreater(latency, 0)
+
+    async def test_disable_keepalive(self):
+        """Client disables keepalive."""
+        async with run_server(ping_interval=None) as server:
+            async with run_client(server) as client:
+                await asyncio.sleep(2 * MS)
+                await client.send("ws.latency")
+                latency = eval(await client.recv())
+                self.assertEqual(latency, 0)
+
     async def test_custom_connection_factory(self):
         """Server runs ServerConnection factory provided in create_connection."""
 

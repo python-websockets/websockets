@@ -89,7 +89,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     .. _Pong: https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.3
 
-    See the discussion of :doc:`timeouts <../../topics/timeouts>` for details.
+    See the discussion of :doc:`timeouts <../../topics/keepalive>` for details.
 
     The ``close_timeout`` parameter defines a maximum wait time for completing
     the closing handshake and terminating the TCP connection. For legacy
@@ -144,8 +144,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         logger: Logger for this server.
             It defaults to ``logging.getLogger("websockets.protocol")``.
             See the :doc:`logging guide <../../topics/logging>` for details.
-        ping_interval: Delay between keepalive pings in seconds.
-            :obj:`None` disables keepalive pings.
+        ping_interval: Interval between keepalive pings in seconds.
+            :obj:`None` disables keepalive.
         ping_timeout: Timeout for keepalive pings in seconds.
             :obj:`None` disables timeouts.
         close_timeout: Timeout for closing the connection in seconds.
@@ -1242,18 +1242,16 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             while True:
                 await asyncio.sleep(self.ping_interval)
 
-                # ping() raises CancelledError if the connection is closed,
-                # when close_connection() cancels self.keepalive_ping_task.
-
-                # ping() raises ConnectionClosed if the connection is lost,
-                # when connection_lost() calls abort_pings().
-
                 self.logger.debug("% sending keepalive ping")
                 pong_waiter = await self.ping()
 
                 if self.ping_timeout is not None:
                     try:
                         async with asyncio_timeout(self.ping_timeout):
+                            # Raises CancelledError if the connection is closed,
+                            # when close_connection() cancels keepalive_ping().
+                            # Raises ConnectionClosed if the connection is lost,
+                            # when connection_lost() calls abort_pings().
                             await pong_waiter
                         self.logger.debug("% received keepalive pong")
                     except asyncio.TimeoutError:

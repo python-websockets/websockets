@@ -97,7 +97,7 @@ There are two main reasons why latency may increase:
 * Poor network connectivity.
 * More traffic than the recipient can handle.
 
-See the discussion of :doc:`timeouts <../topics/timeouts>` for details.
+See the discussion of :doc:`keepalive <../topics/keepalive>` for details.
 
 If websockets' default timeout of 20 seconds is too short for your use case,
 you can adjust it with the ``ping_timeout`` argument.
@@ -146,7 +146,7 @@ It closes the connection if it doesn't get a pong within 20 seconds.
 
 You can adjust this behavior with ``ping_interval`` and ``ping_timeout``.
 
-See :doc:`../topics/timeouts` for details.
+See :doc:`../topics/keepalive` for details.
 
 How do I respond to pings?
 --------------------------

@@ -24,7 +24,13 @@ from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode, prepare_
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
 from ..typing import Data, LoggerLike, Subprotocol
-from .compatibility import TimeoutError, aiter, anext, asyncio_timeout_at
+from .compatibility import (
+    TimeoutError,
+    aiter,
+    anext,
+    asyncio_timeout,
+    asyncio_timeout_at,
+)
 from .messages import Assembler
 
 
@@ -48,11 +54,15 @@ class Connection(asyncio.Protocol):
         self,
         protocol: Protocol,
         *,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
         max_queue: int | tuple[int, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
     ) -> None:
         self.protocol = protocol
+        self.ping_interval = ping_interval
+        self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
         if isinstance(max_queue, int):
             max_queue = (max_queue, None)
@@ -94,6 +104,21 @@ class Connection(asyncio.Protocol):
 
         # Mapping of ping IDs to pong waiters, in chronological order.
         self.pong_waiters: dict[bytes, tuple[asyncio.Future[float], float]] = {}
+
+        self.latency: float = 0
+        """
+        Latency of the connection, in seconds.
+
+        This value is updated after sending a ping frame and receiving a
+        matching pong frame. Before the first ping, :attr:`latency` is ``0``.
+
+        By default, websockets enables a :ref:`keepalive <keepalive>` mechanism
+        that sends ping frames automatically at regular intervals. You can also
+        send ping frames and measure latency with :meth:`ping`.
+        """
+
+        # Task that sends keepalive pings. None when ping_interval is None.
+        self.keepalive_task: asyncio.Task[None] | None = None
 
         # Exception raised while reading from the connection, to be chained to
         # ConnectionClosed in order to show why the TCP connection dropped.
@@ -144,7 +169,8 @@ class Connection(asyncio.Protocol):
 
         This attribute is provided for completeness. Typical applications
         shouldn't check its value. Instead, they should call :meth:`~recv` or
-        :meth:`send` and handle :exc:`~exceptions.ConnectionClosed` exceptions.
+        :meth:`send` and handle :exc:`~websockets.exceptions.ConnectionClosed`
+        exceptions.
 
         """
         return self.protocol.state
@@ -540,7 +566,7 @@ class Connection(asyncio.Protocol):
         """
         await asyncio.shield(self.connection_lost_waiter)
 
-    async def ping(self, data: Data | None = None) -> Awaitable[None]:
+    async def ping(self, data: Data | None = None) -> Awaitable[float]:
         """
         Send a Ping_.
 
@@ -643,8 +669,10 @@ class Connection(asyncio.Protocol):
         ping_ids = []
         for ping_id, (pong_waiter, ping_timestamp) in self.pong_waiters.items():
             ping_ids.append(ping_id)
-            pong_waiter.set_result(pong_timestamp - ping_timestamp)
+            latency = pong_timestamp - ping_timestamp
+            pong_waiter.set_result(latency)
             if ping_id == data:
+                self.latency = latency
                 break
         else:
             raise AssertionError("solicited pong not found in pings")
@@ -664,7 +692,8 @@ class Connection(asyncio.Protocol):
         exc = self.protocol.close_exc
 
         for pong_waiter, _ping_timestamp in self.pong_waiters.values():
-            pong_waiter.set_exception(exc)
+            if not pong_waiter.done():
+                pong_waiter.set_exception(exc)
             # If the exception is never retrieved, it will be logged when ping
             # is garbage-collected. This is confusing for users.
             # Given that ping is done (with an exception), canceling it does
@@ -672,6 +701,50 @@ class Connection(asyncio.Protocol):
             pong_waiter.cancel()
 
         self.pong_waiters.clear()
+
+    async def keepalive(self) -> None:
+        """
+        Send a Ping frame and wait for a Pong frame at regular intervals.
+
+        """
+        assert self.ping_interval is not None
+        latency = 0.0
+        try:
+            while True:
+                # If self.ping_timeout > latency > self.ping_interval, pings
+                # will be sent immediately after receiving pongs. The period
+                # will be longer than self.ping_interval.
+                await asyncio.sleep(self.ping_interval - latency)
+
+                self.logger.debug("% sending keepalive ping")
+                pong_waiter = await self.ping()
+
+                if self.ping_timeout is not None:
+                    try:
+                        async with asyncio_timeout(self.ping_timeout):
+                            latency = await pong_waiter
+                        self.logger.debug("% received keepalive pong")
+                    except asyncio.TimeoutError:
+                        if self.debug:
+                            self.logger.debug("! timed out waiting for keepalive pong")
+                        async with self.send_context():
+                            self.protocol.fail(
+                                CloseCode.INTERNAL_ERROR,
+                                "keepalive ping timeout",
+                            )
+                        break
+        except ConnectionClosed:
+            pass
+        except Exception:
+            self.logger.error("keepalive ping failed", exc_info=True)
+
+    def start_keepalive(self) -> None:
+        """
+        Run :meth:`keepalive` in a task, unless keepalive is disabled.
+
+        """
+        if self.ping_interval is not None:
+            self.keepalive_task = self.loop.create_task(self.keepalive())
 
     @contextlib.asynccontextmanager
     async def send_context(
@@ -835,11 +908,15 @@ class Connection(asyncio.Protocol):
         self.protocol.receive_eof()  # receive_eof is idempotent
         self.recv_messages.close()
         self.set_recv_exc(exc)
+        self.abort_pings()
+        # If keepalive() was waiting for a pong, abort_pings() terminated it.
+        # If it was sleeping until the next ping, we need to cancel it now
+        if self.keepalive_task is not None:
+            self.keepalive_task.cancel()
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;
         # - it must never be canceled.
         self.connection_lost_waiter.set_result(None)
-        self.abort_pings()
 
         # Adapted from asyncio.streams.FlowControlMixin
         if self.paused:  # pragma: no cover

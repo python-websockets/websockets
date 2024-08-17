@@ -206,8 +206,8 @@ How do we avoid running out of memory when slow clients can't keep up with the
 broadcast rate, then? The most straightforward option is to disconnect them.
 
 If a client gets too far behind, eventually it reaches the limit defined by
-``ping_timeout`` and websockets terminates the connection. You can refer to
-the discussion of :doc:`keepalive and timeouts <timeouts>` for details.
+``ping_timeout`` and websockets terminates the connection. You can refer to the
+discussion of :doc:`keepalive <keepalive>` for details.
 
 How :func:`~asyncio.connection.broadcast` works
 -----------------------------------------------

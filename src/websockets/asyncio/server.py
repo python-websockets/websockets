@@ -48,11 +48,12 @@ class ServerConnection(Connection):
     :exc:`~websockets.exceptions.ConnectionClosedError` when the connection is
     closed with any other code.
 
+    The ``ping_interval``, ``ping_timeout``, ``close_timeout``, ``max_queue``,
+    and ``write_limit`` arguments the same meaning as in :func:`serve`.
+
     Args:
         protocol: Sans-I/O connection.
         server: Server that manages this connection.
-        close_timeout: Timeout for closing connections in seconds.
-            :obj:`None` disables the timeout.
 
     """
 
@@ -61,6 +62,8 @@ class ServerConnection(Connection):
         protocol: ServerProtocol,
         server: WebSocketServer,
         *,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
         max_queue: int | tuple[int, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
@@ -68,6 +71,8 @@ class ServerConnection(Connection):
         self.protocol: ServerProtocol
         super().__init__(
             protocol,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
             close_timeout=close_timeout,
             max_queue=max_queue,
             write_limit=write_limit,
@@ -182,7 +187,9 @@ class ServerConnection(Connection):
 
             self.protocol.send_response(self.response)
 
-        if self.protocol.handshake_exc is not None:
+        if self.protocol.handshake_exc is None:
+            self.start_keepalive()
+        else:
             try:
                 async with asyncio_timeout(self.close_timeout):
                     await self.connection_lost_waiter
@@ -595,6 +602,10 @@ class serve:
             :doc:`compression guide <../../topics/compression>` for details.
         open_timeout: Timeout for opening connections in seconds.
             :obj:`None` disables the timeout.
+        ping_interval: Interval between keepalive pings in seconds.
+            :obj:`None` disables keepalive.
+        ping_timeout: Timeout for keepalive pings in seconds.
+            :obj:`None` disables timeouts.
         close_timeout: Timeout for closing connections in seconds.
             :obj:`None` disables the timeout.
         max_size: Maximum size of incoming messages in bytes.
@@ -667,6 +678,8 @@ class serve:
         compression: str | None = "deflate",
         # Timeouts
         open_timeout: float | None = 10,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
         # Limits
         max_size: int | None = 2**20,
@@ -743,6 +756,8 @@ class serve:
             connection = create_connection(
                 protocol,
                 self.server,
+                ping_interval=ping_interval,
+                ping_timeout=ping_timeout,
                 close_timeout=close_timeout,
                 max_queue=max_queue,
                 write_limit=write_limit,

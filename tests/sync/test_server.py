@@ -131,7 +131,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         """Server aborts handshake if process_request returns a response."""
 
         def process_request(ws, request):
-            return ws.protocol.reject(http.HTTPStatus.FORBIDDEN, "Forbidden")
+            return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
         with run_server(process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:

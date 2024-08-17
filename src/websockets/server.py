@@ -113,18 +113,22 @@ class ServerProtocol(Protocol):
         """
         Create a handshake response to accept the connection.
 
-        If the connection cannot be established, the handshake response
-        actually rejects the handshake.
+        If the handshake request is valid and the handshake successful,
+        :meth:`accept` returns an HTTP response with status code 101.
+
+        Else, it returns an HTTP response with another status code. This rejects
+        the connection, like :meth:`reject` would.
 
         You must send the handshake response with :meth:`send_response`.
 
-        You may modify it before sending it, for example to add HTTP headers.
+        You may modify the response before sending it, typically by adding HTTP
+        headers.
 
         Args:
-            request: WebSocket handshake request event received from the client.
+            request: WebSocket handshake request received from the client.
 
         Returns:
-            WebSocket handshake response event to send to the client.
+            WebSocket handshake response or HTTP response to send to the client.
 
         """
         try:
@@ -485,11 +489,7 @@ class ServerProtocol(Protocol):
             + ", ".join(self.available_subprotocols)
         )
 
-    def reject(
-        self,
-        status: StatusLike,
-        text: str,
-    ) -> Response:
+    def reject(self, status: StatusLike, text: str) -> Response:
         """
         Create a handshake response to reject the connection.
 
@@ -498,14 +498,15 @@ class ServerProtocol(Protocol):
 
         You must send the handshake response with :meth:`send_response`.
 
-        You can modify it before sending it, for example to alter HTTP headers.
+        You may modify the response before sending it, for example by changing
+        HTTP headers.
 
         Args:
             status: HTTP status code.
-            text: HTTP response body; will be encoded to UTF-8.
+            text: HTTP response body; it will be encoded to UTF-8.
 
         Returns:
-            WebSocket handshake response event to send to the client.
+            HTTP response to send to the client.
 
         """
         # If a user passes an int instead of a HTTPStatus, fix it automatically.

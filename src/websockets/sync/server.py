@@ -19,7 +19,7 @@ from ..headers import validate_subprotocols
 from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
-from ..typing import LoggerLike, Origin, Subprotocol
+from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
 from .connection import Connection
 from .utils import Deadline
 
@@ -65,6 +65,27 @@ class ServerConnection(Connection):
             protocol,
             close_timeout=close_timeout,
         )
+
+    def respond(self, status: StatusLike, text: str) -> Response:
+        """
+        Create a plain text HTTP response.
+
+        ``process_request`` and ``process_response`` may call this method to
+        return an HTTP response instead of performing the WebSocket opening
+        handshake.
+
+        You can modify the response before returning it, for example by changing
+        HTTP headers.
+
+        Args:
+            status: HTTP status code.
+            text: HTTP response body; it will be encoded to UTF-8.
+
+        Returns:
+            HTTP response to send to the client.
+
+        """
+        return self.protocol.reject(status, text)
 
     def handshake(
         self,

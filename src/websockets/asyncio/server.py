@@ -23,7 +23,7 @@ from ..headers import validate_subprotocols
 from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, Event
 from ..server import ServerProtocol
-from ..typing import LoggerLike, Origin, Subprotocol
+from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
 from .compatibility import asyncio_timeout
 from .connection import Connection
 
@@ -74,6 +74,27 @@ class ServerConnection(Connection):
         )
         self.server = server
         self.request_rcvd: asyncio.Future[None] = self.loop.create_future()
+
+    def respond(self, status: StatusLike, text: str) -> Response:
+        """
+        Create a plain text HTTP response.
+
+        ``process_request`` and ``process_response`` may call this method to
+        return an HTTP response instead of performing the WebSocket opening
+        handshake.
+
+        You can modify the response before returning it, for example by changing
+        HTTP headers.
+
+        Args:
+            status: HTTP status code.
+            text: HTTP response body; it will be encoded to UTF-8.
+
+        Returns:
+            HTTP response to send to the client.
+
+        """
+        return self.protocol.reject(status, text)
 
     async def handshake(
         self,

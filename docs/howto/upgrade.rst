@@ -247,7 +247,7 @@ an example::
     # New implementation
 
     def process_request(connection, request):
-        return connection.protocol.reject(http.HTTPStatus.OK, "OK\n")
+        return connection.respond(http.HTTPStatus.OK, "OK\n")
 
     serve(..., process_request=process_request, ...)
 

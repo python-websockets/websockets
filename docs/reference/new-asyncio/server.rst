@@ -52,6 +52,8 @@ Using a connection
 
     .. automethod:: pong
 
+    .. automethod:: respond
+
     WebSocket connection objects also provide these attributes:
 
     .. autoattribute:: id

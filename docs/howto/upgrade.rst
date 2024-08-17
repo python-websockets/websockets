@@ -371,3 +371,29 @@ buffer now.
 
 The ``write_limit`` argument of :func:`~asyncio.client.connect` and
 :func:`~asyncio.server.serve` defaults to 32 KiB instead of 64 KiB.
+
+Attributes of connections
+.........................
+
+``open`` and ``closed``
+~~~~~~~~~~~~~~~~~~~~~~~
+
+The :attr:`~legacy.protocol.WebSocketCommonProtocol.open` and
+:attr:`~legacy.protocol.WebSocketCommonProtocol.closed` properties are removed.
+Using them was discouraged.
+
+Instead, you should call :meth:`~asyncio.connection.Connection.recv` or
+:meth:`~asyncio.connection.Connection.send` and handle
+:exc:`~exceptions.ConnectionClosed` exceptions.
+
+If your code relies on them, you can replace::
+
+    connection.open
+    connection.closed
+
+with::
+
+    from websockets.protocol import State
+
+    connection.state is State.OPEN
+    connection.state is State.CLOSED

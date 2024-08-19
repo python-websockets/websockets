@@ -1,7 +1,7 @@
 import contextlib
 
 from websockets.asyncio.client import *
-from websockets.asyncio.server import WebSocketServer
+from websockets.asyncio.server import Server
 
 from .server import get_server_host_port
 
@@ -17,7 +17,7 @@ async def run_client(wsuri_or_server, secure=None, resource_name="/", **kwargs):
     if isinstance(wsuri_or_server, str):
         wsuri = wsuri_or_server
     else:
-        assert isinstance(wsuri_or_server, WebSocketServer)
+        assert isinstance(wsuri_or_server, Server)
         if secure is None:
             secure = "ssl" in kwargs
         protocol = "wss" if secure else "ws"

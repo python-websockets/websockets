@@ -383,18 +383,18 @@ class ServerUsageErrorsTests(unittest.TestCase):
 
 class WebSocketServerTests(unittest.TestCase):
     def test_logger(self):
-        """WebSocketServer accepts a logger argument."""
+        """Server accepts a logger argument."""
         logger = logging.getLogger("test")
         with run_server(logger=logger) as server:
             self.assertIs(server.logger, logger)
 
     def test_fileno(self):
-        """WebSocketServer provides a fileno attribute."""
+        """Server provides a fileno attribute."""
         with run_server() as server:
             self.assertIsInstance(server.fileno(), int)
 
     def test_shutdown(self):
-        """WebSocketServer provides a shutdown method."""
+        """Server provides a shutdown method."""
         with run_server() as server:
             server.shutdown()
             # Check that the server socket is closed.
@@ -409,3 +409,8 @@ class BackwardsCompatibilityTests(DeprecationTestCase):
             with run_server(ssl_context=SERVER_CONTEXT) as server:
                 with run_client(server, ssl=CLIENT_CONTEXT):
                     pass
+
+    def test_web_socket_server_class(self):
+        with self.assertDeprecationWarning("WebSocketServer was renamed to Server"):
+            from websockets.sync.server import WebSocketServer
+        self.assertIs(WebSocketServer, Server)

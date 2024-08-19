@@ -24,7 +24,7 @@ from .connection import Connection
 from .utils import Deadline
 
 
-__all__ = ["serve", "unix_serve", "ServerConnection", "WebSocketServer"]
+__all__ = ["serve", "unix_serve", "ServerConnection", "Server"]
 
 
 class ServerConnection(Connection):
@@ -196,7 +196,7 @@ class ServerConnection(Connection):
             self.request_rcvd.set()
 
 
-class WebSocketServer:
+class Server:
     """
     WebSocket server returned by :func:`serve`.
 
@@ -283,7 +283,7 @@ class WebSocketServer:
         """
         return self.socket.fileno()
 
-    def __enter__(self) -> WebSocketServer:
+    def __enter__(self) -> Server:
         return self
 
     def __exit__(
@@ -293,6 +293,16 @@ class WebSocketServer:
         traceback: TracebackType | None,
     ) -> None:
         self.shutdown()
+
+
+def __getattr__(name: str) -> Any:
+    if name == "WebSocketServer":
+        warnings.warn(
+            "WebSocketServer was renamed to Server",
+            DeprecationWarning,
+        )
+        return Server
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def serve(
@@ -340,7 +350,7 @@ def serve(
     # Escape hatch for advanced customization
     create_connection: type[ServerConnection] | None = None,
     **kwargs: Any,
-) -> WebSocketServer:
+) -> Server:
     """
     Create a WebSocket server listening on ``host`` and ``port``.
 
@@ -353,10 +363,10 @@ def serve(
     Once the handler completes, either normally or with an exception, the server
     performs the closing handshake and closes the connection.
 
-    This function returns a :class:`WebSocketServer` whose API mirrors
+    This function returns a :class:`Server` whose API mirrors
     :class:`~socketserver.BaseServer`. Treat it as a context manager to ensure
-    that it will be closed and call :meth:`~WebSocketServer.serve_forever` to
-    serve requests::
+    that it will be closed and call :meth:`~Server.serve_forever` to serve
+    requests::
 
         def handler(websocket):
             ...
@@ -552,14 +562,14 @@ def serve(
 
     # Initialize server
 
-    return WebSocketServer(sock, conn_handler, logger)
+    return Server(sock, conn_handler, logger)
 
 
 def unix_serve(
     handler: Callable[[ServerConnection], None],
     path: str | None = None,
     **kwargs: Any,
-) -> WebSocketServer:
+) -> Server:
     """
     Create a WebSocket server listening on a Unix socket.
 

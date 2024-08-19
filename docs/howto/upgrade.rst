@@ -154,7 +154,7 @@ Server APIs
 | ``websockets.server.unix_serve()``                           |br| |                                                     |
 | :func:`websockets.legacy.server.unix_serve`                       |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| ``websockets.WebSocketServer``                               |br| | :class:`websockets.asyncio.server.WebSocketServer`  |
+| ``websockets.WebSocketServer``                               |br| | :class:`websockets.asyncio.server.Server`           |
 | ``websockets.server.WebSocketServer``                        |br| |                                                     |
 | :class:`websockets.legacy.server.WebSocketServer`                 |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+

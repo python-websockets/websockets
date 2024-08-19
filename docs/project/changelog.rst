@@ -35,16 +35,6 @@ notice.
 Backwards-incompatible changes
 ..............................
 
-.. admonition:: The ``ssl_context`` argument of :func:`~sync.client.connect`
-    and :func:`~sync.server.serve` in the :mod:`threading` implementation is
-    renamed to ``ssl``.
-    :class: note
-
-    This aligns the API of the :mod:`threading` implementation with the
-    :mod:`asyncio` implementation.
-
-    For backwards compatibility, ``ssl_context`` is still supported.
-
 .. admonition:: Receiving the request path in the second parameter of connection
     handlers is deprecated.
     :class: note
@@ -59,6 +49,26 @@ Backwards-incompatible changes
         async def handler(request):
             path = request.path  # only if handler() uses the path argument
             ...
+
+.. admonition:: The ``ssl_context`` argument of :func:`~sync.client.connect`
+    and :func:`~sync.server.serve` in the :mod:`threading` implementation is
+    renamed to ``ssl``.
+    :class: note
+
+    This aligns the API of the :mod:`threading` implementation with the
+    :mod:`asyncio` implementation.
+
+    For backwards compatibility, ``ssl_context`` is still supported.
+
+.. admonition:: The ``WebSocketServer`` class in the :mod:`threading`
+    implementation is renamed to :class:`~sync.server.Server`.
+    :class: note
+
+    This class isn't designed to be imported or instantiated directly.
+    :func:`~sync.server.serve` returns an instance. For this reason,
+    the change should be transparent.
+
+    Regardless, an alias provides backwards compatibility.
 
 New features
 ............

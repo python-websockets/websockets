@@ -28,7 +28,7 @@ from .compatibility import asyncio_timeout
 from .connection import Connection, broadcast
 
 
-__all__ = ["broadcast", "serve", "unix_serve", "ServerConnection", "WebSocketServer"]
+__all__ = ["broadcast", "serve", "unix_serve", "ServerConnection", "Server"]
 
 
 class ServerConnection(Connection):
@@ -60,7 +60,7 @@ class ServerConnection(Connection):
     def __init__(
         self,
         protocol: ServerProtocol,
-        server: WebSocketServer,
+        server: Server,
         *,
         ping_interval: float | None = 20,
         ping_timeout: float | None = 20,
@@ -223,11 +223,11 @@ class ServerConnection(Connection):
                 self.request_rcvd.set_result(None)
 
 
-class WebSocketServer:
+class Server:
     """
     WebSocket server returned by :func:`serve`.
 
-    This class mirrors the API of :class:`~asyncio.Server`.
+    This class mirrors the API of :class:`asyncio.Server`.
 
     It keeps track of WebSocket connections in order to close them properly
     when shutting down.
@@ -299,16 +299,16 @@ class WebSocketServer:
 
     def wrap(self, server: asyncio.Server) -> None:
         """
-        Attach to a given :class:`~asyncio.Server`.
+        Attach to a given :class:`asyncio.Server`.
 
         Since :meth:`~asyncio.loop.create_server` doesn't support injecting a
         custom ``Server`` class, the easiest solution that doesn't rely on
         private :mod:`asyncio` APIs is to:
 
-        - instantiate a :class:`WebSocketServer`
+        - instantiate a :class:`Server`
         - give the protocol factory a reference to that instance
         - call :meth:`~asyncio.loop.create_server` with the factory
-        - attach the resulting :class:`~asyncio.Server` with this method
+        - attach the resulting :class:`asyncio.Server` with this method
 
         """
         self.server = server
@@ -378,7 +378,7 @@ class WebSocketServer:
         """
         Close the server.
 
-        * Close the underlying :class:`~asyncio.Server`.
+        * Close the underlying :class:`asyncio.Server`.
         * When ``close_connections`` is :obj:`True`, which is the default,
           close existing connections. Specifically:
 
@@ -402,7 +402,7 @@ class WebSocketServer:
         Implementation of :meth:`close`.
 
         This calls :meth:`~asyncio.Server.close` on the underlying
-        :class:`~asyncio.Server` object to stop accepting new connections and
+        :class:`asyncio.Server` object to stop accepting new connections and
         then closes open connections with close code 1001.
 
         """
@@ -516,7 +516,7 @@ class WebSocketServer:
         """
         return self.server.sockets
 
-    async def __aenter__(self) -> WebSocketServer:  # pragma: no cover
+    async def __aenter__(self) -> Server:  # pragma: no cover
         return self
 
     async def __aexit__(
@@ -543,8 +543,8 @@ class serve:
     Once the handler completes, either normally or with an exception, the server
     performs the closing handshake and closes the connection.
 
-    This coroutine returns a :class:`WebSocketServer` whose API mirrors
-    :class:`~asyncio.Server`. Treat it as an asynchronous context manager to
+    This coroutine returns a :class:`Server` whose API mirrors
+    :class:`asyncio.Server`. Treat it as an asynchronous context manager to
     ensure that the server will be closed::
 
         def handler(websocket):
@@ -556,8 +556,8 @@ class serve:
         async with websockets.asyncio.server.serve(handler, host, port):
             await stop
 
-    Alternatively, call :meth:`~WebSocketServer.serve_forever` to serve requests
-    and cancel it to stop the server::
+    Alternatively, call :meth:`~Server.serve_forever` to serve requests and
+    cancel it to stop the server::
 
         server = await websockets.asyncio.server.serve(handler, host, port)
         await server.serve_forever()
@@ -638,8 +638,8 @@ class serve:
       socket and customize it.
 
     * You can set ``start_serving`` to ``False`` to start accepting connections
-      only after you call :meth:`~WebSocketServer.start_serving()` or
-      :meth:`~WebSocketServer.serve_forever()`.
+      only after you call :meth:`~Server.start_serving()` or
+      :meth:`~Server.serve_forever()`.
 
     """
 
@@ -704,7 +704,7 @@ class serve:
         if create_connection is None:
             create_connection = ServerConnection
 
-        self.server = WebSocketServer(
+        self.server = Server(
             handler,
             process_request=process_request,
             process_response=process_response,
@@ -773,7 +773,7 @@ class serve:
 
     # async with serve(...) as ...: ...
 
-    async def __aenter__(self) -> WebSocketServer:
+    async def __aenter__(self) -> Server:
         return await self
 
     async def __aexit__(
@@ -787,11 +787,11 @@ class serve:
 
     # ... = await serve(...)
 
-    def __await__(self) -> Generator[Any, None, WebSocketServer]:
+    def __await__(self) -> Generator[Any, None, Server]:
         # Create a suitable iterator by calling __await__ on a coroutine.
         return self.__await_impl__().__await__()
 
-    async def __await_impl__(self) -> WebSocketServer:
+    async def __await_impl__(self) -> Server:
         server = await self._create_server
         self.server.wrap(server)
         return self.server
@@ -805,7 +805,7 @@ def unix_serve(
     handler: Callable[[ServerConnection], Awaitable[None]],
     path: str | None = None,
     **kwargs: Any,
-) -> Awaitable[WebSocketServer]:
+) -> Awaitable[Server]:
     """
     Create a WebSocket server listening on a Unix socket.
 

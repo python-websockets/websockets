@@ -313,8 +313,7 @@ Here's an example that terminates cleanly when it receives SIGTERM on Unix:
 How do I stop a server while keeping existing connections open?
 ---------------------------------------------------------------
 
-Call the server's :meth:`~WebSocketServer.close` method with
-``close_connections=False``.
+Call the server's :meth:`~Server.close` method with ``close_connections=False``.
 
 Here's how to adapt the example just above::
 

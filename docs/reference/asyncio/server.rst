@@ -15,7 +15,7 @@ Creating a server
 Running a server
 ----------------
 
-.. autoclass:: WebSocketServer
+.. autoclass:: Server
 
     .. automethod:: close
 

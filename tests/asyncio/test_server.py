@@ -535,7 +535,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
 
 class WebSocketServerTests(unittest.IsolatedAsyncioTestCase):
     async def test_logger(self):
-        """WebSocketServer accepts a logger argument."""
+        """Server accepts a logger argument."""
         logger = logging.getLogger("test")
         async with run_server(logger=logger) as server:
             self.assertIs(server.logger, logger)

@@ -906,13 +906,17 @@ class Connection(asyncio.Protocol):
 
     def connection_lost(self, exc: Exception | None) -> None:
         self.protocol.receive_eof()  # receive_eof is idempotent
-        self.recv_messages.close()
+
+        # Abort recv() and pending pings with a ConnectionClosed exception.
+        # Set recv_exc first to get proper exception reporting.
         self.set_recv_exc(exc)
+        self.recv_messages.close()
         self.abort_pings()
         # If keepalive() was waiting for a pong, abort_pings() terminated it.
         # If it was sleeping until the next ping, we need to cancel it now
         if self.keepalive_task is not None:
             self.keepalive_task.cancel()
+
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;
         # - it must never be canceled.

@@ -3,7 +3,9 @@
 import asyncio
 import datetime
 import random
-import websockets
+
+from websockets.asyncio.connection import broadcast
+from websockets.asyncio.server import serve
 
 CONNECTIONS = set()
 
@@ -17,11 +19,11 @@ async def register(websocket):
 async def show_time():
     while True:
         message = datetime.datetime.utcnow().isoformat() + "Z"
-        websockets.broadcast(CONNECTIONS, message)
+        broadcast(CONNECTIONS, message)
         await asyncio.sleep(random.random() * 2 + 1)
 
 async def main():
-    async with websockets.serve(register, "localhost", 5678):
+    async with serve(register, "localhost", 5678):
         await show_time()
 
 if __name__ == "__main__":

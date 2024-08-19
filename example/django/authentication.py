@@ -3,11 +3,11 @@
 import asyncio
 
 import django
-import websockets
 
 django.setup()
 
 from sesame.utils import get_user
+from websockets.asyncio.server import serve
 from websockets.frames import CloseCode
 
 
@@ -22,7 +22,7 @@ async def handler(websocket):
 
 
 async def main():
-    async with websockets.serve(handler, "localhost", 8888):
+    async with serve(handler, "localhost", 8888):
         await asyncio.get_running_loop().create_future()  # run forever
 
 

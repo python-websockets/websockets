@@ -124,7 +124,7 @@ support asynchronous I/O. It would block the event loop if it didn't run in a
 separate thread. :func:`~asyncio.to_thread` is available since Python 3.9. In
 earlier versions, use :meth:`~asyncio.loop.run_in_executor` instead.
 
-Finally, we start a server with :func:`~websockets.server.serve`.
+Finally, we start a server with :func:`~websockets.asyncio.server.serve`.
 
 We're ready to test!
 

@@ -99,10 +99,11 @@ workloads but it can also backfire because it delays backpressure.
   messages.
 
 * In the legacy :mod:`asyncio` implementation, there is a library-level read
-  buffer. The ``read_limit`` argument of :func:`~client.connect` and
-  :func:`~server.serve` controls its size. When the read buffer grows above the
-  high-water mark, the connection stops reading from the network until it drains
-  under the low-water mark. This creates backpressure on the TCP connection.
+  buffer. The ``read_limit`` argument of :func:`~legacy.client.connect` and
+  :func:`~legacy.server.serve` controls its size. When the read buffer grows
+  above the high-water mark, the connection stops reading from the network until
+  it drains under the low-water mark. This creates backpressure on the TCP
+  connection.
 
   There is a write buffer. It as controlled by ``write_limit``. It behaves like
   the new :mod:`asyncio` implementation described above.

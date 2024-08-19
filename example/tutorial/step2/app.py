@@ -4,7 +4,7 @@ import asyncio
 import json
 import secrets
 
-import websockets
+from websockets.asyncio.server import serve
 
 from connect4 import PLAYER1, PLAYER2, Connect4
 
@@ -182,7 +182,7 @@ async def handler(websocket):
 
 
 async def main():
-    async with websockets.serve(handler, "", 8001):
+    async with serve(handler, "", 8001):
         await asyncio.get_running_loop().create_future()  # run forever
 
 

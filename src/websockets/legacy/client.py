@@ -342,7 +342,7 @@ class Connect:
 
     :func:`connect` can be used as a asynchronous context manager::
 
-        async with websockets.connect(...) as websocket:
+        async with connect(...) as websocket:
             ...
 
     The connection is closed automatically when exiting the context.
@@ -350,7 +350,7 @@ class Connect:
     :func:`connect` can be used as an infinite asynchronous iterator to
     reconnect automatically on errors::
 
-        async for websocket in websockets.connect(...):
+        async for websocket in connect(...):
             try:
                 ...
             except websockets.ConnectionClosed:

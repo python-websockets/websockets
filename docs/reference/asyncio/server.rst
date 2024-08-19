@@ -1,19 +1,19 @@
-Server (legacy :mod:`asyncio`)
-==============================
+Server (new :mod:`asyncio`)
+===========================
 
-.. automodule:: websockets.server
+.. automodule:: websockets.asyncio.server
 
-Starting a server
+Creating a server
 -----------------
 
-.. autofunction:: serve(ws_handler, host=None, port=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, server_header="Python/x.y.z websockets/X.Y", process_request=None, select_subprotocol=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
+.. autofunction:: serve
     :async:
 
-.. autofunction:: unix_serve(ws_handler, path=None, *, create_protocol=None, logger=None, compression="deflate", origins=None, extensions=None, subprotocols=None, extra_headers=None, server_header="Python/x.y.z websockets/X.Y", process_request=None, select_subprotocol=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16, **kwds)
+.. autofunction:: unix_serve
     :async:
 
-Stopping a server
------------------
+Running a server
+----------------
 
 .. autoclass:: WebSocketServer
 
@@ -34,9 +34,13 @@ Stopping a server
 Using a connection
 ------------------
 
-.. autoclass:: WebSocketServerProtocol(ws_handler, ws_server, *, logger=None, origins=None, extensions=None, subprotocols=None, extra_headers=None, server_header="Python/x.y.z websockets/X.Y", process_request=None, select_subprotocol=None, open_timeout=10, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
+.. autoclass:: ServerConnection
+
+    .. automethod:: __aiter__
 
     .. automethod:: recv
+
+    .. automethod:: recv_streaming
 
     .. automethod:: send
 
@@ -48,11 +52,7 @@ Using a connection
 
     .. automethod:: pong
 
-    You can customize the opening handshake in a subclass by overriding these methods:
-
-    .. automethod:: process_request
-
-    .. automethod:: select_subprotocol
+    .. automethod:: respond
 
     WebSocket connection objects also provide these attributes:
 
@@ -64,50 +64,20 @@ Using a connection
 
     .. autoproperty:: remote_address
 
-    .. autoproperty:: open
-
-    .. autoproperty:: closed
-
     .. autoattribute:: latency
+
+    .. autoproperty:: state
 
     The following attributes are available after the opening handshake,
     once the WebSocket connection is open:
 
-    .. autoattribute:: path
+    .. autoattribute:: request
 
-    .. autoattribute:: request_headers
+    .. autoattribute:: response
 
-    .. autoattribute:: response_headers
-
-    .. autoattribute:: subprotocol
-
-    The following attributes are available after the closing handshake,
-    once the WebSocket connection is closed:
-
-    .. autoproperty:: close_code
-
-    .. autoproperty:: close_reason
-
-
-Basic authentication
---------------------
-
-.. automodule:: websockets.auth
-
-websockets supports HTTP Basic Authentication according to
-:rfc:`7235` and :rfc:`7617`.
-
-.. autofunction:: basic_auth_protocol_factory
-
-.. autoclass:: BasicAuthWebSocketServerProtocol
-
-    .. autoattribute:: realm
-
-    .. autoattribute:: username
-
-    .. automethod:: check_credentials
+    .. autoproperty:: subprotocol
 
 Broadcast
 ---------
 
-.. autofunction:: websockets.legacy.protocol.broadcast
+.. autofunction:: websockets.asyncio.connection.broadcast

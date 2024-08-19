@@ -8,8 +8,9 @@ import signal
 import urllib.parse
 import uuid
 
-import websockets
 from websockets.frames import CloseCode
+from websockets.legacy.auth import BasicAuthWebSocketServerProtocol
+from websockets.legacy.server import WebSocketServerProtocol, serve
 
 
 # User accounts database
@@ -107,7 +108,7 @@ async def first_message_handler(websocket):
 # Add credentials to the WebSocket URI in a query parameter
 
 
-class QueryParamProtocol(websockets.WebSocketServerProtocol):
+class QueryParamProtocol(WebSocketServerProtocol):
     async def process_request(self, path, headers):
         token = get_query_param(path, "token")
         if token is None:
@@ -131,7 +132,7 @@ async def query_param_handler(websocket):
 # Set a cookie on the domain of the WebSocket URI
 
 
-class CookieProtocol(websockets.WebSocketServerProtocol):
+class CookieProtocol(WebSocketServerProtocol):
     async def process_request(self, path, headers):
         if "Upgrade" not in headers:
             template = pathlib.Path(__file__).with_name(path[1:])
@@ -161,7 +162,7 @@ async def cookie_handler(websocket):
 # Adding credentials to the WebSocket URI in user information
 
 
-class UserInfoProtocol(websockets.BasicAuthWebSocketServerProtocol):
+class UserInfoProtocol(BasicAuthWebSocketServerProtocol):
     async def check_credentials(self, username, password):
         if username != "token":
             return False
@@ -192,26 +193,26 @@ async def main():
     loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
     loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
 
-    async with websockets.serve(
+    async with serve(
         noop_handler,
         host="",
         port=8000,
         process_request=serve_html,
-    ), websockets.serve(
+    ), serve(
         first_message_handler,
         host="",
         port=8001,
-    ), websockets.serve(
+    ), serve(
         query_param_handler,
         host="",
         port=8002,
         create_protocol=QueryParamProtocol,
-    ), websockets.serve(
+    ), serve(
         cookie_handler,
         host="",
         port=8003,
         create_protocol=CookieProtocol,
-    ), websockets.serve(
+    ), serve(
         user_info_handler,
         host="",
         port=8004,

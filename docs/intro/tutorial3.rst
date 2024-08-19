@@ -93,9 +93,9 @@ called ``stop`` and registers a signal handler that sets the result of this
 future. The value of the future doesn't matter; it's only for waiting for
 ``SIGTERM``.
 
-Then, by using :func:`~server.serve` as a context manager and exiting the
-context when ``stop`` has a result, ``main()`` ensures that the server closes
-connections cleanly and exits on ``SIGTERM``.
+Then, by using :func:`~asyncio.server.serve` as a context manager and exiting
+the context when ``stop`` has a result, ``main()`` ensures that the server
+closes connections cleanly and exits on ``SIGTERM``.
 
 The app is now fully compatible with Heroku.
 

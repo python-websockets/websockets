@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 
 import asyncio
-import websockets
+
+from websockets.asyncio.server import serve
 
 async def hello(websocket):
     name = await websocket.recv()
@@ -13,7 +14,7 @@ async def hello(websocket):
     print(f">>> {greeting}")
 
 async def main():
-    async with websockets.serve(hello, "localhost", 8765):
+    async with serve(hello, "localhost", 8765):
         await asyncio.get_running_loop().create_future()  # run forever
 
 if __name__ == "__main__":

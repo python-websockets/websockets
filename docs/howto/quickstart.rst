@@ -17,9 +17,9 @@ It receives a name from the client, sends a greeting, and closes the connection.
     :language: python
     :linenos:
 
-:func:`~server.serve` executes the connection handler coroutine ``hello()``
-once for each WebSocket connection. It closes the WebSocket connection when
-the handler returns.
+:func:`~asyncio.server.serve` executes the connection handler coroutine
+``hello()`` once for each WebSocket connection. It closes the WebSocket
+connection when the handler returns.
 
 Here's a corresponding WebSocket client.
 
@@ -30,8 +30,8 @@ It sends a name to the server, receives a greeting, and closes the connection.
     :language: python
     :linenos:
 
-Using :func:`~client.connect` as an asynchronous context manager ensures the
-WebSocket connection is closed.
+Using :func:`~asyncio.client.connect` as an asynchronous context manager ensures
+the WebSocket connection is closed.
 
 .. _secure-server-example:
 
@@ -73,8 +73,8 @@ In this example, the client needs a TLS context because the server uses a
 self-signed certificate.
 
 When connecting to a secure WebSocket server with a valid certificate — any
-certificate signed by a CA that your Python installation trusts — you can
-simply pass ``ssl=True`` to :func:`~client.connect`.
+certificate signed by a CA that your Python installation trusts — you can simply
+pass ``ssl=True`` to :func:`~asyncio.client.connect`.
 
 .. admonition:: Configure the TLS context securely
     :class: attention

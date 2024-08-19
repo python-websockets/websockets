@@ -3,7 +3,8 @@
 import asyncio
 import json
 import logging
-import websockets
+from websockets.asyncio.connection import broadcast
+from websockets.asyncio.server import serve
 
 logging.basicConfig()
 
@@ -22,7 +23,7 @@ async def counter(websocket):
     try:
         # Register user
         USERS.add(websocket)
-        websockets.broadcast(USERS, users_event())
+        broadcast(USERS, users_event())
         # Send current state to user
         await websocket.send(value_event())
         # Manage state changes
@@ -30,19 +31,19 @@ async def counter(websocket):
             event = json.loads(message)
             if event["action"] == "minus":
                 VALUE -= 1
-                websockets.broadcast(USERS, value_event())
+                broadcast(USERS, value_event())
             elif event["action"] == "plus":
                 VALUE += 1
-                websockets.broadcast(USERS, value_event())
+                broadcast(USERS, value_event())
             else:
                 logging.error("unsupported event: %s", event)
     finally:
         # Unregister user
         USERS.remove(websocket)
-        websockets.broadcast(USERS, users_event())
+        broadcast(USERS, users_event())
 
 async def main():
-    async with websockets.serve(counter, "localhost", 6789):
+    async with serve(counter, "localhost", 6789):
         await asyncio.get_running_loop().create_future()  # run forever
 
 if __name__ == "__main__":

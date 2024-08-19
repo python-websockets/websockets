@@ -319,8 +319,8 @@ class AbortHandshake(InvalidHandshake):
 
     This exception is an implementation detail.
 
-    The public API
-    is :meth:`~websockets.server.WebSocketServerProtocol.process_request`.
+    The public API is
+    :meth:`~websockets.legacy.server.WebSocketServerProtocol.process_request`.
 
     Attributes:
         status (~http.HTTPStatus): HTTP status code.

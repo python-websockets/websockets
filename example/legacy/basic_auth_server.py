@@ -3,16 +3,18 @@
 # Server example with HTTP Basic Authentication over TLS
 
 import asyncio
-import websockets
+
+from websockets.legacy.auth import basic_auth_protocol_factory
+from websockets.legacy.server import serve
 
 async def hello(websocket):
     greeting = f"Hello {websocket.username}!"
     await websocket.send(greeting)
 
 async def main():
-    async with websockets.serve(
+    async with serve(
         hello, "localhost", 8765,
-        create_protocol=websockets.basic_auth_protocol_factory(
+        create_protocol=basic_auth_protocol_factory(
             realm="example", credentials=("mary", "p@ssw0rd")
         ),
     ):

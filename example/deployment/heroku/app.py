@@ -4,7 +4,7 @@ import asyncio
 import signal
 import os
 
-import websockets
+from websockets.asyncio.server import serve
 
 
 async def echo(websocket):
@@ -18,7 +18,7 @@ async def main():
     stop = loop.create_future()
     loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
 
-    async with websockets.serve(
+    async with serve(
         echo,
         host="",
         port=int(os.environ["PORT"]),

@@ -150,7 +150,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             await anext(aiterator)
 
     async def test_aiter_connection_closed_error(self):
-        """__aiter__ raises ConnnectionClosedError after an error."""
+        """__aiter__ raises ConnectionClosedError after an error."""
         aiterator = aiter(self.connection)
         await self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
         with self.assertRaises(ConnectionClosedError):

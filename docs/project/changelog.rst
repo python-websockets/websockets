@@ -178,8 +178,8 @@ Backwards-incompatible changes
     As a consequence, calling ``WebSocket.close()`` without arguments in a
     browser isn't reported as an error anymore.
 
-.. admonition:: :func:`~server.serve` times out on the opening handshake after
-    10 seconds by default.
+.. admonition:: :func:`~legacy.server.serve` times out on the opening handshake
+    after 10 seconds by default.
     :class: note
 
     You can adjust the timeout with the ``open_timeout`` parameter. Set it to
@@ -200,7 +200,7 @@ New features
     See :func:`websockets.sync.client.connect` and
     :func:`websockets.sync.server.serve` for details.
 
-* Added ``open_timeout`` to :func:`~server.serve`.
+* Added ``open_timeout`` to :func:`~legacy.server.serve`.
 
 * Made it possible to close a server without closing existing connections.
 
@@ -289,7 +289,7 @@ Bug fixes
 * Fixed backwards-incompatibility in 10.1 for connection handlers created with
   :func:`functools.partial`.
 
-* Avoided leaking open sockets when :func:`~client.connect` is canceled.
+* Avoided leaking open sockets when :func:`~legacy.client.connect` is canceled.
 
 .. _10.1:
 
@@ -330,8 +330,8 @@ Improvements
 
   .. _AWS API Gateway: https://github.com/python-websockets/websockets/issues/1065
 
-* Mirrored the entire :class:`~asyncio.Server` API
-  in :class:`~server.WebSocketServer`.
+* Mirrored the entire :class:`~asyncio.Server` API in
+  :class:`~legacy.server.WebSocketServer`.
 
 * Improved performance for large messages on ARM processors.
 
@@ -364,9 +364,9 @@ Backwards-incompatible changes
     Python 3.10 for details.
 
     The ``loop`` parameter is also removed
-    from :class:`~server.WebSocketServer`. This should be transparent.
+    from :class:`~legacy.server.WebSocketServer`. This should be transparent.
 
-.. admonition:: :func:`~client.connect` times out after 10 seconds by default.
+.. admonition:: :func:`~legacy.client.connect` times out after 10 seconds by default.
     :class: note
 
     You can adjust the timeout with the ``open_timeout`` parameter. Set it to
@@ -405,9 +405,9 @@ New features
 * Added :func:`~legacy.protocol.broadcast` to send a message to many clients.
 
 * Added support for reconnecting automatically by using
-  :func:`~client.connect` as an asynchronous iterator.
+  :func:`~legacy.client.connect` as an asynchronous iterator.
 
-* Added ``open_timeout`` to :func:`~client.connect`.
+* Added ``open_timeout`` to :func:`~legacy.client.connect`.
 
 * Documented how to integrate with `Django <https://www.djangoproject.com/>`_.
 
@@ -427,12 +427,12 @@ Improvements
 * Optimized processing of client-to-server messages when the C extension isn't
   available.
 
-* Supported relative redirects in :func:`~client.connect`.
+* Supported relative redirects in :func:`~legacy.client.connect`.
 
 * Handled TCP connection drops during the opening handshake.
 
 * Made it easier to customize authentication with
-  :meth:`~auth.BasicAuthWebSocketServerProtocol.check_credentials`.
+  :meth:`~legacy.auth.BasicAuthWebSocketServerProtocol.check_credentials`.
 
 * Provided additional information in :exc:`~exceptions.ConnectionClosed`
   exceptions.
@@ -590,7 +590,7 @@ Bug fixes
 .........
 
 * Restored the ability to pass a socket with the ``sock`` parameter of
-  :func:`~server.serve`.
+  :func:`~legacy.server.serve`.
 
 * Removed an incorrect assertion when a connection drops.
 
@@ -623,11 +623,12 @@ Backwards-incompatible changes
 .. admonition:: ``process_request`` is now expected to be a coroutine.
     :class: note
 
-    If you're passing a ``process_request`` argument to :func:`~server.serve`
-    or :class:`~server.WebSocketServerProtocol`, or if you're overriding
-    :meth:`~server.WebSocketServerProtocol.process_request` in a subclass,
-    define it with ``async def`` instead of ``def``. Previously, both were
-    supported.
+    If you're passing a ``process_request`` argument to
+    :func:`~legacy.server.serve` or
+    :class:`~legacy.server.WebSocketServerProtocol`, or if you're overriding
+    :meth:`~legacy.server.WebSocketServerProtocol.process_request` in a
+    subclass, define it with ``async def`` instead of ``def``. Previously, both
+    were supported.
 
     For backwards compatibility, functions are still accepted, but mixing
     functions and coroutines won't work in some inheritance scenarios.
@@ -661,15 +662,15 @@ Backwards-incompatible changes
 New features
 ............
 
-* Added :func:`~auth.basic_auth_protocol_factory` to enforce HTTP
-  Basic Auth on the server side.
+* Added :func:`~legacy.auth.basic_auth_protocol_factory` to enforce HTTP Basic
+  Auth on the server side.
 
-* :func:`~client.connect` handles redirects from the server during the
+* :func:`~legacy.client.connect` handles redirects from the server during the
   handshake.
 
-* :func:`~client.connect` supports overriding ``host`` and ``port``.
+* :func:`~legacy.client.connect` supports overriding ``host`` and ``port``.
 
-* Added :func:`~client.unix_connect` for connecting to Unix sockets.
+* Added :func:`~legacy.client.unix_connect` for connecting to Unix sockets.
 
 * Added support for asynchronous generators
   in :meth:`~legacy.protocol.WebSocketCommonProtocol.send`
@@ -699,9 +700,8 @@ Improvements
   :exc:`~exceptions.ConnectionClosed` to tell apart normal connection
   termination from errors.
 
-* Changed :meth:`WebSocketServer.close()
-  <server.WebSocketServer.close>` to perform a proper closing handshake
-  instead of failing the connection.
+* Changed :meth:`WebSocketServer.close() <legacy.server.WebSocketServer.close>`
+  to perform a proper closing handshake instead of failing the connection.
 
 * Improved error messages when HTTP parsing fails.
 
@@ -734,7 +734,7 @@ Backwards-incompatible changes
     See :class:`~legacy.protocol.WebSocketCommonProtocol` for details.
 
 .. admonition:: Termination of connections by :meth:`WebSocketServer.close()
-    <server.WebSocketServer.close>` changes.
+    <legacy.server.WebSocketServer.close>` changes.
     :class: caution
 
     Previously, connections handlers were canceled. Now, connections are
@@ -758,15 +758,16 @@ Backwards-incompatible changes
     Concurrent calls lead to non-deterministic behavior because there are no
     guarantees about which coroutine will receive which message.
 
-.. admonition:: The ``timeout`` argument of :func:`~server.serve`
-    and :func:`~client.connect` is renamed to ``close_timeout`` .
+.. admonition:: The ``timeout`` argument of :func:`~legacy.server.serve`
+    and :func:`~legacy.client.connect` is renamed to ``close_timeout`` .
     :class: note
 
     This prevents confusion with ``ping_timeout``.
 
     For backwards compatibility, ``timeout`` is still supported.
 
-.. admonition:: The ``origins`` argument of :func:`~server.serve` changes.
+.. admonition:: The ``origins`` argument of :func:`~legacy.server.serve`
+    changes.
     :class: note
 
     Include :obj:`None` in the list rather than ``''`` to allow requests that
@@ -786,10 +787,10 @@ New features
 ............
 
 * Added ``process_request`` and ``select_subprotocol`` arguments to
-  :func:`~server.serve` and
-  :class:`~server.WebSocketServerProtocol` to facilitate customization of
-  :meth:`~server.WebSocketServerProtocol.process_request` and
-  :meth:`~server.WebSocketServerProtocol.select_subprotocol`.
+  :func:`~legacy.server.serve` and
+  :class:`~legacy.server.WebSocketServerProtocol` to facilitate customization of
+  :meth:`~legacy.server.WebSocketServerProtocol.process_request` and
+  :meth:`~legacy.server.WebSocketServerProtocol.select_subprotocol`.
 
 * Added support for sending fragmented messages.
 
@@ -826,10 +827,10 @@ Backwards-incompatible changes
     several APIs are updated to use it.
     :class: caution
 
-    * The ``request_headers`` argument
-      of :meth:`~server.WebSocketServerProtocol.process_request` is now
-      a :class:`~datastructures.Headers` instead of
-      an ``http.client.HTTPMessage``.
+    * The ``request_headers`` argument of
+      :meth:`~legacy.server.WebSocketServerProtocol.process_request` is now a
+      :class:`~datastructures.Headers` instead of an
+      ``http.client.HTTPMessage``.
 
     * The ``request_headers`` and ``response_headers`` attributes of
       :class:`~legacy.protocol.WebSocketCommonProtocol` are now
@@ -866,7 +867,7 @@ Bug fixes
 .........
 
 * Fixed a regression in 5.0 that broke some invocations of
-  :func:`~server.serve` and :func:`~client.connect`.
+  :func:`~legacy.server.serve` and :func:`~legacy.client.connect`.
 
 .. _5.0:
 
@@ -900,10 +901,10 @@ Backwards-incompatible changes
 New features
 ............
 
-* :func:`~client.connect` performs HTTP Basic Auth when the URI contains
+* :func:`~legacy.client.connect` performs HTTP Basic Auth when the URI contains
   credentials.
 
-* :func:`~server.unix_serve` can be used as an asynchronous context
+* :func:`~legacy.server.unix_serve` can be used as an asynchronous context
   manager on Python ≥ 3.5.1.
 
 * Added the :attr:`~legacy.protocol.WebSocketCommonProtocol.closed` property
@@ -979,7 +980,7 @@ Backwards-incompatible changes
     Compression should improve performance but it increases RAM and CPU use.
 
     If you want to disable compression, add ``compression=None`` when calling
-    :func:`~server.serve` or :func:`~client.connect`.
+    :func:`~legacy.server.serve` or :func:`~legacy.client.connect`.
 
 .. admonition:: The ``state_name`` attribute of protocols is deprecated.
     :class: note
@@ -992,10 +993,10 @@ New features
 * :class:`~legacy.protocol.WebSocketCommonProtocol` instances can be used as
   asynchronous iterators on Python ≥ 3.6. They yield incoming messages.
 
-* Added :func:`~server.unix_serve` for listening on Unix sockets.
+* Added :func:`~legacy.server.unix_serve` for listening on Unix sockets.
 
-* Added the :attr:`~server.WebSocketServer.sockets` attribute to the
-  return value of :func:`~server.serve`.
+* Added the :attr:`~legacy.server.WebSocketServer.sockets` attribute to the
+  return value of :func:`~legacy.server.serve`.
 
 * Allowed ``extra_headers`` to override ``Server`` and ``User-Agent`` headers.
 
@@ -1030,24 +1031,24 @@ Backwards-incompatible changes
     by :class:`~exceptions.InvalidStatusCode`.
     :class: note
 
-    This exception is raised when :func:`~client.connect` receives an invalid
+    This exception is raised when :func:`~legacy.client.connect` receives an invalid
     response status code from the server.
 
 New features
 ............
 
-* :func:`~server.serve` can be used as an asynchronous context manager
+* :func:`~legacy.server.serve` can be used as an asynchronous context manager
   on Python ≥ 3.5.1.
 
 * Added support for customizing handling of incoming connections with
-  :meth:`~server.WebSocketServerProtocol.process_request`.
+  :meth:`~legacy.server.WebSocketServerProtocol.process_request`.
 
 * Made read and write buffer sizes configurable.
 
 Improvements
 ............
 
-* Renamed :func:`~server.serve` and :func:`~client.connect`'s
+* Renamed :func:`~legacy.server.serve` and :func:`~legacy.client.connect`'s
   ``klass`` argument to ``create_protocol`` to reflect that it can also be a
   callable. For backwards compatibility, ``klass`` is still supported.
 
@@ -1058,7 +1059,7 @@ Improvements
 Bug fixes
 .........
 
-* Providing a ``sock`` argument to :func:`~client.connect` no longer
+* Providing a ``sock`` argument to :func:`~legacy.client.connect` no longer
   crashes.
 
 .. _3.3:
@@ -1094,7 +1095,7 @@ New features
 ............
 
 * Added ``timeout``, ``max_size``, and ``max_queue`` arguments to
-  :func:`~client.connect` and :func:`~server.serve`.
+  :func:`~legacy.client.connect` and :func:`~legacy.server.serve`.
 
 Improvements
 ............
@@ -1151,15 +1152,15 @@ Backwards-incompatible changes
 
     In order to avoid stranding projects built upon an earlier version, the
     previous behavior can be restored by passing ``legacy_recv=True`` to
-    :func:`~server.serve`, :func:`~client.connect`,
-    :class:`~server.WebSocketServerProtocol`, or
-    :class:`~client.WebSocketClientProtocol`.
+    :func:`~legacy.server.serve`, :func:`~legacy.client.connect`,
+    :class:`~legacy.server.WebSocketServerProtocol`, or
+    :class:`~legacy.client.WebSocketClientProtocol`.
 
 New features
 ............
 
-* :func:`~client.connect` can be used as an asynchronous context
-  manager on Python ≥ 3.5.1.
+* :func:`~legacy.client.connect` can be used as an asynchronous context manager
+  on Python ≥ 3.5.1.
 
 * :meth:`~legacy.protocol.WebSocketCommonProtocol.ping` and
   :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` support data passed as
@@ -1260,8 +1261,8 @@ New features
 
 * Added support for subprotocols.
 
-* Added ``loop`` argument to :func:`~client.connect` and
-  :func:`~server.serve`.
+* Added ``loop`` argument to :func:`~legacy.client.connect` and
+  :func:`~legacy.server.serve`.
 
 .. _2.3:
 

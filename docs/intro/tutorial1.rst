@@ -184,7 +184,7 @@ Create an ``app.py`` file next to ``connect4.py`` with this content:
 
     import asyncio
 
-    import websockets
+    from websockets.asyncio.server import serve
 
 
     async def handler(websocket):
@@ -194,7 +194,7 @@ Create an ``app.py`` file next to ``connect4.py`` with this content:
 
 
     async def main():
-        async with websockets.serve(handler, "", 8001):
+        async with serve(handler, "", 8001):
             await asyncio.get_running_loop().create_future()  # run forever
 
 
@@ -204,8 +204,9 @@ Create an ``app.py`` file next to ``connect4.py`` with this content:
 The entry point of this program is ``asyncio.run(main())``. It creates an
 asyncio event loop, runs the ``main()`` coroutine, and shuts down the loop.
 
-The ``main()`` coroutine calls :func:`~server.serve` to start a websockets
-server. :func:`~server.serve` takes three positional arguments:
+The ``main()`` coroutine calls :func:`~asyncio.server.serve` to start a
+websockets server. :func:`~asyncio.server.serve` takes three positional
+arguments:
 
 * ``handler`` is a coroutine that manages a connection. When a client
   connects, websockets calls ``handler`` with the connection in argument.
@@ -215,7 +216,7 @@ server. :func:`~server.serve` takes three positional arguments:
   on the same local network can connect.
 * The third argument is the port on which the server listens.
 
-Invoking :func:`~server.serve` as an asynchronous context manager, in an
+Invoking :func:`~asyncio.server.serve` as an asynchronous context manager, in an
 ``async with`` block, ensures that the server shuts down properly when
 terminating the program.
 
@@ -258,11 +259,11 @@ stack trace of an exception:
       ...
     websockets.exceptions.ConnectionClosedOK: received 1000 (OK); then sent 1000 (OK)
 
-Indeed, the server was waiting for the next message
-with :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` when the client
-disconnected. When this happens, websockets raises
-a :exc:`~exceptions.ConnectionClosedOK` exception to let you know that you
-won't receive another message on this connection.
+Indeed, the server was waiting for the next message with
+:meth:`~asyncio.server.ServerConnection.recv` when the client disconnected.
+When this happens, websockets raises a :exc:`~exceptions.ConnectionClosedOK`
+exception to let you know that you won't receive another message on this
+connection.
 
 This exception creates noise in the server logs, making it more difficult to
 spot real errors when you add functionality to the server. Catch it in the
@@ -551,13 +552,12 @@ Summary
 
 In this first part of the tutorial, you learned how to:
 
-* build and run a WebSocket server in Python with :func:`~server.serve`;
-* receive a message in a connection handler
-  with :meth:`~server.WebSocketServerProtocol.recv`;
-* send a message in a connection handler
-  with :meth:`~server.WebSocketServerProtocol.send`;
-* iterate over incoming messages with ``async for
-  message in websocket: ...``;
+* build and run a WebSocket server in Python with :func:`~asyncio.server.serve`;
+* receive a message in a connection handler with
+  :meth:`~asyncio.server.ServerConnection.recv`;
+* send a message in a connection handler with
+  :meth:`~asyncio.server.ServerConnection.send`;
+* iterate over incoming messages with ``async for message in websocket: ...``;
 * open a WebSocket connection in JavaScript with the ``WebSocket`` API;
 * send messages in a browser with ``WebSocket.send()``;
 * receive messages in a browser by listening to ``message`` events;

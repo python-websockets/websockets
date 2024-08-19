@@ -5,7 +5,7 @@ import statistics
 import sys
 import time
 
-import websockets
+from websockets.asyncio.client import connect
 
 
 LATENCIES = {}
@@ -26,7 +26,7 @@ async def log_latency(interval):
 
 async def client():
     try:
-        async with websockets.connect(
+        async with connect(
             "ws://localhost:8765",
             ping_timeout=None,
         ) as websocket:

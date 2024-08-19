@@ -49,9 +49,9 @@ Identification
 By default, websockets identifies itself with a ``Server`` or ``User-Agent``
 header in the format ``"Python/x.y.z websockets/X.Y"``.
 
-You can set the ``server_header`` argument of :func:`~server.serve` or the
-``user_agent_header`` argument of :func:`~client.connect` to configure another
-value. Setting them to :obj:`None` removes the header.
+You can set the ``server_header`` argument of :func:`~asyncio.server.serve` or
+the ``user_agent_header`` argument of :func:`~asyncio.client.connect` to
+configure another value. Setting them to :obj:`None` removes the header.
 
 Alternatively, you can set the :envvar:`WEBSOCKETS_SERVER` and
 :envvar:`WEBSOCKETS_USER_AGENT` environment variables respectively. Setting them

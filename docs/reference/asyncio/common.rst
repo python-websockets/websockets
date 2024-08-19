@@ -1,13 +1,17 @@
 :orphan:
 
-Both sides (legacy :mod:`asyncio`)
-==================================
+Both sides (new :mod:`asyncio`)
+===============================
 
-.. automodule:: websockets.legacy.protocol
+.. automodule:: websockets.asyncio.connection
 
-.. autoclass:: WebSocketCommonProtocol(*, logger=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)
+.. autoclass:: Connection
+
+    .. automethod:: __aiter__
 
     .. automethod:: recv
+
+    .. automethod:: recv_streaming
 
     .. automethod:: send
 
@@ -29,26 +33,15 @@ Both sides (legacy :mod:`asyncio`)
 
     .. autoproperty:: remote_address
 
-    .. autoproperty:: open
-
-    .. autoproperty:: closed
-
     .. autoattribute:: latency
+
+    .. autoproperty:: state
 
     The following attributes are available after the opening handshake,
     once the WebSocket connection is open:
 
-    .. autoattribute:: path
+    .. autoattribute:: request
 
-    .. autoattribute:: request_headers
+    .. autoattribute:: response
 
-    .. autoattribute:: response_headers
-
-    .. autoattribute:: subprotocol
-
-    The following attributes are available after the closing handshake,
-    once the WebSocket connection is closed:
-
-    .. autoproperty:: close_code
-
-    .. autoproperty:: close_reason
+    .. autoproperty:: subprotocol

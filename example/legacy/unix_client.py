@@ -4,11 +4,12 @@
 
 import asyncio
 import os.path
-import websockets
+
+from websockets.legacy.client import unix_connect
 
 async def hello():
     socket_path = os.path.join(os.path.dirname(__file__), "socket")
-    async with websockets.unix_connect(socket_path) as websocket:
+    async with unix_connect(socket_path) as websocket:
         name = input("What's your name? ")
         await websocket.send(name)
         print(f">>> {name}")

@@ -78,7 +78,7 @@ Option 2 almost always combines with option 3.
 How do I start a process?
 .........................
 
-Run a Python program that invokes :func:`~server.serve`. That's it.
+Run a Python program that invokes :func:`~asyncio.server.serve`. That's it.
 
 Don't run an ASGI server such as Uvicorn, Hypercorn, or Daphne. They're
 alternatives to websockets, not complements.
@@ -98,18 +98,19 @@ signal and exit the server to ensure a graceful shutdown.
 Here's an example:
 
 .. literalinclude:: ../../example/faq/shutdown_server.py
-    :emphasize-lines: 12-15,18
+    :emphasize-lines: 13-16,19
 
-When exiting the context manager, :func:`~server.serve` closes all connections
+When exiting the context manager, :func:`~asyncio.server.serve` closes all
+connections
 with code 1001 (going away). As a consequence:
 
 * If the connection handler is awaiting
-  :meth:`~server.WebSocketServerProtocol.recv`, it receives a
+  :meth:`~asyncio.server.ServerConnection.recv`, it receives a
   :exc:`~exceptions.ConnectionClosedOK` exception. It can catch the exception
   and clean up before exiting.
 
 * Otherwise, it should be waiting on
-  :meth:`~server.WebSocketServerProtocol.wait_closed`, so it can receive the
+  :meth:`~asyncio.server.ServerConnection.wait_closed`, so it can receive the
   :exc:`~exceptions.ConnectionClosedOK` exception and exit.
 
 This example is easily adapted to handle other signals.
@@ -173,7 +174,7 @@ Load balancers need a way to check whether server processes are up and running
 to avoid routing connections to a non-functional backend.
 
 websockets provide minimal support for responding to HTTP requests with the
-:meth:`~server.WebSocketServerProtocol.process_request` hook.
+``process_request`` hook.
 
 Here's an example:
 

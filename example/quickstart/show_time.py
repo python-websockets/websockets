@@ -3,7 +3,8 @@
 import asyncio
 import datetime
 import random
-import websockets
+
+from websockets.asyncio.server import serve
 
 async def show_time(websocket):
     while True:
@@ -12,7 +13,7 @@ async def show_time(websocket):
         await asyncio.sleep(random.random() * 2 + 1)
 
 async def main():
-    async with websockets.serve(show_time, "localhost", 5678):
+    async with serve(show_time, "localhost", 5678):
         await asyncio.get_running_loop().create_future()  # run forever
 
 if __name__ == "__main__":

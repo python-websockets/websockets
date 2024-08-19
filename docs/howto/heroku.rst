@@ -42,7 +42,7 @@ Here's the implementation of the app, an echo server. Save it in a file called
 
 Heroku expects the server to `listen on a specific port`_, which is provided
 in the ``$PORT`` environment variable. The app reads it and passes it to
-:func:`~websockets.server.serve`.
+:func:`~websockets.asyncio.server.serve`.
 
 .. _listen on a specific port: https://devcenter.heroku.com/articles/preparing-a-codebase-for-heroku-deployment#4-listen-on-the-correct-port
 

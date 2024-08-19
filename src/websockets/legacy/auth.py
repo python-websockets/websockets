@@ -125,11 +125,11 @@ def basic_auth_protocol_factory(
     Protocol factory that enforces HTTP Basic Auth.
 
     :func:`basic_auth_protocol_factory` is designed to integrate with
-    :func:`~websockets.server.serve` like this::
+    :func:`~websockets.legacy.server.serve` like this::
 
-        websockets.serve(
+        serve(
             ...,
-            create_protocol=websockets.basic_auth_protocol_factory(
+            create_protocol=basic_auth_protocol_factory(
                 realm="my dev server",
                 credentials=("hello", "iloveyou"),
             )

@@ -21,9 +21,9 @@ We'd like nginx to connect to websockets servers via Unix sockets in order to
 avoid the overhead of TCP for communicating between processes running in the
 same OS.
 
-We start the app with :func:`~websockets.server.unix_serve`. Each server
-process listens on a different socket thanks to an environment variable set
-by Supervisor to a different value.
+We start the app with :func:`~websockets.asyncio.server.unix_serve`. Each server
+process listens on a different socket thanks to an environment variable set by
+Supervisor to a different value.
 
 Save this configuration to ``supervisord.conf``:
 

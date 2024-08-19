@@ -132,7 +132,7 @@ class ClientConnectionTests(unittest.TestCase):
             next(iterator)
 
     def test_iter_connection_closed_error(self):
-        """__iter__ raises ConnnectionClosedError after an error."""
+        """__iter__ raises ConnectionClosedError after an error."""
         iterator = iter(self.connection)
         self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
         with self.assertRaises(ConnectionClosedError):

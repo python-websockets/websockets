@@ -4,7 +4,8 @@
 
 import asyncio
 import os.path
-import websockets
+
+from websockets.legacy.server import unix_serve
 
 async def hello(websocket):
     name = await websocket.recv()
@@ -17,7 +18,7 @@ async def hello(websocket):
 
 async def main():
     socket_path = os.path.join(os.path.dirname(__file__), "socket")
-    async with websockets.unix_serve(hello, socket_path):
+    async with unix_serve(hello, socket_path):
         await asyncio.get_running_loop().create_future()  # run forever
 
 asyncio.run(main())

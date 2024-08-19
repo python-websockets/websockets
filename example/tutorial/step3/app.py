@@ -6,7 +6,7 @@ import os
 import secrets
 import signal
 
-import websockets
+from websockets.asyncio.server import serve
 
 from connect4 import PLAYER1, PLAYER2, Connect4
 
@@ -190,7 +190,7 @@ async def main():
     loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
 
     port = int(os.environ.get("PORT", "8001"))
-    async with websockets.serve(handler, "", port):
+    async with serve(handler, "", port):
         await stop
 
 

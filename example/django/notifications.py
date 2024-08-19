@@ -5,12 +5,13 @@ import json
 
 import aioredis
 import django
-import websockets
 
 django.setup()
 
 from django.contrib.contenttypes.models import ContentType
 from sesame.utils import get_user
+from websockets.asyncio.connection import broadcast
+from websockets.asyncio.server import serve
 from websockets.frames import CloseCode
 
 
@@ -61,11 +62,11 @@ async def process_events():
             for websocket, connection in CONNECTIONS.items()
             if event["content_type_id"] in connection["content_type_ids"]
         )
-        websockets.broadcast(recipients, payload)
+        broadcast(recipients, payload)
 
 
 async def main():
-    async with websockets.serve(handler, "localhost", 8888):
+    async with serve(handler, "localhost", 8888):
         await process_events()  # runs forever
 
 

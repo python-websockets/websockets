@@ -67,13 +67,13 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     :class:`WebSocketCommonProtocol` provides APIs shared between WebSocket
     servers and clients. You shouldn't use it directly. Instead, use
-    :class:`~websockets.client.WebSocketClientProtocol` or
-    :class:`~websockets.server.WebSocketServerProtocol`.
+    :class:`~websockets.legacy.client.WebSocketClientProtocol` or
+    :class:`~websockets.legacy.server.WebSocketServerProtocol`.
 
     This documentation focuses on low-level details that aren't covered in the
-    documentation of :class:`~websockets.client.WebSocketClientProtocol` and
-    :class:`~websockets.server.WebSocketServerProtocol` for the sake of
-    simplicity.
+    documentation of :class:`~websockets.legacy.client.WebSocketClientProtocol`
+    and :class:`~websockets.legacy.server.WebSocketServerProtocol` for the sake
+    of simplicity.
 
     Once the connection is open, a Ping_ frame is sent every ``ping_interval``
     seconds. This serves as a keepalive. It helps keeping the connection open,
@@ -89,7 +89,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     .. _Pong: https://datatracker.ietf.org/doc/html/rfc6455#section-5.5.3
 
-    See the discussion of :doc:`timeouts <../../topics/keepalive>` for details.
+    See the discussion of :doc:`keepalive <../../topics/keepalive>` for details.
 
     The ``close_timeout`` parameter defines a maximum wait time for completing
     the closing handshake and terminating the TCP connection. For legacy
@@ -99,8 +99,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
     ``close_timeout`` is a parameter of the protocol because websockets usually
     calls :meth:`close` implicitly upon exit:
 
-    * on the client side, when using :func:`~websockets.client.connect` as a
-      context manager;
+    * on the client side, when using :func:`~websockets.legacy.client.connect`
+      as a context manager;
     * on the server side, when the connection handler terminates.
 
     To apply a timeout to any other API, wrap it in :func:`~asyncio.timeout` or

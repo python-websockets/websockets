@@ -2,14 +2,15 @@
 
 import asyncio
 import sys
-import websockets
+
+from websockets.asyncio.client import connect
 
 
 URI = "ws://localhost:32080"
 
 
 async def run(client_id, messages):
-    async with websockets.connect(URI) as websocket:
+    async with connect(URI) as websocket:
         for message_id in range(messages):
             await websocket.send(f"{client_id}:{message_id}")
             await websocket.recv()

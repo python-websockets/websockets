@@ -212,7 +212,9 @@ the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 
-    class QueryParamProtocol(websockets.WebSocketServerProtocol):
+    from websockets.legacy.server import WebSocketServerProtocol
+
+    class QueryParamProtocol(WebSocketServerProtocol):
         async def process_request(self, path, headers):
             token = get_query_parameter(path, "token")
             if token is None:
@@ -258,7 +260,9 @@ the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 
-    class CookieProtocol(websockets.WebSocketServerProtocol):
+    from websockets.legacy.server import WebSocketServerProtocol
+
+    class CookieProtocol(WebSocketServerProtocol):
         async def process_request(self, path, headers):
             # Serve iframe on non-WebSocket requests
             ...
@@ -299,7 +303,9 @@ the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 
-    class UserInfoProtocol(websockets.BasicAuthWebSocketServerProtocol):
+    from websockets.legacy.auth import BasicAuthWebSocketServerProtocol
+
+    class UserInfoProtocol(BasicAuthWebSocketServerProtocol):
         async def check_credentials(self, username, password):
             if username != "token":
                 return False
@@ -328,8 +334,10 @@ To authenticate a websockets client with HTTP Basic Authentication
 
 .. code-block:: python
 
-    async with websockets.connect(
-        f"wss://{username}:{password}@example.com",
+    from websockets.legacy.client import connect
+
+    async with connect(
+        f"wss://{username}:{password}@example.com"
     ) as websocket:
         ...
 
@@ -341,7 +349,9 @@ To authenticate a websockets client with HTTP Bearer Authentication
 
 .. code-block:: python
 
-    async with websockets.connect(
+    from websockets.legacy.client import connect
+
+    async with connect(
         "wss://example.com",
         extra_headers={"Authorization": f"Bearer {token}"}
     ) as websocket:

@@ -101,9 +101,10 @@ However, this technique runs into two problems:
 * Even with :meth:`str.format` style, you're restricted to attribute and index
   lookups, which isn't enough to implement some fairly simple requirements.
 
-There's a better way. :func:`~client.connect` and :func:`~server.serve` accept
-a ``logger`` argument to override the default :class:`~logging.Logger`. You
-can set ``logger`` to a :class:`~logging.LoggerAdapter` that enriches logs.
+There's a better way. :func:`~asyncio.client.connect` and
+:func:`~asyncio.server.serve` accept a ``logger`` argument to override the
+default :class:`~logging.Logger`. You can set ``logger`` to a
+:class:`~logging.LoggerAdapter` that enriches logs.
 
 For example, if the server is behind a reverse
 proxy, :attr:`~legacy.protocol.WebSocketCommonProtocol.remote_address` gives
@@ -128,7 +129,7 @@ Here's how to include them in logs, assuming they're in the
             xff = websocket.request_headers.get("X-Forwarded-For")
             return f"{websocket.id} {xff} {msg}", kwargs
 
-    async with websockets.serve(
+    async with serve(
         ...,
         # Python < 3.10 requires passing None as the second argument.
         logger=LoggerAdapter(logging.getLogger("websockets.server"), None),
@@ -170,7 +171,7 @@ a :class:`~logging.LoggerAdapter`::
             }
             return msg, kwargs
 
-    async with websockets.serve(
+    async with serve(
         ...,
         # Python < 3.10 requires passing None as the second argument.
         logger=LoggerAdapter(logging.getLogger("websockets.server"), None),

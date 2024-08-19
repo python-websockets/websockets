@@ -1,5 +1,4 @@
 import asyncio
-import dataclasses
 import http
 import logging
 import socket
@@ -228,9 +227,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """Server runs process_response and overrides the handshake response."""
 
         def process_response(ws, request, response):
-            headers = response.headers.copy()
-            headers["X-ProcessResponse-Ran"] = "true"
-            return dataclasses.replace(response, headers=headers)
+            response.headers["X-ProcessResponse-Ran"] = "true"
 
         async with run_server(process_response=process_response) as server:
             async with run_client(server) as client:
@@ -242,9 +239,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """Server runs async process_response and overrides the handshake response."""
 
         async def process_response(ws, request, response):
-            headers = response.headers.copy()
-            headers["X-ProcessResponse-Ran"] = "true"
-            return dataclasses.replace(response, headers=headers)
+            response.headers["X-ProcessResponse-Ran"] = "true"
 
         async with run_server(process_response=process_response) as server:
             async with run_client(server) as client:

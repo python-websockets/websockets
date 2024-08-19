@@ -1,9 +1,9 @@
+import asyncio
 import json
 import logging
 import urllib.parse
 
-import asyncio
-import websockets
+from websockets.asyncio.client import connect
 
 
 logging.basicConfig(level=logging.WARNING)
@@ -18,21 +18,21 @@ AGENT = "websockets"
 
 async def get_case_count(server):
     uri = f"{server}/getCaseCount"
-    async with websockets.connect(uri) as ws:
+    async with connect(uri) as ws:
         msg = ws.recv()
     return json.loads(msg)
 
 
 async def run_case(server, case, agent):
     uri = f"{server}/runCase?case={case}&agent={agent}"
-    async with websockets.connect(uri, max_size=2 ** 25, max_queue=1) as ws:
+    async with connect(uri, max_size=2 ** 25, max_queue=1) as ws:
         async for msg in ws:
             await ws.send(msg)
 
 
 async def update_reports(server, agent):
     uri = f"{server}/updateReports?agent={agent}"
-    async with websockets.connect(uri):
+    async with connect(uri):
         pass
 
 

@@ -182,5 +182,6 @@ Request if it is missing or invalid (`#1246`).
 
 The client API doesn't attempt to guarantee that there is no more than one
 connection to a given IP address in a CONNECTING state. This behavior is
-mandated by :rfc:`6455`, section 4.1. However, :func:`~client.connect()` isn't
-the right layer for enforcing this constraint. It's the caller's responsibility.
+mandated by :rfc:`6455`, section 4.1. However, :func:`~asyncio.client.connect()`
+isn't the right layer for enforcing this constraint. It's the caller's
+responsibility.

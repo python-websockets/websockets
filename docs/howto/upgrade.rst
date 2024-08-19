@@ -49,12 +49,13 @@ the release notes of the version in which the feature was deprecated.
 
 * The ``path`` argument of connection handlers — unnecessary since :ref:`10.1`
   and deprecated in :ref:`13.0`.
-* The ``loop`` and ``legacy_recv`` arguments of :func:`~client.connect` and
-  :func:`~server.serve`, which were removed — deprecated in :ref:`10.0`.
-* The ``timeout`` and ``klass`` arguments of :func:`~client.connect` and
-  :func:`~server.serve`, which were renamed to ``close_timeout`` and
+* The ``loop`` and ``legacy_recv`` arguments of :func:`~legacy.client.connect`
+  and :func:`~legacy.server.serve`, which were removed — deprecated in
+  :ref:`10.0`.
+* The ``timeout`` and ``klass`` arguments of :func:`~legacy.client.connect` and
+  :func:`~legacy.server.serve`, which were renamed to ``close_timeout`` and
   ``create_protocol`` — deprecated in :ref:`7.0` and :ref:`3.4` respectively.
-* An empty string in the ``origins`` argument of :func:`~server.serve` —
+* An empty string in the ``origins`` argument of :func:`~legacy.server.serve` —
   deprecated in :ref:`7.0`.
 * The ``host``, ``port``, and ``secure`` attributes of connections — deprecated
   in :ref:`8.0`.
@@ -127,16 +128,16 @@ Client APIs
 | Legacy :mod:`asyncio` implementation                              | New :mod:`asyncio` implementation                   |
 +===================================================================+=====================================================+
 | ``websockets.connect()``                                     |br| | :func:`websockets.asyncio.client.connect`           |
-| :func:`websockets.client.connect`                            |br| |                                                     |
-| ``websockets.legacy.client.connect()``                            |                                                     |
+| ``websockets.client.connect()``                              |br| |                                                     |
+| :func:`websockets.legacy.client.connect`                          |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.unix_connect()``                                |br| | :func:`websockets.asyncio.client.unix_connect`      |
-| :func:`websockets.client.unix_connect`                       |br| |                                                     |
-| ``websockets.legacy.client.unix_connect()``                       |                                                     |
+| ``websockets.client.unix_connect()``                         |br| |                                                     |
+| :func:`websockets.legacy.client.unix_connect`                     |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.WebSocketClientProtocol``                       |br| | :class:`websockets.asyncio.client.ClientConnection` |
-| :class:`websockets.client.WebSocketClientProtocol`           |br| |                                                     |
-| ``websockets.legacy.client.WebSocketClientProtocol``              |                                                     |
+| ``websockets.client.WebSocketClientProtocol``                |br| |                                                     |
+| :class:`websockets.legacy.client.WebSocketClientProtocol`         |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 
 Server APIs
@@ -146,31 +147,31 @@ Server APIs
 | Legacy :mod:`asyncio` implementation                              | New :mod:`asyncio` implementation                   |
 +===================================================================+=====================================================+
 | ``websockets.serve()``                                       |br| | :func:`websockets.asyncio.server.serve`             |
-| :func:`websockets.server.serve`                              |br| |                                                     |
-| ``websockets.legacy.server.serve()``                              |                                                     |
+| ``websockets.server.serve()``                                |br| |                                                     |
+| :func:`websockets.legacy.server.serve`                            |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.unix_serve()``                                  |br| | :func:`websockets.asyncio.server.unix_serve`        |
-| :func:`websockets.server.unix_serve`                         |br| |                                                     |
-| ``websockets.legacy.server.unix_serve()``                         |                                                     |
+| ``websockets.server.unix_serve()``                           |br| |                                                     |
+| :func:`websockets.legacy.server.unix_serve`                       |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.WebSocketServer``                               |br| | :class:`websockets.asyncio.server.WebSocketServer`  |
-| :class:`websockets.server.WebSocketServer`                   |br| |                                                     |
-| ``websockets.legacy.server.WebSocketServer``                      |                                                     |
+| ``websockets.server.WebSocketServer``                        |br| |                                                     |
+| :class:`websockets.legacy.server.WebSocketServer`                 |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.WebSocketServerProtocol``                       |br| | :class:`websockets.asyncio.server.ServerConnection` |
-| :class:`websockets.server.WebSocketServerProtocol`           |br| |                                                     |
-| ``websockets.legacy.server.WebSocketServerProtocol``              |                                                     |
+| ``websockets.server.WebSocketServerProtocol``                |br| |                                                     |
+| :class:`websockets.legacy.server.WebSocketServerProtocol`         |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.broadcast``                                     |br| | :func:`websockets.asyncio.connection.broadcast`     |
 | :func:`websockets.legacy.protocol.broadcast()`                    |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.BasicAuthWebSocketServerProtocol``              |br| | *not available yet*                                 |
-| :class:`websockets.auth.BasicAuthWebSocketServerProtocol`    |br| |                                                     |
-| ``websockets.legacy.auth.BasicAuthWebSocketServerProtocol``       |                                                     |
+| ``websockets.auth.BasicAuthWebSocketServerProtocol``         |br| |                                                     |
+| :class:`websockets.legacy.auth.BasicAuthWebSocketServerProtocol`  |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.basic_auth_protocol_factory()``                 |br| | *not available yet*                                 |
-| :func:`websockets.auth.basic_auth_protocol_factory`          |br| |                                                     |
-| ``websockets.legacy.auth.basic_auth_protocol_factory()``          |                                                     |
+| ``websockets.auth.basic_auth_protocol_factory()``            |br| |                                                     |
+| :func:`websockets.legacy.auth.basic_auth_protocol_factory`        |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 
 .. _Review API changes:
@@ -209,12 +210,12 @@ Customizing the opening handshake
 .................................
 
 On the client side, if you're adding headers to the handshake request sent by
-:func:`~client.connect` with the ``extra_headers`` argument, you must rename it
-to ``additional_headers``.
+:func:`~legacy.client.connect` with the ``extra_headers`` argument, you must
+rename it to ``additional_headers``.
 
-On the server side, if you're customizing how :func:`~server.serve` processes
-the opening handshake with the ``process_request``, ``extra_headers``, or
-``select_subprotocol``, you must update your code. ``process_response`` and
+On the server side, if you're customizing how :func:`~legacy.server.serve`
+processes the opening handshake with the ``process_request``, ``extra_headers``,
+or ``select_subprotocol``, you must update your code. ``process_response`` and
 ``select_subprotocol`` have new signatures; ``process_response`` replaces
 ``extra_headers`` and provides more flexibility.
 
@@ -242,10 +243,10 @@ an example::
 
 ``connection`` is always available in ``process_request``. In the original
 implementation, you had to write a subclass of
-:class:`~server.WebSocketServerProtocol` and pass it in the ``create_protocol``
-argument to make the connection object available in a ``process_request``
-method. This pattern isn't useful anymore; you can replace it with a
-``process_request`` function or coroutine.
+:class:`~legacy.server.WebSocketServerProtocol` and pass it in the
+``create_protocol`` argument to make the connection object available in a
+``process_request`` method. This pattern isn't useful anymore; you can replace
+it with a ``process_request`` function or coroutine.
 
 ``path`` and ``headers`` are available as attributes of the ``request`` object.
 
@@ -296,7 +297,7 @@ The signature of ``select_subprotocol`` changed. Here's an example::
 
 ``connection`` is always available in ``select_subprotocol``. This brings the
 same benefits as in ``process_request``. It may remove the need to subclass of
-:class:`~server.WebSocketServerProtocol`.
+:class:`~legacy.server.WebSocketServerProtocol`.
 
 The ``subprotocols`` argument contains the list of subprotocols offered by the
 client. The list of subprotocols supported by the server was removed because
@@ -320,7 +321,7 @@ update its name.
 The keyword argument of :func:`~asyncio.server.serve` for customizing the
 creation of the connection object is now called ``create_connection`` instead of
 ``create_protocol``. It must return a :class:`~asyncio.server.ServerConnection`
-instead of a :class:`~server.WebSocketServerProtocol`.
+instead of a :class:`~legacy.server.WebSocketServerProtocol`.
 
 If you were customizing connection objects, you should check the new
 implementation and possibly redo your customization. Keep in mind that the
@@ -363,6 +364,28 @@ The ``write_limit`` argument of :func:`~asyncio.client.connect` and
 
 Attributes of connections
 .........................
+
+``path``, ``request_headers`` and ``response_headers``
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+The :attr:`~legacy.protocol.WebSocketCommonProtocol.path`,
+:attr:`~legacy.protocol.WebSocketCommonProtocol.request_headers` and
+:attr:`~legacy.protocol.WebSocketCommonProtocol.response_headers` properties are
+replaced by :attr:`~asyncio.connection.Connection.request` and
+:attr:`~asyncio.connection.Connection.response`, which provide a ``headers``
+attribute.
+
+If your code relies on them, you can replace::
+
+    connection.path
+    connection.request_headers
+    connection.response_headers
+
+with::
+
+    connection.request.path
+    connection.request.headers
+    connection.response.headers
 
 ``open`` and ``closed``
 ~~~~~~~~~~~~~~~~~~~~~~~

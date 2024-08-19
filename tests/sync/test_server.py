@@ -1,4 +1,3 @@
-import dataclasses
 import http
 import logging
 import socket
@@ -173,9 +172,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         """Server runs process_response and overrides the handshake response."""
 
         def process_response(ws, request, response):
-            headers = response.headers.copy()
-            headers["X-ProcessResponse-Ran"] = "true"
-            return dataclasses.replace(response, headers=headers)
+            response.headers["X-ProcessResponse-Ran"] = "true"
 
         with run_server(process_response=process_response) as server:
             with run_client(server) as client:

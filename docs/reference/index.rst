@@ -13,12 +13,12 @@ Check which implementations support which features and known limitations.
 
    features
 
+:mod:`asyncio` (new)
+--------------------
 
-:mod:`asyncio`
---------------
+It's ideal for servers that handle many clients concurrently.
 
-This is the default implementation. It's ideal for servers that handle many
-clients concurrently.
+It's a rewrite of the legacy :mod:`asyncio` implementation.
 
 .. toctree::
    :titlesonly:
@@ -26,17 +26,16 @@ clients concurrently.
    asyncio/server
    asyncio/client
 
-:mod:`asyncio` (new)
---------------------
+:mod:`asyncio` (legacy)
+-----------------------
 
-This is a rewrite of the :mod:`asyncio` implementation. It will become the
-default in the future.
+This is the historical implementation.
 
 .. toctree::
    :titlesonly:
 
-   new-asyncio/server
-   new-asyncio/client
+   legacy/server
+   legacy/client
 
 :mod:`threading`
 ----------------

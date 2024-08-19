@@ -3,7 +3,8 @@
 import asyncio
 import pathlib
 import ssl
-import websockets
+
+from websockets.asyncio.server import serve
 
 async def hello(websocket):
     name = await websocket.recv()
@@ -19,7 +20,7 @@ localhost_pem = pathlib.Path(__file__).with_name("localhost.pem")
 ssl_context.load_cert_chain(localhost_pem)
 
 async def main():
-    async with websockets.serve(hello, "localhost", 8765, ssl=ssl_context):
+    async with serve(hello, "localhost", 8765, ssl=ssl_context):
         await asyncio.get_running_loop().create_future()  # run forever
 
 if __name__ == "__main__":

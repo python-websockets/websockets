@@ -8,7 +8,7 @@ client. You will certainly implement some of them in your application.
 
 This page gives examples of connection handlers for a server. However, they're
 also applicable to a client, simply by assuming that ``websocket`` is a
-connection created with :func:`~client.connect`.
+connection created with :func:`~asyncio.client.connect`.
 
 WebSocket connections are long-lived. You will usually write a loop to process
 several messages during the lifetime of a connection.
@@ -42,10 +42,10 @@ In this example, ``producer()`` is a coroutine implementing your business
 logic for generating the next message to send on the WebSocket connection.
 Each message must be :class:`str` or :class:`bytes`.
 
-Iteration terminates when the client disconnects
-because :meth:`~server.WebSocketServerProtocol.send` raises a
-:exc:`~exceptions.ConnectionClosed` exception,
-which breaks out of the ``while  True`` loop.
+Iteration terminates when the client disconnects because
+:meth:`~asyncio.server.ServerConnection.send` raises a
+:exc:`~exceptions.ConnectionClosed` exception, which breaks out of the ``while
+True`` loop.
 
 Consumer and producer
 ---------------------

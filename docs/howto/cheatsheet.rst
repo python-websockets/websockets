@@ -9,24 +9,24 @@ Server
 * Write a coroutine that handles a single connection. It receives a WebSocket
   protocol instance and the URI path in argument.
 
-  * Call :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` and
-    :meth:`~legacy.protocol.WebSocketCommonProtocol.send` to receive and send
-    messages at any time.
+  * Call :meth:`~asyncio.connection.Connection.recv` and
+    :meth:`~asyncio.connection.Connection.send` to receive and send messages at
+    any time.
 
-  * When :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` or
-    :meth:`~legacy.protocol.WebSocketCommonProtocol.send` raises
-    :exc:`~exceptions.ConnectionClosed`, clean up and exit. If you started
-    other :class:`asyncio.Task`, terminate them before exiting.
+  * When :meth:`~asyncio.connection.Connection.recv` or
+    :meth:`~asyncio.connection.Connection.send` raises
+    :exc:`~exceptions.ConnectionClosed`, clean up and exit. If you started other
+    :class:`asyncio.Task`, terminate them before exiting.
 
-  * If you aren't awaiting :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`,
-    consider awaiting :meth:`~legacy.protocol.WebSocketCommonProtocol.wait_closed`
-    to detect quickly when the connection is closed.
+  * If you aren't awaiting :meth:`~asyncio.connection.Connection.recv`, consider
+    awaiting :meth:`~asyncio.connection.Connection.wait_closed` to detect
+    quickly when the connection is closed.
 
-  * You may :meth:`~legacy.protocol.WebSocketCommonProtocol.ping` or
-    :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
-    needed in general.
+  * You may :meth:`~asyncio.connection.Connection.ping` or
+    :meth:`~asyncio.connection.Connection.pong` if you wish but it isn't needed
+    in general.
 
-* Create a server with :func:`~server.serve` which is similar to asyncio's
+* Create a server with :func:`~asyncio.server.serve` which is similar to asyncio's
   :meth:`~asyncio.loop.create_server`. You can also use it as an asynchronous
   context manager.
 
@@ -35,30 +35,30 @@ Server
     handler exits normally or with an exception.
 
   * For advanced customization, you may subclass
-    :class:`~server.WebSocketServerProtocol` and pass either this subclass or
-    a factory function as the ``create_protocol`` argument.
+    :class:`~asyncio.server.ServerConnection` and pass either this subclass or a
+    factory function as the ``create_connection`` argument.
 
 Client
 ------
 
-* Create a client with :func:`~client.connect` which is similar to asyncio's
-  :meth:`~asyncio.loop.create_connection`. You can also use it as an
+* Create a client with :func:`~asyncio.client.connect` which is similar to
+  asyncio's :meth:`~asyncio.loop.create_connection`. You can also use it as an
   asynchronous context manager.
 
   * For advanced customization, you may subclass
-    :class:`~client.WebSocketClientProtocol` and pass either this subclass or
-    a factory function as the ``create_protocol`` argument.
+    :class:`~asyncio.client.ClientConnection` and pass either this subclass or
+    a factory function as the ``create_connection`` argument.
 
-* Call :meth:`~legacy.protocol.WebSocketCommonProtocol.recv` and
-  :meth:`~legacy.protocol.WebSocketCommonProtocol.send` to receive and send messages
-  at any time.
+* Call :meth:`~asyncio.connection.Connection.recv` and
+  :meth:`~asyncio.connection.Connection.send` to receive and send messages at
+  any time.
 
-* You may :meth:`~legacy.protocol.WebSocketCommonProtocol.ping` or
-  :meth:`~legacy.protocol.WebSocketCommonProtocol.pong` if you wish but it isn't
-  needed in general.
+* You may :meth:`~asyncio.connection.Connection.ping` or
+  :meth:`~asyncio.connection.Connection.pong` if you wish but it isn't needed in
+  general.
 
-* If you aren't using :func:`~client.connect` as a context manager, call
-  :meth:`~legacy.protocol.WebSocketCommonProtocol.close` to terminate the connection.
+* If you aren't using :func:`~asyncio.client.connect` as a context manager, call
+  :meth:`~asyncio.connection.Connection.close` to terminate the connection.
 
 .. _debugging:
 
@@ -84,4 +84,3 @@ particular. Fortunately Python's official documentation provides advice to
 `develop with asyncio`_. Check it out: it's invaluable!
 
 .. _develop with asyncio: https://docs.python.org/3/library/asyncio-dev.html
-

@@ -9,6 +9,7 @@ from unittest.mock import Mock, patch
 
 from websockets.asyncio.compatibility import TimeoutError, aiter, anext, asyncio_timeout
 from websockets.asyncio.connection import *
+from websockets.asyncio.connection import broadcast
 from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
 from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol, State

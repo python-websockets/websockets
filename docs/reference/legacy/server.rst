@@ -89,6 +89,11 @@ Using a connection
     .. autoproperty:: close_reason
 
 
+Broadcast
+---------
+
+.. autofunction:: websockets.legacy.server.broadcast
+
 Basic authentication
 --------------------
 
@@ -106,8 +111,3 @@ websockets supports HTTP Basic Authentication according to
     .. autoattribute:: username
 
     .. automethod:: check_credentials
-
-Broadcast
----------
-
-.. autofunction:: websockets.legacy.protocol.broadcast

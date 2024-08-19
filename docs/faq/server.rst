@@ -116,9 +116,9 @@ Record all connections in a global variable::
         finally:
             CONNECTIONS.remove(websocket)
 
-Then, call :func:`~websockets.asyncio.connection.broadcast`::
+Then, call :func:`~websockets.asyncio.server.broadcast`::
 
-    from websockets.asyncio.connection import broadcast
+    from websockets.asyncio.server import broadcast
 
     def message_all(message):
         broadcast(CONNECTIONS, message)

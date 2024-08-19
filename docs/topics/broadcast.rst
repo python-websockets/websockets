@@ -4,19 +4,19 @@ Broadcasting
 .. currentmodule:: websockets
 
 .. admonition:: If you want to send a message to all connected clients,
-    use :func:`~asyncio.connection.broadcast`.
+    use :func:`~asyncio.server.broadcast`.
     :class: tip
 
     If you want to learn about its design, continue reading this document.
 
     For the legacy :mod:`asyncio` implementation, use
-    :func:`~legacy.protocol.broadcast`.
+    :func:`~legacy.server.broadcast`.
 
 WebSocket servers often send the same message to all connected clients or to a
 subset of clients for which the message is relevant.
 
 Let's explore options for broadcasting a message, explain the design of
-:func:`~asyncio.connection.broadcast`, and discuss alternatives.
+:func:`~asyncio.server.broadcast`, and discuss alternatives.
 
 For each option, we'll provide a connection handler called ``handler()`` and a
 function or coroutine called ``broadcast()`` that sends a message to all
@@ -124,7 +124,7 @@ connections before the write buffer can fill up.
 
 Don't set extreme values of ``write_limit``, ``ping_interval``, or
 ``ping_timeout`` to ensure that this condition holds! Instead, set reasonable
-values and use the built-in :func:`~asyncio.connection.broadcast` function.
+values and use the built-in :func:`~asyncio.server.broadcast` function.
 
 The concurrent way
 ------------------
@@ -209,11 +209,11 @@ If a client gets too far behind, eventually it reaches the limit defined by
 ``ping_timeout`` and websockets terminates the connection. You can refer to the
 discussion of :doc:`keepalive <keepalive>` for details.
 
-How :func:`~asyncio.connection.broadcast` works
------------------------------------------------
+How :func:`~asyncio.server.broadcast` works
+-------------------------------------------
 
-The built-in :func:`~asyncio.connection.broadcast` function is similar to the
-naive way. The main difference is that it doesn't apply backpressure.
+The built-in :func:`~asyncio.server.broadcast` function is similar to the naive
+way. The main difference is that it doesn't apply backpressure.
 
 This provides the best performance by avoiding the overhead of scheduling and
 running one task per client.
@@ -324,7 +324,7 @@ the asynchronous iterator returned by ``subscribe()``.
 Performance considerations
 --------------------------
 
-The built-in :func:`~asyncio.connection.broadcast` function sends all messages
+The built-in :func:`~asyncio.server.broadcast` function sends all messages
 without yielding control to the event loop. So does the naive way when the
 network and clients are fast and reliable.
 
@@ -346,7 +346,7 @@ However, this isn't possible in general for two reasons:
 
 All other patterns discussed above yield control to the event loop once per
 client because messages are sent by different tasks. This makes them slower
-than the built-in :func:`~asyncio.connection.broadcast` function.
+than the built-in :func:`~asyncio.server.broadcast` function.
 
 There is no major difference between the performance of per-client queues and
 publish–subscribe.

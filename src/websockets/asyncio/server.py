@@ -25,10 +25,10 @@ from ..protocol import CONNECTING, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
 from .compatibility import asyncio_timeout
-from .connection import Connection
+from .connection import Connection, broadcast
 
 
-__all__ = ["serve", "unix_serve", "ServerConnection", "WebSocketServer"]
+__all__ = ["broadcast", "serve", "unix_serve", "ServerConnection", "WebSocketServer"]
 
 
 class ServerConnection(Connection):

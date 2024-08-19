@@ -18,5 +18,5 @@ application.)
 broadcast
 ---------
 
-:func:`~asyncio.connection.broadcast` is the most efficient way to send a
-message to many clients.
+:func:`~asyncio.server.broadcast` is the most efficient way to send a message to
+many clients.

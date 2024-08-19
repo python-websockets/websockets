@@ -482,11 +482,11 @@ you're using this pattern:
         ...
 
 Since this is a very common pattern in WebSocket servers, websockets provides
-the :func:`~asyncio.connection.broadcast` helper for this purpose:
+the :func:`~asyncio.server.broadcast` helper for this purpose:
 
 .. code-block:: python
 
-    from websockets.asyncio.connection import broadcast
+    from websockets.asyncio.server import broadcast
 
     async def handler(websocket):
 
@@ -496,13 +496,12 @@ the :func:`~asyncio.connection.broadcast` helper for this purpose:
 
         ...
 
-Calling :func:`~asyncio.connection.broadcast` once is more efficient than
+Calling :func:`~asyncio.server.broadcast` once is more efficient than
 calling :meth:`~asyncio.server.ServerConnection.send` in a loop.
 
 However, there's a subtle difference in behavior. Did you notice that there's no
-``await`` in the second version? Indeed, :func:`~asyncio.connection.broadcast`
-is a function, not a coroutine like
-:meth:`~asyncio.server.ServerConnection.send` or
+``await`` in the second version? Indeed, :func:`~asyncio.server.broadcast` is a
+function, not a coroutine like :meth:`~asyncio.server.ServerConnection.send` or
 :meth:`~asyncio.server.ServerConnection.recv`.
 
 It's quite obvious why :meth:`~asyncio.server.ServerConnection.recv`
@@ -524,8 +523,8 @@ That said, when you're sending the same messages to many clients in a loop,
 applying backpressure in this way can become counterproductive. When you're
 broadcasting, you don't want to slow down everyone to the pace of the slowest
 clients; you want to drop clients that cannot keep up with the data stream.
-That's why :func:`~asyncio.connection.broadcast` doesn't wait until write
-buffers drain and therefore doesn't need to be a coroutine.
+That's why :func:`~asyncio.server.broadcast` doesn't wait until write buffers
+drain and therefore doesn't need to be a coroutine.
 
 For our Connect Four game, there's no difference in practice. The total amount
 of data sent on a connection for a game of Connect Four is so small that the

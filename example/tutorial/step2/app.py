@@ -4,8 +4,7 @@ import asyncio
 import json
 import secrets
 
-from websockets.asyncio.connection import broadcast
-from websockets.asyncio.server import serve
+from websockets.asyncio.server import broadcast, serve
 
 from connect4 import PLAYER1, PLAYER2, Connect4
 

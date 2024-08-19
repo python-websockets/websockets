@@ -3,8 +3,7 @@
 import asyncio
 import json
 import logging
-from websockets.asyncio.connection import broadcast
-from websockets.asyncio.server import serve
+from websockets.asyncio.server import broadcast, serve
 
 logging.basicConfig()
 

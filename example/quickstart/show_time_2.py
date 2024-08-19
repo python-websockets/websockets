@@ -4,8 +4,7 @@ import asyncio
 import datetime
 import random
 
-from websockets.asyncio.connection import broadcast
-from websockets.asyncio.server import serve
+from websockets.asyncio.server import broadcast, serve
 
 CONNECTIONS = set()
 

@@ -162,8 +162,8 @@ Server APIs
 | ``websockets.server.WebSocketServerProtocol``                |br| |                                                     |
 | :class:`websockets.legacy.server.WebSocketServerProtocol`         |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| ``websockets.broadcast``                                     |br| | :func:`websockets.asyncio.connection.broadcast`     |
-| :func:`websockets.legacy.protocol.broadcast()`                    |                                                     |
+| ``websockets.broadcast``                                     |br| | :func:`websockets.asyncio.server.broadcast`         |
+| :func:`websockets.legacy.server.broadcast()`                      |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.BasicAuthWebSocketServerProtocol``              |br| | *not available yet*                                 |
 | ``websockets.auth.BasicAuthWebSocketServerProtocol``         |br| |                                                     |

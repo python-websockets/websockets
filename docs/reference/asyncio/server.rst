@@ -80,4 +80,4 @@ Using a connection
 Broadcast
 ---------
 
-.. autofunction:: websockets.asyncio.connection.broadcast
+.. autofunction:: websockets.asyncio.server.broadcast

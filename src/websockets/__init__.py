@@ -48,10 +48,10 @@ __all__ = [
     "unix_connect",
     # .legacy.protocol
     "WebSocketCommonProtocol",
-    "broadcast",
     # .legacy.server
     "WebSocketServer",
     "WebSocketServerProtocol",
+    "broadcast",
     "serve",
     "unix_serve",
     # .server
@@ -102,10 +102,11 @@ if typing.TYPE_CHECKING:
         basic_auth_protocol_factory,
     )
     from .legacy.client import WebSocketClientProtocol, connect, unix_connect
-    from .legacy.protocol import WebSocketCommonProtocol, broadcast
+    from .legacy.protocol import WebSocketCommonProtocol
     from .legacy.server import (
         WebSocketServer,
         WebSocketServerProtocol,
+        broadcast,
         serve,
         unix_serve,
     )
@@ -164,10 +165,10 @@ else:
             "unix_connect": ".legacy.client",
             # .legacy.protocol
             "WebSocketCommonProtocol": ".legacy.protocol",
-            "broadcast": ".legacy.protocol",
             # .legacy.server
             "WebSocketServer": ".legacy.server",
             "WebSocketServerProtocol": ".legacy.server",
+            "broadcast": ".legacy.server",
             "serve": ".legacy.server",
             "unix_serve": ".legacy.server",
             # .server

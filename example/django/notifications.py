@@ -10,8 +10,7 @@ django.setup()
 
 from django.contrib.contenttypes.models import ContentType
 from sesame.utils import get_user
-from websockets.asyncio.connection import broadcast
-from websockets.asyncio.server import serve
+from websockets.asyncio.server import broadcast, serve
 from websockets.frames import CloseCode
 
 

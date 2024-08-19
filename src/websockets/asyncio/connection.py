@@ -34,7 +34,7 @@ from .compatibility import (
 from .messages import Assembler
 
 
-__all__ = ["Connection", "broadcast"]
+__all__ = ["Connection"]
 
 
 class Connection(asyncio.Protocol):
@@ -1011,6 +1011,12 @@ class Connection(asyncio.Protocol):
         # Besides, that doesn't work on TLS connections.
 
 
+# broadcast() is defined in the connection module even though it's primarily
+# used by servers and documented in the server module because it works with
+# client connections too and because it's easier to test together with the
+# Connection class.
+
+
 def broadcast(
     connections: Iterable[Connection],
     message: Data,
@@ -1034,10 +1040,11 @@ def broadcast(
     ``ping_interval`` and ``ping_timeout`` low to prevent excessive memory usage
     from slow connections.
 
-    Unlike :meth:`~Connection.send`, :func:`broadcast` doesn't support sending
-    fragmented messages. Indeed, fragmentation is useful for sending large
-    messages without buffering them in memory, while :func:`broadcast` buffers
-    one copy per connection as fast as possible.
+    Unlike :meth:`~websockets.asyncio.connection.Connection.send`,
+    :func:`broadcast` doesn't support sending fragmented messages. Indeed,
+    fragmentation is useful for sending large messages without buffering them in
+    memory, while :func:`broadcast` buffers one copy per connection as fast as
+    possible.
 
     :func:`broadcast` skips connections that aren't open in order to avoid
     errors on connections where the closing handshake is in progress.
@@ -1046,6 +1053,10 @@ def broadcast(
     It continues writing to other connections. On Python 3.11 and above, you may
     set ``raise_exceptions`` to :obj:`True` to record failures and raise all
     exceptions in a :pep:`654` :exc:`ExceptionGroup`.
+
+    While :func:`broadcast` makes more sense for servers, it works identically
+    with clients, if you have a use case for opening connections to many servers
+    and broadcasting a message to them.
 
     Args:
         websockets: WebSocket connections to which the message will be sent.
@@ -1101,3 +1112,7 @@ def broadcast(
 
     if raise_exceptions and exceptions:
         raise ExceptionGroup("skipped broadcast", exceptions)
+
+
+# Pretend that broadcast is actually defined in the server module.
+broadcast.__module__ = "websockets.asyncio.server"

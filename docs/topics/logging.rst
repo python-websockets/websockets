@@ -221,7 +221,7 @@ Here's what websockets logs at each level.
 ``WARNING``
 ...........
 
-* Failures in :func:`~asyncio.connection.broadcast`
+* Failures in :func:`~asyncio.server.broadcast`
 
 ``INFO``
 ........

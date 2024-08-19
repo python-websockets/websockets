@@ -7,8 +7,7 @@ import sys
 import time
 
 from websockets import ConnectionClosed
-from websockets.asyncio.server import serve
-from websockets.asyncio.connection import broadcast
+from websockets.asyncio.server import broadcast, serve
 
 
 CLIENTS = set()

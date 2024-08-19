@@ -45,10 +45,16 @@ from ..protocol import State
 from ..typing import ExtensionHeader, LoggerLike, Origin, StatusLike, Subprotocol
 from .handshake import build_response, check_request
 from .http import read_request
-from .protocol import WebSocketCommonProtocol
+from .protocol import WebSocketCommonProtocol, broadcast
 
 
-__all__ = ["serve", "unix_serve", "WebSocketServerProtocol", "WebSocketServer"]
+__all__ = [
+    "broadcast",
+    "serve",
+    "unix_serve",
+    "WebSocketServerProtocol",
+    "WebSocketServer",
+]
 
 
 # Change to HeadersLike | ... when dropping Python < 3.10.

@@ -53,7 +53,7 @@ from ..typing import Data, LoggerLike, Subprotocol
 from .framing import Frame
 
 
-__all__ = ["WebSocketCommonProtocol", "broadcast"]
+__all__ = ["WebSocketCommonProtocol"]
 
 
 # In order to ensure consistency, the code always checks the current value of
@@ -1545,6 +1545,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.reader.feed_eof()
 
 
+# broadcast() is defined in the protocol module even though it's primarily
+# used by servers and documented in the server module because it works with
+# client connections too and because it's easier to test together with the
+# WebSocketCommonProtocol class.
+
+
 def broadcast(
     websockets: Iterable[WebSocketCommonProtocol],
     message: Data,
@@ -1568,10 +1574,11 @@ def broadcast(
     ``ping_interval`` and ``ping_timeout`` low to prevent excessive memory usage
     from slow connections.
 
-    Unlike :meth:`~WebSocketCommonProtocol.send`, :func:`broadcast` doesn't
-    support sending fragmented messages. Indeed, fragmentation is useful for
-    sending large messages without buffering them in memory, while
-    :func:`broadcast` buffers one copy per connection as fast as possible.
+    Unlike :meth:`~websockets.legacy.protocol.WebSocketCommonProtocol.send`,
+    :func:`broadcast` doesn't support sending fragmented messages. Indeed,
+    fragmentation is useful for sending large messages without buffering them in
+    memory, while :func:`broadcast` buffers one copy per connection as fast as
+    possible.
 
     :func:`broadcast` skips connections that aren't open in order to avoid
     errors on connections where the closing handshake is in progress.
@@ -1580,6 +1587,10 @@ def broadcast(
     It continues writing to other connections. On Python 3.11 and above, you may
     set ``raise_exceptions`` to :obj:`True` to record failures and raise all
     exceptions in a :pep:`654` :exc:`ExceptionGroup`.
+
+    While :func:`broadcast` makes more sense for servers, it works identically
+    with clients, if you have a use case for opening connections to many servers
+    and broadcasting a message to them.
 
     Args:
         websockets: WebSocket connections to which the message will be sent.
@@ -1629,3 +1640,7 @@ def broadcast(
 
     if raise_exceptions and exceptions:
         raise ExceptionGroup("skipped broadcast", exceptions)
+
+
+# Pretend that broadcast is actually defined in the server module.
+broadcast.__module__ = "websockets.legacy.server"

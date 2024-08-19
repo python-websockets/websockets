@@ -212,7 +212,7 @@ Improvements
 
 * Added platform-independent wheels.
 
-* Improved error handling in :func:`~legacy.protocol.broadcast`.
+* Improved error handling in :func:`~legacy.server.broadcast`.
 
 * Set ``server_hostname`` automatically on TLS connections when providing a
   ``sock`` argument to :func:`~sync.client.connect`.
@@ -402,7 +402,7 @@ New features
 
 * Added compatibility with Python 3.10.
 
-* Added :func:`~legacy.protocol.broadcast` to send a message to many clients.
+* Added :func:`~legacy.server.broadcast` to send a message to many clients.
 
 * Added support for reconnecting automatically by using
   :func:`~legacy.client.connect` as an asynchronous iterator.

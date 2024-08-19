@@ -43,15 +43,15 @@ class Connect4:
 
         Returns the row where the checker lands.
 
-        Raises :exc:`RuntimeError` if the move is illegal.
+        Raises :exc:`ValueError` if the move is illegal.
 
         """
         if player == self.last_player:
-            raise RuntimeError("It isn't your turn.")
+            raise ValueError("It isn't your turn.")
 
         row = self.top[column]
         if row == 6:
-            raise RuntimeError("This slot is full.")
+            raise ValueError("This slot is full.")
 
         self.moves.append((player, column, row))
         self.top[column] += 1

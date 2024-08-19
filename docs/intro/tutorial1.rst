@@ -123,7 +123,7 @@ wins. Here's its API.
         :param player: :data:`~connect4.PLAYER1` or :data:`~connect4.PLAYER2`.
         :param column: between ``0`` and ``6``.
         :returns: Row where the checker lands, between ``0`` and ``5``.
-        :raises RuntimeError: if the move is illegal.
+        :raises ValueError: if the move is illegal.
 
     .. attribute:: moves
 
@@ -520,7 +520,7 @@ Then, you're going to iterate over incoming messages and take these steps:
   interface sends;
 * play the move in the board with the :meth:`~connect4.Connect4.play` method,
   alternating between the two players;
-* if :meth:`~connect4.Connect4.play` raises :exc:`RuntimeError` because the
+* if :meth:`~connect4.Connect4.play` raises :exc:`ValueError` because the
   move is illegal, send an event of type ``"error"``;
 * else, send an event of type ``"play"`` to tell the user interface where the
   checker lands;

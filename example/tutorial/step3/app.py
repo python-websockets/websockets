@@ -6,6 +6,7 @@ import os
 import secrets
 import signal
 
+from websockets.asyncio.connection import broadcast
 from websockets.asyncio.server import serve
 
 from connect4 import PLAYER1, PLAYER2, Connect4
@@ -61,7 +62,7 @@ async def play(websocket, game, player, connected):
         try:
             # Play the move.
             row = game.play(player, column)
-        except RuntimeError as exc:
+        except ValueError as exc:
             # Send an "error" event if the move was illegal.
             await error(websocket, str(exc))
             continue
@@ -73,7 +74,7 @@ async def play(websocket, game, player, connected):
             "column": column,
             "row": row,
         }
-        websockets.broadcast(connected, json.dumps(event))
+        broadcast(connected, json.dumps(event))
 
         # If move is winning, send a "win" event.
         if game.winner is not None:
@@ -81,7 +82,7 @@ async def play(websocket, game, player, connected):
                 "type": "win",
                 "player": game.winner,
             }
-            websockets.broadcast(connected, json.dumps(event))
+            broadcast(connected, json.dumps(event))
 
 
 async def start(websocket):

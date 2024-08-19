@@ -26,7 +26,7 @@ async def handler(websocket):
         try:
             # Play the move.
             row = game.play(player, column)
-        except RuntimeError as exc:
+        except ValueError as exc:
             # Send an "error" event if the move was illegal.
             event = {
                 "type": "error",

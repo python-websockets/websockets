@@ -84,7 +84,7 @@ When the second player joins the game, look it up:
     async def handler(websocket):
         ...
 
-        join_key = ...  # TODO
+        join_key = ...
 
         # Find the Connect Four game.
         game, connected = JOIN[join_key]
@@ -434,7 +434,7 @@ Once the initialization sequence is done, watching a game is as simple as
 registering the WebSocket connection in the ``connected`` set in order to
 receive game events and doing nothing until the spectator disconnects. You
 can wait for a connection to terminate with
-:meth:`~legacy.protocol.WebSocketCommonProtocol.wait_closed`:
+:meth:`~asyncio.server.ServerConnection.wait_closed`:
 
 .. code-block:: python
 
@@ -482,38 +482,40 @@ you're using this pattern:
         ...
 
 Since this is a very common pattern in WebSocket servers, websockets provides
-the :func:`~legacy.protocol.broadcast` helper for this purpose:
+the :func:`~asyncio.connection.broadcast` helper for this purpose:
 
 .. code-block:: python
+
+    from websockets.asyncio.connection import broadcast
 
     async def handler(websocket):
 
         ...
 
-        websockets.broadcast(connected, json.dumps(event))
+        broadcast(connected, json.dumps(event))
 
         ...
 
-Calling :func:`legacy.protocol.broadcast` once is more efficient than
-calling :meth:`~legacy.protocol.WebSocketCommonProtocol.send` in a loop.
+Calling :func:`~asyncio.connection.broadcast` once is more efficient than
+calling :meth:`~asyncio.server.ServerConnection.send` in a loop.
 
 However, there's a subtle difference in behavior. Did you notice that there's no
-``await`` in the second version? Indeed, :func:`legacy.protocol.broadcast` is a
-function, not a coroutine like
-:meth:`~legacy.protocol.WebSocketCommonProtocol.send` or
-:meth:`~legacy.protocol.WebSocketCommonProtocol.recv`.
+``await`` in the second version? Indeed, :func:`~asyncio.connection.broadcast`
+is a function, not a coroutine like
+:meth:`~asyncio.server.ServerConnection.send` or
+:meth:`~asyncio.server.ServerConnection.recv`.
 
-It's quite obvious why :meth:`~legacy.protocol.WebSocketCommonProtocol.recv`
+It's quite obvious why :meth:`~asyncio.server.ServerConnection.recv`
 is a coroutine. When you want to receive the next message, you have to wait
 until the client sends it and the network transmits it.
 
-It's less obvious why :meth:`~legacy.protocol.WebSocketCommonProtocol.send` is
+It's less obvious why :meth:`~asyncio.server.ServerConnection.send` is
 a coroutine. If you send many messages or large messages, you could write
 data faster than the network can transmit it or the client can read it. Then,
 outgoing data will pile up in buffers, which will consume memory and may
 crash your application.
 
-To avoid this problem, :meth:`~legacy.protocol.WebSocketCommonProtocol.send`
+To avoid this problem, :meth:`~asyncio.server.ServerConnection.send`
 waits until the write buffer drains. By slowing down the application as
 necessary, this ensures that the server doesn't send data too quickly. This
 is called backpressure and it's useful for building robust systems.
@@ -522,12 +524,12 @@ That said, when you're sending the same messages to many clients in a loop,
 applying backpressure in this way can become counterproductive. When you're
 broadcasting, you don't want to slow down everyone to the pace of the slowest
 clients; you want to drop clients that cannot keep up with the data stream.
-That's why :func:`legacy.protocol.broadcast` doesn't wait until write buffers
-drain.
+That's why :func:`~asyncio.connection.broadcast` doesn't wait until write
+buffers drain and therefore doesn't need to be a coroutine.
 
-For our Connect Four game, there's no difference in practice: the total amount
-of data sent on a connection for a game of Connect Four is less than 64 KB,
-so the write buffer never fills up and backpressure never kicks in anyway.
+For our Connect Four game, there's no difference in practice. The total amount
+of data sent on a connection for a game of Connect Four is so small that the
+write buffer cannot fill up. As a consequence, backpressure never kicks in.
 
 Summary
 -------

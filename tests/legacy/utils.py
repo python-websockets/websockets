@@ -56,21 +56,22 @@ class AsyncioTestCase(unittest.TestCase):
         self.loop.call_soon(self.loop.stop)
         self.loop.run_forever()
 
-    # Remove when dropping Python < 3.10
-    @contextlib.contextmanager
-    def assertNoLogs(self, logger="websockets", level=logging.ERROR):
-        """
-        No message is logged on the given logger with at least the given level.
+    if sys.version_info[:2] < (3, 10):  # pragma: no cover
 
-        """
-        with self.assertLogs(logger, level) as logs:
-            # We want to test that no log message is emitted
-            # but assertLogs expects at least one log message.
-            logging.getLogger(logger).log(level, "dummy")
-            yield
+        @contextlib.contextmanager
+        def assertNoLogs(self, logger="websockets", level=logging.ERROR):
+            """
+            No message is logged on the given logger with at least the given level.
 
-        level_name = logging.getLevelName(level)
-        self.assertEqual(logs.output, [f"{level_name}:{logger}:dummy"])
+            """
+            with self.assertLogs(logger, level) as logs:
+                # We want to test that no log message is emitted
+                # but assertLogs expects at least one log message.
+                logging.getLogger(logger).log(level, "dummy")
+                yield
+
+            level_name = logging.getLevelName(level)
+            self.assertEqual(logs.output, [f"{level_name}:{logger}:dummy"])
 
     def assertDeprecationWarnings(self, recorded_warnings, expected_warnings):
         """

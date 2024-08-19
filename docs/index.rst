@@ -28,23 +28,42 @@ with a focus on correctness, simplicity, robustness, and performance.
 
 It supports several network I/O and control flow paradigms:
 
-1. The default implementation builds upon :mod:`asyncio`, Python's standard
+1. The primary implementation builds upon :mod:`asyncio`, Python's standard
    asynchronous I/O framework. It provides an elegant coroutine-based API. It's
    ideal for servers that handle many clients concurrently.
+
+   .. admonition:: As of version :ref:`13.0`, there is a new :mod:`asyncio`
+      implementation.
+      :class: important
+
+      The historical implementation in ``websockets.legacy`` traces its roots to
+      early versions of websockets. Although it's stable and robust, it is now
+      considered legacy.
+
+      The new implementation in ``websockets.asyncio`` is a rewrite on top of
+      the Sans-I/O implementation. It adds a few features that were impossible
+      to implement within the original design.
+
+      The new implementation will become the default as soon as it reaches
+      feature parity. If you're using the historical implementation, you should
+      :doc:`ugrade to the new implementation <howto/upgrade>`. It's usually
+      straightforward.
+
 2. The :mod:`threading` implementation is a good alternative for clients,
    especially if you aren't familiar with :mod:`asyncio`. It may also be used
    for servers that don't need to serve many clients.
+
 3. The `Sans-I/O`_ implementation is designed for integrating in third-party
    libraries, typically application servers, in addition being used internally
    by websockets.
 
 .. _Sans-I/O: https://sans-io.readthedocs.io/
 
-Here's an echo server with the :mod:`asyncio` API:
+Here's an echo server using the :mod:`asyncio` API:
 
 .. literalinclude:: ../example/echo.py
 
-Here's how a client sends and receives messages with the :mod:`threading` API:
+Here's a client using the :mod:`threading` API:
 
 .. literalinclude:: ../example/hello.py
 

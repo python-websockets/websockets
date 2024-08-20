@@ -26,6 +26,7 @@ jobs:
     - name: Save sdist & wheel
       uses: actions/upload-artifact@v4
       with:
+        name: dist-architecture-independent
         path: |
           dist/*.tar.gz
           dist/*.whl
@@ -58,6 +59,7 @@ jobs:
     - name: Save wheels
       uses: actions/upload-artifact@v4
       with:
+        name: dist-${{ matrix.os }}
         path: wheelhouse/*.whl
 
   upload:
@@ -74,7 +76,8 @@ jobs:
       - name: Download artifacts
         uses: actions/download-artifact@v4
         with:
-          name: artifact
+          pattern: dist-*
+          merge-multiple: true
           path: dist
       - name: Upload to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1

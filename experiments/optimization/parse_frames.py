@@ -33,7 +33,7 @@ def parse_frame(data, count, mask, extensions):
         except StopIteration:
             pass
         else:
-            assert False, "parser should return frame"
+            raise AssertionError("parser should return frame")
     reader.feed_eof()
     assert reader.at_eof(), "parser should consume all data"
 

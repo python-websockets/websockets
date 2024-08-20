@@ -71,7 +71,7 @@ def parse_handshake(handshake):
     except StopIteration:
         pass
     else:
-        assert False, "parser should return request"
+        raise AssertionError("parser should return request")
     reader.feed_eof()
     assert reader.at_eof(), "parser should consume all data"
 

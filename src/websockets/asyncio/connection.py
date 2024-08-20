@@ -723,6 +723,10 @@ class Connection(asyncio.Protocol):
                 if self.ping_timeout is not None:
                     try:
                         async with asyncio_timeout(self.ping_timeout):
+                            # connection_lost cancels keepalive immediately
+                            # after setting a ConnectionClosed exception on
+                            # pong_waiter. A CancelledError is raised here,
+                            # not a ConnectionClosed exception.
                             latency = await pong_waiter
                         self.logger.debug("% received keepalive pong")
                     except asyncio.TimeoutError:
@@ -733,9 +737,10 @@ class Connection(asyncio.Protocol):
                                 CloseCode.INTERNAL_ERROR,
                                 "keepalive ping timeout",
                             )
-                        break
-        except ConnectionClosed:
-            pass
+                        raise AssertionError(
+                            "send_context() should wait for connection_lost(), "
+                            "which cancels keepalive()"
+                        )
         except Exception:
             self.logger.error("keepalive ping failed", exc_info=True)
 
@@ -913,8 +918,7 @@ class Connection(asyncio.Protocol):
         self.set_recv_exc(exc)
         self.recv_messages.close()
         self.abort_pings()
-        # If keepalive() was waiting for a pong, abort_pings() terminated it.
-        # If it was sleeping until the next ping, we need to cancel it now
+
         if self.keepalive_task is not None:
             self.keepalive_task.cancel()
 

@@ -17,22 +17,18 @@ jobs:
       uses: actions/setup-python@v5
       with:
         python-version: 3.x
-    - name: Build sdist
-      run: python setup.py sdist
-    - name: Save sdist
-      uses: actions/upload-artifact@v4
-      with:
-        path: dist/*.tar.gz
-    - name: Install wheel
-      run: pip install wheel
-    - name: Build wheel
+    - name: Install build
+      run: pip install build
+    - name: Build sdist & wheel
+      run: python -m build
       env:
         BUILD_EXTENSION: no
-      run: python setup.py bdist_wheel
-    - name: Save wheel
+    - name: Save sdist & wheel
       uses: actions/upload-artifact@v4
       with:
-        path: dist/*.whl
+        path: |
+          dist/*.tar.gz
+          dist/*.whl
 
   wheels:
     name: Build architecture-specific wheels on ${{ matrix.os }}

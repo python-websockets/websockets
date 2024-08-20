@@ -236,15 +236,16 @@ class Server:
         handler: Connection handler. It receives the WebSocket connection,
             which is a :class:`ServerConnection`, in argument.
         process_request: Intercept the request during the opening handshake.
-            Return an HTTP response to force the response or :obj:`None` to
+            Return an HTTP response to force the response. Return :obj:`None` to
             continue normally. When you force an HTTP 101 Continue response, the
             handshake is successful. Else, the connection is aborted.
             ``process_request`` may be a function or a coroutine.
         process_response: Intercept the response during the opening handshake.
-            Return an HTTP response to force the response or :obj:`None` to
-            continue normally. When you force an HTTP 101 Continue response, the
-            handshake is successful. Else, the connection is aborted.
-            ``process_response`` may be a function or a coroutine.
+            Modify the response or return a new HTTP response to force the
+            response. Return :obj:`None` to continue normally. When you force an
+            HTTP 101 Continue response, the handshake is successful. Else, the
+            connection is aborted. ``process_response`` may be a function or a
+            coroutine.
         server_header: Value of  the ``Server`` response header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``. Setting it to
             :obj:`None` removes the header.

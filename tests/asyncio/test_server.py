@@ -1,4 +1,5 @@
 import asyncio
+import dataclasses
 import http
 import logging
 import socket
@@ -117,8 +118,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 "server rejected WebSocket connection: HTTP 500",
             )
 
-    async def test_process_request(self):
-        """Server runs process_request before processing the handshake."""
+    async def test_process_request_returns_none(self):
+        """Server runs process_request and continues the handshake."""
 
         def process_request(ws, request):
             self.assertIsInstance(request, Request)
@@ -128,8 +129,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             async with run_client(server) as client:
                 await self.assertEval(client, "ws.process_request_ran", "True")
 
-    async def test_async_process_request(self):
-        """Server runs async process_request before processing the handshake."""
+    async def test_async_process_request_returns_none(self):
+        """Server runs async process_request and continues the handshake."""
 
         async def process_request(ws, request):
             self.assertIsInstance(request, Request)
@@ -139,7 +140,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             async with run_client(server) as client:
                 await self.assertEval(client, "ws.process_request_ran", "True")
 
-    async def test_process_request_abort_handshake(self):
+    async def test_process_request_returns_response(self):
         """Server aborts handshake if process_request returns a response."""
 
         def process_request(ws, request):
@@ -154,7 +155,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 "server rejected WebSocket connection: HTTP 403",
             )
 
-    async def test_async_process_request_abort_handshake(self):
+    async def test_async_process_request_returns_response(self):
         """Server aborts handshake if async process_request returns a response."""
 
         async def process_request(ws, request):
@@ -199,8 +200,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 "server rejected WebSocket connection: HTTP 500",
             )
 
-    async def test_process_response(self):
-        """Server runs process_response after processing the handshake."""
+    async def test_process_response_returns_none(self):
+        """Server runs process_response but keeps the handshake response."""
 
         def process_response(ws, request, response):
             self.assertIsInstance(request, Request)
@@ -211,8 +212,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             async with run_client(server) as client:
                 await self.assertEval(client, "ws.process_response_ran", "True")
 
-    async def test_async_process_response(self):
-        """Server runs async process_response after processing the handshake."""
+    async def test_async_process_response_returns_none(self):
+        """Server runs async process_response but keeps the handshake response."""
 
         async def process_response(ws, request, response):
             self.assertIsInstance(request, Request)
@@ -223,29 +224,49 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             async with run_client(server) as client:
                 await self.assertEval(client, "ws.process_response_ran", "True")
 
-    async def test_process_response_override_response(self):
-        """Server runs process_response and overrides the handshake response."""
+    async def test_process_response_modifies_response(self):
+        """Server runs process_response and modifies the handshake response."""
 
         def process_response(ws, request, response):
-            response.headers["X-ProcessResponse-Ran"] = "true"
+            response.headers["X-ProcessResponse"] = "OK"
 
         async with run_server(process_response=process_response) as server:
             async with run_client(server) as client:
-                self.assertEqual(
-                    client.response.headers["X-ProcessResponse-Ran"], "true"
-                )
+                self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
-    async def test_async_process_response_override_response(self):
-        """Server runs async process_response and overrides the handshake response."""
+    async def test_async_process_response_modifies_response(self):
+        """Server runs async process_response and modifies the handshake response."""
 
         async def process_response(ws, request, response):
-            response.headers["X-ProcessResponse-Ran"] = "true"
+            response.headers["X-ProcessResponse"] = "OK"
 
         async with run_server(process_response=process_response) as server:
             async with run_client(server) as client:
-                self.assertEqual(
-                    client.response.headers["X-ProcessResponse-Ran"], "true"
-                )
+                self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
+
+    async def test_process_response_replaces_response(self):
+        """Server runs process_response and replaces the handshake response."""
+
+        def process_response(ws, request, response):
+            headers = response.headers.copy()
+            headers["X-ProcessResponse"] = "OK"
+            return dataclasses.replace(response, headers=headers)
+
+        async with run_server(process_response=process_response) as server:
+            async with run_client(server) as client:
+                self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
+
+    async def test_async_process_response_replaces_response(self):
+        """Server runs async process_response and replaces the handshake response."""
+
+        async def process_response(ws, request, response):
+            headers = response.headers.copy()
+            headers["X-ProcessResponse"] = "OK"
+            return dataclasses.replace(response, headers=headers)
+
+        async with run_server(process_response=process_response) as server:
+            async with run_client(server) as client:
+                self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
     async def test_process_response_raises_exception(self):
         """Server returns an error if process_response raises an exception."""

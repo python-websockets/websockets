@@ -1,3 +1,4 @@
+import dataclasses
 import http
 import logging
 import socket
@@ -115,8 +116,8 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 "server rejected WebSocket connection: HTTP 500",
             )
 
-    def test_process_request(self):
-        """Server runs process_request before processing the handshake."""
+    def test_process_request_returns_none(self):
+        """Server runs process_request and continues the handshake."""
 
         def process_request(ws, request):
             self.assertIsInstance(request, Request)
@@ -126,7 +127,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             with run_client(server) as client:
                 self.assertEval(client, "ws.process_request_ran", "True")
 
-    def test_process_request_abort_handshake(self):
+    def test_process_request_returns_response(self):
         """Server aborts handshake if process_request returns a response."""
 
         def process_request(ws, request):
@@ -156,8 +157,8 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 "server rejected WebSocket connection: HTTP 500",
             )
 
-    def test_process_response(self):
-        """Server runs process_response after processing the handshake."""
+    def test_process_response_returns_none(self):
+        """Server runs process_response but keeps the handshake response."""
 
         def process_response(ws, request, response):
             self.assertIsInstance(request, Request)
@@ -168,17 +169,27 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             with run_client(server) as client:
                 self.assertEval(client, "ws.process_response_ran", "True")
 
-    def test_process_response_override_response(self):
-        """Server runs process_response and overrides the handshake response."""
+    def test_process_response_modifies_response(self):
+        """Server runs process_response and modifies the handshake response."""
 
         def process_response(ws, request, response):
-            response.headers["X-ProcessResponse-Ran"] = "true"
+            response.headers["X-ProcessResponse"] = "OK"
 
         with run_server(process_response=process_response) as server:
             with run_client(server) as client:
-                self.assertEqual(
-                    client.response.headers["X-ProcessResponse-Ran"], "true"
-                )
+                self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
+
+    def test_process_response_replaces_response(self):
+        """Server runs process_response and replaces the handshake response."""
+
+        def process_response(ws, request, response):
+            headers = response.headers.copy()
+            headers["X-ProcessResponse"] = "OK"
+            return dataclasses.replace(response, headers=headers)
+
+        with run_server(process_response=process_response) as server:
+            with run_client(server) as client:
+                self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
     def test_process_response_raises_exception(self):
         """Server returns an error if process_response raises an exception."""

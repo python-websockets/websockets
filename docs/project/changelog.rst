@@ -35,6 +35,11 @@ notice.
 Backwards-incompatible changes
 ..............................
 
+.. admonition:: websockets 13.0 requires Python ≥ 3.8.
+    :class: tip
+
+    websockets 12.0 is the last version supporting Python 3.7.
+
 .. admonition:: Receiving the request path in the second parameter of connection
     handlers is deprecated.
     :class: note
@@ -64,9 +69,8 @@ Backwards-incompatible changes
     implementation is renamed to :class:`~sync.server.Server`.
     :class: note
 
-    This class isn't designed to be imported or instantiated directly.
-    :func:`~sync.server.serve` returns an instance. For this reason,
-    the change should be transparent.
+    This change should be transparent because this class shouldn't be
+    instantiated directly; :func:`~sync.server.serve` returns an instance.
 
     Regardless, an alias provides backwards compatibility.
 
@@ -90,6 +94,22 @@ New features
 
   If you were monkey-patching constants, be aware that they were renamed, which
   will break your configuration. You must switch to the environment variables.
+
+Improvements
+............
+
+* The error message in server logs when a header is too long is more explicit.
+
+Bug fixes
+.........
+
+* Fixed a bug in the :mod:`threading` implementation that could prevent the
+  program from exiting when a connection wasn't closed properly.
+
+* Redirecting from a ``ws://`` URI to a ``wss://`` URI now works.
+
+* ``broadcast(raise_exceptions=True)`` no longer crashes when there isn't any
+  exception.
 
 .. _12.0:
 

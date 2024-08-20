@@ -40,13 +40,16 @@ It loops through these steps:
 If the Pong frame isn't received, websockets considers the connection broken and
 closes it.
 
-This mechanism serves two purposes:
+This mechanism serves three purposes:
 
 1. It creates a trickle of traffic so that the TCP connection isn't idle and
    network infrastructure along the path keeps it open ("keepalive").
 2. It detects if the connection drops or becomes so slow that it's unusable in
    practice ("heartbeat"). In that case, it terminates the connection and your
    application gets a :exc:`~exceptions.ConnectionClosed` exception.
+3. It measures the :attr:`~asyncio.connection.Connection.latency` of the
+   connection. The time between sending a Ping frame and receiving a matching
+   Pong frame approximates the round-trip time.
 
 Timings are configurable with the ``ping_interval`` and ``ping_timeout``
 arguments of :func:`~asyncio.client.connect` and :func:`~asyncio.server.serve`.
@@ -54,7 +57,7 @@ Shorter values will detect connection drops faster but they will increase
 network traffic and they will be more sensitive to latency.
 
 Setting ``ping_interval`` to :obj:`None` disables the whole keepalive and
-heartbeat mechanism.
+heartbeat mechanism, including measurement of latency.
 
 Setting ``ping_timeout`` to :obj:`None` disables only timeouts. This enables
 keepalive, to keep idle connections open, and disables heartbeat, to support large
@@ -85,8 +88,22 @@ Unfortunately, the WebSocket API in browsers doesn't expose the native Ping and
 Pong functionality in the WebSocket protocol. You have to roll your own in the
 application layer.
 
+Read this `blog post <https://making.close.com/posts/reliable-websockets/>`_ for
+a complete walk-through of this issue.
+
 Latency issues
 --------------
+
+The :attr:`~asyncio.connection.Connection.latency` attribute stores latency
+measured during the last exchange of Ping and Pong frames::
+
+    latency = websocket.latency
+
+Alternatively, you can measure the latency at any time by calling
+:attr:`~asyncio.connection.Connection.ping` and awaiting its result::
+
+    pong_waiter = await websocket.ping()
+    latency = await pong_waiter
 
 Latency between a client and a server may increase for two reasons:
 
@@ -97,7 +114,7 @@ Latency between a client and a server may increase for two reasons:
 
 * Traffic is high. For example, if a client sends messages on the connection
   faster than a server can process them, this manifests as latency as well,
-  because data is waiting in flight, mostly in OS buffers.
+  because data is waiting in :doc:`buffers <memory>`.
 
   If the server is more than 20 seconds behind, it doesn't see the Pong before
   the default timeout elapses. As a consequence, it closes the connection.
@@ -109,8 +126,3 @@ Latency between a client and a server may increase for two reasons:
 
   The same reasoning applies to situations where the server sends more traffic
   than the client can accept.
-
-The latency measured during the last exchange of Ping and Pong frames is
-available in the :attr:`~asyncio.connection.Connection.latency` attribute.
-Alternatively, you can measure the latency at any time with the
-:attr:`~asyncio.connection.Connection.ping` method.

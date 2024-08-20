@@ -109,12 +109,13 @@ class Connection(asyncio.Protocol):
         """
         Latency of the connection, in seconds.
 
-        This value is updated after sending a ping frame and receiving a
-        matching pong frame. Before the first ping, :attr:`latency` is ``0``.
+        Latency is defined as the round-trip time of the connection. It is
+        measured by sending a Ping frame and waiting for a matching Pong frame.
+        Before the first measurement, :attr:`latency` is ``0``.
 
         By default, websockets enables a :ref:`keepalive <keepalive>` mechanism
-        that sends ping frames automatically at regular intervals. You can also
-        send ping frames and measure latency with :meth:`ping`.
+        that sends Ping frames automatically at regular intervals. You can also
+        send Ping frames and measure latency with :meth:`ping`.
         """
 
         # Task that sends keepalive pings. None when ping_interval is None.

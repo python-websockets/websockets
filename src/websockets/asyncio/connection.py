@@ -20,7 +20,7 @@ from typing import (
 )
 
 from ..exceptions import ConnectionClosed, ConnectionClosedOK, ProtocolError
-from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode, prepare_ctrl
+from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
 from ..typing import Data, LoggerLike, Subprotocol
@@ -597,8 +597,12 @@ class Connection(asyncio.Protocol):
                 the corresponding pong wasn't received yet.
 
         """
-        if data is not None:
-            data = prepare_ctrl(data)
+        if isinstance(data, BytesLike):
+            data = bytes(data)
+        elif isinstance(data, str):
+            data = data.encode()
+        elif data is not None:
+            raise TypeError("data must be str or bytes-like")
 
         async with self.send_context():
             # Protect against duplicates if a payload is explicitly set.
@@ -632,7 +636,12 @@ class Connection(asyncio.Protocol):
             ConnectionClosed: When the connection is closed.
 
         """
-        data = prepare_ctrl(data)
+        if isinstance(data, BytesLike):
+            data = bytes(data)
+        elif isinstance(data, str):
+            data = data.encode()
+        else:
+            raise TypeError("data must be str or bytes-like")
 
         async with self.send_context():
             self.protocol.send_pong(data)

@@ -665,6 +665,11 @@ class ClientConnectionTests(unittest.TestCase):
 
         self.connection.ping("idem")  # doesn't raise an exception
 
+    def test_ping_unsupported_type(self):
+        """ping raises TypeError when called with an unsupported type."""
+        with self.assertRaises(TypeError):
+            self.connection.ping([])
+
     # Test pong.
 
     def test_pong(self):
@@ -681,6 +686,11 @@ class ClientConnectionTests(unittest.TestCase):
         """pong sends a pong frame with a payload provided as binary."""
         self.connection.pong(b"pong")
         self.assertFrameSent(Frame(Opcode.PONG, b"pong"))
+
+    def test_pong_unsupported_type(self):
+        """pong raises TypeError when called with an unsupported type."""
+        with self.assertRaises(TypeError):
+            self.connection.pong([])
 
     # Test attributes.
 

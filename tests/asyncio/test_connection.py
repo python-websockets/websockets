@@ -869,6 +869,11 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
         await self.connection.ping("idem")  # doesn't raise an exception
 
+    async def test_ping_unsupported_type(self):
+        """ping raises TypeError when called with an unsupported type."""
+        with self.assertRaises(TypeError):
+            await self.connection.ping([])
+
     # Test pong.
 
     async def test_pong(self):
@@ -885,6 +890,11 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         """pong sends a pong frame with a payload provided as binary."""
         await self.connection.pong(b"pong")
         await self.assertFrameSent(Frame(Opcode.PONG, b"pong"))
+
+    async def test_pong_unsupported_type(self):
+        """pong raises TypeError when called with an unsupported type."""
+        with self.assertRaises(TypeError):
+            await self.connection.pong([])
 
     # Test keepalive.
 

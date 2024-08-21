@@ -5,6 +5,8 @@ from typing import Any, Awaitable, Callable, NamedTuple, Sequence
 
 from .. import extensions, frames
 from ..exceptions import PayloadTooBig, ProtocolError
+from ..frames import BytesLike
+from ..typing import Data
 
 
 try:
@@ -144,12 +146,58 @@ class Frame(NamedTuple):
         write(self.new_frame.serialize(mask=mask, extensions=extensions))
 
 
+def prepare_data(data: Data) -> tuple[int, bytes]:
+    """
+    Convert a string or byte-like object to an opcode and a bytes-like object.
+
+    This function is designed for data frames.
+
+    If ``data`` is a :class:`str`, return ``OP_TEXT`` and a :class:`bytes`
+    object encoding ``data`` in UTF-8.
+
+    If ``data`` is a bytes-like object, return ``OP_BINARY`` and a bytes-like
+    object.
+
+    Raises:
+        TypeError: If ``data`` doesn't have a supported type.
+
+    """
+    if isinstance(data, str):
+        return frames.Opcode.TEXT, data.encode()
+    elif isinstance(data, BytesLike):
+        return frames.Opcode.BINARY, data
+    else:
+        raise TypeError("data must be str or bytes-like")
+
+
+def prepare_ctrl(data: Data) -> bytes:
+    """
+    Convert a string or byte-like object to bytes.
+
+    This function is designed for ping and pong frames.
+
+    If ``data`` is a :class:`str`, return a :class:`bytes` object encoding
+    ``data`` in UTF-8.
+
+    If ``data`` is a bytes-like object, return a :class:`bytes` object.
+
+    Raises:
+        TypeError: If ``data`` doesn't have a supported type.
+
+    """
+    if isinstance(data, str):
+        return data.encode()
+    elif isinstance(data, BytesLike):
+        return bytes(data)
+    else:
+        raise TypeError("data must be str or bytes-like")
+
+
 # Backwards compatibility with previously documented public APIs
-from ..frames import (  # noqa: E402, F401, I001
-    Close,
-    prepare_ctrl as encode_data,
-    prepare_data,
-)
+encode_data = prepare_ctrl
+
+# Backwards compatibility with previously documented public APIs
+from ..frames import Close  # noqa: E402 F401, I001
 
 
 def parse_close(data: bytes) -> tuple[int, str]:

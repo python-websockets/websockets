@@ -377,62 +377,6 @@ class StrTests(unittest.TestCase):
         )
 
 
-class PrepareDataTests(unittest.TestCase):
-    def test_prepare_data_str(self):
-        self.assertEqual(
-            prepare_data("café"),
-            (OP_TEXT, b"caf\xc3\xa9"),
-        )
-
-    def test_prepare_data_bytes(self):
-        self.assertEqual(
-            prepare_data(b"tea"),
-            (OP_BINARY, b"tea"),
-        )
-
-    def test_prepare_data_bytearray(self):
-        self.assertEqual(
-            prepare_data(bytearray(b"tea")),
-            (OP_BINARY, bytearray(b"tea")),
-        )
-
-    def test_prepare_data_memoryview(self):
-        self.assertEqual(
-            prepare_data(memoryview(b"tea")),
-            (OP_BINARY, memoryview(b"tea")),
-        )
-
-    def test_prepare_data_list(self):
-        with self.assertRaises(TypeError):
-            prepare_data([])
-
-    def test_prepare_data_none(self):
-        with self.assertRaises(TypeError):
-            prepare_data(None)
-
-
-class PrepareCtrlTests(unittest.TestCase):
-    def test_prepare_ctrl_str(self):
-        self.assertEqual(prepare_ctrl("café"), b"caf\xc3\xa9")
-
-    def test_prepare_ctrl_bytes(self):
-        self.assertEqual(prepare_ctrl(b"tea"), b"tea")
-
-    def test_prepare_ctrl_bytearray(self):
-        self.assertEqual(prepare_ctrl(bytearray(b"tea")), b"tea")
-
-    def test_prepare_ctrl_memoryview(self):
-        self.assertEqual(prepare_ctrl(memoryview(b"tea")), b"tea")
-
-    def test_prepare_ctrl_list(self):
-        with self.assertRaises(TypeError):
-            prepare_ctrl([])
-
-    def test_prepare_ctrl_none(self):
-        with self.assertRaises(TypeError):
-            prepare_ctrl(None)
-
-
 class CloseTests(unittest.TestCase):
     def assertCloseData(self, close, data):
         """

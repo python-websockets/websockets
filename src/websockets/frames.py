@@ -9,7 +9,6 @@ import struct
 from typing import Callable, Generator, Sequence
 
 from . import exceptions, extensions
-from .typing import Data
 
 
 try:
@@ -29,8 +28,6 @@ __all__ = [
     "DATA_OPCODES",
     "CTRL_OPCODES",
     "Frame",
-    "prepare_data",
-    "prepare_ctrl",
     "Close",
 ]
 
@@ -352,53 +349,6 @@ class Frame:
                 raise exceptions.ProtocolError("control frame too long")
             if not self.fin:
                 raise exceptions.ProtocolError("fragmented control frame")
-
-
-def prepare_data(data: Data) -> tuple[int, bytes]:
-    """
-    Convert a string or byte-like object to an opcode and a bytes-like object.
-
-    This function is designed for data frames.
-
-    If ``data`` is a :class:`str`, return ``OP_TEXT`` and a :class:`bytes`
-    object encoding ``data`` in UTF-8.
-
-    If ``data`` is a bytes-like object, return ``OP_BINARY`` and a bytes-like
-    object.
-
-    Raises:
-        TypeError: If ``data`` doesn't have a supported type.
-
-    """
-    if isinstance(data, str):
-        return OP_TEXT, data.encode()
-    elif isinstance(data, BytesLike):
-        return OP_BINARY, data
-    else:
-        raise TypeError("data must be str or bytes-like")
-
-
-def prepare_ctrl(data: Data) -> bytes:
-    """
-    Convert a string or byte-like object to bytes.
-
-    This function is designed for ping and pong frames.
-
-    If ``data`` is a :class:`str`, return a :class:`bytes` object encoding
-    ``data`` in UTF-8.
-
-    If ``data`` is a bytes-like object, return a :class:`bytes` object.
-
-    Raises:
-        TypeError: If ``data`` doesn't have a supported type.
-
-    """
-    if isinstance(data, str):
-        return data.encode()
-    elif isinstance(data, BytesLike):
-        return bytes(data)
-    else:
-        raise TypeError("data must be str or bytes-like")
 
 
 @dataclasses.dataclass

@@ -45,7 +45,6 @@ explicitly with :class:`ClientPerMessageDeflateFactory` or
                 compress_settings={"memLevel": 4},
             ),
         ],
-        ...,
     )
 
     serve(
@@ -57,7 +56,6 @@ explicitly with :class:`ClientPerMessageDeflateFactory` or
                 compress_settings={"memLevel": 4},
             ),
         ],
-        ...,
     )
 
 The Window Bits and Memory Level values in these examples reduce memory usage

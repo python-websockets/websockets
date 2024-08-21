@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import hmac
 import http
 import logging
 import socket
@@ -13,13 +14,19 @@ from typing import (
     Generator,
     Iterable,
     Sequence,
+    Tuple,
+    cast,
 )
 
-from websockets.frames import CloseCode
-
+from ..exceptions import InvalidHeader
 from ..extensions.base import ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
-from ..headers import validate_subprotocols
+from ..frames import CloseCode
+from ..headers import (
+    build_www_authenticate_basic,
+    parse_authorization_basic,
+    validate_subprotocols,
+)
 from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, Event
 from ..server import ServerProtocol
@@ -28,7 +35,14 @@ from .compatibility import asyncio_timeout
 from .connection import Connection, broadcast
 
 
-__all__ = ["broadcast", "serve", "unix_serve", "ServerConnection", "Server"]
+__all__ = [
+    "broadcast",
+    "serve",
+    "unix_serve",
+    "ServerConnection",
+    "Server",
+    "basic_auth",
+]
 
 
 class ServerConnection(Connection):
@@ -79,6 +93,7 @@ class ServerConnection(Connection):
         )
         self.server = server
         self.request_rcvd: asyncio.Future[None] = self.loop.create_future()
+        self.username: str  # see basic_auth()
 
     def respond(self, status: StatusLike, text: str) -> Response:
         """
@@ -548,19 +563,21 @@ class serve:
     :class:`asyncio.Server`. Treat it as an asynchronous context manager to
     ensure that the server will be closed::
 
+        from websockets.asyncio.server import serve
+
         def handler(websocket):
             ...
 
         # set this future to exit the server
         stop = asyncio.get_running_loop().create_future()
 
-        async with websockets.asyncio.server.serve(handler, host, port):
+        async with serve(handler, host, port):
             await stop
 
     Alternatively, call :meth:`~Server.serve_forever` to serve requests and
     cancel it to stop the server::
 
-        server = await websockets.asyncio.server.serve(handler, host, port)
+        server = await serve(handler, host, port)
         await server.serve_forever()
 
     Args:
@@ -822,3 +839,123 @@ def unix_serve(
 
     """
     return serve(handler, unix=True, path=path, **kwargs)
+
+
+def is_credentials(credentials: Any) -> bool:
+    try:
+        username, password = credentials
+    except (TypeError, ValueError):
+        return False
+    else:
+        return isinstance(username, str) and isinstance(password, str)
+
+
+def basic_auth(
+    realm: str = "",
+    credentials: tuple[str, str] | Iterable[tuple[str, str]] | None = None,
+    check_credentials: Callable[[str, str], Awaitable[bool] | bool] | None = None,
+) -> Callable[[ServerConnection, Request], Awaitable[Response | None]]:
+    """
+    Factory for ``process_request`` to enforce HTTP Basic Authentication.
+
+    :func:`basic_auth` is designed to integrate with :func:`serve` as follows::
+
+        from websockets.asyncio.server import basic_auth, serve
+
+        async with serve(
+            ...,
+            process_request=basic_auth(
+                realm="my dev server",
+                credentials=("hello", "iloveyou"),
+            ),
+        ):
+
+    If authentication succeeds, the connection's ``username`` attribute is set.
+    If it fails, the server responds with an HTTP 401 Unauthorized status.
+
+    One of ``credentials`` or ``check_credentials`` must be provided; not both.
+
+    Args:
+        realm: Scope of protection. It should contain only ASCII characters
+            because the encoding of non-ASCII characters is undefined. Refer to
+            section 2.2 of :rfc:`7235` for details.
+        credentials: Hard coded authorized credentials. It can be a
+            ``(username, password)`` pair or a list of such pairs.
+        check_credentials: Function or coroutine that verifies credentials.
+            It receives ``username`` and ``password`` arguments and returns
+            whether they're valid.
+    Raises:
+        TypeError: If ``credentials`` or ``check_credentials`` is wrong.
+
+    """
+    if (credentials is None) == (check_credentials is None):
+        raise TypeError("provide either credentials or check_credentials")
+
+    if credentials is not None:
+        if is_credentials(credentials):
+            credentials_list = [cast(Tuple[str, str], credentials)]
+        elif isinstance(credentials, Iterable):
+            credentials_list = list(cast(Iterable[Tuple[str, str]], credentials))
+            if not all(is_credentials(item) for item in credentials_list):
+                raise TypeError(f"invalid credentials argument: {credentials}")
+        else:
+            raise TypeError(f"invalid credentials argument: {credentials}")
+
+        credentials_dict = dict(credentials_list)
+
+        def check_credentials(username: str, password: str) -> bool:
+            try:
+                expected_password = credentials_dict[username]
+            except KeyError:
+                return False
+            return hmac.compare_digest(expected_password, password)
+
+    assert check_credentials is not None  # help mypy
+
+    async def process_request(
+        connection: ServerConnection,
+        request: Request,
+    ) -> Response | None:
+        """
+        Perform HTTP Basic Authentication.
+
+        If it succeeds, set the connection's ``username`` attribute and return
+        :obj:`None`. If it fails, return an HTTP 401 Unauthorized responss.
+
+        """
+        try:
+            authorization = request.headers["Authorization"]
+        except KeyError:
+            response = connection.respond(
+                http.HTTPStatus.UNAUTHORIZED,
+                "Missing credentials\n",
+            )
+            response.headers["WWW-Authenticate"] = build_www_authenticate_basic(realm)
+            return response
+
+        try:
+            username, password = parse_authorization_basic(authorization)
+        except InvalidHeader:
+            response = connection.respond(
+                http.HTTPStatus.UNAUTHORIZED,
+                "Unsupported credentials\n",
+            )
+            response.headers["WWW-Authenticate"] = build_www_authenticate_basic(realm)
+            return response
+
+        valid_credentials = check_credentials(username, password)
+        if isinstance(valid_credentials, Awaitable):
+            valid_credentials = await valid_credentials
+
+        if not valid_credentials:
+            response = connection.respond(
+                http.HTTPStatus.UNAUTHORIZED,
+                "Invalid credentials\n",
+            )
+            response.headers["WWW-Authenticate"] = build_www_authenticate_basic(realm)
+            return response
+
+        connection.username = username
+        return None
+
+    return process_request

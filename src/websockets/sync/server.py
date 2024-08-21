@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hmac
 import http
 import logging
 import os
@@ -10,12 +11,17 @@ import sys
 import threading
 import warnings
 from types import TracebackType
-from typing import Any, Callable, Sequence
+from typing import Any, Callable, Iterable, Sequence, Tuple, cast
 
+from ..exceptions import InvalidHeader
 from ..extensions.base import ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
 from ..frames import CloseCode
-from ..headers import validate_subprotocols
+from ..headers import (
+    build_www_authenticate_basic,
+    parse_authorization_basic,
+    validate_subprotocols,
+)
 from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
@@ -24,7 +30,7 @@ from .connection import Connection
 from .utils import Deadline
 
 
-__all__ = ["serve", "unix_serve", "ServerConnection", "Server"]
+__all__ = ["serve", "unix_serve", "ServerConnection", "Server", "basic_auth"]
 
 
 class ServerConnection(Connection):
@@ -65,6 +71,7 @@ class ServerConnection(Connection):
             protocol,
             close_timeout=close_timeout,
         )
+        self.username: str  # see basic_auth()
 
     def respond(self, status: StatusLike, text: str) -> Response:
         """
@@ -368,10 +375,12 @@ def serve(
     that it will be closed and call :meth:`~Server.serve_forever` to serve
     requests::
 
+        from websockets.sync.server import serve
+
         def handler(websocket):
             ...
 
-        with websockets.sync.server.serve(handler, ...) as server:
+        with serve(handler, ...) as server:
             server.serve_forever()
 
     Args:
@@ -587,3 +596,119 @@ def unix_serve(
 
     """
     return serve(handler, unix=True, path=path, **kwargs)
+
+
+def is_credentials(credentials: Any) -> bool:
+    try:
+        username, password = credentials
+    except (TypeError, ValueError):
+        return False
+    else:
+        return isinstance(username, str) and isinstance(password, str)
+
+
+def basic_auth(
+    realm: str = "",
+    credentials: tuple[str, str] | Iterable[tuple[str, str]] | None = None,
+    check_credentials: Callable[[str, str], bool] | None = None,
+) -> Callable[[ServerConnection, Request], Response | None]:
+    """
+    Factory for ``process_request`` to enforce HTTP Basic Authentication.
+
+    :func:`basic_auth` is designed to integrate with :func:`serve` as follows::
+
+        from websockets.sync.server import basic_auth, serve
+
+        with serve(
+            ...,
+            process_request=basic_auth(
+                realm="my dev server",
+                credentials=("hello", "iloveyou"),
+            ),
+        ):
+
+    If authentication succeeds, the connection's ``username`` attribute is set.
+    If it fails, the server responds with an HTTP 401 Unauthorized status.
+
+    One of ``credentials`` or ``check_credentials`` must be provided; not both.
+
+    Args:
+        realm: Scope of protection. It should contain only ASCII characters
+            because the encoding of non-ASCII characters is undefined. Refer to
+            section 2.2 of :rfc:`7235` for details.
+        credentials: Hard coded authorized credentials. It can be a
+            ``(username, password)`` pair or a list of such pairs.
+        check_credentials: Function that verifies credentials.
+            It receives ``username`` and ``password`` arguments and returns
+            whether they're valid.
+    Raises:
+        TypeError: If ``credentials`` or ``check_credentials`` is wrong.
+
+    """
+    if (credentials is None) == (check_credentials is None):
+        raise TypeError("provide either credentials or check_credentials")
+
+    if credentials is not None:
+        if is_credentials(credentials):
+            credentials_list = [cast(Tuple[str, str], credentials)]
+        elif isinstance(credentials, Iterable):
+            credentials_list = list(cast(Iterable[Tuple[str, str]], credentials))
+            if not all(is_credentials(item) for item in credentials_list):
+                raise TypeError(f"invalid credentials argument: {credentials}")
+        else:
+            raise TypeError(f"invalid credentials argument: {credentials}")
+
+        credentials_dict = dict(credentials_list)
+
+        def check_credentials(username: str, password: str) -> bool:
+            try:
+                expected_password = credentials_dict[username]
+            except KeyError:
+                return False
+            return hmac.compare_digest(expected_password, password)
+
+    assert check_credentials is not None  # help mypy
+
+    def process_request(
+        connection: ServerConnection,
+        request: Request,
+    ) -> Response | None:
+        """
+        Perform HTTP Basic Authentication.
+
+        If it succeeds, set the connection's ``username`` attribute and return
+        :obj:`None`. If it fails, return an HTTP 401 Unauthorized responss.
+
+        """
+        try:
+            authorization = request.headers["Authorization"]
+        except KeyError:
+            response = connection.respond(
+                http.HTTPStatus.UNAUTHORIZED,
+                "Missing credentials\n",
+            )
+            response.headers["WWW-Authenticate"] = build_www_authenticate_basic(realm)
+            return response
+
+        try:
+            username, password = parse_authorization_basic(authorization)
+        except InvalidHeader:
+            response = connection.respond(
+                http.HTTPStatus.UNAUTHORIZED,
+                "Unsupported credentials\n",
+            )
+            response.headers["WWW-Authenticate"] = build_www_authenticate_basic(realm)
+            return response
+
+        if not check_credentials(username, password):
+            response = connection.respond(
+                http.HTTPStatus.UNAUTHORIZED,
+                "Invalid credentials\n",
+            )
+            response.headers["WWW-Authenticate"] = build_www_authenticate_basic(realm)
+            return response
+
+        connection.username = username
+        return None
+
+    return process_request

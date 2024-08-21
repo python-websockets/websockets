@@ -156,7 +156,9 @@ def connect(
 
     :func:`connect` may be used as a context manager::
 
-        with websockets.sync.client.connect(...) as websocket:
+        from websockets.sync.client import connect
+
+        with connect(...) as websocket:
             ...
 
     The connection is closed automatically when exiting the context.

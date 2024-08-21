@@ -60,3 +60,11 @@ Using a connection
     .. autoattribute:: response
 
     .. autoproperty:: subprotocol
+
+HTTP Basic Authentication
+-------------------------
+
+websockets supports HTTP Basic Authentication according to
+:rfc:`7235` and :rfc:`7617`.
+
+.. autofunction:: websockets.sync.server.basic_auth

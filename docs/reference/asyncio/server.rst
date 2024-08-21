@@ -81,3 +81,11 @@ Broadcast
 ---------
 
 .. autofunction:: websockets.asyncio.server.broadcast
+
+HTTP Basic Authentication
+-------------------------
+
+websockets supports HTTP Basic Authentication according to
+:rfc:`7235` and :rfc:`7617`.
+
+.. autofunction:: websockets.asyncio.server.basic_auth

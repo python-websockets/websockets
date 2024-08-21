@@ -32,6 +32,12 @@ notice.
 
 *In development*
 
+New features
+............
+
+* The new :mod:`asyncio` and :mod:`threading` implementations provide an API for
+  enforcing HTTP Basic Auth on the server side.
+
 .. _13.0:
 
 13.0

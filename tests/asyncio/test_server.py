@@ -1,5 +1,6 @@
 import asyncio
 import dataclasses
+import hmac
 import http
 import logging
 import socket
@@ -560,3 +561,162 @@ class WebSocketServerTests(unittest.IsolatedAsyncioTestCase):
         logger = logging.getLogger("test")
         async with run_server(logger=logger) as server:
             self.assertIs(server.logger, logger)
+
+
+class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
+    async def test_valid_authorization(self):
+        """basic_auth authenticates client with HTTP Basic Authentication."""
+        async with run_server(
+            process_request=basic_auth(credentials=("hello", "iloveyou")),
+        ) as server:
+            async with run_client(
+                server,
+                additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
+            ) as client:
+                await self.assertEval(client, "ws.username", "hello")
+
+    async def test_missing_authorization(self):
+        """basic_auth rejects client without credentials."""
+        async with run_server(
+            process_request=basic_auth(credentials=("hello", "iloveyou")),
+        ) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                async with run_client(server):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 401",
+            )
+
+    async def test_unsupported_authorization(self):
+        """basic_auth rejects client with unsupported credentials."""
+        async with run_server(
+            process_request=basic_auth(credentials=("hello", "iloveyou")),
+        ) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                async with run_client(
+                    server,
+                    additional_headers={"Authorization": "Negotiate ..."},
+                ):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 401",
+            )
+
+    async def test_authorization_with_unknown_username(self):
+        """basic_auth rejects client with unknown username."""
+        async with run_server(
+            process_request=basic_auth(credentials=("hello", "iloveyou")),
+        ) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                async with run_client(
+                    server,
+                    additional_headers={"Authorization": "Basic YnllOnlvdWxvdmVtZQ=="},
+                ):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 401",
+            )
+
+    async def test_authorization_with_incorrect_password(self):
+        """basic_auth rejects client with incorrect password."""
+        async with run_server(
+            process_request=basic_auth(credentials=("hello", "changeme")),
+        ) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                async with run_client(
+                    server,
+                    additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
+                ):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 401",
+            )
+
+    async def test_list_of_credentials(self):
+        """basic_auth accepts a list of hard coded credentials."""
+        async with run_server(
+            process_request=basic_auth(
+                credentials=[
+                    ("hello", "iloveyou"),
+                    ("bye", "youloveme"),
+                ]
+            ),
+        ) as server:
+            async with run_client(
+                server,
+                additional_headers={"Authorization": "Basic YnllOnlvdWxvdmVtZQ=="},
+            ) as client:
+                await self.assertEval(client, "ws.username", "bye")
+
+    async def test_check_credentials_function(self):
+        """basic_auth accepts a check_credentials function."""
+
+        def check_credentials(username, password):
+            return hmac.compare_digest(password, "iloveyou")
+
+        async with run_server(
+            process_request=basic_auth(check_credentials=check_credentials),
+        ) as server:
+            async with run_client(
+                server,
+                additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
+            ) as client:
+                await self.assertEval(client, "ws.username", "hello")
+
+    async def test_check_credentials_coroutine(self):
+        """basic_auth accepts a check_credentials coroutine."""
+
+        async def check_credentials(username, password):
+            return hmac.compare_digest(password, "iloveyou")
+
+        async with run_server(
+            process_request=basic_auth(check_credentials=check_credentials),
+        ) as server:
+            async with run_client(
+                server,
+                additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
+            ) as client:
+                await self.assertEval(client, "ws.username", "hello")
+
+    async def test_without_credentials_or_check_credentials(self):
+        """basic_auth requires either credentials or check_credentials."""
+        with self.assertRaises(TypeError) as raised:
+            basic_auth()
+        self.assertEqual(
+            str(raised.exception),
+            "provide either credentials or check_credentials",
+        )
+
+    async def test_with_credentials_and_check_credentials(self):
+        """basic_auth requires only one of credentials and check_credentials."""
+        with self.assertRaises(TypeError) as raised:
+            basic_auth(
+                credentials=("hello", "iloveyou"),
+                check_credentials=lambda: False,  # pragma: no cover
+            )
+        self.assertEqual(
+            str(raised.exception),
+            "provide either credentials or check_credentials",
+        )
+
+    async def test_bad_credentials(self):
+        """basic_auth receives an unsupported credentials argument."""
+        with self.assertRaises(TypeError) as raised:
+            basic_auth(credentials=42)
+        self.assertEqual(
+            str(raised.exception),
+            "invalid credentials argument: 42",
+        )
+
+    async def test_bad_list_of_credentials(self):
+        """basic_auth receives an unsupported credentials argument."""
+        with self.assertRaises(TypeError) as raised:
+            basic_auth(credentials=[42])
+        self.assertEqual(
+            str(raised.exception),
+            "invalid credentials argument: [42]",
+        )

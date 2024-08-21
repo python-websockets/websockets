@@ -131,7 +131,9 @@ class connect:
 
     :func:`connect` may be used as an asynchronous context manager::
 
-        async with websockets.asyncio.client.connect(...) as websocket:
+        from websockets.asyncio.client import connect
+
+        async with connect(...) as websocket:
             ...
 
     The connection is closed automatically when exiting the context.

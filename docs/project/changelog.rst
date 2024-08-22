@@ -35,8 +35,11 @@ notice.
 New features
 ............
 
-* The new :mod:`asyncio` and :mod:`threading` implementations provide an API for
-  enforcing HTTP Basic Auth on the server side.
+* Made the set of active connections available in the :attr:`Server.connections
+  <asyncio.server.Server.connections>` property.
+
+* Added HTTP Basic Auth to the new :mod:`asyncio` and :mod:`threading`
+  implementations of servers.
 
 .. _13.0:
 

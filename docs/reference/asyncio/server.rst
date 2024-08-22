@@ -17,6 +17,8 @@ Running a server
 
 .. autoclass:: Server
 
+    .. autoattribute:: connections
+
     .. automethod:: close
 
     .. automethod:: wait_closed

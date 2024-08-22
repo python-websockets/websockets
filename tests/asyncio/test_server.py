@@ -350,6 +350,12 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 latency = eval(await client.recv())
                 self.assertEqual(latency, 0)
 
+    async def test_logger(self):
+        """Server accepts a logger argument."""
+        logger = logging.getLogger("test")
+        async with run_server(logger=logger) as server:
+            self.assertIs(server.logger, logger)
+
     async def test_custom_connection_factory(self):
         """Server runs ServerConnection factory provided in create_connection."""
 
@@ -361,6 +367,16 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async with run_server(create_connection=create_connection) as server:
             async with run_client(server) as client:
                 await self.assertEval(client, "ws.create_connection_ran", "True")
+
+    async def test_connections(self):
+        """Server provides a connections property."""
+        async with run_server() as server:
+            self.assertEqual(server.connections, set())
+            async with run_client(server) as client:
+                self.assertEqual(len(server.connections), 1)
+                ws_id = str(next(iter(server.connections)).id)
+                await self.assertEval(client, "ws.id", ws_id)
+            self.assertEqual(server.connections, set())
 
     async def test_handshake_fails(self):
         """Server receives connection from client but the handshake fails."""
@@ -553,14 +569,6 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
             str(raised.exception),
             "unsupported compression: False",
         )
-
-
-class WebSocketServerTests(unittest.IsolatedAsyncioTestCase):
-    async def test_logger(self):
-        """Server accepts a logger argument."""
-        logger = logging.getLogger("test")
-        async with run_server(logger=logger) as server:
-            self.assertIs(server.logger, logger)
 
 
 class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):

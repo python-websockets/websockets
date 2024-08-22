@@ -235,6 +235,12 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             with run_client(server) as client:
                 self.assertEval(client, "ws.protocol.extensions", "[]")
 
+    def test_logger(self):
+        """Server accepts a logger argument."""
+        logger = logging.getLogger("test")
+        with run_server(logger=logger) as server:
+            self.assertIs(server.logger, logger)
+
     def test_custom_connection_factory(self):
         """Server runs ServerConnection factory provided in create_connection."""
 
@@ -246,6 +252,19 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         with run_server(create_connection=create_connection) as server:
             with run_client(server) as client:
                 self.assertEval(client, "ws.create_connection_ran", "True")
+
+    def test_fileno(self):
+        """Server provides a fileno attribute."""
+        with run_server() as server:
+            self.assertIsInstance(server.fileno(), int)
+
+    def test_shutdown(self):
+        """Server provides a shutdown method."""
+        with run_server() as server:
+            server.shutdown()
+            # Check that the server socket is closed.
+            with self.assertRaises(OSError):
+                server.socket.accept()
 
     def test_handshake_fails(self):
         """Server receives connection from client but the handshake fails."""
@@ -391,27 +410,6 @@ class ServerUsageErrorsTests(unittest.TestCase):
             str(raised.exception),
             "unsupported compression: False",
         )
-
-
-class WebSocketServerTests(unittest.TestCase):
-    def test_logger(self):
-        """Server accepts a logger argument."""
-        logger = logging.getLogger("test")
-        with run_server(logger=logger) as server:
-            self.assertIs(server.logger, logger)
-
-    def test_fileno(self):
-        """Server provides a fileno attribute."""
-        with run_server() as server:
-            self.assertIsInstance(server.fileno(), int)
-
-    def test_shutdown(self):
-        """Server provides a shutdown method."""
-        with run_server() as server:
-            server.shutdown()
-            # Check that the server socket is closed.
-            with self.assertRaises(OSError):
-                server.socket.accept()
 
 
 class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):

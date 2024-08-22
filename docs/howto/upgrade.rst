@@ -197,6 +197,16 @@ implementation.
 Depending on your use case, adopting this method may improve performance when
 streaming large messages. Specifically, it could reduce memory usage.
 
+Tracking open connections
+.........................
+
+The new implementation of :class:`~asyncio.server.Server` provides a
+:attr:`~asyncio.server.Server.connections` property, which is a set of all open
+connections. This didn't exist in the original implementation.
+
+If you were keeping track of open connections, you may be able to simplify your
+code by using this property.
+
 .. _basic-auth:
 
 Performing HTTP Basic Authentication

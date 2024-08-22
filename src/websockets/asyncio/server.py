@@ -28,7 +28,7 @@ from ..headers import (
     validate_subprotocols,
 )
 from ..http11 import SERVER, Request, Response
-from ..protocol import CONNECTING, Event
+from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
 from .compatibility import asyncio_timeout
@@ -312,6 +312,18 @@ class Server:
 
         # Completed when the server is closed and connections are terminated.
         self.closed_waiter: asyncio.Future[None] = self.loop.create_future()
+
+    @property
+    def connections(self) -> set[ServerConnection]:
+        """
+        Set of active connections.
+
+        This property contains all connections that completed the opening
+        handshake successfully and didn't start the closing handshake yet.
+        It can be useful in combination with :func:`~broadcast`.
+
+        """
+        return {connection for connection in self.handlers if connection.state is OPEN}
 
     def wrap(self, server: asyncio.Server) -> None:
         """

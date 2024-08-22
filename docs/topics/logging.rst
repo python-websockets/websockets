@@ -124,9 +124,11 @@ Here's how to include them in logs, assuming they're in the
         def process(self, msg, kwargs):
             try:
                 websocket = kwargs["extra"]["websocket"]
-            except KeyError:
+            except KeyError:        # log entry not coming from a connection
                 return msg, kwargs
-            xff = websocket.request_headers.get("X-Forwarded-For")
+            if websocket.request is None:   # opening handshake not complete
+                return msg, kwargs
+            xff = headers.get("X-Forwarded-For")
             return f"{websocket.id} {xff} {msg}", kwargs
 
     async with serve(
@@ -165,10 +167,11 @@ a :class:`~logging.LoggerAdapter`::
                 websocket = kwargs["extra"]["websocket"]
             except KeyError:
                 return msg, kwargs
-            kwargs["extra"]["event_data"] = {
-                "connection_id": str(websocket.id),
-                "remote_addr": websocket.request_headers.get("X-Forwarded-For"),
-            }
+            event_data = {"connection_id": str(websocket.id)}
+            if websocket.request is not None:  # opening handshake complete
+                headers = websocket.request.headers
+                event_data["remote_addr"] = headers.get("X-Forwarded-For")
+            kwargs["extra"]["event_data"] = event_data
             return msg, kwargs
 
     async with serve(

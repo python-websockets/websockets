@@ -20,7 +20,7 @@
             * :exc:`InvalidParameterName`
             * :exc:`InvalidParameterValue`
         * :exc:`AbortHandshake` (legacy)
-        * :exc:`RedirectHandshake`
+        * :exc:`RedirectHandshake` (legacy)
     * :exc:`InvalidState`
     * :exc:`InvalidURI`
     * :exc:`PayloadTooBig`
@@ -300,21 +300,6 @@ class InvalidParameterValue(NegotiationError):
             return f"invalid value for parameter {self.name}: {self.value}"
 
 
-class RedirectHandshake(InvalidHandshake):
-    """
-    Raised when a handshake gets redirected.
-
-    This exception is an implementation detail.
-
-    """
-
-    def __init__(self, uri: str) -> None:
-        self.uri = uri
-
-    def __str__(self) -> str:
-        return f"redirect to {self.uri}"
-
-
 class InvalidState(WebSocketException, AssertionError):
     """
     Raised when an operation is forbidden in the current state.
@@ -360,6 +345,7 @@ if typing.TYPE_CHECKING:
         AbortHandshake,
         InvalidMessage,
         InvalidStatusCode,
+        RedirectHandshake,
     )
 
     WebSocketProtocolError = ProtocolError
@@ -370,6 +356,7 @@ else:
             "AbortHandshake": ".legacy.exceptions",
             "InvalidMessage": ".legacy.exceptions",
             "InvalidStatusCode": ".legacy.exceptions",
+            "RedirectHandshake": ".legacy.exceptions",
             "WebSocketProtocolError": ".legacy.exceptions",
         },
     )

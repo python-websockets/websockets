@@ -32,7 +32,6 @@ __all__ = [
     "NegotiationError",
     "PayloadTooBig",
     "ProtocolError",
-    "RedirectHandshake",
     "SecurityError",
     "WebSocketException",
     "WebSocketProtocolError",
@@ -47,6 +46,7 @@ __all__ = [
     "AbortHandshake",
     "InvalidMessage",
     "InvalidStatusCode",
+    "RedirectHandshake",
     # .legacy.protocol
     "WebSocketCommonProtocol",
     # .legacy.server
@@ -90,7 +90,6 @@ if typing.TYPE_CHECKING:
         NegotiationError,
         PayloadTooBig,
         ProtocolError,
-        RedirectHandshake,
         SecurityError,
         WebSocketException,
         WebSocketProtocolError,
@@ -104,6 +103,7 @@ if typing.TYPE_CHECKING:
         AbortHandshake,
         InvalidMessage,
         InvalidStatusCode,
+        RedirectHandshake,
     )
     from .legacy.protocol import WebSocketCommonProtocol
     from .legacy.server import (
@@ -152,7 +152,6 @@ else:
             "NegotiationError": ".exceptions",
             "PayloadTooBig": ".exceptions",
             "ProtocolError": ".exceptions",
-            "RedirectHandshake": ".exceptions",
             "SecurityError": ".exceptions",
             "WebSocketException": ".exceptions",
             "WebSocketProtocolError": ".exceptions",
@@ -167,6 +166,7 @@ else:
             "AbortHandshake": ".legacy.exceptions",
             "InvalidMessage": ".legacy.exceptions",
             "InvalidStatusCode": ".legacy.exceptions",
+            "RedirectHandshake": ".legacy.exceptions",
             # .legacy.protocol
             "WebSocketCommonProtocol": ".legacy.protocol",
             # .legacy.server

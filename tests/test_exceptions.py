@@ -152,10 +152,6 @@ class ExceptionsTests(unittest.TestCase):
                 "invalid value for parameter a: |",
             ),
             (
-                RedirectHandshake("wss://example.com"),
-                "redirect to wss://example.com",
-            ),
-            (
                 InvalidState("WebSocket connection isn't established yet"),
                 "WebSocket connection isn't established yet",
             ),

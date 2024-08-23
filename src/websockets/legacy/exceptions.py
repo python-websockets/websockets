@@ -61,3 +61,18 @@ class AbortHandshake(InvalidHandshake):
             f"{len(self.headers)} headers, "
             f"{len(self.body)} bytes"
         )
+
+
+class RedirectHandshake(InvalidHandshake):
+    """
+    Raised when a handshake gets redirected.
+
+    This exception is an implementation detail.
+
+    """
+
+    def __init__(self, uri: str) -> None:
+        self.uri = uri
+
+    def __str__(self) -> str:
+        return f"redirect to {self.uri}"

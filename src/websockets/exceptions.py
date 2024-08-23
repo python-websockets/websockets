@@ -250,20 +250,6 @@ class InvalidStatus(InvalidHandshake):
         )
 
 
-class InvalidStatusCode(InvalidHandshake):
-    """
-    Raised when a handshake response status code is invalid.
-
-    """
-
-    def __init__(self, status_code: int, headers: datastructures.Headers) -> None:
-        self.status_code = status_code
-        self.headers = headers
-
-    def __str__(self) -> str:
-        return f"server rejected WebSocket connection: HTTP {self.status_code}"
-
-
 class NegotiationError(InvalidHandshake):
     """
     Raised when negotiating an extension fails.
@@ -406,7 +392,10 @@ class ProtocolError(WebSocketException):
 
 # When type checking, import non-deprecated aliases eagerly. Else, import on demand.
 if typing.TYPE_CHECKING:
-    from .legacy.exceptions import InvalidMessage
+    from .legacy.exceptions import (
+        InvalidMessage,
+        InvalidStatusCode,
+    )
 
     WebSocketProtocolError = ProtocolError
 else:
@@ -414,6 +403,7 @@ else:
         globals(),
         aliases={
             "InvalidMessage": ".legacy.exceptions",
+            "InvalidStatusCode": ".legacy.exceptions",
             "WebSocketProtocolError": ".legacy.exceptions",
         },
     )

@@ -128,10 +128,6 @@ class ExceptionsTests(unittest.TestCase):
                 "server rejected WebSocket connection: HTTP 401",
             ),
             (
-                InvalidStatusCode(403, Headers()),
-                "server rejected WebSocket connection: HTTP 403",
-            ),
-            (
                 NegotiationError("unsupported subprotocol: spam"),
                 "unsupported subprotocol: spam",
             ),

@@ -28,7 +28,6 @@ __all__ = [
     "InvalidParameterValue",
     "InvalidState",
     "InvalidStatus",
-    "InvalidStatusCode",
     "InvalidUpgrade",
     "InvalidURI",
     "NegotiationError",
@@ -47,6 +46,7 @@ __all__ = [
     "unix_connect",
     # .legacy.exceptions
     "InvalidMessage",
+    "InvalidStatusCode",
     # .legacy.protocol
     "WebSocketCommonProtocol",
     # .legacy.server
@@ -86,7 +86,6 @@ if typing.TYPE_CHECKING:
         InvalidParameterValue,
         InvalidState,
         InvalidStatus,
-        InvalidStatusCode,
         InvalidUpgrade,
         InvalidURI,
         NegotiationError,
@@ -102,7 +101,7 @@ if typing.TYPE_CHECKING:
         basic_auth_protocol_factory,
     )
     from .legacy.client import WebSocketClientProtocol, connect, unix_connect
-    from .legacy.exceptions import InvalidMessage
+    from .legacy.exceptions import InvalidMessage, InvalidStatusCode
     from .legacy.protocol import WebSocketCommonProtocol
     from .legacy.server import (
         WebSocketServer,
@@ -146,7 +145,6 @@ else:
             "InvalidParameterValue": ".exceptions",
             "InvalidState": ".exceptions",
             "InvalidStatus": ".exceptions",
-            "InvalidStatusCode": ".exceptions",
             "InvalidUpgrade": ".exceptions",
             "InvalidURI": ".exceptions",
             "NegotiationError": ".exceptions",
@@ -165,6 +163,7 @@ else:
             "unix_connect": ".legacy.client",
             # .legacy.exceptions
             "InvalidMessage": ".legacy.exceptions",
+            "InvalidStatusCode": ".legacy.exceptions",
             # .legacy.protocol
             "WebSocketCommonProtocol": ".legacy.protocol",
             # .legacy.server

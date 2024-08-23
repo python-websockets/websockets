@@ -19,10 +19,9 @@ from typing import (
 from ..asyncio.compatibility import asyncio_timeout
 from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
-    InvalidHandshake,
     InvalidHeader,
+    InvalidHeaderValue,
     NegotiationError,
-
     SecurityError,
 )
 from ..extensions import ClientExtensionFactory, Extension
@@ -181,7 +180,7 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         if header_values:
             if available_extensions is None:
-                raise InvalidHandshake("no extensions supported")
+                raise NegotiationError("no extensions supported")
 
             parsed_header_values: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in header_values], []
@@ -235,15 +234,17 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         if header_values:
             if available_subprotocols is None:
-                raise InvalidHandshake("no subprotocols supported")
+                raise NegotiationError("no subprotocols supported")
 
             parsed_header_values: Sequence[Subprotocol] = sum(
                 [parse_subprotocol(header_value) for header_value in header_values], []
             )
 
             if len(parsed_header_values) > 1:
-                subprotocols = ", ".join(parsed_header_values)
-                raise InvalidHandshake(f"multiple subprotocols: {subprotocols}")
+                raise InvalidHeaderValue(
+                    "Sec-WebSocket-Protocol",
+                    f"multiple values: {', '.join(parsed_header_values)}",
+                )
 
             subprotocol = parsed_header_values[0]
 

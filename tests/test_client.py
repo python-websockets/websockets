@@ -342,8 +342,7 @@ class AcceptRejectTests(unittest.TestCase):
             raise client.handshake_exc
         self.assertEqual(
             str(raised.exception),
-            "invalid Sec-WebSocket-Accept header: "
-            "more than one Sec-WebSocket-Accept header found",
+            "invalid Sec-WebSocket-Accept header: multiple values",
         )
 
     def test_invalid_accept(self):
@@ -556,7 +555,9 @@ class AcceptRejectTests(unittest.TestCase):
         with self.assertRaises(InvalidHandshake) as raised:
             raise client.handshake_exc
         self.assertEqual(
-            str(raised.exception), "multiple subprotocols: superchat, chat"
+            str(raised.exception),
+            "invalid Sec-WebSocket-Protocol header: "
+            "multiple values: superchat, chat",
         )
 
     def test_supported_subprotocol(self):

@@ -257,9 +257,7 @@ class ServerProtocol(Protocol):
         except KeyError as exc:
             raise InvalidHeader("Sec-WebSocket-Key") from exc
         except MultipleValuesError as exc:
-            raise InvalidHeader(
-                "Sec-WebSocket-Key", "more than one Sec-WebSocket-Key header found"
-            ) from exc
+            raise InvalidHeader("Sec-WebSocket-Key", "multiple values") from exc
 
         try:
             raw_key = base64.b64decode(key.encode(), validate=True)
@@ -273,10 +271,7 @@ class ServerProtocol(Protocol):
         except KeyError as exc:
             raise InvalidHeader("Sec-WebSocket-Version") from exc
         except MultipleValuesError as exc:
-            raise InvalidHeader(
-                "Sec-WebSocket-Version",
-                "more than one Sec-WebSocket-Version header found",
-            ) from exc
+            raise InvalidHeader("Sec-WebSocket-Version", "multiple values") from exc
 
         if version != "13":
             raise InvalidHeaderValue("Sec-WebSocket-Version", version)
@@ -315,7 +310,7 @@ class ServerProtocol(Protocol):
         try:
             origin = headers.get("Origin")
         except MultipleValuesError as exc:
-            raise InvalidHeader("Origin", "more than one Origin header found") from exc
+            raise InvalidHeader("Origin", "multiple values") from exc
         if origin is not None:
             origin = cast(Origin, origin)
         if self.origins is not None:

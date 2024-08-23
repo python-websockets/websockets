@@ -78,13 +78,13 @@ class ConnectionClosed(WebSocketException):
     Raised when trying to interact with a closed connection.
 
     Attributes:
-        rcvd (Close | None): if a close frame was received, its code and
-            reason are available in ``rcvd.code`` and ``rcvd.reason``.
-        sent (Close | None): if a close frame was sent, its code and reason
-            are available in ``sent.code`` and ``sent.reason``.
-        rcvd_then_sent (bool | None): if close frames were received and
-            sent, this attribute tells in which order this happened, from the
-            perspective of this side of the connection.
+        rcvd: If a close frame was received, its code and reason are available
+            in ``rcvd.code`` and ``rcvd.reason``.
+        sent: If a close frame was sent, its code and reason are available
+            in ``sent.code`` and ``sent.reason``.
+        rcvd_then_sent: If close frames were received and sent, this attribute
+            tells in which order this happened, from the perspective of this
+            side of the connection.
 
     """
 
@@ -97,21 +97,18 @@ class ConnectionClosed(WebSocketException):
         self.rcvd = rcvd
         self.sent = sent
         self.rcvd_then_sent = rcvd_then_sent
+        assert (self.rcvd_then_sent is None) == (self.rcvd is None or self.sent is None)
 
     def __str__(self) -> str:
         if self.rcvd is None:
             if self.sent is None:
-                assert self.rcvd_then_sent is None
                 return "no close frame received or sent"
             else:
-                assert self.rcvd_then_sent is None
                 return f"sent {self.sent}; no close frame received"
         else:
             if self.sent is None:
-                assert self.rcvd_then_sent is None
                 return f"received {self.rcvd}; no close frame sent"
             else:
-                assert self.rcvd_then_sent is not None
                 if self.rcvd_then_sent:
                     return f"received {self.rcvd}; then sent {self.sent}"
                 else:

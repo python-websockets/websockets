@@ -1,30 +1,30 @@
 """
-:mod:`websockets.exceptions` defines the following exception hierarchy:
+:mod:`websockets.exceptions` defines the following hierarchy of exceptions.
 
 * :exc:`WebSocketException`
     * :exc:`ConnectionClosed`
-        * :exc:`ConnectionClosedError`
         * :exc:`ConnectionClosedOK`
+        * :exc:`ConnectionClosedError`
+    * :exc:`InvalidURI`
     * :exc:`InvalidHandshake`
         * :exc:`SecurityError`
         * :exc:`InvalidMessage` (legacy)
+        * :exc:`InvalidStatus`
+        * :exc:`InvalidStatusCode` (legacy)
         * :exc:`InvalidHeader`
             * :exc:`InvalidHeaderFormat`
             * :exc:`InvalidHeaderValue`
             * :exc:`InvalidOrigin`
             * :exc:`InvalidUpgrade`
-        * :exc:`InvalidStatus`
-        * :exc:`InvalidStatusCode` (legacy)
         * :exc:`NegotiationError`
             * :exc:`DuplicateParameter`
             * :exc:`InvalidParameterName`
             * :exc:`InvalidParameterValue`
         * :exc:`AbortHandshake` (legacy)
         * :exc:`RedirectHandshake` (legacy)
-    * :exc:`InvalidState`
-    * :exc:`InvalidURI`
-    * :exc:`PayloadTooBig`
-    * :exc:`ProtocolError`
+    * :exc:`ProtocolError` (Sans-I/O)
+    * :exc:`PayloadTooBig` (Sans-I/O)
+    * :exc:`InvalidState` (Sans-I/O)
 
 """
 
@@ -40,29 +40,29 @@ from .imports import lazy_import
 __all__ = [
     "WebSocketException",
     "ConnectionClosed",
-    "ConnectionClosedError",
     "ConnectionClosedOK",
+    "ConnectionClosedError",
+    "InvalidURI",
     "InvalidHandshake",
     "SecurityError",
     "InvalidMessage",
+    "InvalidStatus",
+    "InvalidStatusCode",
     "InvalidHeader",
     "InvalidHeaderFormat",
     "InvalidHeaderValue",
     "InvalidOrigin",
     "InvalidUpgrade",
-    "InvalidStatus",
-    "InvalidStatusCode",
     "NegotiationError",
     "DuplicateParameter",
     "InvalidParameterName",
     "InvalidParameterValue",
     "AbortHandshake",
     "RedirectHandshake",
-    "InvalidState",
-    "InvalidURI",
-    "PayloadTooBig",
     "ProtocolError",
     "WebSocketProtocolError",
+    "PayloadTooBig",
+    "InvalidState",
 ]
 
 
@@ -139,16 +139,6 @@ class ConnectionClosed(WebSocketException):
         return self.rcvd.reason
 
 
-class ConnectionClosedError(ConnectionClosed):
-    """
-    Like :exc:`ConnectionClosed`, when the connection terminated with an error.
-
-    A close frame with a code other than 1000 (OK) or 1001 (going away) was
-    received or sent, or the closing handshake didn't complete properly.
-
-    """
-
-
 class ConnectionClosedOK(ConnectionClosed):
     """
     Like :exc:`ConnectionClosed`, when the connection terminated properly.
@@ -159,9 +149,33 @@ class ConnectionClosedOK(ConnectionClosed):
     """
 
 
+class ConnectionClosedError(ConnectionClosed):
+    """
+    Like :exc:`ConnectionClosed`, when the connection terminated with an error.
+
+    A close frame with a code other than 1000 (OK) or 1001 (going away) was
+    received or sent, or the closing handshake didn't complete properly.
+
+    """
+
+
+class InvalidURI(WebSocketException):
+    """
+    Raised when connecting to a URI that isn't a valid WebSocket URI.
+
+    """
+
+    def __init__(self, uri: str, msg: str) -> None:
+        self.uri = uri
+        self.msg = msg
+
+    def __str__(self) -> str:
+        return f"{self.uri} isn't a valid URI: {self.msg}"
+
+
 class InvalidHandshake(WebSocketException):
     """
-    Raised during the handshake when the WebSocket connection fails.
+    Base class for exceptions raised when the opening handshake fails.
 
     """
 
@@ -170,9 +184,26 @@ class SecurityError(InvalidHandshake):
     """
     Raised when a handshake request or response breaks a security rule.
 
-    Security limits are hard coded.
+    Security limits can be configured with :doc:`environment variables
+    <../reference/variables>`.
 
     """
+
+
+class InvalidStatus(InvalidHandshake):
+    """
+    Raised when a handshake response rejects the WebSocket upgrade.
+
+    """
+
+    def __init__(self, response: http11.Response) -> None:
+        self.response = response
+
+    def __str__(self) -> str:
+        return (
+            "server rejected WebSocket connection: "
+            f"HTTP {self.response.status_code:d}"
+        )
 
 
 class InvalidHeader(InvalidHandshake):
@@ -210,7 +241,7 @@ class InvalidHeaderValue(InvalidHeader):
     """
     Raised when an HTTP header has a wrong value.
 
-    The format of the header is correct but a value isn't acceptable.
+    The format of the header is correct but the value isn't acceptable.
 
     """
 
@@ -232,25 +263,9 @@ class InvalidUpgrade(InvalidHeader):
     """
 
 
-class InvalidStatus(InvalidHandshake):
-    """
-    Raised when a handshake response rejects the WebSocket upgrade.
-
-    """
-
-    def __init__(self, response: http11.Response) -> None:
-        self.response = response
-
-    def __str__(self) -> str:
-        return (
-            "server rejected WebSocket connection: "
-            f"HTTP {self.response.status_code:d}"
-        )
-
-
 class NegotiationError(InvalidHandshake):
     """
-    Raised when negotiating an extension fails.
+    Raised when negotiating an extension or a subprotocol fails.
 
     """
 
@@ -300,41 +315,42 @@ class InvalidParameterValue(NegotiationError):
             return f"invalid value for parameter {self.name}: {self.value}"
 
 
-class InvalidState(WebSocketException, AssertionError):
+class ProtocolError(WebSocketException):
     """
-    Raised when an operation is forbidden in the current state.
+    Raised when receiving or sending a frame that breaks the protocol.
 
-    This exception is an implementation detail.
+    The Sans-I/O implementation raises this exception when:
 
-    It should never be raised in normal circumstances.
-
-    """
-
-
-class InvalidURI(WebSocketException):
-    """
-    Raised when connecting to a URI that isn't a valid WebSocket URI.
+    * receiving or sending a frame that contains invalid data;
+    * receiving or sending an invalid sequence of frames.
 
     """
-
-    def __init__(self, uri: str, msg: str) -> None:
-        self.uri = uri
-        self.msg = msg
-
-    def __str__(self) -> str:
-        return f"{self.uri} isn't a valid URI: {self.msg}"
 
 
 class PayloadTooBig(WebSocketException):
     """
-    Raised when receiving a frame with a payload exceeding the maximum size.
+    Raised when parsing a frame with a payload that exceeds the maximum size.
+
+    The Sans-I/O layer uses this exception internally. It doesn't bubble up to
+    the I/O layer.
+
+    The :meth:`~websockets.extensions.Extension.decode` method of extensions
+    must raise :exc:`PayloadTooBig` if decoding a frame would exceed the limit.
 
     """
 
 
-class ProtocolError(WebSocketException):
+class InvalidState(WebSocketException, AssertionError):
     """
-    Raised when a frame breaks the protocol.
+    Raised when sending a frame is forbidden in the current state.
+
+    Specifically, the Sans-I/O layer raises this exception when:
+
+    * sending a data frame to a connection in a state other
+      :attr:`~websockets.protocol.State.OPEN`;
+    * sending a control frame to a connection in a state other than
+      :attr:`~websockets.protocol.State.OPEN` or
+      :attr:`~websockets.protocol.State.CLOSING`.
 
     """
 

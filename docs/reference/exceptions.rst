@@ -5,15 +5,34 @@ Exceptions
 
 .. autoexception:: WebSocketException
 
+Connection closed
+-----------------
+
+:meth:`~websockets.asyncio.connection.Connection.recv`,
+:meth:`~websockets.asyncio.connection.Connection.send`, and similar methods
+raise the exceptions below when the connection is closed. This is the expected
+way to detect disconnections.
+
 .. autoexception:: ConnectionClosed
+
+.. autoexception:: ConnectionClosedOK
 
 .. autoexception:: ConnectionClosedError
 
-.. autoexception:: ConnectionClosedOK
+Connection failed
+-----------------
+
+These exceptions are raised by :func:`~websockets.asyncio.client.connect` when
+the opening handshake fails and the connection cannot be established. They are
+also reported by :func:`~websockets.asyncio.server.serve` in logs.
+
+.. autoexception:: InvalidURI
 
 .. autoexception:: InvalidHandshake
 
 .. autoexception:: SecurityError
+
+.. autoexception:: InvalidStatus
 
 .. autoexception:: InvalidHeader
 
@@ -25,8 +44,6 @@ Exceptions
 
 .. autoexception:: InvalidUpgrade
 
-.. autoexception:: InvalidStatus
-
 .. autoexception:: NegotiationError
 
 .. autoexception:: DuplicateParameter
@@ -35,13 +52,17 @@ Exceptions
 
 .. autoexception:: InvalidParameterValue
 
-.. autoexception:: InvalidState
+Sans-I/O exceptions
+-------------------
 
-.. autoexception:: InvalidURI
+These exceptions are only raised by the Sans-I/O implementation. They are
+translated to :exc:`ConnectionClosedError` in the other implementations.
+
+.. autoexception:: ProtocolError
 
 .. autoexception:: PayloadTooBig
 
-.. autoexception:: ProtocolError
+.. autoexception:: InvalidState
 
 Legacy exceptions
 -----------------

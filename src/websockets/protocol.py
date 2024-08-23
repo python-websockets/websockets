@@ -378,9 +378,11 @@ class Protocol:
         else:
             close = Close(code, reason)
             data = close.serialize()
-        # send_frame() guarantees that self.state is OPEN at this point.
         # 7.1.3. The WebSocket Closing Handshake is Started
         self.send_frame(Frame(OP_CLOSE, data))
+        # Since the state is OPEN, no close frame was received yet.
+        # As a consequence, self.close_rcvd_then_sent remains None.
+        assert self.close_rcvd is None
         self.close_sent = close
         self.state = CLOSING
 
@@ -441,6 +443,12 @@ class Protocol:
                 data = close.serialize()
                 self.send_frame(Frame(OP_CLOSE, data))
                 self.close_sent = close
+                # If recv_messages() raised an exception upon receiving a close
+                # frame but before echoing it, then close_rcvd is not None even
+                # though the state is OPEN. This happens when the connection is
+                # closed while receiving a fragmented message.
+                if self.close_rcvd is not None:
+                    self.close_rcvd_then_sent = True
                 self.state = CLOSING
 
         # When failing the connection, a server closes the TCP connection

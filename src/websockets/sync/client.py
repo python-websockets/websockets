@@ -212,7 +212,10 @@ def connect(
     # Backwards compatibility: ssl used to be called ssl_context.
     if ssl is None and "ssl_context" in kwargs:
         ssl = kwargs.pop("ssl_context")
-        warnings.warn("ssl_context was renamed to ssl", DeprecationWarning)
+        warnings.warn(  # deprecated in 13.0 - 2024-08-20
+            "ssl_context was renamed to ssl",
+            DeprecationWarning,
+        )
 
     wsuri = parse_uri(uri)
     if not wsuri.secure and ssl is not None:

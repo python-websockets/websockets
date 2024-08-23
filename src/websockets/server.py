@@ -575,7 +575,7 @@ class ServerProtocol(Protocol):
 
 class ServerConnection(ServerProtocol):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        warnings.warn(
+        warnings.warn(  # deprecated in 11.0 - 2023-04-02
             "ServerConnection was renamed to ServerProtocol",
             DeprecationWarning,
         )

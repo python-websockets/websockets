@@ -352,7 +352,7 @@ class ClientProtocol(Protocol):
 
 class ClientConnection(ClientProtocol):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
-        warnings.warn(
+        warnings.warn(  # deprecated in 11.0 - 2023-04-02
             "ClientConnection was renamed to ClientProtocol",
             DeprecationWarning,
         )

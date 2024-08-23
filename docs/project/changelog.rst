@@ -32,6 +32,17 @@ notice.
 
 *In development*
 
+Backwards-incompatible changes
+..............................
+
+.. admonition:: The ``code`` and ``reason`` attributes of
+    :exc:`~exceptions.ConnectionClosed` are deprecated.
+    :class: note
+
+    They were removed from the documentation in version 10.0, due to their
+    spec-compliant but counter-intuitive behavior, but they were kept in
+    the code for backwards compatibility. They're now formally deprecated.
+
 New features
 ............
 

@@ -304,7 +304,7 @@ class Server:
 
 def __getattr__(name: str) -> Any:
     if name == "WebSocketServer":
-        warnings.warn(
+        warnings.warn(  # deprecated in 13.0 - 2024-08-20
             "WebSocketServer was renamed to Server",
             DeprecationWarning,
         )
@@ -446,7 +446,10 @@ def serve(
     # Backwards compatibility: ssl used to be called ssl_context.
     if ssl is None and "ssl_context" in kwargs:
         ssl = kwargs.pop("ssl_context")
-        warnings.warn("ssl_context was renamed to ssl", DeprecationWarning)
+        warnings.warn(  # deprecated in 13.0 - 2024-08-20
+            "ssl_context was renamed to ssl",
+            DeprecationWarning,
+        )
 
     if subprotocols is not None:
         validate_subprotocols(subprotocols)

@@ -187,6 +187,7 @@ else:
             "Subprotocol": ".typing",
         },
         deprecated_aliases={
+            # deprecated in 9.0 - 2021-09-01
             "framing": ".legacy",
             "handshake": ".legacy",
             "parse_uri": ".uri",

@@ -19,7 +19,7 @@
             * :exc:`DuplicateParameter`
             * :exc:`InvalidParameterName`
             * :exc:`InvalidParameterValue`
-        * :exc:`AbortHandshake`
+        * :exc:`AbortHandshake` (legacy)
         * :exc:`RedirectHandshake`
     * :exc:`InvalidState`
     * :exc:`InvalidURI`
@@ -30,13 +30,11 @@
 
 from __future__ import annotations
 
-import http
 import typing
 import warnings
 
-from . import datastructures, frames, http11
+from . import frames, http11
 from .imports import lazy_import
-from .typing import StatusLike
 
 
 __all__ = [
@@ -302,40 +300,6 @@ class InvalidParameterValue(NegotiationError):
             return f"invalid value for parameter {self.name}: {self.value}"
 
 
-class AbortHandshake(InvalidHandshake):
-    """
-    Raised to abort the handshake on purpose and return an HTTP response.
-
-    This exception is an implementation detail.
-
-    The public API is
-    :meth:`~websockets.legacy.server.WebSocketServerProtocol.process_request`.
-
-    Attributes:
-        status (~http.HTTPStatus): HTTP status code.
-        headers (Headers): HTTP response headers.
-        body (bytes): HTTP response body.
-    """
-
-    def __init__(
-        self,
-        status: StatusLike,
-        headers: datastructures.HeadersLike,
-        body: bytes = b"",
-    ) -> None:
-        # If a user passes an int instead of a HTTPStatus, fix it automatically.
-        self.status = http.HTTPStatus(status)
-        self.headers = datastructures.Headers(headers)
-        self.body = body
-
-    def __str__(self) -> str:
-        return (
-            f"HTTP {self.status:d}, "
-            f"{len(self.headers)} headers, "
-            f"{len(self.body)} bytes"
-        )
-
-
 class RedirectHandshake(InvalidHandshake):
     """
     Raised when a handshake gets redirected.
@@ -393,6 +357,7 @@ class ProtocolError(WebSocketException):
 # When type checking, import non-deprecated aliases eagerly. Else, import on demand.
 if typing.TYPE_CHECKING:
     from .legacy.exceptions import (
+        AbortHandshake,
         InvalidMessage,
         InvalidStatusCode,
     )
@@ -402,6 +367,7 @@ else:
     lazy_import(
         globals(),
         aliases={
+            "AbortHandshake": ".legacy.exceptions",
             "InvalidMessage": ".legacy.exceptions",
             "InvalidStatusCode": ".legacy.exceptions",
             "WebSocketProtocolError": ".legacy.exceptions",

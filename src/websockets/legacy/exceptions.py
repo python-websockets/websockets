@@ -1,8 +1,11 @@
+import http
+
 from .. import datastructures
 from ..exceptions import (
     InvalidHandshake,
     ProtocolError as WebSocketProtocolError,  # noqa: F401
 )
+from ..typing import StatusLike
 
 
 class InvalidMessage(InvalidHandshake):
@@ -24,3 +27,37 @@ class InvalidStatusCode(InvalidHandshake):
 
     def __str__(self) -> str:
         return f"server rejected WebSocket connection: HTTP {self.status_code}"
+
+
+class AbortHandshake(InvalidHandshake):
+    """
+    Raised to abort the handshake on purpose and return an HTTP response.
+
+    This exception is an implementation detail.
+
+    The public API is
+    :meth:`~websockets.legacy.server.WebSocketServerProtocol.process_request`.
+
+    Attributes:
+        status (~http.HTTPStatus): HTTP status code.
+        headers (Headers): HTTP response headers.
+        body (bytes): HTTP response body.
+    """
+
+    def __init__(
+        self,
+        status: StatusLike,
+        headers: datastructures.HeadersLike,
+        body: bytes = b"",
+    ) -> None:
+        # If a user passes an int instead of a HTTPStatus, fix it automatically.
+        self.status = http.HTTPStatus(status)
+        self.headers = datastructures.Headers(headers)
+        self.body = body
+
+    def __str__(self) -> str:
+        return (
+            f"HTTP {self.status:d}, "
+            f"{len(self.headers)} headers, "
+            f"{len(self.body)} bytes"
+        )

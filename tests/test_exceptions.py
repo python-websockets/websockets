@@ -152,10 +152,6 @@ class ExceptionsTests(unittest.TestCase):
                 "invalid value for parameter a: |",
             ),
             (
-                AbortHandshake(200, Headers(), b"OK\n"),
-                "HTTP 200, 0 headers, 3 bytes",
-            ),
-            (
                 RedirectHandshake("wss://example.com"),
                 "redirect to wss://example.com",
             ),

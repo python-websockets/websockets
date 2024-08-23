@@ -27,7 +27,6 @@ from ..exceptions import (
     AbortHandshake,
     InvalidHandshake,
     InvalidHeader,
-    InvalidMessage,
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
@@ -43,6 +42,7 @@ from ..headers import (
 from ..http11 import SERVER
 from ..protocol import State
 from ..typing import ExtensionHeader, LoggerLike, Origin, StatusLike, Subprotocol
+from .exceptions import InvalidMessage
 from .handshake import build_response, check_request
 from .http import read_request
 from .protocol import WebSocketCommonProtocol, broadcast

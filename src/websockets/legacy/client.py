@@ -21,7 +21,6 @@ from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
     InvalidHandshake,
     InvalidHeader,
-    InvalidMessage,
     InvalidStatusCode,
     NegotiationError,
     RedirectHandshake,
@@ -41,6 +40,7 @@ from ..headers import (
 from ..http11 import USER_AGENT
 from ..typing import ExtensionHeader, LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
+from .exceptions import InvalidMessage
 from .handshake import build_request, check_response
 from .http import read_response
 from .protocol import WebSocketCommonProtocol

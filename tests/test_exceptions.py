@@ -88,10 +88,6 @@ class ExceptionsTests(unittest.TestCase):
                 "redirect from WSS to WS",
             ),
             (
-                InvalidMessage("malformed HTTP message"),
-                "malformed HTTP message",
-            ),
-            (
                 InvalidHeader("Name"),
                 "missing Name header",
             ),

@@ -23,7 +23,6 @@ __all__ = [
     "InvalidHeader",
     "InvalidHeaderFormat",
     "InvalidHeaderValue",
-    "InvalidMessage",
     "InvalidOrigin",
     "InvalidParameterName",
     "InvalidParameterValue",
@@ -46,6 +45,8 @@ __all__ = [
     "WebSocketClientProtocol",
     "connect",
     "unix_connect",
+    # .legacy.exceptions
+    "InvalidMessage",
     # .legacy.protocol
     "WebSocketCommonProtocol",
     # .legacy.server
@@ -80,7 +81,6 @@ if typing.TYPE_CHECKING:
         InvalidHeader,
         InvalidHeaderFormat,
         InvalidHeaderValue,
-        InvalidMessage,
         InvalidOrigin,
         InvalidParameterName,
         InvalidParameterValue,
@@ -102,6 +102,7 @@ if typing.TYPE_CHECKING:
         basic_auth_protocol_factory,
     )
     from .legacy.client import WebSocketClientProtocol, connect, unix_connect
+    from .legacy.exceptions import InvalidMessage
     from .legacy.protocol import WebSocketCommonProtocol
     from .legacy.server import (
         WebSocketServer,
@@ -140,7 +141,6 @@ else:
             "InvalidHeader": ".exceptions",
             "InvalidHeaderFormat": ".exceptions",
             "InvalidHeaderValue": ".exceptions",
-            "InvalidMessage": ".exceptions",
             "InvalidOrigin": ".exceptions",
             "InvalidParameterName": ".exceptions",
             "InvalidParameterValue": ".exceptions",
@@ -163,6 +163,8 @@ else:
             "WebSocketClientProtocol": ".legacy.client",
             "connect": ".legacy.client",
             "unix_connect": ".legacy.client",
+            # .legacy.exceptions
+            "InvalidMessage": ".legacy.exceptions",
             # .legacy.protocol
             "WebSocketCommonProtocol": ".legacy.protocol",
             # .legacy.server

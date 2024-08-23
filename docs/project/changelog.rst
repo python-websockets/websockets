@@ -613,7 +613,7 @@ Bug fixes
 * Aligned maximum cookie size with popular web browsers.
 
 * Ensured cancellation always propagates, even on Python versions where
-  :exc:`~asyncio.CancelledError` inherits :exc:`Exception`.
+  :exc:`~asyncio.CancelledError` inherits from :exc:`Exception`.
 
 .. _8.1:
 

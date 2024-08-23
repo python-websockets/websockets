@@ -80,12 +80,20 @@ class ExceptionsTests(unittest.TestCase):
                 "no close frame received or sent",
             ),
             (
+                InvalidURI("|", "not at all!"),
+                "| isn't a valid URI: not at all!",
+            ),
+            (
                 InvalidHandshake("invalid request"),
                 "invalid request",
             ),
             (
                 SecurityError("redirect from WSS to WS"),
                 "redirect from WSS to WS",
+            ),
+            (
+                InvalidStatus(Response(401, "Unauthorized", Headers())),
+                "server rejected WebSocket connection: HTTP 401",
             ),
             (
                 InvalidHeader("Name"),
@@ -124,10 +132,6 @@ class ExceptionsTests(unittest.TestCase):
                 "invalid Connection header: websocket",
             ),
             (
-                InvalidStatus(Response(401, "Unauthorized", Headers())),
-                "server rejected WebSocket connection: HTTP 401",
-            ),
-            (
                 NegotiationError("unsupported subprotocol: spam"),
                 "unsupported subprotocol: spam",
             ),
@@ -152,20 +156,16 @@ class ExceptionsTests(unittest.TestCase):
                 "invalid value for parameter a: |",
             ),
             (
-                InvalidState("WebSocket connection isn't established yet"),
-                "WebSocket connection isn't established yet",
-            ),
-            (
-                InvalidURI("|", "not at all!"),
-                "| isn't a valid URI: not at all!",
+                ProtocolError("invalid opcode: 7"),
+                "invalid opcode: 7",
             ),
             (
                 PayloadTooBig("payload length exceeds limit: 2 > 1 bytes"),
                 "payload length exceeds limit: 2 > 1 bytes",
             ),
             (
-                ProtocolError("invalid opcode: 7"),
-                "invalid opcode: 7",
+                InvalidState("WebSocket connection isn't established yet"),
+                "WebSocket connection isn't established yet",
             ),
         ]:
             with self.subTest(exception=exception):

@@ -1,4 +1,7 @@
-from ..exceptions import InvalidHandshake
+from ..exceptions import (
+    InvalidHandshake,
+    ProtocolError as WebSocketProtocolError,  # noqa: F401
+)
 
 
 class InvalidMessage(InvalidHandshake):

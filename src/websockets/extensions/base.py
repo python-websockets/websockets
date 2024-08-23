@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from .. import frames
+from ..frames import Frame
 from ..typing import ExtensionName, ExtensionParameter
 
 
@@ -18,12 +18,7 @@ class Extension:
     name: ExtensionName
     """Extension identifier."""
 
-    def decode(
-        self,
-        frame: frames.Frame,
-        *,
-        max_size: int | None = None,
-    ) -> frames.Frame:
+    def decode(self, frame: Frame, *, max_size: int | None = None) -> Frame:
         """
         Decode an incoming frame.
 
@@ -40,7 +35,7 @@ class Extension:
         """
         raise NotImplementedError
 
-    def encode(self, frame: frames.Frame) -> frames.Frame:
+    def encode(self, frame: Frame) -> Frame:
         """
         Encode an outgoing frame.
 

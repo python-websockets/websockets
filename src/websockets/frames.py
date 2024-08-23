@@ -8,7 +8,7 @@ import secrets
 import struct
 from typing import Callable, Generator, Sequence
 
-from . import exceptions, extensions
+from .exceptions import PayloadTooBig, ProtocolError
 
 
 try:
@@ -239,10 +239,10 @@ class Frame:
         try:
             opcode = Opcode(head1 & 0b00001111)
         except ValueError as exc:
-            raise exceptions.ProtocolError("invalid opcode") from exc
+            raise ProtocolError("invalid opcode") from exc
 
         if (True if head2 & 0b10000000 else False) != mask:
-            raise exceptions.ProtocolError("incorrect masking")
+            raise ProtocolError("incorrect masking")
 
         length = head2 & 0b01111111
         if length == 126:
@@ -252,9 +252,7 @@ class Frame:
             data = yield from read_exact(8)
             (length,) = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
-            raise exceptions.PayloadTooBig(
-                f"over size limit ({length} > {max_size} bytes)"
-            )
+            raise PayloadTooBig(f"over size limit ({length} > {max_size} bytes)")
         if mask:
             mask_bytes = yield from read_exact(4)
 
@@ -342,13 +340,13 @@ class Frame:
 
         """
         if self.rsv1 or self.rsv2 or self.rsv3:
-            raise exceptions.ProtocolError("reserved bits must be 0")
+            raise ProtocolError("reserved bits must be 0")
 
         if self.opcode in CTRL_OPCODES:
             if len(self.data) > 125:
-                raise exceptions.ProtocolError("control frame too long")
+                raise ProtocolError("control frame too long")
             if not self.fin:
-                raise exceptions.ProtocolError("fragmented control frame")
+                raise ProtocolError("fragmented control frame")
 
 
 @dataclasses.dataclass
@@ -405,7 +403,7 @@ class Close:
         elif len(data) == 0:
             return cls(CloseCode.NO_STATUS_RCVD, "")
         else:
-            raise exceptions.ProtocolError("close frame too short")
+            raise ProtocolError("close frame too short")
 
     def serialize(self) -> bytes:
         """
@@ -424,4 +422,8 @@ class Close:
 
         """
         if not (self.code in EXTERNAL_CLOSE_CODES or 3000 <= self.code < 5000):
-            raise exceptions.ProtocolError("invalid status code")
+            raise ProtocolError("invalid status code")
+
+
+# At the bottom to break import cycles created by type annotations.
+from . import extensions  # noqa: E402

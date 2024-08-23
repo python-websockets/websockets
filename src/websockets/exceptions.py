@@ -33,7 +33,6 @@ from __future__ import annotations
 import typing
 import warnings
 
-from . import frames, http11
 from .imports import lazy_import
 
 
@@ -376,3 +375,6 @@ else:
             "WebSocketProtocolError": ".legacy.exceptions",
         },
     )
+
+# At the bottom to break import cycles created by type annotations.
+from . import frames, http11  # noqa: E402

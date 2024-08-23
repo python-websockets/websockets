@@ -7,7 +7,8 @@ import sys
 import warnings
 from typing import Callable, Generator
 
-from . import datastructures, exceptions
+from .datastructures import Headers
+from .exceptions import SecurityError
 from .version import version as websockets_version
 
 
@@ -79,7 +80,7 @@ class Request:
     """
 
     path: str
-    headers: datastructures.Headers
+    headers: Headers
     # body isn't useful is the context of this library.
 
     _exception: Exception | None = None
@@ -183,7 +184,7 @@ class Response:
 
     status_code: int
     reason_phrase: str
-    headers: datastructures.Headers
+    headers: Headers
     body: bytes | None = None
 
     _exception: Exception | None = None
@@ -280,13 +281,9 @@ class Response:
                 try:
                     body = yield from read_to_eof(MAX_BODY_SIZE)
                 except RuntimeError:
-                    raise exceptions.SecurityError(
-                        f"body too large: over {MAX_BODY_SIZE} bytes"
-                    )
+                    raise SecurityError(f"body too large: over {MAX_BODY_SIZE} bytes")
             elif content_length > MAX_BODY_SIZE:
-                raise exceptions.SecurityError(
-                    f"body too large: {content_length} bytes"
-                )
+                raise SecurityError(f"body too large: {content_length} bytes")
             else:
                 body = yield from read_exact(content_length)
 
@@ -308,7 +305,7 @@ class Response:
 
 def parse_headers(
     read_line: Callable[[int], Generator[None, None, bytes]],
-) -> Generator[None, None, datastructures.Headers]:
+) -> Generator[None, None, Headers]:
     """
     Parse HTTP headers.
 
@@ -328,7 +325,7 @@ def parse_headers(
 
     # We don't attempt to support obsolete line folding.
 
-    headers = datastructures.Headers()
+    headers = Headers()
     for _ in range(MAX_NUM_HEADERS + 1):
         try:
             line = yield from parse_line(read_line)
@@ -352,7 +349,7 @@ def parse_headers(
         headers[name] = value
 
     else:
-        raise exceptions.SecurityError("too many HTTP headers")
+        raise SecurityError("too many HTTP headers")
 
     return headers
 
@@ -377,7 +374,7 @@ def parse_line(
     try:
         line = yield from read_line(MAX_LINE_LENGTH)
     except RuntimeError:
-        raise exceptions.SecurityError("line too long")
+        raise SecurityError("line too long")
     # Not mandatory but safe - https://datatracker.ietf.org/doc/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):
         raise EOFError("line without CRLF")

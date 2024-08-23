@@ -19,6 +19,10 @@ class ExceptionsTests(unittest.TestCase):
                 AbortHandshake(200, Headers(), b"OK\n"),
                 "HTTP 200, 0 headers, 3 bytes",
             ),
+            (
+                RedirectHandshake("wss://example.com"),
+                "redirect to wss://example.com",
+            ),
         ]:
             with self.subTest(exception=exception):
                 self.assertEqual(str(exception), exception_str)

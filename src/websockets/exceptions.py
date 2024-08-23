@@ -7,7 +7,7 @@
         * :exc:`ConnectionClosedOK`
     * :exc:`InvalidHandshake`
         * :exc:`SecurityError`
-        * :exc:`InvalidMessage`
+        * :exc:`InvalidMessage` (legacy)
         * :exc:`InvalidHeader`
             * :exc:`InvalidHeaderFormat`
             * :exc:`InvalidHeaderValue`
@@ -31,9 +31,11 @@
 from __future__ import annotations
 
 import http
+import typing
 import warnings
 
 from . import datastructures, frames, http11
+from .imports import lazy_import
 from .typing import StatusLike
 
 
@@ -171,13 +173,6 @@ class SecurityError(InvalidHandshake):
     Raised when a handshake request or response breaks a security rule.
 
     Security limits are hard coded.
-
-    """
-
-
-class InvalidMessage(InvalidHandshake):
-    """
-    Raised when a handshake request or response is malformed.
 
     """
 
@@ -410,3 +405,15 @@ class ProtocolError(WebSocketException):
 
 
 WebSocketProtocolError = ProtocolError  # for backwards compatibility
+
+
+# When type checking, import non-deprecated aliases eagerly. Else, import on demand.
+if typing.TYPE_CHECKING:
+    from .legacy.exceptions import InvalidMessage
+else:
+    lazy_import(
+        globals(),
+        aliases={
+            "InvalidMessage": ".legacy.exceptions",
+        },
+    )

@@ -404,16 +404,16 @@ class ProtocolError(WebSocketException):
     """
 
 
-WebSocketProtocolError = ProtocolError  # for backwards compatibility
-
-
 # When type checking, import non-deprecated aliases eagerly. Else, import on demand.
 if typing.TYPE_CHECKING:
     from .legacy.exceptions import InvalidMessage
+
+    WebSocketProtocolError = ProtocolError
 else:
     lazy_import(
         globals(),
         aliases={
             "InvalidMessage": ".legacy.exceptions",
+            "WebSocketProtocolError": ".legacy.exceptions",
         },
     )

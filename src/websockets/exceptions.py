@@ -31,6 +31,7 @@
 from __future__ import annotations
 
 import http
+import warnings
 
 from . import datastructures, frames, http11
 from .typing import StatusLike
@@ -120,12 +121,22 @@ class ConnectionClosed(WebSocketException):
 
     @property
     def code(self) -> int:
+        warnings.warn(  # deprecated in 13.1
+            "ConnectionClosed.code is deprecated; "
+            "use Protocol.close_code or ConnectionClosed.rcvd.code",
+            DeprecationWarning,
+        )
         if self.rcvd is None:
             return frames.CloseCode.ABNORMAL_CLOSURE
         return self.rcvd.code
 
     @property
     def reason(self) -> str:
+        warnings.warn(  # deprecated in 13.1
+            "ConnectionClosed.reason is deprecated; "
+            "use Protocol.close_reason or ConnectionClosed.rcvd.reason",
+            DeprecationWarning,
+        )
         if self.rcvd is None:
             return ""
         return self.rcvd.reason

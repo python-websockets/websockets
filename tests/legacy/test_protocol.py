@@ -1180,16 +1180,6 @@ class CommonTests:
         # Now recv() returns None instead of raising ConnectionClosed.
         self.assertIsNone(self.loop.run_until_complete(self.protocol.recv()))
 
-    def test_connection_closed_attributes(self):
-        self.close_connection()
-
-        with self.assertRaises(ConnectionClosed) as context:
-            self.loop.run_until_complete(self.protocol.recv())
-
-        connection_closed_exc = context.exception
-        self.assertEqual(connection_closed_exc.code, CloseCode.NORMAL_CLOSURE)
-        self.assertEqual(connection_closed_exc.reason, "close")
-
     # Test the protocol logic for sending keepalive pings.
 
     def restart_protocol_with_keepalive_ping(

@@ -5,6 +5,8 @@ from websockets.exceptions import *
 from websockets.frames import Close, CloseCode
 from websockets.http11 import Response
 
+from .utils import DeprecationTestCase
+
 
 class ExceptionsTests(unittest.TestCase):
     def test_str(self):
@@ -185,12 +187,30 @@ class ExceptionsTests(unittest.TestCase):
             with self.subTest(exception=exception):
                 self.assertEqual(str(exception), exception_str)
 
-    def test_connection_closed_attributes_backwards_compatibility(self):
-        exception = ConnectionClosed(Close(CloseCode.NORMAL_CLOSURE, "OK"), None, None)
-        self.assertEqual(exception.code, CloseCode.NORMAL_CLOSURE)
-        self.assertEqual(exception.reason, "OK")
 
-    def test_connection_closed_attributes_backwards_compatibility_defaults(self):
+class DeprecationTests(DeprecationTestCase):
+    def test_connection_closed_attributes_deprecation(self):
+        exception = ConnectionClosed(Close(CloseCode.NORMAL_CLOSURE, "OK"), None, None)
+        with self.assertDeprecationWarning(
+            "ConnectionClosed.code is deprecated; "
+            "use Protocol.close_code or ConnectionClosed.rcvd.code"
+        ):
+            self.assertEqual(exception.code, CloseCode.NORMAL_CLOSURE)
+        with self.assertDeprecationWarning(
+            "ConnectionClosed.reason is deprecated; "
+            "use Protocol.close_reason or ConnectionClosed.rcvd.reason"
+        ):
+            self.assertEqual(exception.reason, "OK")
+
+    def test_connection_closed_attributes_deprecation_defaults(self):
         exception = ConnectionClosed(None, None, None)
-        self.assertEqual(exception.code, CloseCode.ABNORMAL_CLOSURE)
-        self.assertEqual(exception.reason, "")
+        with self.assertDeprecationWarning(
+            "ConnectionClosed.code is deprecated; "
+            "use Protocol.close_code or ConnectionClosed.rcvd.code"
+        ):
+            self.assertEqual(exception.code, CloseCode.ABNORMAL_CLOSURE)
+        with self.assertDeprecationWarning(
+            "ConnectionClosed.reason is deprecated; "
+            "use Protocol.close_reason or ConnectionClosed.rcvd.reason"
+        ):
+            self.assertEqual(exception.reason, "")

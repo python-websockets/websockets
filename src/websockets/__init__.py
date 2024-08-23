@@ -14,7 +14,6 @@ __all__ = [
     "HeadersLike",
     "MultipleValuesError",
     # .exceptions
-    "AbortHandshake",
     "ConnectionClosed",
     "ConnectionClosedError",
     "ConnectionClosedOK",
@@ -45,6 +44,7 @@ __all__ = [
     "connect",
     "unix_connect",
     # .legacy.exceptions
+    "AbortHandshake",
     "InvalidMessage",
     "InvalidStatusCode",
     # .legacy.protocol
@@ -72,7 +72,6 @@ if typing.TYPE_CHECKING:
     from .client import ClientProtocol
     from .datastructures import Headers, HeadersLike, MultipleValuesError
     from .exceptions import (
-        AbortHandshake,
         ConnectionClosed,
         ConnectionClosedError,
         ConnectionClosedOK,
@@ -101,7 +100,11 @@ if typing.TYPE_CHECKING:
         basic_auth_protocol_factory,
     )
     from .legacy.client import WebSocketClientProtocol, connect, unix_connect
-    from .legacy.exceptions import InvalidMessage, InvalidStatusCode
+    from .legacy.exceptions import (
+        AbortHandshake,
+        InvalidMessage,
+        InvalidStatusCode,
+    )
     from .legacy.protocol import WebSocketCommonProtocol
     from .legacy.server import (
         WebSocketServer,
@@ -131,7 +134,6 @@ else:
             "HeadersLike": ".datastructures",
             "MultipleValuesError": ".datastructures",
             # .exceptions
-            "AbortHandshake": ".exceptions",
             "ConnectionClosed": ".exceptions",
             "ConnectionClosedError": ".exceptions",
             "ConnectionClosedOK": ".exceptions",
@@ -162,6 +164,7 @@ else:
             "connect": ".legacy.client",
             "unix_connect": ".legacy.client",
             # .legacy.exceptions
+            "AbortHandshake": ".legacy.exceptions",
             "InvalidMessage": ".legacy.exceptions",
             "InvalidStatusCode": ".legacy.exceptions",
             # .legacy.protocol

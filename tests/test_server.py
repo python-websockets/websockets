@@ -305,8 +305,7 @@ class AcceptRejectTests(unittest.TestCase):
             raise server.handshake_exc
         self.assertEqual(
             str(raised.exception),
-            "invalid Sec-WebSocket-Key header: "
-            "more than one Sec-WebSocket-Key header found",
+            "invalid Sec-WebSocket-Key header: multiple values",
         )
 
     def test_invalid_key(self):
@@ -366,8 +365,7 @@ class AcceptRejectTests(unittest.TestCase):
             raise server.handshake_exc
         self.assertEqual(
             str(raised.exception),
-            "invalid Sec-WebSocket-Version header: "
-            "more than one Sec-WebSocket-Version header found",
+            "invalid Sec-WebSocket-Version header: multiple values",
         )
 
     def test_invalid_version(self):
@@ -437,7 +435,7 @@ class AcceptRejectTests(unittest.TestCase):
             raise server.handshake_exc
         self.assertEqual(
             str(raised.exception),
-            "invalid Origin header: more than one Origin header found",
+            "invalid Origin header: multiple values",
         )
 
     def test_supported_origin(self):

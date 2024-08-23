@@ -17,7 +17,7 @@ __all__ = ["Headers", "HeadersLike", "MultipleValuesError"]
 
 class MultipleValuesError(LookupError):
     """
-    Exception raised when :class:`Headers` has more than one value for a key.
+    Exception raised when :class:`Headers` has multiple values for a key.
 
     """
 

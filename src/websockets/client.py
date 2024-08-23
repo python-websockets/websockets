@@ -176,10 +176,7 @@ class ClientProtocol(Protocol):
         except KeyError as exc:
             raise InvalidHeader("Sec-WebSocket-Accept") from exc
         except MultipleValuesError as exc:
-            raise InvalidHeader(
-                "Sec-WebSocket-Accept",
-                "more than one Sec-WebSocket-Accept header found",
-            ) from exc
+            raise InvalidHeader("Sec-WebSocket-Accept", "multiple values") from exc
 
         if s_w_accept != accept_key(self.key):
             raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)
@@ -225,7 +222,7 @@ class ClientProtocol(Protocol):
 
         if extensions:
             if self.available_extensions is None:
-                raise InvalidHandshake("no extensions supported")
+                raise NegotiationError("no extensions supported")
 
             parsed_extensions: list[ExtensionHeader] = sum(
                 [parse_extension(header_value) for header_value in extensions], []
@@ -280,15 +277,17 @@ class ClientProtocol(Protocol):
 
         if subprotocols:
             if self.available_subprotocols is None:
-                raise InvalidHandshake("no subprotocols supported")
+                raise NegotiationError("no subprotocols supported")
 
             parsed_subprotocols: Sequence[Subprotocol] = sum(
                 [parse_subprotocol(header_value) for header_value in subprotocols], []
             )
 
             if len(parsed_subprotocols) > 1:
-                subprotocols_display = ", ".join(parsed_subprotocols)
-                raise InvalidHandshake(f"multiple subprotocols: {subprotocols_display}")
+                raise InvalidHeader(
+                    "Sec-WebSocket-Protocol",
+                    f"multiple values: {', '.join(parsed_subprotocols)}",
+                )
 
             subprotocol = parsed_subprotocols[0]
 

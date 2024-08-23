@@ -76,9 +76,7 @@ def check_request(headers: Headers) -> str:
     except KeyError as exc:
         raise InvalidHeader("Sec-WebSocket-Key") from exc
     except MultipleValuesError as exc:
-        raise InvalidHeader(
-            "Sec-WebSocket-Key", "more than one Sec-WebSocket-Key header found"
-        ) from exc
+        raise InvalidHeader("Sec-WebSocket-Key", "multiple values") from exc
 
     try:
         raw_key = base64.b64decode(s_w_key.encode(), validate=True)
@@ -92,9 +90,7 @@ def check_request(headers: Headers) -> str:
     except KeyError as exc:
         raise InvalidHeader("Sec-WebSocket-Version") from exc
     except MultipleValuesError as exc:
-        raise InvalidHeader(
-            "Sec-WebSocket-Version", "more than one Sec-WebSocket-Version header found"
-        ) from exc
+        raise InvalidHeader("Sec-WebSocket-Version", "multiple values") from exc
 
     if s_w_version != "13":
         raise InvalidHeaderValue("Sec-WebSocket-Version", s_w_version)
@@ -156,9 +152,7 @@ def check_response(headers: Headers, key: str) -> None:
     except KeyError as exc:
         raise InvalidHeader("Sec-WebSocket-Accept") from exc
     except MultipleValuesError as exc:
-        raise InvalidHeader(
-            "Sec-WebSocket-Accept", "more than one Sec-WebSocket-Accept header found"
-        ) from exc
+        raise InvalidHeader("Sec-WebSocket-Accept", "multiple values") from exc
 
     if s_w_accept != accept(key):
         raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)

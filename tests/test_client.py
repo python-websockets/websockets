@@ -3,6 +3,7 @@ import unittest
 import unittest.mock
 
 from websockets.client import *
+from websockets.client import backoff
 from websockets.datastructures import Headers
 from websockets.exceptions import InvalidHandshake, InvalidHeader
 from websockets.frames import OP_TEXT, Frame
@@ -613,3 +614,15 @@ class BackwardsCompatibilityTests(DeprecationTestCase):
             client = ClientConnection("ws://localhost/")
 
         self.assertIsInstance(client, ClientProtocol)
+
+
+class BackoffTests(unittest.TestCase):
+    def test_backoff(self):
+        backoff_gen = backoff()
+
+        initial_delay = next(backoff_gen)
+        self.assertGreaterEqual(initial_delay, 0)
+        self.assertLess(initial_delay, 5)
+
+        following_delays = [int(next(backoff_gen)) for _ in range(9)]
+        self.assertEqual(following_delays, [3, 5, 8, 13, 21, 34, 55, 89, 90])

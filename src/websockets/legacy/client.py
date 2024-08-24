@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import functools
 import logging
+import os
 import random
 import urllib.parse
 import warnings
@@ -591,13 +592,13 @@ class Connect:
 
     # async for ... in connect(...):
 
-    BACKOFF_MIN = 1.92
-    BACKOFF_MAX = 60.0
-    BACKOFF_FACTOR = 1.618
-    BACKOFF_INITIAL = 5
+    BACKOFF_INITIAL = float(os.environ.get("WEBSOCKETS_BACKOFF_INITIAL_DELAY", "5"))
+    BACKOFF_MIN = float(os.environ.get("WEBSOCKETS_BACKOFF_MIN_DELAY", "3.1"))
+    BACKOFF_MAX = float(os.environ.get("WEBSOCKETS_BACKOFF_MAX_DELAY", "90.0"))
+    BACKOFF_FACTOR = float(os.environ.get("WEBSOCKETS_BACKOFF_FACTOR", "1.618"))
 
     async def __aiter__(self) -> AsyncIterator[WebSocketClientProtocol]:
-        backoff_delay = self.BACKOFF_MIN
+        backoff_delay = self.BACKOFF_MIN / self.BACKOFF_FACTOR
         while True:
             try:
                 async with self as protocol:

@@ -1,8 +1,5 @@
 import asyncio
-import contextlib
 import socket
-
-from websockets.asyncio.server import *
 
 
 def get_host_port(server):
@@ -38,19 +35,11 @@ async def handler(ws):
         raise AssertionError(f"unexpected path: {path}")
 
 
+# This shortcut avoids repeating serve(handler, "localhost", 0) for every test.
+args = handler, "localhost", 0
+
+
 class EvalShellMixin:
     async def assertEval(self, client, expr, value):
         await client.send(expr)
         self.assertEqual(await client.recv(), value)
-
-
-@contextlib.asynccontextmanager
-async def run_server(handler=handler, host="localhost", port=0, **kwargs):
-    async with serve(handler, host, port, **kwargs) as server:
-        yield server
-
-
-@contextlib.asynccontextmanager
-async def run_unix_server(path, handler=handler, **kwargs):
-    async with unix_serve(handler, path, **kwargs) as server:
-        yield server

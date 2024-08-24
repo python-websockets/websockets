@@ -25,24 +25,23 @@ from ..utils import (
 )
 from .server import (
     EvalShellMixin,
+    args,
     get_host_port,
     get_uri,
     handler,
-    run_server,
-    run_unix_server,
 )
 
 
 class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     async def test_connection(self):
         """Server receives connection from client and the handshake succeeds."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
     async def test_connection_handler_returns(self):
         """Connection handler returns."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             async with connect(get_uri(server) + "/no-op") as client:
                 with self.assertRaises(ConnectionClosedOK) as raised:
                     await client.recv()
@@ -53,7 +52,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_connection_handler_raises_exception(self):
         """Connection handler raises an exception."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             async with connect(get_uri(server) + "/crash") as client:
                 with self.assertRaises(ConnectionClosedError) as raised:
                     await client.recv()
@@ -66,7 +65,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     async def test_existing_socket(self):
         """Server receives connection using a pre-existing socket."""
         with socket.create_server(("localhost", 0)) as sock:
-            async with run_server(sock=sock, host=None, port=None):
+            async with serve(handler, sock=sock, host=None, port=None):
                 uri = "ws://{}:{}/".format(*sock.getsockname())
                 async with connect(uri) as client:
                     await self.assertEval(client, "ws.protocol.state.name", "OPEN")
@@ -79,7 +78,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             assert "chat" in subprotocols
             return "chat"
 
-        async with run_server(
+        async with serve(
+            *args,
             subprotocols=["chat"],
             select_subprotocol=select_subprotocol,
         ) as server:
@@ -93,7 +93,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def select_subprotocol(ws, subprotocols):
             raise NegotiationError
 
-        async with run_server(select_subprotocol=select_subprotocol) as server:
+        async with serve(*args, select_subprotocol=select_subprotocol) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -108,7 +108,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def select_subprotocol(ws, subprotocols):
             raise RuntimeError
 
-        async with run_server(select_subprotocol=select_subprotocol) as server:
+        async with serve(*args, select_subprotocol=select_subprotocol) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -124,7 +124,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             self.assertIsInstance(request, Request)
             ws.process_request_ran = True
 
-        async with run_server(process_request=process_request) as server:
+        async with serve(*args, process_request=process_request) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.process_request_ran", "True")
 
@@ -135,7 +135,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             self.assertIsInstance(request, Request)
             ws.process_request_ran = True
 
-        async with run_server(process_request=process_request) as server:
+        async with serve(*args, process_request=process_request) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.process_request_ran", "True")
 
@@ -145,7 +145,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def process_request(ws, request):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
-        async with run_server(process_request=process_request) as server:
+        async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -160,7 +160,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async def process_request(ws, request):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
-        async with run_server(process_request=process_request) as server:
+        async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -175,7 +175,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def process_request(ws, request):
             raise RuntimeError
 
-        async with run_server(process_request=process_request) as server:
+        async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -190,7 +190,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async def process_request(ws, request):
             raise RuntimeError
 
-        async with run_server(process_request=process_request) as server:
+        async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -207,7 +207,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             self.assertIsInstance(response, Response)
             ws.process_response_ran = True
 
-        async with run_server(process_response=process_response) as server:
+        async with serve(*args, process_response=process_response) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.process_response_ran", "True")
 
@@ -219,7 +219,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             self.assertIsInstance(response, Response)
             ws.process_response_ran = True
 
-        async with run_server(process_response=process_response) as server:
+        async with serve(*args, process_response=process_response) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.process_response_ran", "True")
 
@@ -229,7 +229,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def process_response(ws, request, response):
             response.headers["X-ProcessResponse"] = "OK"
 
-        async with run_server(process_response=process_response) as server:
+        async with serve(*args, process_response=process_response) as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
@@ -239,7 +239,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async def process_response(ws, request, response):
             response.headers["X-ProcessResponse"] = "OK"
 
-        async with run_server(process_response=process_response) as server:
+        async with serve(*args, process_response=process_response) as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
@@ -251,7 +251,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             headers["X-ProcessResponse"] = "OK"
             return dataclasses.replace(response, headers=headers)
 
-        async with run_server(process_response=process_response) as server:
+        async with serve(*args, process_response=process_response) as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
@@ -263,7 +263,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             headers["X-ProcessResponse"] = "OK"
             return dataclasses.replace(response, headers=headers)
 
-        async with run_server(process_response=process_response) as server:
+        async with serve(*args, process_response=process_response) as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
@@ -273,7 +273,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def process_response(ws, request, response):
             raise RuntimeError
 
-        async with run_server(process_response=process_response) as server:
+        async with serve(*args, process_response=process_response) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -288,7 +288,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async def process_response(ws, request, response):
             raise RuntimeError
 
-        async with run_server(process_response=process_response) as server:
+        async with serve(*args, process_response=process_response) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -299,13 +299,13 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_override_server(self):
         """Server can override Server header with server_header."""
-        async with run_server(server_header="Neo") as server:
+        async with serve(*args, server_header="Neo") as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.response.headers['Server']", "Neo")
 
     async def test_remove_server(self):
         """Server can remove Server header with server_header."""
-        async with run_server(server_header=None) as server:
+        async with serve(*args, server_header=None) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(
                     client, "'Server' in ws.response.headers", "False"
@@ -313,7 +313,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_compression_is_enabled(self):
         """Server enables compression by default."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(
                     client,
@@ -323,13 +323,13 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_disable_compression(self):
         """Server disables compression."""
-        async with run_server(compression=None) as server:
+        async with serve(*args, compression=None) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.protocol.extensions", "[]")
 
     async def test_keepalive_is_enabled(self):
         """Server enables keepalive and measures latency."""
-        async with run_server(ping_interval=MS) as server:
+        async with serve(*args, ping_interval=MS) as server:
             async with connect(get_uri(server)) as client:
                 await client.send("ws.latency")
                 latency = eval(await client.recv())
@@ -341,7 +341,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_disable_keepalive(self):
         """Client disables keepalive."""
-        async with run_server(ping_interval=None) as server:
+        async with serve(*args, ping_interval=None) as server:
             async with connect(get_uri(server)) as client:
                 await asyncio.sleep(2 * MS)
                 await client.send("ws.latency")
@@ -351,7 +351,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     async def test_logger(self):
         """Server accepts a logger argument."""
         logger = logging.getLogger("test")
-        async with run_server(logger=logger) as server:
+        async with serve(*args, logger=logger) as server:
             self.assertIs(server.logger, logger)
 
     async def test_custom_connection_factory(self):
@@ -362,13 +362,13 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             server.create_connection_ran = True
             return server
 
-        async with run_server(create_connection=create_connection) as server:
+        async with serve(*args, create_connection=create_connection) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.create_connection_ran", "True")
 
     async def test_connections(self):
         """Server provides a connections property."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             self.assertEqual(server.connections, set())
             async with connect(get_uri(server)) as client:
                 self.assertEqual(len(server.connections), 1)
@@ -382,7 +382,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def remove_key_header(self, request):
             del request.headers["Sec-WebSocket-Key"]
 
-        async with run_server(process_request=remove_key_header) as server:
+        async with serve(*args, process_request=remove_key_header) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -393,7 +393,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_timeout_during_handshake(self):
         """Server times out before receiving handshake request from client."""
-        async with run_server(open_timeout=MS) as server:
+        async with serve(*args, open_timeout=MS) as server:
             reader, writer = await asyncio.open_connection(*get_host_port(server))
             try:
                 self.assertEqual(await reader.read(4096), b"")
@@ -402,7 +402,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_connection_closed_during_handshake(self):
         """Server reads EOF before receiving handshake request from client."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             _reader, writer = await asyncio.open_connection(*get_host_port(server))
             writer.close()
 
@@ -413,7 +413,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             while ws.server.is_serving():
                 await asyncio.sleep(0)  # pragma: no cover
 
-        async with run_server(process_request=process_request) as server:
+        async with serve(*args, process_request=process_request) as server:
             asyncio.get_running_loop().call_later(MS, server.close)
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
@@ -425,7 +425,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_close_server_closes_open_connections(self):
         """Server closes open connections with close code 1001 when closing."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 server.close()
                 with self.assertRaises(ConnectionClosedOK) as raised:
@@ -437,7 +437,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_close_server_keeps_connections_open(self):
         """Server waits for client to close open connections when closing."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 server.close(close_connections=False)
 
@@ -457,7 +457,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_close_server_keeps_handlers_running(self):
         """Server waits for connection handlers to terminate."""
-        async with run_server() as server:
+        async with serve(*args) as server:
             async with connect(get_uri(server) + "/delay") as client:
                 # Delay termination of connection handler.
                 await client.send(str(3 * MS))
@@ -479,14 +479,14 @@ SSL_OBJECT = "ws.transport.get_extra_info('ssl_object')"
 class SecureServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     async def test_connection(self):
         """Server receives secure connection from client."""
-        async with run_server(ssl=SERVER_CONTEXT) as server:
+        async with serve(*args, ssl=SERVER_CONTEXT) as server:
             async with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
                 await self.assertEval(client, "ws.protocol.state.name", "OPEN")
                 await self.assertEval(client, SSL_OBJECT + ".version()[:3]", "TLS")
 
     async def test_timeout_during_tls_handshake(self):
         """Server times out before receiving TLS handshake request from client."""
-        async with run_server(ssl=SERVER_CONTEXT, open_timeout=MS) as server:
+        async with serve(*args, ssl=SERVER_CONTEXT, open_timeout=MS) as server:
             reader, writer = await asyncio.open_connection(*get_host_port(server))
             try:
                 self.assertEqual(await reader.read(4096), b"")
@@ -495,7 +495,7 @@ class SecureServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_connection_closed_during_tls_handshake(self):
         """Server reads EOF before receiving TLS handshake request from client."""
-        async with run_server(ssl=SERVER_CONTEXT) as server:
+        async with serve(*args, ssl=SERVER_CONTEXT) as server:
             _reader, writer = await asyncio.open_connection(*get_host_port(server))
             writer.close()
 
@@ -505,7 +505,7 @@ class UnixServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     async def test_connection(self):
         """Server receives connection from client over a Unix socket."""
         with temp_unix_socket_path() as path:
-            async with run_unix_server(path):
+            async with unix_serve(handler, path):
                 async with unix_connect(path) as client:
                     await self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
@@ -515,7 +515,7 @@ class SecureUnixServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     async def test_connection(self):
         """Server receives secure connection from client over a Unix socket."""
         with temp_unix_socket_path() as path:
-            async with run_unix_server(path, ssl=SERVER_CONTEXT):
+            async with unix_serve(handler, path, ssl=SERVER_CONTEXT):
                 async with unix_connect(path, ssl=CLIENT_CONTEXT) as client:
                     await self.assertEval(client, "ws.protocol.state.name", "OPEN")
                     await self.assertEval(client, SSL_OBJECT + ".version()[:3]", "TLS")
@@ -545,7 +545,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_subprotocol(self):
         """Server rejects single value of subprotocols."""
         with self.assertRaises(TypeError) as raised:
-            await serve(handler, subprotocols="chat")
+            await serve(*args, subprotocols="chat")
         self.assertEqual(
             str(raised.exception),
             "subprotocols must be a list, not a str",
@@ -554,7 +554,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
     async def test_unsupported_compression(self):
         """Server rejects incorrect value of compression."""
         with self.assertRaises(ValueError) as raised:
-            await serve(handler, compression=False)
+            await serve(*args, compression=False)
         self.assertEqual(
             str(raised.exception),
             "unsupported compression: False",
@@ -564,7 +564,8 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
 class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     async def test_valid_authorization(self):
         """basic_auth authenticates client with HTTP Basic Authentication."""
-        async with run_server(
+        async with serve(
+            *args,
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
             async with connect(
@@ -575,7 +576,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_missing_authorization(self):
         """basic_auth rejects client without credentials."""
-        async with run_server(
+        async with serve(
+            *args,
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
@@ -588,7 +590,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_unsupported_authorization(self):
         """basic_auth rejects client with unsupported credentials."""
-        async with run_server(
+        async with serve(
+            *args,
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
@@ -604,7 +607,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_authorization_with_unknown_username(self):
         """basic_auth rejects client with unknown username."""
-        async with run_server(
+        async with serve(
+            *args,
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
@@ -620,7 +624,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_authorization_with_incorrect_password(self):
         """basic_auth rejects client with incorrect password."""
-        async with run_server(
+        async with serve(
+            *args,
             process_request=basic_auth(credentials=("hello", "changeme")),
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
@@ -636,7 +641,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_list_of_credentials(self):
         """basic_auth accepts a list of hard coded credentials."""
-        async with run_server(
+        async with serve(
+            *args,
             process_request=basic_auth(
                 credentials=[
                     ("hello", "iloveyou"),
@@ -656,7 +662,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def check_credentials(username, password):
             return hmac.compare_digest(password, "iloveyou")
 
-        async with run_server(
+        async with serve(
+            *args,
             process_request=basic_auth(check_credentials=check_credentials),
         ) as server:
             async with connect(
@@ -671,7 +678,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async def check_credentials(username, password):
             return hmac.compare_digest(password, "iloveyou")
 
-        async with run_server(
+        async with serve(
+            *args,
             process_request=basic_auth(check_credentials=check_credentials),
         ) as server:
             async with connect(

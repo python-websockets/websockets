@@ -796,10 +796,10 @@ class serve:
 
         loop = asyncio.get_running_loop()
         if kwargs.pop("unix", False):
-            self._create_server = loop.create_unix_server(factory, **kwargs)
+            self.create_server = loop.create_unix_server(factory, **kwargs)
         else:
             # mypy cannot tell that kwargs must provide sock when port is None.
-            self._create_server = loop.create_server(factory, host, port, **kwargs)  # type: ignore[arg-type]
+            self.create_server = loop.create_server(factory, host, port, **kwargs)  # type: ignore[arg-type]
 
     # async with serve(...) as ...: ...
 
@@ -822,7 +822,7 @@ class serve:
         return self.__await_impl__().__await__()
 
     async def __await_impl__(self) -> Server:
-        server = await self._create_server
+        server = await self.create_server
         self.server.wrap(server)
         return self.server
 

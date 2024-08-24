@@ -281,19 +281,19 @@ class connect:
 
         loop = asyncio.get_running_loop()
         if kwargs.pop("unix", False):
-            self._create_connection = loop.create_unix_connection(factory, **kwargs)
+            self.create_connection = loop.create_unix_connection(factory, **kwargs)
         else:
             if kwargs.get("sock") is None:
                 kwargs.setdefault("host", wsuri.host)
                 kwargs.setdefault("port", wsuri.port)
-            self._create_connection = loop.create_connection(factory, **kwargs)
+            self.create_connection = loop.create_connection(factory, **kwargs)
 
-        self._handshake_args = (
+        self.handshake_args = (
             additional_headers,
             user_agent_header,
         )
 
-        self._open_timeout = open_timeout
+        self.open_timeout = open_timeout
 
     # ... = await connect(...)
 
@@ -303,10 +303,10 @@ class connect:
 
     async def __await_impl__(self) -> ClientConnection:
         try:
-            async with asyncio_timeout(self._open_timeout):
-                _transport, self.connection = await self._create_connection
+            async with asyncio_timeout(self.open_timeout):
+                _transport, self.connection = await self.create_connection
                 try:
-                    await self.connection.handshake(*self._handshake_args)
+                    await self.connection.handshake(*self.handshake_args)
                 except (Exception, asyncio.CancelledError):
                     self.connection.transport.close()
                     raise

@@ -79,19 +79,6 @@ Following redirects
 The new implementation of :func:`~asyncio.client.connect` doesn't follow HTTP
 redirects yet.
 
-Automatic reconnection
-......................
-
-The new implementation of :func:`~asyncio.client.connect` doesn't provide
-automatic reconnection yet.
-
-In other words, the following pattern isn't supported::
-
-    from websockets.asyncio.client import connect
-
-    async for websocket in connect(...):  # this doesn't work yet
-        ...
-
 .. _Update import paths:
 
 Import paths
@@ -184,6 +171,26 @@ it simpler.
 ``process_request`` and ``select_subprotocol`` have new signatures.
 ``process_response`` replaces ``extra_headers`` and provides more flexibility.
 See process_request_, select_subprotocol_, and process_response_ below.
+
+Customizing automatic reconnection
+..................................
+
+On the client side, if you're reconnecting automatically with ``async for ... in
+connect(...)``, the behavior when a connection attempt fails was enhanced and
+made configurable.
+
+The original implementation retried on any error. The new implementation uses an
+heuristic to determine whether an error is retryable or fatal. By default, only
+network errors and server errors (HTTP 500, 502, 503, or 504) are considered
+retryable. You can customize this behavior with the ``process_exception``
+argument of :func:`~asyncio.client.connect`.
+
+See :func:`~asyncio.client.process_exception` for more information.
+
+Here's how to revert to the behavior of the original implementation::
+
+    async for ... in connect(..., process_exception=lambda exc: exc):
+        ...
 
 Tracking open connections
 .........................

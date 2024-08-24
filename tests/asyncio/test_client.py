@@ -1,4 +1,6 @@
 import asyncio
+import contextlib
+import http
 import logging
 import socket
 import ssl
@@ -7,19 +9,133 @@ import unittest
 from websockets.asyncio.client import *
 from websockets.asyncio.compatibility import TimeoutError
 from websockets.asyncio.server import serve, unix_serve
-from websockets.exceptions import InvalidHandshake, InvalidURI
+from websockets.client import backoff
+from websockets.exceptions import InvalidHandshake, InvalidStatus, InvalidURI
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 
 from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
 from .server import args, get_host_port, get_uri, handler
 
 
+# Decorate tests that need it with @short_backoff_delay() instead of using it as
+# a context manager when dropping support for Python < 3.10.
+@contextlib.asynccontextmanager
+async def short_backoff_delay():
+    defaults = backoff.__defaults__
+    backoff.__defaults__ = (
+        defaults[0] * MS,
+        defaults[1] * MS,
+        defaults[2] * MS,
+        defaults[3],
+    )
+    try:
+        yield
+    finally:
+        backoff.__defaults__ = defaults
+
+
 class ClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_connection(self):
-        """Client connects to server and the handshake succeeds."""
+        """Client connects to server."""
         async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
+
+    async def test_reconnection(self):
+        """Client reconnects to server."""
+        iterations = 0
+        successful = 0
+
+        def process_request(connection, request):
+            nonlocal iterations
+            iterations += 1
+            # Retriable errors
+            if iterations == 1:
+                connection.transport.close()
+            elif iterations == 2:
+                return connection.respond(http.HTTPStatus.SERVICE_UNAVAILABLE, "🚒")
+            # Fatal error
+            elif iterations == 5:
+                return connection.respond(http.HTTPStatus.PAYMENT_REQUIRED, "💸")
+
+        async with serve(*args, process_request=process_request) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                async with short_backoff_delay():
+                    async for client in connect(get_uri(server)):
+                        self.assertEqual(client.protocol.state.name, "OPEN")
+                        successful += 1
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 402",
+        )
+        self.assertEqual(iterations, 5)
+        self.assertEqual(successful, 2)
+
+    @unittest.skipUnless(
+        hasattr(http.HTTPStatus, "IM_A_TEAPOT"),
+        "test requires Python 3.9",
+    )
+    async def test_reconnection_with_custom_process_exception(self):
+        """Client runs process_exception to tell if errors are retryable or fatal."""
+        iteration = 0
+
+        def process_request(connection, request):
+            nonlocal iteration
+            iteration += 1
+            if iteration == 1:
+                return connection.respond(http.HTTPStatus.SERVICE_UNAVAILABLE, "🚒")
+            return connection.respond(http.HTTPStatus.IM_A_TEAPOT, "🫖")
+
+        def process_exception(exc):
+            if isinstance(exc, InvalidStatus):
+                if 500 <= exc.response.status_code < 600:
+                    return None
+                if exc.response.status_code == 418:
+                    return Exception("🫖 💔 ☕️")
+            self.fail("unexpected exception")
+
+        async with serve(*args, process_request=process_request) as server:
+            with self.assertRaises(Exception) as raised:
+                async with short_backoff_delay():
+                    async for _ in connect(
+                        get_uri(server), process_exception=process_exception
+                    ):
+                        self.fail("did not raise")
+
+        self.assertEqual(iteration, 2)
+        self.assertEqual(
+            str(raised.exception),
+            "🫖 💔 ☕️",
+        )
+
+    @unittest.skipUnless(
+        hasattr(http.HTTPStatus, "IM_A_TEAPOT"),
+        "test requires Python 3.9",
+    )
+    async def test_reconnection_with_custom_process_exception_raising_exception(self):
+        """Client supports raising an exception in process_exception."""
+
+        def process_request(connection, request):
+            return connection.respond(http.HTTPStatus.IM_A_TEAPOT, "🫖")
+
+        def process_exception(exc):
+            if isinstance(exc, InvalidStatus) and exc.response.status_code == 418:
+                raise Exception("🫖 💔 ☕️")
+            self.fail("unexpected exception")
+
+        async with serve(*args, process_request=process_request) as server:
+            with self.assertRaises(Exception) as raised:
+                async with short_backoff_delay():
+                    async for _ in connect(
+                        get_uri(server), process_exception=process_exception
+                    ):
+                        self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            "🫖 💔 ☕️",
+        )
 
     async def test_existing_socket(self):
         """Client connects using a pre-existing socket."""

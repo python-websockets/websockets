@@ -12,6 +12,8 @@ Opening a connection
 .. autofunction:: unix_connect
     :async:
 
+.. autofunction:: process_exception
+
 Using a connection
 ------------------
 

@@ -46,11 +46,15 @@ Backwards-incompatible changes
 New features
 ............
 
-* Made the set of active connections available in the :attr:`Server.connections
-  <asyncio.server.Server.connections>` property.
+* Added support for reconnecting automatically by using
+  :func:`~asyncio.client.connect` as an asynchronous iterator to the new
+  :mod:`asyncio` implementation.
 
 * Added HTTP Basic Auth to the new :mod:`asyncio` and :mod:`threading`
   implementations of servers.
+
+* Made the set of active connections available in the :attr:`Server.connections
+  <asyncio.server.Server.connections>` property.
 
 .. _13.0:
 

@@ -295,19 +295,6 @@ class connect:
 
         self._open_timeout = open_timeout
 
-    # async with connect(...) as ...: ...
-
-    async def __aenter__(self) -> ClientConnection:
-        return await self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        await self.connection.close()
-
     # ... = await connect(...)
 
     def __await__(self) -> Generator[Any, None, ClientConnection]:
@@ -332,6 +319,19 @@ class connect:
     # ... = yield from connect(...) - remove when dropping Python < 3.10
 
     __iter__ = __await__
+
+    # async with connect(...) as ...: ...
+
+    async def __aenter__(self) -> ClientConnection:
+        return await self
+
+    async def __aexit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        traceback: TracebackType | None,
+    ) -> None:
+        await self.connection.close()
 
 
 def unix_connect(

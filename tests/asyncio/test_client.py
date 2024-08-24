@@ -9,49 +9,48 @@ from websockets.exceptions import InvalidHandshake, InvalidURI
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 
 from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
-from .client import run_client, run_unix_client
-from .server import do_nothing, get_server_host_port, run_server, run_unix_server
+from .server import do_nothing, get_host_port, get_uri, run_server, run_unix_server
 
 
 class ClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_connection(self):
         """Client connects to server and the handshake succeeds."""
         async with run_server() as server:
-            async with run_client(server) as client:
+            async with connect(get_uri(server)) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
 
     async def test_existing_socket(self):
         """Client connects using a pre-existing socket."""
         async with run_server() as server:
-            with socket.create_connection(get_server_host_port(server)) as sock:
+            with socket.create_connection(get_host_port(server)) as sock:
                 # Use a non-existing domain to ensure we connect to the right socket.
-                async with run_client("ws://invalid/", sock=sock) as client:
+                async with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
 
     async def test_additional_headers(self):
         """Client can set additional headers with additional_headers."""
         async with run_server() as server:
-            async with run_client(
-                server, additional_headers={"Authorization": "Bearer ..."}
+            async with connect(
+                get_uri(server), additional_headers={"Authorization": "Bearer ..."}
             ) as client:
                 self.assertEqual(client.request.headers["Authorization"], "Bearer ...")
 
     async def test_override_user_agent(self):
         """Client can override User-Agent header with user_agent_header."""
         async with run_server() as server:
-            async with run_client(server, user_agent_header="Smith") as client:
+            async with connect(get_uri(server), user_agent_header="Smith") as client:
                 self.assertEqual(client.request.headers["User-Agent"], "Smith")
 
     async def test_remove_user_agent(self):
         """Client can remove User-Agent header with user_agent_header."""
         async with run_server() as server:
-            async with run_client(server, user_agent_header=None) as client:
+            async with connect(get_uri(server), user_agent_header=None) as client:
                 self.assertNotIn("User-Agent", client.request.headers)
 
     async def test_compression_is_enabled(self):
         """Client enables compression by default."""
         async with run_server() as server:
-            async with run_client(server) as client:
+            async with connect(get_uri(server)) as client:
                 self.assertEqual(
                     [type(ext) for ext in client.protocol.extensions],
                     [PerMessageDeflate],
@@ -60,13 +59,13 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_disable_compression(self):
         """Client disables compression."""
         async with run_server() as server:
-            async with run_client(server, compression=None) as client:
+            async with connect(get_uri(server), compression=None) as client:
                 self.assertEqual(client.protocol.extensions, [])
 
     async def test_keepalive_is_enabled(self):
         """Client enables keepalive and measures latency by default."""
         async with run_server() as server:
-            async with run_client(server, ping_interval=MS) as client:
+            async with connect(get_uri(server), ping_interval=MS) as client:
                 self.assertEqual(client.latency, 0)
                 await asyncio.sleep(2 * MS)
                 self.assertGreater(client.latency, 0)
@@ -74,7 +73,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_disable_keepalive(self):
         """Client disables keepalive."""
         async with run_server() as server:
-            async with run_client(server, ping_interval=None) as client:
+            async with connect(get_uri(server), ping_interval=None) as client:
                 await asyncio.sleep(2 * MS)
                 self.assertEqual(client.latency, 0)
 
@@ -87,21 +86,21 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             return client
 
         async with run_server() as server:
-            async with run_client(
-                server, create_connection=create_connection
+            async with connect(
+                get_uri(server), create_connection=create_connection
             ) as client:
                 self.assertTrue(client.create_connection_ran)
 
     async def test_invalid_uri(self):
         """Client receives an invalid URI."""
         with self.assertRaises(InvalidURI):
-            async with run_client("http://localhost"):  # invalid scheme
+            async with connect("http://localhost"):  # invalid scheme
                 self.fail("did not raise")
 
     async def test_tcp_connection_fails(self):
         """Client fails to connect to server."""
         with self.assertRaises(OSError):
-            async with run_client("ws://localhost:54321"):  # invalid port
+            async with connect("ws://localhost:54321"):  # invalid port
                 self.fail("did not raise")
 
     async def test_handshake_fails(self):
@@ -116,7 +115,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             do_nothing, process_response=remove_accept_header
         ) as server:
             with self.assertRaises(InvalidHandshake) as raised:
-                async with run_client(server, close_timeout=MS):
+                async with connect(get_uri(server), close_timeout=MS):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -135,7 +134,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         async with run_server(do_nothing, process_request=stall_connection) as server:
             try:
                 with self.assertRaises(TimeoutError) as raised:
-                    async with run_client(server, open_timeout=2 * MS):
+                    async with connect(get_uri(server), open_timeout=2 * MS):
                         self.fail("did not raise")
                 self.assertEqual(
                     str(raised.exception),
@@ -152,7 +151,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         async with run_server(process_request=close_connection) as server:
             with self.assertRaises(ConnectionError) as raised:
-                async with run_client(server):
+                async with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -164,7 +163,7 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_connection(self):
         """Client connects to server securely."""
         async with run_server(ssl=SERVER_CONTEXT) as server:
-            async with run_client(server, ssl=CLIENT_CONTEXT) as client:
+            async with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
                 ssl_object = client.transport.get_extra_info("ssl_object")
                 self.assertEqual(ssl_object.version()[:3], "TLS")
@@ -172,12 +171,9 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_set_server_hostname_implicitly(self):
         """Client sets server_hostname to the host in the WebSocket URI."""
         async with run_server(ssl=SERVER_CONTEXT) as server:
-            host, port = get_server_host_port(server)
-            async with run_client(
-                "wss://overridden/",
-                host=host,
-                port=port,
-                ssl=CLIENT_CONTEXT,
+            host, port = get_host_port(server)
+            async with connect(
+                "wss://overridden/", host=host, port=port, ssl=CLIENT_CONTEXT
             ) as client:
                 ssl_object = client.transport.get_extra_info("ssl_object")
                 self.assertEqual(ssl_object.server_hostname, "overridden")
@@ -185,10 +181,8 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_set_server_hostname_explicitly(self):
         """Client sets server_hostname to the value provided in argument."""
         async with run_server(ssl=SERVER_CONTEXT) as server:
-            async with run_client(
-                server,
-                ssl=CLIENT_CONTEXT,
-                server_hostname="overridden",
+            async with connect(
+                get_uri(server), ssl=CLIENT_CONTEXT, server_hostname="overridden"
             ) as client:
                 ssl_object = client.transport.get_extra_info("ssl_object")
                 self.assertEqual(ssl_object.server_hostname, "overridden")
@@ -198,7 +192,7 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
         async with run_server(ssl=SERVER_CONTEXT) as server:
             with self.assertRaises(ssl.SSLCertVerificationError) as raised:
                 # The test certificate isn't trusted system-wide.
-                async with run_client(server, secure=True):
+                async with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertIn(
                 "certificate verify failed: self signed certificate",
@@ -210,8 +204,8 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
         async with run_server(ssl=SERVER_CONTEXT) as server:
             with self.assertRaises(ssl.SSLCertVerificationError) as raised:
                 # This hostname isn't included in the test certificate.
-                async with run_client(
-                    server, ssl=CLIENT_CONTEXT, server_hostname="invalid"
+                async with connect(
+                    get_uri(server), ssl=CLIENT_CONTEXT, server_hostname="invalid"
                 ):
                     self.fail("did not raise")
             self.assertIn(
@@ -226,7 +220,7 @@ class UnixClientTests(unittest.IsolatedAsyncioTestCase):
         """Client connects to server over a Unix socket."""
         with temp_unix_socket_path() as path:
             async with run_unix_server(path):
-                async with run_unix_client(path) as client:
+                async with unix_connect(path) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
 
     async def test_set_host_header(self):
@@ -234,7 +228,7 @@ class UnixClientTests(unittest.IsolatedAsyncioTestCase):
         # This is part of the documented behavior of unix_connect().
         with temp_unix_socket_path() as path:
             async with run_unix_server(path):
-                async with run_unix_client(path, uri="ws://overridden/") as client:
+                async with unix_connect(path, uri="ws://overridden/") as client:
                     self.assertEqual(client.request.headers["Host"], "overridden")
 
 
@@ -244,7 +238,7 @@ class SecureUnixClientTests(unittest.IsolatedAsyncioTestCase):
         """Client connects to server securely over a Unix socket."""
         with temp_unix_socket_path() as path:
             async with run_unix_server(path, ssl=SERVER_CONTEXT):
-                async with run_unix_client(path, ssl=CLIENT_CONTEXT) as client:
+                async with unix_connect(path, ssl=CLIENT_CONTEXT) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
                     ssl_object = client.transport.get_extra_info("ssl_object")
                     self.assertEqual(ssl_object.version()[:3], "TLS")
@@ -254,7 +248,7 @@ class SecureUnixClientTests(unittest.IsolatedAsyncioTestCase):
         # This is part of the documented behavior of unix_connect().
         with temp_unix_socket_path() as path:
             async with run_unix_server(path, ssl=SERVER_CONTEXT):
-                async with run_unix_client(
+                async with unix_connect(
                     path,
                     ssl=CLIENT_CONTEXT,
                     uri="wss://overridden/",

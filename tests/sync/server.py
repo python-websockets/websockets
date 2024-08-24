@@ -1,7 +1,15 @@
 import contextlib
+import ssl
 import threading
 
 from websockets.sync.server import *
+
+
+def get_uri(server):
+    secure = isinstance(server.socket, ssl.SSLSocket)  # hack
+    protocol = "wss" if secure else "ws"
+    host, port = server.socket.getsockname()
+    return f"{protocol}://{host}:{port}"
 
 
 def crash(ws):

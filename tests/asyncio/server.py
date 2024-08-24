@@ -5,11 +5,18 @@ import socket
 from websockets.asyncio.server import *
 
 
-def get_server_host_port(server):
+def get_host_port(server):
     for sock in server.sockets:
         if sock.family == socket.AF_INET:  # pragma: no branch
             return sock.getsockname()
     raise AssertionError("expected at least one IPv4 socket")
+
+
+def get_uri(server):
+    secure = server.server._ssl_context is not None  # hack
+    protocol = "wss" if secure else "ws"
+    host, port = get_host_port(server)
+    return f"{protocol}://{host}:{port}"
 
 
 async def eval_shell(ws):

@@ -13,6 +13,7 @@ from websockets.exceptions import (
     NegotiationError,
 )
 from websockets.http11 import Request, Response
+from websockets.sync.client import connect, unix_connect
 from websockets.sync.server import *
 
 from ..utils import (
@@ -22,12 +23,12 @@ from ..utils import (
     DeprecationTestCase,
     temp_unix_socket_path,
 )
-from .client import run_client, run_unix_client
 from .server import (
     EvalShellMixin,
     crash,
     do_nothing,
     eval_shell,
+    get_uri,
     run_server,
     run_unix_server,
 )
@@ -37,13 +38,13 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
     def test_connection(self):
         """Server receives connection from client and the handshake succeeds."""
         with run_server() as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
     def test_connection_handler_returns(self):
         """Connection handler returns."""
         with run_server(do_nothing) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 with self.assertRaises(ConnectionClosedOK) as raised:
                     client.recv()
                 self.assertEqual(
@@ -54,7 +55,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
     def test_connection_handler_raises_exception(self):
         """Connection handler raises an exception."""
         with run_server(crash) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 with self.assertRaises(ConnectionClosedError) as raised:
                     client.recv()
                 self.assertEqual(
@@ -68,7 +69,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         with socket.create_server(("localhost", 0)) as sock:
             with run_server(sock=sock):
                 uri = "ws://{}:{}/".format(*sock.getsockname())
-                with run_client(uri) as client:
+                with connect(uri) as client:
                     self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
     def test_select_subprotocol(self):
@@ -83,7 +84,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             subprotocols=["chat"],
             select_subprotocol=select_subprotocol,
         ) as server:
-            with run_client(server, subprotocols=["chat"]) as client:
+            with connect(get_uri(server), subprotocols=["chat"]) as client:
                 self.assertEval(client, "ws.select_subprotocol_ran", "True")
                 self.assertEval(client, "ws.subprotocol", "chat")
 
@@ -95,7 +96,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
         with run_server(select_subprotocol=select_subprotocol) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(server):
+                with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -110,7 +111,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
         with run_server(select_subprotocol=select_subprotocol) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(server):
+                with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -125,7 +126,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             ws.process_request_ran = True
 
         with run_server(process_request=process_request) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.process_request_ran", "True")
 
     def test_process_request_returns_response(self):
@@ -136,7 +137,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
         with run_server(process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(server):
+                with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -151,7 +152,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
         with run_server(process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(server):
+                with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -167,7 +168,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             ws.process_response_ran = True
 
         with run_server(process_response=process_response) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.process_response_ran", "True")
 
     def test_process_response_modifies_response(self):
@@ -177,7 +178,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             response.headers["X-ProcessResponse"] = "OK"
 
         with run_server(process_response=process_response) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
     def test_process_response_replaces_response(self):
@@ -189,7 +190,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             return dataclasses.replace(response, headers=headers)
 
         with run_server(process_response=process_response) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEqual(client.response.headers["X-ProcessResponse"], "OK")
 
     def test_process_response_raises_exception(self):
@@ -200,7 +201,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
         with run_server(process_response=process_response) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(server):
+                with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -210,19 +211,19 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
     def test_override_server(self):
         """Server can override Server header with server_header."""
         with run_server(server_header="Neo") as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.response.headers['Server']", "Neo")
 
     def test_remove_server(self):
         """Server can remove Server header with server_header."""
         with run_server(server_header=None) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEval(client, "'Server' in ws.response.headers", "False")
 
     def test_compression_is_enabled(self):
         """Server enables compression by default."""
         with run_server() as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEval(
                     client,
                     "[type(ext).__name__ for ext in ws.protocol.extensions]",
@@ -232,7 +233,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
     def test_disable_compression(self):
         """Server disables compression."""
         with run_server(compression=None) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.protocol.extensions", "[]")
 
     def test_logger(self):
@@ -250,7 +251,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             return server
 
         with run_server(create_connection=create_connection) as server:
-            with run_client(server) as client:
+            with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.create_connection_ran", "True")
 
     def test_fileno(self):
@@ -274,7 +275,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
         with run_server(process_request=remove_key_header) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(server):
+                with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -316,7 +317,7 @@ class SecureServerTests(EvalShellMixin, unittest.TestCase):
     def test_connection(self):
         """Server receives secure connection from client."""
         with run_server(ssl=SERVER_CONTEXT) as server:
-            with run_client(server, ssl=CLIENT_CONTEXT) as client:
+            with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
                 self.assertEval(client, "ws.protocol.state.name", "OPEN")
                 self.assertEval(client, "ws.socket.version()[:3]", "TLS")
 
@@ -357,7 +358,7 @@ class UnixServerTests(EvalShellMixin, unittest.TestCase):
         """Server receives connection from client over a Unix socket."""
         with temp_unix_socket_path() as path:
             with run_unix_server(path):
-                with run_unix_client(path) as client:
+                with unix_connect(path) as client:
                     self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
 
@@ -367,7 +368,7 @@ class SecureUnixServerTests(EvalShellMixin, unittest.TestCase):
         """Server receives secure connection from client over a Unix socket."""
         with temp_unix_socket_path() as path:
             with run_unix_server(path, ssl=SERVER_CONTEXT):
-                with run_unix_client(path, ssl=CLIENT_CONTEXT) as client:
+                with unix_connect(path, ssl=CLIENT_CONTEXT) as client:
                     self.assertEval(client, "ws.protocol.state.name", "OPEN")
                     self.assertEval(client, "ws.socket.version()[:3]", "TLS")
 
@@ -418,8 +419,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         with run_server(
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
-            with run_client(
-                server,
+            with connect(
+                get_uri(server),
                 additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
             ) as client:
                 self.assertEval(client, "ws.username", "hello")
@@ -430,7 +431,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(server):
+                with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -443,8 +444,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(
-                    server,
+                with connect(
+                    get_uri(server),
                     additional_headers={"Authorization": "Negotiate ..."},
                 ):
                     self.fail("did not raise")
@@ -459,8 +460,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(
-                    server,
+                with connect(
+                    get_uri(server),
                     additional_headers={"Authorization": "Basic YnllOnlvdWxvdmVtZQ=="},
                 ):
                     self.fail("did not raise")
@@ -475,8 +476,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             process_request=basic_auth(credentials=("hello", "changeme")),
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                with run_client(
-                    server,
+                with connect(
+                    get_uri(server),
                     additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
                 ):
                     self.fail("did not raise")
@@ -495,8 +496,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 ]
             ),
         ) as server:
-            with run_client(
-                server,
+            with connect(
+                get_uri(server),
                 additional_headers={"Authorization": "Basic YnllOnlvdWxvdmVtZQ=="},
             ) as client:
                 self.assertEval(client, "ws.username", "bye")
@@ -510,8 +511,8 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         with run_server(
             process_request=basic_auth(check_credentials=check_credentials),
         ) as server:
-            with run_client(
-                server,
+            with connect(
+                get_uri(server),
                 additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
             ) as client:
                 self.assertEval(client, "ws.username", "hello")
@@ -561,7 +562,7 @@ class BackwardsCompatibilityTests(DeprecationTestCase):
         """Client supports the deprecated ssl_context argument."""
         with self.assertDeprecationWarning("ssl_context was renamed to ssl"):
             with run_server(ssl_context=SERVER_CONTEXT) as server:
-                with run_client(server, ssl=CLIENT_CONTEXT):
+                with connect(get_uri(server), ssl=CLIENT_CONTEXT):
                     pass
 
     def test_web_socket_server_class(self):

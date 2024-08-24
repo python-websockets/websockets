@@ -14,7 +14,7 @@ from ..utils import (
     DeprecationTestCase,
     temp_unix_socket_path,
 )
-from .server import do_nothing, get_uri, run_server, run_unix_server
+from .server import get_uri, run_server, run_unix_server
 
 
 class ClientTests(unittest.TestCase):
@@ -101,9 +101,9 @@ class ClientTests(unittest.TestCase):
 
         # The connection will be open for the server but failed for the client.
         # Use a connection handler that exits immediately to avoid an exception.
-        with run_server(do_nothing, process_response=remove_accept_header) as server:
+        with run_server(process_response=remove_accept_header) as server:
             with self.assertRaises(InvalidHandshake) as raised:
-                with connect(get_uri(server), close_timeout=MS):
+                with connect(get_uri(server) + "/no-op", close_timeout=MS):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -119,10 +119,10 @@ class ClientTests(unittest.TestCase):
 
         # The connection will be open for the server but failed for the client.
         # Use a connection handler that exits immediately to avoid an exception.
-        with run_server(do_nothing, process_request=stall_connection) as server:
+        with run_server(process_request=stall_connection) as server:
             try:
                 with self.assertRaises(TimeoutError) as raised:
-                    with connect(get_uri(server), open_timeout=2 * MS):
+                    with connect(get_uri(server) + "/no-op", open_timeout=2 * MS):
                         self.fail("did not raise")
                 self.assertEqual(
                     str(raised.exception),

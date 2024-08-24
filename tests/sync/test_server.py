@@ -25,10 +25,8 @@ from ..utils import (
 )
 from .server import (
     EvalShellMixin,
-    crash,
-    do_nothing,
-    eval_shell,
     get_uri,
+    handler,
     run_server,
     run_unix_server,
 )
@@ -43,8 +41,8 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
     def test_connection_handler_returns(self):
         """Connection handler returns."""
-        with run_server(do_nothing) as server:
-            with connect(get_uri(server)) as client:
+        with run_server() as server:
+            with connect(get_uri(server) + "/no-op") as client:
                 with self.assertRaises(ConnectionClosedOK) as raised:
                     client.recv()
                 self.assertEqual(
@@ -54,8 +52,8 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
     def test_connection_handler_raises_exception(self):
         """Connection handler raises an exception."""
-        with run_server(crash) as server:
-            with connect(get_uri(server)) as client:
+        with run_server() as server:
+            with connect(get_uri(server) + "/crash") as client:
                 with self.assertRaises(ConnectionClosedError) as raised:
                     client.recv()
                 self.assertEqual(
@@ -377,7 +375,7 @@ class ServerUsageErrorsTests(unittest.TestCase):
     def test_unix_without_path_or_sock(self):
         """Unix server requires path when sock isn't provided."""
         with self.assertRaises(TypeError) as raised:
-            unix_serve(eval_shell)
+            unix_serve(handler)
         self.assertEqual(
             str(raised.exception),
             "missing path argument",
@@ -388,7 +386,7 @@ class ServerUsageErrorsTests(unittest.TestCase):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.addCleanup(sock.close)
         with self.assertRaises(TypeError) as raised:
-            unix_serve(eval_shell, path="/", sock=sock)
+            unix_serve(handler, path="/", sock=sock)
         self.assertEqual(
             str(raised.exception),
             "path and sock arguments are incompatible",
@@ -397,7 +395,7 @@ class ServerUsageErrorsTests(unittest.TestCase):
     def test_invalid_subprotocol(self):
         """Server rejects single value of subprotocols."""
         with self.assertRaises(TypeError) as raised:
-            serve(eval_shell, subprotocols="chat")
+            serve(handler, subprotocols="chat")
         self.assertEqual(
             str(raised.exception),
             "subprotocols must be a list, not a str",
@@ -406,7 +404,7 @@ class ServerUsageErrorsTests(unittest.TestCase):
     def test_unsupported_compression(self):
         """Server rejects incorrect value of compression."""
         with self.assertRaises(ValueError) as raised:
-            serve(eval_shell, compression=False)
+            serve(handler, compression=False)
         self.assertEqual(
             str(raised.exception),
             "unsupported compression: False",

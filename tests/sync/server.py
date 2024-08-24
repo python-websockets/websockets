@@ -12,18 +12,19 @@ def get_uri(server):
     return f"{protocol}://{host}:{port}"
 
 
-def crash(ws):
-    raise RuntimeError
-
-
-def do_nothing(ws):
-    pass
-
-
-def eval_shell(ws):
-    for expr in ws:
-        value = eval(expr)
-        ws.send(str(value))
+def handler(ws):
+    path = ws.request.path
+    if path == "/":
+        # The default path is an eval shell.
+        for expr in ws:
+            value = eval(expr)
+            ws.send(str(value))
+    elif path == "/crash":
+        raise RuntimeError
+    elif path == "/no-op":
+        pass
+    else:
+        raise AssertionError(f"unexpected path: {path}")
 
 
 class EvalShellMixin:
@@ -33,7 +34,7 @@ class EvalShellMixin:
 
 
 @contextlib.contextmanager
-def run_server(handler=eval_shell, host="localhost", port=0, **kwargs):
+def run_server(handler=handler, host="localhost", port=0, **kwargs):
     with serve(handler, host, port, **kwargs) as server:
         thread = threading.Thread(target=server.serve_forever)
         thread.start()
@@ -45,7 +46,7 @@ def run_server(handler=eval_shell, host="localhost", port=0, **kwargs):
 
 
 @contextlib.contextmanager
-def run_unix_server(path, handler=eval_shell, **kwargs):
+def run_unix_server(path, handler=handler, **kwargs):
     with unix_serve(handler, path, **kwargs) as server:
         thread = threading.Thread(target=server.serve_forever)
         thread.start()

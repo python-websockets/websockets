@@ -19,10 +19,23 @@ def get_uri(server):
     return f"{protocol}://{host}:{port}"
 
 
-async def eval_shell(ws):
-    async for expr in ws:
-        value = eval(expr)
-        await ws.send(str(value))
+async def handler(ws):
+    path = ws.request.path
+    if path == "/":
+        # The default path is an eval shell.
+        async for expr in ws:
+            value = eval(expr)
+            await ws.send(str(value))
+    elif path == "/crash":
+        raise RuntimeError
+    elif path == "/no-op":
+        pass
+    elif path == "/delay":
+        delay = float(await ws.recv())
+        await ws.close()
+        await asyncio.sleep(delay)
+    else:
+        raise AssertionError(f"unexpected path: {path}")
 
 
 class EvalShellMixin:
@@ -31,27 +44,13 @@ class EvalShellMixin:
         self.assertEqual(await client.recv(), value)
 
 
-async def crash(ws):
-    raise RuntimeError
-
-
-async def do_nothing(ws):
-    pass
-
-
-async def keep_running(ws):
-    delay = float(await ws.recv())
-    await ws.close()
-    await asyncio.sleep(delay)
-
-
 @contextlib.asynccontextmanager
-async def run_server(handler=eval_shell, host="localhost", port=0, **kwargs):
+async def run_server(handler=handler, host="localhost", port=0, **kwargs):
     async with serve(handler, host, port, **kwargs) as server:
         yield server
 
 
 @contextlib.asynccontextmanager
-async def run_unix_server(path, handler=eval_shell, **kwargs):
+async def run_unix_server(path, handler=handler, **kwargs):
     async with unix_serve(handler, path, **kwargs) as server:
         yield server

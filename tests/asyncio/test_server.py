@@ -25,12 +25,9 @@ from ..utils import (
 )
 from .server import (
     EvalShellMixin,
-    crash,
-    do_nothing,
-    eval_shell,
     get_host_port,
     get_uri,
-    keep_running,
+    handler,
     run_server,
     run_unix_server,
 )
@@ -45,8 +42,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_connection_handler_returns(self):
         """Connection handler returns."""
-        async with run_server(do_nothing) as server:
-            async with connect(get_uri(server)) as client:
+        async with run_server() as server:
+            async with connect(get_uri(server) + "/no-op") as client:
                 with self.assertRaises(ConnectionClosedOK) as raised:
                     await client.recv()
                 self.assertEqual(
@@ -56,8 +53,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_connection_handler_raises_exception(self):
         """Connection handler raises an exception."""
-        async with run_server(crash) as server:
-            async with connect(get_uri(server)) as client:
+        async with run_server() as server:
+            async with connect(get_uri(server) + "/crash") as client:
                 with self.assertRaises(ConnectionClosedError) as raised:
                     await client.recv()
                 self.assertEqual(
@@ -460,8 +457,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_close_server_keeps_handlers_running(self):
         """Server waits for connection handlers to terminate."""
-        async with run_server(keep_running) as server:
-            async with connect(get_uri(server)) as client:
+        async with run_server() as server:
+            async with connect(get_uri(server) + "/delay") as client:
                 # Delay termination of connection handler.
                 await client.send(str(3 * MS))
 
@@ -528,7 +525,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
     async def test_unix_without_path_or_sock(self):
         """Unix server requires path when sock isn't provided."""
         with self.assertRaises(ValueError) as raised:
-            await unix_serve(eval_shell)
+            await unix_serve(handler)
         self.assertEqual(
             str(raised.exception),
             "path was not specified, and no sock specified",
@@ -539,7 +536,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.addCleanup(sock.close)
         with self.assertRaises(ValueError) as raised:
-            await unix_serve(eval_shell, path="/", sock=sock)
+            await unix_serve(handler, path="/", sock=sock)
         self.assertEqual(
             str(raised.exception),
             "path and sock can not be specified at the same time",
@@ -548,7 +545,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
     async def test_invalid_subprotocol(self):
         """Server rejects single value of subprotocols."""
         with self.assertRaises(TypeError) as raised:
-            await serve(eval_shell, subprotocols="chat")
+            await serve(handler, subprotocols="chat")
         self.assertEqual(
             str(raised.exception),
             "subprotocols must be a list, not a str",
@@ -557,7 +554,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
     async def test_unsupported_compression(self):
         """Server rejects incorrect value of compression."""
         with self.assertRaises(ValueError) as raised:
-            await serve(eval_shell, compression=False)
+            await serve(handler, compression=False)
         self.assertEqual(
             str(raised.exception),
             "unsupported compression: False",

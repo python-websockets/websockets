@@ -693,14 +693,14 @@ class serve:
         process_request: (
             Callable[
                 [ServerConnection, Request],
-                Response | None,
+                Awaitable[Response | None] | Response | None,
             ]
             | None
         ) = None,
         process_response: (
             Callable[
                 [ServerConnection, Request, Response],
-                Response | None,
+                Awaitable[Response | None] | Response | None,
             ]
             | None
         ) = None,

@@ -340,7 +340,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 self.assertGreater(latency, 0)
 
     async def test_disable_keepalive(self):
-        """Client disables keepalive."""
+        """Server disables keepalive."""
         async with serve(*args, ping_interval=None) as server:
             async with connect(get_uri(server)) as client:
                 await asyncio.sleep(2 * MS)

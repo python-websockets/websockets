@@ -557,7 +557,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
 class BackwardsCompatibilityTests(DeprecationTestCase):
     def test_ssl_context_argument(self):
-        """Client supports the deprecated ssl_context argument."""
+        """Server supports the deprecated ssl_context argument."""
         with self.assertDeprecationWarning("ssl_context was renamed to ssl"):
             with run_server(ssl_context=SERVER_CONTEXT) as server:
                 with connect(get_uri(server), ssl=CLIENT_CONTEXT):

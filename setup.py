@@ -34,5 +34,6 @@ else:
 setuptools.setup(
     version=version,
     long_description=long_description,
+    long_description_content_type="text/x-rst",
     ext_modules=ext_modules,
 )

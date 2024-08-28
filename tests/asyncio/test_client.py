@@ -1,4 +1,5 @@
 import asyncio
+import logging
 import socket
 import ssl
 import unittest
@@ -77,6 +78,13 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             async with connect(get_uri(server), ping_interval=None) as client:
                 await asyncio.sleep(2 * MS)
                 self.assertEqual(client.latency, 0)
+
+    async def test_logger(self):
+        """Client accepts a logger argument."""
+        logger = logging.getLogger("test")
+        async with serve(*args) as server:
+            async with connect(get_uri(server), logger=logger) as client:
+                self.assertEqual(client.logger.name, logger.name)
 
     async def test_custom_connection_factory(self):
         """Client runs ClientConnection factory provided in create_connection."""

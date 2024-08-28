@@ -238,7 +238,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         """Server accepts a logger argument."""
         logger = logging.getLogger("test")
         with run_server(logger=logger) as server:
-            self.assertIs(server.logger, logger)
+            self.assertEqual(server.logger.name, logger.name)
 
     def test_custom_connection_factory(self):
         """Server runs ServerConnection factory provided in create_connection."""

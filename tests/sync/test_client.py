@@ -1,3 +1,4 @@
+import logging
 import socket
 import ssl
 import threading
@@ -66,6 +67,13 @@ class ClientTests(unittest.TestCase):
         with run_server() as server:
             with connect(get_uri(server), compression=None) as client:
                 self.assertEqual(client.protocol.extensions, [])
+
+    def test_logger(self):
+        """Client accepts a logger argument."""
+        logger = logging.getLogger("test")
+        with run_server() as server:
+            with connect(get_uri(server), logger=logger) as client:
+                self.assertEqual(client.logger.name, logger.name)
 
     def test_custom_connection_factory(self):
         """Client runs ClientConnection factory provided in create_connection."""

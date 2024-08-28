@@ -56,6 +56,16 @@ New features
 * Made the set of active connections available in the :attr:`Server.connections
   <asyncio.server.Server.connections>` property.
 
+13.0.1
+------
+
+*August 28, 2024*
+
+Bug fixes
+.........
+
+* Restored the C extension in the source distribution.
+
 .. _13.0:
 
 13.0

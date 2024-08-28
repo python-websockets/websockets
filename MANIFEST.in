@@ -1,2 +1,3 @@
 include LICENSE
 include src/websockets/py.typed
+include src/websockets/speedups.c  # required when BUILD_EXTENSION=no

@@ -4,7 +4,8 @@ export PYTHONASYNCIODEBUG=1
 export PYTHONPATH=src
 export PYTHONWARNINGS=default
 
-default: style types tests
+build:
+	python setup.py build_ext --inplace
 
 style:
 	black src tests
@@ -25,9 +26,6 @@ maxi_cov:
 	python tests/maxi_cov.py
 	coverage html
 	coverage report --show-missing --fail-under=100
-
-build:
-	python setup.py build_ext --inplace
 
 clean:
 	find src -name '*.so' -delete

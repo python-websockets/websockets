@@ -72,6 +72,7 @@ jobs:
     if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')
     permissions:
       id-token: write
+      attestations: write
       contents: write
     steps:
       - name: Download artifacts
@@ -80,6 +81,10 @@ jobs:
           pattern: dist-*
           merge-multiple: true
           path: dist
+      - name: Attest provenance
+        uses: actions/attest-build-provenance@v1
+        with:
+          subject-path: dist/*
       - name: Upload to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
       - name: Create GitHub release

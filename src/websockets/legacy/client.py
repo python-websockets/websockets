@@ -418,7 +418,7 @@ class Connect:
 
     """
 
-    MAX_REDIRECTS_ALLOWED = 10
+    MAX_REDIRECTS_ALLOWED = int(os.environ.get("WEBSOCKETS_MAX_REDIRECTS", "10"))
 
     def __init__(
         self,

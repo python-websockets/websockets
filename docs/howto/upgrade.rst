@@ -10,15 +10,13 @@ It provides a very similar API. However, there are a few differences.
 
 The recommended upgrade process is:
 
-1. Make sure that your application doesn't use any `deprecated APIs`_. If it
+#. Make sure that your application doesn't use any `deprecated APIs`_. If it
    doesn't raise any warnings, you can skip this step.
-2. Check if your application depends on `missing features`_. If it does, you
-   should stick to the original implementation until they're added.
-3. `Update import paths`_. For straightforward usage of websockets, this could
+#. `Update import paths`_. For straightforward usage of websockets, this could
    be the only step you need to take. Upgrading could be transparent.
-4. Check out `new features and improvements`_ and consider taking advantage of
+#. Check out `new features and improvements`_ and consider taking advantage of
    them to improve your application.
-5. Review `API changes`_ and adapt your application to preserve its current
+#. Review `API changes`_ and adapt your application to preserve its current
    functionality.
 
 In the interest of brevity, only :func:`~asyncio.client.connect` and
@@ -61,23 +59,6 @@ the release notes of the version in which the feature was deprecated.
   deprecated in :ref:`7.0`.
 * The ``host``, ``port``, and ``secure`` attributes of connections — deprecated
   in :ref:`8.0`.
-
-.. _missing features:
-
-Missing features
-----------------
-
-.. admonition:: All features listed below will be provided in a future release.
-    :class: tip
-
-    If your application relies on one of them, you should stick to the original
-    implementation until the new implementation supports it in a future release.
-
-Following redirects
-...................
-
-The new implementation of :func:`~asyncio.client.connect` doesn't follow HTTP
-redirects yet.
 
 .. _Update import paths:
 

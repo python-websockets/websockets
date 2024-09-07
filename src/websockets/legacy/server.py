@@ -100,9 +100,10 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
 
     def __init__(
         self,
+        # The version that accepts the path in the second argument is deprecated.
         ws_handler: (
             Callable[[WebSocketServerProtocol], Awaitable[Any]]
-            | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+            | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]
         ),
         ws_server: WebSocketServer,
         *,
@@ -983,9 +984,10 @@ class Serve:
 
     def __init__(
         self,
+        # The version that accepts the path in the second argument is deprecated.
         ws_handler: (
             Callable[[WebSocketServerProtocol], Awaitable[Any]]
-            | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+            | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]
         ),
         host: str | Sequence[str] | None = None,
         port: int | None = None,
@@ -1140,9 +1142,10 @@ serve = Serve
 
 
 def unix_serve(
+    # The version that accepts the path in the second argument is deprecated.
     ws_handler: (
         Callable[[WebSocketServerProtocol], Awaitable[Any]]
-        | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]  # deprecated
+        | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]
     ),
     path: str | None = None,
     **kwargs: Any,
@@ -1169,7 +1172,7 @@ def remove_path_argument(
     ws_handler: (
         Callable[[WebSocketServerProtocol], Awaitable[Any]]
         | Callable[[WebSocketServerProtocol, str], Awaitable[Any]]
-    )
+    ),
 ) -> Callable[[WebSocketServerProtocol], Awaitable[Any]]:
     try:
         inspect.signature(ws_handler).bind(None)

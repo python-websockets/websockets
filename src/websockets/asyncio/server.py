@@ -722,7 +722,6 @@ class serve:
         # Other keyword arguments are passed to loop.create_server
         **kwargs: Any,
     ) -> None:
-
         if subprotocols is not None:
             validate_subprotocols(subprotocols)
 

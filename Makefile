@@ -8,7 +8,7 @@ build:
 	python setup.py build_ext --inplace
 
 style:
-	black src tests
+	ruff format src tests
 	ruff check --fix src tests
 
 types:

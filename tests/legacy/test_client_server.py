@@ -1293,7 +1293,6 @@ class CommonClientServerTests:
 class ClientServerTests(
     CommonClientServerTests, ClientServerTestsMixin, AsyncioTestCase
 ):
-
     def test_redirect_secure(self):
         with temp_test_redirecting_server(self):
             # websockets doesn't support serving non-TLS and TLS connections

@@ -297,7 +297,6 @@ class connect:
         # Other keyword arguments are passed to loop.create_connection
         **kwargs: Any,
     ) -> None:
-
         wsuri = parse_uri(uri)
 
         if wsuri.secure:

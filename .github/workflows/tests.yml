@@ -41,9 +41,7 @@ jobs:
         python-version: "3.x"
     - name: Install tox
       run: pip install tox
-    - name: Check code formatting
-      run: tox -e black
-    - name: Check code style
+    - name: Check code formatting & style
       run: tox -e ruff
     - name: Check types statically
       run: tox -e mypy

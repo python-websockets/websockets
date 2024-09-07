@@ -31,7 +31,8 @@ respectively.
 
     The next steps are:
 
-    1. Deprecating it once the new implementation reaches feature parity.
+    1. Deprecating it once the new implementation is considered sufficiently
+       robust.
     2. Maintaining it for five years per the :ref:`backwards-compatibility
        policy <backwards-compatibility policy>`.
     3. Removing it. This is expected to happen around 2030.

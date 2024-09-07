@@ -26,7 +26,7 @@ with a focus on correctness, simplicity, robustness, and performance.
 
 .. _WebSocket: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
 
-It supports several network I/O and control flow paradigms:
+It supports several network I/O and control flow paradigms.
 
 1. The primary implementation builds upon :mod:`asyncio`, Python's standard
    asynchronous I/O framework. It provides an elegant coroutine-based API. It's
@@ -44,10 +44,10 @@ It supports several network I/O and control flow paradigms:
       the Sans-I/O implementation. It adds a few features that were impossible
       to implement within the original design.
 
-      The new implementation will become the default as soon as it reaches
-      feature parity. If you're using the historical implementation, you should
-      :doc:`ugrade to the new implementation <howto/upgrade>`. It's usually
-      straightforward.
+      The new implementation provides all features of the historical
+      implementation, and a few more. If you're using the historical
+      implementation, you should :doc:`ugrade to the new implementation
+      <howto/upgrade>`. It's usually straightforward.
 
 2. The :mod:`threading` implementation is a good alternative for clients,
    especially if you aren't familiar with :mod:`asyncio`. It may also be used

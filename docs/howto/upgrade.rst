@@ -10,14 +10,14 @@ It provides a very similar API. However, there are a few differences.
 
 The recommended upgrade process is:
 
-#. Make sure that your application doesn't use any `deprecated APIs`_. If it
-   doesn't raise any warnings, you can skip this step.
-#. `Update import paths`_. For straightforward usage of websockets, this could
-   be the only step you need to take. Upgrading could be transparent.
-#. Check out `new features and improvements`_ and consider taking advantage of
-   them to improve your application.
-#. Review `API changes`_ and adapt your application to preserve its current
-   functionality.
+#. Make sure that your code doesn't use any `deprecated APIs`_. If it doesn't
+   raise warnings, you're fine.
+#. `Update import paths`_. For straightforward use cases, this could be the only
+   step you need to take.
+#. Check out `new features and improvements`_. Consider taking advantage of them
+   in your code.
+#. Review `API changes`_. If needed, update your application to preserve its
+   current behavior.
 
 In the interest of brevity, only :func:`~asyncio.client.connect` and
 :func:`~asyncio.server.serve` are discussed below but everything also applies
@@ -146,9 +146,8 @@ Customizing the opening handshake
 .................................
 
 On the server side, if you're customizing how :func:`~legacy.server.serve`
-processes the opening handshake with the ``process_request``, ``extra_headers``,
-or ``select_subprotocol``, you must update your code and you can probably make
-it simpler.
+processes the opening handshake with ``process_request``, ``extra_headers``, or
+``select_subprotocol``, you must update your code. Probably you can simplify it!
 
 ``process_request`` and ``select_subprotocol`` have new signatures.
 ``process_response`` replaces ``extra_headers`` and provides more flexibility.
@@ -481,16 +480,17 @@ a ``check_credentials`` coroutine as well as an optional ``realm`` just like
 This new API has more obvious semantics. That makes it easier to understand and
 also easier to extend.
 
-In the original implementation, overriding ``create_protocol`` changed the type
+In the original implementation, overriding ``create_protocol`` changes the type
 of connection objects to :class:`~legacy.auth.BasicAuthWebSocketServerProtocol`,
 a subclass of :class:`~legacy.server.WebSocketServerProtocol` that performs HTTP
-Basic Authentication in its ``process_request`` method. If you wanted to
-customize ``process_request`` further, you had:
+Basic Authentication in its ``process_request`` method.
 
-* an ill-defined option: add a ``process_request`` argument to
+To customize ``process_request`` further, you had only bad options:
+
+* the ill-defined option: add a ``process_request`` argument to
   :func:`~legacy.server.serve`; to tell which one would run first, you had to
   experiment or read the code;
-* a cumbersome option: subclass
+* the cumbersome option: subclass
   :class:`~legacy.auth.BasicAuthWebSocketServerProtocol`, then pass that
   subclass in the ``create_protocol`` argument of
   :func:`~legacy.auth.basic_auth_protocol_factory`.

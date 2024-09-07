@@ -71,6 +71,9 @@ exclude_lines = [
     "@unittest.skip",
 ]
 
+[tool.ruff]
+target-version = "py312"
+
 [tool.ruff.lint]
 select = [
     "E",  # pycodestyle

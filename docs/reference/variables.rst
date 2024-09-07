@@ -1,6 +1,8 @@
 Environment variables
 =====================
 
+.. currentmodule:: websockets
+
 Logging
 -------
 
@@ -77,3 +79,12 @@ Reconnection attempts are spaced out with truncated exponential backoff.
     The delay between attempts is capped at ``BACKOFF_MAX_DELAY`` seconds.
 
     The default value is ``90.0`` seconds.
+
+Redirections
+------------
+
+.. envvar:: WEBSOCKETS_MAX_REDIRECTS
+
+    Maximum number of redirects that :func:`~asyncio.client.connect` follows.
+
+    The default value is ``10``.

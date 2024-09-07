@@ -50,6 +50,9 @@ New features
   :func:`~asyncio.client.connect` as an asynchronous iterator to the new
   :mod:`asyncio` implementation.
 
+* :func:`~asyncio.client.connect` now follows redirects in the new
+  :mod:`asyncio` implementation.
+
 * Added HTTP Basic Auth to the new :mod:`asyncio` and :mod:`threading`
   implementations of servers.
 

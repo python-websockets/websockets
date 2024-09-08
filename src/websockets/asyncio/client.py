@@ -90,7 +90,10 @@ class ClientConnection(Connection):
             self.protocol.send_request(self.request)
 
         # May raise CancelledError if open_timeout is exceeded.
-        await self.response_rcvd
+        await asyncio.wait(
+            [self.response_rcvd, self.connection_lost_waiter],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
 
         if self.response is None:
             raise ConnectionError("connection closed during handshake")
@@ -117,14 +120,6 @@ class ClientConnection(Connection):
         # Later events - frames.
         else:
             super().process_event(event)
-
-    def connection_lost(self, exc: Exception | None) -> None:
-        try:
-            super().connection_lost(exc)
-        finally:
-            # If the connection is closed during the handshake, unblock it.
-            if not self.response_rcvd.done():
-                self.response_rcvd.set_result(None)
 
 
 def process_exception(exc: Exception) -> Exception | None:

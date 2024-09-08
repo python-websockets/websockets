@@ -139,7 +139,10 @@ class ServerConnection(Connection):
 
         """
         # May raise CancelledError if open_timeout is exceeded.
-        await self.request_rcvd
+        await asyncio.wait(
+            [self.request_rcvd, self.connection_lost_waiter],
+            return_when=asyncio.FIRST_COMPLETED,
+        )
 
         if self.request is None:
             raise ConnectionError("connection closed during handshake")
@@ -228,14 +231,6 @@ class ServerConnection(Connection):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         super().connection_made(transport)
         self.server.start_connection_handler(self)
-
-    def connection_lost(self, exc: Exception | None) -> None:
-        try:
-            super().connection_lost(exc)
-        finally:
-            # If the connection is closed during the handshake, unblock it.
-            if not self.request_rcvd.done():
-                self.request_rcvd.set_result(None)
 
 
 class Server:

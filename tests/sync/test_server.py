@@ -310,6 +310,38 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             # Wait for the server thread to terminate.
             server_thread.join()
 
+    def test_junk_handshake(self):
+        """Server closes the connection when receiving non-HTTP request from client."""
+        with self.assertLogs("websockets.server", logging.ERROR) as logs:
+            with run_server() as server:
+                # Patch handler to record a reference to the thread running it.
+                server_thread = None
+                original_handler = server.handler
+
+                def handler(sock, addr):
+                    nonlocal server_thread
+                    server_thread = threading.current_thread()
+                    original_handler(sock, addr)
+
+                server.handler = handler
+
+                with socket.create_connection(server.socket.getsockname()) as sock:
+                    sock.send(b"HELO relay.invalid\r\n")
+                    # Wait for the server to close the connection.
+                    self.assertEqual(sock.recv(4096), b"")
+
+                # Wait for the server thread to terminate.
+                server_thread.join()
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["opening handshake failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["invalid HTTP request line: HELO relay.invalid"],
+        )
+
 
 class SecureServerTests(EvalShellMixin, unittest.TestCase):
     def test_connection(self):

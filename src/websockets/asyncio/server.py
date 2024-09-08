@@ -138,81 +138,76 @@ class ServerConnection(Connection):
         Perform the opening handshake.
 
         """
-        # May raise CancelledError if open_timeout is exceeded.
         await asyncio.wait(
             [self.request_rcvd, self.connection_lost_waiter],
             return_when=asyncio.FIRST_COMPLETED,
         )
 
-        if self.request is None:
-            raise ConnectionError("connection closed during handshake")
+        if self.request is not None:
+            async with self.send_context(expected_state=CONNECTING):
+                response = None
 
-        async with self.send_context(expected_state=CONNECTING):
-            response = None
+                if process_request is not None:
+                    try:
+                        response = process_request(self, self.request)
+                        if isinstance(response, Awaitable):
+                            response = await response
+                    except Exception as exc:
+                        self.protocol.handshake_exc = exc
+                        response = self.protocol.reject(
+                            http.HTTPStatus.INTERNAL_SERVER_ERROR,
+                            (
+                                "Failed to open a WebSocket connection.\n"
+                                "See server log for more information.\n"
+                            ),
+                        )
 
-            if process_request is not None:
-                try:
-                    response = process_request(self, self.request)
-                    if isinstance(response, Awaitable):
-                        response = await response
-                except Exception as exc:
-                    self.protocol.handshake_exc = exc
-                    self.logger.error("opening handshake failed", exc_info=True)
-                    response = self.protocol.reject(
-                        http.HTTPStatus.INTERNAL_SERVER_ERROR,
-                        (
-                            "Failed to open a WebSocket connection.\n"
-                            "See server log for more information.\n"
-                        ),
-                    )
-
-            if response is None:
-                if self.server.is_serving():
-                    self.response = self.protocol.accept(self.request)
+                if response is None:
+                    if self.server.is_serving():
+                        self.response = self.protocol.accept(self.request)
+                    else:
+                        self.response = self.protocol.reject(
+                            http.HTTPStatus.SERVICE_UNAVAILABLE,
+                            "Server is shutting down.\n",
+                        )
                 else:
-                    self.response = self.protocol.reject(
-                        http.HTTPStatus.SERVICE_UNAVAILABLE,
-                        "Server is shutting down.\n",
-                    )
-            else:
-                assert isinstance(response, Response)  # help mypy
-                self.response = response
+                    assert isinstance(response, Response)  # help mypy
+                    self.response = response
 
-            if server_header:
-                self.response.headers["Server"] = server_header
+                if server_header:
+                    self.response.headers["Server"] = server_header
 
-            response = None
+                response = None
 
-            if process_response is not None:
-                try:
-                    response = process_response(self, self.request, self.response)
-                    if isinstance(response, Awaitable):
-                        response = await response
-                except Exception as exc:
-                    self.protocol.handshake_exc = exc
-                    self.logger.error("opening handshake failed", exc_info=True)
-                    response = self.protocol.reject(
-                        http.HTTPStatus.INTERNAL_SERVER_ERROR,
-                        (
-                            "Failed to open a WebSocket connection.\n"
-                            "See server log for more information.\n"
-                        ),
-                    )
+                if process_response is not None:
+                    try:
+                        response = process_response(self, self.request, self.response)
+                        if isinstance(response, Awaitable):
+                            response = await response
+                    except Exception as exc:
+                        self.protocol.handshake_exc = exc
+                        response = self.protocol.reject(
+                            http.HTTPStatus.INTERNAL_SERVER_ERROR,
+                            (
+                                "Failed to open a WebSocket connection.\n"
+                                "See server log for more information.\n"
+                            ),
+                        )
 
-            if response is not None:
-                assert isinstance(response, Response)  # help mypy
-                self.response = response
+                if response is not None:
+                    assert isinstance(response, Response)  # help mypy
+                    self.response = response
 
-            self.protocol.send_response(self.response)
+                self.protocol.send_response(self.response)
+
+        # self.protocol.handshake_exc is always set when the connection is lost
+        # before receiving a request, when the request cannot be parsed, or when
+        # the response fails the handshake.
 
         if self.protocol.handshake_exc is None:
             self.start_keepalive()
         else:
-            try:
-                async with asyncio_timeout(self.close_timeout):
-                    await self.connection_lost_waiter
-            finally:
-                raise self.protocol.handshake_exc
+            raise self.protocol.handshake_exc
 
     def process_event(self, event: Event) -> None:
         """
@@ -359,25 +354,35 @@ class Server:
 
         """
         try:
-            # On failure, handshake() closes the transport, raises an
-            # exception, and logs it.
             async with asyncio_timeout(self.open_timeout):
-                await connection.handshake(
-                    self.process_request,
-                    self.process_response,
-                    self.server_header,
-                )
+                try:
+                    await connection.handshake(
+                        self.process_request,
+                        self.process_response,
+                        self.server_header,
+                    )
+                except asyncio.CancelledError:
+                    connection.close_transport()
+                    raise
+                except Exception:
+                    connection.logger.error("opening handshake failed", exc_info=True)
+                    connection.close_transport()
+                    return
 
             try:
                 await self.handler(connection)
             except Exception:
-                self.logger.error("connection handler failed", exc_info=True)
+                connection.logger.error("connection handler failed", exc_info=True)
                 await connection.close(CloseCode.INTERNAL_ERROR)
             else:
                 await connection.close()
 
-        except Exception:
-            # Don't leak connections on errors.
+        except TimeoutError:
+            # When the opening handshake times out, there's nothing to log.
+            pass
+
+        except Exception:  # pragma: no cover
+            # Don't leak connections on unexpected errors.
             connection.transport.abort()
 
         finally:

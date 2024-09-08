@@ -23,7 +23,7 @@ from ..headers import (
     validate_subprotocols,
 )
 from ..http11 import SERVER, Request, Response
-from ..protocol import CONNECTING, OPEN, Event
+from ..protocol import CONNECTING, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
 from .connection import Connection
@@ -118,61 +118,56 @@ class ServerConnection(Connection):
 
         """
         if not self.request_rcvd.wait(timeout):
-            self.close_socket()
-            self.recv_events_thread.join()
             raise TimeoutError("timed out during handshake")
 
-        if self.request is None:
-            self.close_socket()
-            self.recv_events_thread.join()
-            raise ConnectionError("connection closed during handshake")
+        if self.request is not None:
+            with self.send_context(expected_state=CONNECTING):
+                response = None
 
-        with self.send_context(expected_state=CONNECTING):
-            self.response = None
+                if process_request is not None:
+                    try:
+                        response = process_request(self, self.request)
+                    except Exception as exc:
+                        self.protocol.handshake_exc = exc
+                        response = self.protocol.reject(
+                            http.HTTPStatus.INTERNAL_SERVER_ERROR,
+                            (
+                                "Failed to open a WebSocket connection.\n"
+                                "See server log for more information.\n"
+                            ),
+                        )
 
-            if process_request is not None:
-                try:
-                    self.response = process_request(self, self.request)
-                except Exception as exc:
-                    self.protocol.handshake_exc = exc
-                    self.logger.error("opening handshake failed", exc_info=True)
-                    self.response = self.protocol.reject(
-                        http.HTTPStatus.INTERNAL_SERVER_ERROR,
-                        (
-                            "Failed to open a WebSocket connection.\n"
-                            "See server log for more information.\n"
-                        ),
-                    )
-
-            if self.response is None:
-                self.response = self.protocol.accept(self.request)
-
-            if server_header:
-                self.response.headers["Server"] = server_header
-
-            if process_response is not None:
-                try:
-                    response = process_response(self, self.request, self.response)
-                except Exception as exc:
-                    self.protocol.handshake_exc = exc
-                    self.logger.error("opening handshake failed", exc_info=True)
-                    self.response = self.protocol.reject(
-                        http.HTTPStatus.INTERNAL_SERVER_ERROR,
-                        (
-                            "Failed to open a WebSocket connection.\n"
-                            "See server log for more information.\n"
-                        ),
-                    )
+                if response is None:
+                    self.response = self.protocol.accept(self.request)
                 else:
+                    self.response = response
+
+                if server_header:
+                    self.response.headers["Server"] = server_header
+
+                response = None
+
+                if process_response is not None:
+                    try:
+                        response = process_response(self, self.request, self.response)
+                    except Exception as exc:
+                        self.protocol.handshake_exc = exc
+                        response = self.protocol.reject(
+                            http.HTTPStatus.INTERNAL_SERVER_ERROR,
+                            (
+                                "Failed to open a WebSocket connection.\n"
+                                "See server log for more information.\n"
+                            ),
+                        )
+
                     if response is not None:
                         self.response = response
 
-            self.protocol.send_response(self.response)
+                self.protocol.send_response(self.response)
 
-        if self.protocol.state is not OPEN:
-            self.recv_events_thread.join(self.close_timeout)
-            self.close_socket()
-            self.recv_events_thread.join()
+        # self.protocol.handshake_exc is always set when the connection is lost
+        # before receiving a request, when the request cannot be parsed, or when
+        # the response fails the handshake.
 
         if self.protocol.handshake_exc is not None:
             raise self.protocol.handshake_exc
@@ -552,26 +547,39 @@ def serve(
                 protocol,
                 close_timeout=close_timeout,
             )
-            # On failure, handshake() closes the socket, raises an exception, and
-            # logs it.
-            connection.handshake(
-                process_request,
-                process_response,
-                server_header,
-                deadline.timeout(),
-            )
-
         except Exception:
             sock.close()
             return
 
         try:
-            handler(connection)
-        except Exception:
-            protocol.logger.error("connection handler failed", exc_info=True)
-            connection.close(CloseCode.INTERNAL_ERROR)
-        else:
-            connection.close()
+            try:
+                connection.handshake(
+                    process_request,
+                    process_response,
+                    server_header,
+                    deadline.timeout(),
+                )
+            except TimeoutError:
+                connection.close_socket()
+                connection.recv_events_thread.join()
+                return
+            except Exception:
+                connection.logger.error("opening handshake failed", exc_info=True)
+                connection.close_socket()
+                connection.recv_events_thread.join()
+                return
+
+            try:
+                handler(connection)
+            except Exception:
+                connection.logger.error("connection handler failed", exc_info=True)
+                connection.close(CloseCode.INTERNAL_ERROR)
+            else:
+                connection.close()
+
+        except Exception:  # pragma: no cover
+            # Don't leak sockets on unexpected errors.
+            sock.close()
 
     # Initialize server
 

@@ -83,7 +83,7 @@ class ConnectTests(unittest.TestCase):
         server.receive_eof()
         self.assertEqual(server.events_received(), [])
 
-    def test_random_request(self):
+    def test_junk_request(self):
         server = ServerProtocol()
         server.receive_data(b"HELO relay.invalid\r\n")
         server.receive_data(b"MAIL FROM: <alice@invalid>\r\n")

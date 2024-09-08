@@ -406,6 +406,27 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             _reader, writer = await asyncio.open_connection(*get_host_port(server))
             writer.close()
 
+    async def test_junk_handshake(self):
+        """Server closes the connection when receiving non-HTTP request from client."""
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            async with serve(*args) as server:
+                reader, writer = await asyncio.open_connection(*get_host_port(server))
+                writer.write(b"HELO relay.invalid\r\n")
+                try:
+                    # Wait for the server to close the connection.
+                    self.assertEqual(await reader.read(4096), b"")
+                finally:
+                    writer.close()
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["opening handshake failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["invalid HTTP request line: HELO relay.invalid"],
+        )
+
     async def test_close_server_rejects_connecting_connections(self):
         """Server rejects connecting connections with HTTP 503 when closing."""
 

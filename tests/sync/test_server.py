@@ -333,6 +333,11 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 # Wait for the server thread to terminate.
                 server_thread.join()
 
+        print()
+        for record in logs.records:
+            print(repr(record))
+            print(repr(record.exc_info[1]))
+
         self.assertEqual(
             [record.getMessage() for record in logs.records],
             ["opening handshake failed"],

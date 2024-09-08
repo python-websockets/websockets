@@ -1,7 +1,9 @@
 import logging
 import socket
+import socketserver
 import ssl
 import threading
+import time
 import unittest
 
 from websockets.exceptions import InvalidHandshake, InvalidURI
@@ -146,13 +148,40 @@ class ClientTests(unittest.TestCase):
             self.close_socket()
 
         with run_server(process_request=close_connection) as server:
-            with self.assertRaises(ConnectionError) as raised:
+            with self.assertRaises(EOFError) as raised:
                 with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
-                "connection closed during handshake",
+                "connection closed while reading HTTP status line",
             )
+
+    def test_junk_handshake(self):
+        """Client closes the connection when receiving non-HTTP response from server."""
+
+        class JunkHandler(socketserver.BaseRequestHandler):
+            def handle(self):
+                time.sleep(MS)  # wait for the client to send the handshake request
+                self.request.send(b"220 smtp.invalid ESMTP Postfix\r\n")
+                self.request.recv(4096)  # wait for the client to close the connection
+                self.request.close()
+
+        server = socketserver.TCPServer(("localhost", 0), JunkHandler)
+        host, port = server.server_address
+        with server:
+            thread = threading.Thread(target=server.serve_forever, args=(MS,))
+            thread.start()
+            try:
+                with self.assertRaises(ValueError) as raised:
+                    with connect(f"ws://{host}:{port}"):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "unsupported HTTP version: 220",
+                )
+            finally:
+                server.shutdown()
+                thread.join()
 
 
 class SecureClientTests(unittest.TestCase):

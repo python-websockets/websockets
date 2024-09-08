@@ -154,7 +154,7 @@ class AcceptRejectTests(unittest.TestCase):
         )
         [response] = client.events_received()
         self.assertIsInstance(response, Response)
-        self.assertEqual(client.data_to_send(), [])
+        self.assertEqual(client.data_to_send(), [b""])
         self.assertTrue(client.close_expected())
         self.assertEqual(client.state, CONNECTING)
 

@@ -401,12 +401,32 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             self.close_transport()
 
         async with serve(*args, process_request=close_connection) as server:
-            with self.assertRaises(ConnectionError) as raised:
+            with self.assertRaises(EOFError) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
-                "connection closed during handshake",
+                "connection closed while reading HTTP status line",
+            )
+
+    async def test_junk_handshake(self):
+        """Client closes the connection when receiving non-HTTP response from server."""
+
+        async def junk(reader, writer):
+            await asyncio.sleep(MS)  # wait for the client to send the handshake request
+            writer.write(b"220 smtp.invalid ESMTP Postfix\r\n")
+            await reader.read(4096)  # wait for the client to close the connection
+            writer.close()
+
+        server = await asyncio.start_server(junk, "localhost", 0)
+        host, port = get_host_port(server)
+        async with server:
+            with self.assertRaises(ValueError) as raised:
+                async with connect(f"ws://{host}:{port}"):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "unsupported HTTP version: 220",
             )
 
 

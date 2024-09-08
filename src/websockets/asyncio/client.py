@@ -89,23 +89,19 @@ class ClientConnection(Connection):
                 self.request.headers["User-Agent"] = user_agent_header
             self.protocol.send_request(self.request)
 
-        # May raise CancelledError if open_timeout is exceeded.
         await asyncio.wait(
             [self.response_rcvd, self.connection_lost_waiter],
             return_when=asyncio.FIRST_COMPLETED,
         )
 
-        if self.response is None:
-            raise ConnectionError("connection closed during handshake")
+        # self.protocol.handshake_exc is always set when the connection is lost
+        # before receiving a response, when the response cannot be parsed, or
+        # when the response fails the handshake.
 
         if self.protocol.handshake_exc is None:
             self.start_keepalive()
         else:
-            try:
-                async with asyncio_timeout(self.close_timeout):
-                    await self.connection_lost_waiter
-            finally:
-                raise self.protocol.handshake_exc
+            raise self.protocol.handshake_exc
 
     def process_event(self, event: Event) -> None:
         """
@@ -132,7 +128,8 @@ def process_exception(exc: Exception) -> Exception | None:
 
     This function defines the default behavior, which is to retry on:
 
-    * :exc:`OSError` and :exc:`asyncio.TimeoutError`: network errors;
+    * :exc:`EOFError`, :exc:`OSError`, :exc:`asyncio.TimeoutError`: network
+      errors;
     * :exc:`~websockets.exceptions.InvalidStatus` when the status code is 500,
       502, 503, or 504: server or proxy errors.
 
@@ -150,7 +147,7 @@ def process_exception(exc: Exception) -> Exception | None:
     That exception will be raised, breaking out of the retry loop.
 
     """
-    if isinstance(exc, (OSError, asyncio.TimeoutError)):
+    if isinstance(exc, (EOFError, OSError, asyncio.TimeoutError)):
         return None
     if isinstance(exc, InvalidStatus) and exc.response.status_code in [
         500,  # Internal Server Error
@@ -445,7 +442,7 @@ class connect:
                     try:
                         await self.connection.handshake(*self.handshake_args)
                     except asyncio.CancelledError:
-                        self.connection.transport.close()
+                        self.connection.close_transport()
                         raise
                     except Exception as exc:
                         # Always close the connection even though keep-alive is
@@ -454,7 +451,7 @@ class connect:
                         # protocol. In the current design of connect(), there is
                         # no easy way to reuse the network connection that works
                         # in every case nor to reinitialize the protocol.
-                        self.connection.transport.close()
+                        self.connection.close_transport()
 
                         uri_or_exc = self.process_redirect(exc)
                         # Response is a valid redirect; follow it.

@@ -323,6 +323,7 @@ class ClientProtocol(Protocol):
                 )
             except Exception as exc:
                 self.handshake_exc = exc
+                self.send_eof()
                 self.parser = self.discard()
                 next(self.parser)  # start coroutine
                 yield
@@ -341,6 +342,7 @@ class ClientProtocol(Protocol):
                 response._exception = exc
                 self.events.append(response)
                 self.handshake_exc = exc
+                self.send_eof()
                 self.parser = self.discard()
                 next(self.parser)  # start coroutine
                 yield

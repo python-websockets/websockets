@@ -12,7 +12,7 @@ from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import validate_subprotocols
 from ..http11 import USER_AGENT, Response
-from ..protocol import CONNECTING, OPEN, Event
+from ..protocol import CONNECTING, Event
 from ..typing import LoggerLike, Origin, Subprotocol
 from ..uri import parse_uri
 from .connection import Connection
@@ -80,19 +80,11 @@ class ClientConnection(Connection):
             self.protocol.send_request(self.request)
 
         if not self.response_rcvd.wait(timeout):
-            self.close_socket()
-            self.recv_events_thread.join()
             raise TimeoutError("timed out during handshake")
 
-        if self.response is None:
-            self.close_socket()
-            self.recv_events_thread.join()
-            raise ConnectionError("connection closed during handshake")
-
-        if self.protocol.state is not OPEN:
-            self.recv_events_thread.join(self.close_timeout)
-            self.close_socket()
-            self.recv_events_thread.join()
+        # self.protocol.handshake_exc is always set when the connection is lost
+        # before receiving a response, when the response cannot be parsed, or
+        # when the response fails the handshake.
 
         if self.protocol.handshake_exc is not None:
             raise self.protocol.handshake_exc
@@ -295,16 +287,20 @@ def connect(
             protocol,
             close_timeout=close_timeout,
         )
-        # On failure, handshake() closes the socket and raises an exception.
+    except Exception:
+        if sock is not None:
+            sock.close()
+        raise
+
+    try:
         connection.handshake(
             additional_headers,
             user_agent_header,
             deadline.timeout(),
         )
-
     except Exception:
-        if sock is not None:
-            sock.close()
+        connection.close_socket()
+        connection.recv_events_thread.join()
         raise
 
     return connection

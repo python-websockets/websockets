@@ -183,7 +183,7 @@ else:
             "ExtensionParameter": ".typing",
             "LoggerLike": ".typing",
             "Origin": ".typing",
-            "StatusLike": "typing",
+            "StatusLike": ".typing",
             "Subprotocol": ".typing",
         },
         deprecated_aliases={

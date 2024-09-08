@@ -408,7 +408,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_junk_handshake(self):
         """Server closes the connection when receiving non-HTTP request from client."""
-        with self.assertLogs("websockets", logging.ERROR) as logs:
+        with self.assertLogs("websockets.server", logging.ERROR) as logs:
             async with serve(*args) as server:
                 reader, writer = await asyncio.open_connection(*get_host_port(server))
                 writer.write(b"HELO relay.invalid\r\n")

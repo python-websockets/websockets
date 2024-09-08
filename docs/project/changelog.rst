@@ -59,6 +59,11 @@ New features
 * Made the set of active connections available in the :attr:`Server.connections
   <asyncio.server.Server.connections>` property.
 
+Improvements
+............
+
+* Improved reporting of errors during the opening handshake.
+
 13.0.1
 ------
 

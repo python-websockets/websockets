@@ -50,22 +50,22 @@ class RequestTests(GeneratorTestCase):
             "invalid HTTP request line: GET /",
         )
 
+    def test_parse_unsupported_protocol(self):
+        self.reader.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
+        with self.assertRaises(ValueError) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "unsupported protocol; expected HTTP/1.1: GET /chat HTTP/1.0",
+        )
+
     def test_parse_unsupported_method(self):
         self.reader.feed_data(b"OPTIONS * HTTP/1.1\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
         self.assertEqual(
             str(raised.exception),
-            "unsupported HTTP method: OPTIONS",
-        )
-
-    def test_parse_unsupported_version(self):
-        self.reader.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
-        with self.assertRaises(ValueError) as raised:
-            next(self.parse())
-        self.assertEqual(
-            str(raised.exception),
-            "unsupported HTTP version: HTTP/1.0",
+            "unsupported HTTP method; expected GET; got OPTIONS",
         )
 
     def test_parse_invalid_header(self):
@@ -171,31 +171,30 @@ class ResponseTests(GeneratorTestCase):
             "invalid HTTP status line: Hello!",
         )
 
-    def test_parse_unsupported_version(self):
+    def test_parse_unsupported_protocol(self):
         self.reader.feed_data(b"HTTP/1.0 400 Bad Request\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
         self.assertEqual(
             str(raised.exception),
-            "unsupported HTTP version: HTTP/1.0",
+            "unsupported protocol; expected HTTP/1.1: HTTP/1.0 400 Bad Request",
         )
 
-    def test_parse_invalid_status(self):
+    def test_parse_non_integer_status(self):
         self.reader.feed_data(b"HTTP/1.1 OMG WTF\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
         self.assertEqual(
             str(raised.exception),
-            "invalid HTTP status code: OMG",
+            "invalid status code; expected integer; got OMG",
         )
 
-    def test_parse_unsupported_status(self):
+    def test_parse_non_three_digit_status(self):
         self.reader.feed_data(b"HTTP/1.1 007 My name is Bond\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
         self.assertEqual(
-            str(raised.exception),
-            "unsupported HTTP status code: 007",
+            str(raised.exception), "invalid status code; expected 100–599; got 007"
         )
 
     def test_parse_invalid_reason(self):

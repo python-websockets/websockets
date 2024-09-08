@@ -426,7 +426,8 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
-                "unsupported HTTP version: 220",
+                "unsupported protocol; expected HTTP/1.1: "
+                "220 smtp.invalid ESMTP Postfix",
             )
 
 

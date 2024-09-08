@@ -135,14 +135,15 @@ class Request:
             raise EOFError("connection closed while reading HTTP request line") from exc
 
         try:
-            method, raw_path, version = request_line.split(b" ", 2)
+            method, raw_path, protocol = request_line.split(b" ", 2)
         except ValueError:  # not enough values to unpack (expected 3, got 1-2)
             raise ValueError(f"invalid HTTP request line: {d(request_line)}") from None
-
+        if protocol != b"HTTP/1.1":
+            raise ValueError(
+                f"unsupported protocol; expected HTTP/1.1: {d(request_line)}"
+            )
         if method != b"GET":
-            raise ValueError(f"unsupported HTTP method: {d(method)}")
-        if version != b"HTTP/1.1":
-            raise ValueError(f"unsupported HTTP version: {d(version)}")
+            raise ValueError(f"unsupported HTTP method; expected GET; got {d(method)}")
         path = raw_path.decode("ascii", "surrogateescape")
 
         headers = yield from parse_headers(read_line)
@@ -236,23 +237,26 @@ class Response:
             raise EOFError("connection closed while reading HTTP status line") from exc
 
         try:
-            version, raw_status_code, raw_reason = status_line.split(b" ", 2)
+            protocol, raw_status_code, raw_reason = status_line.split(b" ", 2)
         except ValueError:  # not enough values to unpack (expected 3, got 1-2)
             raise ValueError(f"invalid HTTP status line: {d(status_line)}") from None
-
-        if version != b"HTTP/1.1":
-            raise ValueError(f"unsupported HTTP version: {d(version)}")
+        if protocol != b"HTTP/1.1":
+            raise ValueError(
+                f"unsupported protocol; expected HTTP/1.1: {d(status_line)}"
+            )
         try:
             status_code = int(raw_status_code)
         except ValueError:  # invalid literal for int() with base 10
             raise ValueError(
-                f"invalid HTTP status code: {d(raw_status_code)}"
+                f"invalid status code; expected integer; got {d(raw_status_code)}"
             ) from None
-        if not 100 <= status_code < 1000:
-            raise ValueError(f"unsupported HTTP status code: {d(raw_status_code)}")
+        if not 100 <= status_code < 600:
+            raise ValueError(
+                f"invalid status code; expected 100–599; got {d(raw_status_code)}"
+            )
         if not _value_re.fullmatch(raw_reason):
             raise ValueError(f"invalid HTTP reason phrase: {d(raw_reason)}")
-        reason = raw_reason.decode()
+        reason = raw_reason.decode("ascii", "surrogateescape")
 
         headers = yield from parse_headers(read_line)
 

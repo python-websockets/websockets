@@ -3,7 +3,7 @@ import hmac
 import http
 import logging
 import socket
-import threading
+import time
 import unittest
 
 from websockets.exceptions import (
@@ -289,49 +289,18 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
     def test_connection_closed_during_handshake(self):
         """Server reads EOF before receiving handshake request from client."""
         with run_server() as server:
-            # Patch handler to record a reference to the thread running it.
-            server_thread = None
-            conn_received = threading.Event()
-            original_handler = server.handler
-
-            def handler(sock, addr):
-                nonlocal server_thread
-                server_thread = threading.current_thread()
-                nonlocal conn_received
-                conn_received.set()
-                original_handler(sock, addr)
-
-            server.handler = handler
-
             with socket.create_connection(server.socket.getsockname()):
                 # Wait for the server to receive the connection, then close it.
-                conn_received.wait()
-
-            # Wait for the server thread to terminate.
-            server_thread.join()
+                time.sleep(MS)
 
     def test_junk_handshake(self):
         """Server closes the connection when receiving non-HTTP request from client."""
         with self.assertLogs("websockets.server", logging.ERROR) as logs:
             with run_server() as server:
-                # Patch handler to record a reference to the thread running it.
-                server_thread = None
-                original_handler = server.handler
-
-                def handler(sock, addr):
-                    nonlocal server_thread
-                    server_thread = threading.current_thread()
-                    original_handler(sock, addr)
-
-                server.handler = handler
-
                 with socket.create_connection(server.socket.getsockname()) as sock:
                     sock.send(b"HELO relay.invalid\r\n")
                     # Wait for the server to close the connection.
                     self.assertEqual(sock.recv(4096), b"")
-
-                # Wait for the server thread to terminate.
-                server_thread.join()
 
         self.assertEqual(
             [record.getMessage() for record in logs.records],
@@ -360,26 +329,9 @@ class SecureServerTests(EvalShellMixin, unittest.TestCase):
     def test_connection_closed_during_tls_handshake(self):
         """Server reads EOF before receiving TLS handshake request from client."""
         with run_server(ssl=SERVER_CONTEXT) as server:
-            # Patch handler to record a reference to the thread running it.
-            server_thread = None
-            conn_received = threading.Event()
-            original_handler = server.handler
-
-            def handler(sock, addr):
-                nonlocal server_thread
-                server_thread = threading.current_thread()
-                nonlocal conn_received
-                conn_received.set()
-                original_handler(sock, addr)
-
-            server.handler = handler
-
             with socket.create_connection(server.socket.getsockname()):
                 # Wait for the server to receive the connection, then close it.
-                conn_received.wait()
-
-            # Wait for the server thread to terminate.
-            server_thread.join()
+                time.sleep(MS)
 
 
 @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")

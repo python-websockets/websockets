@@ -5,6 +5,7 @@ import queue
 import threading
 from typing import Iterator, cast
 
+from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 from ..typing import Data
 
@@ -74,7 +75,7 @@ class Assembler:
 
         Raises:
             EOFError: If the stream of frames has ended.
-            RuntimeError: If two threads run :meth:`get` or :meth:`get_iter`
+            ConcurrencyError: If two threads run :meth:`get` or :meth:`get_iter`
                 concurrently.
             TimeoutError: If a timeout is provided and elapses before a
                 complete message is received.
@@ -85,7 +86,7 @@ class Assembler:
                 raise EOFError("stream of frames ended")
 
             if self.get_in_progress:
-                raise RuntimeError("get() or get_iter() is already running")
+                raise ConcurrencyError("get() or get_iter() is already running")
 
             self.get_in_progress = True
 
@@ -128,14 +129,14 @@ class Assembler:
         :class:`bytes` for each frame in the message.
 
         The iterator must be fully consumed before calling :meth:`get_iter` or
-        :meth:`get` again. Else, :exc:`RuntimeError` is raised.
+        :meth:`get` again. Else, :exc:`ConcurrencyError` is raised.
 
         This method only makes sense for fragmented messages. If messages aren't
         fragmented, use :meth:`get` instead.
 
         Raises:
             EOFError: If the stream of frames has ended.
-            RuntimeError: If two threads run :meth:`get` or :meth:`get_iter`
+            ConcurrencyError: If two threads run :meth:`get` or :meth:`get_iter`
                 concurrently.
 
         """
@@ -144,7 +145,7 @@ class Assembler:
                 raise EOFError("stream of frames ended")
 
             if self.get_in_progress:
-                raise RuntimeError("get() or get_iter() is already running")
+                raise ConcurrencyError("get() or get_iter() is already running")
 
             chunks = self.chunks
             self.chunks = []
@@ -198,7 +199,7 @@ class Assembler:
 
         Raises:
             EOFError: If the stream of frames has ended.
-            RuntimeError: If two threads run :meth:`put` concurrently.
+            ConcurrencyError: If two threads run :meth:`put` concurrently.
 
         """
         with self.mutex:
@@ -206,7 +207,7 @@ class Assembler:
                 raise EOFError("stream of frames ended")
 
             if self.put_in_progress:
-                raise RuntimeError("put is already running")
+                raise ConcurrencyError("put is already running")
 
             if frame.opcode is OP_TEXT:
                 self.decoder = UTF8Decoder(errors="strict")

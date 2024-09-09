@@ -1,5 +1,6 @@
 import time
 
+from websockets.exceptions import ConcurrencyError
 from websockets.frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 from websockets.sync.messages import *
 
@@ -411,40 +412,40 @@ class AssemblerTests(ThreadTestCase):
     # Test (non-)concurrency
 
     def test_get_fails_when_get_is_running(self):
-        """get cannot be called concurrently with itself."""
+        """get cannot be called concurrently."""
         with self.run_in_thread(self.assembler.get):
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(ConcurrencyError):
                 self.assembler.get()
             self.assembler.put(Frame(OP_TEXT, b""))  # unlock other thread
 
     def test_get_fails_when_get_iter_is_running(self):
         """get cannot be called concurrently with get_iter."""
         with self.run_in_thread(lambda: list(self.assembler.get_iter())):
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(ConcurrencyError):
                 self.assembler.get()
             self.assembler.put(Frame(OP_TEXT, b""))  # unlock other thread
 
     def test_get_iter_fails_when_get_is_running(self):
         """get_iter cannot be called concurrently with get."""
         with self.run_in_thread(self.assembler.get):
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(ConcurrencyError):
                 list(self.assembler.get_iter())
             self.assembler.put(Frame(OP_TEXT, b""))  # unlock other thread
 
     def test_get_iter_fails_when_get_iter_is_running(self):
-        """get_iter cannot be called concurrently with itself."""
+        """get_iter cannot be called concurrently."""
         with self.run_in_thread(lambda: list(self.assembler.get_iter())):
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(ConcurrencyError):
                 list(self.assembler.get_iter())
             self.assembler.put(Frame(OP_TEXT, b""))  # unlock other thread
 
     def test_put_fails_when_put_is_running(self):
-        """put cannot be called concurrently with itself."""
+        """put cannot be called concurrently."""
 
         def putter():
             self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
 
         with self.run_in_thread(putter):
-            with self.assertRaises(RuntimeError):
+            with self.assertRaises(ConcurrencyError):
                 self.assembler.put(Frame(OP_BINARY, b"tea"))
             self.assembler.get()  # unblock other thread

@@ -10,7 +10,12 @@ import uuid
 from types import TracebackType
 from typing import Any, Iterable, Iterator, Mapping
 
-from ..exceptions import ConnectionClosed, ConnectionClosedOK, ProtocolError
+from ..exceptions import (
+    ConcurrencyError,
+    ConnectionClosed,
+    ConnectionClosedOK,
+    ProtocolError,
+)
 from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
@@ -194,7 +199,7 @@ class Connection:
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If two threads call :meth:`recv` or
+            ConcurrencyError: If two threads call :meth:`recv` or
                 :meth:`recv_streaming` concurrently.
 
         """
@@ -202,8 +207,8 @@ class Connection:
             return self.recv_messages.get(timeout)
         except EOFError:
             raise self.protocol.close_exc from self.recv_exc
-        except RuntimeError:
-            raise RuntimeError(
+        except ConcurrencyError:
+            raise ConcurrencyError(
                 "cannot call recv while another thread "
                 "is already running recv or recv_streaming"
             ) from None
@@ -227,7 +232,7 @@ class Connection:
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If two threads call :meth:`recv` or
+            ConcurrencyError: If two threads call :meth:`recv` or
                 :meth:`recv_streaming` concurrently.
 
         """
@@ -236,8 +241,8 @@ class Connection:
                 yield frame
         except EOFError:
             raise self.protocol.close_exc from self.recv_exc
-        except RuntimeError:
-            raise RuntimeError(
+        except ConcurrencyError:
+            raise ConcurrencyError(
                 "cannot call recv_streaming while another thread "
                 "is already running recv or recv_streaming"
             ) from None
@@ -277,7 +282,7 @@ class Connection:
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If the connection is sending a fragmented message.
+            ConcurrencyError: If the connection is sending a fragmented message.
             TypeError: If ``message`` doesn't have a supported type.
 
         """
@@ -287,7 +292,7 @@ class Connection:
         if isinstance(message, str):
             with self.send_context():
                 if self.send_in_progress:
-                    raise RuntimeError(
+                    raise ConcurrencyError(
                         "cannot call send while another thread "
                         "is already running send"
                     )
@@ -296,7 +301,7 @@ class Connection:
         elif isinstance(message, BytesLike):
             with self.send_context():
                 if self.send_in_progress:
-                    raise RuntimeError(
+                    raise ConcurrencyError(
                         "cannot call send while another thread "
                         "is already running send"
                     )
@@ -322,7 +327,7 @@ class Connection:
                     text = True
                     with self.send_context():
                         if self.send_in_progress:
-                            raise RuntimeError(
+                            raise ConcurrencyError(
                                 "cannot call send while another thread "
                                 "is already running send"
                             )
@@ -335,7 +340,7 @@ class Connection:
                     text = False
                     with self.send_context():
                         if self.send_in_progress:
-                            raise RuntimeError(
+                            raise ConcurrencyError(
                                 "cannot call send while another thread "
                                 "is already running send"
                             )
@@ -371,7 +376,7 @@ class Connection:
                     self.protocol.send_continuation(b"", fin=True)
                     self.send_in_progress = False
 
-            except RuntimeError:
+            except ConcurrencyError:
                 # We didn't start sending a fragmented message.
                 # The connection is still usable.
                 raise
@@ -445,7 +450,7 @@ class Connection:
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If another ping was sent with the same data and
+            ConcurrencyError: If another ping was sent with the same data and
                 the corresponding pong wasn't received yet.
 
         """
@@ -459,7 +464,7 @@ class Connection:
         with self.send_context():
             # Protect against duplicates if a payload is explicitly set.
             if data in self.ping_waiters:
-                raise RuntimeError("already waiting for a pong with the same data")
+                raise ConcurrencyError("already waiting for a pong with the same data")
 
             # Generate a unique random payload otherwise.
             while data is None or data in self.ping_waiters:
@@ -665,7 +670,7 @@ class Connection:
                 # Let the caller interact with the protocol.
                 try:
                     yield
-                except (ProtocolError, RuntimeError):
+                except (ProtocolError, ConcurrencyError):
                     # The protocol state wasn't changed. Exit immediately.
                     raise
                 except Exception as exc:

@@ -64,6 +64,10 @@ Improvements
 
 * Improved reporting of errors during the opening handshake.
 
+* Raised :exc:`~exceptions.ConcurrencyError` on unsupported concurrent calls.
+  Previously, :exc:`RuntimeError` was raised. For backwards compatibility,
+  :exc:`~exceptions.ConcurrencyError` is a subclass of :exc:`RuntimeError`.
+
 13.0.1
 ------
 

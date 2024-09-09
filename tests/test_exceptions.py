@@ -167,6 +167,10 @@ class ExceptionsTests(unittest.TestCase):
                 InvalidState("WebSocket connection isn't established yet"),
                 "WebSocket connection isn't established yet",
             ),
+            (
+                ConcurrencyError("get() or get_iter() is already running"),
+                "get() or get_iter() is already running",
+            ),
         ]:
             with self.subTest(exception=exception):
                 self.assertEqual(str(exception), exception_str)

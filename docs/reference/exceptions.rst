@@ -64,6 +64,11 @@ translated to :exc:`ConnectionClosedError` in the other implementations.
 
 .. autoexception:: InvalidState
 
+Miscellaneous exceptions
+------------------------
+
+.. autoexception:: ConcurrencyError
+
 Legacy exceptions
 -----------------
 

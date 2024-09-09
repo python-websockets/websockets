@@ -14,6 +14,7 @@ __all__ = [
     "HeadersLike",
     "MultipleValuesError",
     # .exceptions
+    "ConcurrencyError",
     "ConnectionClosed",
     "ConnectionClosedError",
     "ConnectionClosedOK",
@@ -72,6 +73,7 @@ if typing.TYPE_CHECKING:
     from .client import ClientProtocol
     from .datastructures import Headers, HeadersLike, MultipleValuesError
     from .exceptions import (
+        ConcurrencyError,
         ConnectionClosed,
         ConnectionClosedError,
         ConnectionClosedOK,
@@ -134,6 +136,7 @@ else:
             "HeadersLike": ".datastructures",
             "MultipleValuesError": ".datastructures",
             # .exceptions
+            "ConcurrencyError": ".exceptions",
             "ConnectionClosed": ".exceptions",
             "ConnectionClosedError": ".exceptions",
             "ConnectionClosedOK": ".exceptions",

@@ -25,6 +25,7 @@
     * :exc:`ProtocolError` (Sans-I/O)
     * :exc:`PayloadTooBig` (Sans-I/O)
     * :exc:`InvalidState` (Sans-I/O)
+    * :exc:`ConcurrencyError`
 
 """
 
@@ -62,6 +63,7 @@ __all__ = [
     "WebSocketProtocolError",
     "PayloadTooBig",
     "InvalidState",
+    "ConcurrencyError",
 ]
 
 
@@ -350,6 +352,16 @@ class InvalidState(WebSocketException, AssertionError):
     * sending a control frame to a connection in a state other than
       :attr:`~websockets.protocol.State.OPEN` or
       :attr:`~websockets.protocol.State.CLOSING`.
+
+    """
+
+
+class ConcurrencyError(WebSocketException, RuntimeError):
+    """
+    Raised when receiving or sending messages concurrently.
+
+    WebSocket is a connection-oriented protocol. Reads must be serialized; so
+    must be writes. However, reading and writing concurrently is possible.
 
     """
 

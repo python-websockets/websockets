@@ -12,6 +12,7 @@ from typing import (
     TypeVar,
 )
 
+from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 from ..typing import Data
 
@@ -49,7 +50,7 @@ class SimpleQueue(Generic[T]):
         """Remove and return an item from the queue, waiting if necessary."""
         if not self.queue:
             if self.get_waiter is not None:
-                raise RuntimeError("get is already running")
+                raise ConcurrencyError("get is already running")
             self.get_waiter = self.loop.create_future()
             try:
                 await self.get_waiter
@@ -135,15 +136,15 @@ class Assembler:
 
         Raises:
             EOFError: If the stream of frames has ended.
-            RuntimeError: If two coroutines run :meth:`get` or :meth:`get_iter`
-                concurrently.
+            ConcurrencyError: If two coroutines run :meth:`get` or
+                :meth:`get_iter` concurrently.
 
         """
         if self.closed:
             raise EOFError("stream of frames ended")
 
         if self.get_in_progress:
-            raise RuntimeError("get() or get_iter() is already running")
+            raise ConcurrencyError("get() or get_iter() is already running")
 
         # Locking with get_in_progress ensures only one coroutine can get here.
         self.get_in_progress = True
@@ -190,7 +191,7 @@ class Assembler:
         :class:`str` or :class:`bytes` for each frame in the message.
 
         The iterator must be fully consumed before calling :meth:`get_iter` or
-        :meth:`get` again. Else, :exc:`RuntimeError` is raised.
+        :meth:`get` again. Else, :exc:`ConcurrencyError` is raised.
 
         This method only makes sense for fragmented messages. If messages aren't
         fragmented, use :meth:`get` instead.
@@ -202,15 +203,15 @@ class Assembler:
 
         Raises:
             EOFError: If the stream of frames has ended.
-            RuntimeError: If two coroutines run :meth:`get` or :meth:`get_iter`
-                concurrently.
+            ConcurrencyError: If two coroutines run :meth:`get` or
+                :meth:`get_iter` concurrently.
 
         """
         if self.closed:
             raise EOFError("stream of frames ended")
 
         if self.get_in_progress:
-            raise RuntimeError("get() or get_iter() is already running")
+            raise ConcurrencyError("get() or get_iter() is already running")
 
         # Locking with get_in_progress ensures only one coroutine can get here.
         self.get_in_progress = True
@@ -236,7 +237,7 @@ class Assembler:
             # We cannot handle asyncio.CancelledError because we don't buffer
             # previous fragments — we're streaming them. Canceling get_iter()
             # here will leave the assembler in a stuck state. Future calls to
-            # get() or get_iter() will raise RuntimeError.
+            # get() or get_iter() will raise ConcurrencyError.
             frame = await self.frames.get()
             self.maybe_resume()
             assert frame.opcode is OP_CONT

@@ -9,7 +9,11 @@ import unittest
 import uuid
 from unittest.mock import patch
 
-from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
+from websockets.exceptions import (
+    ConcurrencyError,
+    ConnectionClosedError,
+    ConnectionClosedOK,
+)
 from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol
 from websockets.sync.connection import *
@@ -173,11 +177,11 @@ class ClientConnectionTests(unittest.TestCase):
             self.connection.recv()
 
     def test_recv_during_recv(self):
-        """recv raises RuntimeError when called concurrently with itself."""
+        """recv raises ConcurrencyError when called concurrently."""
         recv_thread = threading.Thread(target=self.connection.recv)
         recv_thread.start()
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             self.connection.recv()
         self.assertEqual(
             str(raised.exception),
@@ -189,13 +193,13 @@ class ClientConnectionTests(unittest.TestCase):
         recv_thread.join()
 
     def test_recv_during_recv_streaming(self):
-        """recv raises RuntimeError when called concurrently with recv_streaming."""
+        """recv raises ConcurrencyError when called concurrently with recv_streaming."""
         recv_streaming_thread = threading.Thread(
             target=lambda: list(self.connection.recv_streaming())
         )
         recv_streaming_thread.start()
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             self.connection.recv()
         self.assertEqual(
             str(raised.exception),
@@ -257,11 +261,11 @@ class ClientConnectionTests(unittest.TestCase):
                 self.fail("did not raise")
 
     def test_recv_streaming_during_recv(self):
-        """recv_streaming raises RuntimeError when called concurrently with recv."""
+        """recv_streaming raises ConcurrencyError when called concurrently with recv."""
         recv_thread = threading.Thread(target=self.connection.recv)
         recv_thread.start()
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             for _ in self.connection.recv_streaming():
                 self.fail("did not raise")
         self.assertEqual(
@@ -274,13 +278,13 @@ class ClientConnectionTests(unittest.TestCase):
         recv_thread.join()
 
     def test_recv_streaming_during_recv_streaming(self):
-        """recv_streaming raises RuntimeError when called concurrently with itself."""
+        """recv_streaming raises ConcurrencyError when called concurrently."""
         recv_streaming_thread = threading.Thread(
             target=lambda: list(self.connection.recv_streaming())
         )
         recv_streaming_thread.start()
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             for _ in self.connection.recv_streaming():
                 self.fail("did not raise")
         self.assertEqual(
@@ -335,7 +339,7 @@ class ClientConnectionTests(unittest.TestCase):
             self.connection.send("😀")
 
     def test_send_during_send(self):
-        """send raises RuntimeError when called concurrently with itself."""
+        """send raises ConcurrencyError when called concurrently."""
         recv_thread = threading.Thread(target=self.remote_connection.recv)
         recv_thread.start()
 
@@ -363,7 +367,7 @@ class ClientConnectionTests(unittest.TestCase):
             [b"\x01\x02", b"\xfe\xff"],
         ]:
             with self.subTest(message=message):
-                with self.assertRaises(RuntimeError) as raised:
+                with self.assertRaises(ConcurrencyError) as raised:
                     self.connection.send(message)
                 self.assertEqual(
                     str(raised.exception),
@@ -653,7 +657,7 @@ class ClientConnectionTests(unittest.TestCase):
         with self.drop_frames_rcvd():  # drop automatic response to ping
             pong_waiter = self.connection.ping("idem")
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             self.connection.ping("idem")
         self.assertEqual(
             str(raised.exception),

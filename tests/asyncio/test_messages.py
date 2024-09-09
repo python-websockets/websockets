@@ -5,6 +5,7 @@ import unittest.mock
 from websockets.asyncio.compatibility import aiter, anext
 from websockets.asyncio.messages import *
 from websockets.asyncio.messages import SimpleQueue
+from websockets.exceptions import ConcurrencyError
 from websockets.frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 
 from .utils import alist
@@ -37,10 +38,10 @@ class SimpleQueueTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(item, 42)
 
     async def test_get_concurrently(self):
-        """get cannot be called concurrently with itself."""
+        """get cannot be called concurrently."""
         getter_task = asyncio.create_task(self.queue.get())
         await asyncio.sleep(0)  # let the task start
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ConcurrencyError):
             await self.queue.get()
         getter_task.cancel()
 
@@ -361,7 +362,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
         self.assembler.put(Frame(OP_CONT, b"\xa9"))
 
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ConcurrencyError):
             await alist(self.assembler.get_iter())
 
     # Test put
@@ -423,10 +424,10 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
     # Test (non-)concurrency
 
     async def test_get_fails_when_get_is_running(self):
-        """get cannot be called concurrently with itself."""
+        """get cannot be called concurrently."""
         asyncio.create_task(self.assembler.get())
         await asyncio.sleep(0)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ConcurrencyError):
             await self.assembler.get()
         self.assembler.close()  # let task terminate
 
@@ -434,7 +435,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         """get cannot be called concurrently with get_iter."""
         asyncio.create_task(alist(self.assembler.get_iter()))
         await asyncio.sleep(0)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ConcurrencyError):
             await self.assembler.get()
         self.assembler.close()  # let task terminate
 
@@ -442,15 +443,15 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         """get_iter cannot be called concurrently with get."""
         asyncio.create_task(self.assembler.get())
         await asyncio.sleep(0)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ConcurrencyError):
             await alist(self.assembler.get_iter())
         self.assembler.close()  # let task terminate
 
     async def test_get_iter_fails_when_get_iter_is_running(self):
-        """get_iter cannot be called concurrently with itself."""
+        """get_iter cannot be called concurrently."""
         asyncio.create_task(alist(self.assembler.get_iter()))
         await asyncio.sleep(0)
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ConcurrencyError):
             await alist(self.assembler.get_iter())
         self.assembler.close()  # let task terminate
 

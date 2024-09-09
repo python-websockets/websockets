@@ -19,7 +19,12 @@ from typing import (
     cast,
 )
 
-from ..exceptions import ConnectionClosed, ConnectionClosedOK, ProtocolError
+from ..exceptions import (
+    ConcurrencyError,
+    ConnectionClosed,
+    ConnectionClosedOK,
+    ProtocolError,
+)
 from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
@@ -262,7 +267,7 @@ class Connection(asyncio.Protocol):
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If two coroutines call :meth:`recv` or
+            ConcurrencyError: If two coroutines call :meth:`recv` or
                 :meth:`recv_streaming` concurrently.
 
         """
@@ -270,8 +275,8 @@ class Connection(asyncio.Protocol):
             return await self.recv_messages.get(decode)
         except EOFError:
             raise self.protocol.close_exc from self.recv_exc
-        except RuntimeError:
-            raise RuntimeError(
+        except ConcurrencyError:
+            raise ConcurrencyError(
                 "cannot call recv while another coroutine "
                 "is already running recv or recv_streaming"
             ) from None
@@ -283,8 +288,9 @@ class Connection(asyncio.Protocol):
         This method is designed for receiving fragmented messages. It returns an
         asynchronous iterator that yields each fragment as it is received. This
         iterator must be fully consumed. Else, future calls to :meth:`recv` or
-        :meth:`recv_streaming` will raise :exc:`RuntimeError`, making the
-        connection unusable.
+        :meth:`recv_streaming` will raise
+        :exc:`~websockets.exceptions.ConcurrencyError`, making the connection
+        unusable.
 
         :meth:`recv_streaming` raises the same exceptions as :meth:`recv`.
 
@@ -315,7 +321,7 @@ class Connection(asyncio.Protocol):
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If two coroutines call :meth:`recv` or
+            ConcurrencyError: If two coroutines call :meth:`recv` or
                 :meth:`recv_streaming` concurrently.
 
         """
@@ -324,8 +330,8 @@ class Connection(asyncio.Protocol):
                 yield frame
         except EOFError:
             raise self.protocol.close_exc from self.recv_exc
-        except RuntimeError:
-            raise RuntimeError(
+        except ConcurrencyError:
+            raise ConcurrencyError(
                 "cannot call recv_streaming while another coroutine "
                 "is already running recv or recv_streaming"
             ) from None
@@ -593,7 +599,7 @@ class Connection(asyncio.Protocol):
 
         Raises:
             ConnectionClosed: When the connection is closed.
-            RuntimeError: If another ping was sent with the same data and
+            ConcurrencyError: If another ping was sent with the same data and
                 the corresponding pong wasn't received yet.
 
         """
@@ -607,7 +613,7 @@ class Connection(asyncio.Protocol):
         async with self.send_context():
             # Protect against duplicates if a payload is explicitly set.
             if data in self.pong_waiters:
-                raise RuntimeError("already waiting for a pong with the same data")
+                raise ConcurrencyError("already waiting for a pong with the same data")
 
             # Generate a unique random payload otherwise.
             while data is None or data in self.pong_waiters:
@@ -793,7 +799,7 @@ class Connection(asyncio.Protocol):
             # Let the caller interact with the protocol.
             try:
                 yield
-            except (ProtocolError, RuntimeError):
+            except (ProtocolError, ConcurrencyError):
                 # The protocol state wasn't changed. Exit immediately.
                 raise
             except Exception as exc:
@@ -1092,15 +1098,17 @@ def broadcast(
     if raise_exceptions:
         if sys.version_info[:2] < (3, 11):  # pragma: no cover
             raise ValueError("raise_exceptions requires at least Python 3.11")
-        exceptions = []
+        exceptions: list[Exception] = []
 
     for connection in connections:
+        exception: Exception
+
         if connection.protocol.state is not OPEN:
             continue
 
         if connection.fragmented_send_waiter is not None:
             if raise_exceptions:
-                exception = RuntimeError("sending a fragmented message")
+                exception = ConcurrencyError("sending a fragmented message")
                 exceptions.append(exception)
             else:
                 connection.logger.warning(

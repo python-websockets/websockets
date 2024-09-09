@@ -10,7 +10,11 @@ from unittest.mock import Mock, patch
 from websockets.asyncio.compatibility import TimeoutError, aiter, anext, asyncio_timeout
 from websockets.asyncio.connection import *
 from websockets.asyncio.connection import broadcast
-from websockets.exceptions import ConnectionClosedError, ConnectionClosedOK
+from websockets.exceptions import (
+    ConcurrencyError,
+    ConnectionClosedError,
+    ConnectionClosedOK,
+)
 from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 
@@ -219,12 +223,12 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             await self.connection.recv()
 
     async def test_recv_during_recv(self):
-        """recv raises RuntimeError when called concurrently with itself."""
+        """recv raises ConcurrencyError when called concurrently."""
         recv_task = asyncio.create_task(self.connection.recv())
         await asyncio.sleep(0)  # let the event loop start recv_task
         self.addCleanup(recv_task.cancel)
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             await self.connection.recv()
         self.assertEqual(
             str(raised.exception),
@@ -233,14 +237,14 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_recv_during_recv_streaming(self):
-        """recv raises RuntimeError when called concurrently with recv_streaming."""
+        """recv raises ConcurrencyError when called concurrently with recv_streaming."""
         recv_streaming_task = asyncio.create_task(
             alist(self.connection.recv_streaming())
         )
         await asyncio.sleep(0)  # let the event loop start recv_streaming_task
         self.addCleanup(recv_streaming_task.cancel)
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             await self.connection.recv()
         self.assertEqual(
             str(raised.exception),
@@ -349,12 +353,12 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
                 self.fail("did not raise")
 
     async def test_recv_streaming_during_recv(self):
-        """recv_streaming raises RuntimeError when called concurrently with recv."""
+        """recv_streaming raises ConcurrencyError when called concurrently with recv."""
         recv_task = asyncio.create_task(self.connection.recv())
         await asyncio.sleep(0)  # let the event loop start recv_task
         self.addCleanup(recv_task.cancel)
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             async for _ in self.connection.recv_streaming():
                 self.fail("did not raise")
         self.assertEqual(
@@ -364,14 +368,14 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_recv_streaming_during_recv_streaming(self):
-        """recv_streaming raises RuntimeError when called concurrently with itself."""
+        """recv_streaming raises ConcurrencyError when called concurrently."""
         recv_streaming_task = asyncio.create_task(
             alist(self.connection.recv_streaming())
         )
         await asyncio.sleep(0)  # let the event loop start recv_streaming_task
         self.addCleanup(recv_streaming_task.cancel)
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             async for _ in self.connection.recv_streaming():
                 self.fail("did not raise")
         self.assertEqual(
@@ -419,7 +423,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
         gate.set_result(None)
         # Running recv_streaming again fails.
-        with self.assertRaises(RuntimeError):
+        with self.assertRaises(ConcurrencyError):
             await alist(self.connection.recv_streaming())
 
     # Test send.
@@ -856,7 +860,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         async with self.drop_frames_rcvd():  # drop automatic response to ping
             pong_waiter = await self.connection.ping("idem")
 
-        with self.assertRaises(RuntimeError) as raised:
+        with self.assertRaises(ConcurrencyError) as raised:
             await self.connection.ping("idem")
         self.assertEqual(
             str(raised.exception),
@@ -1252,7 +1256,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(str(raised.exception), "skipped broadcast (1 sub-exception)")
         exc = raised.exception.exceptions[0]
         self.assertEqual(str(exc), "sending a fragmented message")
-        self.assertIsInstance(exc, RuntimeError)
+        self.assertIsInstance(exc, ConcurrencyError)
 
         gate.set_result(None)
         await send_task

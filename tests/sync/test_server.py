@@ -336,7 +336,10 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         print()
         for record in logs.records:
             print(repr(record))
-            print(repr(record.exc_info[1]))
+            import traceback
+
+            traceback.print_exception(*record.exc_info)
+            print()
 
         self.assertEqual(
             [record.getMessage() for record in logs.records],

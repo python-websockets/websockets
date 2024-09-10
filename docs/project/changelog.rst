@@ -68,6 +68,13 @@ Improvements
   Previously, :exc:`RuntimeError` was raised. For backwards compatibility,
   :exc:`~exceptions.ConcurrencyError` is a subclass of :exc:`RuntimeError`.
 
+Bug fixes
+.........
+
+* The new :mod:`asyncio` and :mod:`threading` implementations of servers don't
+  start the connection handler anymore when ``process_request`` or
+  ``process_response`` returns a HTTP response.
+
 13.0.1
 ------
 

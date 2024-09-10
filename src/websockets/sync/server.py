@@ -23,7 +23,7 @@ from ..headers import (
     validate_subprotocols,
 )
 from ..http11 import SERVER, Request, Response
-from ..protocol import CONNECTING, Event
+from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
 from .connection import Connection
@@ -166,8 +166,9 @@ class ServerConnection(Connection):
                 self.protocol.send_response(self.response)
 
         # self.protocol.handshake_exc is always set when the connection is lost
-        # before receiving a request, when the request cannot be parsed, or when
-        # the response fails the handshake.
+        # before receiving a request, when the request cannot be parsed, when
+        # the handshake encounters an error, or when process_request or
+        # process_response sends a HTTP response that rejects the handshake.
 
         if self.protocol.handshake_exc is not None:
             raise self.protocol.handshake_exc
@@ -569,6 +570,7 @@ def serve(
                 connection.recv_events_thread.join()
                 return
 
+            assert connection.protocol.state is OPEN
             try:
                 handler(connection)
             except Exception:

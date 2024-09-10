@@ -145,7 +145,10 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         def process_request(ws, request):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
-        async with serve(*args, process_request=process_request) as server:
+        async def handler(ws):
+            self.fail("handler must not run")
+
+        async with serve(handler, *args[1:], process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -160,7 +163,10 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async def process_request(ws, request):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
-        async with serve(*args, process_request=process_request) as server:
+        async def handler(ws):
+            self.fail("handler must not run")
+
+        async with serve(handler, *args[1:], process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")

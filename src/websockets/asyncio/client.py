@@ -98,9 +98,7 @@ class ClientConnection(Connection):
         # before receiving a response, when the response cannot be parsed, or
         # when the response fails the handshake.
 
-        if self.protocol.handshake_exc is None:
-            self.start_keepalive()
-        else:
+        if self.protocol.handshake_exc is not None:
             raise self.protocol.handshake_exc
 
     def process_event(self, event: Event) -> None:
@@ -465,6 +463,7 @@ class connect:
                             raise uri_or_exc from exc
 
                     else:
+                        self.connection.start_keepalive()
                         return self.connection
                 else:
                     raise SecurityError(f"more than {MAX_REDIRECTS} redirects")

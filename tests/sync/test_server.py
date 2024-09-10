@@ -133,7 +133,10 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         def process_request(ws, request):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
-        with run_server(process_request=process_request) as server:
+        def handler(ws):
+            self.fail("handler must not run")
+
+        with run_server(handler, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server)):
                     self.fail("did not raise")

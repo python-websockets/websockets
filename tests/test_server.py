@@ -106,10 +106,11 @@ class AcceptRejectTests(unittest.TestCase):
             ),
         )
 
-    def test_send_accept(self):
+    def test_send_response_after_successful_accept(self):
         server = ServerProtocol()
+        request = self.make_request()
         with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
-            response = server.accept(self.make_request())
+            response = server.accept(request)
         self.assertIsInstance(response, Response)
         server.send_response(response)
         self.assertEqual(
@@ -126,7 +127,32 @@ class AcceptRejectTests(unittest.TestCase):
         self.assertFalse(server.close_expected())
         self.assertEqual(server.state, OPEN)
 
-    def test_send_reject(self):
+    def test_send_response_after_failed_accept(self):
+        server = ServerProtocol()
+        request = self.make_request()
+        del request.headers["Sec-WebSocket-Key"]
+        with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
+            response = server.accept(request)
+        self.assertIsInstance(response, Response)
+        server.send_response(response)
+        self.assertEqual(
+            server.data_to_send(),
+            [
+                f"HTTP/1.1 400 Bad Request\r\n"
+                f"Date: {DATE}\r\n"
+                f"Connection: close\r\n"
+                f"Content-Length: 94\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"\r\n"
+                f"Failed to open a WebSocket connection: "
+                f"missing Sec-WebSocket-Key header; 'sec-websocket-key'.\n".encode(),
+                b"",
+            ],
+        )
+        self.assertTrue(server.close_expected())
+        self.assertEqual(server.state, CONNECTING)
+
+    def test_send_response_after_reject(self):
         server = ServerProtocol()
         with unittest.mock.patch("email.utils.formatdate", return_value=DATE):
             response = server.reject(http.HTTPStatus.NOT_FOUND, "Sorry folks.\n")
@@ -142,6 +168,19 @@ class AcceptRejectTests(unittest.TestCase):
                 f"Content-Type: text/plain; charset=utf-8\r\n"
                 f"\r\n"
                 f"Sorry folks.\n".encode(),
+                b"",
+            ],
+        )
+        self.assertTrue(server.close_expected())
+        self.assertEqual(server.state, CONNECTING)
+
+    def test_send_response_without_accept_or_reject(self):
+        server = ServerProtocol()
+        server.send_response(Response(410, "Gone", Headers(), b"AWOL.\n"))
+        self.assertEqual(
+            server.data_to_send(),
+            [
+                "HTTP/1.1 410 Gone\r\n\r\nAWOL.\n".encode(),
                 b"",
             ],
         )

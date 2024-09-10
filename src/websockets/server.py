@@ -204,7 +204,6 @@ class ServerProtocol(Protocol):
         if protocol_header is not None:
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        self.logger.info("connection open")
         return Response(101, "Switching Protocols", headers)
 
     def process_request(
@@ -515,14 +514,7 @@ class ServerProtocol(Protocol):
                 ("Content-Type", "text/plain; charset=utf-8"),
             ]
         )
-        response = Response(status.value, status.phrase, headers, body)
-        # When reject() is called from accept(), handshake_exc is already set.
-        # If a user calls reject(), set handshake_exc to guarantee invariant:
-        # "handshake_exc is None if and only if opening handshake succeeded."
-        if self.handshake_exc is None:
-            self.handshake_exc = InvalidStatus(response)
-        self.logger.info("connection rejected (%d %s)", status.value, status.phrase)
-        return response
+        return Response(status.value, status.phrase, headers, body)
 
     def send_response(self, response: Response) -> None:
         """
@@ -545,7 +537,20 @@ class ServerProtocol(Protocol):
         if response.status_code == 101:
             assert self.state is CONNECTING
             self.state = OPEN
+            self.logger.info("connection open")
+
         else:
+            # handshake_exc may be already set if accept() encountered an error.
+            # If the connection isn't open, set handshake_exc to guarantee that
+            # handshake_exc is None if and only if opening handshake succeeded.
+            if self.handshake_exc is None:
+                self.handshake_exc = InvalidStatus(response)
+            self.logger.info(
+                "connection rejected (%d %s)",
+                response.status_code,
+                response.reason_phrase,
+            )
+
             self.send_eof()
             self.parser = self.discard()
             next(self.parser)  # start coroutine

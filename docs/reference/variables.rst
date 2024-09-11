@@ -80,8 +80,8 @@ Reconnection attempts are spaced out with truncated exponential backoff.
 
     The default value is ``90.0`` seconds.
 
-Redirections
-------------
+Redirects
+---------
 
 .. envvar:: WEBSOCKETS_MAX_REDIRECTS
 

@@ -59,6 +59,7 @@ reconnection
 redis
 redistributions
 retransmit
+retryable
 runtime
 scalable
 stateful

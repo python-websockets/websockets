@@ -161,10 +161,9 @@ Client
     | Perform HTTP Digest Authentication | ❌     | ❌     | ❌     | ❌     |
     | (`#784`_)                          |        |        |        |        |
     +------------------------------------+--------+--------+--------+--------+
-    | Connect via a HTTP proxy (`#364`_) | ❌     | ❌     | —      | ❌     |
+    | Connect via HTTP proxy (`#364`_)   | ❌     | ❌     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
-    | Connect via a SOCKS5 proxy         | ❌     | ❌     | —      | ❌     |
-    | (`#475`_)                          |        |        |        |        |
+    | Connect via SOCKS5 proxy (`#475`_) | ❌     | ❌     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
 
 .. _#364: https://github.com/python-websockets/websockets/issues/364
@@ -179,7 +178,7 @@ There is no way to control compression of outgoing frames on a per-frame basis
 
 .. _#538: https://github.com/python-websockets/websockets/issues/538
 
-The server doesn't check the Host header and doesn't respond with a HTTP 400 Bad
+The server doesn't check the Host header and doesn't respond with HTTP 400 Bad
 Request if it is missing or invalid (`#1246`).
 
 .. _#1246: https://github.com/python-websockets/websockets/issues/1246

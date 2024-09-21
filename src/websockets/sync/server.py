@@ -168,7 +168,7 @@ class ServerConnection(Connection):
         # self.protocol.handshake_exc is always set when the connection is lost
         # before receiving a request, when the request cannot be parsed, when
         # the handshake encounters an error, or when process_request or
-        # process_response sends a HTTP response that rejects the handshake.
+        # process_response sends an HTTP response that rejects the handshake.
 
         if self.protocol.handshake_exc is not None:
             raise self.protocol.handshake_exc

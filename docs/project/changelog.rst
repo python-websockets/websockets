@@ -73,7 +73,7 @@ Bug fixes
 
 * The new :mod:`asyncio` and :mod:`threading` implementations of servers don't
   start the connection handler anymore when ``process_request`` or
-  ``process_response`` returns a HTTP response.
+  ``process_response`` returns an HTTP response.
 
 13.0.1
 ------

@@ -3,7 +3,8 @@ from __future__ import annotations
 import enum
 import logging
 import uuid
-from typing import Generator, Union
+from collections.abc import Generator
+from typing import Union
 
 from .exceptions import (
     ConnectionClosed,
@@ -529,7 +530,7 @@ class Protocol:
 
     # Private methods for receiving data.
 
-    def parse(self) -> Generator[None, None, None]:
+    def parse(self) -> Generator[None]:
         """
         Parse incoming data into frames.
 
@@ -600,7 +601,7 @@ class Protocol:
         yield
         raise AssertionError("parse() shouldn't step after error")
 
-    def discard(self) -> Generator[None, None, None]:
+    def discard(self) -> Generator[None]:
         """
         Discard incoming data.
 

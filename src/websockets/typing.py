@@ -3,7 +3,7 @@ from __future__ import annotations
 import http
 import logging
 import typing
-from typing import Any, List, NewType, Optional, Tuple, Union
+from typing import Any, NewType, Optional, Union
 
 
 __all__ = [
@@ -56,16 +56,14 @@ Subprotocol = NewType("Subprotocol", str)
 ExtensionName = NewType("ExtensionName", str)
 """Name of a WebSocket extension."""
 
-# Change to tuple[str, Optional[str]] when dropping Python < 3.9.
 # Change to tuple[str, str | None] when dropping Python < 3.10.
-ExtensionParameter = Tuple[str, Optional[str]]
+ExtensionParameter = tuple[str, Optional[str]]
 """Parameter of a WebSocket extension."""
 
 
 # Private types
 
-# Change to tuple[.., list[...]] when dropping Python < 3.9.
-ExtensionHeader = Tuple[ExtensionName, List[ExtensionParameter]]
+ExtensionHeader = tuple[ExtensionName, list[ExtensionParameter]]
 """Extension in a ``Sec-WebSocket-Extensions`` header."""
 
 

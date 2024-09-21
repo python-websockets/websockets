@@ -4,8 +4,9 @@ import asyncio
 import logging
 import os
 import urllib.parse
+from collections.abc import AsyncIterator, Generator, Sequence
 from types import TracebackType
-from typing import Any, AsyncIterator, Callable, Generator, Sequence
+from typing import Any, Callable
 
 from ..client import ClientProtocol, backoff
 from ..datastructures import HeadersLike
@@ -492,7 +493,7 @@ class connect:
     # async for ... in connect(...):
 
     async def __aiter__(self) -> AsyncIterator[ClientConnection]:
-        delays: Generator[float, None, None] | None = None
+        delays: Generator[float] | None = None
         while True:
             try:
                 async with self as protocol:

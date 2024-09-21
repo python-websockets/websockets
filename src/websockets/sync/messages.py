@@ -3,7 +3,8 @@ from __future__ import annotations
 import codecs
 import queue
 import threading
-from typing import Iterator, cast
+from collections.abc import Iterator
+from typing import cast
 
 from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
@@ -150,8 +151,7 @@ class Assembler:
             chunks = self.chunks
             self.chunks = []
             self.chunks_queue = cast(
-                # Remove quotes around type when dropping Python < 3.9.
-                "queue.SimpleQueue[Data | None]",
+                queue.SimpleQueue[Data | None],
                 queue.SimpleQueue(),
             )
 

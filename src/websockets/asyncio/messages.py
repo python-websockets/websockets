@@ -3,14 +3,8 @@ from __future__ import annotations
 import asyncio
 import codecs
 import collections
-from typing import (
-    Any,
-    AsyncIterator,
-    Callable,
-    Generic,
-    Iterable,
-    TypeVar,
-)
+from collections.abc import AsyncIterator, Iterable
+from typing import Any, Callable, Generic, TypeVar
 
 from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame

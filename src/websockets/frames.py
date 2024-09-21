@@ -6,7 +6,8 @@ import io
 import os
 import secrets
 import struct
-from typing import Callable, Generator, Sequence
+from collections.abc import Generator, Sequence
+from typing import Callable
 
 from .exceptions import PayloadTooBig, ProtocolError
 

@@ -11,17 +11,8 @@ import sys
 import time
 import uuid
 import warnings
-from typing import (
-    Any,
-    AsyncIterable,
-    AsyncIterator,
-    Awaitable,
-    Callable,
-    Deque,
-    Iterable,
-    Mapping,
-    cast,
-)
+from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Iterable, Mapping
+from typing import Any, Callable, Deque, cast
 
 from ..asyncio.compatibility import asyncio_timeout
 from ..datastructures import Headers

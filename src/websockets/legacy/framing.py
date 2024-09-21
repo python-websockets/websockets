@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import struct
-from typing import Any, Awaitable, Callable, NamedTuple, Sequence
+from collections.abc import Awaitable, Sequence
+from typing import Any, Callable, NamedTuple
 
 from .. import extensions, frames
 from ..exceptions import PayloadTooBig, ProtocolError

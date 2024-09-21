@@ -32,6 +32,15 @@ notice.
 
 *In development*
 
+Backwards-incompatible changes
+..............................
+
+.. admonition:: websockets 14.0 requires Python ≥ 3.9.
+    :class: tip
+
+    websockets 13.1 is the last version supporting Python 3.8.
+
+
 .. _13.1:
 
 13.1
@@ -105,11 +114,6 @@ Bug fixes
 
 Backwards-incompatible changes
 ..............................
-
-.. admonition:: websockets 13.0 requires Python ≥ 3.8.
-    :class: tip
-
-    websockets 12.0 is the last version supporting Python 3.7.
 
 .. admonition:: Receiving the request path in the second parameter of connection
     handlers is deprecated.

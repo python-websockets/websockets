@@ -5,7 +5,8 @@ import binascii
 import email.utils
 import http
 import warnings
-from typing import Any, Callable, Generator, Sequence, cast
+from collections.abc import Generator, Sequence
+from typing import Any, Callable, cast
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
@@ -555,7 +556,7 @@ class ServerProtocol(Protocol):
             self.parser = self.discard()
             next(self.parser)  # start coroutine
 
-    def parse(self) -> Generator[None, None, None]:
+    def parse(self) -> Generator[None]:
         if self.state is CONNECTING:
             try:
                 request = yield from Request.parse(

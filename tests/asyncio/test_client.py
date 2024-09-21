@@ -177,10 +177,6 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(iterations, 5)
         self.assertEqual(successful, 2)
 
-    @unittest.skipUnless(
-        hasattr(http.HTTPStatus, "IM_A_TEAPOT"),
-        "test requires Python 3.9",
-    )
     async def test_reconnect_with_custom_process_exception(self):
         """Client runs process_exception to tell if errors are retryable or fatal."""
         iteration = 0
@@ -214,10 +210,6 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             "🫖 💔 ☕️",
         )
 
-    @unittest.skipUnless(
-        hasattr(http.HTTPStatus, "IM_A_TEAPOT"),
-        "test requires Python 3.9",
-    )
     async def test_reconnect_with_custom_process_exception_raising_exception(self):
         """Client supports raising an exception in process_exception."""
 

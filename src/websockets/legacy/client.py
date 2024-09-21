@@ -7,15 +7,9 @@ import os
 import random
 import urllib.parse
 import warnings
+from collections.abc import AsyncIterator, Generator, Sequence
 from types import TracebackType
-from typing import (
-    Any,
-    AsyncIterator,
-    Callable,
-    Generator,
-    Sequence,
-    cast,
-)
+from typing import Any, Callable, cast
 
 from ..asyncio.compatibility import asyncio_timeout
 from ..datastructures import Headers, HeadersLike

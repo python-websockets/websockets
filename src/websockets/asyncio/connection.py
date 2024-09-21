@@ -8,16 +8,9 @@ import random
 import struct
 import sys
 import uuid
+from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Iterable, Mapping
 from types import TracebackType
-from typing import (
-    Any,
-    AsyncIterable,
-    AsyncIterator,
-    Awaitable,
-    Iterable,
-    Mapping,
-    cast,
-)
+from typing import Any, cast
 
 from ..exceptions import (
     ConcurrencyError,

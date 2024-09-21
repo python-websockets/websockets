@@ -8,18 +8,9 @@ import inspect
 import logging
 import socket
 import warnings
+from collections.abc import Awaitable, Generator, Iterable, Sequence
 from types import TracebackType
-from typing import (
-    Any,
-    Awaitable,
-    Callable,
-    Generator,
-    Iterable,
-    Sequence,
-    Tuple,
-    Union,
-    cast,
-)
+from typing import Any, Callable, Union, cast
 
 from ..asyncio.compatibility import asyncio_timeout
 from ..datastructures import Headers, HeadersLike, MultipleValuesError
@@ -59,8 +50,7 @@ __all__ = [
 # Change to HeadersLike | ... when dropping Python < 3.10.
 HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]]
 
-# Change to tuple[...] when dropping Python < 3.9.
-HTTPResponse = Tuple[StatusLike, HeadersLike, bytes]
+HTTPResponse = tuple[StatusLike, HeadersLike, bytes]
 
 
 class WebSocketServerProtocol(WebSocketCommonProtocol):

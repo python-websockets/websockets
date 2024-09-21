@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import dataclasses
 import zlib
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from .. import frames
 from ..exceptions import (

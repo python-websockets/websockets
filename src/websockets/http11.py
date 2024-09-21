@@ -5,7 +5,8 @@ import os
 import re
 import sys
 import warnings
-from typing import Callable, Generator
+from collections.abc import Generator
+from typing import Callable
 
 from .datastructures import Headers
 from .exceptions import SecurityError

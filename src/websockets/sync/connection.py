@@ -7,8 +7,9 @@ import socket
 import struct
 import threading
 import uuid
+from collections.abc import Iterable, Iterator, Mapping
 from types import TracebackType
-from typing import Any, Iterable, Iterator, Mapping
+from typing import Any
 
 from ..exceptions import (
     ConcurrencyError,
@@ -239,8 +240,7 @@ class Connection:
 
         """
         try:
-            for frame in self.recv_messages.get_iter():
-                yield frame
+            yield from self.recv_messages.get_iter()
         except EOFError:
             # Wait for the protocol state to be CLOSED before accessing close_exc.
             self.recv_events_thread.join()

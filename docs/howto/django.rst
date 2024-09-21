@@ -121,8 +121,7 @@ authentication fails, it closes the connection and exits.
 When we call an API that makes a database query such as ``get_user()``, we
 wrap the call in :func:`~asyncio.to_thread`. Indeed, the Django ORM doesn't
 support asynchronous I/O. It would block the event loop if it didn't run in a
-separate thread. :func:`~asyncio.to_thread` is available since Python 3.9. In
-earlier versions, use :meth:`~asyncio.loop.run_in_executor` instead.
+separate thread.
 
 Finally, we start a server with :func:`~websockets.asyncio.server.serve`.
 

@@ -10,8 +10,9 @@ import ssl as ssl_module
 import sys
 import threading
 import warnings
+from collections.abc import Iterable, Sequence
 from types import TracebackType
-from typing import Any, Callable, Iterable, Sequence, Tuple, cast
+from typing import Any, Callable, cast
 
 from ..exceptions import InvalidHeader
 from ..extensions.base import ServerExtensionFactory
@@ -663,9 +664,9 @@ def basic_auth(
 
     if credentials is not None:
         if is_credentials(credentials):
-            credentials_list = [cast(Tuple[str, str], credentials)]
+            credentials_list = [cast(tuple[str, str], credentials)]
         elif isinstance(credentials, Iterable):
-            credentials_list = list(cast(Iterable[Tuple[str, str]], credentials))
+            credentials_list = list(cast(Iterable[tuple[str, str]], credentials))
             if not all(is_credentials(item) for item in credentials_list):
                 raise TypeError(f"invalid credentials argument: {credentials}")
         else:

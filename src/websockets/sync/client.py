@@ -4,7 +4,8 @@ import socket
 import ssl as ssl_module
 import threading
 import warnings
-from typing import Any, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from ..client import ClientProtocol
 from ..datastructures import HeadersLike

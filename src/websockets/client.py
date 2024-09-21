@@ -3,7 +3,8 @@ from __future__ import annotations
 import os
 import random
 import warnings
-from typing import Any, Generator, Sequence
+from collections.abc import Generator, Sequence
+from typing import Any
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
@@ -313,7 +314,7 @@ class ClientProtocol(Protocol):
 
         self.writes.append(request.serialize())
 
-    def parse(self) -> Generator[None, None, None]:
+    def parse(self) -> Generator[None]:
         if self.state is CONNECTING:
             try:
                 response = yield from Response.parse(
@@ -374,7 +375,7 @@ def backoff(
     min_delay: float = BACKOFF_MIN_DELAY,
     max_delay: float = BACKOFF_MAX_DELAY,
     factor: float = BACKOFF_FACTOR,
-) -> Generator[float, None, None]:
+) -> Generator[float]:
     """
     Generate a series of backoff delays between reconnection attempts.
 

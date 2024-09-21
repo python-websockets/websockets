@@ -30,7 +30,7 @@ notice.
 13.1
 ----
 
-*In development*
+*September 21, 2024*
 
 Backwards-incompatible changes
 ..............................

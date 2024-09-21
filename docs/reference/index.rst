@@ -98,5 +98,5 @@ guarantees of behavior or backwards-compatibility for private APIs.
 Convenience imports
 -------------------
 
-For convenience, many public APIs can be imported directly from the
+For convenience, some public APIs can be imported directly from the
 ``websockets`` package.

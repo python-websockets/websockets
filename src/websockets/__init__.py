@@ -7,6 +7,14 @@ from .version import version as __version__  # noqa: F401
 
 
 __all__ = [
+    # .asyncio.client
+    "connect",
+    "unix_connect",
+    # .asyncio.server
+    "basic_auth",
+    "broadcast",
+    "serve",
+    "unix_serve",
     # .client
     "ClientProtocol",
     # .datastructures
@@ -41,8 +49,6 @@ __all__ = [
     "basic_auth_protocol_factory",
     # .legacy.client
     "WebSocketClientProtocol",
-    "connect",
-    "unix_connect",
     # .legacy.exceptions
     "AbortHandshake",
     "InvalidMessage",
@@ -53,9 +59,6 @@ __all__ = [
     # .legacy.server
     "WebSocketServer",
     "WebSocketServerProtocol",
-    "broadcast",
-    "serve",
-    "unix_serve",
     # .server
     "ServerProtocol",
     # .typing
@@ -70,6 +73,8 @@ __all__ = [
 
 # When type checking, import non-deprecated aliases eagerly. Else, import on demand.
 if typing.TYPE_CHECKING:
+    from .asyncio.client import connect, unix_connect
+    from .asyncio.server import basic_auth, broadcast, serve, unix_serve
     from .client import ClientProtocol
     from .datastructures import Headers, HeadersLike, MultipleValuesError
     from .exceptions import (
@@ -100,7 +105,7 @@ if typing.TYPE_CHECKING:
         BasicAuthWebSocketServerProtocol,
         basic_auth_protocol_factory,
     )
-    from .legacy.client import WebSocketClientProtocol, connect, unix_connect
+    from .legacy.client import WebSocketClientProtocol
     from .legacy.exceptions import (
         AbortHandshake,
         InvalidMessage,
@@ -108,13 +113,7 @@ if typing.TYPE_CHECKING:
         RedirectHandshake,
     )
     from .legacy.protocol import WebSocketCommonProtocol
-    from .legacy.server import (
-        WebSocketServer,
-        WebSocketServerProtocol,
-        broadcast,
-        serve,
-        unix_serve,
-    )
+    from .legacy.server import WebSocketServer, WebSocketServerProtocol
     from .server import ServerProtocol
     from .typing import (
         Data,
@@ -129,6 +128,14 @@ else:
     lazy_import(
         globals(),
         aliases={
+            # .asyncio.client
+            "connect": ".asyncio.client",
+            "unix_connect": ".asyncio.client",
+            # .asyncio.server
+            "basic_auth": ".asyncio.server",
+            "broadcast": ".asyncio.server",
+            "serve": ".asyncio.server",
+            "unix_serve": ".asyncio.server",
             # .client
             "ClientProtocol": ".client",
             # .datastructures
@@ -163,8 +170,6 @@ else:
             "basic_auth_protocol_factory": ".legacy.auth",
             # .legacy.client
             "WebSocketClientProtocol": ".legacy.client",
-            "connect": ".legacy.client",
-            "unix_connect": ".legacy.client",
             # .legacy.exceptions
             "AbortHandshake": ".legacy.exceptions",
             "InvalidMessage": ".legacy.exceptions",
@@ -175,9 +180,6 @@ else:
             # .legacy.server
             "WebSocketServer": ".legacy.server",
             "WebSocketServerProtocol": ".legacy.server",
-            "broadcast": ".legacy.server",
-            "serve": ".legacy.server",
-            "unix_serve": ".legacy.server",
             # .server
             "ServerProtocol": ".server",
             # .typing

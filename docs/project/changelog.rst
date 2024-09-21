@@ -40,6 +40,17 @@ Backwards-incompatible changes
 
     websockets 13.1 is the last version supporting Python 3.8.
 
+.. admonition:: The new :mod:`asyncio` implementation is now the default.
+    :class: caution
+
+    The following aliases in the ``websockets`` package were switched to the new
+    :mod:`asyncio` implementation::
+
+        from websockets import connect, unix_connext
+        from websockets import broadcast, serve, unix_serve
+
+    If you're using any of them, then you must follow the :doc:`upgrade guide
+    <../howto/upgrade>` immediately.
 
 .. _13.1:
 

@@ -3,8 +3,8 @@ Upgrade to the new :mod:`asyncio` implementation
 
 .. currentmodule:: websockets
 
-The new :mod:`asyncio` implementation is a rewrite of the original
-implementation of websockets.
+The new :mod:`asyncio` implementation, which is now the default, is a rewrite of
+the original implementation of websockets.
 
 It provides a very similar API. However, there are a few differences.
 
@@ -70,9 +70,8 @@ For context, the ``websockets`` package is structured as follows:
 
 * The new implementation is found in the ``websockets.asyncio`` package.
 * The original implementation was moved to the ``websockets.legacy`` package.
-* The ``websockets`` package provides aliases for convenience. Currently, they
-  point to the original implementation. They will be updated to point to the new
-  implementation when it feels mature.
+* The ``websockets`` package provides aliases for convenience. They were
+  switched to the new implementation in version 14.0.
 * The ``websockets.client`` and ``websockets.server`` packages provide aliases
   for backwards-compatibility with earlier versions of websockets. They will
   be deprecated together with the original implementation.
@@ -90,12 +89,12 @@ Client APIs
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | Legacy :mod:`asyncio` implementation                              | New :mod:`asyncio` implementation                   |
 +===================================================================+=====================================================+
-| ``websockets.connect()``                                     |br| | :func:`websockets.asyncio.client.connect`           |
-| ``websockets.client.connect()``                              |br| |                                                     |
+| ``websockets.connect()`` *(before 14.0)*                     |br| | ``websockets.connect()`` *(since 14.0)*        |br| |
+| ``websockets.client.connect()``                              |br| | :func:`websockets.asyncio.client.connect`           |
 | :func:`websockets.legacy.client.connect`                          |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| ``websockets.unix_connect()``                                |br| | :func:`websockets.asyncio.client.unix_connect`      |
-| ``websockets.client.unix_connect()``                         |br| |                                                     |
+| ``websockets.unix_connect()`` *(before 14.0)*                |br| | ``websockets.unix_connect()`` *(since 14.0)*   |br| |
+| ``websockets.client.unix_connect()``                         |br| | :func:`websockets.asyncio.client.unix_connect`      |
 | :func:`websockets.legacy.client.unix_connect`                     |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.WebSocketClientProtocol``                       |br| | :class:`websockets.asyncio.client.ClientConnection` |
@@ -109,12 +108,12 @@ Server APIs
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | Legacy :mod:`asyncio` implementation                              | New :mod:`asyncio` implementation                   |
 +===================================================================+=====================================================+
-| ``websockets.serve()``                                       |br| | :func:`websockets.asyncio.server.serve`             |
-| ``websockets.server.serve()``                                |br| |                                                     |
+| ``websockets.serve()`` *(before 14.0)*                       |br| | ``websockets.serve()`` *(since 14.0)*          |br| |
+| ``websockets.server.serve()``                                |br| | :func:`websockets.asyncio.server.serve`             |
 | :func:`websockets.legacy.server.serve`                            |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| ``websockets.unix_serve()``                                  |br| | :func:`websockets.asyncio.server.unix_serve`        |
-| ``websockets.server.unix_serve()``                           |br| |                                                     |
+| ``websockets.unix_serve()`` *(before 14.0)*                  |br| | ``websockets.unix_serve()`` *(since 14.0)*     |br| |
+| ``websockets.server.unix_serve()``                           |br| | :func:`websockets.asyncio.server.unix_serve`        |
 | :func:`websockets.legacy.server.unix_serve`                       |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.WebSocketServer``                               |br| | :class:`websockets.asyncio.server.Server`           |
@@ -125,8 +124,8 @@ Server APIs
 | ``websockets.server.WebSocketServerProtocol``                |br| |                                                     |
 | :class:`websockets.legacy.server.WebSocketServerProtocol`         |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| ``websockets.broadcast()``                                   |br| | :func:`websockets.asyncio.server.broadcast`         |
-| :func:`websockets.legacy.server.broadcast()`                      |                                                     |
+| ``websockets.broadcast()`` *(before 14.0)*                   |br| | ``websockets.broadcast()`` *(since 14.0)*      |br| |
+| :func:`websockets.legacy.server.broadcast()`                      | :func:`websockets.asyncio.server.broadcast`         |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.BasicAuthWebSocketServerProtocol``              |br| | See below :ref:`how to migrate <basic-auth>` to     |
 | ``websockets.auth.BasicAuthWebSocketServerProtocol``         |br| | :func:`websockets.asyncio.server.basic_auth`.       |

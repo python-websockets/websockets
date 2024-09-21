@@ -2,10 +2,10 @@ import hmac
 import unittest
 import urllib.error
 
-from websockets.exceptions import InvalidStatusCode
 from websockets.headers import build_authorization_basic
 from websockets.legacy.auth import *
 from websockets.legacy.auth import is_credentials
+from websockets.legacy.exceptions import InvalidStatusCode
 
 from .test_client_server import ClientServerTestsMixin, with_client, with_server
 from .utils import AsyncioTestCase

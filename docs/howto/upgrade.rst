@@ -71,7 +71,8 @@ For context, the ``websockets`` package is structured as follows:
 * The new implementation is found in the ``websockets.asyncio`` package.
 * The original implementation was moved to the ``websockets.legacy`` package.
 * The ``websockets`` package provides aliases for convenience. They were
-  switched to the new implementation in version 14.0.
+  switched to the new implementation in version 14.0 or deprecated when there
+  isn't an equivalent API.
 * The ``websockets.client`` and ``websockets.server`` packages provide aliases
   for backwards-compatibility with earlier versions of websockets. They will
   be deprecated together with the original implementation.

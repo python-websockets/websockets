@@ -21,7 +21,6 @@ from websockets.exceptions import (
     ConnectionClosed,
     InvalidHandshake,
     InvalidHeader,
-    InvalidStatusCode,
     NegotiationError,
 )
 from websockets.extensions.permessage_deflate import (
@@ -32,6 +31,7 @@ from websockets.extensions.permessage_deflate import (
 from websockets.frames import CloseCode
 from websockets.http11 import USER_AGENT
 from websockets.legacy.client import *
+from websockets.legacy.exceptions import InvalidStatusCode
 from websockets.legacy.handshake import build_response
 from websockets.legacy.http import read_response
 from websockets.legacy.server import *

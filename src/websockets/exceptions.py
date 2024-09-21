@@ -31,7 +31,6 @@
 
 from __future__ import annotations
 
-import typing
 import warnings
 
 from .imports import lazy_import
@@ -45,9 +44,7 @@ __all__ = [
     "InvalidURI",
     "InvalidHandshake",
     "SecurityError",
-    "InvalidMessage",
     "InvalidStatus",
-    "InvalidStatusCode",
     "InvalidHeader",
     "InvalidHeaderFormat",
     "InvalidHeaderValue",
@@ -57,10 +54,7 @@ __all__ = [
     "DuplicateParameter",
     "InvalidParameterName",
     "InvalidParameterValue",
-    "AbortHandshake",
-    "RedirectHandshake",
     "ProtocolError",
-    "WebSocketProtocolError",
     "PayloadTooBig",
     "InvalidState",
     "ConcurrencyError",
@@ -366,27 +360,18 @@ class ConcurrencyError(WebSocketException, RuntimeError):
     """
 
 
-# When type checking, import non-deprecated aliases eagerly. Else, import on demand.
-if typing.TYPE_CHECKING:
-    from .legacy.exceptions import (
-        AbortHandshake,
-        InvalidMessage,
-        InvalidStatusCode,
-        RedirectHandshake,
-    )
-
-    WebSocketProtocolError = ProtocolError
-else:
-    lazy_import(
-        globals(),
-        aliases={
-            "AbortHandshake": ".legacy.exceptions",
-            "InvalidMessage": ".legacy.exceptions",
-            "InvalidStatusCode": ".legacy.exceptions",
-            "RedirectHandshake": ".legacy.exceptions",
-            "WebSocketProtocolError": ".legacy.exceptions",
-        },
-    )
-
 # At the bottom to break import cycles created by type annotations.
 from . import frames, http11  # noqa: E402
+
+
+lazy_import(
+    globals(),
+    deprecated_aliases={
+        # deprecated in 14.0
+        "AbortHandshake": ".legacy.exceptions",
+        "InvalidMessage": ".legacy.exceptions",
+        "InvalidStatusCode": ".legacy.exceptions",
+        "RedirectHandshake": ".legacy.exceptions",
+        "WebSocketProtocolError": ".legacy.exceptions",
+    },
+)

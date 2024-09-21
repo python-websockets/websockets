@@ -43,22 +43,6 @@ __all__ = [
     "ProtocolError",
     "SecurityError",
     "WebSocketException",
-    "WebSocketProtocolError",
-    # .legacy.auth
-    "BasicAuthWebSocketServerProtocol",
-    "basic_auth_protocol_factory",
-    # .legacy.client
-    "WebSocketClientProtocol",
-    # .legacy.exceptions
-    "AbortHandshake",
-    "InvalidMessage",
-    "InvalidStatusCode",
-    "RedirectHandshake",
-    # .legacy.protocol
-    "WebSocketCommonProtocol",
-    # .legacy.server
-    "WebSocketServer",
-    "WebSocketServerProtocol",
     # .server
     "ServerProtocol",
     # .typing
@@ -99,21 +83,7 @@ if typing.TYPE_CHECKING:
         ProtocolError,
         SecurityError,
         WebSocketException,
-        WebSocketProtocolError,
     )
-    from .legacy.auth import (
-        BasicAuthWebSocketServerProtocol,
-        basic_auth_protocol_factory,
-    )
-    from .legacy.client import WebSocketClientProtocol
-    from .legacy.exceptions import (
-        AbortHandshake,
-        InvalidMessage,
-        InvalidStatusCode,
-        RedirectHandshake,
-    )
-    from .legacy.protocol import WebSocketCommonProtocol
-    from .legacy.server import WebSocketServer, WebSocketServerProtocol
     from .server import ServerProtocol
     from .typing import (
         Data,
@@ -164,22 +134,6 @@ else:
             "ProtocolError": ".exceptions",
             "SecurityError": ".exceptions",
             "WebSocketException": ".exceptions",
-            "WebSocketProtocolError": ".exceptions",
-            # .legacy.auth
-            "BasicAuthWebSocketServerProtocol": ".legacy.auth",
-            "basic_auth_protocol_factory": ".legacy.auth",
-            # .legacy.client
-            "WebSocketClientProtocol": ".legacy.client",
-            # .legacy.exceptions
-            "AbortHandshake": ".legacy.exceptions",
-            "InvalidMessage": ".legacy.exceptions",
-            "InvalidStatusCode": ".legacy.exceptions",
-            "RedirectHandshake": ".legacy.exceptions",
-            # .legacy.protocol
-            "WebSocketCommonProtocol": ".legacy.protocol",
-            # .legacy.server
-            "WebSocketServer": ".legacy.server",
-            "WebSocketServerProtocol": ".legacy.server",
             # .server
             "ServerProtocol": ".server",
             # .typing
@@ -197,5 +151,22 @@ else:
             "handshake": ".legacy",
             "parse_uri": ".uri",
             "WebSocketURI": ".uri",
+            # deprecated in 14.0
+            # .legacy.auth
+            "BasicAuthWebSocketServerProtocol": ".legacy.auth",
+            "basic_auth_protocol_factory": ".legacy.auth",
+            # .legacy.client
+            "WebSocketClientProtocol": ".legacy.client",
+            # .legacy.exceptions
+            "AbortHandshake": ".legacy.exceptions",
+            "InvalidMessage": ".legacy.exceptions",
+            "InvalidStatusCode": ".legacy.exceptions",
+            "RedirectHandshake": ".legacy.exceptions",
+            "WebSocketProtocolError": ".legacy.exceptions",
+            # .legacy.protocol
+            "WebSocketCommonProtocol": ".legacy.protocol",
+            # .legacy.server
+            "WebSocketServer": ".legacy.server",
+            "WebSocketServerProtocol": ".legacy.server",
         },
     )

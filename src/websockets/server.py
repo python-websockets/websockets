@@ -27,6 +27,7 @@ from .headers import (
     parse_upgrade,
 )
 from .http11 import Request, Response
+from .imports import lazy_import
 from .protocol import CONNECTING, OPEN, SERVER, Protocol, State
 from .typing import (
     ConnectionOption,
@@ -40,13 +41,7 @@ from .typing import (
 from .utils import accept_key
 
 
-# See #940 for why lazy_import isn't used here for backwards compatibility.
-# See #1400 for why listing compatibility imports in __all__ helps PyCharm.
-from .legacy.server import *  # isort:skip  # noqa: I001
-from .legacy.server import __all__ as legacy__all__
-
-
-__all__ = ["ServerProtocol"] + legacy__all__
+__all__ = ["ServerProtocol"]
 
 
 class ServerProtocol(Protocol):
@@ -586,3 +581,16 @@ class ServerConnection(ServerProtocol):
             DeprecationWarning,
         )
         super().__init__(*args, **kwargs)
+
+
+lazy_import(
+    globals(),
+    deprecated_aliases={
+        # deprecated in 14.0
+        "WebSocketServer": ".legacy.server",
+        "WebSocketServerProtocol": ".legacy.server",
+        "broadcast": ".legacy.server",
+        "serve": ".legacy.server",
+        "unix_serve": ".legacy.server",
+    },
+)

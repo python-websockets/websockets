@@ -206,6 +206,8 @@ class Connection:
         try:
             return self.recv_messages.get(timeout)
         except EOFError:
+            # Wait for the protocol state to be CLOSED before accessing close_exc.
+            self.recv_events_thread.join()
             raise self.protocol.close_exc from self.recv_exc
         except ConcurrencyError:
             raise ConcurrencyError(
@@ -240,6 +242,8 @@ class Connection:
             for frame in self.recv_messages.get_iter():
                 yield frame
         except EOFError:
+            # Wait for the protocol state to be CLOSED before accessing close_exc.
+            self.recv_events_thread.join()
             raise self.protocol.close_exc from self.recv_exc
         except ConcurrencyError:
             raise ConcurrencyError(
@@ -629,8 +633,6 @@ class Connection:
             self.logger.error("unexpected internal error", exc_info=True)
             with self.protocol_mutex:
                 self.set_recv_exc(exc)
-            # We don't know where we crashed. Force protocol state to CLOSED.
-            self.protocol.state = CLOSED
         finally:
             # This isn't expected to raise an exception.
             self.close_socket()
@@ -738,6 +740,7 @@ class Connection:
         # raise an exception.
         if raise_close_exc:
             self.close_socket()
+            # Wait for the protocol state to be CLOSED before accessing close_exc.
             self.recv_events_thread.join()
             raise self.protocol.close_exc from original_exc
 
@@ -788,4 +791,11 @@ class Connection:
         except OSError:
             pass  # socket is already closed
         self.socket.close()
+
+        # Calling protocol.receive_eof() is safe because it's idempotent.
+        # This guarantees that the protocol state becomes CLOSED.
+        self.protocol.receive_eof()
+        assert self.protocol.state is CLOSED
+
+        # Abort recv() with a ConnectionClosed exception.
         self.recv_messages.close()

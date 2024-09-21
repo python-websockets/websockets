@@ -75,6 +75,10 @@ Bug fixes
   start the connection handler anymore when ``process_request`` or
   ``process_response`` returns an HTTP response.
 
+* Fixed a bug in the :mod:`threading` implementation that could lead to
+  incorrect error reporting when closing a connection while
+  :meth:`~sync.connection.Connection.recv` is running.
+
 13.0.1
 ------
 

@@ -274,6 +274,8 @@ class Connection(asyncio.Protocol):
         try:
             return await self.recv_messages.get(decode)
         except EOFError:
+            # Wait for the protocol state to be CLOSED before accessing close_exc.
+            await asyncio.shield(self.connection_lost_waiter)
             raise self.protocol.close_exc from self.recv_exc
         except ConcurrencyError:
             raise ConcurrencyError(
@@ -329,6 +331,8 @@ class Connection(asyncio.Protocol):
             async for frame in self.recv_messages.get_iter(decode):
                 yield frame
         except EOFError:
+            # Wait for the protocol state to be CLOSED before accessing close_exc.
+            await asyncio.shield(self.connection_lost_waiter)
             raise self.protocol.close_exc from self.recv_exc
         except ConcurrencyError:
             raise ConcurrencyError(
@@ -864,6 +868,7 @@ class Connection(asyncio.Protocol):
         # raise an exception.
         if raise_close_exc:
             self.close_transport()
+            # Wait for the protocol state to be CLOSED before accessing close_exc.
             await asyncio.shield(self.connection_lost_waiter)
             raise self.protocol.close_exc from original_exc
 
@@ -926,11 +931,14 @@ class Connection(asyncio.Protocol):
         self.transport = transport
 
     def connection_lost(self, exc: Exception | None) -> None:
-        self.protocol.receive_eof()  # receive_eof is idempotent
+        # Calling protocol.receive_eof() is safe because it's idempotent.
+        # This guarantees that the protocol state becomes CLOSED.
+        self.protocol.receive_eof()
+        assert self.protocol.state is CLOSED
+
+        self.set_recv_exc(exc)
 
         # Abort recv() and pending pings with a ConnectionClosed exception.
-        # Set recv_exc first to get proper exception reporting.
-        self.set_recv_exc(exc)
         self.recv_messages.close()
         self.abort_pings()
 

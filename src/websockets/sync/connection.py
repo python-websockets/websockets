@@ -87,9 +87,9 @@ class Connection:
         # Mapping of ping IDs to pong waiters, in chronological order.
         self.ping_waiters: dict[bytes, threading.Event] = {}
 
-        # Receiving events from the socket. This thread explicitly is marked as
-        # to support creating a connection in a non-daemon thread then using it
-        # in a daemon thread; this shouldn't block the intpreter from exiting.
+        # Receiving events from the socket. This thread is marked as daemon to
+        # allow creating a connection in a non-daemon thread and using it in a
+        # daemon thread. This mustn't prevent the interpreter from exiting.
         self.recv_events_thread = threading.Thread(
             target=self.recv_events,
             daemon=True,

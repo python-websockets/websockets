@@ -253,10 +253,10 @@ class ServerProtocol(Protocol):
 
         try:
             key = headers["Sec-WebSocket-Key"]
-        except KeyError as exc:
-            raise InvalidHeader("Sec-WebSocket-Key") from exc
-        except MultipleValuesError as exc:
-            raise InvalidHeader("Sec-WebSocket-Key", "multiple values") from exc
+        except KeyError:
+            raise InvalidHeader("Sec-WebSocket-Key") from None
+        except MultipleValuesError:
+            raise InvalidHeader("Sec-WebSocket-Key", "multiple values") from None
 
         try:
             raw_key = base64.b64decode(key.encode(), validate=True)
@@ -267,10 +267,10 @@ class ServerProtocol(Protocol):
 
         try:
             version = headers["Sec-WebSocket-Version"]
-        except KeyError as exc:
-            raise InvalidHeader("Sec-WebSocket-Version") from exc
-        except MultipleValuesError as exc:
-            raise InvalidHeader("Sec-WebSocket-Version", "multiple values") from exc
+        except KeyError:
+            raise InvalidHeader("Sec-WebSocket-Version") from None
+        except MultipleValuesError:
+            raise InvalidHeader("Sec-WebSocket-Version", "multiple values") from None
 
         if version != "13":
             raise InvalidHeaderValue("Sec-WebSocket-Version", version)
@@ -308,8 +308,8 @@ class ServerProtocol(Protocol):
         # per https://datatracker.ietf.org/doc/html/rfc6454#section-7.3.
         try:
             origin = headers.get("Origin")
-        except MultipleValuesError as exc:
-            raise InvalidHeader("Origin", "multiple values") from exc
+        except MultipleValuesError:
+            raise InvalidHeader("Origin", "multiple values") from None
         if origin is not None:
             origin = cast(Origin, origin)
         if self.origins is not None:
@@ -503,7 +503,7 @@ class ServerProtocol(Protocol):
             HTTP response to send to the client.
 
         """
-        # If a user passes an int instead of a HTTPStatus, fix it automatically.
+        # If status is an int instead of an HTTPStatus, fix it automatically.
         status = http.HTTPStatus(status)
         body = text.encode()
         headers = Headers(

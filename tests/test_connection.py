@@ -5,6 +5,7 @@ from .utils import DeprecationTestCase
 
 class BackwardsCompatibilityTests(DeprecationTestCase):
     def test_connection_class(self):
+        """Connection is a deprecated alias for Protocol."""
         with self.assertDeprecationWarning(
             "websockets.connection was renamed to websockets.protocol "
             "and Connection was renamed to Protocol"

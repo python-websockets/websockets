@@ -175,10 +175,10 @@ class ClientProtocol(Protocol):
 
         try:
             s_w_accept = headers["Sec-WebSocket-Accept"]
-        except KeyError as exc:
-            raise InvalidHeader("Sec-WebSocket-Accept") from exc
-        except MultipleValuesError as exc:
-            raise InvalidHeader("Sec-WebSocket-Accept", "multiple values") from exc
+        except KeyError:
+            raise InvalidHeader("Sec-WebSocket-Accept") from None
+        except MultipleValuesError:
+            raise InvalidHeader("Sec-WebSocket-Accept", "multiple values") from None
 
         if s_w_accept != accept_key(self.key):
             raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)

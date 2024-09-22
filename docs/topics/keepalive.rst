@@ -1,6 +1,11 @@
 Keepalive and latency
 =====================
 
+.. admonition:: This guide applies only to the :mod:`asyncio` implementation.
+    :class: tip
+
+    The :mod:`threading` implementation doesn't provide keepalive yet.
+
 .. currentmodule:: websockets
 
 Long-lived connections
@@ -31,14 +36,8 @@ based on WebSocket Ping_ and Pong_ frames, which are designed for this purpose.
 .. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
 .. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
 
-It loops through these steps:
-
-1. Wait 20 seconds.
-2. Send a Ping frame.
-3. Receive a corresponding Pong frame within 20 seconds.
-
-If the Pong frame isn't received, websockets considers the connection broken and
-closes it.
+It sends a Ping frame every 20 seconds. It expects a Pong frame in return within
+20 seconds. Else, it considers the connection broken and terminates it.
 
 This mechanism serves three purposes:
 

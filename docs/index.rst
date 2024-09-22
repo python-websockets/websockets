@@ -28,36 +28,37 @@ with a focus on correctness, simplicity, robustness, and performance.
 
 It supports several network I/O and control flow paradigms.
 
-1. The primary implementation builds upon :mod:`asyncio`, Python's standard
-   asynchronous I/O framework. It provides an elegant coroutine-based API. It's
-   ideal for servers that handle many clients concurrently.
-
-   .. admonition:: As of version :ref:`13.0`, there is a new :mod:`asyncio`
-      implementation.
-      :class: important
-
-      The historical implementation in ``websockets.legacy`` traces its roots to
-      early versions of websockets. Although it's stable and robust, it is now
-      considered legacy.
-
-      The new implementation in ``websockets.asyncio`` is a rewrite on top of
-      the Sans-I/O implementation. It adds a few features that were impossible
-      to implement within the original design.
-
-      The new implementation provides all features of the historical
-      implementation, and a few more. If you're using the historical
-      implementation, you should :doc:`ugrade to the new implementation
-      <howto/upgrade>`. It's usually straightforward.
+1. The default implementation builds upon :mod:`asyncio`, Python's built-in
+   asynchronous I/O library. It provides an elegant coroutine-based API. It's
+   ideal for servers that handle many client connections.
 
 2. The :mod:`threading` implementation is a good alternative for clients,
    especially if you aren't familiar with :mod:`asyncio`. It may also be used
-   for servers that don't need to serve many clients.
+   for servers that handle few client connections.
 
 3. The `Sans-I/O`_ implementation is designed for integrating in third-party
    libraries, typically application servers, in addition being used internally
    by websockets.
 
 .. _Sans-I/O: https://sans-io.readthedocs.io/
+
+Refer to the :doc:`feature support matrices <reference/features>` for the full
+list of features provided by each implementation.
+
+.. admonition:: The :mod:`asyncio` implementation was rewritten.
+   :class: tip
+
+   The new implementation in ``websockets.asyncio`` builds upon the Sans-I/O
+   implementation. It adds features that were impossible to provide in the
+   original design. It was introduced in version 13.0.
+
+   The historical implementation in ``websockets.legacy`` traces its roots to
+   early versions of websockets. While it's stable and robust, it was deprecated
+   in version 14.0 and it will be removed by 2030.
+
+   The new implementation provides the same features as the historical
+   implementation, and then some. If you're using the historical implementation,
+   you should :doc:`ugrade to the new implementation <howto/upgrade>`.
 
 Here's an echo server using the :mod:`asyncio` API:
 

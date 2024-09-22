@@ -12,7 +12,6 @@ Get a deeper understanding of how websockets is built and why.
    broadcast
    compression
    keepalive
-   design
    memory
    security
    performance

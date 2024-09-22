@@ -27,15 +27,9 @@ respectively.
 .. admonition:: What will happen to the original implementation?
     :class: hint
 
-    The original implementation is now considered legacy.
-
-    The next steps are:
-
-    1. Deprecating it once the new implementation is considered sufficiently
-       robust.
-    2. Maintaining it for five years per the :ref:`backwards-compatibility
-       policy <backwards-compatibility policy>`.
-    3. Removing it. This is expected to happen around 2030.
+    The original implementation is deprecated. It will be maintained for five
+    years after deprecation according to the :ref:`backwards-compatibility
+    policy <backwards-compatibility policy>`. Then, by 2030, it will be removed.
 
 .. _deprecated APIs:
 
@@ -69,13 +63,14 @@ Import paths
 For context, the ``websockets`` package is structured as follows:
 
 * The new implementation is found in the ``websockets.asyncio`` package.
-* The original implementation was moved to the ``websockets.legacy`` package.
+* The original implementation was moved to the ``websockets.legacy`` package
+  and deprecated.
 * The ``websockets`` package provides aliases for convenience. They were
   switched to the new implementation in version 14.0 or deprecated when there
-  isn't an equivalent API.
+  wasn't an equivalent API.
 * The ``websockets.client`` and ``websockets.server`` packages provide aliases
-  for backwards-compatibility with earlier versions of websockets. They will
-  be deprecated together with the original implementation.
+  for backwards-compatibility with earlier versions of websockets. They were
+  deprecated.
 
 To upgrade to the new :mod:`asyncio` implementation, change import paths as
 shown in the tables below.

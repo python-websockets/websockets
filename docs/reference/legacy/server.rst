@@ -1,6 +1,12 @@
 Server (legacy :mod:`asyncio`)
 ==============================
 
+.. admonition:: The legacy :mod:`asyncio` implementation is deprecated.
+    :class: caution
+
+    The :doc:`upgrade guide <../../howto/upgrade>` provides complete instructions
+    to migrate your application.
+
 .. automodule:: websockets.legacy.server
 
 Starting a server

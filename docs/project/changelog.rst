@@ -55,6 +55,9 @@ Backwards-incompatible changes
 .. admonition:: The legacy :mod:`asyncio` implementation is now deprecated.
     :class: caution
 
+    The :doc:`upgrade guide <../howto/upgrade>` provides complete instructions
+    to migrate your application.
+
     Aliases for deprecated API were removed from ``__all__``. As a consequence,
     they cannot be imported e.g. with ``from websockets import *`` anymore.
 

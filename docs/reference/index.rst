@@ -13,29 +13,18 @@ Check which implementations support which features and known limitations.
 
    features
 
-:mod:`asyncio` (new)
---------------------
+:mod:`asyncio`
+--------------
 
 It's ideal for servers that handle many clients concurrently.
 
-It's a rewrite of the legacy :mod:`asyncio` implementation.
+This is the default implementation.
 
 .. toctree::
    :titlesonly:
 
    asyncio/server
    asyncio/client
-
-:mod:`asyncio` (legacy)
------------------------
-
-This is the historical implementation.
-
-.. toctree::
-   :titlesonly:
-
-   legacy/server
-   legacy/client
 
 :mod:`threading`
 ----------------
@@ -61,6 +50,19 @@ application servers.
 
    sansio/server
    sansio/client
+
+:mod:`asyncio` (legacy)
+-----------------------
+
+This is the historical implementation.
+
+It is deprecated and will be removed.
+
+.. toctree::
+   :titlesonly:
+
+   legacy/server
+   legacy/client
 
 Extensions
 ----------

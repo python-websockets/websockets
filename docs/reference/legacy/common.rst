@@ -3,6 +3,12 @@
 Both sides (legacy :mod:`asyncio`)
 ==================================
 
+.. admonition:: The legacy :mod:`asyncio` implementation is deprecated.
+    :class: caution
+
+    The :doc:`upgrade guide <../../howto/upgrade>` provides complete instructions
+    to migrate your application.
+
 .. automodule:: websockets.legacy.protocol
 
 .. autoclass:: WebSocketCommonProtocol(*, logger=None, ping_interval=20, ping_timeout=20, close_timeout=10, max_size=2 ** 20, max_queue=2 ** 5, read_limit=2 ** 16, write_limit=2 ** 16)

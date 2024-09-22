@@ -1,3 +1,5 @@
+:orphan:
+
 Design (legacy :mod:`asyncio`)
 ==============================
 

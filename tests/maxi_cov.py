@@ -9,7 +9,6 @@ import sys
 
 
 UNMAPPED_SRC_FILES = [
-    "websockets/auth.py",
     "websockets/typing.py",
     "websockets/version.py",
 ]
@@ -105,7 +104,6 @@ def get_ignored_files(src_dir="src"):
         # or websockets (import locations).
         "*/websockets/asyncio/async_timeout.py",
         "*/websockets/asyncio/compatibility.py",
-        "*/websockets/auth.py",
         # This approach isn't applicable to the test suite of the legacy
         # implementation, due to the huge test_client_server test module.
         "*/websockets/legacy/*",

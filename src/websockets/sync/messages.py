@@ -151,7 +151,8 @@ class Assembler:
             chunks = self.chunks
             self.chunks = []
             self.chunks_queue = cast(
-                queue.SimpleQueue[Data | None],
+                # Remove quotes around type when dropping Python < 3.10.
+                "queue.SimpleQueue[Data | None]",
                 queue.SimpleQueue(),
             )
 

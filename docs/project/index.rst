@@ -8,5 +8,7 @@ This is about websockets-the-project rather than websockets-the-software.
 
    changelog
    contributing
-   license
+   sponsoring
    For enterprise <tidelift>
+   support
+   license

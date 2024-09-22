@@ -9,6 +9,8 @@ import time
 import unittest
 import warnings
 
+from websockets.version import released
+
 
 # Generate TLS certificate with:
 # $ openssl req -x509 -config test_localhost.cnf -days 15340 -newkey rsa:2048 \
@@ -39,9 +41,19 @@ SERVER_CONTEXT.num_tickets = 0
 DATE = email.utils.formatdate(usegmt=True)
 
 
-# Unit for timeouts. May be increased on slow machines by setting the
-# WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
-MS = 0.001 * float(os.environ.get("WEBSOCKETS_TESTS_TIMEOUT_FACTOR", "1"))
+# Unit for timeouts. May be increased in slow or noisy environments by setting
+# the WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
+
+# Downstream distributors insist on running the test suite despites my pleas to
+# the contrary. They do it on build farms with unstable performance, leading to
+# flakiness, and then they file bugs. Make tests 100x slower to avoid flakiness.
+
+MS = 0.001 * float(
+    os.environ.get(
+        "WEBSOCKETS_TESTS_TIMEOUT_FACTOR",
+        "100" if released else "1",
+    )
+)
 
 # PyPy, asyncio's debug mode, and coverage penalize performance of this
 # test suite. Increase timeouts to reduce the risk of spurious failures.

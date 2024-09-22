@@ -17,8 +17,8 @@ apologies. I know I can mess up. I can't expect you to tell me, but if you
 choose to do so, I'll do my best to handle criticism constructively.
 -- Aymeric)*
 
-Contributions
--------------
+Contributing
+------------
 
 Bug reports, patches and suggestions are welcome!
 
@@ -33,6 +33,28 @@ websockets.
 
 .. _issue: https://github.com/python-websockets/websockets/issues/new
 .. _pull request: https://github.com/python-websockets/websockets/compare/
+
+Packaging
+---------
+
+Some distributions package websockets so that it can be installed with the
+system package manager rather than with pip, possibly in a virtualenv.
+
+If you're packaging websockets for a distribution, you must use `releases
+published on PyPI`_ as input. You may check `SLSA attestations on GitHub`_.
+
+.. _releases published on PyPI: https://pypi.org/project/websockets/#files
+.. _SLSA attestations on GitHub: https://github.com/python-websockets/websockets/attestations
+
+You mustn't rely on the git repository as input. Specifically, you mustn't
+attempt to run the main test suite. It isn't treated as a deliverable of the
+project. It doesn't do what you think it does. It's designed for the needs of
+developers, not packagers.
+
+On a typical build farm for a distribution, tests that exercise timeouts will
+fail randomly. Indeed, the test suite is optimized for running very fast, with a
+tolerable level of flakiness, on a high-end laptop without noisy neighbors. This
+isn't your context.
 
 Questions
 ---------

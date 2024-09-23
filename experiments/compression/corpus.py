@@ -47,6 +47,6 @@ def main(corpus):
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
-        print(f"Usage: {sys.argv[0]} [directory]")
+        print(f"Usage: {sys.argv[0]} <directory>")
         sys.exit(2)
     main(pathlib.Path(sys.argv[1]))

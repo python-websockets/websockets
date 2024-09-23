@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import dataclasses
 import zlib
 from collections.abc import Sequence
 from typing import Any
@@ -120,7 +119,6 @@ class PerMessageDeflate(Extension):
         else:
             if not frame.rsv1:
                 return frame
-            frame = dataclasses.replace(frame, rsv1=False)
             if not frame.fin:
                 self.decode_cont_data = True
 
@@ -146,7 +144,15 @@ class PerMessageDeflate(Extension):
         if frame.fin and self.remote_no_context_takeover:
             del self.decoder
 
-        return dataclasses.replace(frame, data=data)
+        return frames.Frame(
+            frame.opcode,
+            data,
+            frame.fin,
+            # Unset the rsv1 flag on the first frame of a compressed message.
+            False,
+            frame.rsv2,
+            frame.rsv3,
+        )
 
     def encode(self, frame: frames.Frame) -> frames.Frame:
         """
@@ -161,8 +167,6 @@ class PerMessageDeflate(Extension):
         # data" flag similar to "decode continuation data" at this time.
 
         if frame.opcode is not frames.OP_CONT:
-            # Set the rsv1 flag on the first frame of a compressed message.
-            frame = dataclasses.replace(frame, rsv1=True)
             # Re-initialize per-message decoder.
             if self.local_no_context_takeover:
                 self.encoder = zlib.compressobj(
@@ -172,14 +176,25 @@ class PerMessageDeflate(Extension):
 
         # Compress data.
         data = self.encoder.compress(frame.data) + self.encoder.flush(zlib.Z_SYNC_FLUSH)
-        if frame.fin and data.endswith(_EMPTY_UNCOMPRESSED_BLOCK):
+        if frame.fin and data[-4:] == _EMPTY_UNCOMPRESSED_BLOCK:
+            # Making a copy is faster than memoryview(a)[:-4] until about 2kB.
+            # On larger messages, it's slower but profiling shows that it's
+            # marginal compared to compress() and flush(). Keep it simple.
             data = data[:-4]
 
         # Allow garbage collection of the encoder if it won't be reused.
         if frame.fin and self.local_no_context_takeover:
             del self.encoder
 
-        return dataclasses.replace(frame, data=data)
+        return frames.Frame(
+            frame.opcode,
+            data,
+            frame.fin,
+            # Set the rsv1 flag on the first frame of a compressed message.
+            frame.opcode is not frames.OP_CONT,
+            frame.rsv2,
+            frame.rsv3,
+        )
 
 
 def _build_parameters(

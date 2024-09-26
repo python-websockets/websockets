@@ -7,7 +7,7 @@ import os
 import secrets
 import struct
 from collections.abc import Generator, Sequence
-from typing import Callable
+from typing import Callable, Union
 
 from .exceptions import PayloadTooBig, ProtocolError
 
@@ -139,7 +139,7 @@ class Frame:
     """
 
     opcode: Opcode
-    data: bytes
+    data: Union[bytes, bytearray, memoryview]
     fin: bool = True
     rsv1: bool = False
     rsv2: bool = False
@@ -160,7 +160,7 @@ class Frame:
         if self.opcode is OP_TEXT:
             # Decoding only the beginning and the end is needlessly hard.
             # Decode the entire payload then elide later if necessary.
-            data = repr(self.data.decode())
+            data = repr(bytes(self.data).decode())
         elif self.opcode is OP_BINARY:
             # We'll show at most the first 16 bytes and the last 8 bytes.
             # Encode just what we need, plus two dummy bytes to elide later.
@@ -178,7 +178,7 @@ class Frame:
             # binary. If self.data is a memoryview, it has no decode() method,
             # which raises AttributeError.
             try:
-                data = repr(self.data.decode())
+                data = repr(bytes(self.data).decode())
                 coding = "text"
             except (UnicodeDecodeError, AttributeError):
                 binary = self.data

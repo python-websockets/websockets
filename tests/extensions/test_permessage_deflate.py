@@ -1,4 +1,5 @@
 import dataclasses
+import os
 import unittest
 
 from websockets.exceptions import (
@@ -166,6 +167,16 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
 
         self.assertEqual(dec_frame1, frame1)
         self.assertEqual(dec_frame2, frame2)
+
+    def test_encode_decode_large_frame(self):
+        # There is a separate code path that avoids copying data
+        # when frames are larger than 2kB. Test it for coverage.
+        frame = Frame(OP_BINARY, os.urandom(4096))
+
+        enc_frame = self.extension.encode(frame)
+        dec_frame = self.extension.decode(enc_frame)
+
+        self.assertEqual(dec_frame, frame)
 
     def test_no_decode_text_frame(self):
         frame = Frame(OP_TEXT, "café".encode())

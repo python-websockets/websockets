@@ -61,6 +61,20 @@ Backwards-incompatible changes
     Aliases for deprecated API were removed from ``__all__``. As a consequence,
     they cannot be imported e.g. with ``from websockets import *`` anymore.
 
+.. admonition:: :attr:`Frame.data <frames.Frame.data>` is now a bytes-like object.
+    :class: note
+
+    In addition to :class:`bytes`, it may be a :class:`bytearray` or a
+    :class:`memoryview`.
+
+    If you wrote an :class:`extension <extensions.Extension>` that relies on
+    methods not provided by these new types, you may need to update your code.
+
+Improvements
+............
+
+* Sending or receiving large compressed frames is now faster.
+
 .. _13.1:
 
 13.1

@@ -129,16 +129,22 @@ class PerMessageDeflate(Extension):
         # Uncompress data. Protect against zip bombs by preventing zlib from
         # decompressing more than max_length bytes (except when the limit is
         # disabled with max_size = None).
-        data = frame.data
-        if frame.fin:
-            data += _EMPTY_UNCOMPRESSED_BLOCK
+        if frame.fin and len(frame.data) < 2044:
+            # Profiling shows that appending four bytes, which makes a copy, is
+            # faster than calling decompress() again when data is less than 2kB.
+            data = bytes(frame.data) + _EMPTY_UNCOMPRESSED_BLOCK
+        else:
+            data = frame.data
         max_length = 0 if max_size is None else max_size
         try:
             data = self.decoder.decompress(data, max_length)
+            if self.decoder.unconsumed_tail:
+                raise PayloadTooBig(f"over size limit (? > {max_size} bytes)")
+            if frame.fin and len(frame.data) >= 2044:
+                # This cannot generate additional data.
+                self.decoder.decompress(_EMPTY_UNCOMPRESSED_BLOCK)
         except zlib.error as exc:
             raise ProtocolError("decompression failed") from exc
-        if self.decoder.unconsumed_tail:
-            raise PayloadTooBig(f"over size limit (? > {max_size} bytes)")
 
         # Allow garbage collection of the decoder if it won't be reused.
         if frame.fin and self.remote_no_context_takeover:
@@ -176,11 +182,15 @@ class PerMessageDeflate(Extension):
 
         # Compress data.
         data = self.encoder.compress(frame.data) + self.encoder.flush(zlib.Z_SYNC_FLUSH)
-        if frame.fin and data[-4:] == _EMPTY_UNCOMPRESSED_BLOCK:
-            # Making a copy is faster than memoryview(a)[:-4] until about 2kB.
-            # On larger messages, it's slower but profiling shows that it's
-            # marginal compared to compress() and flush(). Keep it simple.
-            data = data[:-4]
+        if frame.fin:
+            # Sync flush generates between 5 or 6 bytes, ending with the bytes
+            # 0x00 0x00 0xff 0xff, which must be removed.
+            assert data[-4:] == _EMPTY_UNCOMPRESSED_BLOCK
+            # Making a copy is faster than memoryview(a)[:-4] until 2kB.
+            if len(data) < 2048:
+                data = data[:-4]
+            else:
+                data = memoryview(data)[:-4]
 
         # Allow garbage collection of the encoder if it won't be reused.
         if frame.fin and self.local_no_context_takeover:

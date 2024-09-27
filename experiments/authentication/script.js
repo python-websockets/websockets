@@ -1,4 +1,5 @@
-var token = window.parent.token;
+var token = window.parent.token,
+    user = window.parent.user;
 
 function getExpectedEvents() {
     return [
@@ -7,7 +8,7 @@ function getExpectedEvents() {
         },
         {
             type: "message",
-            data: `Hello ${window.parent.user}!`,
+            data: `Hello ${user}!`,
         },
         {
             type: "close",

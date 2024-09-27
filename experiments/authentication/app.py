@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import asyncio
+import email.utils
 import http
 import http.cookies
 import pathlib
@@ -8,9 +9,10 @@ import signal
 import urllib.parse
 import uuid
 
+from websockets.asyncio.server import basic_auth as websockets_basic_auth, serve
+from websockets.datastructures import Headers
 from websockets.frames import CloseCode
-from websockets.legacy.auth import BasicAuthWebSocketServerProtocol
-from websockets.legacy.server import WebSocketServerProtocol, serve
+from websockets.http11 import Response
 
 
 # User accounts database
@@ -49,7 +51,19 @@ def get_query_param(path, key):
         return values[0]
 
 
-# Main HTTP server
+# WebSocket handler
+
+
+async def handler(websocket):
+    try:
+        user = websocket.username
+    except AttributeError:
+        return
+
+    await websocket.send(f"Hello {user}!")
+    message = await websocket.recv()
+    assert message == f"Goodbye {user}."
+
 
 CONTENT_TYPES = {
     ".css": "text/css",
@@ -59,9 +73,10 @@ CONTENT_TYPES = {
 }
 
 
-async def serve_html(path, request_headers):
-    user = get_query_param(path, "user")
-    path = urllib.parse.urlparse(path).path
+async def serve_html(connection, request):
+    """Basic HTTP server implemented as a process_request hook."""
+    user = get_query_param(request.path, "user")
+    path = urllib.parse.urlparse(request.path).path
     if path == "/":
         if user is None:
             page = "index.html"
@@ -76,147 +91,96 @@ async def serve_html(path, request_headers):
         pass
     else:
         if template.is_file():
-            headers = {"Content-Type": CONTENT_TYPES[template.suffix]}
             body = template.read_bytes()
             if user is not None:
                 token = create_token(user)
                 body = body.replace(b"TOKEN", token.encode())
-            return http.HTTPStatus.OK, headers, body
+            headers = Headers(
+                {
+                    "Date": email.utils.formatdate(usegmt=True),
+                    "Connection": "close",
+                    "Content-Length": str(len(body)),
+                    "Content-Type": CONTENT_TYPES[template.suffix],
+                }
+            )
+            return Response(200, "OK", headers, body)
 
-    return http.HTTPStatus.NOT_FOUND, {}, b"Not found\n"
-
-
-async def noop_handler(websocket):
-    pass
-
-
-# Send credentials as the first message in the WebSocket connection
+    return connection.respond(http.HTTPStatus.NOT_FOUND, "Not found\n")
 
 
 async def first_message_handler(websocket):
+    """Handler that sends credentials in the first WebSocket message."""
     token = await websocket.recv()
     user = get_user(token)
     if user is None:
         await websocket.close(CloseCode.INTERNAL_ERROR, "authentication failed")
         return
 
-    await websocket.send(f"Hello {user}!")
-    message = await websocket.recv()
-    assert message == f"Goodbye {user}."
+    websocket.username = user
+    await handler(websocket)
 
 
-# Add credentials to the WebSocket URI in a query parameter
+async def query_param_auth(connection, request):
+    """Authenticate user from token in query parameter."""
+    token = get_query_param(request.path, "token")
+    if token is None:
+        return connection.respond(http.HTTPStatus.UNAUTHORIZED, "Missing token\n")
+
+    user = get_user(token)
+    if user is None:
+        return connection.respond(http.HTTPStatus.UNAUTHORIZED, "Invalid token\n")
+
+    connection.username = user
 
 
-class QueryParamProtocol(WebSocketServerProtocol):
-    async def process_request(self, path, headers):
-        token = get_query_param(path, "token")
-        if token is None:
-            return http.HTTPStatus.UNAUTHORIZED, [], b"Missing token\n"
+async def cookie_auth(connection, request):
+    """Authenticate user from token in cookie."""
+    if "Upgrade" not in request.headers:
+        template = pathlib.Path(__file__).with_name(request.path[1:])
+        body = template.read_bytes()
+        headers = Headers(
+            {
+                "Date": email.utils.formatdate(usegmt=True),
+                "Connection": "close",
+                "Content-Length": str(len(body)),
+                "Content-Type": CONTENT_TYPES[template.suffix],
+            }
+        )
+        return Response(200, "OK", headers, body)
 
-        user = get_user(token)
-        if user is None:
-            return http.HTTPStatus.UNAUTHORIZED, [], b"Invalid token\n"
+    token = get_cookie(request.headers.get("Cookie", ""), "token")
+    if token is None:
+        return connection.respond(http.HTTPStatus.UNAUTHORIZED, "Missing token\n")
 
-        self.user = user
+    user = get_user(token)
+    if user is None:
+        return connection.respond(http.HTTPStatus.UNAUTHORIZED, "Invalid token\n")
 
-
-async def query_param_handler(websocket):
-    user = websocket.user
-
-    await websocket.send(f"Hello {user}!")
-    message = await websocket.recv()
-    assert message == f"Goodbye {user}."
-
-
-# Set a cookie on the domain of the WebSocket URI
-
-
-class CookieProtocol(WebSocketServerProtocol):
-    async def process_request(self, path, headers):
-        if "Upgrade" not in headers:
-            template = pathlib.Path(__file__).with_name(path[1:])
-            headers = {"Content-Type": CONTENT_TYPES[template.suffix]}
-            body = template.read_bytes()
-            return http.HTTPStatus.OK, headers, body
-
-        token = get_cookie(headers.get("Cookie", ""), "token")
-        if token is None:
-            return http.HTTPStatus.UNAUTHORIZED, [], b"Missing token\n"
-
-        user = get_user(token)
-        if user is None:
-            return http.HTTPStatus.UNAUTHORIZED, [], b"Invalid token\n"
-
-        self.user = user
+    connection.username = user
 
 
-async def cookie_handler(websocket):
-    user = websocket.user
-
-    await websocket.send(f"Hello {user}!")
-    message = await websocket.recv()
-    assert message == f"Goodbye {user}."
+def check_credentials(username, password):
+    """Authenticate user with HTTP Basic Auth."""
+    return username == get_user(password)
 
 
-# Adding credentials to the WebSocket URI in user information
-
-
-class UserInfoProtocol(BasicAuthWebSocketServerProtocol):
-    async def check_credentials(self, username, password):
-        if username != "token":
-            return False
-
-        user = get_user(password)
-        if user is None:
-            return False
-
-        self.user = user
-        return True
-
-
-async def user_info_handler(websocket):
-    user = websocket.user
-
-    await websocket.send(f"Hello {user}!")
-    message = await websocket.recv()
-    assert message == f"Goodbye {user}."
-
-
-# Start all five servers
+basic_auth = websockets_basic_auth(check_credentials=check_credentials)
 
 
 async def main():
+    """Start one HTTP server and four WebSocket servers."""
     # Set the stop condition when receiving SIGINT or SIGTERM.
     loop = asyncio.get_running_loop()
     stop = loop.create_future()
     loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
     loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
 
-    async with serve(
-        noop_handler,
-        host="",
-        port=8000,
-        process_request=serve_html,
-    ), serve(
-        first_message_handler,
-        host="",
-        port=8001,
-    ), serve(
-        query_param_handler,
-        host="",
-        port=8002,
-        create_protocol=QueryParamProtocol,
-    ), serve(
-        cookie_handler,
-        host="",
-        port=8003,
-        create_protocol=CookieProtocol,
-    ), serve(
-        user_info_handler,
-        host="",
-        port=8004,
-        create_protocol=UserInfoProtocol,
+    async with (
+        serve(handler, host="", port=8000, process_request=serve_html),
+        serve(first_message_handler, host="", port=8001),
+        serve(handler, host="", port=8002, process_request=query_param_auth),
+        serve(handler, host="", port=8003, process_request=cookie_auth),
+        serve(handler, host="", port=8004, process_request=basic_auth),
     ):
         print("Running on http://localhost:8000/")
         await stop

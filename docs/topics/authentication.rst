@@ -1,13 +1,13 @@
 Authentication
 ==============
 
-The WebSocket protocol was designed for creating web applications that need
-bidirectional communication between clients running in browsers and servers.
+The WebSocket protocol is designed for creating web applications that require
+bidirectional communication between browsers and servers.
 
 In most practical use cases, WebSocket servers need to authenticate clients in
 order to route communications appropriately and securely.
 
-:rfc:`6455` stays elusive when it comes to authentication:
+:rfc:`6455` remains elusive when it comes to authentication:
 
     This protocol doesn't prescribe any particular way that servers can
     authenticate clients during the WebSocket handshake. The WebSocket
@@ -26,8 +26,8 @@ System design
 
 Consider a setup where the WebSocket server is separate from the HTTP server.
 
-Most servers built with websockets to complement a web application adopt this
-design because websockets doesn't aim at supporting HTTP.
+Most servers built with websockets adopt this design because they're a component
+in a web application and websockets doesn't aim at supporting HTTP.
 
 The following diagram illustrates the authentication flow.
 
@@ -82,8 +82,8 @@ WebSocket server.
    credentials would be a session identifier or a serialized, signed session.
 
    Unfortunately, when the WebSocket server runs on a different domain from
-   the web application, this idea bumps into the `Same-Origin Policy`_. For
-   security reasons, setting a cookie on a different origin is impossible.
+   the web application, this idea hits the wall of the `Same-Origin Policy`_.
+   For security reasons, setting a cookie on a different origin is impossible.
 
    The proper workaround consists in:
 
@@ -108,13 +108,11 @@ WebSocket server.
 
    Letting the browser perform HTTP Basic Auth is a nice idea in theory.
 
-   In practice it doesn't work due to poor support in browsers.
+   In practice it doesn't work due to browser support limitations:
 
-   As of May 2021:
+   * Chrome behaves as expected.
 
-   * Chrome 90 behaves as expected.
-
-   * Firefox 88 caches credentials too aggressively.
+   * Firefox caches credentials too aggressively.
 
      When connecting again to the same server with new credentials, it reuses
      the old credentials, which may be expired, resulting in an HTTP 401. Then
@@ -123,7 +121,7 @@ WebSocket server.
      When tokens are short-lived or single-use, this bug produces an
      interesting effect: every other WebSocket connection fails.
 
-   * Safari 14 ignores credentials entirely.
+   * Safari behaves as expected.
 
 Two other options are off the table:
 
@@ -142,8 +140,10 @@ Two other options are off the table:
 
    While this is suggested by the RFC, installing a TLS certificate is too far
    from the mainstream experience of browser users. This could make sense in
-   high security contexts. I hope developers working on such projects don't
-   take security advice from the documentation of random open source projects.
+   high security contexts.
+
+   I hope that developers working on projects in this category don't take
+   security advice from the documentation of random open source projects :-)
 
 Let's experiment!
 -----------------
@@ -185,6 +185,8 @@ connection:
 
 .. code-block:: python
 
+    from websockets.frames import CloseCode
+
     async def first_message_handler(websocket):
         token = await websocket.recv()
         user = get_user(token)
@@ -212,24 +214,16 @@ the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 
-    from websockets.legacy.server import WebSocketServerProtocol
+    async def query_param_auth(connection, request):
+        token = get_query_param(request.path, "token")
+        if token is None:
+            return connection.respond(http.HTTPStatus.UNAUTHORIZED, "Missing token\n")
 
-    class QueryParamProtocol(WebSocketServerProtocol):
-        async def process_request(self, path, headers):
-            token = get_query_parameter(path, "token")
-            if token is None:
-                return http.HTTPStatus.UNAUTHORIZED, [], b"Missing token\n"
+        user = get_user(token)
+        if user is None:
+            return connection.respond(http.HTTPStatus.UNAUTHORIZED, "Invalid token\n")
 
-            user = get_user(token)
-            if user is None:
-                return http.HTTPStatus.UNAUTHORIZED, [], b"Invalid token\n"
-
-            self.user = user
-
-    async def query_param_handler(websocket):
-        user = websocket.user
-
-        ...
+        connection.username = user
 
 Cookie
 ......
@@ -260,27 +254,19 @@ the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 
-    from websockets.legacy.server import WebSocketServerProtocol
-
-    class CookieProtocol(WebSocketServerProtocol):
-        async def process_request(self, path, headers):
-            # Serve iframe on non-WebSocket requests
-            ...
-
-            token = get_cookie(headers.get("Cookie", ""), "token")
-            if token is None:
-                return http.HTTPStatus.UNAUTHORIZED, [], b"Missing token\n"
-
-            user = get_user(token)
-            if user is None:
-                return http.HTTPStatus.UNAUTHORIZED, [], b"Invalid token\n"
-
-            self.user = user
-
-    async def cookie_handler(websocket):
-        user = websocket.user
-
+    async def cookie_auth(connection, request):
+        # Serve iframe on non-WebSocket requests
         ...
+
+        token = get_cookie(request.headers.get("Cookie", ""), "token")
+        if token is None:
+            return connection.respond(http.HTTPStatus.UNAUTHORIZED, "Missing token\n")
+
+        user = get_user(token)
+        if user is None:
+            return connection.respond(http.HTTPStatus.UNAUTHORIZED, "Invalid token\n")
+
+        connection.username = user
 
 User information
 ................
@@ -303,24 +289,12 @@ the user. If authentication fails, it returns an HTTP 401:
 
 .. code-block:: python
 
-    from websockets.legacy.auth import BasicAuthWebSocketServerProtocol
+    from websockets.asyncio.server import basic_auth as websockets_basic_auth
 
-    class UserInfoProtocol(BasicAuthWebSocketServerProtocol):
-        async def check_credentials(self, username, password):
-            if username != "token":
-                return False
+    def check_credentials(username, password):
+        return username == get_user(password)
 
-            user = get_user(password)
-            if user is None:
-                return False
-
-            self.user = user
-            return True
-
-    async def user_info_handler(websocket):
-        user = websocket.user
-
-        ...
+    basic_auth = websockets_basic_auth(check_credentials=check_credentials)
 
 Machine-to-machine authentication
 ---------------------------------
@@ -334,11 +308,9 @@ To authenticate a websockets client with HTTP Basic Authentication
 
 .. code-block:: python
 
-    from websockets.legacy.client import connect
+    from websockets.asyncio.client import connect
 
-    async with connect(
-        f"wss://{username}:{password}@example.com"
-    ) as websocket:
+    async with connect(f"wss://{username}:{password}@.../") as websocket:
         ...
 
 (You must :func:`~urllib.parse.quote` ``username`` and ``password`` if they
@@ -349,10 +321,8 @@ To authenticate a websockets client with HTTP Bearer Authentication
 
 .. code-block:: python
 
-    from websockets.legacy.client import connect
+    from websockets.asyncio.client import connect
 
-    async with connect(
-        "wss://example.com",
-        extra_headers={"Authorization": f"Bearer {token}"}
-    ) as websocket:
+    headers = {"Authorization": f"Bearer {token}"}
+    async with connect("wss://.../", additional_headers=headers) as websocket:
         ...

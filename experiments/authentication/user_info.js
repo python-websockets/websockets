@@ -1,5 +1,5 @@
 window.addEventListener("DOMContentLoaded", () => {
-    const uri = `ws://token:${token}@localhost:8004/`;
+    const uri = `ws://${user}:${token}@localhost:8004/`;
     const websocket = new WebSocket(uri);
 
     websocket.onmessage = ({ data }) => {

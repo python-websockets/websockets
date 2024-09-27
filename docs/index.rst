@@ -60,13 +60,24 @@ list of features provided by each implementation.
    implementation, and then some. If you're using the historical implementation,
    you should :doc:`ugrade to the new implementation <howto/upgrade>`.
 
-Here's an echo server using the :mod:`asyncio` API:
+Here's an echo server and corresponding client.
 
-.. literalinclude:: ../example/echo.py
+.. tab:: asyncio
 
-Here's a client using the :mod:`threading` API:
+    .. literalinclude:: ../example/asyncio/echo.py
 
-.. literalinclude:: ../example/hello.py
+.. tab:: threading
+
+    .. literalinclude:: ../example/sync/echo.py
+
+.. tab:: asyncio
+    :new-set:
+
+    .. literalinclude:: ../example/asyncio/hello.py
+
+.. tab:: threading
+
+    .. literalinclude:: ../example/sync/hello.py
 
 Don't worry about the opening and closing handshakes, pings and pongs, or any
 other behavior described in the WebSocket specification. websockets takes care

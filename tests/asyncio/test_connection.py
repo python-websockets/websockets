@@ -190,13 +190,13 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         await self.remote_connection.send(b"\x01\x02\xfe\xff")
         self.assertEqual(await self.connection.recv(), b"\x01\x02\xfe\xff")
 
-    async def test_recv_encoded_text(self):
-        """recv receives an UTF-8 encoded text message."""
+    async def test_recv_text_as_bytes(self):
+        """recv receives a text message as bytes."""
         await self.remote_connection.send("😀")
         self.assertEqual(await self.connection.recv(decode=False), "😀".encode())
 
-    async def test_recv_decoded_binary(self):
-        """recv receives an UTF-8 decoded binary message."""
+    async def test_recv_binary_as_text(self):
+        """recv receives a binary message as a str."""
         await self.remote_connection.send("😀".encode())
         self.assertEqual(await self.connection.recv(decode=True), "😀")
 
@@ -304,16 +304,16 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             [b"\x01\x02\xfe\xff"],
         )
 
-    async def test_recv_streaming_encoded_text(self):
-        """recv_streaming receives an UTF-8 encoded text message."""
+    async def test_recv_streaming_text_as_bytes(self):
+        """recv_streaming receives a text message as bytes."""
         await self.remote_connection.send("😀")
         self.assertEqual(
             await alist(self.connection.recv_streaming(decode=False)),
             ["😀".encode()],
         )
 
-    async def test_recv_streaming_decoded_binary(self):
-        """recv_streaming receives a UTF-8 decoded binary message."""
+    async def test_recv_streaming_binary_as_str(self):
+        """recv_streaming receives a binary message as a str."""
         await self.remote_connection.send("😀".encode())
         self.assertEqual(
             await alist(self.connection.recv_streaming(decode=True)),
@@ -438,6 +438,16 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         await self.connection.send(b"\x01\x02\xfe\xff")
         self.assertEqual(await self.remote_connection.recv(), b"\x01\x02\xfe\xff")
 
+    async def test_send_binary_from_str(self):
+        """send sends a binary message from a str."""
+        await self.connection.send("😀", text=False)
+        self.assertEqual(await self.remote_connection.recv(), "😀".encode())
+
+    async def test_send_text_from_bytes(self):
+        """send sends a text message from bytes."""
+        await self.connection.send("😀".encode(), text=True)
+        self.assertEqual(await self.remote_connection.recv(), "😀")
+
     async def test_send_fragmented_text(self):
         """send sends a fragmented text message."""
         await self.connection.send(["😀", "😀"])
@@ -454,6 +464,24 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             await alist(self.remote_connection.recv_streaming()),
             [b"\x01\x02", b"\xfe\xff", b""],
+        )
+
+    async def test_send_fragmented_binary_from_str(self):
+        """send sends a fragmented binary message from a str."""
+        await self.connection.send(["😀", "😀"], text=False)
+        # websockets sends an trailing empty fragment. That's an implementation detail.
+        self.assertEqual(
+            await alist(self.remote_connection.recv_streaming()),
+            ["😀".encode(), "😀".encode(), b""],
+        )
+
+    async def test_send_fragmented_text_from_bytes(self):
+        """send sends a fragmented text message from bytes."""
+        await self.connection.send(["😀".encode(), "😀".encode()], text=True)
+        # websockets sends an trailing empty fragment. That's an implementation detail.
+        self.assertEqual(
+            await alist(self.remote_connection.recv_streaming()),
+            ["😀", "😀", ""],
         )
 
     async def test_send_async_fragmented_text(self):
@@ -482,6 +510,34 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(
             await alist(self.remote_connection.recv_streaming()),
             [b"\x01\x02", b"\xfe\xff", b""],
+        )
+
+    async def test_send_async_fragmented_binary_from_str(self):
+        """send sends a fragmented binary message from a str asynchronously."""
+
+        async def fragments():
+            yield "😀"
+            yield "😀"
+
+        await self.connection.send(fragments(), text=False)
+        # websockets sends an trailing empty fragment. That's an implementation detail.
+        self.assertEqual(
+            await alist(self.remote_connection.recv_streaming()),
+            ["😀".encode(), "😀".encode(), b""],
+        )
+
+    async def test_send_async_fragmented_text_from_bytes(self):
+        """send sends a fragmented text message from bytes asynchronously."""
+
+        async def fragments():
+            yield "😀".encode()
+            yield "😀".encode()
+
+        await self.connection.send(fragments(), text=True)
+        # websockets sends an trailing empty fragment. That's an implementation detail.
+        self.assertEqual(
+            await alist(self.remote_connection.recv_streaming()),
+            ["😀", "😀", ""],
         )
 
     async def test_send_connection_closed_ok(self):

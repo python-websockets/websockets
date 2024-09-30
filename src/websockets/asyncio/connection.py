@@ -251,12 +251,13 @@ class Connection(asyncio.Protocol):
 
             You may override this behavior with the ``decode`` argument:
 
-            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames
-              and return a bytestring (:class:`bytes`). This may be useful to
-              optimize performance when decoding isn't needed.
+            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames and
+              return a bytestring (:class:`bytes`). This improves performance
+              when decoding isn't needed, for example if the message contains
+              JSON and you're using a JSON library that expects a bytestring.
             * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
-              and return a string (:class:`str`). This is useful for servers
-              that send binary frames instead of text frames.
+              and return a string (:class:`str`). This may be useful for
+              servers that send binary frames instead of text frames.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -333,7 +334,11 @@ class Connection(asyncio.Protocol):
                 "is already running recv or recv_streaming"
             ) from None
 
-    async def send(self, message: Data | Iterable[Data] | AsyncIterable[Data]) -> None:
+    async def send(
+        self,
+        message: Data | Iterable[Data] | AsyncIterable[Data],
+        text: bool | None = None,
+    ) -> None:
         """
         Send a message.
 
@@ -343,6 +348,17 @@ class Connection(asyncio.Protocol):
 
         .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
         .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+        You may override this behavior with the ``text`` argument:
+
+        * Set ``text=True`` to send a bytestring or bytes-like object
+          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) as a
+          Text_ frame. This improves performance when the message is already
+          UTF-8 encoded, for example if the message contains JSON and you're
+          using a JSON library that produces a bytestring.
+        * Set ``text=False`` to send a string (:class:`str`) in a Binary_
+          frame. This may be useful for servers that expect binary frames
+          instead of text frames.
 
         :meth:`send` also accepts an iterable or an asynchronous iterable of
         strings, bytestrings, or bytes-like objects to enable fragmentation_.
@@ -393,12 +409,20 @@ class Connection(asyncio.Protocol):
         # strings and bytes-like objects are iterable.
 
         if isinstance(message, str):
-            async with self.send_context():
-                self.protocol.send_text(message.encode())
+            if text is False:
+                async with self.send_context():
+                    self.protocol.send_binary(message.encode())
+            else:
+                async with self.send_context():
+                    self.protocol.send_text(message.encode())
 
         elif isinstance(message, BytesLike):
-            async with self.send_context():
-                self.protocol.send_binary(message)
+            if text is True:
+                async with self.send_context():
+                    self.protocol.send_text(message)
+            else:
+                async with self.send_context():
+                    self.protocol.send_binary(message)
 
         # Catch a common mistake -- passing a dict to send().
 
@@ -419,36 +443,32 @@ class Connection(asyncio.Protocol):
             try:
                 # First fragment.
                 if isinstance(chunk, str):
-                    text = True
-                    async with self.send_context():
-                        self.protocol.send_text(
-                            chunk.encode(),
-                            fin=False,
-                        )
+                    if text is False:
+                        async with self.send_context():
+                            self.protocol.send_binary(chunk.encode(), fin=False)
+                    else:
+                        async with self.send_context():
+                            self.protocol.send_text(chunk.encode(), fin=False)
+                    encode = True
                 elif isinstance(chunk, BytesLike):
-                    text = False
-                    async with self.send_context():
-                        self.protocol.send_binary(
-                            chunk,
-                            fin=False,
-                        )
+                    if text is True:
+                        async with self.send_context():
+                            self.protocol.send_text(chunk, fin=False)
+                    else:
+                        async with self.send_context():
+                            self.protocol.send_binary(chunk, fin=False)
+                    encode = False
                 else:
                     raise TypeError("iterable must contain bytes or str")
 
                 # Other fragments
                 for chunk in chunks:
-                    if isinstance(chunk, str) and text:
+                    if isinstance(chunk, str) and encode:
                         async with self.send_context():
-                            self.protocol.send_continuation(
-                                chunk.encode(),
-                                fin=False,
-                            )
-                    elif isinstance(chunk, BytesLike) and not text:
+                            self.protocol.send_continuation(chunk.encode(), fin=False)
+                    elif isinstance(chunk, BytesLike) and not encode:
                         async with self.send_context():
-                            self.protocol.send_continuation(
-                                chunk,
-                                fin=False,
-                            )
+                            self.protocol.send_continuation(chunk, fin=False)
                     else:
                         raise TypeError("iterable must contain uniform types")
 
@@ -481,36 +501,32 @@ class Connection(asyncio.Protocol):
             try:
                 # First fragment.
                 if isinstance(chunk, str):
-                    text = True
-                    async with self.send_context():
-                        self.protocol.send_text(
-                            chunk.encode(),
-                            fin=False,
-                        )
+                    if text is False:
+                        async with self.send_context():
+                            self.protocol.send_binary(chunk.encode(), fin=False)
+                    else:
+                        async with self.send_context():
+                            self.protocol.send_text(chunk.encode(), fin=False)
+                    encode = True
                 elif isinstance(chunk, BytesLike):
-                    text = False
-                    async with self.send_context():
-                        self.protocol.send_binary(
-                            chunk,
-                            fin=False,
-                        )
+                    if text is True:
+                        async with self.send_context():
+                            self.protocol.send_text(chunk, fin=False)
+                    else:
+                        async with self.send_context():
+                            self.protocol.send_binary(chunk, fin=False)
+                    encode = False
                 else:
                     raise TypeError("async iterable must contain bytes or str")
 
                 # Other fragments
                 async for chunk in achunks:
-                    if isinstance(chunk, str) and text:
+                    if isinstance(chunk, str) and encode:
                         async with self.send_context():
-                            self.protocol.send_continuation(
-                                chunk.encode(),
-                                fin=False,
-                            )
-                    elif isinstance(chunk, BytesLike) and not text:
+                            self.protocol.send_continuation(chunk.encode(), fin=False)
+                    elif isinstance(chunk, BytesLike) and not encode:
                         async with self.send_context():
-                            self.protocol.send_continuation(
-                                chunk,
-                                fin=False,
-                            )
+                            self.protocol.send_continuation(chunk, fin=False)
                     else:
                         raise TypeError("async iterable must contain uniform types")
 

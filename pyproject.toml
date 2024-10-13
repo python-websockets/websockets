@@ -60,14 +60,18 @@ source = [
 
 [tool.coverage.report]
 exclude_lines = [
+    "pragma: no cover",
     "except ImportError:",
     "if self.debug:",
     "if sys.platform != \"win32\":",
     "if typing.TYPE_CHECKING:",
-    "pragma: no cover",
     "raise AssertionError",
     "self.fail\\(\".*\"\\)",
     "@unittest.skip",
+]
+partial_branches = [
+    "pragma: no branch",
+    "with self.assertRaises\\(.*\\)",
 ]
 
 [tool.ruff]

@@ -251,7 +251,11 @@ class Connection:
                 "is already running recv or recv_streaming"
             ) from None
 
-    def send(self, message: Data | Iterable[Data]) -> None:
+    def send(
+        self,
+        message: Data | Iterable[Data],
+        text: bool | None = None,
+    ) -> None:
         """
         Send a message.
 
@@ -261,6 +265,17 @@ class Connection:
 
         .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
         .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+        You may override this behavior with the ``text`` argument:
+
+        * Set ``text=True`` to send a bytestring or bytes-like object
+          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) as a
+          Text_ frame. This improves performance when the message is already
+          UTF-8 encoded, for example if the message contains JSON and you're
+          using a JSON library that produces a bytestring.
+        * Set ``text=False`` to send a string (:class:`str`) in a Binary_
+          frame. This may be useful for servers that expect binary frames
+          instead of text frames.
 
         :meth:`send` also accepts an iterable of strings, bytestrings, or
         bytes-like objects to enable fragmentation_. Each item is treated as a
@@ -300,7 +315,10 @@ class Connection:
                         "cannot call send while another thread "
                         "is already running send"
                     )
-                self.protocol.send_text(message.encode())
+                if text is False:
+                    self.protocol.send_binary(message.encode())
+                else:
+                    self.protocol.send_text(message.encode())
 
         elif isinstance(message, BytesLike):
             with self.send_context():
@@ -309,7 +327,10 @@ class Connection:
                         "cannot call send while another thread "
                         "is already running send"
                     )
-                self.protocol.send_binary(message)
+                if text is True:
+                    self.protocol.send_text(message)
+                else:
+                    self.protocol.send_binary(message)
 
         # Catch a common mistake -- passing a dict to send().
 
@@ -328,7 +349,6 @@ class Connection:
             try:
                 # First fragment.
                 if isinstance(chunk, str):
-                    text = True
                     with self.send_context():
                         if self.send_in_progress:
                             raise ConcurrencyError(
@@ -336,12 +356,12 @@ class Connection:
                                 "is already running send"
                             )
                         self.send_in_progress = True
-                        self.protocol.send_text(
-                            chunk.encode(),
-                            fin=False,
-                        )
+                        if text is False:
+                            self.protocol.send_binary(chunk.encode(), fin=False)
+                        else:
+                            self.protocol.send_text(chunk.encode(), fin=False)
+                    encode = True
                 elif isinstance(chunk, BytesLike):
-                    text = False
                     with self.send_context():
                         if self.send_in_progress:
                             raise ConcurrencyError(
@@ -349,29 +369,24 @@ class Connection:
                                 "is already running send"
                             )
                         self.send_in_progress = True
-                        self.protocol.send_binary(
-                            chunk,
-                            fin=False,
-                        )
+                        if text is True:
+                            self.protocol.send_text(chunk, fin=False)
+                        else:
+                            self.protocol.send_binary(chunk, fin=False)
+                    encode = False
                 else:
                     raise TypeError("data iterable must contain bytes or str")
 
                 # Other fragments
                 for chunk in chunks:
-                    if isinstance(chunk, str) and text:
+                    if isinstance(chunk, str) and encode:
                         with self.send_context():
                             assert self.send_in_progress
-                            self.protocol.send_continuation(
-                                chunk.encode(),
-                                fin=False,
-                            )
-                    elif isinstance(chunk, BytesLike) and not text:
+                            self.protocol.send_continuation(chunk.encode(), fin=False)
+                    elif isinstance(chunk, BytesLike) and not encode:
                         with self.send_context():
                             assert self.send_in_progress
-                            self.protocol.send_continuation(
-                                chunk,
-                                fin=False,
-                            )
+                            self.protocol.send_continuation(chunk, fin=False)
                     else:
                         raise TypeError("data iterable must contain uniform types")
 

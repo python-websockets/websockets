@@ -409,19 +409,17 @@ class Connection(asyncio.Protocol):
         # strings and bytes-like objects are iterable.
 
         if isinstance(message, str):
-            if text is False:
-                async with self.send_context():
+            async with self.send_context():
+                if text is False:
                     self.protocol.send_binary(message.encode())
-            else:
-                async with self.send_context():
+                else:
                     self.protocol.send_text(message.encode())
 
         elif isinstance(message, BytesLike):
-            if text is True:
-                async with self.send_context():
+            async with self.send_context():
+                if text is True:
                     self.protocol.send_text(message)
-            else:
-                async with self.send_context():
+                else:
                     self.protocol.send_binary(message)
 
         # Catch a common mistake -- passing a dict to send().
@@ -443,19 +441,17 @@ class Connection(asyncio.Protocol):
             try:
                 # First fragment.
                 if isinstance(chunk, str):
-                    if text is False:
-                        async with self.send_context():
+                    async with self.send_context():
+                        if text is False:
                             self.protocol.send_binary(chunk.encode(), fin=False)
-                    else:
-                        async with self.send_context():
+                        else:
                             self.protocol.send_text(chunk.encode(), fin=False)
                     encode = True
                 elif isinstance(chunk, BytesLike):
-                    if text is True:
-                        async with self.send_context():
+                    async with self.send_context():
+                        if text is True:
                             self.protocol.send_text(chunk, fin=False)
-                    else:
-                        async with self.send_context():
+                        else:
                             self.protocol.send_binary(chunk, fin=False)
                     encode = False
                 else:
@@ -480,7 +476,10 @@ class Connection(asyncio.Protocol):
                 # We're half-way through a fragmented message and we can't
                 # complete it. This makes the connection unusable.
                 async with self.send_context():
-                    self.protocol.fail(1011, "error in fragmented message")
+                    self.protocol.fail(
+                        CloseCode.INTERNAL_ERROR,
+                        "error in fragmented message",
+                    )
                 raise
 
             finally:
@@ -538,7 +537,10 @@ class Connection(asyncio.Protocol):
                 # We're half-way through a fragmented message and we can't
                 # complete it. This makes the connection unusable.
                 async with self.send_context():
-                    self.protocol.fail(1011, "error in fragmented message")
+                    self.protocol.fail(
+                        CloseCode.INTERNAL_ERROR,
+                        "error in fragmented message",
+                    )
                 raise
 
             finally:
@@ -568,7 +570,10 @@ class Connection(asyncio.Protocol):
             # to terminate after calling a method that sends a close frame.
             async with self.send_context():
                 if self.fragmented_send_waiter is not None:
-                    self.protocol.fail(1011, "close during fragmented message")
+                    self.protocol.fail(
+                        CloseCode.INTERNAL_ERROR,
+                        "close during fragmented message",
+                    )
                 else:
                     self.protocol.send_close(code, reason)
         except ConnectionClosed:

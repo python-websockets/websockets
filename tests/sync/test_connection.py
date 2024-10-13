@@ -308,6 +308,16 @@ class ClientConnectionTests(unittest.TestCase):
         self.connection.send(b"\x01\x02\xfe\xff")
         self.assertEqual(self.remote_connection.recv(), b"\x01\x02\xfe\xff")
 
+    def test_send_binary_from_str(self):
+        """send sends a binary message from a str."""
+        self.connection.send("😀", text=False)
+        self.assertEqual(self.remote_connection.recv(), "😀".encode())
+
+    def test_send_text_from_bytes(self):
+        """send sends a text message from bytes."""
+        self.connection.send("😀".encode(), text=True)
+        self.assertEqual(self.remote_connection.recv(), "😀")
+
     def test_send_fragmented_text(self):
         """send sends a fragmented text message."""
         self.connection.send(["😀", "😀"])
@@ -324,6 +334,24 @@ class ClientConnectionTests(unittest.TestCase):
         self.assertEqual(
             list(self.remote_connection.recv_streaming()),
             [b"\x01\x02", b"\xfe\xff", b""],
+        )
+
+    def test_send_fragmented_binary_from_str(self):
+        """send sends a fragmented binary message from a str."""
+        self.connection.send(["😀", "😀"], text=False)
+        # websockets sends an trailing empty fragment. That's an implementation detail.
+        self.assertEqual(
+            list(self.remote_connection.recv_streaming()),
+            ["😀".encode(), "😀".encode(), b""],
+        )
+
+    def test_send_fragmented_text_from_bytes(self):
+        """send sends a fragmented text message from bytes."""
+        self.connection.send(["😀".encode(), "😀".encode()], text=True)
+        # websockets sends an trailing empty fragment. That's an implementation detail.
+        self.assertEqual(
+            list(self.remote_connection.recv_streaming()),
+            ["😀", "😀", ""],
         )
 
     def test_send_connection_closed_ok(self):

@@ -4,47 +4,69 @@ Autobahn Testsuite
 General information and installation instructions are available at
 https://github.com/crossbario/autobahn-testsuite.
 
-To improve performance, you should compile the C extension first::
-
-    $ python setup.py build_ext --inplace
-
 Running the test suite
 ----------------------
 
-All commands below must be run from the directory containing this file.
+All commands below must be run from the root directory of the repository.
 
-To test the server::
+To get acceptable performance, compile the C extension first:
 
-    $ PYTHONPATH=.. python test_server.py
-    $ wstest -m fuzzingclient
+.. code-block:: console
 
-To test the client::
+    $ python setup.py build_ext --inplace
 
-    $ wstest -m fuzzingserver
-    $ PYTHONPATH=.. python test_client.py
+Run each command in a different shell. Testing takes several minutes to complete
+— wstest is the bottleneck. When clients finish, stop servers with Ctrl-C.
 
-Run the first command in a shell. Run the second command in another shell.
-It should take about ten minutes to complete — wstest is the bottleneck.
-Then kill the first one with Ctrl-C.
+You can exclude slow tests by modifying the configuration files as follows::
 
-The test client or server shouldn't display any exceptions. The results are
-stored in reports/clients/index.html.
+    "exclude-cases": ["9.*", "12.*", "13.*"]
 
-Note that the Autobahn software only supports Python 2, while ``websockets``
-only supports Python 3; you need two different environments.
+The test server and client applications shouldn't display any exceptions.
+
+To test the servers:
+
+.. code-block:: console
+
+    $ PYTHONPATH=src python compliance/asyncio/server.py
+    $ PYTHONPATH=src python compliance/sync/server.py
+
+    $ docker run --interactive --tty --rm \
+        --volume "${PWD}/compliance/config:/config" \
+        --volume "${PWD}/compliance/reports:/reports" \
+        --name fuzzingclient \
+        crossbario/autobahn-testsuite \
+        wstest --mode fuzzingclient --spec /config/fuzzingclient.json
+
+    $ open reports/servers/index.html
+
+To test the clients:
+
+.. code-block:: console
+    $ docker run --interactive --tty --rm \
+        --volume "${PWD}/compliance/config:/config" \
+        --volume "${PWD}/compliance/reports:/reports" \
+        --publish 9001:9001 \
+        --name fuzzingserver \
+        crossbario/autobahn-testsuite \
+        wstest --mode fuzzingserver --spec /config/fuzzingserver.json
+
+    $ PYTHONPATH=src python compliance/asyncio/client.py
+    $ PYTHONPATH=src python compliance/sync/client.py
+
+    $ open reports/clients/index.html
 
 Conformance notes
 -----------------
 
 Some test cases are more strict than the RFC. Given the implementation of the
-library and the test echo client or server, ``websockets`` gets a "Non-Strict"
-in these cases.
+library and the test client and server applications, websockets passes with a
+"Non-Strict" result in these cases.
 
-In 3.2, 3.3, 4.1.3, 4.1.4, 4.2.3, 4.2.4, and 5.15 ``websockets`` notices the
-protocol error and closes the connection before it has had a chance to echo
-the previous frame.
+In 3.2, 3.3, 4.1.3, 4.1.4, 4.2.3, 4.2.4, and 5.15 websockets notices the
+protocol error and closes the connection at the library level before the
+application gets a chance to echo the previous frame.
 
-In 6.4.3 and 6.4.4, even though it uses an incremental decoder, ``websockets``
-doesn't notice the invalid utf-8 fast enough to get a "Strict" pass. These
-tests are more strict than the RFC.
-
+In 6.4.3 and 6.4.4, even though it uses an incremental decoder, websockets
+doesn't notice the invalid utf-8 fast enough to get a "Strict" pass. These tests
+are more strict than the RFC.

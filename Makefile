@@ -8,8 +8,8 @@ build:
 	python setup.py build_ext --inplace
 
 style:
-	ruff format src tests
-	ruff check --fix src tests
+	ruff format compliance src tests
+	ruff check --fix compliance src tests
 
 types:
 	mypy --strict src

@@ -1,0 +1,7 @@
+
+{
+   "url": "ws://localhost:9001",
+   "outdir": "./reports/clients",
+   "cases": ["*"],
+   "exclude-cases": []
+}

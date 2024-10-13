@@ -1,0 +1,11 @@
+
+{
+   "servers": [{
+      "url": "ws://host.docker.internal:9002"
+   }, {
+      "url": "ws://host.docker.internal:9003"
+   }],
+   "outdir": "./reports/servers",
+   "cases": ["*"],
+   "exclude-cases": []
+}

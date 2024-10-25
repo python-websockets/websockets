@@ -268,14 +268,24 @@ class Connection(asyncio.Protocol):
         try:
             return await self.recv_messages.get(decode)
         except EOFError:
-            # Wait for the protocol state to be CLOSED before accessing close_exc.
-            await asyncio.shield(self.connection_lost_waiter)
-            raise self.protocol.close_exc from self.recv_exc
+            pass
+            # fallthrough
         except ConcurrencyError:
             raise ConcurrencyError(
                 "cannot call recv while another coroutine "
                 "is already running recv or recv_streaming"
             ) from None
+        except UnicodeDecodeError as exc:
+            async with self.send_context():
+                self.protocol.fail(
+                    CloseCode.INVALID_DATA,
+                    f"{exc.reason} at position {exc.start}",
+                )
+            # fallthrough
+
+        # Wait for the protocol state to be CLOSED before accessing close_exc.
+        await asyncio.shield(self.connection_lost_waiter)
+        raise self.protocol.close_exc from self.recv_exc
 
     async def recv_streaming(self, decode: bool | None = None) -> AsyncIterator[Data]:
         """
@@ -324,15 +334,26 @@ class Connection(asyncio.Protocol):
         try:
             async for frame in self.recv_messages.get_iter(decode):
                 yield frame
+            return
         except EOFError:
-            # Wait for the protocol state to be CLOSED before accessing close_exc.
-            await asyncio.shield(self.connection_lost_waiter)
-            raise self.protocol.close_exc from self.recv_exc
+            pass
+            # fallthrough
         except ConcurrencyError:
             raise ConcurrencyError(
                 "cannot call recv_streaming while another coroutine "
                 "is already running recv or recv_streaming"
             ) from None
+        except UnicodeDecodeError as exc:
+            async with self.send_context():
+                self.protocol.fail(
+                    CloseCode.INVALID_DATA,
+                    f"{exc.reason} at position {exc.start}",
+                )
+            # fallthrough
+
+        # Wait for the protocol state to be CLOSED before accessing close_exc.
+        await asyncio.shield(self.connection_lost_waiter)
+        raise self.protocol.close_exc from self.recv_exc
 
     async def send(
         self,

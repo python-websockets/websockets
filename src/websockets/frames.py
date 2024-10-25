@@ -222,7 +222,6 @@ class Frame:
 
         Raises:
             EOFError: If the connection is closed without a full WebSocket frame.
-            UnicodeDecodeError: If the frame contains invalid UTF-8.
             PayloadTooBig: If the frame's payload size exceeds ``max_size``.
             ProtocolError: If the frame contains incorrect values.
 

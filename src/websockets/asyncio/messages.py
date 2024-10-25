@@ -131,6 +131,7 @@ class Assembler:
 
         Raises:
             EOFError: If the stream of frames has ended.
+            UnicodeDecodeError: If a text frame contains invalid UTF-8.
             ConcurrencyError: If two coroutines run :meth:`get` or
                 :meth:`get_iter` concurrently.
 
@@ -197,6 +198,7 @@ class Assembler:
 
         Raises:
             EOFError: If the stream of frames has ended.
+            UnicodeDecodeError: If a text frame contains invalid UTF-8.
             ConcurrencyError: If two coroutines run :meth:`get` or
                 :meth:`get_iter` concurrently.
 

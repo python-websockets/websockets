@@ -222,6 +222,15 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ConnectionClosedError):
             await self.connection.recv()
 
+    async def test_recv_non_utf8_text(self):
+        """recv receives a non-UTF-8 text message."""
+        await self.remote_connection.send(b"\x01\x02\xfe\xff", text=True)
+        with self.assertRaises(ConnectionClosedError):
+            await self.connection.recv()
+        await self.assertFrameSent(
+            Frame(Opcode.CLOSE, b"\x03\xefinvalid start byte at position 2")
+        )
+
     async def test_recv_during_recv(self):
         """recv raises ConcurrencyError when called concurrently."""
         recv_task = asyncio.create_task(self.connection.recv())
@@ -351,6 +360,15 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ConnectionClosedError):
             async for _ in self.connection.recv_streaming():
                 self.fail("did not raise")
+
+    async def test_recv_streaming_non_utf8_text(self):
+        """recv_streaming receives a non-UTF-8 text message."""
+        await self.remote_connection.send(b"\x01\x02\xfe\xff", text=True)
+        with self.assertRaises(ConnectionClosedError):
+            await alist(self.connection.recv_streaming())
+        await self.assertFrameSent(
+            Frame(Opcode.CLOSE, b"\x03\xefinvalid start byte at position 2")
+        )
 
     async def test_recv_streaming_during_recv(self):
         """recv_streaming raises ConcurrencyError when called concurrently with recv."""

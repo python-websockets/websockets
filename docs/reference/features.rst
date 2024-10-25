@@ -194,3 +194,8 @@ connection to a given IP address in a CONNECTING state. This behavior is
 mandated by :rfc:`6455`, section 4.1. However, :func:`~asyncio.client.connect()`
 isn't the right layer for enforcing this constraint. It's the caller's
 responsibility.
+
+It is possible to send or receive a text message containing invalid UTF-8 with
+``send(not_utf8_bytes, text=True)`` and ``not_utf8_bytes = recv(decode=False)``
+respectively. As a side effect of disabling UTF-8 encoding and decoding, these
+options also disable UTF-8 validation.

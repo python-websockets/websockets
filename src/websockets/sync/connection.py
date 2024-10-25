@@ -233,14 +233,24 @@ class Connection:
         try:
             return self.recv_messages.get(timeout, decode)
         except EOFError:
-            # Wait for the protocol state to be CLOSED before accessing close_exc.
-            self.recv_events_thread.join()
-            raise self.protocol.close_exc from self.recv_exc
+            pass
+            # fallthrough
         except ConcurrencyError:
             raise ConcurrencyError(
                 "cannot call recv while another thread "
                 "is already running recv or recv_streaming"
             ) from None
+        except UnicodeDecodeError as exc:
+            with self.send_context():
+                self.protocol.fail(
+                    CloseCode.INVALID_DATA,
+                    f"{exc.reason} at position {exc.start}",
+                )
+            # fallthrough
+
+        # Wait for the protocol state to be CLOSED before accessing close_exc.
+        self.recv_events_thread.join()
+        raise self.protocol.close_exc from self.recv_exc
 
     def recv_streaming(self, decode: bool | None = None) -> Iterator[Data]:
         """
@@ -283,15 +293,26 @@ class Connection:
         """
         try:
             yield from self.recv_messages.get_iter(decode)
+            return
         except EOFError:
-            # Wait for the protocol state to be CLOSED before accessing close_exc.
-            self.recv_events_thread.join()
-            raise self.protocol.close_exc from self.recv_exc
+            pass
+            # fallthrough
         except ConcurrencyError:
             raise ConcurrencyError(
                 "cannot call recv_streaming while another thread "
                 "is already running recv or recv_streaming"
             ) from None
+        except UnicodeDecodeError as exc:
+            with self.send_context():
+                self.protocol.fail(
+                    CloseCode.INVALID_DATA,
+                    f"{exc.reason} at position {exc.start}",
+                )
+            # fallthrough
+
+        # Wait for the protocol state to be CLOSED before accessing close_exc.
+        self.recv_events_thread.join()
+        raise self.protocol.close_exc from self.recv_exc
 
     def send(
         self,

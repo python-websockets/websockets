@@ -154,6 +154,16 @@ class ClientConnectionTests(unittest.TestCase):
         self.remote_connection.send(b"\x01\x02\xfe\xff")
         self.assertEqual(self.connection.recv(), b"\x01\x02\xfe\xff")
 
+    def test_recv_text_as_bytes(self):
+        """recv receives a text message as bytes."""
+        self.remote_connection.send("😀")
+        self.assertEqual(self.connection.recv(decode=False), "😀".encode())
+
+    def test_recv_binary_as_text(self):
+        """recv receives a binary message as a str."""
+        self.remote_connection.send("😀".encode())
+        self.assertEqual(self.connection.recv(decode=True), "😀")
+
     def test_recv_fragmented_text(self):
         """recv receives a fragmented text message."""
         self.remote_connection.send(["😀", "😀"])
@@ -226,6 +236,22 @@ class ClientConnectionTests(unittest.TestCase):
         self.assertEqual(
             list(self.connection.recv_streaming()),
             [b"\x01\x02\xfe\xff"],
+        )
+
+    def test_recv_streaming_text_as_bytes(self):
+        """recv_streaming receives a text message as bytes."""
+        self.remote_connection.send("😀")
+        self.assertEqual(
+            list(self.connection.recv_streaming(decode=False)),
+            ["😀".encode()],
+        )
+
+    def test_recv_streaming_binary_as_str(self):
+        """recv_streaming receives a binary message as a str."""
+        self.remote_connection.send("😀".encode())
+        self.assertEqual(
+            list(self.connection.recv_streaming(decode=True)),
+            ["😀"],
         )
 
     def test_recv_streaming_fragmented_text(self):
@@ -499,52 +525,23 @@ class ClientConnectionTests(unittest.TestCase):
         # Remove socket.timeout when dropping Python < 3.10.
         self.assertIsInstance(exc.__cause__, (socket.timeout, TimeoutError))
 
-    def test_close_waits_for_recv(self):
-        # The sync implementation doesn't have a buffer for incoming messsages.
-        # It requires reading incoming frames until the close frame is reached.
-        # This behavior — close() blocks until recv() is called — is less than
-        # ideal and inconsistent with the asyncio implementation.
+    def test_close_does_not_wait_for_recv(self):
+        # Closing the connection discards messages buffered in the assembler.
+        # This is allowed by the RFC:
+        # > However, there is no guarantee that the endpoint that has already
+        # > sent a Close frame will continue to process data.
         self.remote_connection.send("😀")
+        self.connection.close()
 
         close_thread = threading.Thread(target=self.connection.close)
         close_thread.start()
 
-        # Let close() initiate the closing handshake and send a close frame.
-        time.sleep(MS)
-        self.assertTrue(close_thread.is_alive())
-
-        # Connection isn't closed yet.
-        self.connection.recv()
-
-        # Let close() receive a close frame and finish the closing handshake.
-        time.sleep(MS)
-        self.assertFalse(close_thread.is_alive())
-
-        # Connection is closed now.
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
 
         exc = raised.exception
         self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
         self.assertIsNone(exc.__cause__)
-
-    def test_close_timeout_waiting_for_recv(self):
-        self.remote_connection.send("😀")
-
-        close_thread = threading.Thread(target=self.connection.close)
-        close_thread.start()
-
-        # Let close() time out during the closing handshake.
-        time.sleep(3 * MS)
-        self.assertFalse(close_thread.is_alive())
-
-        # Connection is closed now.
-        with self.assertRaises(ConnectionClosedError) as raised:
-            self.connection.recv()
-
-        exc = raised.exception
-        self.assertEqual(str(exc), "sent 1000 (OK); no close frame received")
-        self.assertIsInstance(exc.__cause__, TimeoutError)
 
     def test_close_idempotency(self):
         """close does nothing if the connection is already closed."""
@@ -723,6 +720,45 @@ class ClientConnectionTests(unittest.TestCase):
         """pong raises TypeError when called with an unsupported type."""
         with self.assertRaises(TypeError):
             self.connection.pong([])
+
+    # Test parameters.
+
+    def test_close_timeout(self):
+        """close_timeout parameter configures close timeout."""
+        socket_, remote_socket = socket.socketpair()
+        self.addCleanup(socket_.close)
+        self.addCleanup(remote_socket.close)
+        connection = Connection(
+            socket_,
+            Protocol(self.LOCAL),
+            close_timeout=42 * MS,
+        )
+        self.assertEqual(connection.close_timeout, 42 * MS)
+
+    def test_max_queue(self):
+        """max_queue parameter configures high-water mark of frames buffer."""
+        socket_, remote_socket = socket.socketpair()
+        self.addCleanup(socket_.close)
+        self.addCleanup(remote_socket.close)
+        connection = Connection(
+            socket_,
+            Protocol(self.LOCAL),
+            max_queue=4,
+        )
+        self.assertEqual(connection.recv_messages.high, 4)
+
+    def test_max_queue_tuple(self):
+        """max_queue parameter configures high-water mark of frames buffer."""
+        socket_, remote_socket = socket.socketpair()
+        self.addCleanup(socket_.close)
+        self.addCleanup(remote_socket.close)
+        connection = Connection(
+            socket_,
+            Protocol(self.LOCAL),
+            max_queue=(4, 2),
+        )
+        self.assertEqual(connection.recv_messages.high, 4)
+        self.assertEqual(connection.recv_messages.low, 2)
 
     # Test attributes.
 

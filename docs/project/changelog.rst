@@ -70,10 +70,21 @@ Backwards-incompatible changes
     If you wrote an :class:`extension <extensions.Extension>` that relies on
     methods not provided by these new types, you may need to update your code.
 
+New features
+............
+
+* Added an option to receive text frames as :class:`bytes`, without decoding,
+  in the :mod:`threading` implementation; also binary frames as :class:`str`.
+
+* Added an option to send :class:`bytes` as a text frame in the :mod:`asyncio`
+  and :mod:`threading` implementations, as well as :class:`str` a binary frame.
+
 Improvements
 ............
 
-* Sending or receiving large compressed frames is now faster.
+* The :mod:`threading` implementation receives messages faster.
+
+* Sending or receiving large compressed messages is now faster.
 
 .. _13.1:
 
@@ -197,6 +208,9 @@ New features
     upgrade process.
 
 * Validated compatibility with Python 3.12 and 3.13.
+
+* Added an option to receive text frames as :class:`bytes`, without decoding,
+  in the :mod:`asyncio` implementation; also binary frames as :class:`str`.
 
 * Added :doc:`environment variables <../reference/variables>` to configure debug
   logs, the ``Server`` and ``User-Agent`` headers, as well as security limits.

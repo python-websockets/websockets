@@ -55,7 +55,7 @@ class ServerConnection(Connection):
     closed with any other code.
 
     The ``ping_interval``, ``ping_timeout``, ``close_timeout``, ``max_queue``,
-    and ``write_limit`` arguments the same meaning as in :func:`serve`.
+    and ``write_limit`` arguments have the same meaning as in :func:`serve`.
 
     Args:
         protocol: Sans-I/O connection.

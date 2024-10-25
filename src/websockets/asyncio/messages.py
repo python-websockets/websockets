@@ -60,6 +60,7 @@ class SimpleQueue(Generic[T]):
         self.queue.extend(items)
 
     def abort(self) -> None:
+        """Close the queue, raising EOFError in get() if necessary."""
         if self.get_waiter is not None and not self.get_waiter.done():
             self.get_waiter.set_exception(EOFError("stream of frames ended"))
         # Clear the queue to avoid storing unnecessary data in memory.
@@ -89,7 +90,7 @@ class Assembler:
         pause: Callable[[], Any] = lambda: None,
         resume: Callable[[], Any] = lambda: None,
     ) -> None:
-        # Queue of incoming messages. Each item is a queue of frames.
+        # Queue of incoming frames.
         self.frames: SimpleQueue[Frame] = SimpleQueue()
 
         # We cannot put a hard limit on the size of the queue because a single
@@ -140,36 +141,35 @@ class Assembler:
         if self.get_in_progress:
             raise ConcurrencyError("get() or get_iter() is already running")
 
-        # Locking with get_in_progress ensures only one coroutine can get here.
         self.get_in_progress = True
 
-        # First frame
+        # Locking with get_in_progress prevents concurrent execution until
+        # get() fetches a complete message or is cancelled.
+
         try:
+            # First frame
             frame = await self.frames.get()
-        except asyncio.CancelledError:
-            self.get_in_progress = False
-            raise
-        self.maybe_resume()
-        assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
-        if decode is None:
-            decode = frame.opcode is OP_TEXT
-        frames = [frame]
-
-        # Following frames, for fragmented messages
-        while not frame.fin:
-            try:
-                frame = await self.frames.get()
-            except asyncio.CancelledError:
-                # Put frames already received back into the queue
-                # so that future calls to get() can return them.
-                self.frames.reset(frames)
-                self.get_in_progress = False
-                raise
             self.maybe_resume()
-            assert frame.opcode is OP_CONT
-            frames.append(frame)
+            assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
+            if decode is None:
+                decode = frame.opcode is OP_TEXT
+            frames = [frame]
 
-        self.get_in_progress = False
+            # Following frames, for fragmented messages
+            while not frame.fin:
+                try:
+                    frame = await self.frames.get()
+                except asyncio.CancelledError:
+                    # Put frames already received back into the queue
+                    # so that future calls to get() can return them.
+                    self.frames.reset(frames)
+                    raise
+                self.maybe_resume()
+                assert frame.opcode is OP_CONT
+                frames.append(frame)
+
+        finally:
+            self.get_in_progress = False
 
         data = b"".join(frame.data for frame in frames)
         if decode:
@@ -207,8 +207,13 @@ class Assembler:
         if self.get_in_progress:
             raise ConcurrencyError("get() or get_iter() is already running")
 
-        # Locking with get_in_progress ensures only one coroutine can get here.
         self.get_in_progress = True
+
+        # Locking with get_in_progress prevents concurrent execution until
+        # get_iter() fetches a complete message or is cancelled.
+
+        # If get_iter() raises an exception e.g. in decoder.decode(),
+        # get_in_progress remains set and the connection becomes unusable.
 
         # First frame
         try:

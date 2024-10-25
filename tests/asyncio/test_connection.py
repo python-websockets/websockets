@@ -793,8 +793,8 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertIsInstance(exc.__cause__, (socket.timeout, TimeoutError))
 
     async def test_close_does_not_wait_for_recv(self):
-        # The asyncio implementation has a buffer for incoming messages. Closing
-        # the connection discards buffered messages. This is allowed by the RFC:
+        # Closing the connection discards messages buffered in the assembler.
+        # This is allowed by the RFC:
         # > However, there is no guarantee that the endpoint that has already
         # > sent a Close frame will continue to process data.
         await self.remote_connection.send("😀")
@@ -1075,7 +1075,10 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_max_queue_tuple(self):
         """max_queue parameter configures high-water mark of frames buffer."""
-        connection = Connection(Protocol(self.LOCAL), max_queue=(4, 2))
+        connection = Connection(
+            Protocol(self.LOCAL),
+            max_queue=(4, 2),
+        )
         transport = Mock()
         connection.connection_made(transport)
         self.assertEqual(connection.recv_messages.high, 4)
@@ -1083,14 +1086,20 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_write_limit(self):
         """write_limit parameter configures high-water mark of write buffer."""
-        connection = Connection(Protocol(self.LOCAL), write_limit=4096)
+        connection = Connection(
+            Protocol(self.LOCAL),
+            write_limit=4096,
+        )
         transport = Mock()
         connection.connection_made(transport)
         transport.set_write_buffer_limits.assert_called_once_with(4096, None)
 
     async def test_write_limits(self):
         """write_limit parameter configures high and low-water marks of write buffer."""
-        connection = Connection(Protocol(self.LOCAL), write_limit=(4096, 2048))
+        connection = Connection(
+            Protocol(self.LOCAL),
+            write_limit=(4096, 2048),
+        )
         transport = Mock()
         connection.connection_made(transport)
         transport.set_write_buffer_limits.assert_called_once_with(4096, 2048)

@@ -350,7 +350,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(fragments, ["café"])
 
     async def test_cancel_get_iter_after_first_frame(self):
-        """get cannot be canceled after reading the first frame."""
+        """get_iter cannot be canceled after reading the first frame."""
         self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
 
         getter_task = asyncio.create_task(alist(self.assembler.get_iter()))
@@ -429,7 +429,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)
         with self.assertRaises(ConcurrencyError):
             await self.assembler.get()
-        self.assembler.close()  # let task terminate
+        self.assembler.put(Frame(OP_TEXT, b""))  # let task terminate
 
     async def test_get_fails_when_get_iter_is_running(self):
         """get cannot be called concurrently with get_iter."""
@@ -437,7 +437,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)
         with self.assertRaises(ConcurrencyError):
             await self.assembler.get()
-        self.assembler.close()  # let task terminate
+        self.assembler.put(Frame(OP_TEXT, b""))  # let task terminate
 
     async def test_get_iter_fails_when_get_is_running(self):
         """get_iter cannot be called concurrently with get."""
@@ -445,7 +445,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)
         with self.assertRaises(ConcurrencyError):
             await alist(self.assembler.get_iter())
-        self.assembler.close()  # let task terminate
+        self.assembler.put(Frame(OP_TEXT, b""))  # let task terminate
 
     async def test_get_iter_fails_when_get_iter_is_running(self):
         """get_iter cannot be called concurrently."""
@@ -453,7 +453,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)
         with self.assertRaises(ConcurrencyError):
             await alist(self.assembler.get_iter())
-        self.assembler.close()  # let task terminate
+        self.assembler.put(Frame(OP_TEXT, b""))  # let task terminate
 
     # Test setting limits
 
@@ -463,7 +463,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(assembler.high, 10)
 
     async def test_set_high_and_low_water_mark(self):
-        """high sets the high-water mark."""
+        """high sets the high-water mark and low-water mark."""
         assembler = Assembler(high=10, low=5)
         self.assertEqual(assembler.high, 10)
         self.assertEqual(assembler.low, 5)

@@ -3,12 +3,12 @@ from __future__ import annotations
 import codecs
 import queue
 import threading
-from collections.abc import Iterator
-from typing import cast
+from typing import Any, Callable, Iterable, Iterator
 
 from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 from ..typing import Data
+from .utils import Deadline
 
 
 __all__ = ["Assembler"]
@@ -20,47 +20,83 @@ class Assembler:
     """
     Assemble messages from frames.
 
+    :class:`Assembler` expects only data frames. The stream of frames must
+    respect the protocol; if it doesn't, the behavior is undefined.
+
+    Args:
+        pause: Called when the buffer of frames goes above the high water mark;
+            should pause reading from the network.
+        resume: Called when the buffer of frames goes below the low water mark;
+            should resume reading from the network.
+
     """
 
-    def __init__(self) -> None:
+    def __init__(
+        self,
+        high: int = 16,
+        low: int | None = None,
+        pause: Callable[[], Any] = lambda: None,
+        resume: Callable[[], Any] = lambda: None,
+    ) -> None:
         # Serialize reads and writes -- except for reads via synchronization
         # primitives provided by the threading and queue modules.
         self.mutex = threading.Lock()
 
-        # We create a latch with two events to synchronize the production of
-        # frames and the consumption of messages (or frames) without a buffer.
-        # This design requires a switch between the library thread and the user
-        # thread for each message; that shouldn't be a performance bottleneck.
+        # Queue of incoming frames.
+        self.frames: queue.SimpleQueue[Frame | None] = queue.SimpleQueue()
 
-        # put() sets this event to tell get() that a message can be fetched.
-        self.message_complete = threading.Event()
-        # get() sets this event to let put() that the message was fetched.
-        self.message_fetched = threading.Event()
+        # We cannot put a hard limit on the size of the queue because a single
+        # call to Protocol.data_received() could produce thousands of frames,
+        # which must be buffered. Instead, we pause reading when the buffer goes
+        # above the high limit and we resume when it goes under the low limit.
+        if low is None:
+            low = high // 4
+        if low < 0:
+            raise ValueError("low must be positive or equal to zero")
+        if high < low:
+            raise ValueError("high must be greater than or equal to low")
+        self.high, self.low = high, low
+        self.pause = pause
+        self.resume = resume
+        self.paused = False
 
         # This flag prevents concurrent calls to get() by user code.
         self.get_in_progress = False
-        # This flag prevents concurrent calls to put() by library code.
-        self.put_in_progress = False
-
-        # Decoder for text frames, None for binary frames.
-        self.decoder: codecs.IncrementalDecoder | None = None
-
-        # Buffer of frames belonging to the same message.
-        self.chunks: list[Data] = []
-
-        # When switching from "buffering" to "streaming", we use a thread-safe
-        # queue for transferring frames from the writing thread (library code)
-        # to the reading thread (user code). We're buffering when chunks_queue
-        # is None and streaming when it's a SimpleQueue. None is a sentinel
-        # value marking the end of the message, superseding message_complete.
-
-        # Stream data from frames belonging to the same message.
-        self.chunks_queue: queue.SimpleQueue[Data | None] | None = None
 
         # This flag marks the end of the connection.
         self.closed = False
 
-    def get(self, timeout: float | None = None) -> Data:
+    def get_next_frame(self, timeout: float | None = None) -> Frame:
+        # Helper to factor out the logic for getting the next frame from the
+        # queue, while handling timeouts and reaching the end of the stream.
+        try:
+            frame = self.frames.get(timeout=timeout)
+        except queue.Empty:
+            raise TimeoutError(f"timed out in {timeout:.1f}s") from None
+        if frame is None:
+            raise EOFError("stream of frames ended")
+        return frame
+
+    def reset_queue(self, frames: Iterable[Frame]) -> None:
+        # Helper to put frames back into the queue after they were fetched.
+        # This happens only when the queue is empty. However, by the time
+        # we acquire self.mutex, put() may have added items in the queue.
+        # Therefore, we must handle the case where the queue is not empty.
+        frame: Frame | None
+        with self.mutex:
+            queued = []
+            try:
+                while True:
+                    queued.append(self.frames.get_nowait())
+            except queue.Empty:
+                pass
+            for frame in frames:
+                self.frames.put(frame)
+            # This loop runs only when a race condition occurs.
+            for frame in queued:  # pragma: no cover
+                self.frames.put(frame)
+
+    def get(self, timeout: float | None = None, decode: bool | None = None) -> Data:
         """
         Read the next message.
 
@@ -73,11 +109,14 @@ class Assembler:
         Args:
             timeout: If a timeout is provided and elapses before a complete
                 message is received, :meth:`get` raises :exc:`TimeoutError`.
+            decode: :obj:`False` disables UTF-8 decoding of text frames and
+                returns :class:`bytes`. :obj:`True` forces UTF-8 decoding of
+                binary frames and returns :class:`str`.
 
         Raises:
             EOFError: If the stream of frames has ended.
-            ConcurrencyError: If two threads run :meth:`get` or :meth:`get_iter`
-                concurrently.
+            ConcurrencyError: If two coroutines run :meth:`get` or
+                :meth:`get_iter` concurrently.
             TimeoutError: If a timeout is provided and elapses before a
                 complete message is received.
 
@@ -89,40 +128,45 @@ class Assembler:
             if self.get_in_progress:
                 raise ConcurrencyError("get() or get_iter() is already running")
 
+            # Locking with get_in_progress ensures only one thread can get here.
             self.get_in_progress = True
 
-        # If the message_complete event isn't set yet, release the lock to
-        # allow put() to run and eventually set it.
-        # Locking with get_in_progress ensures only one thread can get here.
-        completed = self.message_complete.wait(timeout)
+        try:
+            deadline = Deadline(timeout)
 
-        with self.mutex:
+            # First frame
+            frame = self.get_next_frame(deadline.timeout())
+            with self.mutex:
+                self.maybe_resume()
+            assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
+            if decode is None:
+                decode = frame.opcode is OP_TEXT
+            frames = [frame]
+
+            # Following frames, for fragmented messages
+            while not frame.fin:
+                try:
+                    frame = self.get_next_frame(deadline.timeout())
+                except TimeoutError:
+                    # Put frames already received back into the queue
+                    # so that future calls to get() can return them.
+                    self.reset_queue(frames)
+                    raise
+                with self.mutex:
+                    self.maybe_resume()
+                assert frame.opcode is OP_CONT
+                frames.append(frame)
+
+        finally:
             self.get_in_progress = False
 
-            # Waiting for a complete message timed out.
-            if not completed:
-                raise TimeoutError(f"timed out in {timeout:.1f}s")
+        data = b"".join(frame.data for frame in frames)
+        if decode:
+            return data.decode()
+        else:
+            return data
 
-            # get() was unblocked by close() rather than put().
-            if self.closed:
-                raise EOFError("stream of frames ended")
-
-            assert self.message_complete.is_set()
-            self.message_complete.clear()
-
-            joiner: Data = b"" if self.decoder is None else ""
-            # mypy cannot figure out that chunks have the proper type.
-            message: Data = joiner.join(self.chunks)  # type: ignore
-
-            self.chunks = []
-            assert self.chunks_queue is None
-
-            assert not self.message_fetched.is_set()
-            self.message_fetched.set()
-
-            return message
-
-    def get_iter(self) -> Iterator[Data]:
+    def get_iter(self, decode: bool | None = None) -> Iterator[Data]:
         """
         Stream the next message.
 
@@ -135,10 +179,15 @@ class Assembler:
         This method only makes sense for fragmented messages. If messages aren't
         fragmented, use :meth:`get` instead.
 
+        Args:
+            decode: :obj:`False` disables UTF-8 decoding of text frames and
+                returns :class:`bytes`. :obj:`True` forces UTF-8 decoding of
+                binary frames and returns :class:`str`.
+
         Raises:
             EOFError: If the stream of frames has ended.
-            ConcurrencyError: If two threads run :meth:`get` or :meth:`get_iter`
-                concurrently.
+            ConcurrencyError: If two coroutines run :meth:`get` or
+                :meth:`get_iter` concurrently.
 
         """
         with self.mutex:
@@ -148,116 +197,81 @@ class Assembler:
             if self.get_in_progress:
                 raise ConcurrencyError("get() or get_iter() is already running")
 
-            chunks = self.chunks
-            self.chunks = []
-            self.chunks_queue = cast(
-                # Remove quotes around type when dropping Python < 3.10.
-                "queue.SimpleQueue[Data | None]",
-                queue.SimpleQueue(),
-            )
-
-            # Sending None in chunk_queue supersedes setting message_complete
-            # when switching to "streaming". If message is already complete
-            # when the switch happens, put() didn't send None, so we have to.
-            if self.message_complete.is_set():
-                self.chunks_queue.put(None)
-
+            # Locking with get_in_progress ensures only one coroutine can get here.
             self.get_in_progress = True
 
-        # Locking with get_in_progress ensures only one thread can get here.
-        chunk: Data | None
-        for chunk in chunks:
-            yield chunk
-        while (chunk := self.chunks_queue.get()) is not None:
-            yield chunk
+        # Locking with get_in_progress prevents concurrent execution until
+        # get_iter() fetches a complete message or is cancelled.
 
+        # If get_iter() raises an exception e.g. in decoder.decode(),
+        # get_in_progress remains set and the connection becomes unusable.
+
+        # First frame
+        frame = self.get_next_frame()
         with self.mutex:
-            self.get_in_progress = False
+            self.maybe_resume()
+        assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
+        if decode is None:
+            decode = frame.opcode is OP_TEXT
+        if decode:
+            decoder = UTF8Decoder()
+            yield decoder.decode(frame.data, frame.fin)
+        else:
+            yield frame.data
 
-            # get_iter() was unblocked by close() rather than put().
-            if self.closed:
-                raise EOFError("stream of frames ended")
+        # Following frames, for fragmented messages
+        while not frame.fin:
+            frame = self.get_next_frame()
+            with self.mutex:
+                self.maybe_resume()
+            assert frame.opcode is OP_CONT
+            if decode:
+                yield decoder.decode(frame.data, frame.fin)
+            else:
+                yield frame.data
 
-            assert self.message_complete.is_set()
-            self.message_complete.clear()
-
-            assert self.chunks == []
-            self.chunks_queue = None
-
-            assert not self.message_fetched.is_set()
-            self.message_fetched.set()
+        self.get_in_progress = False
 
     def put(self, frame: Frame) -> None:
         """
         Add ``frame`` to the next message.
 
-        When ``frame`` is the final frame in a message, :meth:`put` waits until
-        the message is fetched, which can be achieved by calling :meth:`get` or
-        by fully consuming the return value of :meth:`get_iter`.
-
-        :meth:`put` assumes that the stream of frames respects the protocol. If
-        it doesn't, the behavior is undefined.
-
         Raises:
             EOFError: If the stream of frames has ended.
-            ConcurrencyError: If two threads run :meth:`put` concurrently.
 
         """
         with self.mutex:
             if self.closed:
                 raise EOFError("stream of frames ended")
 
-            if self.put_in_progress:
-                raise ConcurrencyError("put is already running")
+            self.frames.put(frame)
+            self.maybe_pause()
 
-            if frame.opcode is OP_TEXT:
-                self.decoder = UTF8Decoder(errors="strict")
-            elif frame.opcode is OP_BINARY:
-                self.decoder = None
-            else:
-                assert frame.opcode is OP_CONT
+    # put() and get/get_iter() call maybe_pause() and maybe_resume() while
+    # holding self.mutex. This guarantees that the calls interleave properly.
+    # Specifically, it prevents a race condition where maybe_resume() would
+    # run before maybe_pause(), leaving the connection incorrectly paused.
 
-            data: Data
-            if self.decoder is not None:
-                data = self.decoder.decode(frame.data, frame.fin)
-            else:
-                data = frame.data
+    # A race condition is possible when get/get_iter() call self.frames.get()
+    # without holding self.mutex. However, it's harmless — and even beneficial!
+    # It can only result in popping an item from the queue before maybe_resume()
+    # runs and skipping a pause() - resume() cycle that would otherwise occur.
 
-            if self.chunks_queue is None:
-                self.chunks.append(data)
-            else:
-                self.chunks_queue.put(data)
+    def maybe_pause(self) -> None:
+        """Pause the writer if queue is above the high water mark."""
+        assert self.mutex.locked()
+        # Check for "> high" to support high = 0
+        if self.frames.qsize() > self.high and not self.paused:
+            self.paused = True
+            self.pause()
 
-            if not frame.fin:
-                return
-
-            # Message is complete. Wait until it's fetched to return.
-
-            assert not self.message_complete.is_set()
-            self.message_complete.set()
-
-            if self.chunks_queue is not None:
-                self.chunks_queue.put(None)
-
-            assert not self.message_fetched.is_set()
-
-            self.put_in_progress = True
-
-        # Release the lock to allow get() to run and eventually set the event.
-        # Locking with put_in_progress ensures only one coroutine can get here.
-        self.message_fetched.wait()
-
-        with self.mutex:
-            self.put_in_progress = False
-
-            # put() was unblocked by close() rather than get() or get_iter().
-            if self.closed:
-                raise EOFError("stream of frames ended")
-
-            assert self.message_fetched.is_set()
-            self.message_fetched.clear()
-
-            self.decoder = None
+    def maybe_resume(self) -> None:
+        """Resume the writer if queue is below the low water mark."""
+        assert self.mutex.locked()
+        # Check for "<= low" to support low = 0
+        if self.frames.qsize() <= self.low and self.paused:
+            self.paused = False
+            self.resume()
 
     def close(self) -> None:
         """
@@ -273,12 +287,5 @@ class Assembler:
 
             self.closed = True
 
-            # Unblock get or get_iter.
-            if self.get_in_progress:
-                self.message_complete.set()
-                if self.chunks_queue is not None:
-                    self.chunks_queue.put(None)
-
-            # Unblock put().
-            if self.put_in_progress:
-                self.message_fetched.set()
+            # Unblock get() or get_iter().
+            self.frames.put(None)

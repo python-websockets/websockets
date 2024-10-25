@@ -40,10 +40,12 @@ class ClientConnection(Connection):
     :exc:`~websockets.exceptions.ConnectionClosedError` when the connection is
     closed with any other code.
 
+    The ``close_timeout`` and ``max_queue`` arguments have the same meaning as
+    in :func:`connect`.
+
     Args:
         socket: Socket connected to a WebSocket server.
         protocol: Sans-I/O connection.
-        close_timeout: Timeout for closing the connection in seconds.
 
     """
 
@@ -53,6 +55,7 @@ class ClientConnection(Connection):
         protocol: ClientProtocol,
         *,
         close_timeout: float | None = 10,
+        max_queue: int | tuple[int, int | None] = 16,
     ) -> None:
         self.protocol: ClientProtocol
         self.response_rcvd = threading.Event()
@@ -60,6 +63,7 @@ class ClientConnection(Connection):
             socket,
             protocol,
             close_timeout=close_timeout,
+            max_queue=max_queue,
         )
 
     def handshake(
@@ -135,6 +139,7 @@ def connect(
     close_timeout: float | None = 10,
     # Limits
     max_size: int | None = 2**20,
+    max_queue: int | tuple[int, int | None] = 16,
     # Logging
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
@@ -183,6 +188,10 @@ def connect(
             :obj:`None` disables the timeout.
         max_size: Maximum size of incoming messages in bytes.
             :obj:`None` disables the limit.
+        max_queue: High-water mark of the buffer where frames are received.
+            It defaults to 16 frames. The low-water mark defaults to ``max_queue
+            // 4``. You may pass a ``(high, low)`` tuple to set the high-water
+            and low-water marks.
         logger: Logger for this client.
             It defaults to ``logging.getLogger("websockets.client")``.
             See the :doc:`logging guide <../../topics/logging>` for details.
@@ -287,6 +296,7 @@ def connect(
             sock,
             protocol,
             close_timeout=close_timeout,
+            max_queue=max_queue,
         )
     except Exception:
         if sock is not None:

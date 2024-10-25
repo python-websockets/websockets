@@ -49,10 +49,14 @@ class Connection:
         protocol: Protocol,
         *,
         close_timeout: float | None = 10,
+        max_queue: int | tuple[int, int | None] = 16,
     ) -> None:
         self.socket = socket
         self.protocol = protocol
         self.close_timeout = close_timeout
+        if isinstance(max_queue, int):
+            max_queue = (max_queue, None)
+        self.max_queue = max_queue
 
         # Inject reference to this instance in the protocol's logger.
         self.protocol.logger = logging.LoggerAdapter(
@@ -76,8 +80,15 @@ class Connection:
         # Mutex serializing interactions with the protocol.
         self.protocol_mutex = threading.Lock()
 
+        # Lock stopping reads when the assembler buffer is full.
+        self.recv_flow_control = threading.Lock()
+
         # Assembler turning frames into messages and serializing reads.
-        self.recv_messages = Assembler()
+        self.recv_messages = Assembler(
+            *self.max_queue,
+            pause=self.recv_flow_control.acquire,
+            resume=self.recv_flow_control.release,
+        )
 
         # Whether we are busy sending a fragmented message.
         self.send_in_progress = False
@@ -88,6 +99,10 @@ class Connection:
         # Mapping of ping IDs to pong waiters, in chronological order.
         self.ping_waiters: dict[bytes, threading.Event] = {}
 
+        # Exception raised in recv_events, to be chained to ConnectionClosed
+        # in the user thread in order to show why the TCP connection dropped.
+        self.recv_exc: BaseException | None = None
+
         # Receiving events from the socket. This thread is marked as daemon to
         # allow creating a connection in a non-daemon thread and using it in a
         # daemon thread. This mustn't prevent the interpreter from exiting.
@@ -96,10 +111,6 @@ class Connection:
             daemon=True,
         )
         self.recv_events_thread.start()
-
-        # Exception raised in recv_events, to be chained to ConnectionClosed
-        # in the user thread in order to show why the TCP connection dropped.
-        self.recv_exc: BaseException | None = None
 
     # Public attributes
 
@@ -172,7 +183,7 @@ class Connection:
         except ConnectionClosedOK:
             return
 
-    def recv(self, timeout: float | None = None) -> Data:
+    def recv(self, timeout: float | None = None, decode: bool | None = None) -> Data:
         """
         Receive the next message.
 
@@ -191,12 +202,27 @@ class Connection:
         If the message is fragmented, wait until all fragments are received,
         reassemble them, and return the whole message.
 
+        Args:
+            timeout: Timeout for receiving a message in seconds.
+            decode: Set this flag to override the default behavior of returning
+                :class:`str` or :class:`bytes`. See below for details.
+
         Returns:
             A string (:class:`str`) for a Text_ frame or a bytestring
             (:class:`bytes`) for a Binary_ frame.
 
             .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
             .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+            You may override this behavior with the ``decode`` argument:
+
+            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames and
+              return a bytestring (:class:`bytes`). This improves performance
+              when decoding isn't needed, for example if the message contains
+              JSON and you're using a JSON library that expects a bytestring.
+            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
+              and return a string (:class:`str`). This may be useful for
+              servers that send binary frames instead of text frames.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -205,7 +231,7 @@ class Connection:
 
         """
         try:
-            return self.recv_messages.get(timeout)
+            return self.recv_messages.get(timeout, decode)
         except EOFError:
             # Wait for the protocol state to be CLOSED before accessing close_exc.
             self.recv_events_thread.join()
@@ -216,15 +242,22 @@ class Connection:
                 "is already running recv or recv_streaming"
             ) from None
 
-    def recv_streaming(self) -> Iterator[Data]:
+    def recv_streaming(self, decode: bool | None = None) -> Iterator[Data]:
         """
         Receive the next message frame by frame.
 
-        If the message is fragmented, yield each fragment as it is received.
-        The iterator must be fully consumed, or else the connection will become
+        This method is designed for receiving fragmented messages. It returns an
+        iterator that yields each fragment as it is received. This iterator must
+        be fully consumed. Else, future calls to :meth:`recv` or
+        :meth:`recv_streaming` will raise
+        :exc:`~websockets.exceptions.ConcurrencyError`, making the connection
         unusable.
 
         :meth:`recv_streaming` raises the same exceptions as :meth:`recv`.
+
+        Args:
+            decode: Set this flag to override the default behavior of returning
+                :class:`str` or :class:`bytes`. See below for details.
 
         Returns:
             An iterator of strings (:class:`str`) for a Text_ frame or
@@ -233,6 +266,15 @@ class Connection:
             .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
             .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
+            You may override this behavior with the ``decode`` argument:
+
+            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames
+              and return bytestrings (:class:`bytes`). This may be useful to
+              optimize performance when decoding isn't needed.
+            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
+              and return strings (:class:`str`). This is useful for servers
+              that send binary frames instead of text frames.
+
         Raises:
             ConnectionClosed: When the connection is closed.
             ConcurrencyError: If two threads call :meth:`recv` or
@@ -240,7 +282,7 @@ class Connection:
 
         """
         try:
-            yield from self.recv_messages.get_iter()
+            yield from self.recv_messages.get_iter(decode)
         except EOFError:
             # Wait for the protocol state to be CLOSED before accessing close_exc.
             self.recv_events_thread.join()
@@ -571,8 +613,9 @@ class Connection:
         try:
             while True:
                 try:
-                    if self.close_deadline is not None:
-                        self.socket.settimeout(self.close_deadline.timeout())
+                    with self.recv_flow_control:
+                        if self.close_deadline is not None:
+                            self.socket.settimeout(self.close_deadline.timeout())
                     data = self.socket.recv(self.recv_bufsize)
                 except Exception as exc:
                     if self.debug:
@@ -622,13 +665,9 @@ class Connection:
                 # Given that automatic responses write small amounts of data,
                 # this should be uncommon, so we don't handle the edge case.
 
-                try:
-                    for event in events:
-                        # This may raise EOFError if the closing handshake
-                        # times out while a message is waiting to be read.
-                        self.process_event(event)
-                except EOFError:
-                    break
+                for event in events:
+                    # This isn't expected to raise an exception.
+                    self.process_event(event)
 
             # Breaking out of the while True: ... loop means that we believe
             # that the socket doesn't work anymore.

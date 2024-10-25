@@ -51,10 +51,12 @@ class ServerConnection(Connection):
     :exc:`~websockets.exceptions.ConnectionClosedError` when the connection is
     closed with any other code.
 
+    The ``close_timeout`` and ``max_queue`` arguments have the same meaning as
+    in :func:`serve`.
+
     Args:
         socket: Socket connected to a WebSocket client.
         protocol: Sans-I/O connection.
-        close_timeout: Timeout for closing the connection in seconds.
 
     """
 
@@ -64,6 +66,7 @@ class ServerConnection(Connection):
         protocol: ServerProtocol,
         *,
         close_timeout: float | None = 10,
+        max_queue: int | tuple[int, int | None] = 16,
     ) -> None:
         self.protocol: ServerProtocol
         self.request_rcvd = threading.Event()
@@ -71,6 +74,7 @@ class ServerConnection(Connection):
             socket,
             protocol,
             close_timeout=close_timeout,
+            max_queue=max_queue,
         )
         self.username: str  # see basic_auth()
 
@@ -349,6 +353,7 @@ def serve(
     close_timeout: float | None = 10,
     # Limits
     max_size: int | None = 2**20,
+    max_queue: int | tuple[int, int | None] = 16,
     # Logging
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
@@ -427,6 +432,10 @@ def serve(
             :obj:`None` disables the timeout.
         max_size: Maximum size of incoming messages in bytes.
             :obj:`None` disables the limit.
+        max_queue: High-water mark of the buffer where frames are received.
+            It defaults to 16 frames. The low-water mark defaults to ``max_queue
+            // 4``. You may pass a ``(high, low)`` tuple to set the high-water
+            and low-water marks.
         logger: Logger for this server.
             It defaults to ``logging.getLogger("websockets.server")``. See the
             :doc:`logging guide <../../topics/logging>` for details.
@@ -548,6 +557,7 @@ def serve(
                 sock,
                 protocol,
                 close_timeout=close_timeout,
+                max_queue=max_queue,
             )
         except Exception:
             sock.close()

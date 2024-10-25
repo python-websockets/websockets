@@ -45,7 +45,7 @@ class ClientConnection(Connection):
     closed with any other code.
 
     The ``ping_interval``, ``ping_timeout``, ``close_timeout``, ``max_queue``,
-    and ``write_limit`` arguments the same meaning as in :func:`connect`.
+    and ``write_limit`` arguments have the same meaning as in :func:`connect`.
 
     Args:
         protocol: Sans-I/O connection.

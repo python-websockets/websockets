@@ -5,7 +5,7 @@
    }, {
       "url": "ws://host.docker.internal:9003"
    }],
-   "outdir": "./reports/servers",
+   "outdir": "/reports/servers",
    "cases": ["*"],
    "exclude-cases": []
 }

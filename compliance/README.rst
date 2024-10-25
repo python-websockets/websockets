@@ -38,7 +38,7 @@ To test the servers:
         crossbario/autobahn-testsuite \
         wstest --mode fuzzingclient --spec /config/fuzzingclient.json
 
-    $ open reports/servers/index.html
+    $ open compliance/reports/servers/index.html
 
 To test the clients:
 
@@ -54,7 +54,7 @@ To test the clients:
     $ PYTHONPATH=src python compliance/asyncio/client.py
     $ PYTHONPATH=src python compliance/sync/client.py
 
-    $ open reports/clients/index.html
+    $ open compliance/reports/clients/index.html
 
 Conformance notes
 -----------------
@@ -67,6 +67,13 @@ In 3.2, 3.3, 4.1.3, 4.1.4, 4.2.3, 4.2.4, and 5.15 websockets notices the
 protocol error and closes the connection at the library level before the
 application gets a chance to echo the previous frame.
 
-In 6.4.3 and 6.4.4, even though it uses an incremental decoder, websockets
-doesn't notice the invalid utf-8 fast enough to get a "Strict" pass. These tests
-are more strict than the RFC.
+In 6.4.1, 6.4.2, 6.4.3, and 6.4.4, even though it uses an incremental decoder,
+websockets doesn't notice the invalid utf-8 fast enough to get a "Strict" pass.
+These tests are more strict than the RFC.
+
+Test case 7.1.5 fails because websockets treats closing the connection in the
+middle of a fragmented message as a protocol error. As a consequence, it sends
+a close frame with code 1002. The test suite expects a close frame with code
+1000, echoing the close code that it sent. This isn't required. RFC 6455 states
+that "the endpoint typically echos the status code it received", which leaves
+the possibility to send a close frame with a different status code.

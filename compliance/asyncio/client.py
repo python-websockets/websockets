@@ -8,7 +8,9 @@ from websockets.exceptions import WebSocketException
 
 logging.basicConfig(level=logging.WARNING)
 
-SERVER = "ws://127.0.0.1:9001"
+SERVER = "ws://localhost:9001"
+
+AGENT = "websockets.asyncio"
 
 
 async def get_case_count():
@@ -18,16 +20,21 @@ async def get_case_count():
 
 async def run_case(case):
     async with connect(
-        f"{SERVER}/runCase?case={case}",
-        user_agent_header="websockets.asyncio",
+        f"{SERVER}/runCase?case={case}&agent={AGENT}",
         max_size=2**25,
     ) as ws:
-        async for msg in ws:
-            await ws.send(msg)
+        try:
+            async for msg in ws:
+                await ws.send(msg)
+        except WebSocketException:
+            pass
 
 
 async def update_reports():
-    async with connect(f"{SERVER}/updateReports", open_timeout=60):
+    async with connect(
+        f"{SERVER}/updateReports?agent={AGENT}",
+        open_timeout=60,
+    ):
         pass
 
 
@@ -43,7 +50,7 @@ async def main():
             print(f"FAIL: {type(exc).__name__}: {exc}")
         else:
             print("OK")
-    print("Ran {cases} test cases")
+    print(f"Ran {cases} test cases")
     await update_reports()
     print("Updated reports")
 

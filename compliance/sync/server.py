@@ -1,5 +1,6 @@
 import logging
 
+from websockets.exceptions import WebSocketException
 from websockets.sync.server import serve
 
 
@@ -9,8 +10,11 @@ HOST, PORT = "0.0.0.0", 9003
 
 
 def echo(ws):
-    for msg in ws:
-        ws.send(msg)
+    try:
+        for msg in ws:
+            ws.send(msg)
+    except WebSocketException:
+        pass
 
 
 def main():

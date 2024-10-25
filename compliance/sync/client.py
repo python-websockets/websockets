@@ -7,7 +7,9 @@ from websockets.sync.client import connect
 
 logging.basicConfig(level=logging.WARNING)
 
-SERVER = "ws://127.0.0.1:9001"
+SERVER = "ws://localhost:9001"
+
+AGENT = "websockets.sync"
 
 
 def get_case_count():
@@ -17,16 +19,21 @@ def get_case_count():
 
 def run_case(case):
     with connect(
-        f"{SERVER}/runCase?case={case}",
-        user_agent_header="websockets.sync",
+        f"{SERVER}/runCase?case={case}&agent={AGENT}",
         max_size=2**25,
     ) as ws:
-        for msg in ws:
-            ws.send(msg)
+        try:
+            for msg in ws:
+                ws.send(msg)
+        except WebSocketException:
+            pass
 
 
 def update_reports():
-    with connect(f"{SERVER}/updateReports", open_timeout=60):
+    with connect(
+        f"{SERVER}/updateReports?agent={AGENT}",
+        open_timeout=60,
+    ):
         pass
 
 
@@ -42,7 +49,7 @@ def main():
             print(f"FAIL: {type(exc).__name__}: {exc}")
         else:
             print("OK")
-    print("Ran {cases} test cases")
+    print(f"Ran {cases} test cases")
     update_reports()
     print("Updated reports")
 

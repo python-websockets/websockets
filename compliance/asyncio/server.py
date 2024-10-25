@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from websockets.asyncio.server import serve
+from websockets.exceptions import WebSocketException
 
 
 logging.basicConfig(level=logging.WARNING)
@@ -10,8 +11,11 @@ HOST, PORT = "0.0.0.0", 9002
 
 
 async def echo(ws):
-    async for msg in ws:
-        await ws.send(msg)
+    try:
+        async for msg in ws:
+            await ws.send(msg)
+    except WebSocketException:
+        pass
 
 
 async def main():

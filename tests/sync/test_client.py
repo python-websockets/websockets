@@ -311,7 +311,7 @@ class SecureUnixClientTests(unittest.TestCase):
 class ClientUsageErrorsTests(unittest.TestCase):
     def test_ssl_without_secure_uri(self):
         """Client rejects ssl when URI isn't secure."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             connect("ws://localhost/", ssl=CLIENT_CONTEXT)
         self.assertEqual(
             str(raised.exception),
@@ -320,7 +320,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
 
     def test_unix_without_path_or_sock(self):
         """Unix client requires path when sock isn't provided."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             unix_connect()
         self.assertEqual(
             str(raised.exception),
@@ -331,7 +331,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
         """Unix client rejects path when sock is provided."""
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.addCleanup(sock.close)
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             unix_connect(path="/", sock=sock)
         self.assertEqual(
             str(raised.exception),

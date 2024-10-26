@@ -221,7 +221,7 @@ def connect(
 
     wsuri = parse_uri(uri)
     if not wsuri.secure and ssl is not None:
-        raise TypeError("ssl argument is incompatible with a ws:// URI")
+        raise ValueError("ssl argument is incompatible with a ws:// URI")
 
     # Private APIs for unix_connect()
     unix: bool = kwargs.pop("unix", False)
@@ -229,9 +229,9 @@ def connect(
 
     if unix:
         if path is None and sock is None:
-            raise TypeError("missing path argument")
+            raise ValueError("missing path argument")
         elif path is not None and sock is not None:
-            raise TypeError("path and sock arguments are incompatible")
+            raise ValueError("path and sock arguments are incompatible")
 
     if subprotocols is not None:
         validate_subprotocols(subprotocols)

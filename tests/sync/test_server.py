@@ -361,7 +361,7 @@ class SecureUnixServerTests(EvalShellMixin, unittest.TestCase):
 class ServerUsageErrorsTests(unittest.TestCase):
     def test_unix_without_path_or_sock(self):
         """Unix server requires path when sock isn't provided."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             unix_serve(handler)
         self.assertEqual(
             str(raised.exception),
@@ -372,7 +372,7 @@ class ServerUsageErrorsTests(unittest.TestCase):
         """Unix server rejects path when sock is provided."""
         sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         self.addCleanup(sock.close)
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             unix_serve(handler, path="/", sock=sock)
         self.assertEqual(
             str(raised.exception),
@@ -504,7 +504,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     def test_without_credentials_or_check_credentials(self):
         """basic_auth requires either credentials or check_credentials."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             basic_auth()
         self.assertEqual(
             str(raised.exception),
@@ -513,7 +513,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     def test_with_credentials_and_check_credentials(self):
         """basic_auth requires only one of credentials and check_credentials."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             basic_auth(
                 credentials=("hello", "iloveyou"),
                 check_credentials=lambda: False,  # pragma: no cover

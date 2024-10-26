@@ -477,14 +477,14 @@ def serve(
     if sock is None:
         if unix:
             if path is None:
-                raise TypeError("missing path argument")
+                raise ValueError("missing path argument")
             kwargs.setdefault("family", socket.AF_UNIX)
             sock = socket.create_server(path, **kwargs)
         else:
             sock = socket.create_server((host, port), **kwargs)
     else:
         if path is not None:
-            raise TypeError("path and sock arguments are incompatible")
+            raise ValueError("path and sock arguments are incompatible")
 
     # Initialize TLS wrapper
 
@@ -667,10 +667,12 @@ def basic_auth(
             whether they're valid.
     Raises:
         TypeError: If ``credentials`` or ``check_credentials`` is wrong.
+        ValueError: If ``credentials`` and ``check_credentials`` are both
+            provided or both not provided.
 
     """
     if (credentials is None) == (check_credentials is None):
-        raise TypeError("provide either credentials or check_credentials")
+        raise ValueError("provide either credentials or check_credentials")
 
     if credentials is not None:
         if is_credentials(credentials):

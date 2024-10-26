@@ -717,7 +717,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_without_credentials_or_check_credentials(self):
         """basic_auth requires either credentials or check_credentials."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             basic_auth()
         self.assertEqual(
             str(raised.exception),
@@ -726,7 +726,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_with_credentials_and_check_credentials(self):
         """basic_auth requires only one of credentials and check_credentials."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             basic_auth(
                 credentials=("hello", "iloveyou"),
                 check_credentials=lambda: False,  # pragma: no cover

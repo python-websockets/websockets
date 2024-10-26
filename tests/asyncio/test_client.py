@@ -607,7 +607,7 @@ class SecureUnixClientTests(unittest.IsolatedAsyncioTestCase):
 class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
     async def test_ssl_without_secure_uri(self):
         """Client rejects ssl when URI isn't secure."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             await connect("ws://localhost/", ssl=CLIENT_CONTEXT)
         self.assertEqual(
             str(raised.exception),
@@ -616,7 +616,7 @@ class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_secure_uri_without_ssl(self):
         """Client rejects no ssl when URI is secure."""
-        with self.assertRaises(TypeError) as raised:
+        with self.assertRaises(ValueError) as raised:
             await connect("wss://localhost/", ssl=None)
         self.assertEqual(
             str(raised.exception),

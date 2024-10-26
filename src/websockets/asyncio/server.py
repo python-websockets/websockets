@@ -890,10 +890,12 @@ def basic_auth(
             whether they're valid.
     Raises:
         TypeError: If ``credentials`` or ``check_credentials`` is wrong.
+        ValueError: If ``credentials`` and ``check_credentials`` are both
+            provided or both not provided.
 
     """
     if (credentials is None) == (check_credentials is None):
-        raise TypeError("provide either credentials or check_credentials")
+        raise ValueError("provide either credentials or check_credentials")
 
     if credentials is not None:
         if is_credentials(credentials):

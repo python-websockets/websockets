@@ -76,6 +76,19 @@ Backwards-incompatible changes
     If you wrote an :class:`extension <extensions.Extension>` that relies on
     methods not provided by these new types, you may need to update your code.
 
+.. admonition:: Several API raise :exc:`ValueError` instead of :exc:`TypeError`
+    on invalid arguments.
+    :class: note
+
+    :func:`~asyncio.client.connect`, :func:`~asyncio.client.unix_connect`, and
+    :func:`~asyncio.server.basic_auth` in the :mod:`asyncio` implementation as
+    well as :func:`~sync.client.connect`, :func:`~sync.client.unix_connect`,
+    :func:`~sync.server.serve`, :func:`~sync.server.unix_serve`, and
+    :func:`~sync.server.basic_auth` in the :mod:`threading` implementation now
+    raise :exc:`ValueError` when a required argument isn't provided or an
+    argument that is incompatible with others is provided.
+
+
 New features
 ............
 

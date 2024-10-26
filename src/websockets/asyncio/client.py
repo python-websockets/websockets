@@ -352,10 +352,10 @@ class connect:
             kwargs.setdefault("ssl", True)
             kwargs.setdefault("server_hostname", wsuri.host)
             if kwargs.get("ssl") is None:
-                raise TypeError("ssl=None is incompatible with a wss:// URI")
+                raise ValueError("ssl=None is incompatible with a wss:// URI")
         else:
             if kwargs.get("ssl") is not None:
-                raise TypeError("ssl argument is incompatible with a ws:// URI")
+                raise ValueError("ssl argument is incompatible with a ws:// URI")
 
         if kwargs.pop("unix", False):
             _, connection = await loop.create_unix_connection(factory, **kwargs)

@@ -52,6 +52,12 @@ Backwards-incompatible changes
     If you're using any of them, then you must follow the :doc:`upgrade guide
     <../howto/upgrade>` immediately.
 
+    Alternatively, you may stick to the legacy :mod:`asyncio` implementation for
+    now by importing it explicitly::
+
+        from websockets.legacy.client import connect, unix_connect
+        from websockets.legacy.server import broadcast, serve, unix_serve
+
 .. admonition:: The legacy :mod:`asyncio` implementation is now deprecated.
     :class: caution
 

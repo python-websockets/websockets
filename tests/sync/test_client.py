@@ -1,3 +1,4 @@
+import http
 import logging
 import socket
 import socketserver
@@ -6,7 +7,7 @@ import threading
 import time
 import unittest
 
-from websockets.exceptions import InvalidHandshake, InvalidURI
+from websockets.exceptions import InvalidHandshake, InvalidStatus, InvalidURI
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 from websockets.sync.client import *
 
@@ -155,6 +156,36 @@ class ClientTests(unittest.TestCase):
                 str(raised.exception),
                 "connection closed while reading HTTP status line",
             )
+
+    def test_http_response(self):
+        """Client reads HTTP response."""
+
+        def http_response(connection, request):
+            return connection.respond(http.HTTPStatus.OK, "👌")
+
+        with run_server(process_request=http_response) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                with connect(get_uri(server)):
+                    self.fail("did not raise")
+
+        self.assertEqual(raised.exception.response.status_code, 200)
+        self.assertEqual(raised.exception.response.body.decode(), "👌")
+
+    def test_http_response_without_content_length(self):
+        """Client reads HTTP response without a Content-Length header."""
+
+        def http_response(connection, request):
+            response = connection.respond(http.HTTPStatus.OK, "👌")
+            del response.headers["Content-Length"]
+            return response
+
+        with run_server(process_request=http_response) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                with connect(get_uri(server)):
+                    self.fail("did not raise")
+
+        self.assertEqual(raised.exception.response.status_code, 200)
+        self.assertEqual(raised.exception.response.body.decode(), "👌")
 
     def test_junk_handshake(self):
         """Client closes the connection when receiving non-HTTP response from server."""

@@ -1060,12 +1060,21 @@ class Connection(asyncio.Protocol):
         # Feed the end of the data stream to the connection.
         self.protocol.receive_eof()
 
-        # This isn't expected to generate events.
-        assert not self.protocol.events_received()
+        # This isn't expected to raise an exception.
+        events = self.protocol.events_received()
 
         # There is no error handling because send_data() can only write
         # the end of the data stream here and it shouldn't raise errors.
         self.send_data()
+
+        # This code path is triggered when receiving an HTTP response
+        # without a Content-Length header. This is the only case where
+        # reading until EOF generates an event; all other events have
+        # a known length. Ignore for coverage measurement because tests
+        # are in test_client.py rather than test_connection.py.
+        for event in events:  # pragma: no cover
+            # This isn't expected to raise an exception.
+            self.process_event(event)
 
         # The WebSocket protocol has its own closing handshake: endpoints close
         # the TCP or TLS connection after sending and receiving a close frame.

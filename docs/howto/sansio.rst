@@ -302,21 +302,24 @@ Tips
 Serialize operations
 ....................
 
-The Sans-I/O layer expects to run sequentially. If your interact with it from
-multiple threads or coroutines, you must ensure correct serialization. This
-should happen automatically in a cooperative multitasking environment.
+The Sans-I/O layer is designed to run sequentially. If you interact with it from
+multiple threads or coroutines, you must ensure correct serialization.
 
-However, you still have to make sure you don't break this property by
-accident. For example, serialize writes to the network
-when :meth:`~protocol.Protocol.data_to_send` returns multiple values to
-prevent concurrent writes from interleaving incorrectly.
+Usually, this comes for free in a cooperative multitasking environment. In a
+preemptive multitasking environment, it requires mutual exclusion.
 
-Avoid buffers
-.............
+Furthermore, you must serialize writes to the network. When
+:meth:`~protocol.Protocol.data_to_send` returns several values, you must write
+them all before starting the next write.
 
-The Sans-I/O layer doesn't do any buffering. It makes events available in
+Minimize buffers
+................
+
+The Sans-I/O layer doesn't perform any buffering. It makes events available in
 :meth:`~protocol.Protocol.events_received` as soon as they're received.
 
-You should make incoming messages available to the application immediately and
-stop further processing until the application fetches them. This will usually
-result in the best performance.
+You should make incoming messages available to the application immediately.
+
+A small buffer of incoming messages will usually result in the best performance.
+It will reduce context switching between the library and the application while
+ensuring that backpressure is propagated.

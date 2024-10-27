@@ -90,6 +90,46 @@ application layer.
 Read this `blog post <https://making.close.com/posts/reliable-websockets/>`_ for
 a complete walk-through of this issue.
 
+Application-level keepalive
+---------------------------
+
+Some servers require clients to send a keepalive message with a specific content
+at regular intervals. Usually they expect Text_ frames rather than Ping_ frames,
+meaning that you must send them with :attr:`~asyncio.connection.Connection.send`
+rather than :attr:`~asyncio.connection.Connection.ping`.
+
+.. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+
+In websockets, such keepalive mechanisms are considered as application-level
+because they rely on data frames. That's unlike the protocol-level keepalive
+based on control frames. Therefore, it's your responsibility to implement the
+required behavior.
+
+You can run a task in the background to send keepalive messages:
+
+.. code-block:: python
+
+    import itertools
+    import json
+
+    from websockets import ConnectionClosed
+
+    async def keepalive(websocket, ping_interval=30):
+        for ping in itertools.count():
+            await asyncio.sleep(ping_interval)
+            try:
+                await websocket.send(json.dumps({"ping": ping}))
+            except ConnectionClosed:
+                break
+
+    async def main():
+        async with connect(...) as websocket:
+            keepalive_task = asyncio.create_task(keepalive(websocket))
+            try:
+                ... # your application logic goes here
+            finally:
+                keepalive_task.cancel()
+
 Latency issues
 --------------
 

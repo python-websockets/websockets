@@ -216,7 +216,7 @@ class Connection(asyncio.Protocol):
             while True:
                 yield await self.recv()
         except ConnectionClosedOK:
-            return
+            raise ConnectionClosed
 
     async def recv(self, decode: bool | None = None) -> Data:
         """

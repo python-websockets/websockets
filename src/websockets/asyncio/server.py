@@ -744,7 +744,7 @@ class serve:
         raise_on_close = None
         if kwargs.get("raise_on_close") is not None and type(kwargs.get("raise_on_close")) == bool:
             raise_on_close = kwargs.get("raise_on_close")
-        
+        kwargs.pop("raise_on_close")
         def factory() -> ServerConnection:
             """
             Create an asyncio protocol for managing a WebSocket connection.

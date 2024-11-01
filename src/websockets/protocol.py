@@ -587,6 +587,7 @@ class Protocol:
             self.parser_exc = exc
 
         except PayloadTooBig as exc:
+            exc.set_current_size(self.cur_size)
             self.fail(CloseCode.MESSAGE_TOO_BIG, str(exc))
             self.parser_exc = exc
 
@@ -639,9 +640,7 @@ class Protocol:
         if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
             if self.cur_size is not None:
                 raise ProtocolError("expected a continuation frame")
-            if frame.fin:
-                self.cur_size = None
-            else:
+            if not frame.fin:
                 self.cur_size = len(frame.data)
 
         elif frame.opcode is OP_CONT:

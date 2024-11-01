@@ -334,6 +334,47 @@ class PayloadTooBig(WebSocketException):
 
     """
 
+    def __init__(
+        self,
+        size_or_message: int | None | str,
+        max_size: int | None = None,
+        cur_size: int | None = None,
+    ) -> None:
+        if isinstance(size_or_message, str):
+            assert max_size is None
+            assert cur_size is None
+            warnings.warn(  # deprecated in 14.0
+                "PayloadTooBig(message) is deprecated; "
+                "change to PayloadTooBig(size, max_size)",
+                DeprecationWarning,
+            )
+            self.message: str | None = size_or_message
+        else:
+            self.message = None
+            self.size: int | None = size_or_message
+            assert max_size is not None
+            self.max_size: int = max_size
+            self.cur_size: int | None = None
+            self.set_current_size(cur_size)
+
+    def __str__(self) -> str:
+        if self.message is not None:
+            return self.message
+        else:
+            message = "frame "
+            if self.size is not None:
+                message += f"with {self.size} bytes "
+            if self.cur_size is not None:
+                message += f"after reading {self.cur_size} bytes "
+            message += f"exceeds limit of {self.max_size} bytes"
+            return message
+
+    def set_current_size(self, cur_size: int | None) -> None:
+        assert self.cur_size is None
+        if cur_size is not None:
+            self.max_size += cur_size
+            self.cur_size = cur_size
+
 
 class InvalidState(WebSocketException, AssertionError):
     """

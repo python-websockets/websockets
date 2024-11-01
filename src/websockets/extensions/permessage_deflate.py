@@ -139,7 +139,8 @@ class PerMessageDeflate(Extension):
         try:
             data = self.decoder.decompress(data, max_length)
             if self.decoder.unconsumed_tail:
-                raise PayloadTooBig(f"over size limit (? > {max_size} bytes)")
+                assert max_size is not None  # help mypy
+                raise PayloadTooBig(None, max_size)
             if frame.fin and len(frame.data) >= 2044:
                 # This cannot generate additional data.
                 self.decoder.decompress(_EMPTY_UNCOMPRESSED_BLOCK)

@@ -160,8 +160,16 @@ class ExceptionsTests(unittest.TestCase):
                 "invalid opcode: 7",
             ),
             (
-                PayloadTooBig("payload length exceeds limit: 2 > 1 bytes"),
-                "payload length exceeds limit: 2 > 1 bytes",
+                PayloadTooBig(None, 4),
+                "frame exceeds limit of 4 bytes",
+            ),
+            (
+                PayloadTooBig(8, 4),
+                "frame with 8 bytes exceeds limit of 4 bytes",
+            ),
+            (
+                PayloadTooBig(8, 4, 12),
+                "frame with 8 bytes after reading 12 bytes exceeds limit of 16 bytes",
             ),
             (
                 InvalidState("WebSocket connection isn't established yet"),
@@ -202,3 +210,11 @@ class DeprecationTests(DeprecationTestCase):
             "use Protocol.close_reason or ConnectionClosed.rcvd.reason"
         ):
             self.assertEqual(exception.reason, "")
+
+    def test_payload_too_big_with_message(self):
+        with self.assertDeprecationWarning(
+            "PayloadTooBig(message) is deprecated; "
+            "change to PayloadTooBig(size, max_size)",
+        ):
+            exc = PayloadTooBig("payload length exceeds limit: 2 > 1 bytes")
+        self.assertEqual(str(exc), "payload length exceeds limit: 2 > 1 bytes")

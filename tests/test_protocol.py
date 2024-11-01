@@ -265,18 +265,28 @@ class TextTests(ProtocolTestCase):
         client = Protocol(CLIENT, max_size=3)
         client.receive_data(b"\x81\x04\xf0\x9f\x98\x80")
         self.assertIsInstance(client.parser_exc, PayloadTooBig)
-        self.assertEqual(str(client.parser_exc), "over size limit (4 > 3 bytes)")
+        self.assertEqual(
+            str(client.parser_exc),
+            "frame with 4 bytes exceeds limit of 3 bytes",
+        )
         self.assertConnectionFailing(
-            client, CloseCode.MESSAGE_TOO_BIG, "over size limit (4 > 3 bytes)"
+            client,
+            CloseCode.MESSAGE_TOO_BIG,
+            "frame with 4 bytes exceeds limit of 3 bytes",
         )
 
     def test_server_receives_text_over_size_limit(self):
         server = Protocol(SERVER, max_size=3)
         server.receive_data(b"\x81\x84\x00\x00\x00\x00\xf0\x9f\x98\x80")
         self.assertIsInstance(server.parser_exc, PayloadTooBig)
-        self.assertEqual(str(server.parser_exc), "over size limit (4 > 3 bytes)")
+        self.assertEqual(
+            str(server.parser_exc),
+            "frame with 4 bytes exceeds limit of 3 bytes",
+        )
         self.assertConnectionFailing(
-            server, CloseCode.MESSAGE_TOO_BIG, "over size limit (4 > 3 bytes)"
+            server,
+            CloseCode.MESSAGE_TOO_BIG,
+            "frame with 4 bytes exceeds limit of 3 bytes",
         )
 
     def test_client_receives_text_without_size_limit(self):
@@ -363,9 +373,14 @@ class TextTests(ProtocolTestCase):
         )
         client.receive_data(b"\x80\x02\x98\x80")
         self.assertIsInstance(client.parser_exc, PayloadTooBig)
-        self.assertEqual(str(client.parser_exc), "over size limit (2 > 1 bytes)")
+        self.assertEqual(
+            str(client.parser_exc),
+            "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
+        )
         self.assertConnectionFailing(
-            client, CloseCode.MESSAGE_TOO_BIG, "over size limit (2 > 1 bytes)"
+            client,
+            CloseCode.MESSAGE_TOO_BIG,
+            "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
         )
 
     def test_server_receives_fragmented_text_over_size_limit(self):
@@ -377,9 +392,14 @@ class TextTests(ProtocolTestCase):
         )
         server.receive_data(b"\x80\x82\x00\x00\x00\x00\x98\x80")
         self.assertIsInstance(server.parser_exc, PayloadTooBig)
-        self.assertEqual(str(server.parser_exc), "over size limit (2 > 1 bytes)")
+        self.assertEqual(
+            str(server.parser_exc),
+            "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
+        )
         self.assertConnectionFailing(
-            server, CloseCode.MESSAGE_TOO_BIG, "over size limit (2 > 1 bytes)"
+            server,
+            CloseCode.MESSAGE_TOO_BIG,
+            "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
         )
 
     def test_client_receives_fragmented_text_without_size_limit(self):
@@ -533,18 +553,28 @@ class BinaryTests(ProtocolTestCase):
         client = Protocol(CLIENT, max_size=3)
         client.receive_data(b"\x82\x04\x01\x02\xfe\xff")
         self.assertIsInstance(client.parser_exc, PayloadTooBig)
-        self.assertEqual(str(client.parser_exc), "over size limit (4 > 3 bytes)")
+        self.assertEqual(
+            str(client.parser_exc),
+            "frame with 4 bytes exceeds limit of 3 bytes",
+        )
         self.assertConnectionFailing(
-            client, CloseCode.MESSAGE_TOO_BIG, "over size limit (4 > 3 bytes)"
+            client,
+            CloseCode.MESSAGE_TOO_BIG,
+            "frame with 4 bytes exceeds limit of 3 bytes",
         )
 
     def test_server_receives_binary_over_size_limit(self):
         server = Protocol(SERVER, max_size=3)
         server.receive_data(b"\x82\x84\x00\x00\x00\x00\x01\x02\xfe\xff")
         self.assertIsInstance(server.parser_exc, PayloadTooBig)
-        self.assertEqual(str(server.parser_exc), "over size limit (4 > 3 bytes)")
+        self.assertEqual(
+            str(server.parser_exc),
+            "frame with 4 bytes exceeds limit of 3 bytes",
+        )
         self.assertConnectionFailing(
-            server, CloseCode.MESSAGE_TOO_BIG, "over size limit (4 > 3 bytes)"
+            server,
+            CloseCode.MESSAGE_TOO_BIG,
+            "frame with 4 bytes exceeds limit of 3 bytes",
         )
 
     def test_client_sends_fragmented_binary(self):
@@ -615,9 +645,14 @@ class BinaryTests(ProtocolTestCase):
         )
         client.receive_data(b"\x80\x02\xfe\xff")
         self.assertIsInstance(client.parser_exc, PayloadTooBig)
-        self.assertEqual(str(client.parser_exc), "over size limit (2 > 1 bytes)")
+        self.assertEqual(
+            str(client.parser_exc),
+            "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
+        )
         self.assertConnectionFailing(
-            client, CloseCode.MESSAGE_TOO_BIG, "over size limit (2 > 1 bytes)"
+            client,
+            CloseCode.MESSAGE_TOO_BIG,
+            "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
         )
 
     def test_server_receives_fragmented_binary_over_size_limit(self):
@@ -629,9 +664,14 @@ class BinaryTests(ProtocolTestCase):
         )
         server.receive_data(b"\x80\x82\x00\x00\x00\x00\xfe\xff")
         self.assertIsInstance(server.parser_exc, PayloadTooBig)
-        self.assertEqual(str(server.parser_exc), "over size limit (2 > 1 bytes)")
+        self.assertEqual(
+            str(server.parser_exc),
+            "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
+        )
         self.assertConnectionFailing(
-            server, CloseCode.MESSAGE_TOO_BIG, "over size limit (2 > 1 bytes)"
+            server,
+            CloseCode.MESSAGE_TOO_BIG,
+            "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
         )
 
     def test_client_sends_unexpected_binary(self):

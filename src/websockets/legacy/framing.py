@@ -93,7 +93,7 @@ class Frame(NamedTuple):
             data = await reader(8)
             (length,) = struct.unpack("!Q", data)
         if max_size is not None and length > max_size:
-            raise PayloadTooBig(f"over size limit ({length} > {max_size} bytes)")
+            raise PayloadTooBig(length, max_size)
         if mask:
             mask_bits = await reader(4)
 

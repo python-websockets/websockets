@@ -73,6 +73,7 @@ class ServerConnection(Connection):
         close_timeout: float | None = 10,
         max_queue: int | tuple[int, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
+        raise_on_close: bool | None = None
     ) -> None:
         self.protocol: ServerProtocol
         super().__init__(
@@ -82,6 +83,7 @@ class ServerConnection(Connection):
             close_timeout=close_timeout,
             max_queue=max_queue,
             write_limit=write_limit,
+            raise_on_close=raise_on_close,
         )
         self.server = server
         self.request_rcvd: asyncio.Future[None] = self.loop.create_future()
@@ -739,7 +741,10 @@ class serve:
             kwargs.setdefault("ssl_handshake_timeout", open_timeout)
             if sys.version_info[:2] >= (3, 11):  # pragma: no branch
                 kwargs.setdefault("ssl_shutdown_timeout", close_timeout)
-
+        raise_on_close = None
+        if kwargs.get("raise_on_close") is not None and type(kwargs.get("raise_on_close")) == bool:
+            raise_on_close = kwargs.get("raise_on_close")
+        
         def factory() -> ServerConnection:
             """
             Create an asyncio protocol for managing a WebSocket connection.
@@ -783,6 +788,7 @@ class serve:
                 close_timeout=close_timeout,
                 max_queue=max_queue,
                 write_limit=write_limit,
+                raise_on_close=raise_on_close
             )
             return connection
 

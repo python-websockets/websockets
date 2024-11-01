@@ -57,6 +57,7 @@ class Connection(asyncio.Protocol):
         close_timeout: float | None = 10,
         max_queue: int | tuple[int, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
+        raise_on_close: bool | None = None
     ) -> None:
         self.protocol = protocol
         self.ping_interval = ping_interval
@@ -132,6 +133,8 @@ class Connection(asyncio.Protocol):
         self.drain_waiters: collections.deque[asyncio.Future[None]] = (
             collections.deque()
         )
+
+        self.raise_on_close: bool = raise_on_close is not None
 
     # Public attributes
 
@@ -216,6 +219,8 @@ class Connection(asyncio.Protocol):
             while True:
                 yield await self.recv()
         except ConnectionClosedOK:
+            if self.raise_on_close:
+                raise ConnectionClosed(None,None)
             return
 
     async def recv(self, decode: bool | None = None) -> Data:

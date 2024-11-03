@@ -1615,12 +1615,12 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
             [
                 "connection rejected (503 Service Unavailable)",
                 "connection closed",
-                "! connect failed; reconnecting in X seconds",
+                "connect failed; reconnecting in X seconds",
             ]
             + [
                 "connection rejected (503 Service Unavailable)",
                 "connection closed",
-                "! connect failed again; retrying in X seconds",
+                "connect failed again; retrying in X seconds",
             ]
             * ((len(logs.records) - 8) // 3)
             + [

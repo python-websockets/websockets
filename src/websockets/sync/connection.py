@@ -640,7 +640,10 @@ class Connection:
                     data = self.socket.recv(self.recv_bufsize)
                 except Exception as exc:
                     if self.debug:
-                        self.logger.debug("error while receiving data", exc_info=True)
+                        self.logger.debug(
+                            "! error while receiving data",
+                            exc_info=True,
+                        )
                     # When the closing handshake is initiated by our side,
                     # recv() may block until send_context() closes the socket.
                     # In that case, send_context() already set recv_exc.
@@ -665,7 +668,10 @@ class Connection:
                         self.send_data()
                     except Exception as exc:
                         if self.debug:
-                            self.logger.debug("error while sending data", exc_info=True)
+                            self.logger.debug(
+                                "! error while sending data",
+                                exc_info=True,
+                            )
                         # Similarly to the above, avoid overriding an exception
                         # set by send_context(), in case of a race condition
                         # i.e. send_context() closes the socket after recv()
@@ -783,7 +789,10 @@ class Connection:
                         self.send_data()
                     except Exception as exc:
                         if self.debug:
-                            self.logger.debug("error while sending data", exc_info=True)
+                            self.logger.debug(
+                                "! error while sending data",
+                                exc_info=True,
+                            )
                         # While the only expected exception here is OSError,
                         # other exceptions would be treated identically.
                         wait_for_close = False

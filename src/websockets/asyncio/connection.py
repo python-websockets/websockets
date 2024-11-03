@@ -785,7 +785,7 @@ class Connection(asyncio.Protocol):
                         self.logger.debug("% received keepalive pong")
                     except asyncio.TimeoutError:
                         if self.debug:
-                            self.logger.debug("! timed out waiting for keepalive pong")
+                            self.logger.debug("- timed out waiting for keepalive pong")
                         async with self.send_context():
                             self.protocol.fail(
                                 CloseCode.INTERNAL_ERROR,
@@ -866,7 +866,7 @@ class Connection(asyncio.Protocol):
                     await self.drain()
                 except Exception as exc:
                     if self.debug:
-                        self.logger.debug("error while sending data", exc_info=True)
+                        self.logger.debug("! error while sending data", exc_info=True)
                     # While the only expected exception here is OSError,
                     # other exceptions would be treated identically.
                     wait_for_close = False
@@ -1042,7 +1042,7 @@ class Connection(asyncio.Protocol):
             self.send_data()
         except Exception as exc:
             if self.debug:
-                self.logger.debug("error while sending data", exc_info=True)
+                self.logger.debug("! error while sending data", exc_info=True)
             self.set_recv_exc(exc)
 
         if self.protocol.close_expected():

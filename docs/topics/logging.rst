@@ -218,7 +218,10 @@ Here's what websockets logs at each level.
 ``ERROR``
 .........
 
-* Exceptions raised by connection handler coroutines in servers
+* Exceptions raised by your code in servers
+    * connection handler coroutines
+    * ``select_subprotocol`` callbacks
+    * ``process_request`` and ``process_response`` callbacks
 * Exceptions resulting from bugs in websockets
 
 ``WARNING``
@@ -250,4 +253,5 @@ Debug messages have cute prefixes that make logs easier to scan:
 * ``=`` - set connection state
 * ``x`` - shut down connection
 * ``%`` - manage pings and pongs
-* ``!`` - handle errors and timeouts
+* ``-`` - timeout
+* ``!`` - error, with a traceback

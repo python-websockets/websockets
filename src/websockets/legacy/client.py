@@ -603,14 +603,14 @@ class Connect:
                 if backoff_delay == self.BACKOFF_MIN:
                     initial_delay = random.random() * self.BACKOFF_INITIAL
                     self.logger.info(
-                        "! connect failed; reconnecting in %.1f seconds",
+                        "connect failed; reconnecting in %.1f seconds",
                         initial_delay,
                         exc_info=True,
                     )
                     await asyncio.sleep(initial_delay)
                 else:
                     self.logger.info(
-                        "! connect failed again; retrying in %d seconds",
+                        "connect failed again; retrying in %d seconds",
                         int(backoff_delay),
                         exc_info=True,
                     )

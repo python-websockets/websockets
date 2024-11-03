@@ -521,7 +521,7 @@ class connect:
                     delays = backoff()
                 delay = next(delays)
                 self.logger.info(
-                    "! connect failed; reconnecting in %.1f seconds",
+                    "connect failed; reconnecting in %.1f seconds",
                     delay,
                     exc_info=True,
                 )

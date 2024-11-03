@@ -148,14 +148,17 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async def handler(ws):
             self.fail("handler must not run")
 
-        async with serve(handler, *args[1:], process_request=process_request) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                async with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 403",
-            )
+        with self.assertNoLogs("websockets", logging.ERROR):
+            async with serve(
+                handler, *args[1:], process_request=process_request
+            ) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    async with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 403",
+                )
 
     async def test_async_process_request_returns_response(self):
         """Server aborts handshake if async process_request returns a response."""
@@ -166,44 +169,65 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async def handler(ws):
             self.fail("handler must not run")
 
-        async with serve(handler, *args[1:], process_request=process_request) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                async with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 403",
-            )
+        with self.assertNoLogs("websockets", logging.ERROR):
+            async with serve(
+                handler, *args[1:], process_request=process_request
+            ) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    async with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 403",
+                )
 
     async def test_process_request_raises_exception(self):
         """Server returns an error if process_request raises an exception."""
 
         def process_request(ws, request):
-            raise RuntimeError
+            raise RuntimeError("BOOM")
 
-        async with serve(*args, process_request=process_request) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                async with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 500",
-            )
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            async with serve(*args, process_request=process_request) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    async with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 500",
+                )
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["opening handshake failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["BOOM"],
+        )
 
     async def test_async_process_request_raises_exception(self):
         """Server returns an error if async process_request raises an exception."""
 
         async def process_request(ws, request):
-            raise RuntimeError
+            raise RuntimeError("BOOM")
 
-        async with serve(*args, process_request=process_request) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                async with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 500",
-            )
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            async with serve(*args, process_request=process_request) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    async with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 500",
+                )
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["opening handshake failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["BOOM"],
+        )
 
     async def test_process_response_returns_none(self):
         """Server runs process_response but keeps the handshake response."""
@@ -277,31 +301,49 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """Server returns an error if process_response raises an exception."""
 
         def process_response(ws, request, response):
-            raise RuntimeError
+            raise RuntimeError("BOOM")
 
-        async with serve(*args, process_response=process_response) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                async with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 500",
-            )
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            async with serve(*args, process_response=process_response) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    async with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 500",
+                )
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["opening handshake failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["BOOM"],
+        )
 
     async def test_async_process_response_raises_exception(self):
         """Server returns an error if async process_response raises an exception."""
 
         async def process_response(ws, request, response):
-            raise RuntimeError
+            raise RuntimeError("BOOM")
 
-        async with serve(*args, process_response=process_response) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                async with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 500",
-            )
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            async with serve(*args, process_response=process_response) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    async with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 500",
+                )
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["opening handshake failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["BOOM"],
+        )
 
     async def test_override_server(self):
         """Server can override Server header with server_header."""

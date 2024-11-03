@@ -518,15 +518,34 @@ class Protocol:
             Whether the TCP connection is expected to close soon.
 
         """
-        # We expect a TCP close if and only if we sent a close frame:
+        # During the opening handshake, when our state is CONNECTING, we expect
+        # a TCP close if and only if the hansdake fails. When it does, we start
+        # the TCP closing handshake by sending EOF with send_eof().
+
+        # Once the opening handshake completes successfully, we expect a TCP
+        # close if and only if we sent a close frame, meaning that our state
+        # progressed to CLOSING:
+
         # * Normal closure: once we send a close frame, we expect a TCP close:
         #   server waits for client to complete the TCP closing handshake;
         #   client waits for server to initiate the TCP closing handshake.
+
         # * Abnormal closure: we always send a close frame and the same logic
         #   applies, except on EOFError where we don't send a close frame
         #   because we already received the TCP close, so we don't expect it.
-        # We already got a TCP Close if and only if the state is CLOSED.
-        return self.state is CLOSING or self.handshake_exc is not None
+
+        # If our state is CLOSED, we already received a TCP close so we don't
+        # expect it anymore.
+
+        # Micro-optimization: put the most common case first
+        if self.state is OPEN:
+            return False
+        if self.state is CLOSING:
+            return True
+        if self.state is CLOSED:
+            return False
+        assert self.state is CONNECTING
+        return self.eof_sent
 
     # Private methods for receiving data.
 
@@ -616,14 +635,14 @@ class Protocol:
         # connection in the same circumstances where discard() replaces parse().
         # The client closes it when it receives EOF from the server or times
         # out. (The latter case cannot be handled in this Sans-I/O layer.)
-        assert (self.state == CONNECTING or self.side is SERVER) == (self.eof_sent)
+        assert (self.side is SERVER or self.state is CONNECTING) == (self.eof_sent)
         while not (yield from self.reader.at_eof()):
             self.reader.discard()
         if self.debug:
             self.logger.debug("< EOF")
         # A server closes the TCP connection immediately, while a client
         # waits for the server to close the TCP connection.
-        if self.state != CONNECTING and self.side is CLIENT:
+        if self.side is CLIENT and self.state is not CONNECTING:
             self.send_eof()
         self.state = CLOSED
         # If discard() completes normally, execution ends here.

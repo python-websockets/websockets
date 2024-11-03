@@ -20,7 +20,7 @@ from websockets.frames import (
     Frame,
 )
 from websockets.protocol import *
-from websockets.protocol import CLIENT, CLOSED, CLOSING, SERVER
+from websockets.protocol import CLIENT, CLOSED, CLOSING, CONNECTING, SERVER
 
 from .extensions.utils import Rsv2Extension
 from .test_frames import FramesTestCase
@@ -1694,6 +1694,24 @@ class TCPCloseTests(ProtocolTestCase):
     def test_server_fails_connection(self):
         server = Protocol(SERVER)
         server.fail(CloseCode.PROTOCOL_ERROR)
+        self.assertTrue(server.close_expected())
+
+    def test_client_is_connecting(self):
+        client = Protocol(CLIENT, state=CONNECTING)
+        self.assertFalse(client.close_expected())
+
+    def test_server_is_connecting(self):
+        server = Protocol(SERVER, state=CONNECTING)
+        self.assertFalse(server.close_expected())
+
+    def test_client_failed_connecting(self):
+        client = Protocol(CLIENT, state=CONNECTING)
+        client.send_eof()
+        self.assertTrue(client.close_expected())
+
+    def test_server_failed_connecting(self):
+        server = Protocol(SERVER, state=CONNECTING)
+        server.send_eof()
         self.assertTrue(server.close_expected())
 
 

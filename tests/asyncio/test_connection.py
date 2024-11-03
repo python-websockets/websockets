@@ -51,7 +51,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     if sys.version_info[:2] < (3, 10):  # pragma: no cover
 
         @contextlib.contextmanager
-        def assertNoLogs(self, logger="websockets", level=logging.ERROR):
+        def assertNoLogs(self, logger=None, level=None):
             """
             No message is logged on the given logger with at least the given level.
 

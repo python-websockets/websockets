@@ -192,10 +192,13 @@ class ServerConnection(Connection):
 
                 self.protocol.send_response(self.response)
 
-        # self.protocol.handshake_exc is always set when the connection is lost
-        # before receiving a request, when the request cannot be parsed, when
-        # the handshake encounters an error, or when process_request or
-        # process_response sends an HTTP response that rejects the handshake.
+        # self.protocol.handshake_exc is set when the connection is lost before
+        # receiving a request, when the request cannot be parsed, or when the
+        # handshake fails, including when process_request or process_response
+        # raises an exception.
+
+        # It isn't set when process_request or process_response sends an HTTP
+        # response that rejects the handshake.
 
         if self.protocol.handshake_exc is not None:
             raise self.protocol.handshake_exc
@@ -360,7 +363,11 @@ class Server:
                     connection.close_transport()
                     return
 
-            assert connection.protocol.state is OPEN
+            if connection.protocol.state is not OPEN:
+                # process_request or process_response rejected the handshake.
+                connection.close_transport()
+                return
+
             try:
                 connection.start_keepalive()
                 await self.handler(connection)

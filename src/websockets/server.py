@@ -14,7 +14,6 @@ from .exceptions import (
     InvalidHeader,
     InvalidHeaderValue,
     InvalidOrigin,
-    InvalidStatus,
     InvalidUpgrade,
     NegotiationError,
 )
@@ -536,11 +535,6 @@ class ServerProtocol(Protocol):
             self.logger.info("connection open")
 
         else:
-            # handshake_exc may be already set if accept() encountered an error.
-            # If the connection isn't open, set handshake_exc to guarantee that
-            # handshake_exc is None if and only if opening handshake succeeded.
-            if self.handshake_exc is None:
-                self.handshake_exc = InvalidStatus(response)
             self.logger.info(
                 "connection rejected (%d %s)",
                 response.status_code,

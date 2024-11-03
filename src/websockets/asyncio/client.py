@@ -95,9 +95,9 @@ class ClientConnection(Connection):
             return_when=asyncio.FIRST_COMPLETED,
         )
 
-        # self.protocol.handshake_exc is always set when the connection is lost
-        # before receiving a response, when the response cannot be parsed, or
-        # when the response fails the handshake.
+        # self.protocol.handshake_exc is set when the connection is lost before
+        # receiving a response, when the response cannot be parsed, or when the
+        # response fails the handshake.
 
         if self.protocol.handshake_exc is not None:
             raise self.protocol.handshake_exc

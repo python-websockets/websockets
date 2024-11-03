@@ -21,6 +21,7 @@ from ..utils import (
     CLIENT_CONTEXT,
     MS,
     SERVER_CONTEXT,
+    AssertNoLogsMixin,
     temp_unix_socket_path,
 )
 from .server import (
@@ -32,7 +33,7 @@ from .server import (
 )
 
 
-class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
+class ServerTests(EvalShellMixin, AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase):
     async def test_connection(self):
         """Server receives connection from client and the handshake succeeds."""
         async with serve(*args) as server:

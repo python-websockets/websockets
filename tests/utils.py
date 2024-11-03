@@ -1,9 +1,11 @@
 import contextlib
 import email.utils
+import logging
 import os
 import pathlib
 import platform
 import ssl
+import sys
 import tempfile
 import time
 import unittest
@@ -111,6 +113,30 @@ class DeprecationTestCase(unittest.TestCase):
         warning = recorded_warnings[0]
         self.assertEqual(warning.category, DeprecationWarning)
         self.assertEqual(str(warning.message), message)
+
+
+class AssertNoLogsMixin:
+    """
+    Backport of assertNoLogs for Python 3.9.
+
+    """
+
+    if sys.version_info[:2] < (3, 10):  # pragma: no cover
+
+        @contextlib.contextmanager
+        def assertNoLogs(self, logger=None, level=None):
+            """
+            No message is logged on the given logger with at least the given level.
+
+            """
+            with self.assertLogs(logger, level) as logs:
+                # We want to test that no log message is emitted
+                # but assertLogs expects at least one log message.
+                logging.getLogger(logger).log(level, "dummy")
+                yield
+
+            level_name = logging.getLevelName(level)
+            self.assertEqual(logs.output, [f"{level_name}:{logger}:dummy"])
 
 
 @contextlib.contextmanager

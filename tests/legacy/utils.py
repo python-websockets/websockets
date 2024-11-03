@@ -1,12 +1,12 @@
 import asyncio
-import contextlib
 import functools
-import logging
 import sys
 import unittest
 
+from ..utils import AssertNoLogsMixin
 
-class AsyncioTestCase(unittest.TestCase):
+
+class AsyncioTestCase(AssertNoLogsMixin, unittest.TestCase):
     """
     Base class for tests that sets up an isolated event loop for each test.
 
@@ -55,23 +55,6 @@ class AsyncioTestCase(unittest.TestCase):
         # to stop the event loop then running it until it hits that callback.
         self.loop.call_soon(self.loop.stop)
         self.loop.run_forever()
-
-    if sys.version_info[:2] < (3, 10):  # pragma: no cover
-
-        @contextlib.contextmanager
-        def assertNoLogs(self, logger="websockets", level=logging.ERROR):
-            """
-            No message is logged on the given logger with at least the given level.
-
-            """
-            with self.assertLogs(logger, level) as logs:
-                # We want to test that no log message is emitted
-                # but assertLogs expects at least one log message.
-                logging.getLogger(logger).log(level, "dummy")
-                yield
-
-            level_name = logging.getLevelName(level)
-            self.assertEqual(logs.output, [f"{level_name}:{logger}:dummy"])
 
     def assertDeprecationWarnings(self, recorded_warnings, expected_warnings):
         """

@@ -938,7 +938,7 @@ class CommonTests:
         self.receive_frame(Frame(True, OP_PING, b"test"))
         self.run_loop_once()
 
-        with self.assertNoLogs():
+        with self.assertNoLogs("websockets", logging.ERROR):
             self.loop.run_until_complete(self.protocol.close())
 
         self.loop.run_until_complete(close_task)  # cleanup
@@ -951,7 +951,7 @@ class CommonTests:
         self.receive_eof()
         self.run_loop_once()
 
-        with self.assertNoLogs():
+        with self.assertNoLogs("websockets", logging.ERROR):
             self.loop.run_until_complete(self.protocol.close())
 
     def test_ignore_pong(self):
@@ -1028,7 +1028,7 @@ class CommonTests:
             pong_waiter.result()
 
         # transfer_data doesn't crash, which would be logged.
-        with self.assertNoLogs():
+        with self.assertNoLogs("websockets", logging.ERROR):
             # Unclog incoming queue.
             self.loop.run_until_complete(self.protocol.recv())
             self.loop.run_until_complete(self.protocol.recv())
@@ -1375,7 +1375,7 @@ class CommonTests:
         self.receive_eof()
         self.run_loop_once()
 
-        with self.assertNoLogs():
+        with self.assertNoLogs("websockets", logging.ERROR):
             self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
 
         self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
@@ -1500,14 +1500,14 @@ class CommonTests:
     def test_broadcast_skips_closed_connection(self):
         self.close_connection()
 
-        with self.assertNoLogs():
+        with self.assertNoLogs("websockets", logging.ERROR):
             broadcast([self.protocol], "café")
         self.assertNoFrameSent()
 
     def test_broadcast_skips_closing_connection(self):
         close_task = self.half_close_connection_local()
 
-        with self.assertNoLogs():
+        with self.assertNoLogs("websockets", logging.ERROR):
             broadcast([self.protocol], "café")
         self.assertNoFrameSent()
 

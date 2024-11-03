@@ -19,7 +19,7 @@ from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 
 from ..protocol import RecordingProtocol
-from ..utils import MS
+from ..utils import MS, AssertNoLogsMixin
 from .connection import InterceptingConnection
 from .utils import alist
 
@@ -28,7 +28,7 @@ from .utils import alist
 # All tests run on the client side and the server side to validate this.
 
 
-class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
+class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase):
     LOCAL = CLIENT
     REMOTE = SERVER
 
@@ -47,23 +47,6 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def asyncTearDown(self):
         await self.remote_connection.close()
         await self.connection.close()
-
-    if sys.version_info[:2] < (3, 10):  # pragma: no cover
-
-        @contextlib.contextmanager
-        def assertNoLogs(self, logger=None, level=None):
-            """
-            No message is logged on the given logger with at least the given level.
-
-            """
-            with self.assertLogs(logger, level) as logs:
-                # We want to test that no log message is emitted
-                # but assertLogs expects at least one log message.
-                logging.getLogger(logger).log(level, "dummy")
-                yield
-
-            level_name = logging.getLevelName(level)
-            self.assertEqual(logs.output, [f"{level_name}:{logger}:dummy"])
 
     # Test helpers built upon RecordingProtocol and InterceptingConnection.
 
@@ -1277,7 +1260,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         await self.connection.close()
         await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
 
-        with self.assertNoLogs():
+        with self.assertNoLogs("websockets", logging.WARNING):
             broadcast([self.connection], "😀")
         await self.assertNoFrameSent()
 
@@ -1288,7 +1271,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(0)
             await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
 
-            with self.assertNoLogs():
+            with self.assertNoLogs("websockets", logging.WARNING):
                 broadcast([self.connection], "😀")
             await self.assertNoFrameSent()
 

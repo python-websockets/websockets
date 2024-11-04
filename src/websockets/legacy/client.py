@@ -5,6 +5,7 @@ import functools
 import logging
 import os
 import random
+import traceback
 import urllib.parse
 import warnings
 from collections.abc import AsyncIterator, Generator, Sequence
@@ -597,22 +598,24 @@ class Connect:
             try:
                 async with self as protocol:
                     yield protocol
-            except Exception:
+            except Exception as exc:
                 # Add a random initial delay between 0 and 5 seconds.
                 # See 7.2.3. Recovering from Abnormal Closure in RFC 6455.
                 if backoff_delay == self.BACKOFF_MIN:
                     initial_delay = random.random() * self.BACKOFF_INITIAL
                     self.logger.info(
-                        "connect failed; reconnecting in %.1f seconds",
+                        "connect failed; reconnecting in %.1f seconds: %s",
                         initial_delay,
-                        exc_info=True,
+                        # Remove first argument when dropping Python 3.9.
+                        traceback.format_exception_only(type(exc), exc)[0].strip(),
                     )
                     await asyncio.sleep(initial_delay)
                 else:
                     self.logger.info(
-                        "connect failed again; retrying in %d seconds",
+                        "connect failed again; retrying in %d seconds: %s",
                         int(backoff_delay),
-                        exc_info=True,
+                        # Remove first argument when dropping Python 3.9.
+                        traceback.format_exception_only(type(exc), exc)[0].strip(),
                     )
                     await asyncio.sleep(int(backoff_delay))
                 # Increase delay with truncated exponential backoff.

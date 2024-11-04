@@ -1337,7 +1337,10 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
 
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["skipped broadcast: failed to write message"],
+            [
+                "skipped broadcast: failed to write message: "
+                "RuntimeError: Cannot call write() after write_eof()"
+            ],
         )
 
     @unittest.skipIf(

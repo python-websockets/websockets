@@ -9,6 +9,7 @@ import ssl
 import struct
 import sys
 import time
+import traceback
 import uuid
 import warnings
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Iterable, Mapping
@@ -1624,8 +1625,12 @@ def broadcast(
                 exceptions.append(exception)
             else:
                 websocket.logger.warning(
-                    "skipped broadcast: failed to write message",
-                    exc_info=True,
+                    "skipped broadcast: failed to write message: %s",
+                    traceback.format_exception_only(
+                        # Remove first argument when dropping Python 3.9.
+                        type(write_exception),
+                        write_exception,
+                    )[0].strip(),
                 )
 
     if raise_exceptions and exceptions:

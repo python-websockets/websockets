@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import traceback
 import urllib.parse
 from collections.abc import AsyncIterator, Generator, Sequence
 from types import TracebackType
@@ -521,9 +522,10 @@ class connect:
                     delays = backoff()
                 delay = next(delays)
                 self.logger.info(
-                    "connect failed; reconnecting in %.1f seconds",
+                    "connect failed; reconnecting in %.1f seconds: %s",
                     delay,
-                    exc_info=True,
+                    # Remove first argument when dropping Python 3.9.
+                    traceback.format_exception_only(type(exc), exc)[0].strip(),
                 )
                 await asyncio.sleep(delay)
                 continue

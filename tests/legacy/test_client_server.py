@@ -1607,6 +1607,10 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
             ],
         )
         # Iteration 3
+        exc = (
+            "websockets.legacy.exceptions.InvalidStatusCode: "
+            "server rejected WebSocket connection: HTTP 503"
+        )
         self.assertEqual(
             [
                 re.sub(r"[0-9\.]+ seconds", "X seconds", record.getMessage())
@@ -1615,12 +1619,12 @@ class ReconnectionTests(ClientServerTestsMixin, AsyncioTestCase):
             [
                 "connection rejected (503 Service Unavailable)",
                 "connection closed",
-                "connect failed; reconnecting in X seconds",
+                f"connect failed; reconnecting in X seconds: {exc}",
             ]
             + [
                 "connection rejected (503 Service Unavailable)",
                 "connection closed",
-                "connect failed again; retrying in X seconds",
+                f"connect failed again; retrying in X seconds: {exc}",
             ]
             * ((len(logs.records) - 8) // 3)
             + [

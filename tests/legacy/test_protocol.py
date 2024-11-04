@@ -1547,14 +1547,14 @@ class CommonTests:
 
     def test_broadcast_skips_connection_failing_to_send(self):
         # Configure mock to raise an exception when writing to the network.
-        self.protocol.transport.write.side_effect = RuntimeError
+        self.protocol.transport.write.side_effect = RuntimeError("BOOM")
 
         with self.assertLogs("websockets", logging.WARNING) as logs:
             broadcast([self.protocol], "café")
 
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["skipped broadcast: failed to write message"],
+            ["skipped broadcast: failed to write message: RuntimeError: BOOM"],
         )
 
     @unittest.skipIf(

@@ -131,8 +131,8 @@ How do I respond to pings?
 If you are referring to Ping_ and Pong_ frames defined in the WebSocket
 protocol, don't bother, because websockets handles them for you.
 
-.. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
-.. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
+.. _Ping: https://datatracker.ietf.org/doc/html/rfc6455.html#section-5.5.2
+.. _Pong: https://datatracker.ietf.org/doc/html/rfc6455.html#section-5.5.3
 
 If you are connecting to a server that defines its own heartbeat at the
 application level, then you need to build that logic into your application.

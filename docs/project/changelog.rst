@@ -1487,7 +1487,7 @@ New features
 
 * Added support for providing and checking Origin_.
 
-.. _Origin: https://www.rfc-editor.org/rfc/rfc6455.html#section-10.2
+.. _Origin: https://datatracker.ietf.org/doc/html/rfc6455.html#section-10.2
 
 .. _2.0:
 

@@ -8,7 +8,7 @@ The WebSocket protocol supports extensions_.
 At the time of writing, there's only one `registered extension`_ with a public
 specification, WebSocket Per-Message Deflate.
 
-.. _extensions: https://www.rfc-editor.org/rfc/rfc6455.html#section-9
+.. _extensions: https://datatracker.ietf.org/doc/html/rfc6455.html#section-9
 .. _registered extension: https://www.iana.org/assignments/websocket/websocket.xhtml#extension-name
 
 Per-Message Deflate

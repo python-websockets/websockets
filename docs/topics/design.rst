@@ -173,16 +173,16 @@ differences between a server and a client:
 - `closing the TCP connection`_: the server closes the connection immediately;
   the client waits for the server to do it.
 
-.. _client-to-server masking: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.3
-.. _closing the TCP connection: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.1
+.. _client-to-server masking: https://datatracker.ietf.org/doc/html/rfc6455.html#section-5.3
+.. _closing the TCP connection: https://datatracker.ietf.org/doc/html/rfc6455.html#section-5.5.1
 
 These differences are so minor that all the logic for `data framing`_, for
 `sending and receiving data`_ and for `closing the connection`_ is implemented
 in the same class, :class:`~protocol.WebSocketCommonProtocol`.
 
-.. _data framing: https://www.rfc-editor.org/rfc/rfc6455.html#section-5
-.. _sending and receiving data: https://www.rfc-editor.org/rfc/rfc6455.html#section-6
-.. _closing the connection: https://www.rfc-editor.org/rfc/rfc6455.html#section-7
+.. _data framing: https://datatracker.ietf.org/doc/html/rfc6455.html#section-5
+.. _sending and receiving data: https://datatracker.ietf.org/doc/html/rfc6455.html#section-6
+.. _closing the connection: https://datatracker.ietf.org/doc/html/rfc6455.html#section-7
 
 The :attr:`~protocol.WebSocketCommonProtocol.is_client` attribute tells which
 side a protocol instance is managing. This attribute is defined on the

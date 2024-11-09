@@ -33,8 +33,8 @@ Keepalive in websockets
 To avoid these problems, websockets runs a keepalive and heartbeat mechanism
 based on WebSocket Ping_ and Pong_ frames, which are designed for this purpose.
 
-.. _Ping: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.2
-.. _Pong: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.5.3
+.. _Ping: https://datatracker.ietf.org/doc/html/rfc6455.html#section-5.5.2
+.. _Pong: https://datatracker.ietf.org/doc/html/rfc6455.html#section-5.5.3
 
 It sends a Ping frame every 20 seconds. It expects a Pong frame in return within
 20 seconds. Else, it considers the connection broken and terminates it.
@@ -98,7 +98,7 @@ at regular intervals. Usually they expect Text_ frames rather than Ping_ frames,
 meaning that you must send them with :attr:`~asyncio.connection.Connection.send`
 rather than :attr:`~asyncio.connection.Connection.ping`.
 
-.. _Text: https://www.rfc-editor.org/rfc/rfc6455.html#section-5.6
+.. _Text: https://datatracker.ietf.org/doc/html/rfc6455.html#section-5.6
 
 In websockets, such keepalive mechanisms are considered as application-level
 because they rely on data frames. That's unlike the protocol-level keepalive

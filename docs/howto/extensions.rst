@@ -7,7 +7,7 @@ During the opening handshake, WebSocket clients and servers negotiate which
 extensions_ will be used with which parameters. Then each frame is processed
 by extensions before being sent or after being received.
 
-.. _extensions: https://www.rfc-editor.org/rfc/rfc6455.html#section-9
+.. _extensions: https://datatracker.ietf.org/doc/html/rfc6455.html#section-9
 
 As a consequence, writing an extension requires implementing several classes:
 

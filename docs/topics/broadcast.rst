@@ -83,7 +83,7 @@ to::
 
 Here's a coroutine that broadcasts a message to all clients::
 
-    from websockets import ConnectionClosed
+    from websockets.exceptions import ConnectionClosed
 
     async def broadcast(message):
         for websocket in CLIENTS.copy():

@@ -112,7 +112,7 @@ You can run a task in the background to send keepalive messages:
     import itertools
     import json
 
-    from websockets import ConnectionClosed
+    from websockets.exceptions import ConnectionClosed
 
     async def keepalive(websocket, ping_interval=30):
         for ping in itertools.count():

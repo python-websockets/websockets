@@ -6,8 +6,8 @@ import os
 import sys
 import time
 
-from websockets import ConnectionClosed
 from websockets.asyncio.server import broadcast, serve
+from websockets.exceptions import ConnectionClosed
 
 
 CLIENTS = set()

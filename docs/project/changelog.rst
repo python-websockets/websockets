@@ -41,7 +41,7 @@ Backwards-incompatible changes
     websockets 13.1 is the last version supporting Python 3.8.
 
 .. admonition:: The new :mod:`asyncio` implementation is now the default.
-    :class: caution
+    :class: danger
 
     The following aliases in the ``websockets`` package were switched to the new
     :mod:`asyncio` implementation::
@@ -64,8 +64,8 @@ Backwards-incompatible changes
     The :doc:`upgrade guide <../howto/upgrade>` provides complete instructions
     to migrate your application.
 
-    Aliases for deprecated API were removed from ``__all__``. As a consequence,
-    they cannot be imported e.g. with ``from websockets import *`` anymore.
+    Aliases for deprecated API were removed from ``websockets.__all__``, meaning
+    that they cannot be imported with ``from websockets import *`` anymore.
 
 .. admonition:: Several API raise :exc:`ValueError` instead of :exc:`TypeError`
     on invalid arguments.
@@ -83,22 +83,16 @@ Backwards-incompatible changes
     :class: note
 
     In addition to :class:`bytes`, it may be a :class:`bytearray` or a
-    :class:`memoryview`.
-
-    If you wrote an :class:`extension <extensions.Extension>` that relies on
-    methods not provided by these new types, you may need to update your code.
+    :class:`memoryview`. If you wrote an :class:`~extensions.Extension` that
+    relies on methods not provided by these types, you must update your code.
 
 .. admonition:: The signature of :exc:`~exceptions.PayloadTooBig` changed.
     :class: note
 
     If you wrote an extension that raises :exc:`~exceptions.PayloadTooBig` in
-    :meth:`~extensions.Extension.decode`, for example, you must replace::
-
-        PayloadTooBig(f"over size limit ({size} > {max_size} bytes)")
-
-    with::
-
-        PayloadTooBig(size, max_size)
+    :meth:`~extensions.Extension.decode`, for example, you must replace
+    ``PayloadTooBig(f"over size limit ({size} > {max_size} bytes)")`` with
+    ``PayloadTooBig(size, max_size)``.
 
 New features
 ............
@@ -106,8 +100,8 @@ New features
 * Added an option to receive text frames as :class:`bytes`, without decoding,
   in the :mod:`threading` implementation; also binary frames as :class:`str`.
 
-* Added an option to send :class:`bytes` as a text frame in the :mod:`asyncio`
-  and :mod:`threading` implementations, as well as :class:`str` a binary frame.
+* Added an option to send :class:`bytes` in a text frame in the :mod:`asyncio`
+  and :mod:`threading` implementations; also :class:`str` in a binary frame.
 
 Improvements
 ............
@@ -117,6 +111,21 @@ Improvements
 * Sending or receiving large compressed messages is now faster.
 
 * Errors when a fragmented message is too large are clearer.
+
+* Log messages at the :data:`~logging.WARNING` and :data:`~logging.INFO` levels
+  no longer include stack traces.
+
+Bug fixes
+.........
+
+* Clients no longer crash when the server rejects the opening handshake and the
+  HTTP response doesn't Include a ``Content-Length`` header.
+
+* Returning an HTTP response in ``process_request`` or ``process_response``
+  doesn't generate a log message at the :data:`~logging.ERROR` level anymore.
+
+* Connections are closed with code 1007 (invalid data) when receiving invalid
+  UTF-8 in a text frame.
 
 .. _13.1:
 

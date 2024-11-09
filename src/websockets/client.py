@@ -392,7 +392,7 @@ def backoff(
 lazy_import(
     globals(),
     deprecated_aliases={
-        # deprecated in 14.0
+        # deprecated in 14.0 - 2024-11-09
         "WebSocketClientProtocol": ".legacy.client",
         "connect": ".legacy.client",
         "unix_connect": ".legacy.client",

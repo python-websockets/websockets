@@ -113,7 +113,7 @@ class ConnectionClosed(WebSocketException):
 
     @property
     def code(self) -> int:
-        warnings.warn(  # deprecated in 13.1
+        warnings.warn(  # deprecated in 13.1 - 2024-09-21
             "ConnectionClosed.code is deprecated; "
             "use Protocol.close_code or ConnectionClosed.rcvd.code",
             DeprecationWarning,
@@ -124,7 +124,7 @@ class ConnectionClosed(WebSocketException):
 
     @property
     def reason(self) -> str:
-        warnings.warn(  # deprecated in 13.1
+        warnings.warn(  # deprecated in 13.1 - 2024-09-21
             "ConnectionClosed.reason is deprecated; "
             "use Protocol.close_reason or ConnectionClosed.rcvd.reason",
             DeprecationWarning,
@@ -343,7 +343,7 @@ class PayloadTooBig(WebSocketException):
         if isinstance(size_or_message, str):
             assert max_size is None
             assert cur_size is None
-            warnings.warn(  # deprecated in 14.0
+            warnings.warn(  # deprecated in 14.0 - 2024-11-09
                 "PayloadTooBig(message) is deprecated; "
                 "change to PayloadTooBig(size, max_size)",
                 DeprecationWarning,
@@ -408,7 +408,7 @@ from . import frames, http11  # noqa: E402
 lazy_import(
     globals(),
     deprecated_aliases={
-        # deprecated in 14.0
+        # deprecated in 14.0 - 2024-11-09
         "AbortHandshake": ".legacy.exceptions",
         "InvalidMessage": ".legacy.exceptions",
         "InvalidStatusCode": ".legacy.exceptions",

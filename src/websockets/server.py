@@ -580,7 +580,7 @@ class ServerConnection(ServerProtocol):
 lazy_import(
     globals(),
     deprecated_aliases={
-        # deprecated in 14.0
+        # deprecated in 14.0 - 2024-11-09
         "WebSocketServer": ".legacy.server",
         "WebSocketServerProtocol": ".legacy.server",
         "broadcast": ".legacy.server",

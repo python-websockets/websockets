@@ -10,7 +10,7 @@ with warnings.catch_warnings():
     from .legacy.auth import __all__  # noqa: F401
 
 
-warnings.warn(  # deprecated in 14.0
+warnings.warn(  # deprecated in 14.0 - 2024-11-09
     "websockets.auth, an alias for websockets.legacy.auth, is deprecated; "
     "see https://websockets.readthedocs.io/en/stable/howto/upgrade.html "
     "for upgrade instructions",

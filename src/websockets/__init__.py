@@ -151,7 +151,7 @@ else:
             "handshake": ".legacy",
             "parse_uri": ".uri",
             "WebSocketURI": ".uri",
-            # deprecated in 14.0
+            # deprecated in 14.0 - 2024-11-09
             # .legacy.auth
             "BasicAuthWebSocketServerProtocol": ".legacy.auth",
             "basic_auth_protocol_factory": ".legacy.auth",

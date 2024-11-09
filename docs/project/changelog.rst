@@ -30,7 +30,7 @@ notice.
 14.0
 ----
 
-*In development*
+*November 9, 2024*
 
 Backwards-incompatible changes
 ..............................

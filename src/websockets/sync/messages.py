@@ -128,9 +128,10 @@ class Assembler:
 
             if self.get_in_progress:
                 raise ConcurrencyError("get() or get_iter() is already running")
-
-            # Locking with get_in_progress ensures only one thread can get here.
             self.get_in_progress = True
+
+        # Locking with get_in_progress prevents concurrent execution
+        # until get() fetches a complete message or times out.
 
         try:
             deadline = Deadline(timeout)
@@ -198,12 +199,10 @@ class Assembler:
 
             if self.get_in_progress:
                 raise ConcurrencyError("get() or get_iter() is already running")
-
-            # Locking with get_in_progress ensures only one coroutine can get here.
             self.get_in_progress = True
 
-        # Locking with get_in_progress prevents concurrent execution until
-        # get_iter() fetches a complete message or is cancelled.
+        # Locking with get_in_progress prevents concurrent execution
+        # until get_iter() fetches a complete message or times out.
 
         # If get_iter() raises an exception e.g. in decoder.decode(),
         # get_in_progress remains set and the connection becomes unusable.

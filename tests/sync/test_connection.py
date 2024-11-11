@@ -15,7 +15,7 @@ from websockets.exceptions import (
     ConnectionClosedOK,
 )
 from websockets.frames import CloseCode, Frame, Opcode
-from websockets.protocol import CLIENT, SERVER, Protocol
+from websockets.protocol import CLIENT, SERVER, Protocol, State
 from websockets.sync.connection import *
 
 from ..protocol import RecordingProtocol
@@ -808,6 +808,10 @@ class ClientConnectionTests(unittest.TestCase):
         self.assertEqual(self.connection.remote_address, ("peer", 1234))
         getpeername.assert_called_with()
 
+    def test_state(self):
+        """Connection has a state attribute."""
+        self.assertIs(self.connection.state, State.OPEN)
+
     def test_request(self):
         """Connection has a request attribute."""
         self.assertIsNone(self.connection.request)
@@ -819,6 +823,14 @@ class ClientConnectionTests(unittest.TestCase):
     def test_subprotocol(self):
         """Connection has a subprotocol attribute."""
         self.assertIsNone(self.connection.subprotocol)
+
+    def test_close_code(self):
+        """Connection has a close_code attribute."""
+        self.assertIsNone(self.connection.close_code)
+
+    def test_close_reason(self):
+        """Connection has a close_reason attribute."""
+        self.assertIsNone(self.connection.close_reason)
 
     # Test reporting of network errors.
 

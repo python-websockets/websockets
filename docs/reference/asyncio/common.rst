@@ -45,3 +45,10 @@ Both sides (new :mod:`asyncio`)
     .. autoattribute:: response
 
     .. autoproperty:: subprotocol
+
+    The following attributes are available after the closing handshake,
+    once the WebSocket connection is closed:
+
+    .. autoproperty:: close_code
+
+    .. autoproperty:: close_reason

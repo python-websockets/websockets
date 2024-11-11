@@ -31,6 +31,8 @@ Both sides (:mod:`threading`)
 
     .. autoproperty:: remote_address
 
+    .. autoproperty:: state
+
     The following attributes are available after the opening handshake,
     once the WebSocket connection is open:
 
@@ -39,3 +41,10 @@ Both sides (:mod:`threading`)
     .. autoattribute:: response
 
     .. autoproperty:: subprotocol
+
+    The following attributes are available after the closing handshake,
+    once the WebSocket connection is closed:
+
+    .. autoproperty:: close_code
+
+    .. autoproperty:: close_reason

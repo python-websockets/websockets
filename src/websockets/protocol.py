@@ -159,7 +159,12 @@ class Protocol:
         """
         State of the WebSocket connection.
 
-        Defined in 4.1, 4.2, 7.1.3, and 7.1.4 of :rfc:`6455`.
+        Defined in 4.1_, 4.2_, 7.1.3_, and 7.1.4_ of :rfc:`6455`.
+
+        .. _4.1: https://datatracker.ietf.org/doc/html/rfc6455#section-4.1
+        .. _4.2: https://datatracker.ietf.org/doc/html/rfc6455#section-4.2
+        .. _7.1.3: https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.3
+        .. _7.1.4: https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.4
 
         """
         return self._state
@@ -173,10 +178,11 @@ class Protocol:
     @property
     def close_code(self) -> int | None:
         """
-        `WebSocket close code`_.
+        WebSocket close code received from the remote endpoint.
 
-        .. _WebSocket close code:
-            https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5
+        Defined in 7.1.5_ of :rfc:`6455`.
+
+        .. _7.1.5: https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.5
 
         :obj:`None` if the connection isn't closed yet.
 
@@ -191,10 +197,11 @@ class Protocol:
     @property
     def close_reason(self) -> str | None:
         """
-        `WebSocket close reason`_.
+        WebSocket close reason  received from the remote endpoint.
 
-        .. _WebSocket close reason:
-            https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.6
+        Defined in 7.1.6_ of :rfc:`6455`.
+
+        .. _7.1.6: https://datatracker.ietf.org/doc/html/rfc6455#section-7.1.6
 
         :obj:`None` if the connection isn't closed yet.
 

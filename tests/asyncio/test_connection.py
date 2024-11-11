@@ -1139,7 +1139,7 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
 
     async def test_state(self):
         """Connection has a state attribute."""
-        self.assertEqual(self.connection.state, State.OPEN)
+        self.assertIs(self.connection.state, State.OPEN)
 
     async def test_request(self):
         """Connection has a request attribute."""
@@ -1152,6 +1152,14 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
     async def test_subprotocol(self):
         """Connection has a subprotocol attribute."""
         self.assertIsNone(self.connection.subprotocol)
+
+    async def test_close_code(self):
+        """Connection has a close_code attribute."""
+        self.assertIsNone(self.connection.close_code)
+
+    async def test_close_reason(self):
+        """Connection has a close_reason attribute."""
+        self.assertIsNone(self.connection.close_reason)
 
     # Test reporting of network errors.
 

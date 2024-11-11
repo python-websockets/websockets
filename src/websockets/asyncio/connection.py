@@ -185,6 +185,30 @@ class Connection(asyncio.Protocol):
         """
         return self.protocol.subprotocol
 
+    @property
+    def close_code(self) -> int | None:
+        """
+        State of the WebSocket connection, defined in :rfc:`6455`.
+
+        This attribute is provided for completeness. Typical applications
+        shouldn't check its value. Instead, they should inspect attributes
+        of :exc:`~websockets.exceptions.ConnectionClosed` exceptions.
+
+        """
+        return self.protocol.close_code
+
+    @property
+    def close_reason(self) -> str | None:
+        """
+        State of the WebSocket connection, defined in :rfc:`6455`.
+
+        This attribute is provided for completeness. Typical applications
+        shouldn't check its value. Instead, they should inspect attributes
+        of :exc:`~websockets.exceptions.ConnectionClosed` exceptions.
+
+        """
+        return self.protocol.close_reason
+
     # Public methods
 
     async def __aenter__(self) -> Connection:

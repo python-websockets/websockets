@@ -41,6 +41,10 @@ Improvements
   implementations for consistency with the legacy implementation, even though
   this is never a good idea.
 
+* Added ``close_code`` and ``close_reason`` attributes in the :mod:`asyncio` and
+  :mod:`threading` implementations for consistency with the legacy
+  implementation.
+
 Bug fixes
 .........
 

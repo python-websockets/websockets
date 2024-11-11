@@ -62,8 +62,6 @@ class SimpleQueue(Generic[T]):
         """Close the queue, raising EOFError in get() if necessary."""
         if self.get_waiter is not None and not self.get_waiter.done():
             self.get_waiter.set_exception(EOFError("stream of frames ended"))
-        # Clear the queue to avoid storing unnecessary data in memory.
-        self.queue.clear()
 
 
 class Assembler:

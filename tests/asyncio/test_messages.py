@@ -51,13 +51,6 @@ class SimpleQueueTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(EOFError):
             await getter_task
 
-    async def test_abort_clears_queue(self):
-        """abort clears buffered data from the queue."""
-        self.queue.put(42)
-        self.assertEqual(len(self.queue), 1)
-        self.queue.abort()
-        self.assertEqual(len(self.queue), 0)
-
 
 class AssemblerTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):

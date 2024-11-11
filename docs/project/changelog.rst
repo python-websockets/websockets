@@ -34,6 +34,13 @@ notice.
 
 .. _14.0:
 
+Bug fixes
+.........
+
+* Once the connection is closed, messages previously received and buffered can
+  be read in the :mod:`asyncio` and :mod:`threading` implementations, just like
+  in the legacy implementation.
+
 14.0
 ----
 

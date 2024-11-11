@@ -395,6 +395,58 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
             async for _ in self.assembler.get_iter():
                 self.fail("no fragment expected")
 
+    async def test_get_queued_message_after_close(self):
+        """get returns a message after close is called."""
+        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.close()
+        message = await self.assembler.get()
+        self.assertEqual(message, "café")
+
+    async def test_get_iter_queued_message_after_close(self):
+        """get_iter yields a message after close is called."""
+        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.close()
+        fragments = await alist(self.assembler.get_iter())
+        self.assertEqual(fragments, ["café"])
+
+    async def test_get_queued_fragmented_message_after_close(self):
+        """get reassembles a fragmented message after close is called."""
+        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.close()
+        self.assembler.close()
+        message = await self.assembler.get()
+        self.assertEqual(message, b"tea")
+
+    async def test_get_iter_queued_fragmented_message_after_close(self):
+        """get_iter yields a fragmented message after close is called."""
+        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.close()
+        fragments = await alist(self.assembler.get_iter())
+        self.assertEqual(fragments, [b"t", b"e", b"a"])
+
+    async def test_get_partially_queued_fragmented_message_after_close(self):
+        """get raises EOF on a partial fragmented message after close is called."""
+        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.close()
+        with self.assertRaises(EOFError):
+            await self.assembler.get()
+
+    async def test_get_iter_partially_queued_fragmented_message_after_close(self):
+        """get_iter yields a partial fragmented message after close is called."""
+        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.close()
+        fragments = []
+        with self.assertRaises(EOFError):
+            async for fragment in self.assembler.get_iter():
+                fragments.append(fragment)
+        self.assertEqual(fragments, [b"t", b"e"])
+
     async def test_put_fails_after_close(self):
         """put raises EOFError after close is called."""
         self.assembler.close()

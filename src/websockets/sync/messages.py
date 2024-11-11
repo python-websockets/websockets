@@ -69,10 +69,16 @@ class Assembler:
     def get_next_frame(self, timeout: float | None = None) -> Frame:
         # Helper to factor out the logic for getting the next frame from the
         # queue, while handling timeouts and reaching the end of the stream.
-        try:
-            frame = self.frames.get(timeout=timeout)
-        except queue.Empty:
-            raise TimeoutError(f"timed out in {timeout:.1f}s") from None
+        if self.closed:
+            try:
+                frame = self.frames.get(block=False)
+            except queue.Empty:
+                raise EOFError("stream of frames ended") from None
+        else:
+            try:
+                frame = self.frames.get(block=True, timeout=timeout)
+            except queue.Empty:
+                raise TimeoutError(f"timed out in {timeout:.1f}s") from None
         if frame is None:
             raise EOFError("stream of frames ended")
         return frame
@@ -87,7 +93,7 @@ class Assembler:
             queued = []
             try:
                 while True:
-                    queued.append(self.frames.get_nowait())
+                    queued.append(self.frames.get(block=False))
             except queue.Empty:
                 pass
             for frame in frames:
@@ -123,9 +129,6 @@ class Assembler:
 
         """
         with self.mutex:
-            if self.closed:
-                raise EOFError("stream of frames ended")
-
             if self.get_in_progress:
                 raise ConcurrencyError("get() or get_iter() is already running")
             self.get_in_progress = True
@@ -194,9 +197,6 @@ class Assembler:
 
         """
         with self.mutex:
-            if self.closed:
-                raise EOFError("stream of frames ended")
-
             if self.get_in_progress:
                 raise ConcurrencyError("get() or get_iter() is already running")
             self.get_in_progress = True
@@ -288,5 +288,6 @@ class Assembler:
 
             self.closed = True
 
-            # Unblock get() or get_iter().
-            self.frames.put(None)
+            if self.get_in_progress:
+                # Unblock get() or get_iter().
+                self.frames.put(None)

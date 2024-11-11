@@ -793,14 +793,12 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         # Remove socket.timeout when dropping Python < 3.10.
         self.assertIsInstance(exc.__cause__, (socket.timeout, TimeoutError))
 
-    async def test_close_does_not_wait_for_recv(self):
-        # Closing the connection discards messages buffered in the assembler.
-        # This is allowed by the RFC:
-        # > However, there is no guarantee that the endpoint that has already
-        # > sent a Close frame will continue to process data.
+    async def test_close_preserves_queued_messages(self):
+        """close preserves messages buffered in the assembler."""
         await self.remote_connection.send("😀")
         await self.connection.close()
 
+        self.assertEqual(await self.connection.recv(), "😀")
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
 

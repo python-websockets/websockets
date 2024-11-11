@@ -543,17 +543,12 @@ class ClientConnectionTests(unittest.TestCase):
         # Remove socket.timeout when dropping Python < 3.10.
         self.assertIsInstance(exc.__cause__, (socket.timeout, TimeoutError))
 
-    def test_close_does_not_wait_for_recv(self):
-        # Closing the connection discards messages buffered in the assembler.
-        # This is allowed by the RFC:
-        # > However, there is no guarantee that the endpoint that has already
-        # > sent a Close frame will continue to process data.
+    def test_close_preserves_queued_messages(self):
+        """close preserves messages buffered in the assembler."""
         self.remote_connection.send("😀")
         self.connection.close()
 
-        close_thread = threading.Thread(target=self.connection.close)
-        close_thread.start()
-
+        self.assertEqual(self.connection.recv(), "😀")
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
 
@@ -576,10 +571,10 @@ class ClientConnectionTests(unittest.TestCase):
     def test_close_idempotency_race_condition(self):
         """close waits if the connection is already closing."""
 
-        self.connection.close_timeout = 5 * MS
+        self.connection.close_timeout = 6 * MS
 
         def closer():
-            with self.delay_frames_rcvd(3 * MS):
+            with self.delay_frames_rcvd(4 * MS):
                 self.connection.close()
 
         close_thread = threading.Thread(target=closer)
@@ -591,14 +586,14 @@ class ClientConnectionTests(unittest.TestCase):
 
         # Connection isn't closed yet.
         with self.assertRaises(TimeoutError):
-            self.connection.recv(timeout=0)
+            self.connection.recv(timeout=MS)
 
         self.connection.close()
         self.assertNoFrameSent()
 
         # Connection is closed now.
         with self.assertRaises(ConnectionClosedOK):
-            self.connection.recv(timeout=0)
+            self.connection.recv(timeout=MS)
 
         close_thread.join()
 

@@ -40,9 +40,11 @@ class SimpleQueue(Generic[T]):
         if self.get_waiter is not None and not self.get_waiter.done():
             self.get_waiter.set_result(None)
 
-    async def get(self) -> T:
+    async def get(self, block: bool = True) -> T:
         """Remove and return an item from the queue, waiting if necessary."""
         if not self.queue:
+            if not block:
+                raise EOFError("stream of frames ended")
             assert self.get_waiter is None, "cannot call get() concurrently"
             self.get_waiter = self.loop.create_future()
             try:
@@ -133,12 +135,8 @@ class Assembler:
                 :meth:`get_iter` concurrently.
 
         """
-        if self.closed:
-            raise EOFError("stream of frames ended")
-
         if self.get_in_progress:
             raise ConcurrencyError("get() or get_iter() is already running")
-
         self.get_in_progress = True
 
         # Locking with get_in_progress prevents concurrent execution
@@ -146,7 +144,7 @@ class Assembler:
 
         try:
             # First frame
-            frame = await self.frames.get()
+            frame = await self.frames.get(not self.closed)
             self.maybe_resume()
             assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
             if decode is None:
@@ -156,7 +154,7 @@ class Assembler:
             # Following frames, for fragmented messages
             while not frame.fin:
                 try:
-                    frame = await self.frames.get()
+                    frame = await self.frames.get(not self.closed)
                 except asyncio.CancelledError:
                     # Put frames already received back into the queue
                     # so that future calls to get() can return them.
@@ -200,12 +198,8 @@ class Assembler:
                 :meth:`get_iter` concurrently.
 
         """
-        if self.closed:
-            raise EOFError("stream of frames ended")
-
         if self.get_in_progress:
             raise ConcurrencyError("get() or get_iter() is already running")
-
         self.get_in_progress = True
 
         # Locking with get_in_progress prevents concurrent execution
@@ -216,7 +210,7 @@ class Assembler:
 
         # First frame
         try:
-            frame = await self.frames.get()
+            frame = await self.frames.get(not self.closed)
         except asyncio.CancelledError:
             self.get_in_progress = False
             raise
@@ -236,7 +230,7 @@ class Assembler:
             # previous fragments — we're streaming them. Canceling get_iter()
             # here will leave the assembler in a stuck state. Future calls to
             # get() or get_iter() will raise ConcurrencyError.
-            frame = await self.frames.get()
+            frame = await self.frames.get(not self.closed)
             self.maybe_resume()
             assert frame.opcode is OP_CONT
             if decode:

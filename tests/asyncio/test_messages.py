@@ -37,14 +37,6 @@ class SimpleQueueTests(unittest.IsolatedAsyncioTestCase):
         item = await getter_task
         self.assertEqual(item, 42)
 
-    async def test_get_concurrently(self):
-        """get cannot be called concurrently."""
-        getter_task = asyncio.create_task(self.queue.get())
-        await asyncio.sleep(0)  # let the task start
-        with self.assertRaises(ConcurrencyError):
-            await self.queue.get()
-        getter_task.cancel()
-
     async def test_reset(self):
         """reset sets the content of the queue."""
         self.queue.reset([42])

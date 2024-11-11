@@ -43,8 +43,7 @@ class SimpleQueue(Generic[T]):
     async def get(self) -> T:
         """Remove and return an item from the queue, waiting if necessary."""
         if not self.queue:
-            if self.get_waiter is not None:
-                raise ConcurrencyError("get is already running")
+            assert self.get_waiter is None, "cannot call get() concurrently"
             self.get_waiter = self.loop.create_future()
             try:
                 await self.get_waiter

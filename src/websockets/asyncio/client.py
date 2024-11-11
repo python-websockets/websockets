@@ -182,7 +182,7 @@ class connect:
         async for websocket in connect(...):
             try:
                 ...
-            except websockets.ConnectionClosed:
+            except websockets.exceptions.ConnectionClosed:
                 continue
 
     If the connection fails with a transient error, it is retried with

@@ -349,7 +349,7 @@ class Connect:
         async for websocket in connect(...):
             try:
                 ...
-            except websockets.ConnectionClosed:
+            except websockets.exceptions.ConnectionClosed:
                 continue
 
     The connection is closed automatically after each iteration of the loop.

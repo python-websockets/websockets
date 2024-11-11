@@ -271,11 +271,13 @@ spot real errors when you add functionality to the server. Catch it in the
 
 .. code-block:: python
 
+    from websockets.exceptions import ConnectionClosedOK
+
     async def handler(websocket):
         while True:
             try:
                 message = await websocket.recv()
-            except websockets.ConnectionClosedOK:
+            except ConnectionClosedOK:
                 break
             print(message)
 

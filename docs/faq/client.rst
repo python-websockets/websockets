@@ -84,11 +84,12 @@ How do I reconnect when the connection drops?
 Use :func:`~websockets.asyncio.client.connect` as an asynchronous iterator::
 
     from websockets.asyncio.client import connect
+    from websockets.exceptions import ConnectionClosed
 
     async for websocket in connect(...):
         try:
             ...
-        except websockets.ConnectionClosed:
+        except ConnectionClosed:
             continue
 
 Make sure you handle exceptions in the ``async for`` loop. Uncaught exceptions

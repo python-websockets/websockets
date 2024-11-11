@@ -147,7 +147,7 @@ Then, call :meth:`~ServerConnection.send`::
 
     async def message_user(user_id, message):
         websocket = CONNECTIONS[user_id]  # raises KeyError if user disconnected
-        await websocket.send(message)  # may raise websockets.ConnectionClosed
+        await websocket.send(message)  # may raise websockets.exceptions.ConnectionClosed
 
 Add error handling according to the behavior you want if the user disconnected
 before the message could be sent.

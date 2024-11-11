@@ -271,6 +271,8 @@ spot real errors when you add functionality to the server. Catch it in the
 
 .. code-block:: python
 
+    import websockets
+
     async def handler(websocket):
         while True:
             try:

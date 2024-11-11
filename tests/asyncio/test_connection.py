@@ -1066,14 +1066,22 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         self.assertEqual(connection.close_timeout, 42 * MS)
 
     async def test_max_queue(self):
-        """max_queue parameter configures high-water mark of frames buffer."""
+        """max_queue configures high-water mark of frames buffer."""
         connection = Connection(Protocol(self.LOCAL), max_queue=4)
         transport = Mock()
         connection.connection_made(transport)
         self.assertEqual(connection.recv_messages.high, 4)
 
+    async def test_max_queue_none(self):
+        """max_queue disables high-water mark of frames buffer."""
+        connection = Connection(Protocol(self.LOCAL), max_queue=None)
+        transport = Mock()
+        connection.connection_made(transport)
+        self.assertEqual(connection.recv_messages.high, None)
+        self.assertEqual(connection.recv_messages.low, None)
+
     async def test_max_queue_tuple(self):
-        """max_queue parameter configures high-water mark of frames buffer."""
+        """max_queue configures high-water and low-water marks of frames buffer."""
         connection = Connection(
             Protocol(self.LOCAL),
             max_queue=(4, 2),

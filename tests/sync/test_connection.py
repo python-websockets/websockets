@@ -749,7 +749,7 @@ class ClientConnectionTests(unittest.TestCase):
         self.assertEqual(connection.close_timeout, 42 * MS)
 
     def test_max_queue(self):
-        """max_queue parameter configures high-water mark of frames buffer."""
+        """max_queue configures high-water mark of frames buffer."""
         socket_, remote_socket = socket.socketpair()
         self.addCleanup(socket_.close)
         self.addCleanup(remote_socket.close)
@@ -760,8 +760,21 @@ class ClientConnectionTests(unittest.TestCase):
         )
         self.assertEqual(connection.recv_messages.high, 4)
 
+    def test_max_queue_none(self):
+        """max_queue disables high-water mark of frames buffer."""
+        socket_, remote_socket = socket.socketpair()
+        self.addCleanup(socket_.close)
+        self.addCleanup(remote_socket.close)
+        connection = Connection(
+            socket_,
+            Protocol(self.LOCAL),
+            max_queue=None,
+        )
+        self.assertEqual(connection.recv_messages.high, None)
+        self.assertEqual(connection.recv_messages.high, None)
+
     def test_max_queue_tuple(self):
-        """max_queue parameter configures high-water mark of frames buffer."""
+        """max_queue configures high-water and low-water marks of frames buffer."""
         socket_, remote_socket = socket.socketpair()
         self.addCleanup(socket_.close)
         self.addCleanup(remote_socket.close)

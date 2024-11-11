@@ -56,14 +56,14 @@ class Connection(asyncio.Protocol):
         ping_interval: float | None = 20,
         ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
-        max_queue: int | tuple[int, int | None] = 16,
+        max_queue: int | None | tuple[int | None, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
     ) -> None:
         self.protocol = protocol
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
-        if isinstance(max_queue, int):
+        if isinstance(max_queue, int) or max_queue is None:
             max_queue = (max_queue, None)
         self.max_queue = max_queue
         if isinstance(write_limit, int):

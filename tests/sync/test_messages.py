@@ -145,7 +145,7 @@ class AssemblerTests(ThreadTestCase):
         self.assertEqual(message, "tea")
 
     def test_get_resumes_reading(self):
-        """get resumes reading when queue goes below the high-water mark."""
+        """get resumes reading when queue goes below the low-water mark."""
         self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
         self.assembler.put(Frame(OP_TEXT, b"more caf\xc3\xa9"))
         self.assembler.put(Frame(OP_TEXT, b"water"))
@@ -161,6 +161,19 @@ class AssemblerTests(ThreadTestCase):
         # queue is below the low-water mark
         self.assembler.get()
         self.resume.assert_called_once_with()
+
+    def test_get_does_not_resume_reading(self):
+        """get does not resume reading when the low-water mark is unset."""
+        self.assembler.low = None
+
+        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(OP_TEXT, b"more caf\xc3\xa9"))
+        self.assembler.put(Frame(OP_TEXT, b"water"))
+        self.assembler.get()
+        self.assembler.get()
+        self.assembler.get()
+
+        self.resume.assert_not_called()
 
     def test_get_timeout_before_first_frame(self):
         """get times out before reading the first frame."""
@@ -300,7 +313,7 @@ class AssemblerTests(ThreadTestCase):
         self.assertEqual(fragments, ["t", "e", "a"])
 
     def test_get_iter_resumes_reading(self):
-        """get_iter resumes reading when queue goes below the high-water mark."""
+        """get_iter resumes reading when queue goes below the low-water mark."""
         self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
         self.assembler.put(Frame(OP_CONT, b"e", fin=False))
         self.assembler.put(Frame(OP_CONT, b"a"))
@@ -319,6 +332,20 @@ class AssemblerTests(ThreadTestCase):
         next(iterator)
         self.resume.assert_called_once_with()
 
+    def test_get_iter_does_not_resume_reading(self):
+        """get_iter does not resume reading when the low-water mark is unset."""
+        self.assembler.low = None
+
+        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"a"))
+        iterator = self.assembler.get_iter()
+        next(iterator)
+        next(iterator)
+        next(iterator)
+
+        self.resume.assert_not_called()
+
     # Test put
 
     def test_put_pauses_reading(self):
@@ -335,6 +362,17 @@ class AssemblerTests(ThreadTestCase):
         # queue is above the high-water mark
         self.assembler.put(Frame(OP_CONT, b"a"))
         self.pause.assert_called_once_with()
+
+    def test_put_does_not_pause_reading(self):
+        """put does not pause reading when the high-water mark is unset."""
+        self.assembler.high = None
+
+        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"a"))
+
+        self.pause.assert_not_called()
 
     # Test termination
 
@@ -470,15 +508,28 @@ class AssemblerTests(ThreadTestCase):
     # Test setting limits
 
     def test_set_high_water_mark(self):
-        """high sets the high-water mark."""
+        """high sets the high-water and low-water marks."""
         assembler = Assembler(high=10)
         self.assertEqual(assembler.high, 10)
+        self.assertEqual(assembler.low, 2)
 
-    def test_set_high_and_low_water_mark(self):
-        """high sets the high-water mark and low-water mark."""
+    def test_set_low_water_mark(self):
+        """low sets the low-water and high-water marks."""
+        assembler = Assembler(low=5)
+        self.assertEqual(assembler.low, 5)
+        self.assertEqual(assembler.high, 20)
+
+    def test_set_high_and_low_water_marks(self):
+        """high and low set the high-water and low-water marks."""
         assembler = Assembler(high=10, low=5)
         self.assertEqual(assembler.high, 10)
         self.assertEqual(assembler.low, 5)
+
+    def test_unset_high_and_low_water_marks(self):
+        """High-water and low-water marks are unset."""
+        assembler = Assembler()
+        self.assertEqual(assembler.high, None)
+        self.assertEqual(assembler.low, None)
 
     def test_set_invalid_high_water_mark(self):
         """high must be a non-negative integer."""

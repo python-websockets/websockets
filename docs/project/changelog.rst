@@ -34,6 +34,13 @@ notice.
 
 .. _14.0:
 
+Improvements
+............
+
+* Supported ``max_queue=None`` in the :mod:`asyncio` and :mod:`threading`
+  implementations for consistency with the legacy implementation, even though
+  this is never a good idea.
+
 Bug fixes
 .........
 

@@ -33,7 +33,7 @@ class Assembler:
 
     def __init__(
         self,
-        high: int = 16,
+        high: int | None = None,
         low: int | None = None,
         pause: Callable[[], Any] = lambda: None,
         resume: Callable[[], Any] = lambda: None,
@@ -49,12 +49,15 @@ class Assembler:
         # call to Protocol.data_received() could produce thousands of frames,
         # which must be buffered. Instead, we pause reading when the buffer goes
         # above the high limit and we resume when it goes under the low limit.
-        if low is None:
+        if high is not None and low is None:
             low = high // 4
-        if low < 0:
-            raise ValueError("low must be positive or equal to zero")
-        if high < low:
-            raise ValueError("high must be greater than or equal to low")
+        if high is None and low is not None:
+            high = low * 4
+        if high is not None and low is not None:
+            if low < 0:
+                raise ValueError("low must be positive or equal to zero")
+            if high < low:
+                raise ValueError("high must be greater than or equal to low")
         self.high, self.low = high, low
         self.pause = pause
         self.resume = resume
@@ -260,7 +263,12 @@ class Assembler:
 
     def maybe_pause(self) -> None:
         """Pause the writer if queue is above the high water mark."""
+        # Skip if flow control is disabled
+        if self.high is None:
+            return
+
         assert self.mutex.locked()
+
         # Check for "> high" to support high = 0
         if self.frames.qsize() > self.high and not self.paused:
             self.paused = True
@@ -268,7 +276,12 @@ class Assembler:
 
     def maybe_resume(self) -> None:
         """Resume the writer if queue is below the low water mark."""
+        # Skip if flow control is disabled
+        if self.low is None:
+            return
+
         assert self.mutex.locked()
+
         # Check for "<= low" to support low = 0
         if self.frames.qsize() <= self.low and self.paused:
             self.paused = False

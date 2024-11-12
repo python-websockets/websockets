@@ -60,13 +60,10 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
-          - "pypy-3.9"
           - "pypy-3.10"
         is_main:
           - ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         exclude:
-          - python: "pypy-3.9"
-            is_main: false
           - python: "pypy-3.10"
             is_main: false
     steps:

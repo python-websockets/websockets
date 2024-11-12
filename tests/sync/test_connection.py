@@ -1,6 +1,5 @@
 import contextlib
 import logging
-import platform
 import socket
 import sys
 import threading
@@ -564,10 +563,6 @@ class ClientConnectionTests(unittest.TestCase):
         self.connection.close()
         self.assertNoFrameSent()
 
-    @unittest.skipIf(
-        platform.python_implementation() == "PyPy",
-        "this test fails randomly due to a bug in PyPy",  # see #1314 for details
-    )
     def test_close_idempotency_race_condition(self):
         """close waits if the connection is already closing."""
 

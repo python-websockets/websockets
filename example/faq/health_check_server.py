@@ -6,7 +6,7 @@ from websockets.asyncio.server import serve
 
 def health_check(connection, request):
     if request.path == "/healthz":
-        return connection.respond(HTTPStatus.OK, b"OK\n")
+        return connection.respond(HTTPStatus.OK, "OK\n")
 
 async def echo(websocket):
     async for message in websocket:

@@ -8,10 +8,6 @@ class ExceptionsTests(unittest.TestCase):
     def test_str(self):
         for exception, exception_str in [
             (
-                InvalidMessage("malformed HTTP message"),
-                "malformed HTTP message",
-            ),
-            (
                 InvalidStatusCode(403, Headers()),
                 "server rejected WebSocket connection: HTTP 403",
             ),

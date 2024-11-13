@@ -7,7 +7,12 @@ import threading
 import time
 import unittest
 
-from websockets.exceptions import InvalidHandshake, InvalidStatus, InvalidURI
+from websockets.exceptions import (
+    InvalidHandshake,
+    InvalidMessage,
+    InvalidStatus,
+    InvalidURI,
+)
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 from websockets.sync.client import *
 
@@ -149,11 +154,16 @@ class ClientTests(unittest.TestCase):
             self.close_socket()
 
         with run_server(process_request=close_connection) as server:
-            with self.assertRaises(EOFError) as raised:
+            with self.assertRaises(InvalidMessage) as raised:
                 with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
+                "did not receive a valid HTTP response",
+            )
+            self.assertIsInstance(raised.exception.__cause__, EOFError)
+            self.assertEqual(
+                str(raised.exception.__cause__),
                 "connection closed while reading HTTP status line",
             )
 
@@ -203,11 +213,16 @@ class ClientTests(unittest.TestCase):
             thread = threading.Thread(target=server.serve_forever, args=(MS,))
             thread.start()
             try:
-                with self.assertRaises(ValueError) as raised:
+                with self.assertRaises(InvalidMessage) as raised:
                     with connect(f"ws://{host}:{port}"):
                         self.fail("did not raise")
                 self.assertEqual(
                     str(raised.exception),
+                    "did not receive a valid HTTP response",
+                )
+                self.assertIsInstance(raised.exception.__cause__, ValueError)
+                self.assertEqual(
+                    str(raised.exception.__cause__),
                     "unsupported protocol; expected HTTP/1.1: "
                     "220 smtp.invalid ESMTP Postfix",
                 )

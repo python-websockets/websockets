@@ -17,6 +17,7 @@ from ..datastructures import Headers, HeadersLike, MultipleValuesError
 from ..exceptions import (
     InvalidHandshake,
     InvalidHeader,
+    InvalidMessage,
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
@@ -32,7 +33,7 @@ from ..headers import (
 from ..http11 import SERVER
 from ..protocol import State
 from ..typing import ExtensionHeader, LoggerLike, Origin, StatusLike, Subprotocol
-from .exceptions import AbortHandshake, InvalidMessage
+from .exceptions import AbortHandshake
 from .handshake import build_response, check_request
 from .http import read_request
 from .protocol import WebSocketCommonProtocol, broadcast

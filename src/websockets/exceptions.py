@@ -8,7 +8,7 @@
     * :exc:`InvalidURI`
     * :exc:`InvalidHandshake`
         * :exc:`SecurityError`
-        * :exc:`InvalidMessage` (legacy)
+        * :exc:`InvalidMessage`
         * :exc:`InvalidStatus`
         * :exc:`InvalidStatusCode` (legacy)
         * :exc:`InvalidHeader`
@@ -48,6 +48,7 @@ __all__ = [
     "InvalidHeader",
     "InvalidHeaderFormat",
     "InvalidHeaderValue",
+    "InvalidMessage",
     "InvalidOrigin",
     "InvalidUpgrade",
     "NegotiationError",
@@ -181,6 +182,13 @@ class SecurityError(InvalidHandshake):
 
     Security limits can be configured with :doc:`environment variables
     <../reference/variables>`.
+
+    """
+
+
+class InvalidMessage(InvalidHandshake):
+    """
+    Raised when a handshake request or response is malformed.
 
     """
 
@@ -410,7 +418,6 @@ lazy_import(
     deprecated_aliases={
         # deprecated in 14.0 - 2024-11-09
         "AbortHandshake": ".legacy.exceptions",
-        "InvalidMessage": ".legacy.exceptions",
         "InvalidStatusCode": ".legacy.exceptions",
         "RedirectHandshake": ".legacy.exceptions",
         "WebSocketProtocolError": ".legacy.exceptions",

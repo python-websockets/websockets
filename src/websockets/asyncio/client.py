@@ -11,7 +11,7 @@ from typing import Any, Callable
 
 from ..client import ClientProtocol, backoff
 from ..datastructures import HeadersLike
-from ..exceptions import InvalidStatus, SecurityError
+from ..exceptions import InvalidMessage, InvalidStatus, SecurityError
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import validate_subprotocols
@@ -147,7 +147,9 @@ def process_exception(exc: Exception) -> Exception | None:
     That exception will be raised, breaking out of the retry loop.
 
     """
-    if isinstance(exc, (EOFError, OSError, asyncio.TimeoutError)):
+    if isinstance(exc, (OSError, asyncio.TimeoutError)):
+        return None
+    if isinstance(exc, InvalidMessage) and isinstance(exc.__cause__, EOFError):
         return None
     if isinstance(exc, InvalidStatus) and exc.response.status_code in [
         500,  # Internal Server Error

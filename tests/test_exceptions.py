@@ -92,6 +92,10 @@ class ExceptionsTests(unittest.TestCase):
                 "redirect from WSS to WS",
             ),
             (
+                InvalidMessage("malformed HTTP message"),
+                "malformed HTTP message",
+            ),
+            (
                 InvalidStatus(Response(401, "Unauthorized", Headers())),
                 "server rejected WebSocket connection: HTTP 401",
             ),

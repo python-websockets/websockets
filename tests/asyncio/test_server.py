@@ -473,6 +473,10 @@ class ServerTests(EvalShellMixin, AssertNoLogsMixin, unittest.IsolatedAsyncioTes
         )
         self.assertEqual(
             [str(record.exc_info[1]) for record in logs.records],
+            ["did not receive a valid HTTP request"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1].__cause__) for record in logs.records],
             ["invalid HTTP request line: HELO relay.invalid"],
         )
 

@@ -8,7 +8,12 @@ from unittest.mock import patch
 from websockets.client import *
 from websockets.client import backoff
 from websockets.datastructures import Headers
-from websockets.exceptions import InvalidHandshake, InvalidHeader, InvalidStatus
+from websockets.exceptions import (
+    InvalidHandshake,
+    InvalidHeader,
+    InvalidMessage,
+    InvalidStatus,
+)
 from websockets.frames import OP_TEXT, Frame
 from websockets.http11 import Request, Response
 from websockets.protocol import CONNECTING, OPEN
@@ -244,9 +249,14 @@ class ResponseTests(unittest.TestCase):
         client.receive_eof()
 
         self.assertEqual(client.events_received(), [])
-        self.assertIsInstance(client.handshake_exc, EOFError)
+        self.assertIsInstance(client.handshake_exc, InvalidMessage)
         self.assertEqual(
             str(client.handshake_exc),
+            "did not receive a valid HTTP response",
+        )
+        self.assertIsInstance(client.handshake_exc.__cause__, EOFError)
+        self.assertEqual(
+            str(client.handshake_exc.__cause__),
             "connection closed while reading HTTP status line",
         )
 
@@ -257,9 +267,14 @@ class ResponseTests(unittest.TestCase):
         client.receive_eof()
 
         self.assertEqual(client.events_received(), [])
-        self.assertIsInstance(client.handshake_exc, EOFError)
+        self.assertIsInstance(client.handshake_exc, InvalidMessage)
         self.assertEqual(
             str(client.handshake_exc),
+            "did not receive a valid HTTP response",
+        )
+        self.assertIsInstance(client.handshake_exc.__cause__, EOFError)
+        self.assertEqual(
+            str(client.handshake_exc.__cause__),
             "connection closed while reading HTTP headers",
         )
 
@@ -272,9 +287,14 @@ class ResponseTests(unittest.TestCase):
         client.receive_data(b"250 Ok\r\n")
 
         self.assertEqual(client.events_received(), [])
-        self.assertIsInstance(client.handshake_exc, ValueError)
+        self.assertIsInstance(client.handshake_exc, InvalidMessage)
         self.assertEqual(
             str(client.handshake_exc),
+            "did not receive a valid HTTP response",
+        )
+        self.assertIsInstance(client.handshake_exc.__cause__, ValueError)
+        self.assertEqual(
+            str(client.handshake_exc.__cause__),
             "invalid HTTP status line: 220 smtp.invalid",
         )
 

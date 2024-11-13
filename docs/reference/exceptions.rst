@@ -30,6 +30,8 @@ also reported by :func:`~websockets.asyncio.server.serve` in logs.
 
 .. autoexception:: InvalidHandshake
 
+.. autoexception:: InvalidMessage
+
 .. autoexception:: SecurityError
 
 .. autoexception:: InvalidStatus
@@ -73,8 +75,6 @@ Legacy exceptions
 -----------------
 
 These exceptions are only used by the legacy :mod:`asyncio` implementation.
-
-.. autoexception:: InvalidMessage
 
 .. autoexception:: InvalidStatusCode
 

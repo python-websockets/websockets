@@ -12,6 +12,7 @@ from websockets.asyncio.server import serve, unix_serve
 from websockets.client import backoff
 from websockets.exceptions import (
     InvalidHandshake,
+    InvalidMessage,
     InvalidStatus,
     InvalidURI,
     SecurityError,
@@ -151,22 +152,24 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         iterations = 0
         successful = 0
 
-        def process_request(connection, request):
+        async def process_request(connection, request):
             nonlocal iterations
             iterations += 1
             # Retriable errors
             if iterations == 1:
-                connection.transport.close()
+                await asyncio.sleep(3 * MS)
             elif iterations == 2:
+                connection.transport.close()
+            elif iterations == 3:
                 return connection.respond(http.HTTPStatus.SERVICE_UNAVAILABLE, "🚒")
             # Fatal error
-            elif iterations == 5:
+            elif iterations == 6:
                 return connection.respond(http.HTTPStatus.PAYMENT_REQUIRED, "💸")
 
         async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with short_backoff_delay():
-                    async for client in connect(get_uri(server)):
+                    async for client in connect(get_uri(server), open_timeout=3 * MS):
                         self.assertEqual(client.protocol.state.name, "OPEN")
                         successful += 1
 
@@ -174,7 +177,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             str(raised.exception),
             "server rejected WebSocket connection: HTTP 402",
         )
-        self.assertEqual(iterations, 5)
+        self.assertEqual(iterations, 6)
         self.assertEqual(successful, 2)
 
     async def test_reconnect_with_custom_process_exception(self):
@@ -393,11 +396,16 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             self.close_transport()
 
         async with serve(*args, process_request=close_connection) as server:
-            with self.assertRaises(EOFError) as raised:
+            with self.assertRaises(InvalidMessage) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
+                "did not receive a valid HTTP response",
+            )
+            self.assertIsInstance(raised.exception.__cause__, EOFError)
+            self.assertEqual(
+                str(raised.exception.__cause__),
                 "connection closed while reading HTTP status line",
             )
 
@@ -443,11 +451,16 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         server = await asyncio.start_server(junk, "localhost", 0)
         host, port = get_host_port(server)
         async with server:
-            with self.assertRaises(ValueError) as raised:
+            with self.assertRaises(InvalidMessage) as raised:
                 async with connect(f"ws://{host}:{port}"):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
+                "did not receive a valid HTTP response",
+            )
+            self.assertIsInstance(raised.exception.__cause__, ValueError)
+            self.assertEqual(
+                str(raised.exception.__cause__),
                 "unsupported protocol; expected HTTP/1.1: "
                 "220 smtp.invalid ESMTP Postfix",
             )

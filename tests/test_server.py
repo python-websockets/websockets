@@ -7,6 +7,7 @@ from unittest.mock import patch
 from websockets.datastructures import Headers
 from websockets.exceptions import (
     InvalidHeader,
+    InvalidMessage,
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
@@ -207,9 +208,15 @@ class RequestTests(unittest.TestCase):
         server.receive_eof()
 
         self.assertEqual(server.events_received(), [])
-        self.assertIsInstance(server.handshake_exc, EOFError)
+        self.assertEqual(server.events_received(), [])
+        self.assertIsInstance(server.handshake_exc, InvalidMessage)
         self.assertEqual(
             str(server.handshake_exc),
+            "did not receive a valid HTTP request",
+        )
+        self.assertIsInstance(server.handshake_exc.__cause__, EOFError)
+        self.assertEqual(
+            str(server.handshake_exc.__cause__),
             "connection closed while reading HTTP request line",
         )
 
@@ -220,9 +227,14 @@ class RequestTests(unittest.TestCase):
         server.receive_eof()
 
         self.assertEqual(server.events_received(), [])
-        self.assertIsInstance(server.handshake_exc, EOFError)
+        self.assertIsInstance(server.handshake_exc, InvalidMessage)
         self.assertEqual(
             str(server.handshake_exc),
+            "did not receive a valid HTTP request",
+        )
+        self.assertIsInstance(server.handshake_exc.__cause__, EOFError)
+        self.assertEqual(
+            str(server.handshake_exc.__cause__),
             "connection closed while reading HTTP headers",
         )
 
@@ -233,10 +245,14 @@ class RequestTests(unittest.TestCase):
         server.receive_data(b"MAIL FROM: <alice@invalid>\r\n")
         server.receive_data(b"RCPT TO: <bob@invalid>\r\n")
 
-        self.assertEqual(server.events_received(), [])
-        self.assertIsInstance(server.handshake_exc, ValueError)
+        self.assertIsInstance(server.handshake_exc, InvalidMessage)
         self.assertEqual(
             str(server.handshake_exc),
+            "did not receive a valid HTTP request",
+        )
+        self.assertIsInstance(server.handshake_exc.__cause__, ValueError)
+        self.assertEqual(
+            str(server.handshake_exc.__cause__),
             "invalid HTTP request line: HELO relay.invalid",
         )
 

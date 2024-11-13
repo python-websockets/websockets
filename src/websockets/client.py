@@ -11,6 +11,7 @@ from .exceptions import (
     InvalidHandshake,
     InvalidHeader,
     InvalidHeaderValue,
+    InvalidMessage,
     InvalidStatus,
     InvalidUpgrade,
     NegotiationError,
@@ -318,7 +319,10 @@ class ClientProtocol(Protocol):
                     self.reader.read_to_eof,
                 )
             except Exception as exc:
-                self.handshake_exc = exc
+                self.handshake_exc = InvalidMessage(
+                    "did not receive a valid HTTP response"
+                )
+                self.handshake_exc.__cause__ = exc
                 self.send_eof()
                 self.parser = self.discard()
                 next(self.parser)  # start coroutine

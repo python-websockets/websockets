@@ -30,9 +30,7 @@ notice.
 14.1
 ----
 
-*In development*
-
-.. _14.0:
+*November 13, 2024*
 
 Improvements
 ............
@@ -51,6 +49,8 @@ Bug fixes
 * Once the connection is closed, messages previously received and buffered can
   be read in the :mod:`asyncio` and :mod:`threading` implementations, just like
   in the legacy implementation.
+
+.. _14.0:
 
 14.0
 ----

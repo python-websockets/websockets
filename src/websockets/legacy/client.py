@@ -278,8 +278,12 @@ class WebSocketClientProtocol(WebSocketCommonProtocol):
 
         """
         request_headers = Headers()
-
-        request_headers["Host"] = build_host(wsuri.host, wsuri.port, wsuri.secure)
+        # fix 403 forbidden when dial with CDN IP with Custom SNI
+        if extra_headers["Host"]:
+            request_headers["Host"] = extra_headers["Host"] # key point
+        else:
+            request_headers["Host"] = build_host(wsuri.host, wsuri.port, wsuri.secure)
+        # request_headers["Host"] = build_host(wsuri.host, wsuri.port, wsuri.secure)
 
         if wsuri.user_info:
             request_headers["Authorization"] = build_authorization_basic(

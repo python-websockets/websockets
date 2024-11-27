@@ -113,8 +113,12 @@ class Assembler:
         # This flag prevents concurrent calls to get() by user code.
         self.get_in_progress = False
 
+        # This flag marks a soon cancellation
+        self.cancelling = False
+
         # This flag marks the end of the connection.
         self.closed = False
+
 
     async def get(self, decode: bool | None = None) -> Data:
         """
@@ -138,6 +142,8 @@ class Assembler:
                 :meth:`get_iter` concurrently.
 
         """
+        if self.cancelling:
+            return
         if self.get_in_progress:
             raise ConcurrencyError("get() or get_iter() is already running")
         self.get_in_progress = True
@@ -201,6 +207,8 @@ class Assembler:
                 :meth:`get_iter` concurrently.
 
         """
+        if self.cancelling:
+            return
         if self.get_in_progress:
             raise ConcurrencyError("get() or get_iter() is already running")
         self.get_in_progress = True
@@ -251,6 +259,8 @@ class Assembler:
             EOFError: If the stream of frames has ended.
 
         """
+        if self.cancelling:
+            return
         if self.closed:
             raise EOFError("stream of frames ended")
 
@@ -283,7 +293,7 @@ class Assembler:
         """
         End the stream of frames.
 
-        Callling :meth:`close` concurrently with :meth:`get`, :meth:`get_iter`,
+        Calling :meth:`close` concurrently with :meth:`get`, :meth:`get_iter`,
         or :meth:`put` is safe. They will raise :exc:`EOFError`.
 
         """

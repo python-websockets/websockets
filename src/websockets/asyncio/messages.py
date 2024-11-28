@@ -292,6 +292,7 @@ class Assembler:
 
         # Resuming the writer to avoid deadlocks
         if self.paused:
+            self.paused = False
             self.resume()
 
     def close(self) -> None:

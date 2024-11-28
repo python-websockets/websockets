@@ -806,6 +806,27 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
         self.assertIsNone(exc.__cause__)
 
+    async def test_close_preserves_queued_messages_gt_max_queue(self):
+        """
+        close preserves messages buffered in the assembler, even if they
+        exceed the default buffer size.
+        """
+
+        for _ in range(100):
+            await self.remote_connection.send("😀")
+
+        await self.connection.close()
+
+        for _ in range(100):
+            self.assertEqual(await self.connection.recv(), "😀")
+
+        with self.assertRaises(ConnectionClosedOK) as raised:
+            await self.connection.recv()
+
+        exc = raised.exception
+        self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
+        self.assertIsNone(exc.__cause__)
+
     async def test_close_idempotency(self):
         """close does nothing if the connection is already closed."""
         await self.connection.close()

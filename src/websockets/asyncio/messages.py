@@ -113,6 +113,9 @@ class Assembler:
         # This flag prevents concurrent calls to get() by user code.
         self.get_in_progress = False
 
+        # This flag marks a soon end of the connection.
+        self.closing = False
+
         # This flag marks the end of the connection.
         self.closed = False
 
@@ -255,7 +258,9 @@ class Assembler:
             raise EOFError("stream of frames ended")
 
         self.frames.put(frame)
-        self.maybe_pause()
+
+        if not self.closing:
+            self.maybe_pause()
 
     def maybe_pause(self) -> None:
         """Pause the writer if queue is above the high water mark."""
@@ -279,11 +284,22 @@ class Assembler:
             self.paused = False
             self.resume()
 
+    def prepare_close(self) -> None:
+        """
+        Prepare to close by ensuring that no more messages will be processed.
+        """
+        self.closing = True
+
+        # Resuming the writer to avoid deadlocks
+        if self.paused:
+            self.paused = False
+            self.resume()
+
     def close(self) -> None:
         """
         End the stream of frames.
 
-        Callling :meth:`close` concurrently with :meth:`get`, :meth:`get_iter`,
+        Calling :meth:`close` concurrently with :meth:`get`, :meth:`get_iter`,
         or :meth:`put` is safe. They will raise :exc:`EOFError`.
 
         """

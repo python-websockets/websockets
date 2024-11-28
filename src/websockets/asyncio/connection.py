@@ -913,6 +913,7 @@ class Connection(asyncio.Protocol):
         if wait_for_close:
             try:
                 async with asyncio_timeout_at(self.close_deadline):
+                    self.recv_messages.prepare_close()
                     await asyncio.shield(self.connection_lost_waiter)
             except TimeoutError:
                 # There's no risk to overwrite another error because

@@ -82,7 +82,7 @@ jobs:
           merge-multiple: true
           path: dist
       - name: Attest provenance
-        uses: actions/attest-build-provenance@v1
+        uses: actions/attest-build-provenance@v2
         with:
           subject-path: dist/*
       - name: Upload to PyPI

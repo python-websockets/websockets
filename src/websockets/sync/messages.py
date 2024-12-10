@@ -291,7 +291,7 @@ class Assembler:
         """
         End the stream of frames.
 
-        Callling :meth:`close` concurrently with :meth:`get`, :meth:`get_iter`,
+        Calling :meth:`close` concurrently with :meth:`get`, :meth:`get_iter`,
         or :meth:`put` is safe. They will raise :exc:`EOFError`.
 
         """

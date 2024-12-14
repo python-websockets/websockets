@@ -87,7 +87,6 @@ class Frame(NamedTuple):
 
         length = head2 & 0b01111111
         if length == 126:
-            data = await reader(2)
             (length,) = struct.unpack("!H", data)
         elif length == 127:
             data = await reader(8)

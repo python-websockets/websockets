@@ -749,9 +749,9 @@ class Connection(asyncio.Protocol):
         ping_ids = []
         for ping_id, (pong_waiter, ping_timestamp) in self.pong_waiters.items():
             ping_ids.append(ping_id)
-            latency = pong_timestamp - ping_timestamp
-            pong_waiter.set_result(latency)
             if ping_id == data:
+                latency = pong_timestamp - ping_timestamp
+                pong_waiter.set_result(latency)
                 self.latency = latency
                 break
         else:

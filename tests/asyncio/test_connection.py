@@ -892,6 +892,15 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         async with asyncio_timeout(MS):
             await pong_waiter
 
+    async def test_acknowledge_canceled_ping(self):
+        """ping is acknowledged by a pong with the same payload after being canceled."""
+        async with self.drop_frames_rcvd():  # drop automatic response to ping
+            pong_waiter = await self.connection.ping("this")
+        pong_waiter.cancel()
+        await self.remote_connection.pong("this")
+        with self.assertRaises(asyncio.CancelledError):
+            await pong_waiter
+
     async def test_acknowledge_ping_non_matching_pong(self):
         """ping isn't acknowledged by a pong with a different payload."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
@@ -902,12 +911,24 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
                 await pong_waiter
 
     async def test_acknowledge_previous_ping(self):
-        """ping is acknowledged by a pong with the same payload as a later ping."""
+        """ping is acknowledged by a pong for a later ping."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
             pong_waiter = await self.connection.ping("this")
             await self.connection.ping("that")
         await self.remote_connection.pong("that")
         async with asyncio_timeout(MS):
+            await pong_waiter
+
+    async def test_acknowledge_previous_canceled_ping(self):
+        """ping is acknowledged by a pong for a later ping after being canceled."""
+        async with self.drop_frames_rcvd():  # drop automatic response to ping
+            pong_waiter = await self.connection.ping("this")
+            pong_waiter_2 = await self.connection.ping("that")
+        pong_waiter.cancel()
+        await self.remote_connection.pong("that")
+        async with asyncio_timeout(MS):
+            await pong_waiter_2
+        with self.assertRaises(asyncio.CancelledError):
             await pong_waiter
 
     async def test_ping_duplicate_payload(self):

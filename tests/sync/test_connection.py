@@ -678,7 +678,7 @@ class ClientConnectionTests(unittest.TestCase):
         self.assertFalse(pong_waiter.wait(MS))
 
     def test_acknowledge_previous_ping(self):
-        """ping is acknowledged by a pong with the same payload as a later ping."""
+        """ping is acknowledged by a pong for as a later ping."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
             pong_waiter = self.connection.ping("this")
             self.connection.ping("that")

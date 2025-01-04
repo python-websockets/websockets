@@ -281,7 +281,7 @@ class ResponseTests(unittest.TestCase):
                 }
             ),
         )
-        self.assertIsNone(response.body)
+        self.assertEqual(response.body, b"")
 
     @patch("email.utils.formatdate", return_value=DATE)
     def test_reject_response(self, _formatdate):

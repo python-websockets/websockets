@@ -204,7 +204,7 @@ class ResponseTests(unittest.TestCase):
                 }
             ),
         )
-        self.assertIsNone(response.body)
+        self.assertEqual(response.body, b"")
         self.assertIsNone(client.handshake_exc)
 
     def test_receive_failed_response(self, _generate_key):

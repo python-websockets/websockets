@@ -180,14 +180,14 @@ class Response:
         status_code: Response code.
         reason_phrase: Response reason.
         headers: Response headers.
-        body: Response body, if any.
+        body: Response body.
 
     """
 
     status_code: int
     reason_phrase: str
     headers: Headers
-    body: bytes | None = None
+    body: bytes = b""
 
     _exception: Exception | None = None
 
@@ -261,36 +261,9 @@ class Response:
 
         headers = yield from parse_headers(read_line)
 
-        # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3
-
-        if "Transfer-Encoding" in headers:
-            raise NotImplementedError("transfer codings aren't supported")
-
-        # Since websockets only does GET requests (no HEAD, no CONNECT), all
-        # responses except 1xx, 204, and 304 include a message body.
-        if 100 <= status_code < 200 or status_code == 204 or status_code == 304:
-            body = None
-        else:
-            content_length: int | None
-            try:
-                # MultipleValuesError is sufficiently unlikely that we don't
-                # attempt to handle it. Instead we document that its parent
-                # class, LookupError, may be raised.
-                raw_content_length = headers["Content-Length"]
-            except KeyError:
-                content_length = None
-            else:
-                content_length = int(raw_content_length)
-
-            if content_length is None:
-                try:
-                    body = yield from read_to_eof(MAX_BODY_SIZE)
-                except RuntimeError:
-                    raise SecurityError(f"body too large: over {MAX_BODY_SIZE} bytes")
-            elif content_length > MAX_BODY_SIZE:
-                raise SecurityError(f"body too large: {content_length} bytes")
-            else:
-                body = yield from read_exact(content_length)
+        body = yield from read_body(
+            status_code, headers, read_line, read_exact, read_to_eof
+        )
 
         return cls(status_code, reason, headers, body)
 
@@ -303,9 +276,35 @@ class Response:
         # we can keep this simple.
         response = f"HTTP/1.1 {self.status_code} {self.reason_phrase}\r\n".encode()
         response += self.headers.serialize()
-        if self.body is not None:
-            response += self.body
+        response += self.body
         return response
+
+
+def parse_line(
+    read_line: Callable[[int], Generator[None, None, bytes]],
+) -> Generator[None, None, bytes]:
+    """
+    Parse a single line.
+
+    CRLF is stripped from the return value.
+
+    Args:
+        read_line: Generator-based coroutine that reads a LF-terminated line
+            or raises an exception if there isn't enough data.
+
+    Raises:
+        EOFError: If the connection is closed without a CRLF.
+        SecurityError: If the response exceeds a security limit.
+
+    """
+    try:
+        line = yield from read_line(MAX_LINE_LENGTH)
+    except RuntimeError:
+        raise SecurityError("line too long")
+    # Not mandatory but safe - https://datatracker.ietf.org/doc/html/rfc7230#section-3.5
+    if not line.endswith(b"\r\n"):
+        raise EOFError("line without CRLF")
+    return line[:-2]
 
 
 def parse_headers(
@@ -359,28 +358,62 @@ def parse_headers(
     return headers
 
 
-def parse_line(
+def read_body(
+    status_code: int,
+    headers: Headers,
     read_line: Callable[[int], Generator[None, None, bytes]],
+    read_exact: Callable[[int], Generator[None, None, bytes]],
+    read_to_eof: Callable[[int], Generator[None, None, bytes]],
 ) -> Generator[None, None, bytes]:
-    """
-    Parse a single line.
+    # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3
 
-    CRLF is stripped from the return value.
+    # Since websockets only does GET requests (no HEAD, no CONNECT), all
+    # responses except 1xx, 204, and 304 include a message body.
+    if 100 <= status_code < 200 or status_code == 204 or status_code == 304:
+        return b""
 
-    Args:
-        read_line: Generator-based coroutine that reads a LF-terminated line
-            or raises an exception if there isn't enough data.
+    # MultipleValuesError is sufficiently unlikely that we don't attempt to
+    # handle it when accessing headers. Instead we document that its parent
+    # class, LookupError, may be raised.
+    # Conversions from str to int are protected by sys.set_int_max_str_digits..
 
-    Raises:
-        EOFError: If the connection is closed without a CRLF.
-        SecurityError: If the response exceeds a security limit.
+    elif (coding := headers.get("Transfer-Encoding")) is not None:
+        if coding != "chunked":
+            raise NotImplementedError(f"transfer coding {coding} isn't supported")
 
-    """
-    try:
-        line = yield from read_line(MAX_LINE_LENGTH)
-    except RuntimeError:
-        raise SecurityError("line too long")
-    # Not mandatory but safe - https://datatracker.ietf.org/doc/html/rfc7230#section-3.5
-    if not line.endswith(b"\r\n"):
-        raise EOFError("line without CRLF")
-    return line[:-2]
+        body = b""
+        while True:
+            chunk_size_line = yield from parse_line(read_line)
+            raw_chunk_size = chunk_size_line.split(b";", 1)[0]
+            # Set a lower limit than default_max_str_digits; 1 EB is plenty.
+            if len(raw_chunk_size) > 15:
+                str_chunk_size = raw_chunk_size.decode(errors="backslashreplace")
+                raise SecurityError(f"chunk too large: 0x{str_chunk_size} bytes")
+            chunk_size = int(raw_chunk_size, 16)
+            if chunk_size == 0:
+                break
+            if len(body) + chunk_size > MAX_BODY_SIZE:
+                raise SecurityError(
+                    f"chunk too large: {chunk_size} bytes after {len(body)} bytes"
+                )
+            body += yield from read_exact(chunk_size)
+            if (yield from read_exact(2)) != b"\r\n":
+                raise ValueError("chunk without CRLF")
+        # Read the trailer.
+        yield from parse_headers(read_line)
+        return body
+
+    elif (raw_content_length := headers.get("Content-Length")) is not None:
+        # Set a lower limit than default_max_str_digits; 1 EiB is plenty.
+        if len(raw_content_length) > 18:
+            raise SecurityError(f"body too large: {raw_content_length} bytes")
+        content_length = int(raw_content_length)
+        if content_length > MAX_BODY_SIZE:
+            raise SecurityError(f"body too large: {content_length} bytes")
+        return (yield from read_exact(content_length))
+
+    else:
+        try:
+            return (yield from read_to_eof(MAX_BODY_SIZE))
+        except RuntimeError:
+            raise SecurityError(f"body too large: over {MAX_BODY_SIZE} bytes")

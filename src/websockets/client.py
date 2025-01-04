@@ -333,7 +333,7 @@ class ClientProtocol(Protocol):
                 self.logger.debug("< HTTP/1.1 %d %s", code, phrase)
                 for key, value in response.headers.raw_items():
                     self.logger.debug("< %s: %s", key, value)
-                if response.body is not None:
+                if response.body:
                     self.logger.debug("< [body] (%d bytes)", len(response.body))
 
             try:

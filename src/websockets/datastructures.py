@@ -4,7 +4,11 @@ from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 from typing import Any, Protocol, Union
 
 
-__all__ = ["Headers", "HeadersLike", "MultipleValuesError"]
+__all__ = [
+    "Headers",
+    "HeadersLike",
+    "MultipleValuesError",
+]
 
 
 class MultipleValuesError(LookupError):

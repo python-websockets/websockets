@@ -28,6 +28,7 @@ __all__ = [
     "OP_PONG",
     "DATA_OPCODES",
     "CTRL_OPCODES",
+    "CloseCode",
     "Frame",
     "Close",
 ]

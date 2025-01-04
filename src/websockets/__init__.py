@@ -10,11 +10,14 @@ __all__ = [
     # .asyncio.client
     "connect",
     "unix_connect",
+    "ClientConnection",
     # .asyncio.server
     "basic_auth",
     "broadcast",
     "serve",
     "unix_serve",
+    "ServerConnection",
+    "Server",
     # .client
     "ClientProtocol",
     # .datastructures
@@ -44,6 +47,18 @@ __all__ = [
     "ProtocolError",
     "SecurityError",
     "WebSocketException",
+    # .frames
+    "Close",
+    "CloseCode",
+    "Frame",
+    "Opcode",
+    # .http11
+    "Request",
+    "Response",
+    # .protocol
+    "Protocol",
+    "Side",
+    "State",
     # .server
     "ServerProtocol",
     # .typing
@@ -58,8 +73,15 @@ __all__ = [
 
 # When type checking, import non-deprecated aliases eagerly. Else, import on demand.
 if typing.TYPE_CHECKING:
-    from .asyncio.client import connect, unix_connect
-    from .asyncio.server import basic_auth, broadcast, serve, unix_serve
+    from .asyncio.client import ClientConnection, connect, unix_connect
+    from .asyncio.server import (
+        Server,
+        ServerConnection,
+        basic_auth,
+        broadcast,
+        serve,
+        unix_serve,
+    )
     from .client import ClientProtocol
     from .datastructures import Headers, HeadersLike, MultipleValuesError
     from .exceptions import (
@@ -86,6 +108,9 @@ if typing.TYPE_CHECKING:
         SecurityError,
         WebSocketException,
     )
+    from .frames import Close, CloseCode, Frame, Opcode
+    from .http11 import Request, Response
+    from .protocol import Protocol, Side, State
     from .server import ServerProtocol
     from .typing import (
         Data,
@@ -103,11 +128,14 @@ else:
             # .asyncio.client
             "connect": ".asyncio.client",
             "unix_connect": ".asyncio.client",
+            "ClientConnection": ".asyncio.client",
             # .asyncio.server
             "basic_auth": ".asyncio.server",
             "broadcast": ".asyncio.server",
             "serve": ".asyncio.server",
             "unix_serve": ".asyncio.server",
+            "ServerConnection": ".asyncio.server",
+            "Server": ".asyncio.server",
             # .client
             "ClientProtocol": ".client",
             # .datastructures
@@ -137,6 +165,18 @@ else:
             "ProtocolError": ".exceptions",
             "SecurityError": ".exceptions",
             "WebSocketException": ".exceptions",
+            # .frames
+            "Close": ".frames",
+            "CloseCode": ".frames",
+            "Frame": ".frames",
+            "Opcode": ".frames",
+            # .http11
+            "Request": ".http11",
+            "Response": ".http11",
+            # .protocol
+            "Protocol": ".protocol",
+            "Side": ".protocol",
+            "State": ".protocol",
             # .server
             "ServerProtocol": ".server",
             # .typing

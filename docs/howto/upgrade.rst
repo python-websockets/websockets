@@ -93,8 +93,8 @@ Client APIs
 | ``websockets.client.unix_connect()``                         |br| | :func:`websockets.asyncio.client.unix_connect`      |
 | :func:`websockets.legacy.client.unix_connect`                     |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| ``websockets.WebSocketClientProtocol``                       |br| | :class:`websockets.asyncio.client.ClientConnection` |
-| ``websockets.client.WebSocketClientProtocol``                |br| |                                                     |
+| ``websockets.WebSocketClientProtocol``                       |br| | ``websockets.ClientConnection`` *(since 14.2)* |br| |
+| ``websockets.client.WebSocketClientProtocol``                |br| | :class:`websockets.asyncio.client.ClientConnection` |
 | :class:`websockets.legacy.client.WebSocketClientProtocol`         |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 
@@ -112,12 +112,12 @@ Server APIs
 | ``websockets.server.unix_serve()``                           |br| | :func:`websockets.asyncio.server.unix_serve`        |
 | :func:`websockets.legacy.server.unix_serve`                       |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| ``websockets.WebSocketServer``                               |br| | :class:`websockets.asyncio.server.Server`           |
-| ``websockets.server.WebSocketServer``                        |br| |                                                     |
+| ``websockets.WebSocketServer``                               |br| | ``websockets.Server`` *(since 14.2)*           |br| |
+| ``websockets.server.WebSocketServer``                        |br| | :class:`websockets.asyncio.server.Server`           |
 | :class:`websockets.legacy.server.WebSocketServer`                 |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
-| ``websockets.WebSocketServerProtocol``                       |br| | :class:`websockets.asyncio.server.ServerConnection` |
-| ``websockets.server.WebSocketServerProtocol``                |br| |                                                     |
+| ``websockets.WebSocketServerProtocol``                       |br| | ``websockets.ServerConnection`` *(since 14.2)* |br| |
+| ``websockets.server.WebSocketServerProtocol``                |br| | :class:`websockets.asyncio.server.ServerConnection` |
 | :class:`websockets.legacy.server.WebSocketServerProtocol`         |                                                     |
 +-------------------------------------------------------------------+-----------------------------------------------------+
 | ``websockets.broadcast()`` *(before 14.0)*                   |br| | ``websockets.broadcast()`` *(since 14.0)*      |br| |

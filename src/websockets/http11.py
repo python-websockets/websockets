@@ -13,7 +13,12 @@ from .exceptions import SecurityError
 from .version import version as websockets_version
 
 
-__all__ = ["SERVER", "USER_AGENT", "Request", "Response"]
+__all__ = [
+    "SERVER",
+    "USER_AGENT",
+    "Request",
+    "Response",
+]
 
 
 PYTHON_VERSION = "{}.{}".format(*sys.version_info)

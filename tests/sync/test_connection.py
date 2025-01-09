@@ -173,6 +173,15 @@ class ClientConnectionTests(unittest.TestCase):
         self.remote_connection.send([b"\x01\x02", b"\xfe\xff"])
         self.assertEqual(self.connection.recv(), b"\x01\x02\xfe\xff")
 
+    def test_recv_none_timeout_zero(self):
+        """recv with timeout=0 returns None when there is no message."""
+        self.assertIsNone(self.connection.recv(timeout=0))
+
+    def test_recv_msg_timeout_zero(self):
+        """recv with timeout=0 returns message when there is one."""
+        self.remote_connection.send("😀")
+        self.assertEqual(self.connection.recv(timeout=0), "😀")
+
     def test_recv_connection_closed_ok(self):
         """recv raises ConnectionClosedOK after a normal closure."""
         self.remote_connection.close()

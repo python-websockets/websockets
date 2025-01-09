@@ -9,7 +9,7 @@ import threading
 import uuid
 from collections.abc import Iterable, Iterator, Mapping
 from types import TracebackType
-from typing import Any
+from typing import Any, Optional
 
 from ..exceptions import (
     ConcurrencyError,
@@ -216,11 +216,14 @@ class Connection:
         """
         try:
             while True:
-                yield self.recv()
+                # can't receive None if peek=False (default)
+                yield self.recv()  # type: ignore[misc]
         except ConnectionClosedOK:
             return
 
-    def recv(self, timeout: float | None = None, decode: bool | None = None) -> Data:
+    def recv(
+        self, timeout: float | None = None, decode: bool | None = None
+    ) -> Optional[Data]:
         """
         Receive the next message.
 
@@ -267,8 +270,16 @@ class Connection:
                 :meth:`recv_streaming` concurrently.
 
         """
+        # Setup to handle the special case of a zero timeout
+        peek = timeout == 0.0
+        if peek:
+            # can't provide specific timeout if using timeout param to express
+            # peeking, default to no timeout in such case
+            timeout = None
+
+        # Attempt to receive a message
         try:
-            return self.recv_messages.get(timeout, decode)
+            return self.recv_messages.get(timeout, decode, peek)
         except EOFError:
             pass
             # fallthrough

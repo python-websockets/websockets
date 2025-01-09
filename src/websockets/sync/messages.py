@@ -3,7 +3,7 @@ from __future__ import annotations
 import codecs
 import queue
 import threading
-from typing import Any, Callable, Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator, Optional
 
 from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
@@ -105,11 +105,18 @@ class Assembler:
             for frame in queued:  # pragma: no cover
                 self.frames.put(frame)
 
-    def get(self, timeout: float | None = None, decode: bool | None = None) -> Data:
+    def get(
+        self,
+        timeout: float | None = None,
+        decode: bool | None = None,
+        peek: bool = False,
+    ) -> Optional[Data]:
         """
         Read the next message.
 
-        :meth:`get` returns a single :class:`str` or :class:`bytes`.
+        :meth:`get` returns a single :class:`str` or :class:`bytes`, or
+        :obj:`None` if the parameter ``peek`` is :obj:`True` and no message
+        is available.
 
         If the message is fragmented, :meth:`get` waits until the last frame is
         received, then it reassembles the message and returns it. To receive
@@ -121,6 +128,9 @@ class Assembler:
             decode: :obj:`False` disables UTF-8 decoding of text frames and
                 returns :class:`bytes`. :obj:`True` forces UTF-8 decoding of
                 binary frames and returns :class:`str`.
+            peek: If :obj:`True`, :meth:`get` returns :obj:`None` immediately
+                if no message is available, or will finish receiving a
+                message and return it, respecting ``timeout``.
 
         Raises:
             EOFError: If the stream of frames has ended.
@@ -140,6 +150,9 @@ class Assembler:
         # until get() fetches a complete message or times out.
 
         try:
+            if peek and self.frames.empty():
+                return None
+
             deadline = Deadline(timeout)
 
             # First frame

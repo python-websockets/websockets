@@ -232,9 +232,10 @@ class Connection:
         message stream.
 
         If ``timeout`` is :obj:`None`, block until a message is received. If
-        ``timeout`` is set and no message is received within ``timeout``
-        seconds, raise :exc:`TimeoutError`. Set ``timeout`` to ``0`` to check if
-        a message was already received.
+        ``timeout`` is set, wait up to ``timeout`` seconds for a message to be
+        received and return it, else raise :exc:`TimeoutError`. If ``timeout``
+        is ``0`` or negative, check if a message has been received already and
+        return it, else raise :exc:`TimeoutError`.
 
         If the message is fragmented, wait until all fragments are received,
         reassemble them, and return the whole message.

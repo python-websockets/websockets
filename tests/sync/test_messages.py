@@ -204,6 +204,27 @@ class AssemblerTests(ThreadTestCase):
         message = self.assembler.get(timeout=0)
         self.assertEqual(message, "café")
 
+    def test_get_if_received_empty(self):
+        """get returns an empty message if it's already received."""
+        with self.assertRaises(TimeoutError):
+            self.assembler.get(timeout=0)
+
+    def test_get_if_received_fragmented_fully_received(self):
+        """get returns a full message if a fragmented message is already received."""
+        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"\xa9"))
+        message = self.assembler.get(timeout=0)
+        self.assertEqual(message, "café")
+
+    def test_get_if_received_fragmented_partially_received(self):
+        """get throws an TimeoutError is only a partial fragmented message is received."""
+        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
+        # no OP_CONT frame for the last fragment
+        with self.assertRaises(TimeoutError):
+            self.assembler.get(timeout=0)
+
     # Test get_iter
 
     def test_get_iter_text_message_already_received(self):

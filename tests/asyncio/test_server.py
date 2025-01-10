@@ -59,8 +59,7 @@ class ServerTests(EvalShellMixin, AssertNoLogsMixin, unittest.IsolatedAsyncioTes
                     await client.recv()
                 self.assertEqual(
                     str(raised.exception),
-                    "received 1011 (internal error); "
-                    "then sent 1011 (internal error)",
+                    "received 1011 (internal error); then sent 1011 (internal error)",
                 )
 
     async def test_existing_socket(self):

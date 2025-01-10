@@ -638,8 +638,7 @@ class HandshakeTests(unittest.TestCase):
         self.assertHandshakeError(
             client,
             InvalidHandshake,
-            "invalid Sec-WebSocket-Protocol header: "
-            "multiple values: superchat, chat",
+            "invalid Sec-WebSocket-Protocol header: multiple values: superchat, chat",
         )
 
 

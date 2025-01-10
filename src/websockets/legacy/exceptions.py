@@ -52,9 +52,7 @@ class AbortHandshake(InvalidHandshake):
 
     def __str__(self) -> str:
         return (
-            f"HTTP {self.status:d}, "
-            f"{len(self.headers)} headers, "
-            f"{len(self.body)} bytes"
+            f"HTTP {self.status:d}, {len(self.headers)} headers, {len(self.body)} bytes"
         )
 
 

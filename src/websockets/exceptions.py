@@ -204,8 +204,7 @@ class InvalidStatus(InvalidHandshake):
 
     def __str__(self) -> str:
         return (
-            "server rejected WebSocket connection: "
-            f"HTTP {self.response.status_code:d}"
+            f"server rejected WebSocket connection: HTTP {self.response.status_code:d}"
         )
 
 

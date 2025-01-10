@@ -58,8 +58,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                     client.recv()
                 self.assertEqual(
                     str(raised.exception),
-                    "received 1011 (internal error); "
-                    "then sent 1011 (internal error)",
+                    "received 1011 (internal error); then sent 1011 (internal error)",
                 )
 
     def test_existing_socket(self):

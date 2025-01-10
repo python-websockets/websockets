@@ -412,8 +412,7 @@ class Connection:
             with self.send_context():
                 if self.send_in_progress:
                     raise ConcurrencyError(
-                        "cannot call send while another thread "
-                        "is already running send"
+                        "cannot call send while another thread is already running send"
                     )
                 if text is False:
                     self.protocol.send_binary(message.encode())
@@ -424,8 +423,7 @@ class Connection:
             with self.send_context():
                 if self.send_in_progress:
                     raise ConcurrencyError(
-                        "cannot call send while another thread "
-                        "is already running send"
+                        "cannot call send while another thread is already running send"
                     )
                 if text is True:
                     self.protocol.send_text(message)

@@ -94,8 +94,7 @@ class Request:
     @property
     def exception(self) -> Exception | None:  # pragma: no cover
         warnings.warn(  # deprecated in 10.3 - 2022-04-17
-            "Request.exception is deprecated; "
-            "use ServerProtocol.handshake_exc instead",
+            "Request.exception is deprecated; use ServerProtocol.handshake_exc instead",
             DeprecationWarning,
         )
         return self._exception

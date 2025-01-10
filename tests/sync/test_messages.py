@@ -198,6 +198,12 @@ class AssemblerTests(ThreadTestCase):
         message = self.assembler.get()
         self.assertEqual(message, "café")
 
+    def test_get_if_received(self):
+        """get returns a text message if it's already received."""
+        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        message = self.assembler.get(timeout=0)
+        self.assertEqual(message, "café")
+
     # Test get_iter
 
     def test_get_iter_text_message_already_received(self):

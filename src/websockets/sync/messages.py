@@ -79,7 +79,12 @@ class Assembler:
                 raise EOFError("stream of frames ended") from None
         else:
             try:
-                frame = self.frames.get(block=True, timeout=timeout)
+                # Check for a frame that's already received if timeout <= 0.
+                # SimpleQueue.get() doesn't support negative timeout values.
+                if timeout is not None and timeout <= 0:
+                    frame = self.frames.get(block=False)
+                else:
+                    frame = self.frames.get(block=True, timeout=timeout)
             except queue.Empty:
                 raise TimeoutError(f"timed out in {timeout:.1f}s") from None
         if frame is None:
@@ -143,7 +148,7 @@ class Assembler:
             deadline = Deadline(timeout)
 
             # First frame
-            frame = self.get_next_frame(deadline.timeout())
+            frame = self.get_next_frame(deadline.timeout(raise_if_elapsed=False))
             with self.mutex:
                 self.maybe_resume()
             assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
@@ -154,7 +159,9 @@ class Assembler:
             # Following frames, for fragmented messages
             while not frame.fin:
                 try:
-                    frame = self.get_next_frame(deadline.timeout())
+                    frame = self.get_next_frame(
+                        deadline.timeout(raise_if_elapsed=False)
+                    )
                 except TimeoutError:
                     # Put frames already received back into the queue
                     # so that future calls to get() can return them.

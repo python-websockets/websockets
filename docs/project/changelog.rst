@@ -35,14 +35,17 @@ notice.
 Bug fixes
 .........
 
-* Fixed ``connection.recv(timeout=0)`` in the :mod:`threading` implementation.
-  If a message is already received, it is returned. Previously,
-  :exc:`TimeoutError` was raised incorrectly.
-
 * Wrapped errors when reading the opening handshake request or response in
   :exc:`~exceptions.InvalidMessage` so that :func:`~asyncio.client.connect`
   raises :exc:`~exceptions.InvalidHandshake` or a subclass when the opening
   handshake fails.
+
+* Fixed :meth:`~sync.connection.Connection.recv` with ``timeout=0`` in the
+  :mod:`threading` implementation. If a message is already received, it is
+  returned. Previously, :exc:`TimeoutError` was raised incorrectly.
+
+* Prevented :meth:`~sync.connection.Connection.close` from blocking when
+  receive buffers are saturated in the :mod:`threading` implementation.
 
 .. _14.1:
 

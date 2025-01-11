@@ -496,6 +496,18 @@ class AssemblerTests(ThreadTestCase):
         with self.assertRaises(EOFError):
             self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
 
+    def test_close_resumes_reading(self):
+        """close unblocks reading when queue is above the high-water mark."""
+        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(OP_TEXT, b"more caf\xc3\xa9"))
+        self.assembler.put(Frame(OP_TEXT, b"water"))
+
+        # queue is at the high-water mark
+        assert self.assembler.paused
+
+        self.assembler.close()
+        self.resume.assert_called_once_with()
+
     def test_close_is_idempotent(self):
         """close can be called multiple times safely."""
         self.assembler.close()

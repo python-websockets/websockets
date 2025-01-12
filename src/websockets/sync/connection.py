@@ -923,8 +923,9 @@ class Connection:
 
         # Calling protocol.receive_eof() is safe because it's idempotent.
         # This guarantees that the protocol state becomes CLOSED.
-        self.protocol.receive_eof()
-        assert self.protocol.state is CLOSED
+        with self.protocol_mutex:
+            self.protocol.receive_eof()
+            assert self.protocol.state is CLOSED
 
         # Abort recv() with a ConnectionClosed exception.
         self.recv_messages.close()

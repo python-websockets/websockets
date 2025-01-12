@@ -151,7 +151,8 @@ class ClientTests(unittest.TestCase):
         """Client reads EOF before receiving handshake response from server."""
 
         def close_connection(self, request):
-            self.close_socket()
+            self.socket.shutdown(socket.SHUT_RDWR)
+            self.socket.close()
 
         with run_server(process_request=close_connection) as server:
             with self.assertRaises(InvalidMessage) as raised:

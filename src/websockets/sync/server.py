@@ -4,6 +4,7 @@ import hmac
 import http
 import logging
 import os
+import re
 import selectors
 import socket
 import ssl as ssl_module
@@ -325,7 +326,7 @@ def serve(
     sock: socket.socket | None = None,
     ssl: ssl_module.SSLContext | None = None,
     # WebSocket
-    origins: Sequence[Origin | None] | None = None,
+    origins: Sequence[Origin | re.Pattern[str] | None] | None = None,
     extensions: Sequence[ServerExtensionFactory] | None = None,
     subprotocols: Sequence[Subprotocol] | None = None,
     select_subprotocol: (
@@ -399,9 +400,10 @@ def serve(
             You may call :func:`socket.create_server` to create a suitable TCP
             socket.
         ssl: Configuration for enabling TLS on the connection.
-        origins: Acceptable values of the ``Origin`` header, for defending
-            against Cross-Site WebSocket Hijacking attacks. Include :obj:`None`
-            in the list if the lack of an origin is acceptable.
+        origins: Acceptable values of the ``Origin`` header, including regular
+            expressions, for defending against Cross-Site WebSocket Hijacking
+            attacks. Include :obj:`None` in the list if the lack of an origin
+            is acceptable.
         extensions: List of supported extensions, in order in which they
             should be negotiated and run.
         subprotocols: List of supported subprotocols, in order of decreasing

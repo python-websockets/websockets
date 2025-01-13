@@ -4,6 +4,7 @@ import asyncio
 import hmac
 import http
 import logging
+import re
 import socket
 import sys
 from collections.abc import Awaitable, Generator, Iterable, Sequence
@@ -599,9 +600,10 @@ class serve:
             See :meth:`~asyncio.loop.create_server` for details.
         port: TCP port the server listens on.
             See :meth:`~asyncio.loop.create_server` for details.
-        origins: Acceptable values of the ``Origin`` header, for defending
-            against Cross-Site WebSocket Hijacking attacks. Include :obj:`None`
-            in the list if the lack of an origin is acceptable.
+        origins: Acceptable values of the ``Origin`` header, including regular
+            expressions, for defending against Cross-Site WebSocket Hijacking
+            attacks. Include :obj:`None` in the list if the lack of an origin
+            is acceptable.
         extensions: List of supported extensions, in order in which they
             should be negotiated and run.
         subprotocols: List of supported subprotocols, in order of decreasing
@@ -681,7 +683,7 @@ class serve:
         port: int | None = None,
         *,
         # WebSocket
-        origins: Sequence[Origin | None] | None = None,
+        origins: Sequence[Origin | re.Pattern[str] | None] | None = None,
         extensions: Sequence[ServerExtensionFactory] | None = None,
         subprotocols: Sequence[Subprotocol] | None = None,
         select_subprotocol: (

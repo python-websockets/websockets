@@ -1,5 +1,6 @@
 import http
 import logging
+import re
 import sys
 import unittest
 from unittest.mock import patch
@@ -610,6 +611,42 @@ class HandshakeTests(unittest.TestCase):
         """Handshake succeeds when checking origins and the origin is unsupported."""
         server = ServerProtocol(
             origins=["https://example.com", "https://other.example.com"]
+        )
+        request = make_request()
+        request.headers["Origin"] = "https://original.example.com"
+        response = server.accept(request)
+        server.send_response(response)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertHandshakeError(
+            server,
+            InvalidOrigin,
+            "invalid Origin header: https://original.example.com",
+        )
+
+    def test_supported_origin_by_regex(self):
+        """
+        Handshake succeeds when checking origins and the origin is supported
+        by a regular expression.
+        """
+        server = ServerProtocol(
+            origins=["https://example.com", re.compile(r"https://other.*")]
+        )
+        request = make_request()
+        request.headers["Origin"] = "https://other.example.com"
+        response = server.accept(request)
+        server.send_response(response)
+
+        self.assertHandshakeSuccess(server)
+        self.assertEqual(server.origin, "https://other.example.com")
+
+    def test_unsupported_origin_by_regex(self):
+        """
+        Handshake succeeds when checking origins and the origin is unsupported
+        by a regular expression.
+        """
+        server = ServerProtocol(
+            origins=["https://example.com", re.compile(r"https://other.*")]
         )
         request = make_request()
         request.headers["Origin"] = "https://original.example.com"

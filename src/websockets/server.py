@@ -4,6 +4,7 @@ import base64
 import binascii
 import email.utils
 import http
+import re
 import warnings
 from collections.abc import Generator, Sequence
 from typing import Any, Callable, cast
@@ -49,9 +50,9 @@ class ServerProtocol(Protocol):
     Sans-I/O implementation of a WebSocket server connection.
 
     Args:
-        origins: Acceptable values of the ``Origin`` header; include
-            :obj:`None` in the list if the lack of an origin is acceptable.
-            This is useful for defending against Cross-Site WebSocket
+        origins: Acceptable values of the ``Origin`` header, including regular
+            expressions; include :obj:`None` in the list if the lack of an origin
+            is acceptable. This is useful for defending against Cross-Site WebSocket
             Hijacking attacks.
         extensions: List of supported extensions, in order in which they
             should be tried.
@@ -73,7 +74,7 @@ class ServerProtocol(Protocol):
     def __init__(
         self,
         *,
-        origins: Sequence[Origin | None] | None = None,
+        origins: Sequence[Origin | re.Pattern[str] | None] | None = None,
         extensions: Sequence[ServerExtensionFactory] | None = None,
         subprotocols: Sequence[Subprotocol] | None = None,
         select_subprotocol: (
@@ -309,7 +310,17 @@ class ServerProtocol(Protocol):
         if origin is not None:
             origin = cast(Origin, origin)
         if self.origins is not None:
-            if origin not in self.origins:
+            valid = False
+            for acceptable_origin_or_regex in self.origins:
+                if isinstance(acceptable_origin_or_regex, re.Pattern):
+                    # `str(origin)` is needed for compatibility
+                    # between `Pattern.match(string=...)` and `origin`.
+                    valid = acceptable_origin_or_regex.match(str(origin)) is not None
+                else:
+                    valid = acceptable_origin_or_regex == origin
+                if valid:
+                    break
+            if not valid:
                 raise InvalidOrigin(origin)
         return origin
 

@@ -34,6 +34,9 @@ Documentation = "https://websockets.readthedocs.io/"
 Funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme"
 Tracker = "https://github.com/python-websockets/websockets/issues"
 
+[tool.cibuildwheel]
+enable = ["pypy"]
+
 # On a macOS runner, build Intel, Universal, and Apple Silicon wheels.
 [tool.cibuildwheel.macos]
 archs = ["x86_64", "universal2", "arm64"]

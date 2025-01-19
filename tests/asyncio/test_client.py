@@ -393,7 +393,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         """Client reads EOF before receiving handshake response from server."""
 
         def close_connection(self, request):
-            self.close_transport()
+            self.transport.close()
 
         async with serve(*args, process_request=close_connection) as server:
             with self.assertRaises(InvalidMessage) as raised:

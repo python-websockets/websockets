@@ -445,7 +445,7 @@ class connect:
                     try:
                         await self.connection.handshake(*self.handshake_args)
                     except asyncio.CancelledError:
-                        self.connection.close_transport()
+                        self.connection.transport.abort()
                         raise
                     except Exception as exc:
                         # Always close the connection even though keep-alive is
@@ -454,7 +454,7 @@ class connect:
                         # protocol. In the current design of connect(), there is
                         # no easy way to reuse the network connection that works
                         # in every case nor to reinitialize the protocol.
-                        self.connection.close_transport()
+                        self.connection.transport.abort()
 
                         uri_or_exc = self.process_redirect(exc)
                         # Response is a valid redirect; follow it.

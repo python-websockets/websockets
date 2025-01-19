@@ -356,16 +356,16 @@ class Server:
                         self.server_header,
                     )
                 except asyncio.CancelledError:
-                    connection.close_transport()
+                    connection.transport.abort()
                     raise
                 except Exception:
                     connection.logger.error("opening handshake failed", exc_info=True)
-                    connection.close_transport()
+                    connection.transport.abort()
                     return
 
             if connection.protocol.state is not OPEN:
                 # process_request or process_response rejected the handshake.
-                connection.close_transport()
+                connection.transport.abort()
                 return
 
             try:

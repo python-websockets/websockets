@@ -44,8 +44,9 @@ Bug fixes
   :mod:`threading` implementation. If a message is already received, it is
   returned. Previously, :exc:`TimeoutError` was raised incorrectly.
 
-* Prevented :meth:`~sync.connection.Connection.close` from blocking when
-  receive buffers are saturated in the :mod:`threading` implementation.
+* Prevented :meth:`~asyncio.connection.Connection.close` from blocking when
+  receive buffers are saturated in the :mod:`asyncio` and :mod:`threading`
+  implementations.
 
 .. _14.1:
 

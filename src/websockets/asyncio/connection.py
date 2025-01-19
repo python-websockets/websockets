@@ -928,7 +928,7 @@ class Connection(asyncio.Protocol):
         # If an error occurred, close the transport to terminate the connection and
         # raise an exception.
         if raise_close_exc:
-            self.close_transport()
+            self.transport.abort()
             # Wait for the protocol state to be CLOSED before accessing close_exc.
             await asyncio.shield(self.connection_lost_waiter)
             raise self.protocol.close_exc from original_exc
@@ -968,14 +968,6 @@ class Connection(asyncio.Protocol):
         """
         if self.recv_exc is None:
             self.recv_exc = exc
-
-    def close_transport(self) -> None:
-        """
-        Close transport and message assembler.
-
-        """
-        self.transport.close()
-        self.recv_messages.close()
 
     # asyncio.Protocol methods
 

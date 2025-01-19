@@ -30,7 +30,7 @@ notice.
 14.2
 ----
 
-*In development*
+*January 19, 2025*
 
 New features
 ............

@@ -51,8 +51,8 @@ Bug fixes
   returned. Previously, :exc:`TimeoutError` was raised incorrectly.
 
 * Prevented :meth:`~asyncio.connection.Connection.close` from blocking when
-  receive buffers are saturated in the :mod:`asyncio` and :mod:`threading`
-  implementations.
+  the network becomes unavailable or when receive buffers are saturated in
+  the :mod:`asyncio` and :mod:`threading` implementations.
 
 .. _14.1:
 

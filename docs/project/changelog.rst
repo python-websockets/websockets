@@ -50,6 +50,9 @@ Bug fixes
   :mod:`threading` implementation. If a message is already received, it is
   returned. Previously, :exc:`TimeoutError` was raised incorrectly.
 
+* Fixed a crash in the :mod:`asyncio` implementation when cancelling a ping
+  then receiving the corresponding pong.
+
 * Prevented :meth:`~asyncio.connection.Connection.close` from blocking when
   the network becomes unavailable or when receive buffers are saturated in
   the :mod:`asyncio` and :mod:`threading` implementations.

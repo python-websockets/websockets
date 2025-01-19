@@ -32,6 +32,12 @@ notice.
 
 *In development*
 
+New features
+............
+
+* Added support for regular expressions in the ``origins`` argument of
+  :func:`~asyncio.server.serve`.
+
 Bug fixes
 .........
 

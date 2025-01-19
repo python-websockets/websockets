@@ -608,7 +608,7 @@ class HandshakeTests(unittest.TestCase):
         self.assertEqual(server.origin, "https://other.example.com")
 
     def test_unsupported_origin(self):
-        """Handshake succeeds when checking origins and the origin is unsupported."""
+        """Handshake fails when checking origins and the origin is unsupported."""
         server = ServerProtocol(
             origins=["https://example.com", "https://other.example.com"]
         )
@@ -624,13 +624,10 @@ class HandshakeTests(unittest.TestCase):
             "invalid Origin header: https://original.example.com",
         )
 
-    def test_supported_origin_by_regex(self):
-        """
-        Handshake succeeds when checking origins and the origin is supported
-        by a regular expression.
-        """
+    def test_supported_origin_regex(self):
+        """Handshake succeeds when checking origins and the origin is supported."""
         server = ServerProtocol(
-            origins=["https://example.com", re.compile(r"https://other.*")]
+            origins=[re.compile(r"https://(?!original)[a-z]+\.example\.com")]
         )
         request = make_request()
         request.headers["Origin"] = "https://other.example.com"
@@ -640,13 +637,10 @@ class HandshakeTests(unittest.TestCase):
         self.assertHandshakeSuccess(server)
         self.assertEqual(server.origin, "https://other.example.com")
 
-    def test_unsupported_origin_by_regex(self):
-        """
-        Handshake succeeds when checking origins and the origin is unsupported
-        by a regular expression.
-        """
+    def test_unsupported_origin_regex(self):
+        """Handshake fails when checking origins and the origin is unsupported."""
         server = ServerProtocol(
-            origins=["https://example.com", re.compile(r"https://other.*")]
+            origins=[re.compile(r"https://(?!original)[a-z]+\.example\.com")]
         )
         request = make_request()
         request.headers["Origin"] = "https://original.example.com"
@@ -658,6 +652,23 @@ class HandshakeTests(unittest.TestCase):
             server,
             InvalidOrigin,
             "invalid Origin header: https://original.example.com",
+        )
+
+    def test_partial_match_origin_regex(self):
+        """Handshake fails when checking origins and the origin a partial match."""
+        server = ServerProtocol(
+            origins=[re.compile(r"https://(?!original)[a-z]+\.example\.com")]
+        )
+        request = make_request()
+        request.headers["Origin"] = "https://other.example.com.hacked"
+        response = server.accept(request)
+        server.send_response(response)
+
+        self.assertEqual(response.status_code, 403)
+        self.assertHandshakeError(
+            server,
+            InvalidOrigin,
+            "invalid Origin header: https://other.example.com.hacked",
         )
 
     def test_no_origin_accepted(self):

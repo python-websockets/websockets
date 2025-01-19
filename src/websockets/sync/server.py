@@ -400,10 +400,11 @@ def serve(
             You may call :func:`socket.create_server` to create a suitable TCP
             socket.
         ssl: Configuration for enabling TLS on the connection.
-        origins: Acceptable values of the ``Origin`` header, including regular
-            expressions, for defending against Cross-Site WebSocket Hijacking
-            attacks. Include :obj:`None` in the list if the lack of an origin
-            is acceptable.
+        origins: Acceptable values of the ``Origin`` header, for defending
+            against Cross-Site WebSocket Hijacking attacks. Values can be
+            :class:`str` to test for an exact match or regular expressions
+            compiled by :func:`re.compile` to test against a pattern. Include
+            :obj:`None` in the list if the lack of an origin is acceptable.
         extensions: List of supported extensions, in order in which they
             should be negotiated and run.
         subprotocols: List of supported subprotocols, in order of decreasing

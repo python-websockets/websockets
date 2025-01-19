@@ -50,9 +50,11 @@ class ServerProtocol(Protocol):
     Sans-I/O implementation of a WebSocket server connection.
 
     Args:
-        origins: Acceptable values of the ``Origin`` header, including regular
-            expressions; include :obj:`None` in the list if the lack of an origin
-            is acceptable. This is useful for defending against Cross-Site WebSocket
+        origins: Acceptable values of the ``Origin`` header. Values can be
+            :class:`str` to test for an exact match or regular expressions
+            compiled by :func:`re.compile` to test against a pattern. Include
+            :obj:`None` in the list if the lack of an origin is acceptable.
+            This is useful for defending against Cross-Site WebSocket
             Hijacking attacks.
         extensions: List of supported extensions, in order in which they
             should be tried.
@@ -310,17 +312,14 @@ class ServerProtocol(Protocol):
         if origin is not None:
             origin = cast(Origin, origin)
         if self.origins is not None:
-            valid = False
-            for acceptable_origin_or_regex in self.origins:
-                if isinstance(acceptable_origin_or_regex, re.Pattern):
-                    # `str(origin)` is needed for compatibility
-                    # between `Pattern.match(string=...)` and `origin`.
-                    valid = acceptable_origin_or_regex.match(str(origin)) is not None
-                else:
-                    valid = acceptable_origin_or_regex == origin
-                if valid:
+            for origin_or_regex in self.origins:
+                if origin_or_regex == origin or (
+                    isinstance(origin_or_regex, re.Pattern)
+                    and origin is not None
+                    and origin_or_regex.fullmatch(origin) is not None
+                ):
                     break
-            if not valid:
+            else:
                 raise InvalidOrigin(origin)
         return origin
 

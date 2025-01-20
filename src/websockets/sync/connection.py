@@ -90,14 +90,11 @@ class Connection:
             resume=self.recv_flow_control.release,
         )
 
-        # Whether we are busy sending a fragmented message.
-        self.send_in_progress = False
-
         # Deadline for the closing handshake.
         self.close_deadline: Deadline | None = None
 
-        # Mapping of ping IDs to pong waiters, in chronological order.
-        self.ping_waiters: dict[bytes, threading.Event] = {}
+        # Whether we are busy sending a fragmented message.
+        self.send_in_progress = False
 
         # Exception raised in recv_events, to be chained to ConnectionClosed
         # in the user thread in order to show why the TCP connection dropped.
@@ -111,6 +108,9 @@ class Connection:
             daemon=True,
         )
         self.recv_events_thread.start()
+
+        # Mapping of ping IDs to pong waiters, in chronological order.
+        self.pong_waiters: dict[bytes, threading.Event] = {}
 
     # Public attributes
 
@@ -581,15 +581,15 @@ class Connection:
 
         with self.send_context():
             # Protect against duplicates if a payload is explicitly set.
-            if data in self.ping_waiters:
+            if data in self.pong_waiters:
                 raise ConcurrencyError("already waiting for a pong with the same data")
 
             # Generate a unique random payload otherwise.
-            while data is None or data in self.ping_waiters:
+            while data is None or data in self.pong_waiters:
                 data = struct.pack("!I", random.getrandbits(32))
 
             pong_waiter = threading.Event()
-            self.ping_waiters[data] = pong_waiter
+            self.pong_waiters[data] = pong_waiter
             self.protocol.send_ping(data)
             return pong_waiter
 
@@ -641,22 +641,22 @@ class Connection:
         """
         with self.protocol_mutex:
             # Ignore unsolicited pong.
-            if data not in self.ping_waiters:
+            if data not in self.pong_waiters:
                 return
             # Sending a pong for only the most recent ping is legal.
             # Acknowledge all previous pings too in that case.
             ping_id = None
             ping_ids = []
-            for ping_id, ping in self.ping_waiters.items():
+            for ping_id, ping in self.pong_waiters.items():
                 ping_ids.append(ping_id)
                 ping.set()
                 if ping_id == data:
                     break
             else:
                 raise AssertionError("solicited pong not found in pings")
-            # Remove acknowledged pings from self.ping_waiters.
+            # Remove acknowledged pings from self.pong_waiters.
             for ping_id in ping_ids:
-                del self.ping_waiters[ping_id]
+                del self.pong_waiters[ping_id]
 
     def recv_events(self) -> None:
         """

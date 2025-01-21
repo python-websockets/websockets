@@ -31,6 +31,8 @@ Both sides (:mod:`threading`)
 
     .. autoproperty:: remote_address
 
+    .. autoattribute:: latency
+
     .. autoproperty:: state
 
     The following attributes are available after the opening handshake,

@@ -52,6 +52,8 @@ Using a connection
 
     .. autoproperty:: remote_address
 
+    .. autoproperty:: latency
+
     .. autoproperty:: state
 
     The following attributes are available after the opening handshake,

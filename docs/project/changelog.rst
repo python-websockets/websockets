@@ -32,6 +32,11 @@ notice.
 
 *In development*
 
+New features
+............
+
+* Added latency measurement to the :mod:`threading` implementation.
+
 .. _14.2:
 
 14.2

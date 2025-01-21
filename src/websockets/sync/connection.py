@@ -6,6 +6,7 @@ import random
 import socket
 import struct
 import threading
+import time
 import uuid
 from collections.abc import Iterable, Iterator, Mapping
 from types import TracebackType
@@ -110,7 +111,16 @@ class Connection:
         self.recv_events_thread.start()
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pong_waiters: dict[bytes, threading.Event] = {}
+        self.pong_waiters: dict[bytes, tuple[threading.Event, float]] = {}
+
+        self.latency: float = 0
+        """
+        Latency of the connection, in seconds.
+
+        Latency is defined as the round-trip time of the connection. It is
+        measured by sending a Ping frame and waiting for a matching Pong frame.
+        Before the first measurement, :attr:`latency` is ``0``.
+        """
 
     # Public attributes
 
@@ -589,7 +599,7 @@ class Connection:
                 data = struct.pack("!I", random.getrandbits(32))
 
             pong_waiter = threading.Event()
-            self.pong_waiters[data] = pong_waiter
+            self.pong_waiters[data] = (pong_waiter, time.monotonic())
             self.protocol.send_ping(data)
             return pong_waiter
 
@@ -643,17 +653,22 @@ class Connection:
             # Ignore unsolicited pong.
             if data not in self.pong_waiters:
                 return
+
+            pong_timestamp = time.monotonic()
+
             # Sending a pong for only the most recent ping is legal.
             # Acknowledge all previous pings too in that case.
             ping_id = None
             ping_ids = []
-            for ping_id, ping in self.pong_waiters.items():
+            for ping_id, (pong_waiter, ping_timestamp) in self.pong_waiters.items():
                 ping_ids.append(ping_id)
-                ping.set()
+                pong_waiter.set()
                 if ping_id == data:
+                    self.latency = pong_timestamp - ping_timestamp
                     break
             else:
                 raise AssertionError("solicited pong not found in pings")
+
             # Remove acknowledged pings from self.pong_waiters.
             for ping_id in ping_ids:
                 del self.pong_waiters[ping_id]

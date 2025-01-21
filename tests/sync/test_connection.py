@@ -685,6 +685,15 @@ class ClientConnectionTests(unittest.TestCase):
         self.remote_connection.pong("that")
         self.assertTrue(pong_waiter.wait(MS))
 
+    def test_acknowledge_ping_on_close(self):
+        """ping with ack_on_close is acknowledged when the connection is closed."""
+        with self.drop_frames_rcvd():  # drop automatic response to ping
+            pong_waiter_ack_on_close = self.connection.ping("this", ack_on_close=True)
+            pong_waiter = self.connection.ping("that")
+        self.connection.close()
+        self.assertTrue(pong_waiter_ack_on_close.wait(MS))
+        self.assertFalse(pong_waiter.wait(MS))
+
     def test_ping_duplicate_payload(self):
         """ping rejects the same payload until receiving the pong."""
         with self.drop_frames_rcvd():  # drop automatic response to ping

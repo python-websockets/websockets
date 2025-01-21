@@ -111,7 +111,7 @@ class Connection:
         self.recv_events_thread.start()
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pong_waiters: dict[bytes, tuple[threading.Event, float]] = {}
+        self.pong_waiters: dict[bytes, tuple[threading.Event, float, bool]] = {}
 
         self.latency: float = 0
         """
@@ -554,7 +554,11 @@ class Connection:
             # They mean that the connection is closed, which was the goal.
             pass
 
-    def ping(self, data: Data | None = None) -> threading.Event:
+    def ping(
+        self,
+        data: Data | None = None,
+        ack_on_close: bool = False,
+    ) -> threading.Event:
         """
         Send a Ping_.
 
@@ -566,6 +570,12 @@ class Connection:
         Args:
             data: Payload of the ping. A :class:`str` will be encoded to UTF-8.
                 If ``data`` is :obj:`None`, the payload is four random bytes.
+            ack_on_close: when this option is :obj:`True`, the event will also
+                be set when the connection is closed. While this avoids getting
+                stuck waiting for a pong that will never arrive, it requires
+                checking that the state of the connection is still ``OPEN`` to
+                confirm that a pong was received, rather than the connection
+                being closed.
 
         Returns:
             An event that will be set when the corresponding pong is received.
@@ -599,7 +609,7 @@ class Connection:
                 data = struct.pack("!I", random.getrandbits(32))
 
             pong_waiter = threading.Event()
-            self.pong_waiters[data] = (pong_waiter, time.monotonic())
+            self.pong_waiters[data] = (pong_waiter, time.monotonic(), ack_on_close)
             self.protocol.send_ping(data)
             return pong_waiter
 
@@ -660,7 +670,11 @@ class Connection:
             # Acknowledge all previous pings too in that case.
             ping_id = None
             ping_ids = []
-            for ping_id, (pong_waiter, ping_timestamp) in self.pong_waiters.items():
+            for ping_id, (
+                pong_waiter,
+                ping_timestamp,
+                _ack_on_close,
+            ) in self.pong_waiters.items():
                 ping_ids.append(ping_id)
                 pong_waiter.set()
                 if ping_id == data:
@@ -672,6 +686,19 @@ class Connection:
             # Remove acknowledged pings from self.pong_waiters.
             for ping_id in ping_ids:
                 del self.pong_waiters[ping_id]
+
+    def acknowledge_pending_pings(self) -> None:
+        """
+        Acknowledge pending pings when the connection is closed.
+
+        """
+        assert self.protocol.state is CLOSED
+
+        for pong_waiter, _ping_timestamp, ack_on_close in self.pong_waiters.values():
+            if ack_on_close:
+                pong_waiter.set()
+
+        self.pong_waiters.clear()
 
     def recv_events(self) -> None:
         """
@@ -944,3 +971,6 @@ class Connection:
 
         # Abort recv() with a ConnectionClosed exception.
         self.recv_messages.close()
+
+        # Acknowledge pings sent with the ack_on_close option.
+        self.acknowledge_pending_pings()

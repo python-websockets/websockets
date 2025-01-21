@@ -1,11 +1,6 @@
 Keepalive and latency
 =====================
 
-.. admonition:: This guide applies only to the :mod:`asyncio` implementation.
-    :class: tip
-
-    The :mod:`threading` implementation doesn't provide keepalive yet.
-
 .. currentmodule:: websockets
 
 Long-lived connections

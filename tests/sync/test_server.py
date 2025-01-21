@@ -236,6 +236,27 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.protocol.extensions", "[]")
 
+    def test_keepalive_is_enabled(self):
+        """Server enables keepalive and measures latency."""
+        with run_server(ping_interval=MS) as server:
+            with connect(get_uri(server)) as client:
+                client.send("ws.latency")
+                latency = eval(client.recv())
+                self.assertEqual(latency, 0)
+                time.sleep(2 * MS)
+                client.send("ws.latency")
+                latency = eval(client.recv())
+                self.assertGreater(latency, 0)
+
+    def test_disable_keepalive(self):
+        """Server disables keepalive."""
+        with run_server(ping_interval=None) as server:
+            with connect(get_uri(server)) as client:
+                time.sleep(2 * MS)
+                client.send("ws.latency")
+                latency = eval(client.recv())
+                self.assertEqual(latency, 0)
+
     def test_logger(self):
         """Server accepts a logger argument."""
         logger = logging.getLogger("test")

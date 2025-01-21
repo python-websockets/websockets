@@ -686,8 +686,7 @@ class Connection(asyncio.Protocol):
             pong_waiter = self.loop.create_future()
             # The event loop's default clock is time.monotonic(). Its resolution
             # is a bit low on Windows (~16ms). This is improved in Python 3.13.
-            ping_timestamp = self.loop.time()
-            self.pong_waiters[data] = (pong_waiter, ping_timestamp)
+            self.pong_waiters[data] = (pong_waiter, self.loop.time())
             self.protocol.send_ping(data)
             return pong_waiter
 
@@ -792,13 +791,19 @@ class Connection(asyncio.Protocol):
         latency = 0.0
         try:
             while True:
-                # If self.ping_timeout > latency > self.ping_interval, pings
-                # will be sent immediately after receiving pongs. The period
-                # will be longer than self.ping_interval.
+                # If self.ping_timeout > latency > self.ping_interval,
+                # pings will be sent immediately after receiving pongs.
+                # The period will be longer than self.ping_interval.
                 await asyncio.sleep(self.ping_interval - latency)
 
-                self.logger.debug("% sending keepalive ping")
+                # This cannot raise ConnectionClosed when the connection is
+                # closing because ping(), via send_context(), waits for the
+                # connection to be closed before raising ConnectionClosed.
+                # However, connection_lost() cancels keepalive_task before
+                # it gets a chance to resume excuting.
                 pong_waiter = await self.ping()
+                if self.debug:
+                    self.logger.debug("% sent keepalive ping")
 
                 if self.ping_timeout is not None:
                     try:

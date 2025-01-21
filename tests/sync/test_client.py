@@ -76,6 +76,21 @@ class ClientTests(unittest.TestCase):
             with connect(get_uri(server), compression=None) as client:
                 self.assertEqual(client.protocol.extensions, [])
 
+    def test_keepalive_is_enabled(self):
+        """Client enables keepalive and measures latency by default."""
+        with run_server() as server:
+            with connect(get_uri(server), ping_interval=MS) as client:
+                self.assertEqual(client.latency, 0)
+                time.sleep(2 * MS)
+                self.assertGreater(client.latency, 0)
+
+    def test_disable_keepalive(self):
+        """Client disables keepalive."""
+        with run_server() as server:
+            with connect(get_uri(server), ping_interval=None) as client:
+                time.sleep(2 * MS)
+                self.assertEqual(client.latency, 0)
+
     def test_logger(self):
         """Client accepts a logger argument."""
         logger = logging.getLogger("test")

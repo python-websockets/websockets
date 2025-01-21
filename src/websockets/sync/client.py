@@ -40,8 +40,8 @@ class ClientConnection(Connection):
     :exc:`~websockets.exceptions.ConnectionClosedError` when the connection is
     closed with any other code.
 
-    The ``close_timeout`` and ``max_queue`` arguments have the same meaning as
-    in :func:`connect`.
+    The ``ping_interval``, ``ping_timeout``, ``close_timeout``, and
+    ``max_queue`` arguments have the same meaning as in :func:`connect`.
 
     Args:
         socket: Socket connected to a WebSocket server.
@@ -54,6 +54,8 @@ class ClientConnection(Connection):
         socket: socket.socket,
         protocol: ClientProtocol,
         *,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
         max_queue: int | None | tuple[int | None, int | None] = 16,
     ) -> None:
@@ -62,6 +64,8 @@ class ClientConnection(Connection):
         super().__init__(
             socket,
             protocol,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
             close_timeout=close_timeout,
             max_queue=max_queue,
         )
@@ -136,6 +140,8 @@ def connect(
     compression: str | None = "deflate",
     # Timeouts
     open_timeout: float | None = 10,
+    ping_interval: float | None = 20,
+    ping_timeout: float | None = 20,
     close_timeout: float | None = 10,
     # Limits
     max_size: int | None = 2**20,
@@ -184,6 +190,10 @@ def connect(
             :doc:`compression guide <../../topics/compression>` for details.
         open_timeout: Timeout for opening the connection in seconds.
             :obj:`None` disables the timeout.
+        ping_interval: Interval between keepalive pings in seconds.
+            :obj:`None` disables keepalive.
+        ping_timeout: Timeout for keepalive pings in seconds.
+            :obj:`None` disables timeouts.
         close_timeout: Timeout for closing the connection in seconds.
             :obj:`None` disables the timeout.
         max_size: Maximum size of incoming messages in bytes.
@@ -296,6 +306,8 @@ def connect(
         connection = create_connection(
             sock,
             protocol,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
             close_timeout=close_timeout,
             max_queue=max_queue,
         )
@@ -315,6 +327,7 @@ def connect(
         connection.recv_events_thread.join()
         raise
 
+    connection.start_keepalive()
     return connection
 
 

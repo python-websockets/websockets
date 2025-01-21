@@ -738,6 +738,116 @@ class ClientConnectionTests(unittest.TestCase):
         with self.assertRaises(TypeError):
             self.connection.pong([])
 
+    # Test keepalive.
+
+    @patch("random.getrandbits")
+    def test_keepalive(self, getrandbits):
+        """keepalive sends pings at ping_interval and measures latency."""
+        self.connection.ping_interval = 2 * MS
+        getrandbits.return_value = 1918987876
+        self.connection.start_keepalive()
+        self.assertEqual(self.connection.latency, 0)
+        # 2 ms: keepalive() sends a ping frame.
+        # 2.x ms: a pong frame is received.
+        time.sleep(3 * MS)
+        # 3 ms: check that the ping frame was sent.
+        self.assertFrameSent(Frame(Opcode.PING, b"rand"))
+        self.assertGreater(self.connection.latency, 0)
+        self.assertLess(self.connection.latency, MS)
+
+    def test_disable_keepalive(self):
+        """keepalive is disabled when ping_interval is None."""
+        self.connection.ping_interval = None
+        self.connection.start_keepalive()
+        time.sleep(3 * MS)
+        self.assertNoFrameSent()
+
+    @patch("random.getrandbits")
+    def test_keepalive_times_out(self, getrandbits):
+        """keepalive closes the connection if ping_timeout elapses."""
+        self.connection.ping_interval = 4 * MS
+        self.connection.ping_timeout = 2 * MS
+        with self.drop_frames_rcvd():
+            getrandbits.return_value = 1918987876
+            self.connection.start_keepalive()
+            # 4 ms: keepalive() sends a ping frame.
+            time.sleep(4 * MS)
+            # Exiting the context manager sleeps for 1 ms.
+            # 4.x ms: a pong frame is dropped.
+        # 6 ms: no pong frame is received; the connection is closed.
+        time.sleep(2 * MS)
+        # 7 ms: check that the connection is closed.
+        self.assertEqual(self.connection.state, State.CLOSED)
+
+    @patch("random.getrandbits")
+    def test_keepalive_ignores_timeout(self, getrandbits):
+        """keepalive ignores timeouts if ping_timeout isn't set."""
+        self.connection.ping_interval = 4 * MS
+        self.connection.ping_timeout = None
+        with self.drop_frames_rcvd():
+            getrandbits.return_value = 1918987876
+            self.connection.start_keepalive()
+            # 4 ms: keepalive() sends a ping frame.
+            time.sleep(4 * MS)
+            # Exiting the context manager sleeps for 1 ms.
+            # 4.x ms: a pong frame is dropped.
+        # 6 ms: no pong frame is received; the connection remains open.
+        time.sleep(2 * MS)
+        # 7 ms: check that the connection is still open.
+        self.assertEqual(self.connection.state, State.OPEN)
+
+    def test_keepalive_terminates_while_sleeping(self):
+        """keepalive task terminates while waiting to send a ping."""
+        self.connection.ping_interval = 3 * MS
+        self.connection.start_keepalive()
+        time.sleep(MS)
+        self.connection.close()
+        self.connection.keepalive_thread.join(MS)
+        self.assertFalse(self.connection.keepalive_thread.is_alive())
+
+    def test_keepalive_terminates_when_sending_ping_fails(self):
+        """keepalive task terminates when sending a ping fails."""
+        self.connection.ping_interval = 1 * MS
+        self.connection.start_keepalive()
+        with self.drop_eof_rcvd(), self.drop_frames_rcvd():
+            self.connection.close()
+        self.assertFalse(self.connection.keepalive_thread.is_alive())
+
+    def test_keepalive_terminates_while_waiting_for_pong(self):
+        """keepalive task terminates while waiting to receive a pong."""
+        self.connection.ping_interval = MS
+        self.connection.ping_timeout = 4 * MS
+        with self.drop_frames_rcvd():
+            self.connection.start_keepalive()
+            # 1 ms: keepalive() sends a ping frame.
+            # 1.x ms: a pong frame is dropped.
+            time.sleep(MS)
+            # Exiting the context manager sleeps for 1 ms.
+        # 2 ms: close the connection before ping_timeout elapses.
+        self.connection.close()
+        self.connection.keepalive_thread.join(MS)
+        self.assertFalse(self.connection.keepalive_thread.is_alive())
+
+    def test_keepalive_reports_errors(self):
+        """keepalive reports unexpected errors in logs."""
+        self.connection.ping_interval = 2 * MS
+        with self.drop_frames_rcvd():
+            self.connection.start_keepalive()
+            # 2 ms: keepalive() sends a ping frame.
+            # 2.x ms: a pong frame is dropped.
+            with self.assertLogs("websockets", logging.ERROR) as logs:
+                with patch("threading.Event.wait", side_effect=Exception("BOOM")):
+                    time.sleep(3 * MS)
+            # Exiting the context manager sleeps for 1 ms.
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["keepalive ping failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["BOOM"],
+        )
+
     # Test parameters.
 
     def test_close_timeout(self):

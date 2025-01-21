@@ -49,11 +49,15 @@ class Connection:
         socket: socket.socket,
         protocol: Protocol,
         *,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
         max_queue: int | None | tuple[int | None, int | None] = 16,
     ) -> None:
         self.socket = socket
         self.protocol = protocol
+        self.ping_interval = ping_interval
+        self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
         if isinstance(max_queue, int) or max_queue is None:
             max_queue = (max_queue, None)
@@ -120,7 +124,14 @@ class Connection:
         Latency is defined as the round-trip time of the connection. It is
         measured by sending a Ping frame and waiting for a matching Pong frame.
         Before the first measurement, :attr:`latency` is ``0``.
+
+        By default, websockets enables a :ref:`keepalive <keepalive>` mechanism
+        that sends Ping frames automatically at regular intervals. You can also
+        send Ping frames and measure latency with :meth:`ping`.
         """
+
+        # Thread that sends keepalive pings. None when ping_interval is None.
+        self.keepalive_thread: threading.Thread | None = None
 
     # Public attributes
 
@@ -699,6 +710,58 @@ class Connection:
                 pong_waiter.set()
 
         self.pong_waiters.clear()
+
+    def keepalive(self) -> None:
+        """
+        Send a Ping frame and wait for a Pong frame at regular intervals.
+
+        """
+        assert self.ping_interval is not None
+        try:
+            while True:
+                # If self.ping_timeout > self.latency > self.ping_interval,
+                # pings will be sent immediately after receiving pongs.
+                # The period will be longer than self.ping_interval.
+                self.recv_events_thread.join(self.ping_interval - self.latency)
+                if not self.recv_events_thread.is_alive():
+                    break
+
+                try:
+                    pong_waiter = self.ping(ack_on_close=True)
+                except ConnectionClosed:
+                    break
+                if self.debug:
+                    self.logger.debug("% sent keepalive ping")
+
+                if self.ping_timeout is not None:
+                    #
+                    if pong_waiter.wait(self.ping_timeout):
+                        if self.debug:
+                            self.logger.debug("% received keepalive pong")
+                    else:
+                        if self.debug:
+                            self.logger.debug("- timed out waiting for keepalive pong")
+                        with self.send_context():
+                            self.protocol.fail(
+                                CloseCode.INTERNAL_ERROR,
+                                "keepalive ping timeout",
+                            )
+                        break
+        except Exception:
+            self.logger.error("keepalive ping failed", exc_info=True)
+
+    def start_keepalive(self) -> None:
+        """
+        Run :meth:`keepalive` in a thread, unless keepalive is disabled.
+
+        """
+        if self.ping_interval is not None:
+            # This thread is marked as daemon like self.recv_events_thread.
+            self.keepalive_thread = threading.Thread(
+                target=self.keepalive,
+                daemon=True,
+            )
+            self.keepalive_thread.start()
 
     def recv_events(self) -> None:
         """

@@ -35,7 +35,8 @@ notice.
 New features
 ............
 
-* Added latency measurement to the :mod:`threading` implementation.
+* Added :doc:`keepalive and latency measurement <../topics/keepalive>` to the
+  :mod:`threading` implementation.
 
 .. _14.2:
 

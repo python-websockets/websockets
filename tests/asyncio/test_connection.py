@@ -1010,7 +1010,7 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             await asyncio.sleep(4 * MS)
-            # Exiting the context manager sleeps for MS.
+            # Exiting the context manager sleeps for 1 ms.
             # 4.x ms: a pong frame is dropped.
         # 6 ms: no pong frame is received; the connection is closed.
         await asyncio.sleep(2 * MS)
@@ -1026,9 +1026,9 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
             getrandbits.return_value = 1918987876
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
-            await asyncio.sleep(4 * MS)
-            # Exiting the context manager sleeps for MS.
             # 4.x ms: a pong frame is dropped.
+            await asyncio.sleep(4 * MS)
+            # Exiting the context manager sleeps for 1 ms.
         # 6 ms: no pong frame is received; the connection remains open.
         await asyncio.sleep(2 * MS)
         # 7 ms: check that the connection is still open.
@@ -1036,7 +1036,7 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
 
     async def test_keepalive_terminates_while_sleeping(self):
         """keepalive task terminates while waiting to send a ping."""
-        self.connection.ping_interval = 2 * MS
+        self.connection.ping_interval = 3 * MS
         self.connection.start_keepalive()
         await asyncio.sleep(MS)
         await self.connection.close()
@@ -1044,15 +1044,15 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
 
     async def test_keepalive_terminates_while_waiting_for_pong(self):
         """keepalive task terminates while waiting to receive a pong."""
-        self.connection.ping_interval = 2 * MS
-        self.connection.ping_timeout = 2 * MS
+        self.connection.ping_interval = MS
+        self.connection.ping_timeout = 3 * MS
         async with self.drop_frames_rcvd():
             self.connection.start_keepalive()
-            # 2 ms: keepalive() sends a ping frame.
-            await asyncio.sleep(2 * MS)
-            # Exiting the context manager sleeps for MS.
-            # 2.x ms: a pong frame is dropped.
-        # 3 ms: close the connection before ping_timeout elapses.
+            # 1 ms: keepalive() sends a ping frame.
+            # 1.x ms: a pong frame is dropped.
+            await asyncio.sleep(MS)
+            # Exiting the context manager sleeps for 1 ms.
+        # 2 ms: close the connection before ping_timeout elapses.
         await self.connection.close()
         self.assertTrue(self.connection.keepalive_task.done())
 
@@ -1062,9 +1062,9 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         async with self.drop_frames_rcvd():
             self.connection.start_keepalive()
             # 2 ms: keepalive() sends a ping frame.
-            await asyncio.sleep(2 * MS)
-            # Exiting the context manager sleeps for MS.
             # 2.x ms: a pong frame is dropped.
+            await asyncio.sleep(2 * MS)
+            # Exiting the context manager sleeps for 1 ms.
         # 3 ms: inject a fault: raise an exception in the pending pong waiter.
         pong_waiter = next(iter(self.connection.pong_waiters.values()))[0]
         with self.assertLogs("websockets", logging.ERROR) as logs:

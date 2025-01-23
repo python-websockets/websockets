@@ -10,7 +10,7 @@ import time
 import uuid
 from collections.abc import Iterable, Iterator, Mapping
 from types import TracebackType
-from typing import Any
+from typing import Any, Literal, overload
 
 from ..exceptions import (
     ConcurrencyError,
@@ -241,6 +241,28 @@ class Connection:
         except ConnectionClosedOK:
             return
 
+    # This overload structure is required to avoid the error:
+    # "parameter without a default follows parameter with a default"
+
+    @overload
+    def recv(self, timeout: float | None, decode: Literal[True]) -> str: ...
+
+    @overload
+    def recv(self, timeout: float | None, decode: Literal[False]) -> bytes: ...
+
+    @overload
+    def recv(self, timeout: float | None = None, *, decode: Literal[True]) -> str: ...
+
+    @overload
+    def recv(
+        self, timeout: float | None = None, *, decode: Literal[False]
+    ) -> bytes: ...
+
+    @overload
+    def recv(
+        self, timeout: float | None = None, decode: bool | None = None
+    ) -> Data: ...
+
     def recv(self, timeout: float | None = None, decode: bool | None = None) -> Data:
         """
         Receive the next message.
@@ -310,6 +332,15 @@ class Connection:
         # Wait for the protocol state to be CLOSED before accessing close_exc.
         self.recv_events_thread.join()
         raise self.protocol.close_exc from self.recv_exc
+
+    @overload
+    def recv_streaming(self, decode: Literal[True]) -> Iterator[str]: ...
+
+    @overload
+    def recv_streaming(self, decode: Literal[False]) -> Iterator[bytes]: ...
+
+    @overload
+    def recv_streaming(self, decode: bool | None = None) -> Iterator[Data]: ...
 
     def recv_streaming(self, decode: bool | None = None) -> Iterator[Data]:
         """

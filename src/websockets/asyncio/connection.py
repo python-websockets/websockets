@@ -11,7 +11,7 @@ import traceback
 import uuid
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Iterable, Mapping
 from types import TracebackType
-from typing import Any, cast
+from typing import Any, Literal, cast, overload
 
 from ..exceptions import (
     ConcurrencyError,
@@ -243,6 +243,15 @@ class Connection(asyncio.Protocol):
         except ConnectionClosedOK:
             return
 
+    @overload
+    async def recv(self, decode: Literal[True]) -> str: ...
+
+    @overload
+    async def recv(self, decode: Literal[False]) -> bytes: ...
+
+    @overload
+    async def recv(self, decode: bool | None = None) -> Data: ...
+
     async def recv(self, decode: bool | None = None) -> Data:
         """
         Receive the next message.
@@ -311,6 +320,15 @@ class Connection(asyncio.Protocol):
         # Wait for the protocol state to be CLOSED before accessing close_exc.
         await asyncio.shield(self.connection_lost_waiter)
         raise self.protocol.close_exc from self.recv_exc
+
+    @overload
+    def recv_streaming(self, decode: Literal[True]) -> AsyncIterator[str]: ...
+
+    @overload
+    def recv_streaming(self, decode: Literal[False]) -> AsyncIterator[bytes]: ...
+
+    @overload
+    def recv_streaming(self, decode: bool | None = None) -> AsyncIterator[Data]: ...
 
     async def recv_streaming(self, decode: bool | None = None) -> AsyncIterator[Data]:
         """

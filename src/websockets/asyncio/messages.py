@@ -4,7 +4,7 @@ import asyncio
 import codecs
 import collections
 from collections.abc import AsyncIterator, Iterable
-from typing import Any, Callable, Generic, TypeVar
+from typing import Any, Callable, Generic, Literal, TypeVar, overload
 
 from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
@@ -116,6 +116,15 @@ class Assembler:
         # This flag marks the end of the connection.
         self.closed = False
 
+    @overload
+    async def get(self, decode: Literal[True]) -> str: ...
+
+    @overload
+    async def get(self, decode: Literal[False]) -> bytes: ...
+
+    @overload
+    async def get(self, decode: bool | None = None) -> Data: ...
+
     async def get(self, decode: bool | None = None) -> Data:
         """
         Read the next message.
@@ -175,6 +184,15 @@ class Assembler:
             return data.decode()
         else:
             return data
+
+    @overload
+    def get_iter(self, decode: Literal[True]) -> AsyncIterator[str]: ...
+
+    @overload
+    def get_iter(self, decode: Literal[False]) -> AsyncIterator[bytes]: ...
+
+    @overload
+    def get_iter(self, decode: bool | None = None) -> AsyncIterator[Data]: ...
 
     async def get_iter(self, decode: bool | None = None) -> AsyncIterator[Data]:
         """

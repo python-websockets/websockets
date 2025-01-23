@@ -38,6 +38,12 @@ New features
 * Added :doc:`keepalive and latency measurement <../topics/keepalive>` to the
   :mod:`threading` implementation.
 
+Improvements
+............
+
+* Added type overloads for the ``decode`` argument of
+  :meth:`~asyncio.connection.Connection.recv`. This may simplify static typing.
+
 .. _14.2:
 
 14.2

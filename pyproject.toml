@@ -70,6 +70,7 @@ exclude_lines = [
     "if TYPE_CHECKING:",
     "raise AssertionError",
     "self.fail\\(\".*\"\\)",
+    "@overload",
     "@unittest.skip",
 ]
 partial_branches = [

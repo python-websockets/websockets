@@ -3,7 +3,7 @@ from __future__ import annotations
 import codecs
 import queue
 import threading
-from typing import Any, Callable, Iterable, Iterator
+from typing import Any, Callable, Iterable, Iterator, Literal, overload
 
 from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
@@ -110,6 +110,24 @@ class Assembler:
             for frame in queued:  # pragma: no cover
                 self.frames.put(frame)
 
+    # This overload structure is required to avoid the error:
+    # "parameter without a default follows parameter with a default"
+
+    @overload
+    def get(self, timeout: float | None, decode: Literal[True]) -> str: ...
+
+    @overload
+    def get(self, timeout: float | None, decode: Literal[False]) -> bytes: ...
+
+    @overload
+    def get(self, timeout: float | None = None, *, decode: Literal[True]) -> str: ...
+
+    @overload
+    def get(self, timeout: float | None = None, *, decode: Literal[False]) -> bytes: ...
+
+    @overload
+    def get(self, timeout: float | None = None, decode: bool | None = None) -> Data: ...
+
     def get(self, timeout: float | None = None, decode: bool | None = None) -> Data:
         """
         Read the next message.
@@ -180,6 +198,15 @@ class Assembler:
             return data.decode()
         else:
             return data
+
+    @overload
+    def get_iter(self, decode: Literal[True]) -> Iterator[str]: ...
+
+    @overload
+    def get_iter(self, decode: Literal[False]) -> Iterator[bytes]: ...
+
+    @overload
+    def get_iter(self, decode: bool | None = None) -> Iterator[Data]: ...
 
     def get_iter(self, decode: bool | None = None) -> Iterator[Data]:
         """

@@ -2,8 +2,7 @@ from __future__ import annotations
 
 import http
 import logging
-import typing
-from typing import Any, NewType, Optional, Union
+from typing import TYPE_CHECKING, Any, NewType, Optional, Union
 
 
 __all__ = [
@@ -31,7 +30,7 @@ Data = Union[str, bytes]
 
 
 # Change to logging.Logger | ... when dropping Python < 3.10.
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     LoggerLike = Union[logging.Logger, logging.LoggerAdapter[Any]]
     """Types accepted where a :class:`~logging.Logger` is expected."""
 else:  # remove this branch when dropping support for Python < 3.11

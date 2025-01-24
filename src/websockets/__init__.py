@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-import typing
+# Importing the typing module would conflict with websockets.typing.
+from typing import TYPE_CHECKING
 
 from .imports import lazy_import
 from .version import version as __version__  # noqa: F401
@@ -72,7 +73,7 @@ __all__ = [
 ]
 
 # When type checking, import non-deprecated aliases eagerly. Else, import on demand.
-if typing.TYPE_CHECKING:
+if TYPE_CHECKING:
     from .asyncio.client import ClientConnection, connect, unix_connect
     from .asyncio.server import (
         Server,

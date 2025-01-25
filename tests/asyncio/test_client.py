@@ -76,6 +76,21 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                 async with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
 
+    async def test_compression_is_enabled(self):
+        """Client enables compression by default."""
+        async with serve(*args) as server:
+            async with connect(get_uri(server)) as client:
+                self.assertEqual(
+                    [type(ext) for ext in client.protocol.extensions],
+                    [PerMessageDeflate],
+                )
+
+    async def test_disable_compression(self):
+        """Client disables compression."""
+        async with serve(*args) as server:
+            async with connect(get_uri(server), compression=None) as client:
+                self.assertEqual(client.protocol.extensions, [])
+
     async def test_additional_headers(self):
         """Client can set additional headers with additional_headers."""
         async with serve(*args) as server:
@@ -95,21 +110,6 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         async with serve(*args) as server:
             async with connect(get_uri(server), user_agent_header=None) as client:
                 self.assertNotIn("User-Agent", client.request.headers)
-
-    async def test_compression_is_enabled(self):
-        """Client enables compression by default."""
-        async with serve(*args) as server:
-            async with connect(get_uri(server)) as client:
-                self.assertEqual(
-                    [type(ext) for ext in client.protocol.extensions],
-                    [PerMessageDeflate],
-                )
-
-    async def test_disable_compression(self):
-        """Client disables compression."""
-        async with serve(*args) as server:
-            async with connect(get_uri(server), compression=None) as client:
-                self.assertEqual(client.protocol.extensions, [])
 
     async def test_keepalive_is_enabled(self):
         """Client enables keepalive and measures latency by default."""

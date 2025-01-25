@@ -41,6 +41,21 @@ class ClientTests(unittest.TestCase):
                 with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
 
+    def test_compression_is_enabled(self):
+        """Client enables compression by default."""
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                self.assertEqual(
+                    [type(ext) for ext in client.protocol.extensions],
+                    [PerMessageDeflate],
+                )
+
+    def test_disable_compression(self):
+        """Client disables compression."""
+        with run_server() as server:
+            with connect(get_uri(server), compression=None) as client:
+                self.assertEqual(client.protocol.extensions, [])
+
     def test_additional_headers(self):
         """Client can set additional headers with additional_headers."""
         with run_server() as server:
@@ -60,21 +75,6 @@ class ClientTests(unittest.TestCase):
         with run_server() as server:
             with connect(get_uri(server), user_agent_header=None) as client:
                 self.assertNotIn("User-Agent", client.request.headers)
-
-    def test_compression_is_enabled(self):
-        """Client enables compression by default."""
-        with run_server() as server:
-            with connect(get_uri(server)) as client:
-                self.assertEqual(
-                    [type(ext) for ext in client.protocol.extensions],
-                    [PerMessageDeflate],
-                )
-
-    def test_disable_compression(self):
-        """Client disables compression."""
-        with run_server() as server:
-            with connect(get_uri(server), compression=None) as client:
-                self.assertEqual(client.protocol.extensions, [])
 
     def test_keepalive_is_enabled(self):
         """Client enables keepalive and measures latency by default."""

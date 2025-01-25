@@ -117,6 +117,22 @@ class ServerTests(EvalShellMixin, AssertNoLogsMixin, unittest.IsolatedAsyncioTes
                 "server rejected WebSocket connection: HTTP 500",
             )
 
+    async def test_compression_is_enabled(self):
+        """Server enables compression by default."""
+        async with serve(*args) as server:
+            async with connect(get_uri(server)) as client:
+                await self.assertEval(
+                    client,
+                    "[type(ext).__name__ for ext in ws.protocol.extensions]",
+                    "['PerMessageDeflate']",
+                )
+
+    async def test_disable_compression(self):
+        """Server disables compression."""
+        async with serve(*args, compression=None) as server:
+            async with connect(get_uri(server)) as client:
+                await self.assertEval(client, "ws.protocol.extensions", "[]")
+
     async def test_process_request_returns_none(self):
         """Server runs process_request and continues the handshake."""
 
@@ -358,22 +374,6 @@ class ServerTests(EvalShellMixin, AssertNoLogsMixin, unittest.IsolatedAsyncioTes
                 await self.assertEval(
                     client, "'Server' in ws.response.headers", "False"
                 )
-
-    async def test_compression_is_enabled(self):
-        """Server enables compression by default."""
-        async with serve(*args) as server:
-            async with connect(get_uri(server)) as client:
-                await self.assertEval(
-                    client,
-                    "[type(ext).__name__ for ext in ws.protocol.extensions]",
-                    "['PerMessageDeflate']",
-                )
-
-    async def test_disable_compression(self):
-        """Server disables compression."""
-        async with serve(*args, compression=None) as server:
-            async with connect(get_uri(server)) as client:
-                await self.assertEval(client, "ws.protocol.extensions", "[]")
 
     async def test_keepalive_is_enabled(self):
         """Server enables keepalive and measures latency."""

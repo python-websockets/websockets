@@ -200,14 +200,14 @@ class connect:
             should be negotiated and run.
         subprotocols: List of supported subprotocols, in order of decreasing
             preference.
+        compression: The "permessage-deflate" extension is enabled by default.
+            Set ``compression`` to :obj:`None` to disable it. See the
+            :doc:`compression guide <../../topics/compression>` for details.
         additional_headers (HeadersLike | None): Arbitrary HTTP headers to add
             to the handshake request.
         user_agent_header: Value of  the ``User-Agent`` request header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
-        compression: The "permessage-deflate" extension is enabled by default.
-            Set ``compression`` to :obj:`None` to disable it. See the
-            :doc:`compression guide <../../topics/compression>` for details.
         process_exception: When reconnecting automatically, tell whether an
             error is transient or fatal. The default behavior is defined by
             :func:`process_exception`. Refer to its documentation for details.
@@ -275,9 +275,10 @@ class connect:
         origin: Origin | None = None,
         extensions: Sequence[ClientExtensionFactory] | None = None,
         subprotocols: Sequence[Subprotocol] | None = None,
+        compression: str | None = "deflate",
+        # HTTP
         additional_headers: HeadersLike | None = None,
         user_agent_header: str | None = USER_AGENT,
-        compression: str | None = "deflate",
         process_exception: Callable[[Exception], Exception | None] = process_exception,
         # Timeouts
         open_timeout: float | None = 10,

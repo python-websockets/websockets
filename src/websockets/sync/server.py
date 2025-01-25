@@ -340,6 +340,8 @@ def serve(
         ]
         | None
     ) = None,
+    compression: str | None = "deflate",
+    # HTTP
     process_request: (
         Callable[
             [ServerConnection, Request],
@@ -355,7 +357,6 @@ def serve(
         | None
     ) = None,
     server_header: str | None = SERVER,
-    compression: str | None = "deflate",
     # Timeouts
     open_timeout: float | None = 10,
     ping_interval: float | None = 20,
@@ -423,6 +424,9 @@ def serve(
             it has the same behavior as the
             :meth:`ServerProtocol.select_subprotocol
             <websockets.server.ServerProtocol.select_subprotocol>` method.
+        compression: The "permessage-deflate" extension is enabled by default.
+            Set ``compression`` to :obj:`None` to disable it. See the
+            :doc:`compression guide <../../topics/compression>` for details.
         process_request: Intercept the request during the opening handshake.
             Return an HTTP response to force the response. Return :obj:`None` to
             continue normally. When you force an HTTP 101 Continue response, the
@@ -435,9 +439,6 @@ def serve(
         server_header: Value of  the ``Server`` response header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``. Setting it to
             :obj:`None` removes the header.
-        compression: The "permessage-deflate" extension is enabled by default.
-            Set ``compression`` to :obj:`None` to disable it. See the
-            :doc:`compression guide <../../topics/compression>` for details.
         open_timeout: Timeout for opening connections in seconds.
             :obj:`None` disables the timeout.
         ping_interval: Interval between keepalive pings in seconds.

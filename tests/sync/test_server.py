@@ -115,6 +115,22 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 "server rejected WebSocket connection: HTTP 500",
             )
 
+    def test_compression_is_enabled(self):
+        """Server enables compression by default."""
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                self.assertEval(
+                    client,
+                    "[type(ext).__name__ for ext in ws.protocol.extensions]",
+                    "['PerMessageDeflate']",
+                )
+
+    def test_disable_compression(self):
+        """Server disables compression."""
+        with run_server(compression=None) as server:
+            with connect(get_uri(server)) as client:
+                self.assertEval(client, "ws.protocol.extensions", "[]")
+
     def test_process_request_returns_none(self):
         """Server runs process_request and continues the handshake."""
 
@@ -219,22 +235,6 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         with run_server(server_header=None) as server:
             with connect(get_uri(server)) as client:
                 self.assertEval(client, "'Server' in ws.response.headers", "False")
-
-    def test_compression_is_enabled(self):
-        """Server enables compression by default."""
-        with run_server() as server:
-            with connect(get_uri(server)) as client:
-                self.assertEval(
-                    client,
-                    "[type(ext).__name__ for ext in ws.protocol.extensions]",
-                    "['PerMessageDeflate']",
-                )
-
-    def test_disable_compression(self):
-        """Server disables compression."""
-        with run_server(compression=None) as server:
-            with connect(get_uri(server)) as client:
-                self.assertEval(client, "ws.protocol.extensions", "[]")
 
     def test_keepalive_is_enabled(self):
         """Server enables keepalive and measures latency."""

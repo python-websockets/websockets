@@ -135,9 +135,10 @@ def connect(
     origin: Origin | None = None,
     extensions: Sequence[ClientExtensionFactory] | None = None,
     subprotocols: Sequence[Subprotocol] | None = None,
+    compression: str | None = "deflate",
+    # HTTP
     additional_headers: HeadersLike | None = None,
     user_agent_header: str | None = USER_AGENT,
-    compression: str | None = "deflate",
     # Timeouts
     open_timeout: float | None = 10,
     ping_interval: float | None = 20,
@@ -180,14 +181,14 @@ def connect(
             should be negotiated and run.
         subprotocols: List of supported subprotocols, in order of decreasing
             preference.
+        compression: The "permessage-deflate" extension is enabled by default.
+            Set ``compression`` to :obj:`None` to disable it. See the
+            :doc:`compression guide <../../topics/compression>` for details.
         additional_headers (HeadersLike | None): Arbitrary HTTP headers to add
             to the handshake request.
         user_agent_header: Value of  the ``User-Agent`` request header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
-        compression: The "permessage-deflate" extension is enabled by default.
-            Set ``compression`` to :obj:`None` to disable it. See the
-            :doc:`compression guide <../../topics/compression>` for details.
         open_timeout: Timeout for opening the connection in seconds.
             :obj:`None` disables the timeout.
         ping_interval: Interval between keepalive pings in seconds.

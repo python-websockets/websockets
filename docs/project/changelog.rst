@@ -25,12 +25,27 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
-.. _14.3:
+.. _15.0:
 
-14.3
+15.0
 ----
 
 *In development*
+
+Backwards-incompatible changes
+..............................
+
+.. admonition:: Client connections use SOCKS proxies automatically.
+    :class: important
+
+    If a proxy is configured in the operating system or with an environment
+    variable, websockets uses it automatically when connecting to a server.
+    This feature requires installing the third-party library `python-socks`_.
+
+    If you want to disable the proxy, add ``proxy=None`` when calling
+    :func:`~asyncio.client.connect`. See :doc:`../topics/proxies` for details.
+
+    .. _python-socks: https://github.com/romis2012/python-socks
 
 New features
 ............

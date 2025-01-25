@@ -5,7 +5,7 @@ import ssl as ssl_module
 import threading
 import warnings
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 from ..client import ClientProtocol
 from ..datastructures import HeadersLike
@@ -15,7 +15,7 @@ from ..headers import validate_subprotocols
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
 from ..typing import LoggerLike, Origin, Subprotocol
-from ..uri import parse_uri
+from ..uri import Proxy, get_proxy, parse_proxy, parse_uri
 from .connection import Connection
 from .utils import Deadline
 
@@ -139,6 +139,7 @@ def connect(
     # HTTP
     additional_headers: HeadersLike | None = None,
     user_agent_header: str | None = USER_AGENT,
+    proxy: str | Literal[True] | None = True,
     # Timeouts
     open_timeout: float | None = 10,
     ping_interval: float | None = 20,
@@ -189,6 +190,10 @@ def connect(
         user_agent_header: Value of  the ``User-Agent`` request header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
+        proxy: If a proxy is configured, it is used by default. Set ``proxy``
+            to :obj:`None` to disable the proxy or to the address of a proxy
+            to override the system configuration. See the :doc:`proxy docs
+            <../../topics/proxies>` for details.
         open_timeout: Timeout for opening the connection in seconds.
             :obj:`None` disables the timeout.
         ping_interval: Interval between keepalive pings in seconds.
@@ -253,6 +258,16 @@ def connect(
     elif compression is not None:
         raise ValueError(f"unsupported compression: {compression}")
 
+    proxy_uri: Proxy | None = None
+    if unix:
+        proxy = None
+    if sock is not None:
+        proxy = None
+    if proxy is True:
+        proxy = get_proxy(ws_uri)
+    if proxy is not None:
+        proxy_uri = parse_proxy(proxy)
+
     # Calculate timeouts on the TCP, TLS, and WebSocket handshakes.
     # The TCP and TLS timeouts must be set on the socket, then removed
     # to avoid conflicting with the WebSocket timeout in handshake().
@@ -271,8 +286,53 @@ def connect(
                 assert path is not None  # mypy cannot figure this out
                 sock.connect(path)
             else:
-                kwargs.setdefault("timeout", deadline.timeout())
-                sock = socket.create_connection((ws_uri.host, ws_uri.port), **kwargs)
+                if proxy_uri is not None:
+                    if proxy_uri.scheme[:5] == "socks":
+                        try:
+                            from python_socks import ProxyType
+                            from python_socks.sync import Proxy
+                        except ImportError:
+                            raise ImportError(
+                                "python-socks is required to use a SOCKS proxy"
+                            )
+                        if proxy_uri.scheme == "socks5h":
+                            proxy_type = ProxyType.SOCKS5
+                            rdns = True
+                        elif proxy_uri.scheme == "socks5":
+                            proxy_type = ProxyType.SOCKS5
+                            rdns = False
+                        # We use mitmproxy for testing and it doesn't support SOCKS4.
+                        elif proxy_uri.scheme == "socks4a":  # pragma: no cover
+                            proxy_type = ProxyType.SOCKS4
+                            rdns = True
+                        elif proxy_uri.scheme == "socks4":  # pragma: no cover
+                            proxy_type = ProxyType.SOCKS4
+                            rdns = False
+                        # Proxy types are enforced in parse_proxy().
+                        else:
+                            raise AssertionError("unsupported SOCKS proxy")
+                        socks_proxy = Proxy(
+                            proxy_type,
+                            proxy_uri.host,
+                            proxy_uri.port,
+                            proxy_uri.username,
+                            proxy_uri.password,
+                            rdns,
+                        )
+                        sock = socks_proxy.connect(
+                            ws_uri.host,
+                            ws_uri.port,
+                            timeout=deadline.timeout(),
+                            local_addr=kwargs.pop("local_addr", None),
+                        )
+                    # Proxy types are enforced in parse_proxy().
+                    else:
+                        raise AssertionError("unsupported proxy")
+                else:
+                    kwargs.setdefault("timeout", deadline.timeout())
+                    sock = socket.create_connection(
+                        (ws_uri.host, ws_uri.port), **kwargs
+                    )
             sock.settimeout(None)
 
         # Disable Nagle algorithm

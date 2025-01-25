@@ -168,11 +168,10 @@ Client
     +------------------------------------+--------+--------+--------+--------+
     | Connect via HTTP proxy (`#364`_)   | ❌     | ❌     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
-    | Connect via SOCKS5 proxy (`#475`_) | ❌     | ❌     | —      | ❌     |
+    | Connect via SOCKS5 proxy           | ✅     | ✅     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
 
 .. _#364: https://github.com/python-websockets/websockets/issues/364
-.. _#475: https://github.com/python-websockets/websockets/issues/475
 .. _#784: https://github.com/python-websockets/websockets/issues/784
 
 Known limitations

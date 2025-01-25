@@ -1,0 +1,2 @@
+python-socks[asyncio]
+mitmproxy

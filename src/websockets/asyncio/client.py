@@ -7,7 +7,7 @@ import traceback
 import urllib.parse
 from collections.abc import AsyncIterator, Generator, Sequence
 from types import TracebackType
-from typing import Any, Callable
+from typing import Any, Callable, Literal
 
 from ..client import ClientProtocol, backoff
 from ..datastructures import HeadersLike
@@ -18,7 +18,7 @@ from ..headers import validate_subprotocols
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
 from ..typing import LoggerLike, Origin, Subprotocol
-from ..uri import WebSocketURI, parse_uri
+from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
 from .compatibility import TimeoutError, asyncio_timeout
 from .connection import Connection
 
@@ -208,6 +208,10 @@ class connect:
         user_agent_header: Value of  the ``User-Agent`` request header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
+        proxy: If a proxy is configured, it is used by default. Set ``proxy``
+            to :obj:`None` to disable the proxy or to the address of a proxy
+            to override the system configuration. See the :doc:`proxy docs
+            <../../topics/proxies>` for details.
         process_exception: When reconnecting automatically, tell whether an
             error is transient or fatal. The default behavior is defined by
             :func:`process_exception`. Refer to its documentation for details.
@@ -279,6 +283,7 @@ class connect:
         # HTTP
         additional_headers: HeadersLike | None = None,
         user_agent_header: str | None = USER_AGENT,
+        proxy: str | Literal[True] | None = True,
         process_exception: Callable[[Exception], Exception | None] = process_exception,
         # Timeouts
         open_timeout: float | None = 10,
@@ -333,6 +338,7 @@ class connect:
             )
             return connection
 
+        self.proxy = proxy
         self.protocol_factory = protocol_factory
         self.handshake_args = (
             additional_headers,
@@ -346,9 +352,20 @@ class connect:
     async def create_connection(self) -> ClientConnection:
         """Create TCP or Unix connection."""
         loop = asyncio.get_running_loop()
+        kwargs = self.connection_kwargs.copy()
 
         ws_uri = parse_uri(self.uri)
-        kwargs = self.connection_kwargs.copy()
+
+        proxy = self.proxy
+        proxy_uri: Proxy | None = None
+        if kwargs.get("unix", False):
+            proxy = None
+        if kwargs.get("sock") is not None:
+            proxy = None
+        if proxy is True:
+            proxy = get_proxy(ws_uri)
+        if proxy is not None:
+            proxy_uri = parse_proxy(proxy)
 
         def factory() -> ClientConnection:
             return self.protocol_factory(ws_uri)
@@ -365,6 +382,47 @@ class connect:
         if kwargs.pop("unix", False):
             _, connection = await loop.create_unix_connection(factory, **kwargs)
         else:
+            if proxy_uri is not None:
+                if proxy_uri.scheme[:5] == "socks":
+                    try:
+                        from python_socks import ProxyType
+                        from python_socks.async_.asyncio import Proxy
+                    except ImportError:
+                        raise ImportError(
+                            "python-socks is required to use a SOCKS proxy"
+                        )
+                    if proxy_uri.scheme == "socks5h":
+                        proxy_type = ProxyType.SOCKS5
+                        rdns = True
+                    elif proxy_uri.scheme == "socks5":
+                        proxy_type = ProxyType.SOCKS5
+                        rdns = False
+                    # We use mitmproxy for testing and it doesn't support SOCKS4.
+                    elif proxy_uri.scheme == "socks4a":  # pragma: no cover
+                        proxy_type = ProxyType.SOCKS4
+                        rdns = True
+                    elif proxy_uri.scheme == "socks4":  # pragma: no cover
+                        proxy_type = ProxyType.SOCKS4
+                        rdns = False
+                    # Proxy types are enforced in parse_proxy().
+                    else:
+                        raise AssertionError("unsupported SOCKS proxy")
+                    socks_proxy = Proxy(
+                        proxy_type,
+                        proxy_uri.host,
+                        proxy_uri.port,
+                        proxy_uri.username,
+                        proxy_uri.password,
+                        rdns,
+                    )
+                    kwargs["sock"] = await socks_proxy.connect(
+                        ws_uri.host,
+                        ws_uri.port,
+                        local_addr=kwargs.pop("local_addr", None),
+                    )
+                # Proxy types are enforced in parse_proxy().
+                else:
+                    raise AssertionError("unsupported proxy")
             if kwargs.get("sock") is None:
                 kwargs.setdefault("host", ws_uri.host)
                 kwargs.setdefault("port", ws_uri.port)

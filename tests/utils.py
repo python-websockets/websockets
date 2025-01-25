@@ -140,6 +140,22 @@ class AssertNoLogsMixin:
 
 
 @contextlib.contextmanager
+def patch_environ(environ):
+    backup = {}
+    for key, value in environ.items():
+        backup[key] = os.environ.get(key)
+        os.environ[key] = value
+    try:
+        yield
+    finally:
+        for key, value in backup.items():
+            if value is None:
+                del os.environ[key]
+            else:  # pragma: no cover
+                os.environ[key] = value
+
+
+@contextlib.contextmanager
 def temp_unix_socket_path():
     with tempfile.TemporaryDirectory() as temp_dir:
         yield str(pathlib.Path(temp_dir) / "websockets")

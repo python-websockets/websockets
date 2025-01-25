@@ -84,6 +84,10 @@ class ExceptionsTests(unittest.TestCase):
                 "| isn't a valid URI: not at all!",
             ),
             (
+                InvalidProxy("|", "not at all!"),
+                "| isn't a valid proxy: not at all!",
+            ),
+            (
                 InvalidHandshake("invalid request"),
                 "invalid request",
             ),
@@ -98,6 +102,14 @@ class ExceptionsTests(unittest.TestCase):
             (
                 InvalidStatus(Response(401, "Unauthorized", Headers())),
                 "server rejected WebSocket connection: HTTP 401",
+            ),
+            (
+                InvalidProxyMessage("malformed HTTP message"),
+                "malformed HTTP message",
+            ),
+            (
+                InvalidProxyStatus(Response(401, "Unauthorized", Headers())),
+                "proxy rejected connection: HTTP 401",
             ),
             (
                 InvalidHeader("Name"),

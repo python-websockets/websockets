@@ -230,8 +230,8 @@ def connect(
             DeprecationWarning,
         )
 
-    wsuri = parse_uri(uri)
-    if not wsuri.secure and ssl is not None:
+    ws_uri = parse_uri(uri)
+    if not ws_uri.secure and ssl is not None:
         raise ValueError("ssl argument is incompatible with a ws:// URI")
 
     # Private APIs for unix_connect()
@@ -271,7 +271,7 @@ def connect(
                 sock.connect(path)
             else:
                 kwargs.setdefault("timeout", deadline.timeout())
-                sock = socket.create_connection((wsuri.host, wsuri.port), **kwargs)
+                sock = socket.create_connection((ws_uri.host, ws_uri.port), **kwargs)
             sock.settimeout(None)
 
         # Disable Nagle algorithm
@@ -281,11 +281,11 @@ def connect(
 
         # Initialize TLS wrapper and perform TLS handshake
 
-        if wsuri.secure:
+        if ws_uri.secure:
             if ssl is None:
                 ssl = ssl_module.create_default_context()
             if server_hostname is None:
-                server_hostname = wsuri.host
+                server_hostname = ws_uri.host
             sock.settimeout(deadline.timeout())
             sock = ssl.wrap_socket(sock, server_hostname=server_hostname)
             sock.settimeout(None)
@@ -293,7 +293,7 @@ def connect(
         # Initialize WebSocket protocol
 
         protocol = ClientProtocol(
-            wsuri,
+            ws_uri,
             origin=origin,
             extensions=extensions,
             subprotocols=subprotocols,

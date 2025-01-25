@@ -50,7 +50,7 @@ class ClientProtocol(Protocol):
     Sans-I/O implementation of a WebSocket client connection.
 
     Args:
-        wsuri: URI of the WebSocket server, parsed
+        uri: URI of the WebSocket server, parsed
             with :func:`~websockets.uri.parse_uri`.
         origin: Value of the ``Origin`` header. This is useful when connecting
             to a server that validates the ``Origin`` header to defend against
@@ -70,7 +70,7 @@ class ClientProtocol(Protocol):
 
     def __init__(
         self,
-        wsuri: WebSocketURI,
+        uri: WebSocketURI,
         *,
         origin: Origin | None = None,
         extensions: Sequence[ClientExtensionFactory] | None = None,
@@ -85,7 +85,7 @@ class ClientProtocol(Protocol):
             max_size=max_size,
             logger=logger,
         )
-        self.wsuri = wsuri
+        self.uri = uri
         self.origin = origin
         self.available_extensions = extensions
         self.available_subprotocols = subprotocols
@@ -105,12 +105,10 @@ class ClientProtocol(Protocol):
         """
         headers = Headers()
 
-        headers["Host"] = build_host(
-            self.wsuri.host, self.wsuri.port, self.wsuri.secure
-        )
+        headers["Host"] = build_host(self.uri.host, self.uri.port, self.uri.secure)
 
-        if self.wsuri.user_info:
-            headers["Authorization"] = build_authorization_basic(*self.wsuri.user_info)
+        if self.uri.user_info:
+            headers["Authorization"] = build_authorization_basic(*self.uri.user_info)
 
         if self.origin is not None:
             headers["Origin"] = self.origin
@@ -133,7 +131,7 @@ class ClientProtocol(Protocol):
             protocol_header = build_subprotocol(self.available_subprotocols)
             headers["Sec-WebSocket-Protocol"] = protocol_header
 
-        return Request(self.wsuri.resource_name, headers)
+        return Request(self.uri.resource_name, headers)
 
     def process_response(self, response: Response) -> None:
         """

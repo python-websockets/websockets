@@ -248,7 +248,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         async with serve(*args, process_request=redirect) as server:
             async with connect(get_uri(server) + "/redirect") as client:
-                self.assertEqual(client.protocol.wsuri.path, "/")
+                self.assertEqual(client.protocol.uri.path, "/")
 
     async def test_cross_origin_redirect(self):
         """Client follows redirect to a secure URI on a different origin."""
@@ -297,7 +297,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             async with connect(
                 "ws://overridden/redirect", host=host, port=port
             ) as client:
-                self.assertEqual(client.protocol.wsuri.path, "/")
+                self.assertEqual(client.protocol.uri.path, "/")
 
     async def test_cross_origin_redirect_with_explicit_host_port(self):
         """Client doesn't follow cross-origin redirect with an explicit host / port."""

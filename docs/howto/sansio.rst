@@ -28,16 +28,16 @@ If you're building a client, parse the URI you'd like to connect to::
 
     from websockets.uri import parse_uri
 
-    wsuri = parse_uri("ws://example.com/")
+    uri = parse_uri("ws://example.com/")
 
-Open a TCP connection to ``(wsuri.host, wsuri.port)`` and perform a TLS
-handshake if ``wsuri.secure`` is :obj:`True`.
+Open a TCP connection to ``(uri.host, uri.port)`` and perform a TLS handshake
+if ``uri.secure`` is :obj:`True`.
 
 Initialize a :class:`~client.ClientProtocol`::
 
     from websockets.client import ClientProtocol
 
-    protocol = ClientProtocol(wsuri)
+    protocol = ClientProtocol(uri)
 
 Create a WebSocket handshake request
 with :meth:`~client.ClientProtocol.connect` and send it

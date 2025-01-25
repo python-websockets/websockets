@@ -311,10 +311,10 @@ class connect:
         if create_connection is None:
             create_connection = ClientConnection
 
-        def protocol_factory(wsuri: WebSocketURI) -> ClientConnection:
+        def protocol_factory(uri: WebSocketURI) -> ClientConnection:
             # This is a protocol in the Sans-I/O implementation of websockets.
             protocol = ClientProtocol(
-                wsuri,
+                uri,
                 origin=origin,
                 extensions=extensions,
                 subprotocols=subprotocols,
@@ -346,15 +346,15 @@ class connect:
         """Create TCP or Unix connection."""
         loop = asyncio.get_running_loop()
 
-        wsuri = parse_uri(self.uri)
+        ws_uri = parse_uri(self.uri)
         kwargs = self.connection_kwargs.copy()
 
         def factory() -> ClientConnection:
-            return self.protocol_factory(wsuri)
+            return self.protocol_factory(ws_uri)
 
-        if wsuri.secure:
+        if ws_uri.secure:
             kwargs.setdefault("ssl", True)
-            kwargs.setdefault("server_hostname", wsuri.host)
+            kwargs.setdefault("server_hostname", ws_uri.host)
             if kwargs.get("ssl") is None:
                 raise ValueError("ssl=None is incompatible with a wss:// URI")
         else:
@@ -365,8 +365,8 @@ class connect:
             _, connection = await loop.create_unix_connection(factory, **kwargs)
         else:
             if kwargs.get("sock") is None:
-                kwargs.setdefault("host", wsuri.host)
-                kwargs.setdefault("port", wsuri.port)
+                kwargs.setdefault("host", ws_uri.host)
+                kwargs.setdefault("port", ws_uri.port)
             _, connection = await loop.create_connection(factory, **kwargs)
         return connection
 
@@ -392,9 +392,9 @@ class connect:
         ):
             return exc
 
-        old_wsuri = parse_uri(self.uri)
+        old_ws_uri = parse_uri(self.uri)
         new_uri = urllib.parse.urljoin(self.uri, exc.response.headers["Location"])
-        new_wsuri = parse_uri(new_uri)
+        new_ws_uri = parse_uri(new_uri)
 
         # If connect() received a socket, it is closed and cannot be reused.
         if self.connection_kwargs.get("sock") is not None:
@@ -403,14 +403,14 @@ class connect:
             )
 
         # TLS downgrade is forbidden.
-        if old_wsuri.secure and not new_wsuri.secure:
+        if old_ws_uri.secure and not new_ws_uri.secure:
             return SecurityError(f"cannot follow redirect to non-secure URI {new_uri}")
 
         # Apply restrictions to cross-origin redirects.
         if (
-            old_wsuri.secure != new_wsuri.secure
-            or old_wsuri.host != new_wsuri.host
-            or old_wsuri.port != new_wsuri.port
+            old_ws_uri.secure != new_ws_uri.secure
+            or old_ws_uri.host != new_ws_uri.host
+            or old_ws_uri.port != new_ws_uri.port
         ):
             # Cross-origin redirects on Unix sockets don't quite make sense.
             if self.connection_kwargs.get("unix", False):

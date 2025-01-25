@@ -28,13 +28,19 @@ also reported by :func:`~websockets.asyncio.server.serve` in logs.
 
 .. autoexception:: InvalidURI
 
-.. autoexception:: InvalidHandshake
+.. autoexception:: InvalidProxy
 
-.. autoexception:: InvalidMessage
+.. autoexception:: InvalidHandshake
 
 .. autoexception:: SecurityError
 
+.. autoexception:: InvalidMessage
+
 .. autoexception:: InvalidStatus
+
+.. autoexception:: InvalidProxyMessage
+
+.. autoexception:: InvalidProxyStatus
 
 .. autoexception:: InvalidHeader
 

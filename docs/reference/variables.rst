@@ -54,29 +54,30 @@ Reconnection
 
 Reconnection attempts are spaced out with truncated exponential backoff.
 
-.. envvar:: BACKOFF_INITIAL_DELAY
+.. envvar:: WEBSOCKETS_BACKOFF_INITIAL_DELAY
 
     The first attempt is delayed by a random amount of time between ``0`` and
-    ``BACKOFF_INITIAL_DELAY`` seconds.
+    ``WEBSOCKETS_BACKOFF_INITIAL_DELAY`` seconds.
 
     The default value is ``5.0`` seconds.
 
-.. envvar:: BACKOFF_MIN_DELAY
+.. envvar:: WEBSOCKETS_BACKOFF_MIN_DELAY
 
-    The second attempt is delayed by ``BACKOFF_MIN_DELAY`` seconds.
+    The second attempt is delayed by ``WEBSOCKETS_BACKOFF_MIN_DELAY`` seconds.
 
     The default value is ``3.1`` seconds.
 
-.. envvar:: BACKOFF_FACTOR
+.. envvar:: WEBSOCKETS_BACKOFF_FACTOR
 
-    After the second attempt, the delay is multiplied by ``BACKOFF_FACTOR``
-    between each attempt.
+    After the second attempt, the delay is multiplied by
+    ``WEBSOCKETS_BACKOFF_FACTOR`` between each attempt.
 
     The default value is ``1.618``.
 
-.. envvar:: BACKOFF_MAX_DELAY
+.. envvar:: WEBSOCKETS_BACKOFF_MAX_DELAY
 
-    The delay between attempts is capped at ``BACKOFF_MAX_DELAY`` seconds.
+    The delay between attempts is capped at ``WEBSOCKETS_BACKOFF_MAX_DELAY``
+    seconds.
 
     The default value is ``90.0`` seconds.
 

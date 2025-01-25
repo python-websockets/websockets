@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import zlib
 from collections.abc import Sequence
-from typing import Any
+from typing import Any, Literal
 
 from .. import frames
 from ..exceptions import (
@@ -212,7 +212,7 @@ def _build_parameters(
     server_no_context_takeover: bool,
     client_no_context_takeover: bool,
     server_max_window_bits: int | None,
-    client_max_window_bits: int | bool | None,
+    client_max_window_bits: int | Literal[True] | None,
 ) -> list[ExtensionParameter]:
     """
     Build a list of ``(name, value)`` pairs for some compression parameters.
@@ -234,7 +234,7 @@ def _build_parameters(
 
 def _extract_parameters(
     params: Sequence[ExtensionParameter], *, is_server: bool
-) -> tuple[bool, bool, int | None, int | bool | None]:
+) -> tuple[bool, bool, int | None, int | Literal[True] | None]:
     """
     Extract compression parameters from a list of ``(name, value)`` pairs.
 
@@ -245,7 +245,7 @@ def _extract_parameters(
     server_no_context_takeover: bool = False
     client_no_context_takeover: bool = False
     server_max_window_bits: int | None = None
-    client_max_window_bits: int | bool | None = None
+    client_max_window_bits: int | Literal[True] | None = None
 
     for name, value in params:
         if name == "server_no_context_takeover":
@@ -324,7 +324,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         server_no_context_takeover: bool = False,
         client_no_context_takeover: bool = False,
         server_max_window_bits: int | None = None,
-        client_max_window_bits: int | bool | None = True,
+        client_max_window_bits: int | Literal[True] | None = True,
         compress_settings: dict[str, Any] | None = None,
     ) -> None:
         """

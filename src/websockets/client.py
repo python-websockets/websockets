@@ -104,33 +104,26 @@ class ClientProtocol(Protocol):
 
         """
         headers = Headers()
-
         headers["Host"] = build_host(self.uri.host, self.uri.port, self.uri.secure)
-
         if self.uri.user_info:
             headers["Authorization"] = build_authorization_basic(*self.uri.user_info)
-
         if self.origin is not None:
             headers["Origin"] = self.origin
-
         headers["Upgrade"] = "websocket"
         headers["Connection"] = "Upgrade"
         headers["Sec-WebSocket-Key"] = self.key
         headers["Sec-WebSocket-Version"] = "13"
-
         if self.available_extensions is not None:
-            extensions_header = build_extension(
+            headers["Sec-WebSocket-Extensions"] = build_extension(
                 [
                     (extension_factory.name, extension_factory.get_request_params())
                     for extension_factory in self.available_extensions
                 ]
             )
-            headers["Sec-WebSocket-Extensions"] = extensions_header
-
         if self.available_subprotocols is not None:
-            protocol_header = build_subprotocol(self.available_subprotocols)
-            headers["Sec-WebSocket-Protocol"] = protocol_header
-
+            headers["Sec-WebSocket-Protocol"] = build_subprotocol(
+                self.available_subprotocols
+            )
         return Request(self.uri.resource_name, headers)
 
     def process_response(self, response: Response) -> None:
@@ -153,7 +146,6 @@ class ClientProtocol(Protocol):
         connection: list[ConnectionOption] = sum(
             [parse_connection(value) for value in headers.get_all("Connection")], []
         )
-
         if not any(value.lower() == "upgrade" for value in connection):
             raise InvalidUpgrade(
                 "Connection", ", ".join(connection) if connection else None
@@ -162,7 +154,6 @@ class ClientProtocol(Protocol):
         upgrade: list[UpgradeProtocol] = sum(
             [parse_upgrade(value) for value in headers.get_all("Upgrade")], []
         )
-
         # For compatibility with non-strict implementations, ignore case when
         # checking the Upgrade header. It's supposed to be 'WebSocket'.
         if not (len(upgrade) == 1 and upgrade[0].lower() == "websocket"):
@@ -174,12 +165,10 @@ class ClientProtocol(Protocol):
             raise InvalidHeader("Sec-WebSocket-Accept") from None
         except MultipleValuesError:
             raise InvalidHeader("Sec-WebSocket-Accept", "multiple values") from None
-
         if s_w_accept != accept_key(self.key):
             raise InvalidHeaderValue("Sec-WebSocket-Accept", s_w_accept)
 
         self.extensions = self.process_extensions(headers)
-
         self.subprotocol = self.process_subprotocol(headers)
 
     def process_extensions(self, headers: Headers) -> list[Extension]:
@@ -279,7 +268,6 @@ class ClientProtocol(Protocol):
             parsed_subprotocols: Sequence[Subprotocol] = sum(
                 [parse_subprotocol(header_value) for header_value in subprotocols], []
             )
-
             if len(parsed_subprotocols) > 1:
                 raise InvalidHeader(
                     "Sec-WebSocket-Protocol",
@@ -287,7 +275,6 @@ class ClientProtocol(Protocol):
                 )
 
             subprotocol = parsed_subprotocols[0]
-
             if subprotocol not in self.available_subprotocols:
                 raise NegotiationError(f"unsupported subprotocol: {subprotocol}")
 

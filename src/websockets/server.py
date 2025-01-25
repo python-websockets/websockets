@@ -190,19 +190,14 @@ class ServerProtocol(Protocol):
             )
 
         headers = Headers()
-
         headers["Date"] = email.utils.formatdate(usegmt=True)
-
         headers["Upgrade"] = "websocket"
         headers["Connection"] = "Upgrade"
         headers["Sec-WebSocket-Accept"] = accept_header
-
         if extensions_header is not None:
             headers["Sec-WebSocket-Extensions"] = extensions_header
-
         if protocol_header is not None:
             headers["Sec-WebSocket-Protocol"] = protocol_header
-
         return Response(101, "Switching Protocols", headers)
 
     def process_request(
@@ -234,7 +229,6 @@ class ServerProtocol(Protocol):
         connection: list[ConnectionOption] = sum(
             [parse_connection(value) for value in headers.get_all("Connection")], []
         )
-
         if not any(value.lower() == "upgrade" for value in connection):
             raise InvalidUpgrade(
                 "Connection", ", ".join(connection) if connection else None
@@ -243,7 +237,6 @@ class ServerProtocol(Protocol):
         upgrade: list[UpgradeProtocol] = sum(
             [parse_upgrade(value) for value in headers.get_all("Upgrade")], []
         )
-
         # For compatibility with non-strict implementations, ignore case when
         # checking the Upgrade header. The RFC always uses "websocket", except
         # in section 11.2. (IANA registration) where it uses "WebSocket".
@@ -256,13 +249,13 @@ class ServerProtocol(Protocol):
             raise InvalidHeader("Sec-WebSocket-Key") from None
         except MultipleValuesError:
             raise InvalidHeader("Sec-WebSocket-Key", "multiple values") from None
-
         try:
             raw_key = base64.b64decode(key.encode(), validate=True)
         except binascii.Error as exc:
             raise InvalidHeaderValue("Sec-WebSocket-Key", key) from exc
         if len(raw_key) != 16:
             raise InvalidHeaderValue("Sec-WebSocket-Key", key)
+        accept_header = accept_key(key)
 
         try:
             version = headers["Sec-WebSocket-Version"]
@@ -270,23 +263,14 @@ class ServerProtocol(Protocol):
             raise InvalidHeader("Sec-WebSocket-Version") from None
         except MultipleValuesError:
             raise InvalidHeader("Sec-WebSocket-Version", "multiple values") from None
-
         if version != "13":
             raise InvalidHeaderValue("Sec-WebSocket-Version", version)
 
-        accept_header = accept_key(key)
-
         self.origin = self.process_origin(headers)
-
         extensions_header, self.extensions = self.process_extensions(headers)
-
         protocol_header = self.subprotocol = self.process_subprotocol(headers)
 
-        return (
-            accept_header,
-            extensions_header,
-            protocol_header,
-        )
+        return (accept_header, extensions_header, protocol_header)
 
     def process_origin(self, headers: Headers) -> Origin | None:
         """
@@ -426,7 +410,6 @@ class ServerProtocol(Protocol):
             ],
             [],
         )
-
         return self.select_subprotocol(subprotocols)
 
     def select_subprotocol(

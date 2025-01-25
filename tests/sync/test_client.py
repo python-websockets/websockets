@@ -1,8 +1,10 @@
+import contextlib
 import http
 import logging
 import socket
 import socketserver
 import ssl
+import sys
 import threading
 import time
 import unittest
@@ -10,17 +12,20 @@ import unittest
 from websockets.exceptions import (
     InvalidHandshake,
     InvalidMessage,
+    InvalidProxy,
     InvalidStatus,
     InvalidURI,
 )
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 from websockets.sync.client import *
 
+from ..proxy import sync_proxy
 from ..utils import (
     CLIENT_CONTEXT,
     MS,
     SERVER_CONTEXT,
     DeprecationTestCase,
+    patch_environ,
     temp_unix_socket_path,
 )
 from .server import get_uri, run_server, run_unix_server
@@ -37,7 +42,7 @@ class ClientTests(unittest.TestCase):
         """Client connects using a pre-existing socket."""
         with run_server() as server:
             with socket.create_connection(server.socket.getsockname()) as sock:
-                # Use a non-existing domain to ensure we connect to the right socket.
+                # Use a non-existing domain to ensure we connect to sock.
                 with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
 
@@ -298,6 +303,79 @@ class SecureClientTests(unittest.TestCase):
                 "certificate verify failed: Hostname mismatch",
                 str(raised.exception),
             )
+
+
+@unittest.skipUnless("mitmproxy" in sys.modules, "mitmproxy not installed")
+class ProxyClientTests(unittest.TestCase):
+    @contextlib.contextmanager
+    def socks_proxy(self, auth=None):
+        if auth:
+            proxyauth = "hello:iloveyou"
+            proxy_uri = "http://hello:iloveyou@localhost:1080"
+        else:
+            proxyauth = None
+            proxy_uri = "http://localhost:1080"
+
+        with sync_proxy(mode=["socks5"], proxyauth=proxyauth) as record_flows:
+            with patch_environ({"socks_proxy": proxy_uri}):
+                yield record_flows
+
+    def test_socks_proxy(self):
+        """Client connects to server through a SOCKS5 proxy."""
+        with self.socks_proxy() as proxy:
+            with run_server() as server:
+                with connect(get_uri(server)) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
+        self.assertEqual(len(proxy.get_flows()), 1)
+
+    def test_secure_socks_proxy(self):
+        """Client connects to server securely through a SOCKS5 proxy."""
+        with self.socks_proxy() as proxy:
+            with run_server(ssl=SERVER_CONTEXT) as server:
+                with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
+        self.assertEqual(len(proxy.get_flows()), 1)
+
+    def test_authenticated_socks_proxy(self):
+        """Client connects to server through an authenticated SOCKS5 proxy."""
+        with self.socks_proxy(auth=True) as proxy:
+            with run_server() as server:
+                with connect(get_uri(server)) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
+        self.assertEqual(len(proxy.get_flows()), 1)
+
+    def test_explicit_proxy(self):
+        """Client connects to server through a proxy set explicitly."""
+        with sync_proxy(mode=["socks5"]) as proxy:
+            with run_server() as server:
+                with connect(
+                    get_uri(server),
+                    # Take this opportunity to test socks5 instead of socks5h.
+                    proxy="socks5://localhost:1080",
+                ) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
+        self.assertEqual(len(proxy.get_flows()), 1)
+
+    def test_ignore_proxy_with_existing_socket(self):
+        """Client connects using a pre-existing socket."""
+        with self.socks_proxy() as proxy:
+            with run_server() as server:
+                with socket.create_connection(server.socket.getsockname()) as sock:
+                    # Use a non-existing domain to ensure we connect to sock.
+                    with connect("ws://invalid/", sock=sock) as client:
+                        self.assertEqual(client.protocol.state.name, "OPEN")
+        self.assertEqual(len(proxy.get_flows()), 0)
+
+    def test_unsupported_proxy(self):
+        """Client connects to server through an unsupported proxy."""
+        with patch_environ({"ws_proxy": "other://localhost:1080"}):
+            with self.assertRaises(InvalidProxy) as raised:
+                with connect("ws://example.com/"):
+                    self.fail("did not raise")
+        self.assertEqual(
+            str(raised.exception),
+            "other://localhost:1080 isn't a valid proxy: scheme other isn't supported",
+        )
 
 
 @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")

@@ -314,12 +314,14 @@ class ResponseTests(unittest.TestCase):
         self.assertEqual(response.status_code, 404)
         self.assertEqual(response.reason_phrase, "Not Found")
 
-    @patch("websockets.server.ServerProtocol.process_request")
+    @patch(
+        "websockets.server.ServerProtocol.process_request",
+        side_effect=Exception("BOOM"),
+    )
     def test_unexpected_error(self, process_request):
         """accept() handles unexpected errors and returns an error response."""
         server = ServerProtocol()
         request = make_request()
-        process_request.side_effect = (Exception("BOOM"),)
         response = server.accept(request)
 
         self.assertEqual(response.status_code, 500)

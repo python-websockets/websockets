@@ -645,10 +645,9 @@ class ClientConnectionTests(unittest.TestCase):
 
     # Test ping.
 
-    @patch("random.getrandbits")
+    @patch("random.getrandbits", return_value=1918987876)
     def test_ping(self, getrandbits):
         """ping sends a ping frame with a random payload."""
-        getrandbits.return_value = 1918987876
         self.connection.ping()
         getrandbits.assert_called_once_with(32)
         self.assertFrameSent(Frame(Opcode.PING, b"rand"))
@@ -740,11 +739,10 @@ class ClientConnectionTests(unittest.TestCase):
 
     # Test keepalive.
 
-    @patch("random.getrandbits")
+    @patch("random.getrandbits", return_value=1918987876)
     def test_keepalive(self, getrandbits):
         """keepalive sends pings at ping_interval and measures latency."""
         self.connection.ping_interval = 2 * MS
-        getrandbits.return_value = 1918987876
         self.connection.start_keepalive()
         self.assertEqual(self.connection.latency, 0)
         # 2 ms: keepalive() sends a ping frame.
@@ -762,13 +760,12 @@ class ClientConnectionTests(unittest.TestCase):
         time.sleep(3 * MS)
         self.assertNoFrameSent()
 
-    @patch("random.getrandbits")
+    @patch("random.getrandbits", return_value=1918987876)
     def test_keepalive_times_out(self, getrandbits):
         """keepalive closes the connection if ping_timeout elapses."""
         self.connection.ping_interval = 4 * MS
         self.connection.ping_timeout = 2 * MS
         with self.drop_frames_rcvd():
-            getrandbits.return_value = 1918987876
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             time.sleep(4 * MS)
@@ -779,13 +776,12 @@ class ClientConnectionTests(unittest.TestCase):
         # 7 ms: check that the connection is closed.
         self.assertEqual(self.connection.state, State.CLOSED)
 
-    @patch("random.getrandbits")
+    @patch("random.getrandbits", return_value=1918987876)
     def test_keepalive_ignores_timeout(self, getrandbits):
         """keepalive ignores timeouts if ping_timeout isn't set."""
         self.connection.ping_interval = 4 * MS
         self.connection.ping_timeout = None
         with self.drop_frames_rcvd():
-            getrandbits.return_value = 1918987876
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             time.sleep(4 * MS)
@@ -910,13 +906,13 @@ class ClientConnectionTests(unittest.TestCase):
         """Connection has a logger attribute."""
         self.assertIsInstance(self.connection.logger, logging.LoggerAdapter)
 
-    @unittest.mock.patch("socket.socket.getsockname", return_value=("sock", 1234))
+    @patch("socket.socket.getsockname", return_value=("sock", 1234))
     def test_local_address(self, getsockname):
         """Connection provides a local_address attribute."""
         self.assertEqual(self.connection.local_address, ("sock", 1234))
         getsockname.assert_called_with()
 
-    @unittest.mock.patch("socket.socket.getpeername", return_value=("peer", 1234))
+    @patch("socket.socket.getpeername", return_value=("peer", 1234))
     def test_remote_address(self, getpeername):
         """Connection provides a remote_address attribute."""
         self.assertEqual(self.connection.remote_address, ("peer", 1234))
@@ -984,12 +980,11 @@ class ClientConnectionTests(unittest.TestCase):
 
     # Test safety nets — catching all exceptions in case of bugs.
 
-    @patch("websockets.protocol.Protocol.events_received")
+    # Inject a fault in a random call in recv_events().
+    # This test is tightly coupled to the implementation.
+    @patch("websockets.protocol.Protocol.events_received", side_effect=AssertionError)
     def test_unexpected_failure_in_recv_events(self, events_received):
         """Unexpected internal error in recv_events() is correctly reported."""
-        # Inject a fault in a random call in recv_events().
-        # This test is tightly coupled to the implementation.
-        events_received.side_effect = AssertionError
         # Receive a message to trigger the fault.
         self.remote_connection.send("😀")
 
@@ -1000,13 +995,11 @@ class ClientConnectionTests(unittest.TestCase):
         self.assertEqual(str(exc), "no close frame received or sent")
         self.assertIsInstance(exc.__cause__, AssertionError)
 
-    @patch("websockets.protocol.Protocol.send_text")
+    # Inject a fault in a random call in send_context().
+    # This test is tightly coupled to the implementation.
+    @patch("websockets.protocol.Protocol.send_text", side_effect=AssertionError)
     def test_unexpected_failure_in_send_context(self, send_text):
         """Unexpected internal error in send_context() is correctly reported."""
-        # Inject a fault in a random call in send_context().
-        # This test is tightly coupled to the implementation.
-        send_text.side_effect = AssertionError
-
         # Send a message to trigger the fault.
         # The connection closed exception reports the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:

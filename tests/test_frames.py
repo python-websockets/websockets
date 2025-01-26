@@ -1,7 +1,7 @@
 import codecs
 import dataclasses
 import unittest
-import unittest.mock
+from unittest.mock import patch
 
 from websockets.exceptions import PayloadTooBig, ProtocolError
 from websockets.frames import *
@@ -12,9 +12,6 @@ from .utils import GeneratorTestCase
 
 
 class FramesTestCase(GeneratorTestCase):
-    def enforce_mask(self, mask):
-        return unittest.mock.patch("secrets.token_bytes", return_value=mask)
-
     def parse(self, data, mask, max_size=None, extensions=None):
         """
         Parse a frame from a bytestring.
@@ -41,7 +38,7 @@ class FramesTestCase(GeneratorTestCase):
         # Make masking deterministic by reusing the same "random" mask.
         # This has an effect only when mask is True.
         mask_bytes = data[2:6] if mask else b""
-        with self.enforce_mask(mask_bytes):
+        with patch("secrets.token_bytes", return_value=mask_bytes):
             serialized = frame.serialize(mask=mask, extensions=extensions)
         self.assertEqual(serialized, data)
 

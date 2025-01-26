@@ -10,10 +10,10 @@ import socket
 import ssl
 import sys
 import unittest
-import unittest.mock
 import urllib.error
 import urllib.request
 import warnings
+from unittest.mock import patch
 
 from websockets.asyncio.compatibility import asyncio_timeout
 from websockets.datastructures import Headers
@@ -968,7 +968,7 @@ class CommonClientServerTests:
         )
 
     @with_server(extensions=[ServerNoOpExtensionFactory()])
-    @unittest.mock.patch.object(WebSocketServerProtocol, "process_extensions")
+    @patch.object(WebSocketServerProtocol, "process_extensions")
     def test_extensions_error(self, _process_extensions):
         _process_extensions.return_value = "x-no-op", [NoOpExtension()]
 
@@ -978,7 +978,7 @@ class CommonClientServerTests:
             )
 
     @with_server(extensions=[ServerNoOpExtensionFactory()])
-    @unittest.mock.patch.object(WebSocketServerProtocol, "process_extensions")
+    @patch.object(WebSocketServerProtocol, "process_extensions")
     def test_extensions_error_no_extensions(self, _process_extensions):
         _process_extensions.return_value = "x-no-op", [NoOpExtension()]
 
@@ -1051,7 +1051,7 @@ class CommonClientServerTests:
         self.assertEqual(self.client.subprotocol, None)
 
     @with_server(subprotocols=["superchat"])
-    @unittest.mock.patch.object(WebSocketServerProtocol, "process_subprotocol")
+    @patch.object(WebSocketServerProtocol, "process_subprotocol")
     def test_subprotocol_error(self, _process_subprotocol):
         _process_subprotocol.return_value = "superchat"
 
@@ -1060,7 +1060,7 @@ class CommonClientServerTests:
         self.run_loop_once()
 
     @with_server(subprotocols=["superchat"])
-    @unittest.mock.patch.object(WebSocketServerProtocol, "process_subprotocol")
+    @patch.object(WebSocketServerProtocol, "process_subprotocol")
     def test_subprotocol_error_no_subprotocols(self, _process_subprotocol):
         _process_subprotocol.return_value = "superchat"
 
@@ -1069,7 +1069,7 @@ class CommonClientServerTests:
         self.run_loop_once()
 
     @with_server(subprotocols=["superchat", "chat"])
-    @unittest.mock.patch.object(WebSocketServerProtocol, "process_subprotocol")
+    @patch.object(WebSocketServerProtocol, "process_subprotocol")
     def test_subprotocol_error_two_subprotocols(self, _process_subprotocol):
         _process_subprotocol.return_value = "superchat, chat"
 
@@ -1078,7 +1078,7 @@ class CommonClientServerTests:
         self.run_loop_once()
 
     @with_server()
-    @unittest.mock.patch("websockets.legacy.server.read_request")
+    @patch("websockets.legacy.server.read_request")
     def test_server_receives_malformed_request(self, _read_request):
         _read_request.side_effect = ValueError("read_request failed")
 
@@ -1086,7 +1086,7 @@ class CommonClientServerTests:
             self.start_client()
 
     @with_server()
-    @unittest.mock.patch("websockets.legacy.client.read_response")
+    @patch("websockets.legacy.client.read_response")
     def test_client_receives_malformed_response(self, _read_response):
         _read_response.side_effect = ValueError("read_response failed")
 
@@ -1095,7 +1095,7 @@ class CommonClientServerTests:
         self.run_loop_once()
 
     @with_server()
-    @unittest.mock.patch("websockets.legacy.client.build_request")
+    @patch("websockets.legacy.client.build_request")
     def test_client_sends_invalid_handshake_request(self, _build_request):
         def wrong_build_request(headers):
             return "42"
@@ -1106,7 +1106,7 @@ class CommonClientServerTests:
             self.start_client()
 
     @with_server()
-    @unittest.mock.patch("websockets.legacy.server.build_response")
+    @patch("websockets.legacy.server.build_response")
     def test_server_sends_invalid_handshake_response(self, _build_response):
         def wrong_build_response(headers, key):
             return build_response(headers, "42")
@@ -1117,7 +1117,7 @@ class CommonClientServerTests:
             self.start_client()
 
     @with_server()
-    @unittest.mock.patch("websockets.legacy.client.read_response")
+    @patch("websockets.legacy.client.read_response")
     def test_server_does_not_switch_protocols(self, _read_response):
         async def wrong_read_response(stream):
             status_code, reason, headers = await read_response(stream)
@@ -1130,9 +1130,7 @@ class CommonClientServerTests:
         self.run_loop_once()
 
     @with_server()
-    @unittest.mock.patch(
-        "websockets.legacy.server.WebSocketServerProtocol.process_request"
-    )
+    @patch("websockets.legacy.server.WebSocketServerProtocol.process_request")
     def test_server_error_in_handshake(self, _process_request):
         _process_request.side_effect = Exception("process_request crashed")
 
@@ -1156,7 +1154,7 @@ class CommonClientServerTests:
             sock.send(b"")  # socket is closed
 
     @with_server()
-    @unittest.mock.patch("websockets.legacy.server.WebSocketServerProtocol.send")
+    @patch("websockets.legacy.server.WebSocketServerProtocol.send")
     def test_server_handler_crashes(self, send):
         send.side_effect = ValueError("send failed")
 
@@ -1169,7 +1167,7 @@ class CommonClientServerTests:
         self.assertEqual(self.client.close_code, CloseCode.INTERNAL_ERROR)
 
     @with_server()
-    @unittest.mock.patch("websockets.legacy.server.WebSocketServerProtocol.close")
+    @patch("websockets.legacy.server.WebSocketServerProtocol.close")
     def test_server_close_crashes(self, close):
         close.side_effect = ValueError("close failed")
 
@@ -1183,7 +1181,7 @@ class CommonClientServerTests:
 
     @with_server()
     @with_client()
-    @unittest.mock.patch.object(WebSocketClientProtocol, "handshake")
+    @patch.object(WebSocketClientProtocol, "handshake")
     def test_client_closes_connection_before_handshake(self, handshake):
         # We have mocked the handshake() method to prevent the client from
         # performing the opening handshake. Force it to close the connection.
@@ -1254,12 +1252,8 @@ class CommonClientServerTests:
         self.assertEqual(exception.status_code, 403)
 
     @with_server()
-    @unittest.mock.patch(
-        "websockets.legacy.server.WebSocketServerProtocol.write_http_response"
-    )
-    @unittest.mock.patch(
-        "websockets.legacy.server.WebSocketServerProtocol.read_http_request"
-    )
+    @patch("websockets.legacy.server.WebSocketServerProtocol.write_http_response")
+    @patch("websockets.legacy.server.WebSocketServerProtocol.read_http_request")
     def test_connection_error_during_opening_handshake(
         self, _read_http_request, _write_http_response
     ):
@@ -1277,7 +1271,7 @@ class CommonClientServerTests:
         _write_http_response.assert_not_called()
 
     @with_server()
-    @unittest.mock.patch("websockets.legacy.server.WebSocketServerProtocol.close")
+    @patch("websockets.legacy.server.WebSocketServerProtocol.close")
     def test_connection_error_during_closing_handshake(self, close):
         close.side_effect = ConnectionError
 

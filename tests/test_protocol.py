@@ -1,5 +1,6 @@
 import logging
-import unittest.mock
+import unittest
+from unittest.mock import patch
 
 from websockets.exceptions import (
     ConnectionClosedError,
@@ -106,7 +107,7 @@ class MaskingTests(ProtocolTestCase):
 
     def test_client_sends_masked_frame(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\xff\x00\xff"):
+        with patch("secrets.token_bytes", return_value=b"\x00\xff\x00\xff"):
             client.send_text(b"Spam", True)
         self.assertEqual(client.data_to_send(), [self.masked_text_frame_data])
 
@@ -191,7 +192,7 @@ class ContinuationTests(ProtocolTestCase):
         # Since it isn't possible to send a close frame in a fragmented
         # message (see test_client_send_close_in_fragmented_message), in fact,
         # this is the same test as test_client_sends_unexpected_continuation.
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         with self.assertRaises(ProtocolError) as raised:
@@ -234,7 +235,7 @@ class TextTests(ProtocolTestCase):
 
     def test_client_sends_text(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_text("😀".encode())
         self.assertEqual(
             client.data_to_send(), [b"\x81\x84\x00\x00\x00\x00\xf0\x9f\x98\x80"]
@@ -307,15 +308,15 @@ class TextTests(ProtocolTestCase):
 
     def test_client_sends_fragmented_text(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_text("😀".encode()[:2], fin=False)
         self.assertEqual(client.data_to_send(), [b"\x01\x82\x00\x00\x00\x00\xf0\x9f"])
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_continuation("😀😀".encode()[2:6], fin=False)
         self.assertEqual(
             client.data_to_send(), [b"\x00\x84\x00\x00\x00\x00\x98\x80\xf0\x9f"]
         )
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_continuation("😀".encode()[2:], fin=True)
         self.assertEqual(client.data_to_send(), [b"\x80\x82\x00\x00\x00\x00\x98\x80"])
 
@@ -482,7 +483,7 @@ class TextTests(ProtocolTestCase):
 
     def test_client_sends_text_after_sending_close(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         with self.assertRaises(InvalidState) as raised:
@@ -522,7 +523,7 @@ class BinaryTests(ProtocolTestCase):
 
     def test_client_sends_binary(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_binary(b"\x01\x02\xfe\xff")
         self.assertEqual(
             client.data_to_send(), [b"\x82\x84\x00\x00\x00\x00\x01\x02\xfe\xff"]
@@ -579,15 +580,15 @@ class BinaryTests(ProtocolTestCase):
 
     def test_client_sends_fragmented_binary(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_binary(b"\x01\x02", fin=False)
         self.assertEqual(client.data_to_send(), [b"\x02\x82\x00\x00\x00\x00\x01\x02"])
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_continuation(b"\xee\xff\x01\x02", fin=False)
         self.assertEqual(
             client.data_to_send(), [b"\x00\x84\x00\x00\x00\x00\xee\xff\x01\x02"]
         )
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_continuation(b"\xee\xff", fin=True)
         self.assertEqual(client.data_to_send(), [b"\x80\x82\x00\x00\x00\x00\xee\xff"])
 
@@ -718,7 +719,7 @@ class BinaryTests(ProtocolTestCase):
 
     def test_client_sends_binary_after_sending_close(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         with self.assertRaises(InvalidState) as raised:
@@ -806,7 +807,7 @@ class CloseTests(ProtocolTestCase):
 
     def test_client_sends_close(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x3c\x3c\x3c\x3c"):
+        with patch("secrets.token_bytes", return_value=b"\x3c\x3c\x3c\x3c"):
             client.send_close()
         self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
         self.assertIs(client.state, CLOSING)
@@ -819,7 +820,7 @@ class CloseTests(ProtocolTestCase):
 
     def test_client_receives_close(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x3c\x3c\x3c\x3c"):
+        with patch("secrets.token_bytes", return_value=b"\x3c\x3c\x3c\x3c"):
             client.receive_data(b"\x88\x00")
         self.assertEqual(client.events_received(), [Frame(OP_CLOSE, b"")])
         self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
@@ -890,7 +891,7 @@ class CloseTests(ProtocolTestCase):
 
     def test_client_sends_close_with_code(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         self.assertIs(client.state, CLOSING)
@@ -915,7 +916,7 @@ class CloseTests(ProtocolTestCase):
 
     def test_client_sends_close_with_code_and_reason(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY, "going away")
         self.assertEqual(
             client.data_to_send(), [b"\x88\x8c\x00\x00\x00\x00\x03\xe9going away"]
@@ -1002,7 +1003,7 @@ class CloseTests(ProtocolTestCase):
 
     def test_client_sends_close_twice(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
         with self.assertRaises(InvalidState) as raised:
@@ -1040,7 +1041,7 @@ class PingTests(ProtocolTestCase):
 
     def test_client_sends_ping(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x44\x88\xcc"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x44\x88\xcc"):
             client.send_ping(b"")
         self.assertEqual(client.data_to_send(), [b"\x89\x80\x00\x44\x88\xcc"])
 
@@ -1075,7 +1076,7 @@ class PingTests(ProtocolTestCase):
 
     def test_client_sends_ping_with_data(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x44\x88\xcc"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x44\x88\xcc"):
             client.send_ping(b"\x22\x66\xaa\xee")
         self.assertEqual(
             client.data_to_send(), [b"\x89\x84\x00\x44\x88\xcc\x22\x22\x22\x22"]
@@ -1144,10 +1145,10 @@ class PingTests(ProtocolTestCase):
 
     def test_client_sends_ping_after_sending_close(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
-        with self.enforce_mask(b"\x00\x44\x88\xcc"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x44\x88\xcc"):
             client.send_ping(b"")
         self.assertEqual(client.data_to_send(), [b"\x89\x80\x00\x44\x88\xcc"])
 
@@ -1199,7 +1200,7 @@ class PongTests(ProtocolTestCase):
 
     def test_client_sends_pong(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x44\x88\xcc"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x44\x88\xcc"):
             client.send_pong(b"")
         self.assertEqual(client.data_to_send(), [b"\x8a\x80\x00\x44\x88\xcc"])
 
@@ -1226,7 +1227,7 @@ class PongTests(ProtocolTestCase):
 
     def test_client_sends_pong_with_data(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x44\x88\xcc"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x44\x88\xcc"):
             client.send_pong(b"\x22\x66\xaa\xee")
         self.assertEqual(
             client.data_to_send(), [b"\x8a\x84\x00\x44\x88\xcc\x22\x22\x22\x22"]
@@ -1287,10 +1288,10 @@ class PongTests(ProtocolTestCase):
 
     def test_client_sends_pong_after_sending_close(self):
         client = Protocol(CLIENT)
-        with self.enforce_mask(b"\x00\x00\x00\x00"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x00\x00\x00"):
             client.send_close(CloseCode.GOING_AWAY)
         self.assertEqual(client.data_to_send(), [b"\x88\x82\x00\x00\x00\x00\x03\xe9"])
-        with self.enforce_mask(b"\x00\x44\x88\xcc"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x44\x88\xcc"):
             client.send_pong(b"")
         self.assertEqual(client.data_to_send(), [b"\x8a\x80\x00\x44\x88\xcc"])
 
@@ -1459,7 +1460,7 @@ class FragmentationTests(ProtocolTestCase):
         client = Protocol(CLIENT)
         client.send_text(b"Spam", fin=False)
         self.assertFrameSent(client, Frame(OP_TEXT, b"Spam", fin=False))
-        with self.enforce_mask(b"\x3c\x3c\x3c\x3c"):
+        with patch("secrets.token_bytes", return_value=b"\x3c\x3c\x3c\x3c"):
             client.send_close()
         self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
         self.assertIs(client.state, CLOSING)
@@ -1819,7 +1820,7 @@ class ErrorTests(ProtocolTestCase):
     def test_client_hits_internal_error_reading_frame(self):
         client = Protocol(CLIENT)
         # This isn't supposed to happen, so we're simulating it.
-        with unittest.mock.patch("struct.unpack", side_effect=RuntimeError("BOOM")):
+        with patch("struct.unpack", side_effect=RuntimeError("BOOM")):
             client.receive_data(b"\x81\x00")
             self.assertIsInstance(client.parser_exc, RuntimeError)
             self.assertEqual(str(client.parser_exc), "BOOM")
@@ -1828,7 +1829,7 @@ class ErrorTests(ProtocolTestCase):
     def test_server_hits_internal_error_reading_frame(self):
         server = Protocol(SERVER)
         # This isn't supposed to happen, so we're simulating it.
-        with unittest.mock.patch("struct.unpack", side_effect=RuntimeError("BOOM")):
+        with patch("struct.unpack", side_effect=RuntimeError("BOOM")):
             server.receive_data(b"\x81\x80\x00\x00\x00\x00")
             self.assertIsInstance(server.parser_exc, RuntimeError)
             self.assertEqual(str(server.parser_exc), "BOOM")
@@ -1844,7 +1845,7 @@ class ExtensionsTests(ProtocolTestCase):
     def test_client_extension_encodes_frame(self):
         client = Protocol(CLIENT)
         client.extensions = [Rsv2Extension()]
-        with self.enforce_mask(b"\x00\x44\x88\xcc"):
+        with patch("secrets.token_bytes", return_value=b"\x00\x44\x88\xcc"):
             client.send_ping(b"")
         self.assertEqual(client.data_to_send(), [b"\xa9\x80\x00\x44\x88\xcc"])
 

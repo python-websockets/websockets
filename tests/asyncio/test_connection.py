@@ -866,10 +866,9 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
 
     # Test ping.
 
-    @patch("random.getrandbits")
+    @patch("random.getrandbits", return_value=1918987876)
     async def test_ping(self, getrandbits):
         """ping sends a ping frame with a random payload."""
-        getrandbits.return_value = 1918987876
         await self.connection.ping()
         getrandbits.assert_called_once_with(32)
         await self.assertFrameSent(Frame(Opcode.PING, b"rand"))
@@ -978,11 +977,10 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
 
     # Test keepalive.
 
-    @patch("random.getrandbits")
+    @patch("random.getrandbits", return_value=1918987876)
     async def test_keepalive(self, getrandbits):
         """keepalive sends pings at ping_interval and measures latency."""
         self.connection.ping_interval = 2 * MS
-        getrandbits.return_value = 1918987876
         self.connection.start_keepalive()
         self.assertEqual(self.connection.latency, 0)
         # 2 ms: keepalive() sends a ping frame.
@@ -1000,13 +998,12 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         await asyncio.sleep(3 * MS)
         await self.assertNoFrameSent()
 
-    @patch("random.getrandbits")
+    @patch("random.getrandbits", return_value=1918987876)
     async def test_keepalive_times_out(self, getrandbits):
         """keepalive closes the connection if ping_timeout elapses."""
         self.connection.ping_interval = 4 * MS
         self.connection.ping_timeout = 2 * MS
         async with self.drop_frames_rcvd():
-            getrandbits.return_value = 1918987876
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             await asyncio.sleep(4 * MS)
@@ -1017,13 +1014,12 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         # 7 ms: check that the connection is closed.
         self.assertEqual(self.connection.state, State.CLOSED)
 
-    @patch("random.getrandbits")
+    @patch("random.getrandbits", return_value=1918987876)
     async def test_keepalive_ignores_timeout(self, getrandbits):
         """keepalive ignores timeouts if ping_timeout isn't set."""
         self.connection.ping_interval = 4 * MS
         self.connection.ping_timeout = None
         async with self.drop_frames_rcvd():
-            getrandbits.return_value = 1918987876
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
@@ -1142,17 +1138,13 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         """Connection has a logger attribute."""
         self.assertIsInstance(self.connection.logger, logging.LoggerAdapter)
 
-    @unittest.mock.patch(
-        "asyncio.BaseTransport.get_extra_info", return_value=("sock", 1234)
-    )
+    @patch("asyncio.BaseTransport.get_extra_info", return_value=("sock", 1234))
     async def test_local_address(self, get_extra_info):
         """Connection provides a local_address attribute."""
         self.assertEqual(self.connection.local_address, ("sock", 1234))
         get_extra_info.assert_called_with("sockname")
 
-    @unittest.mock.patch(
-        "asyncio.BaseTransport.get_extra_info", return_value=("peer", 1234)
-    )
+    @patch("asyncio.BaseTransport.get_extra_info", return_value=("peer", 1234))
     async def test_remote_address(self, get_extra_info):
         """Connection provides a remote_address attribute."""
         self.assertEqual(self.connection.remote_address, ("peer", 1234))
@@ -1213,12 +1205,11 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
 
     # Test safety nets — catching all exceptions in case of bugs.
 
-    @patch("websockets.protocol.Protocol.events_received")
+    # Inject a fault in a random call in data_received().
+    # This test is tightly coupled to the implementation.
+    @patch("websockets.protocol.Protocol.events_received", side_effect=AssertionError)
     async def test_unexpected_failure_in_data_received(self, events_received):
         """Unexpected internal error in data_received() is correctly reported."""
-        # Inject a fault in a random call in data_received().
-        # This test is tightly coupled to the implementation.
-        events_received.side_effect = AssertionError
         # Receive a message to trigger the fault.
         await self.remote_connection.send("😀")
 
@@ -1229,13 +1220,11 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         self.assertEqual(str(exc), "no close frame received or sent")
         self.assertIsInstance(exc.__cause__, AssertionError)
 
-    @patch("websockets.protocol.Protocol.send_text")
+    # Inject a fault in a random call in send_context().
+    # This test is tightly coupled to the implementation.
+    @patch("websockets.protocol.Protocol.send_text", side_effect=AssertionError)
     async def test_unexpected_failure_in_send_context(self, send_text):
         """Unexpected internal error in send_context() is correctly reported."""
-        # Inject a fault in a random call in send_context().
-        # This test is tightly coupled to the implementation.
-        send_text.side_effect = AssertionError
-
         # Send a message to trigger the fault.
         # The connection closed exception reports the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:

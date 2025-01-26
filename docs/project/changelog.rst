@@ -35,12 +35,12 @@ notice.
 Backwards-incompatible changes
 ..............................
 
-.. admonition:: Client connections use SOCKS proxies automatically.
+.. admonition:: Client connections use SOCKS and HTTP proxies automatically.
     :class: important
 
     If a proxy is configured in the operating system or with an environment
     variable, websockets uses it automatically when connecting to a server.
-    This feature requires installing the third-party library `python-socks`_.
+    SOCKS proxies require installing the third-party library `python-socks`_.
 
     If you want to disable the proxy, add ``proxy=None`` when calling
     :func:`~asyncio.client.connect`. See :doc:`../topics/proxies` for details.

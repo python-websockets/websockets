@@ -166,12 +166,11 @@ Client
     | Perform HTTP Digest Authentication | ❌     | ❌     | ❌     | ❌     |
     | (`#784`_)                          |        |        |        |        |
     +------------------------------------+--------+--------+--------+--------+
-    | Connect via HTTP proxy (`#364`_)   | ❌     | ❌     | —      | ❌     |
+    | Connect via HTTP proxy             | ✅     | ✅     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
     | Connect via SOCKS5 proxy           | ✅     | ✅     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
 
-.. _#364: https://github.com/python-websockets/websockets/issues/364
 .. _#784: https://github.com/python-websockets/websockets/issues/784
 
 Known limitations

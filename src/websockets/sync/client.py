@@ -5,16 +5,17 @@ import ssl as ssl_module
 import threading
 import warnings
 from collections.abc import Sequence
-from typing import Any, Literal
+from typing import Any, Callable, Literal, TypeVar, cast
 
 from ..client import ClientProtocol
-from ..datastructures import HeadersLike
-from ..exceptions import ProxyError
+from ..datastructures import Headers, HeadersLike
+from ..exceptions import InvalidProxyMessage, InvalidProxyStatus, ProxyError
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
-from ..headers import validate_subprotocols
+from ..headers import build_authorization_basic, build_host, validate_subprotocols
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
+from ..streams import StreamReader
 from ..typing import LoggerLike, Origin, Subprotocol
 from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
 from .connection import Connection
@@ -141,6 +142,8 @@ def connect(
     additional_headers: HeadersLike | None = None,
     user_agent_header: str | None = USER_AGENT,
     proxy: str | Literal[True] | None = True,
+    proxy_ssl: ssl_module.SSLContext | None = None,
+    proxy_server_hostname: str | None = None,
     # Timeouts
     open_timeout: float | None = 10,
     ping_interval: float | None = 20,
@@ -195,6 +198,9 @@ def connect(
             to :obj:`None` to disable the proxy or to the address of a proxy
             to override the system configuration. See the :doc:`proxy docs
             <../../topics/proxies>` for details.
+        proxy_ssl: Configuration for enabling TLS on the proxy connection.
+        proxy_server_hostname: Host name for the TLS handshake with the proxy.
+            ``proxy_server_hostname`` overrides the host name from ``proxy``.
         open_timeout: Timeout for opening the connection in seconds.
             :obj:`None` disables the timeout.
         ping_interval: Interval between keepalive pings in seconds.
@@ -295,6 +301,21 @@ def connect(
                         # python_socks is consistent across implementations.
                         local_addr=kwargs.pop("source_address", None),
                     )
+                elif proxy_parsed.scheme[:4] == "http":
+                    # Validate the proxy_ssl argument.
+                    if proxy_parsed.scheme != "https" and proxy_ssl is not None:
+                        raise ValueError(
+                            "proxy_ssl argument is incompatible with an http:// proxy"
+                        )
+                    # Connect to the server through the proxy.
+                    sock = connect_http_proxy(
+                        proxy_parsed,
+                        ws_uri,
+                        deadline,
+                        ssl=proxy_ssl,
+                        server_hostname=proxy_server_hostname,
+                        **kwargs,
+                    )
                 else:
                     raise AssertionError("unsupported proxy")
             else:
@@ -318,7 +339,12 @@ def connect(
             if server_hostname is None:
                 server_hostname = ws_uri.host
             sock.settimeout(deadline.timeout())
-            sock = ssl.wrap_socket(sock, server_hostname=server_hostname)
+            if proxy_ssl is None:
+                sock = ssl.wrap_socket(sock, server_hostname=server_hostname)
+            else:
+                sock_2 = SSLSSLSocket(sock, ssl, server_hostname=server_hostname)
+                # Let's pretend that sock is a socket, even though it isn't.
+                sock = cast(socket.socket, sock_2)
             sock.settimeout(None)
 
         # Initialize WebSocket protocol
@@ -444,3 +470,171 @@ except ImportError:
         **kwargs: Any,
     ) -> socket.socket:
         raise ImportError("python-socks is required to use a SOCKS proxy")
+
+
+def prepare_connect_request(proxy: Proxy, ws_uri: WebSocketURI) -> bytes:
+    host = build_host(ws_uri.host, ws_uri.port, ws_uri.secure, always_include_port=True)
+    headers = Headers()
+    headers["Host"] = build_host(ws_uri.host, ws_uri.port, ws_uri.secure)
+    if proxy.username is not None:
+        assert proxy.password is not None  # enforced by parse_proxy()
+        headers["Proxy-Authorization"] = build_authorization_basic(
+            proxy.username, proxy.password
+        )
+    # We cannot use the Request class because it supports only GET requests.
+    return f"CONNECT {host} HTTP/1.1\r\n".encode() + headers.serialize()
+
+
+def read_connect_response(sock: socket.socket, deadline: Deadline) -> Response:
+    reader = StreamReader()
+    parser = Response.parse(
+        reader.read_line,
+        reader.read_exact,
+        reader.read_to_eof,
+        include_body=False,
+    )
+    try:
+        while True:
+            sock.settimeout(deadline.timeout())
+            data = sock.recv(4096)
+            if data:
+                reader.feed_data(data)
+            else:
+                reader.feed_eof()
+            next(parser)
+    except StopIteration as exc:
+        assert isinstance(exc.value, Response)  # help mypy
+        response = exc.value
+        if 200 <= response.status_code < 300:
+            return response
+        else:
+            raise InvalidProxyStatus(response)
+    except socket.timeout:
+        raise TimeoutError("timed out while connecting to HTTP proxy")
+    except Exception as exc:
+        raise InvalidProxyMessage(
+            "did not receive a valid HTTP response from proxy"
+        ) from exc
+    finally:
+        sock.settimeout(None)
+
+
+def connect_http_proxy(
+    proxy: Proxy,
+    ws_uri: WebSocketURI,
+    deadline: Deadline,
+    *,
+    ssl: ssl_module.SSLContext | None = None,
+    server_hostname: str | None = None,
+    **kwargs: Any,
+) -> socket.socket:
+    # Connect socket
+
+    kwargs.setdefault("timeout", deadline.timeout())
+    sock = socket.create_connection((proxy.host, proxy.port), **kwargs)
+
+    # Initialize TLS wrapper and perform TLS handshake
+
+    if proxy.scheme == "https":
+        if ssl is None:
+            ssl = ssl_module.create_default_context()
+        if server_hostname is None:
+            server_hostname = proxy.host
+        sock.settimeout(deadline.timeout())
+        sock = ssl.wrap_socket(sock, server_hostname=server_hostname)
+        sock.settimeout(None)
+
+    # Send CONNECT request to the proxy and read response.
+
+    sock.sendall(prepare_connect_request(proxy, ws_uri))
+    try:
+        read_connect_response(sock, deadline)
+    except Exception:
+        sock.close()
+        raise
+
+    return sock
+
+
+T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., T])
+
+
+class SSLSSLSocket:
+    """
+    Socket-like object providing TLS-in-TLS.
+
+    Only methods that are used by websockets are implemented.
+
+    """
+
+    recv_bufsize = 65536
+
+    def __init__(
+        self,
+        sock: socket.socket,
+        ssl_context: ssl_module.SSLContext,
+        server_hostname: str | None = None,
+    ) -> None:
+        self.incoming = ssl_module.MemoryBIO()
+        self.outgoing = ssl_module.MemoryBIO()
+        self.ssl_socket = sock
+        self.ssl_object = ssl_context.wrap_bio(
+            self.incoming,
+            self.outgoing,
+            server_hostname=server_hostname,
+        )
+        self.run_io(self.ssl_object.do_handshake)
+
+    def run_io(self, func: Callable[..., T], *args: Any) -> T:
+        while True:
+            want_read = False
+            want_write = False
+            try:
+                result = func(*args)
+            except ssl_module.SSLWantReadError:
+                want_read = True
+            except ssl_module.SSLWantWriteError:  # pragma: no cover
+                want_write = True
+
+            # Write outgoing data in all cases.
+            data = self.outgoing.read()
+            if data:
+                self.ssl_socket.sendall(data)
+
+            # Read incoming data and retry on SSLWantReadError.
+            if want_read:
+                data = self.ssl_socket.recv(self.recv_bufsize)
+                if data:
+                    self.incoming.write(data)
+                else:
+                    self.incoming.write_eof()
+                continue
+            # Retry after writing outgoing data on SSLWantWriteError.
+            if want_write:  # pragma: no cover
+                continue
+            # Return result if no error happened.
+            return result
+
+    def recv(self, buflen: int) -> bytes:
+        try:
+            return self.run_io(self.ssl_object.read, buflen)
+        except ssl_module.SSLEOFError:
+            return b""  # always ignore ragged EOFs
+
+    def send(self, data: bytes) -> int:
+        return self.run_io(self.ssl_object.write, data)
+
+    def sendall(self, data: bytes) -> None:
+        # adapted from ssl_module.SSLSocket.sendall()
+        count = 0
+        with memoryview(data) as view, view.cast("B") as byte_view:
+            amount = len(byte_view)
+            while count < amount:
+                count += self.send(byte_view[count:])
+
+    # recv_into(), recvfrom(), recvfrom_into(), sendto(), unwrap(), and the
+    # flags argument aren't implemented because websockets doesn't need them.
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self.ssl_socket, name)

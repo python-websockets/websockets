@@ -30,6 +30,9 @@ most common, for `historical reasons`_, and recommended.
 
 .. _historical reasons: https://unix.stackexchange.com/questions/212894/
 
+websockets authenticates automatically when the address of the proxy includes
+credentials e.g. ``http://user:password@proxy:8080/``.
+
 .. admonition:: Any environment variable can configure a SOCKS proxy or an HTTP proxy.
     :class: tip
 
@@ -64,3 +67,19 @@ SOCKS proxy is configured in the operating system, python-socks uses SOCKS5h.
 
 python-socks supports username/password authentication for SOCKS5 (:rfc:`1929`)
 but does not support other authentication methods such as GSSAPI (:rfc:`1961`).
+
+HTTP proxies
+------------
+
+When the address of the proxy starts with ``https://``, websockets secures the
+connection to the proxy with TLS.
+
+When the address of the server starts with ``wss://``, websockets secures the
+connection from the proxy to the server with TLS.
+
+These two options are compatible. TLS-in-TLS is supported.
+
+The documentation of :func:`~asyncio.client.connect` describes how to configure
+TLS from websockets to the proxy and from the proxy to the server.
+
+websockets supports proxy authentication with Basic Auth.

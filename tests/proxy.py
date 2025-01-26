@@ -1,4 +1,6 @@
 import asyncio
+import pathlib
+import ssl
 import threading
 import warnings
 
@@ -8,9 +10,11 @@ try:
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib")
     warnings.filterwarnings("ignore", category=DeprecationWarning, module="pyasn1")
 
+    from mitmproxy import ctx
     from mitmproxy.addons import core, next_layer, proxyauth, proxyserver, tlsconfig
+    from mitmproxy.http import Response
     from mitmproxy.master import Master
-    from mitmproxy.options import Options
+    from mitmproxy.options import CONF_BASENAME, CONF_DIR, Options
 except ImportError:
     pass
 
@@ -29,6 +33,31 @@ class RecordFlows:
 
     def reset_flows(self):
         self.flows = []
+
+
+class AlterRequest:
+    def load(self, loader):
+        loader.add_option(
+            name="break_http_connect",
+            typespec=bool,
+            default=False,
+            help="Respond to HTTP CONNECT requests with a 999 status code.",
+        )
+        loader.add_option(
+            name="close_http_connect",
+            typespec=bool,
+            default=False,
+            help="Do not respond to HTTP CONNECT requests.",
+        )
+
+    def http_connect(self, flow):
+        if ctx.options.break_http_connect:
+            # mitmproxy can send a response with a status code not between 100
+            # and 599, while websockets treats it as a protocol error.
+            # This is used for testing HTTP parsing errors.
+            flow.response = Response.make(999, "not a valid HTTP response")
+        if ctx.options.close_http_connect:
+            flow.kill()
 
 
 class ProxyMixin:
@@ -62,6 +91,7 @@ class ProxyMixin:
             next_layer.NextLayer(),
             tlsconfig.TlsConfig(),
             RecordFlows(on_running=cls.proxy_ready.set),
+            AlterRequest(),
         )
 
         task = loop.create_task(cls.proxy_master.run())
@@ -85,6 +115,11 @@ class ProxyMixin:
         cls.proxy_thread = threading.Thread(target=asyncio.run, args=(cls.run_proxy(),))
         cls.proxy_thread.start()
         cls.proxy_ready.wait()
+
+        certificate = pathlib.Path(CONF_DIR) / f"{CONF_BASENAME}-ca-cert.pem"
+        certificate = certificate.expanduser()
+        cls.proxy_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        cls.proxy_context.load_verify_locations(bytes(certificate))
 
     def assertNumFlows(self, num_flows):
         record_flows = self.proxy_master.addons.get("recordflows")

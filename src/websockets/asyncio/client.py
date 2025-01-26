@@ -4,20 +4,29 @@ import asyncio
 import logging
 import os
 import socket
+import ssl as ssl_module
 import traceback
 import urllib.parse
 from collections.abc import AsyncIterator, Generator, Sequence
 from types import TracebackType
-from typing import Any, Callable, Literal
+from typing import Any, Callable, Literal, cast
 
 from ..client import ClientProtocol, backoff
-from ..datastructures import HeadersLike
-from ..exceptions import InvalidMessage, InvalidStatus, ProxyError, SecurityError
+from ..datastructures import Headers, HeadersLike
+from ..exceptions import (
+    InvalidMessage,
+    InvalidProxyMessage,
+    InvalidProxyStatus,
+    InvalidStatus,
+    ProxyError,
+    SecurityError,
+)
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
-from ..headers import validate_subprotocols
+from ..headers import build_authorization_basic, build_host, validate_subprotocols
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
+from ..streams import StreamReader
 from ..typing import LoggerLike, Origin, Subprotocol
 from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
 from .compatibility import TimeoutError, asyncio_timeout
@@ -266,6 +275,16 @@ class connect:
       :meth:`~asyncio.loop.create_connection` method) to create a suitable
       client socket and customize it.
 
+    When using a proxy:
+
+    * Prefix keyword arguments with ``proxy_`` for configuring TLS between the
+      client and an HTTPS proxy: ``proxy_ssl``, ``proxy_server_hostname``,
+      ``proxy_ssl_handshake_timeout``, and ``proxy_ssl_shutdown_timeout``.
+    * Use the standard keyword arguments for configuring TLS between the proxy
+      and the WebSocket server: ``ssl``, ``server_hostname``,
+      ``ssl_handshake_timeout``, and ``ssl_shutdown_timeout``.
+    * Other keyword arguments are used only for connecting to the proxy.
+
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
         InvalidProxy: If ``proxy`` isn't a valid proxy.
@@ -397,6 +416,47 @@ class connect:
                     sock=sock,
                     **kwargs,
                 )
+            elif proxy_parsed.scheme[:4] == "http":
+                # Split keyword arguments between the proxy and the server.
+                all_kwargs, proxy_kwargs, kwargs = kwargs, {}, {}
+                for key, value in all_kwargs.items():
+                    if key.startswith("ssl") or key == "server_hostname":
+                        kwargs[key] = value
+                    elif key.startswith("proxy_"):
+                        proxy_kwargs[key[6:]] = value
+                    else:
+                        proxy_kwargs[key] = value
+                # Validate the proxy_ssl argument.
+                if proxy_parsed.scheme == "https":
+                    proxy_kwargs.setdefault("ssl", True)
+                    if proxy_kwargs.get("ssl") is None:
+                        raise ValueError(
+                            "proxy_ssl=None is incompatible with an https:// proxy"
+                        )
+                else:
+                    if proxy_kwargs.get("ssl") is not None:
+                        raise ValueError(
+                            "proxy_ssl argument is incompatible with an http:// proxy"
+                        )
+                # Connect to the server through the proxy.
+                transport = await connect_http_proxy(
+                    proxy_parsed,
+                    ws_uri,
+                    **proxy_kwargs,
+                )
+                # Initialize WebSocket connection via the proxy.
+                connection = factory()
+                transport.set_protocol(connection)
+                ssl = kwargs.pop("ssl", None)
+                if ssl is True:
+                    ssl = ssl_module.create_default_context()
+                if ssl is not None:
+                    new_transport = await loop.start_tls(
+                        transport, connection, ssl, **kwargs
+                    )
+                    assert new_transport is not None  # help mypy
+                    transport = new_transport
+                connection.connection_made(transport)
             else:
                 raise AssertionError("unsupported proxy")
         else:
@@ -655,3 +715,89 @@ except ImportError:
         **kwargs: Any,
     ) -> socket.socket:
         raise ImportError("python-socks is required to use a SOCKS proxy")
+
+
+def prepare_connect_request(proxy: Proxy, ws_uri: WebSocketURI) -> bytes:
+    host = build_host(ws_uri.host, ws_uri.port, ws_uri.secure, always_include_port=True)
+    headers = Headers()
+    headers["Host"] = build_host(ws_uri.host, ws_uri.port, ws_uri.secure)
+    if proxy.username is not None:
+        assert proxy.password is not None  # enforced by parse_proxy()
+        headers["Proxy-Authorization"] = build_authorization_basic(
+            proxy.username, proxy.password
+        )
+    # We cannot use the Request class because it supports only GET requests.
+    return f"CONNECT {host} HTTP/1.1\r\n".encode() + headers.serialize()
+
+
+class HTTPProxyConnection(asyncio.Protocol):
+    def __init__(self, ws_uri: WebSocketURI, proxy: Proxy):
+        self.ws_uri = ws_uri
+        self.proxy = proxy
+
+        self.reader = StreamReader()
+        self.parser = Response.parse(
+            self.reader.read_line,
+            self.reader.read_exact,
+            self.reader.read_to_eof,
+            include_body=False,
+        )
+
+        loop = asyncio.get_running_loop()
+        self.response: asyncio.Future[Response] = loop.create_future()
+
+    def run_parser(self) -> None:
+        try:
+            next(self.parser)
+        except StopIteration as exc:
+            response = exc.value
+            if 200 <= response.status_code < 300:
+                self.response.set_result(response)
+            else:
+                self.response.set_exception(InvalidProxyStatus(response))
+        except Exception as exc:
+            proxy_exc = InvalidProxyMessage(
+                "did not receive a valid HTTP response from proxy"
+            )
+            proxy_exc.__cause__ = exc
+            self.response.set_exception(proxy_exc)
+
+    def connection_made(self, transport: asyncio.BaseTransport) -> None:
+        transport = cast(asyncio.Transport, transport)
+        self.transport = transport
+        self.transport.write(prepare_connect_request(self.proxy, self.ws_uri))
+
+    def data_received(self, data: bytes) -> None:
+        self.reader.feed_data(data)
+        self.run_parser()
+
+    def eof_received(self) -> None:
+        self.reader.feed_eof()
+        self.run_parser()
+
+    def connection_lost(self, exc: Exception | None) -> None:
+        self.reader.feed_eof()
+        if exc is not None:
+            self.response.set_exception(exc)
+
+
+async def connect_http_proxy(
+    proxy: Proxy,
+    ws_uri: WebSocketURI,
+    **kwargs: Any,
+) -> asyncio.Transport:
+    transport, protocol = await asyncio.get_running_loop().create_connection(
+        lambda: HTTPProxyConnection(ws_uri, proxy),
+        proxy.host,
+        proxy.port,
+        **kwargs,
+    )
+
+    try:
+        # This raises exceptions if the connection to the proxy fails.
+        await protocol.response
+    except Exception:
+        transport.close()
+        raise
+
+    return transport

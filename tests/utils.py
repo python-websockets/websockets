@@ -20,14 +20,13 @@ from websockets.version import released
 # $ cat test_localhost.key test_localhost.crt > test_localhost.pem
 # $ rm test_localhost.key test_localhost.crt
 
-CERTIFICATE = bytes(pathlib.Path(__file__).with_name("test_localhost.pem"))
+CERTIFICATE = pathlib.Path(__file__).with_name("test_localhost.pem")
 
 CLIENT_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
-CLIENT_CONTEXT.load_verify_locations(CERTIFICATE)
-
+CLIENT_CONTEXT.load_verify_locations(bytes(CERTIFICATE))
 
 SERVER_CONTEXT = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
-SERVER_CONTEXT.load_cert_chain(CERTIFICATE)
+SERVER_CONTEXT.load_cert_chain(bytes(CERTIFICATE))
 
 # Work around https://github.com/openssl/openssl/issues/7967
 

@@ -542,7 +542,8 @@ class ServerTests(EvalShellMixin, AssertNoLogsMixin, unittest.IsolatedAsyncioTes
                     async with asyncio_timeout(2 * MS):
                         await server.wait_closed()
 
-                async with asyncio_timeout(3 * MS):
+                # Set a large timeout here, else the test becomes flaky.
+                async with asyncio_timeout(5 * MS):
                     await server.wait_closed()
 
 

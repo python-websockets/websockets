@@ -3,6 +3,7 @@ from __future__ import annotations
 import asyncio
 import logging
 import os
+import socket
 import traceback
 import urllib.parse
 from collections.abc import AsyncIterator, Generator, Sequence
@@ -357,15 +358,12 @@ class connect:
         ws_uri = parse_uri(self.uri)
 
         proxy = self.proxy
-        proxy_uri: Proxy | None = None
         if kwargs.get("unix", False):
             proxy = None
         if kwargs.get("sock") is not None:
             proxy = None
         if proxy is True:
             proxy = get_proxy(ws_uri)
-        if proxy is not None:
-            proxy_uri = parse_proxy(proxy)
 
         def factory() -> ClientConnection:
             return self.protocol_factory(ws_uri)
@@ -381,48 +379,14 @@ class connect:
 
         if kwargs.pop("unix", False):
             _, connection = await loop.create_unix_connection(factory, **kwargs)
+        elif proxy is not None:
+            kwargs["sock"] = await connect_proxy(
+                parse_proxy(proxy),
+                ws_uri,
+                local_addr=kwargs.pop("local_addr", None),
+            )
+            _, connection = await loop.create_connection(factory, **kwargs)
         else:
-            if proxy_uri is not None:
-                if proxy_uri.scheme[:5] == "socks":
-                    try:
-                        from python_socks import ProxyType
-                        from python_socks.async_.asyncio import Proxy
-                    except ImportError:
-                        raise ImportError(
-                            "python-socks is required to use a SOCKS proxy"
-                        )
-                    if proxy_uri.scheme == "socks5h":
-                        proxy_type = ProxyType.SOCKS5
-                        rdns = True
-                    elif proxy_uri.scheme == "socks5":
-                        proxy_type = ProxyType.SOCKS5
-                        rdns = False
-                    # We use mitmproxy for testing and it doesn't support SOCKS4.
-                    elif proxy_uri.scheme == "socks4a":  # pragma: no cover
-                        proxy_type = ProxyType.SOCKS4
-                        rdns = True
-                    elif proxy_uri.scheme == "socks4":  # pragma: no cover
-                        proxy_type = ProxyType.SOCKS4
-                        rdns = False
-                    # Proxy types are enforced in parse_proxy().
-                    else:
-                        raise AssertionError("unsupported SOCKS proxy")
-                    socks_proxy = Proxy(
-                        proxy_type,
-                        proxy_uri.host,
-                        proxy_uri.port,
-                        proxy_uri.username,
-                        proxy_uri.password,
-                        rdns,
-                    )
-                    kwargs["sock"] = await socks_proxy.connect(
-                        ws_uri.host,
-                        ws_uri.port,
-                        local_addr=kwargs.pop("local_addr", None),
-                    )
-                # Proxy types are enforced in parse_proxy().
-                else:
-                    raise AssertionError("unsupported proxy")
             if kwargs.get("sock") is None:
                 kwargs.setdefault("host", ws_uri.host)
                 kwargs.setdefault("port", ws_uri.port)
@@ -624,3 +588,60 @@ def unix_connect(
         else:
             uri = "wss://localhost/"
     return connect(uri=uri, unix=True, path=path, **kwargs)
+
+
+try:
+    from python_socks import ProxyType
+    from python_socks.async_.asyncio import Proxy as SocksProxy
+
+    SOCKS_PROXY_TYPES = {
+        "socks5h": ProxyType.SOCKS5,
+        "socks5": ProxyType.SOCKS5,
+        "socks4a": ProxyType.SOCKS4,
+        "socks4": ProxyType.SOCKS4,
+    }
+
+    SOCKS_PROXY_RDNS = {
+        "socks5h": True,
+        "socks5": False,
+        "socks4a": True,
+        "socks4": False,
+    }
+
+    async def connect_socks_proxy(
+        proxy: Proxy,
+        ws_uri: WebSocketURI,
+        **kwargs: Any,
+    ) -> socket.socket:
+        """Connect via a SOCKS proxy and return the socket."""
+        socks_proxy = SocksProxy(
+            SOCKS_PROXY_TYPES[proxy.scheme],
+            proxy.host,
+            proxy.port,
+            proxy.username,
+            proxy.password,
+            SOCKS_PROXY_RDNS[proxy.scheme],
+        )
+        return await socks_proxy.connect(ws_uri.host, ws_uri.port, **kwargs)
+
+except ImportError:
+
+    async def connect_socks_proxy(
+        proxy: Proxy,
+        ws_uri: WebSocketURI,
+        **kwargs: Any,
+    ) -> socket.socket:
+        raise ImportError("python-socks is required to use a SOCKS proxy")
+
+
+async def connect_proxy(
+    proxy: Proxy,
+    ws_uri: WebSocketURI,
+    **kwargs: Any,
+) -> socket.socket:
+    """Connect via a proxy and return the socket."""
+    # parse_proxy() validates proxy.scheme.
+    if proxy.scheme[:5] == "socks":
+        return await connect_socks_proxy(proxy, ws_uri, **kwargs)
+    else:
+        raise AssertionError("unsupported proxy")

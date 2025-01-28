@@ -65,9 +65,9 @@ class ServerTests(EvalShellMixin, AssertNoLogsMixin, unittest.IsolatedAsyncioTes
     async def test_existing_socket(self):
         """Server receives connection using a pre-existing socket."""
         with socket.create_server(("localhost", 0)) as sock:
-            async with serve(handler, sock=sock, host=None, port=None):
-                uri = "ws://{}:{}/".format(*sock.getsockname())
-                async with connect(uri) as client:
+            host, port = sock.getsockname()
+            async with serve(handler, sock=sock):
+                async with connect(f"ws://{host}:{port}/") as client:
                     await self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
     async def test_select_subprotocol(self):

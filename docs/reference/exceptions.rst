@@ -34,13 +34,15 @@ also reported by :func:`~websockets.asyncio.server.serve` in logs.
 
 .. autoexception:: SecurityError
 
-.. autoexception:: InvalidMessage
-
-.. autoexception:: InvalidStatus
+.. autoexception:: ProxyError
 
 .. autoexception:: InvalidProxyMessage
 
 .. autoexception:: InvalidProxyStatus
+
+.. autoexception:: InvalidMessage
+
+.. autoexception:: InvalidStatus
 
 .. autoexception:: InvalidHeader
 

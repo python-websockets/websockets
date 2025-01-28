@@ -9,6 +9,7 @@ from typing import Any, Literal
 
 from ..client import ClientProtocol
 from ..datastructures import HeadersLike
+from ..exceptions import ProxyError
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import validate_subprotocols
@@ -420,7 +421,14 @@ try:
             SOCKS_PROXY_RDNS[proxy.scheme],
         )
         kwargs.setdefault("timeout", deadline.timeout())
-        return socks_proxy.connect(ws_uri.host, ws_uri.port, **kwargs)
+        # connect() is documented to raise OSError and TimeoutError.
+        # Wrap other exceptions in ProxyError, a subclass of InvalidHandshake.
+        try:
+            return socks_proxy.connect(ws_uri.host, ws_uri.port, **kwargs)
+        except (OSError, TimeoutError, socket.timeout):
+            raise
+        except Exception as exc:
+            raise ProxyError("failed to connect to SOCKS proxy") from exc
 
 except ImportError:
 

@@ -17,6 +17,7 @@ from websockets.exceptions import (
     InvalidProxy,
     InvalidStatus,
     InvalidURI,
+    ProxyError,
     SecurityError,
 )
 from websockets.extensions.permessage_deflate import PerMessageDeflate
@@ -379,24 +380,16 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_timeout_during_handshake(self):
         """Client times out before receiving handshake response from server."""
-        gate = asyncio.get_running_loop().create_future()
-
-        async def stall_connection(self, request):
-            await gate
-
-        # The connection will be open for the server but failed for the client.
-        # Use a connection handler that exits immediately to avoid an exception.
-        async with serve(*args, process_request=stall_connection) as server:
-            try:
-                with self.assertRaises(TimeoutError) as raised:
-                    async with connect(get_uri(server) + "/no-op", open_timeout=2 * MS):
-                        self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "timed out during handshake",
-                )
-            finally:
-                gate.set_result(None)
+        # Replace the WebSocket server with a TCP server that does't respond.
+        with socket.create_server(("localhost", 0)) as sock:
+            host, port = sock.getsockname()
+            with self.assertRaises(TimeoutError) as raised:
+                async with connect(f"ws://{host}:{port}", open_timeout=MS):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "timed out during handshake",
+            )
 
     async def test_connection_closed_during_handshake(self):
         """Client reads EOF before receiving handshake response from server."""
@@ -570,11 +563,14 @@ class ProxyClientTests(unittest.IsolatedAsyncioTestCase):
     async def socks_proxy(self, auth=None):
         if auth:
             proxyauth = "hello:iloveyou"
-            proxy_uri = "http://hello:iloveyou@localhost:1080"
+            proxy_uri = "http://hello:iloveyou@localhost:51080"
         else:
             proxyauth = None
-            proxy_uri = "http://localhost:1080"
-        async with async_proxy(mode=["socks5"], proxyauth=proxyauth) as record_flows:
+            proxy_uri = "http://localhost:51080"
+        async with async_proxy(
+            mode=["socks5@51080"],
+            proxyauth=proxyauth,
+        ) as record_flows:
             with patch_environ({"socks_proxy": proxy_uri}):
                 yield record_flows
 
@@ -602,14 +598,62 @@ class ProxyClientTests(unittest.IsolatedAsyncioTestCase):
                     self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertEqual(len(proxy.get_flows()), 1)
 
+    async def test_socks_proxy_connection_error(self):
+        """Client receives an error when connecting to the SOCKS5 proxy."""
+        from python_socks import ProxyError as SocksProxyError
+
+        async with self.socks_proxy(auth=True) as proxy:
+            with self.assertRaises(ProxyError) as raised:
+                async with connect(
+                    "ws://example.com/",
+                    proxy="socks5h://localhost:51080",  # remove credentials
+                ):
+                    self.fail("did not raise")
+        self.assertEqual(
+            str(raised.exception),
+            "failed to connect to SOCKS proxy",
+        )
+        self.assertIsInstance(raised.exception.__cause__, SocksProxyError)
+        self.assertEqual(len(proxy.get_flows()), 0)
+
+    async def test_socks_proxy_connection_fails(self):
+        """Client fails to connect to the SOCKS5 proxy."""
+        from python_socks import ProxyConnectionError as SocksProxyConnectionError
+
+        with self.assertRaises(OSError) as raised:
+            async with connect(
+                "ws://example.com/",
+                proxy="socks5h://localhost:51080",  # nothing at this address
+            ):
+                self.fail("did not raise")
+        # Don't test str(raised.exception) because we don't control it.
+        self.assertIsInstance(raised.exception, SocksProxyConnectionError)
+
+    async def test_socks_proxy_connection_timeout(self):
+        """Client times out while connecting to the SOCKS5 proxy."""
+        # Replace the proxy with a TCP server that does't respond.
+        with socket.create_server(("localhost", 0)) as sock:
+            host, port = sock.getsockname()
+            with self.assertRaises(TimeoutError) as raised:
+                async with connect(
+                    "ws://example.com/",
+                    proxy=f"socks5h://{host}:{port}/",
+                    open_timeout=MS,
+                ):
+                    self.fail("did not raise")
+        self.assertEqual(
+            str(raised.exception),
+            "timed out during handshake",
+        )
+
     async def test_explicit_proxy(self):
         """Client connects to server through a proxy set explicitly."""
-        async with async_proxy(mode=["socks5"]) as proxy:
+        async with async_proxy(mode=["socks5@51080"]) as proxy:
             async with serve(*args) as server:
                 async with connect(
                     get_uri(server),
                     # Take this opportunity to test socks5 instead of socks5h.
-                    proxy="socks5://localhost:1080",
+                    proxy="socks5://localhost:51080",
                 ) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertEqual(len(proxy.get_flows()), 1)
@@ -626,13 +670,13 @@ class ProxyClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_unsupported_proxy(self):
         """Client connects to server through an unsupported proxy."""
-        with patch_environ({"ws_proxy": "other://localhost:1080"}):
+        with patch_environ({"ws_proxy": "other://localhost:51080"}):
             with self.assertRaises(InvalidProxy) as raised:
                 async with connect("ws://example.com/"):
                     self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
-            "other://localhost:1080 isn't a valid proxy: scheme other isn't supported",
+            "other://localhost:51080 isn't a valid proxy: scheme other isn't supported",
         )
 
 

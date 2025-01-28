@@ -9,11 +9,12 @@
     * :exc:`InvalidProxy`
     * :exc:`InvalidHandshake`
         * :exc:`SecurityError`
+        * :exc:`ProxyError`
+            * :exc:`InvalidProxyMessage`
+            * :exc:`InvalidProxyStatus`
         * :exc:`InvalidMessage`
         * :exc:`InvalidStatus`
         * :exc:`InvalidStatusCode` (legacy)
-        * :exc:`InvalidProxyMessage`
-        * :exc:`InvalidProxyStatus`
         * :exc:`InvalidHeader`
             * :exc:`InvalidHeaderFormat`
             * :exc:`InvalidHeaderValue`
@@ -48,10 +49,11 @@ __all__ = [
     "InvalidProxy",
     "InvalidHandshake",
     "SecurityError",
-    "InvalidMessage",
-    "InvalidStatus",
+    "ProxyError",
     "InvalidProxyMessage",
     "InvalidProxyStatus",
+    "InvalidMessage",
+    "InvalidStatus",
     "InvalidHeader",
     "InvalidHeaderFormat",
     "InvalidHeaderValue",
@@ -206,6 +208,33 @@ class SecurityError(InvalidHandshake):
     """
 
 
+class ProxyError(InvalidHandshake):
+    """
+    Raised when failing to connect to a proxy.
+
+    """
+
+
+class InvalidProxyMessage(ProxyError):
+    """
+    Raised when an HTTP proxy response is malformed.
+
+    """
+
+
+class InvalidProxyStatus(ProxyError):
+    """
+    Raised when an HTTP proxy rejects the connection.
+
+    """
+
+    def __init__(self, response: http11.Response) -> None:
+        self.response = response
+
+    def __str__(self) -> str:
+        return f"proxy rejected connection: HTTP {self.response.status_code:d}"
+
+
 class InvalidMessage(InvalidHandshake):
     """
     Raised when a handshake request or response is malformed.
@@ -226,26 +255,6 @@ class InvalidStatus(InvalidHandshake):
         return (
             f"server rejected WebSocket connection: HTTP {self.response.status_code:d}"
         )
-
-
-class InvalidProxyMessage(InvalidHandshake):
-    """
-    Raised when a proxy response is malformed.
-
-    """
-
-
-class InvalidProxyStatus(InvalidHandshake):
-    """
-    Raised when a proxy rejects the connection.
-
-    """
-
-    def __init__(self, response: http11.Response) -> None:
-        self.response = response
-
-    def __str__(self) -> str:
-        return f"proxy rejected connection: HTTP {self.response.status_code:d}"
 
 
 class InvalidHeader(InvalidHandshake):

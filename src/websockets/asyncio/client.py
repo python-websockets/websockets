@@ -12,7 +12,7 @@ from typing import Any, Callable, Literal
 
 from ..client import ClientProtocol, backoff
 from ..datastructures import HeadersLike
-from ..exceptions import InvalidMessage, InvalidStatus, SecurityError
+from ..exceptions import InvalidMessage, InvalidStatus, ProxyError, SecurityError
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import validate_subprotocols
@@ -148,7 +148,9 @@ def process_exception(exc: Exception) -> Exception | None:
     That exception will be raised, breaking out of the retry loop.
 
     """
-    if isinstance(exc, (OSError, asyncio.TimeoutError)):
+    # This catches python-socks' ProxyConnectionError and ProxyTimeoutError.
+    # Remove asyncio.TimeoutError when dropping Python < 3.11.
+    if isinstance(exc, (OSError, TimeoutError, asyncio.TimeoutError)):
         return None
     if isinstance(exc, InvalidMessage) and isinstance(exc.__cause__, EOFError):
         return None
@@ -266,6 +268,7 @@ class connect:
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
+        InvalidProxy: If ``proxy`` isn't a valid proxy.
         OSError: If the TCP connection fails.
         InvalidHandshake: If the opening handshake fails.
         TimeoutError: If the opening handshake times out.
@@ -622,7 +625,15 @@ try:
             proxy.password,
             SOCKS_PROXY_RDNS[proxy.scheme],
         )
-        return await socks_proxy.connect(ws_uri.host, ws_uri.port, **kwargs)
+        # connect() is documented to raise OSError.
+        # socks_proxy.connect() doesn't raise TimeoutError; it gets canceled.
+        # Wrap other exceptions in ProxyError, a subclass of InvalidHandshake.
+        try:
+            return await socks_proxy.connect(ws_uri.host, ws_uri.port, **kwargs)
+        except OSError:
+            raise
+        except Exception as exc:
+            raise ProxyError("failed to connect to SOCKS proxy") from exc
 
 except ImportError:
 

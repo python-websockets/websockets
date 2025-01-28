@@ -96,6 +96,10 @@ class ExceptionsTests(unittest.TestCase):
                 "redirect from WSS to WS",
             ),
             (
+                ProxyError("failed to connect to SOCKS proxy"),
+                "failed to connect to SOCKS proxy",
+            ),
+            (
                 InvalidMessage("malformed HTTP message"),
                 "malformed HTTP message",
             ),

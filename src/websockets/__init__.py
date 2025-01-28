@@ -49,6 +49,7 @@ __all__ = [
     "NegotiationError",
     "PayloadTooBig",
     "ProtocolError",
+    "ProxyError",
     "SecurityError",
     "WebSocketException",
     # .frames
@@ -112,6 +113,7 @@ if TYPE_CHECKING:
         NegotiationError,
         PayloadTooBig,
         ProtocolError,
+        ProxyError,
         SecurityError,
         WebSocketException,
     )
@@ -173,6 +175,7 @@ else:
             "NegotiationError": ".exceptions",
             "PayloadTooBig": ".exceptions",
             "ProtocolError": ".exceptions",
+            "ProxyError": ".exceptions",
             "SecurityError": ".exceptions",
             "WebSocketException": ".exceptions",
             # .frames

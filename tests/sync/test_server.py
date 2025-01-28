@@ -64,9 +64,9 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
     def test_existing_socket(self):
         """Server receives connection using a pre-existing socket."""
         with socket.create_server(("localhost", 0)) as sock:
+            host, port = sock.getsockname()
             with run_server(sock=sock):
-                uri = "ws://{}:{}/".format(*sock.getsockname())
-                with connect(uri) as client:
+                with connect(f"ws://{host}:{port}/") as client:
                     self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
     def test_select_subprotocol(self):

@@ -86,7 +86,7 @@ class ClientConnection(Connection):
             if additional_headers is not None:
                 self.request.headers.update(additional_headers)
             if user_agent_header is not None:
-                self.request.headers["User-Agent"] = user_agent_header
+                self.request.headers.setdefault("User-Agent", user_agent_header)
             self.protocol.send_request(self.request)
 
         if not self.response_rcvd.wait(timeout):

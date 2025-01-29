@@ -259,9 +259,12 @@ Arguments of :func:`~asyncio.client.connect`
 ``extra_headers`` → ``additional_headers``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you're adding headers to the handshake request sent by
-:func:`~legacy.client.connect` with the ``extra_headers`` argument, you must
-rename it to ``additional_headers``.
+If you're setting the ``User-Agent`` header with the ``extra_headers`` argument,
+you should set it with ``user_agent_header`` instead.
+
+If you're adding other headers to the handshake request sent by
+:func:`~legacy.client.connect` with ``extra_headers``, you must rename it to
+``additional_headers``.
 
 Arguments of :func:`~asyncio.server.serve`
 ..........................................
@@ -310,7 +313,10 @@ replace it with a ``process_request`` function or coroutine.
 ``extra_headers`` → ``process_response``
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-If you're adding headers to the handshake response sent by
+If you're setting the ``Server`` header with ``extra_headers``, you should set
+it with the ``server_header`` argument instead.
+
+If you're adding other headers to the handshake response sent by
 :func:`~legacy.server.serve` with the ``extra_headers`` argument, you must write
 a ``process_response`` callable instead.
 

@@ -82,6 +82,14 @@ class ClientTests(unittest.TestCase):
             with connect(get_uri(server), user_agent_header=None) as client:
                 self.assertNotIn("User-Agent", client.request.headers)
 
+    def test_legacy_user_agent(self):
+        """Client can override User-Agent header with additional_headers."""
+        with run_server() as server:
+            with connect(
+                get_uri(server), additional_headers={"User-Agent": "Smith"}
+            ) as client:
+                self.assertEqual(client.request.headers["User-Agent"], "Smith")
+
     def test_keepalive_is_enabled(self):
         """Client enables keepalive and measures latency by default."""
         with run_server() as server:

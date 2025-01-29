@@ -245,7 +245,7 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         )
 
     async def test_recv_cancellation_before_receiving(self):
-        """recv can be cancelled before receiving a frame."""
+        """recv can be canceled before receiving a frame."""
         recv_task = asyncio.create_task(self.connection.recv())
         await asyncio.sleep(0)  # let the event loop start recv_task
 
@@ -257,7 +257,7 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         self.assertEqual(await self.connection.recv(), "😀")
 
     async def test_recv_cancellation_while_receiving(self):
-        """recv cannot be cancelled after receiving a frame."""
+        """recv cannot be canceled after receiving a frame."""
         recv_task = asyncio.create_task(self.connection.recv())
         await asyncio.sleep(0)  # let the event loop start recv_task
 
@@ -386,7 +386,7 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         )
 
     async def test_recv_streaming_cancellation_before_receiving(self):
-        """recv_streaming can be cancelled before receiving a frame."""
+        """recv_streaming can be canceled before receiving a frame."""
         recv_streaming_task = asyncio.create_task(
             alist(self.connection.recv_streaming())
         )
@@ -403,7 +403,7 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
         )
 
     async def test_recv_streaming_cancellation_while_receiving(self):
-        """recv_streaming cannot be cancelled after receiving a frame."""
+        """recv_streaming cannot be canceled after receiving a frame."""
         recv_streaming_task = asyncio.create_task(
             alist(self.connection.recv_streaming())
         )

@@ -152,7 +152,7 @@ class Assembler:
         self.get_in_progress = True
 
         # Locking with get_in_progress prevents concurrent execution
-        # until get() fetches a complete message or is cancelled.
+        # until get() fetches a complete message or is canceled.
 
         try:
             # First frame
@@ -224,7 +224,7 @@ class Assembler:
         self.get_in_progress = True
 
         # Locking with get_in_progress prevents concurrent execution
-        # until get_iter() fetches a complete message or is cancelled.
+        # until get_iter() fetches a complete message or is canceled.
 
         # If get_iter() raises an exception e.g. in decoder.decode(),
         # get_in_progress remains set and the connection becomes unusable.

@@ -284,14 +284,19 @@ def connect(
                 assert path is not None  # mypy cannot figure this out
                 sock.connect(path)
             elif proxy is not None:
-                sock = connect_proxy(
-                    parse_proxy(proxy),
-                    ws_uri,
-                    deadline,
-                    # websockets is consistent with the socket module while
-                    # python_socks is consistent across implementations.
-                    local_addr=kwargs.pop("source_address", None),
-                )
+                proxy_parsed = parse_proxy(proxy)
+                if proxy_parsed.scheme[:5] == "socks":
+                    # Connect to the server through the proxy.
+                    sock = connect_socks_proxy(
+                        proxy_parsed,
+                        ws_uri,
+                        deadline,
+                        # websockets is consistent with the socket module while
+                        # python_socks is consistent across implementations.
+                        local_addr=kwargs.pop("source_address", None),
+                    )
+                else:
+                    raise AssertionError("unsupported proxy")
             else:
                 kwargs.setdefault("timeout", deadline.timeout())
                 sock = socket.create_connection(
@@ -439,17 +444,3 @@ except ImportError:
         **kwargs: Any,
     ) -> socket.socket:
         raise ImportError("python-socks is required to use a SOCKS proxy")
-
-
-def connect_proxy(
-    proxy: Proxy,
-    ws_uri: WebSocketURI,
-    deadline: Deadline,
-    **kwargs: Any,
-) -> socket.socket:
-    """Connect via a proxy and return the socket."""
-    # parse_proxy() validates proxy.scheme.
-    if proxy.scheme[:5] == "socks":
-        return connect_socks_proxy(proxy, ws_uri, deadline, **kwargs)
-    else:
-        raise AssertionError("unsupported proxy")

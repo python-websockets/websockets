@@ -383,16 +383,28 @@ class connect:
         if kwargs.pop("unix", False):
             _, connection = await loop.create_unix_connection(factory, **kwargs)
         elif proxy is not None:
-            kwargs["sock"] = await connect_proxy(
-                parse_proxy(proxy),
-                ws_uri,
-                local_addr=kwargs.pop("local_addr", None),
-            )
-            _, connection = await loop.create_connection(factory, **kwargs)
+            proxy_parsed = parse_proxy(proxy)
+            if proxy_parsed.scheme[:5] == "socks":
+                # Connect to the server through the proxy.
+                sock = await connect_socks_proxy(
+                    proxy_parsed,
+                    ws_uri,
+                    local_addr=kwargs.pop("local_addr", None),
+                )
+                # Initialize WebSocket connection via the proxy.
+                _, connection = await loop.create_connection(
+                    factory,
+                    sock=sock,
+                    **kwargs,
+                )
+            else:
+                raise AssertionError("unsupported proxy")
         else:
+            # Connect to the server directly.
             if kwargs.get("sock") is None:
                 kwargs.setdefault("host", ws_uri.host)
                 kwargs.setdefault("port", ws_uri.port)
+            # Initialize WebSocket connection.
             _, connection = await loop.create_connection(factory, **kwargs)
         return connection
 
@@ -643,16 +655,3 @@ except ImportError:
         **kwargs: Any,
     ) -> socket.socket:
         raise ImportError("python-socks is required to use a SOCKS proxy")
-
-
-async def connect_proxy(
-    proxy: Proxy,
-    ws_uri: WebSocketURI,
-    **kwargs: Any,
-) -> socket.socket:
-    """Connect via a proxy and return the socket."""
-    # parse_proxy() validates proxy.scheme.
-    if proxy.scheme[:5] == "socks":
-        return await connect_socks_proxy(proxy, ws_uri, **kwargs)
-    else:
-        raise AssertionError("unsupported proxy")

@@ -1,15 +1,14 @@
 import asyncio
-import contextlib
 import pathlib
 import threading
 import warnings
 
 
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="mitmproxy")
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib")
-warnings.filterwarnings("ignore", category=DeprecationWarning, module="pyasn1")
-
 try:
+    # Ignore deprecation warnings raised by mitmproxy dependencies at import time.
+    warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib")
+    warnings.filterwarnings("ignore", category=DeprecationWarning, module="pyasn1")
+
     from mitmproxy.addons import core, next_layer, proxyauth, proxyserver, tlsconfig
     from mitmproxy.master import Master
     from mitmproxy.options import Options
@@ -18,12 +17,9 @@ except ImportError:
 
 
 class RecordFlows:
-    def __init__(self):
-        self.ready = asyncio.get_running_loop().create_future()
+    def __init__(self, on_running):
+        self.running = on_running
         self.flows = []
-
-    def running(self):
-        self.ready.set_result(None)
 
     def websocket_start(self, flow):
         self.flows.append(flow)
@@ -32,58 +28,76 @@ class RecordFlows:
         flows, self.flows[:] = self.flows[:], []
         return flows
 
+    def reset_flows(self):
+        self.flows = []
 
-@contextlib.asynccontextmanager
-async def async_proxy(mode, **config):
-    options = Options(mode=mode)
-    master = Master(options)
-    record_flows = RecordFlows()
-    master.addons.add(
-        core.Core(),
-        proxyauth.ProxyAuth(),
-        proxyserver.Proxyserver(),
-        next_layer.NextLayer(),
-        tlsconfig.TlsConfig(),
-        record_flows,
-    )
-    config.update(
-        # Use our test certificate for TLS between client and proxy
-        # and disable TLS verification between proxy and upstream.
-        certs=[str(pathlib.Path(__file__).with_name("test_localhost.pem"))],
-        ssl_insecure=True,
-    )
-    options.update(**config)
 
-    asyncio.create_task(master.run())
-    try:
-        await record_flows.ready
-        yield record_flows
-    finally:
+class ProxyMixin:
+    """
+    Run mitmproxy in a background thread.
+
+    While it's uncommon to run two event loops in two threads, tests for the
+    asyncio implementation rely on this class too because it starts an event
+    loop for mitm proxy once, then a new event loop for each test.
+    """
+
+    proxy_mode = None
+
+    @classmethod
+    async def run_proxy(cls):
+        cls.proxy_loop = loop = asyncio.get_event_loop()
+        cls.proxy_stop = stop = loop.create_future()
+
+        cls.proxy_options = options = Options(mode=[cls.proxy_mode])
+        cls.proxy_master = master = Master(options)
+        master.addons.add(
+            core.Core(),
+            proxyauth.ProxyAuth(),
+            proxyserver.Proxyserver(),
+            next_layer.NextLayer(),
+            tlsconfig.TlsConfig(),
+            RecordFlows(on_running=cls.proxy_ready.set),
+        )
+        options.update(
+            # Use test certificate for TLS between client and proxy.
+            certs=[str(pathlib.Path(__file__).with_name("test_localhost.pem"))],
+            # Disable TLS verification between proxy and upstream.
+            ssl_insecure=True,
+        )
+
+        task = loop.create_task(cls.proxy_master.run())
+        await stop
+
         for server in master.addons.get("proxyserver").servers:
             await server.stop()
         master.shutdown()
+        await task
 
+    @classmethod
+    def setUpClass(cls):
+        super().setUpClass()
 
-@contextlib.contextmanager
-def sync_proxy(mode, **config):
-    loop = None
-    test_done = None
-    proxy_ready = threading.Event()
-    record_flows = None
+        # Ignore deprecation warnings raised by mitmproxy at run time.
+        warnings.filterwarnings(
+            "ignore", category=DeprecationWarning, module="mitmproxy"
+        )
 
-    async def proxy_coroutine():
-        nonlocal loop, test_done, proxy_ready, record_flows
-        loop = asyncio.get_running_loop()
-        test_done = loop.create_future()
-        async with async_proxy(mode, **config) as record_flows:
-            proxy_ready.set()
-            await test_done
+        cls.proxy_ready = threading.Event()
+        cls.proxy_thread = threading.Thread(target=asyncio.run, args=(cls.run_proxy(),))
+        cls.proxy_thread.start()
+        cls.proxy_ready.wait()
 
-    proxy_thread = threading.Thread(target=asyncio.run, args=(proxy_coroutine(),))
-    proxy_thread.start()
-    try:
-        proxy_ready.wait()
-        yield record_flows
-    finally:
-        loop.call_soon_threadsafe(test_done.set_result, None)
-        proxy_thread.join()
+    def assertNumFlows(self, num_flows):
+        record_flows = self.proxy_master.addons.get("recordflows")
+        self.assertEqual(len(record_flows.get_flows()), num_flows)
+
+    def tearDown(self):
+        record_flows = self.proxy_master.addons.get("recordflows")
+        record_flows.reset_flows()
+        super().tearDown()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.proxy_loop.call_soon_threadsafe(cls.proxy_stop.set_result, None)
+        cls.proxy_thread.join()
+        super().tearDownClass()

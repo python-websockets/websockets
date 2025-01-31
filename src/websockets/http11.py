@@ -210,6 +210,7 @@ class Response:
         read_line: Callable[[int], Generator[None, None, bytes]],
         read_exact: Callable[[int], Generator[None, None, bytes]],
         read_to_eof: Callable[[int], Generator[None, None, bytes]],
+        include_body: bool = True,
     ) -> Generator[None, None, Response]:
         """
         Parse a WebSocket handshake response.
@@ -265,9 +266,12 @@ class Response:
 
         headers = yield from parse_headers(read_line)
 
-        body = yield from read_body(
-            status_code, headers, read_line, read_exact, read_to_eof
-        )
+        if include_body:
+            body = yield from read_body(
+                status_code, headers, read_line, read_exact, read_to_eof
+            )
+        else:
+            body = b""
 
         return cls(status_code, reason, headers, body)
 

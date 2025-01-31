@@ -130,11 +130,12 @@ class ResponseTests(GeneratorTestCase):
         super().setUp()
         self.reader = StreamReader()
 
-    def parse(self):
+    def parse(self, **kwargs):
         return Response.parse(
             self.reader.read_line,
             self.reader.read_exact,
             self.reader.read_to_eof,
+            **kwargs,
         )
 
     def test_parse(self):
@@ -320,6 +321,11 @@ class ResponseTests(GeneratorTestCase):
     def test_parse_body_not_modified(self):
         self.reader.feed_data(b"HTTP/1.1 304 Not Modified\r\n\r\n")
         response = self.assertGeneratorReturns(self.parse())
+        self.assertEqual(response.body, b"")
+
+    def test_parse_without_body(self):
+        self.reader.feed_data(b"HTTP/1.1 200 Connection Established\r\n\r\n")
+        response = self.assertGeneratorReturns(self.parse(include_body=False))
         self.assertEqual(response.body, b"")
 
     def test_serialize(self):

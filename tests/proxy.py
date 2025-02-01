@@ -1,5 +1,4 @@
 import asyncio
-import pathlib
 import threading
 import warnings
 
@@ -21,7 +20,7 @@ class RecordFlows:
         self.running = on_running
         self.flows = []
 
-    def websocket_start(self, flow):
+    def tcp_start(self, flow):
         self.flows.append(flow)
 
     def get_flows(self):
@@ -48,7 +47,13 @@ class ProxyMixin:
         cls.proxy_loop = loop = asyncio.get_event_loop()
         cls.proxy_stop = stop = loop.create_future()
 
-        cls.proxy_options = options = Options(mode=[cls.proxy_mode])
+        cls.proxy_options = options = Options(
+            mode=[cls.proxy_mode],
+            # Don't intercept connections, but record them.
+            ignore_hosts=["^localhost:", "^127.0.0.1:", "^::1:"],
+            # This option requires mitmproxy 11.0.0, which requires Python 3.11.
+            show_ignored_hosts=True,
+        )
         cls.proxy_master = master = Master(options)
         master.addons.add(
             core.Core(),
@@ -57,12 +62,6 @@ class ProxyMixin:
             next_layer.NextLayer(),
             tlsconfig.TlsConfig(),
             RecordFlows(on_running=cls.proxy_ready.set),
-        )
-        options.update(
-            # Use test certificate for TLS between client and proxy.
-            certs=[str(pathlib.Path(__file__).with_name("test_localhost.pem"))],
-            # Disable TLS verification between proxy and upstream.
-            ssl_insecure=True,
         )
 
         task = loop.create_task(cls.proxy_master.run())

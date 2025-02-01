@@ -457,6 +457,24 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         self.assertNumFlows(0)
 
     @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
+    def test_http_proxy_override_user_agent(self):
+        """Client can override User-Agent header with user_agent_header."""
+        with run_server() as server:
+            with connect(get_uri(server), user_agent_header="Smith") as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
+        [http_connect] = self.get_http_connects()
+        self.assertEqual(http_connect.request.headers[b"User-Agent"], "Smith")
+
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
+    def test_http_proxy_remove_user_agent(self):
+        """Client can remove User-Agent header with user_agent_header."""
+        with run_server() as server:
+            with connect(get_uri(server), user_agent_header=None) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
+        [http_connect] = self.get_http_connects()
+        self.assertNotIn(b"User-Agent", http_connect.request.headers)
+
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     def test_http_proxy_protocol_error(self):
         """Client receives invalid data when connecting to the HTTP proxy."""
         try:

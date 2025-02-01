@@ -97,7 +97,7 @@ class ClientConnection(Connection):
             self.request = self.protocol.connect()
             if additional_headers is not None:
                 self.request.headers.update(additional_headers)
-            if user_agent_header:
+            if user_agent_header is not None:
                 self.request.headers.setdefault("User-Agent", user_agent_header)
             self.protocol.send_request(self.request)
 
@@ -363,10 +363,8 @@ class connect:
 
         self.proxy = proxy
         self.protocol_factory = protocol_factory
-        self.handshake_args = (
-            additional_headers,
-            user_agent_header,
-        )
+        self.additional_headers = additional_headers
+        self.user_agent_header = user_agent_header
         self.process_exception = process_exception
         self.open_timeout = open_timeout
         self.logger = logger
@@ -442,6 +440,7 @@ class connect:
                 transport = await connect_http_proxy(
                     proxy_parsed,
                     ws_uri,
+                    user_agent_header=self.user_agent_header,
                     **proxy_kwargs,
                 )
                 # Initialize WebSocket connection via the proxy.
@@ -541,7 +540,10 @@ class connect:
                 for _ in range(MAX_REDIRECTS):
                     self.connection = await self.create_connection()
                     try:
-                        await self.connection.handshake(*self.handshake_args)
+                        await self.connection.handshake(
+                            self.additional_headers,
+                            self.user_agent_header,
+                        )
                     except asyncio.CancelledError:
                         self.connection.transport.abort()
                         raise
@@ -717,10 +719,16 @@ except ImportError:
         raise ImportError("python-socks is required to use a SOCKS proxy")
 
 
-def prepare_connect_request(proxy: Proxy, ws_uri: WebSocketURI) -> bytes:
+def prepare_connect_request(
+    proxy: Proxy,
+    ws_uri: WebSocketURI,
+    user_agent_header: str | None = None,
+) -> bytes:
     host = build_host(ws_uri.host, ws_uri.port, ws_uri.secure, always_include_port=True)
     headers = Headers()
     headers["Host"] = build_host(ws_uri.host, ws_uri.port, ws_uri.secure)
+    if user_agent_header is not None:
+        headers["User-Agent"] = user_agent_header
     if proxy.username is not None:
         assert proxy.password is not None  # enforced by parse_proxy()
         headers["Proxy-Authorization"] = build_authorization_basic(
@@ -731,9 +739,15 @@ def prepare_connect_request(proxy: Proxy, ws_uri: WebSocketURI) -> bytes:
 
 
 class HTTPProxyConnection(asyncio.Protocol):
-    def __init__(self, ws_uri: WebSocketURI, proxy: Proxy):
+    def __init__(
+        self,
+        ws_uri: WebSocketURI,
+        proxy: Proxy,
+        user_agent_header: str | None = None,
+    ):
         self.ws_uri = ws_uri
         self.proxy = proxy
+        self.user_agent_header = user_agent_header
 
         self.reader = StreamReader()
         self.parser = Response.parse(
@@ -765,7 +779,9 @@ class HTTPProxyConnection(asyncio.Protocol):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         transport = cast(asyncio.Transport, transport)
         self.transport = transport
-        self.transport.write(prepare_connect_request(self.proxy, self.ws_uri))
+        self.transport.write(
+            prepare_connect_request(self.proxy, self.ws_uri, self.user_agent_header)
+        )
 
     def data_received(self, data: bytes) -> None:
         self.reader.feed_data(data)
@@ -784,10 +800,11 @@ class HTTPProxyConnection(asyncio.Protocol):
 async def connect_http_proxy(
     proxy: Proxy,
     ws_uri: WebSocketURI,
+    user_agent_header: str | None = None,
     **kwargs: Any,
 ) -> asyncio.Transport:
     transport, protocol = await asyncio.get_running_loop().create_connection(
-        lambda: HTTPProxyConnection(ws_uri, proxy),
+        lambda: HTTPProxyConnection(ws_uri, proxy, user_agent_header),
         proxy.host,
         proxy.port,
         **kwargs,

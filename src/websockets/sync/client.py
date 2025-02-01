@@ -312,6 +312,7 @@ def connect(
                         proxy_parsed,
                         ws_uri,
                         deadline,
+                        user_agent_header=user_agent_header,
                         ssl=proxy_ssl,
                         server_hostname=proxy_server_hostname,
                         **kwargs,
@@ -472,10 +473,16 @@ except ImportError:
         raise ImportError("python-socks is required to use a SOCKS proxy")
 
 
-def prepare_connect_request(proxy: Proxy, ws_uri: WebSocketURI) -> bytes:
+def prepare_connect_request(
+    proxy: Proxy,
+    ws_uri: WebSocketURI,
+    user_agent_header: str | None = None,
+) -> bytes:
     host = build_host(ws_uri.host, ws_uri.port, ws_uri.secure, always_include_port=True)
     headers = Headers()
     headers["Host"] = build_host(ws_uri.host, ws_uri.port, ws_uri.secure)
+    if user_agent_header is not None:
+        headers["User-Agent"] = user_agent_header
     if proxy.username is not None:
         assert proxy.password is not None  # enforced by parse_proxy()
         headers["Proxy-Authorization"] = build_authorization_basic(
@@ -524,6 +531,7 @@ def connect_http_proxy(
     ws_uri: WebSocketURI,
     deadline: Deadline,
     *,
+    user_agent_header: str | None = None,
     ssl: ssl_module.SSLContext | None = None,
     server_hostname: str | None = None,
     **kwargs: Any,
@@ -546,7 +554,7 @@ def connect_http_proxy(
 
     # Send CONNECT request to the proxy and read response.
 
-    sock.sendall(prepare_connect_request(proxy, ws_uri))
+    sock.sendall(prepare_connect_request(proxy, ws_uri, user_agent_header))
     try:
         read_connect_response(sock, deadline)
     except Exception:

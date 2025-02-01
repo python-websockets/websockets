@@ -22,17 +22,26 @@ except ImportError:
 class RecordFlows:
     def __init__(self, on_running):
         self.running = on_running
-        self.flows = []
+        self.http_connects = []
+        self.tcp_flows = []
+
+    def http_connect(self, flow):
+        self.http_connects.append(flow)
 
     def tcp_start(self, flow):
-        self.flows.append(flow)
+        self.tcp_flows.append(flow)
 
-    def get_flows(self):
-        flows, self.flows[:] = self.flows[:], []
-        return flows
+    def get_http_connects(self):
+        http_connects, self.http_connects[:] = self.http_connects[:], []
+        return http_connects
 
-    def reset_flows(self):
-        self.flows = []
+    def get_tcp_flows(self):
+        tcp_flows, self.tcp_flows[:] = self.tcp_flows[:], []
+        return tcp_flows
+
+    def reset(self):
+        self.http_connects = []
+        self.tcp_flows = []
 
 
 class AlterRequest:
@@ -121,13 +130,18 @@ class ProxyMixin:
         cls.proxy_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         cls.proxy_context.load_verify_locations(bytes(certificate))
 
-    def assertNumFlows(self, num_flows):
-        record_flows = self.proxy_master.addons.get("recordflows")
-        self.assertEqual(len(record_flows.get_flows()), num_flows)
+    def get_http_connects(self):
+        return self.proxy_master.addons.get("recordflows").get_http_connects()
+
+    def get_tcp_flows(self):
+        return self.proxy_master.addons.get("recordflows").get_tcp_flows()
+
+    def assertNumFlows(self, num_tcp_flows):
+        self.assertEqual(len(self.get_tcp_flows()), num_tcp_flows)
 
     def tearDown(self):
-        record_flows = self.proxy_master.addons.get("recordflows")
-        record_flows.reset_flows()
+        record_tcp_flows = self.proxy_master.addons.get("recordflows")
+        record_tcp_flows.reset()
         super().tearDown()
 
     @classmethod

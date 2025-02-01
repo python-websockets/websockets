@@ -396,7 +396,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
-                "timed out during handshake",
+                "timed out during opening handshake",
             )
 
     async def test_connection_closed_during_handshake(self):
@@ -641,7 +641,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
                         self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
-            "timed out during handshake",
+            "timed out during opening handshake",
         )
         self.assertNumFlows(0)
 

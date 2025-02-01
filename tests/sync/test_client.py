@@ -164,7 +164,7 @@ class ClientTests(unittest.TestCase):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
-                "timed out during handshake",
+                "timed out while waiting for handshake response",
             )
 
     def test_connection_closed_during_handshake(self):

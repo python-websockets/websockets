@@ -511,9 +511,9 @@ class connect:
                 else:
                     raise SecurityError(f"more than {MAX_REDIRECTS} redirects")
 
-        except TimeoutError:
+        except TimeoutError as exc:
             # Re-raise exception with an informative error message.
-            raise TimeoutError("timed out during handshake") from None
+            raise TimeoutError("timed out during opening handshake") from exc
 
     # ... = yield from connect(...) - remove when dropping Python < 3.10
 

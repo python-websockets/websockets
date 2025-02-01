@@ -90,7 +90,7 @@ class ClientConnection(Connection):
             self.protocol.send_request(self.request)
 
         if not self.response_rcvd.wait(timeout):
-            raise TimeoutError("timed out during handshake")
+            raise TimeoutError("timed out while waiting for handshake response")
 
         # self.protocol.handshake_exc is set when the connection is lost before
         # receiving a response, when the response cannot be parsed, or when the

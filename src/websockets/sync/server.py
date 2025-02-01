@@ -128,7 +128,7 @@ class ServerConnection(Connection):
 
         """
         if not self.request_rcvd.wait(timeout):
-            raise TimeoutError("timed out during handshake")
+            raise TimeoutError("timed out while waiting for handshake request")
 
         if self.request is not None:
             with self.send_context(expected_state=CONNECTING):

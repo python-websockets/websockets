@@ -47,11 +47,14 @@ Backwards-incompatible changes
 
     .. _python-socks: https://github.com/romis2012/python-socks
 
-New features
-............
+.. admonition:: Keepalive is enabled in the :mod:`threading` implementation.
+    :class: note
 
-* Added :doc:`keepalive and latency measurement <../topics/keepalive>` to the
-  :mod:`threading` implementation.
+    The :mod:`threading` implementation now sends Ping frames at regular
+    intervals and closes the connection if it doesn't receive a matching Pong
+    frame just like the :mod:`asyncio` implementation.
+
+    See :doc:`keepalive and latency <../topics/keepalive>` for details.
 
 Improvements
 ............

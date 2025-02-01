@@ -101,14 +101,6 @@ class Connection(asyncio.Protocol):
         # Protect sending fragmented messages.
         self.fragmented_send_waiter: asyncio.Future[None] | None = None
 
-        # Exception raised while reading from the connection, to be chained to
-        # ConnectionClosed in order to show why the TCP connection dropped.
-        self.recv_exc: BaseException | None = None
-
-        # Completed when the TCP connection is closed and the WebSocket
-        # connection state becomes CLOSED.
-        self.connection_lost_waiter: asyncio.Future[None] = self.loop.create_future()
-
         # Mapping of ping IDs to pong waiters, in chronological order.
         self.pong_waiters: dict[bytes, tuple[asyncio.Future[float], float]] = {}
 
@@ -127,6 +119,14 @@ class Connection(asyncio.Protocol):
 
         # Task that sends keepalive pings. None when ping_interval is None.
         self.keepalive_task: asyncio.Task[None] | None = None
+
+        # Exception raised while reading from the connection, to be chained to
+        # ConnectionClosed in order to show why the TCP connection dropped.
+        self.recv_exc: BaseException | None = None
+
+        # Completed when the TCP connection is closed and the WebSocket
+        # connection state becomes CLOSED.
+        self.connection_lost_waiter: asyncio.Future[None] = self.loop.create_future()
 
         # Adapted from asyncio.FlowControlMixin
         self.paused: bool = False

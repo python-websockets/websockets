@@ -101,19 +101,6 @@ class Connection:
         # Whether we are busy sending a fragmented message.
         self.send_in_progress = False
 
-        # Exception raised in recv_events, to be chained to ConnectionClosed
-        # in the user thread in order to show why the TCP connection dropped.
-        self.recv_exc: BaseException | None = None
-
-        # Receiving events from the socket. This thread is marked as daemon to
-        # allow creating a connection in a non-daemon thread and using it in a
-        # daemon thread. This mustn't prevent the interpreter from exiting.
-        self.recv_events_thread = threading.Thread(
-            target=self.recv_events,
-            daemon=True,
-        )
-        self.recv_events_thread.start()
-
         # Mapping of ping IDs to pong waiters, in chronological order.
         self.pong_waiters: dict[bytes, tuple[threading.Event, float, bool]] = {}
 
@@ -132,6 +119,21 @@ class Connection:
 
         # Thread that sends keepalive pings. None when ping_interval is None.
         self.keepalive_thread: threading.Thread | None = None
+
+        # Exception raised in recv_events, to be chained to ConnectionClosed
+        # in the user thread in order to show why the TCP connection dropped.
+        self.recv_exc: BaseException | None = None
+
+        # Receiving events from the socket. This thread is marked as daemon to
+        # allow creating a connection in a non-daemon thread and using it in a
+        # daemon thread. This mustn't prevent the interpreter from exiting.
+        self.recv_events_thread = threading.Thread(
+            target=self.recv_events,
+            daemon=True,
+        )
+
+        # Start recv_events only after all attributes are initialized.
+        self.recv_events_thread.start()
 
     # Public attributes
 

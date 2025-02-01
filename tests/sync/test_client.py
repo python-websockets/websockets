@@ -1,5 +1,6 @@
 import http
 import logging
+import os
 import socket
 import socketserver
 import ssl
@@ -7,6 +8,7 @@ import sys
 import threading
 import time
 import unittest
+from unittest.mock import patch
 
 from websockets.exceptions import (
     InvalidHandshake,
@@ -26,7 +28,6 @@ from ..utils import (
     MS,
     SERVER_CONTEXT,
     DeprecationTestCase,
-    patch_environ,
     temp_unix_socket_path,
 )
 from .server import get_uri, run_server, run_unix_server
@@ -310,46 +311,44 @@ class SecureClientTests(unittest.TestCase):
 class SocksProxyClientTests(ProxyMixin, unittest.TestCase):
     proxy_mode = "socks5@51080"
 
+    @patch.dict(os.environ, {"socks_proxy": "http://localhost:51080"})
     def test_socks_proxy(self):
         """Client connects to server through a SOCKS5 proxy."""
-        with patch_environ({"socks_proxy": "http://localhost:51080"}):
-            with run_server() as server:
-                with connect(get_uri(server)) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"socks_proxy": "http://localhost:51080"})
     def test_secure_socks_proxy(self):
         """Client connects to server securely through a SOCKS5 proxy."""
-        with patch_environ({"socks_proxy": "http://localhost:51080"}):
-            with run_server(ssl=SERVER_CONTEXT) as server:
-                with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
+        with run_server(ssl=SERVER_CONTEXT) as server:
+            with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"socks_proxy": "http://hello:iloveyou@localhost:51080"})
     def test_authenticated_socks_proxy(self):
         """Client connects to server through an authenticated SOCKS5 proxy."""
         try:
             self.proxy_options.update(proxyauth="hello:iloveyou")
-            with patch_environ(
-                {"socks_proxy": "http://hello:iloveyou@localhost:51080"}
-            ):
-                with run_server() as server:
-                    with connect(get_uri(server)) as client:
-                        self.assertEqual(client.protocol.state.name, "OPEN")
+            with run_server() as server:
+                with connect(get_uri(server)) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
         finally:
             self.proxy_options.update(proxyauth=None)
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"socks_proxy": "http://localhost:51080"})
     def test_authenticated_socks_proxy_error(self):
         """Client fails to authenticate to the SOCKS5 proxy."""
         from python_socks import ProxyError as SocksProxyError
 
         try:
             self.proxy_options.update(proxyauth="any")
-            with patch_environ({"socks_proxy": "http://localhost:51080"}):
-                with self.assertRaises(ProxyError) as raised:
-                    with connect("ws://example.com/"):
-                        self.fail("did not raise")
+            with self.assertRaises(ProxyError) as raised:
+                with connect("ws://example.com/"):
+                    self.fail("did not raise")
         finally:
             self.proxy_options.update(proxyauth=None)
         self.assertEqual(
@@ -359,14 +358,14 @@ class SocksProxyClientTests(ProxyMixin, unittest.TestCase):
         self.assertIsInstance(raised.exception.__cause__, SocksProxyError)
         self.assertNumFlows(0)
 
+    @patch.dict(os.environ, {"socks_proxy": "http://localhost:61080"})  # bad port
     def test_socks_proxy_connection_failure(self):
         """Client fails to connect to the SOCKS5 proxy."""
         from python_socks import ProxyConnectionError as SocksProxyConnectionError
 
-        with patch_environ({"socks_proxy": "http://localhost:61080"}):  # bad port
-            with self.assertRaises(OSError) as raised:
-                with connect("ws://example.com/"):
-                    self.fail("did not raise")
+        with self.assertRaises(OSError) as raised:
+            with connect("ws://example.com/"):
+                self.fail("did not raise")
         # Don't test str(raised.exception) because we don't control it.
         self.assertIsInstance(raised.exception, SocksProxyConnectionError)
         self.assertNumFlows(0)
@@ -378,7 +377,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.TestCase):
         # Replace the proxy with a TCP server that doesn't respond.
         with socket.create_server(("localhost", 0)) as sock:
             host, port = sock.getsockname()
-            with patch_environ({"socks_proxy": f"http://{host}:{port}"}):
+            with patch.dict(os.environ, {"socks_proxy": f"http://{host}:{port}"}):
                 with self.assertRaises(TimeoutError) as raised:
                     with connect("ws://example.com/", open_timeout=MS):
                         self.fail("did not raise")
@@ -397,14 +396,14 @@ class SocksProxyClientTests(ProxyMixin, unittest.TestCase):
                 self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"ws_proxy": "http://localhost:58080"})
     def test_ignore_proxy_with_existing_socket(self):
         """Client connects using a pre-existing socket."""
-        with patch_environ({"ws_proxy": "http://localhost:58080"}):
-            with run_server() as server:
-                with socket.create_connection(server.socket.getsockname()) as sock:
-                    # Use a non-existing domain to ensure we connect to sock.
-                    with connect("ws://invalid/", sock=sock) as client:
-                        self.assertEqual(client.protocol.state.name, "OPEN")
+        with run_server() as server:
+            with socket.create_connection(server.socket.getsockname()) as sock:
+                # Use a non-existing domain to ensure we connect to sock.
+                with connect("ws://invalid/", sock=sock) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(0)
 
 
@@ -412,45 +411,43 @@ class SocksProxyClientTests(ProxyMixin, unittest.TestCase):
 class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
     proxy_mode = "regular@58080"
 
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     def test_http_proxy(self):
         """Client connects to server through an HTTP proxy."""
-        with patch_environ({"https_proxy": "http://localhost:58080"}):
-            with run_server() as server:
-                with connect(get_uri(server)) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     def test_secure_http_proxy(self):
         """Client connects to server securely through an HTTP proxy."""
-        with patch_environ({"https_proxy": "http://localhost:58080"}):
-            with run_server(ssl=SERVER_CONTEXT) as server:
-                with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
-                    self.assertEqual(client.socket.version()[:3], "TLS")
+        with run_server(ssl=SERVER_CONTEXT) as server:
+            with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
+                self.assertEqual(client.socket.version()[:3], "TLS")
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"https_proxy": "http://hello:iloveyou@localhost:58080"})
     def test_authenticated_http_proxy(self):
         """Client connects to server through an authenticated HTTP proxy."""
         try:
             self.proxy_options.update(proxyauth="hello:iloveyou")
-            with patch_environ(
-                {"https_proxy": "http://hello:iloveyou@localhost:58080"}
-            ):
-                with run_server() as server:
-                    with connect(get_uri(server)) as client:
-                        self.assertEqual(client.protocol.state.name, "OPEN")
+            with run_server() as server:
+                with connect(get_uri(server)) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
         finally:
             self.proxy_options.update(proxyauth=None)
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     def test_authenticated_http_proxy_error(self):
         """Client fails to authenticate to the HTTP proxy."""
         try:
             self.proxy_options.update(proxyauth="any")
-            with patch_environ({"https_proxy": "http://localhost:58080"}):
-                with self.assertRaises(ProxyError) as raised:
-                    with connect("ws://example.com/"):
-                        self.fail("did not raise")
+            with self.assertRaises(ProxyError) as raised:
+                with connect("ws://example.com/"):
+                    self.fail("did not raise")
         finally:
             self.proxy_options.update(proxyauth=None)
         self.assertEqual(
@@ -459,14 +456,14 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         )
         self.assertNumFlows(0)
 
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     def test_http_proxy_protocol_error(self):
         """Client receives invalid data when connecting to the HTTP proxy."""
         try:
             self.proxy_options.update(break_http_connect=True)
-            with patch_environ({"https_proxy": "http://localhost:58080"}):
-                with self.assertRaises(InvalidProxyMessage) as raised:
-                    with connect("ws://example.com/"):
-                        self.fail("did not raise")
+            with self.assertRaises(InvalidProxyMessage) as raised:
+                with connect("ws://example.com/"):
+                    self.fail("did not raise")
         finally:
             self.proxy_options.update(break_http_connect=False)
         self.assertEqual(
@@ -475,14 +472,14 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         )
         self.assertNumFlows(0)
 
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     def test_http_proxy_connection_error(self):
         """Client receives no response when connecting to the HTTP proxy."""
         try:
             self.proxy_options.update(close_http_connect=True)
-            with patch_environ({"https_proxy": "http://localhost:58080"}):
-                with self.assertRaises(InvalidProxyMessage) as raised:
-                    with connect("ws://example.com/"):
-                        self.fail("did not raise")
+            with self.assertRaises(InvalidProxyMessage) as raised:
+                with connect("ws://example.com/"):
+                    self.fail("did not raise")
         finally:
             self.proxy_options.update(close_http_connect=False)
         self.assertEqual(
@@ -491,12 +488,12 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         )
         self.assertNumFlows(0)
 
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:48080"})  # bad port
     def test_http_proxy_connection_failure(self):
         """Client fails to connect to the HTTP proxy."""
-        with patch_environ({"https_proxy": "http://localhost:61080"}):  # bad port
-            with self.assertRaises(OSError):
-                with connect("ws://example.com/"):
-                    self.fail("did not raise")
+        with self.assertRaises(OSError):
+            with connect("ws://example.com/"):
+                self.fail("did not raise")
         # Don't test str(raised.exception) because we don't control it.
         self.assertNumFlows(0)
 
@@ -505,7 +502,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         # Replace the proxy with a TCP server that does't respond.
         with socket.create_server(("localhost", 0)) as sock:
             host, port = sock.getsockname()
-            with patch_environ({"https_proxy": f"http://{host}:{port}"}):
+            with patch.dict(os.environ, {"https_proxy": f"http://{host}:{port}"}):
                 with self.assertRaises(TimeoutError) as raised:
                     with connect("ws://example.com/", open_timeout=MS):
                         self.fail("did not raise")
@@ -514,66 +511,66 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
             "timed out while connecting to HTTP proxy",
         )
 
+    @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     def test_https_proxy(self):
         """Client connects to server through an HTTPS proxy."""
-        with patch_environ({"https_proxy": "https://localhost:58080"}):
-            with run_server() as server:
-                with connect(
-                    get_uri(server),
-                    proxy_ssl=self.proxy_context,
-                ) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
+        with run_server() as server:
+            with connect(
+                get_uri(server),
+                proxy_ssl=self.proxy_context,
+            ) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     def test_secure_https_proxy(self):
         """Client connects to server securely through an HTTPS proxy."""
-        with patch_environ({"https_proxy": "https://localhost:58080"}):
-            with run_server(ssl=SERVER_CONTEXT) as server:
-                with connect(
-                    get_uri(server),
-                    ssl=CLIENT_CONTEXT,
-                    proxy_ssl=self.proxy_context,
-                ) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
-                    self.assertEqual(client.socket.version()[:3], "TLS")
+        with run_server(ssl=SERVER_CONTEXT) as server:
+            with connect(
+                get_uri(server),
+                ssl=CLIENT_CONTEXT,
+                proxy_ssl=self.proxy_context,
+            ) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
+                self.assertEqual(client.socket.version()[:3], "TLS")
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     def test_https_proxy_server_hostname(self):
         """Client sets server_hostname to the value of proxy_server_hostname."""
-        with patch_environ({"https_proxy": "https://localhost:58080"}):
-            with run_server() as server:
-                # Pass an argument not prefixed with proxy_ for coverage.
-                kwargs = {"all_errors": True} if sys.version_info >= (3, 11) else {}
-                with connect(
-                    get_uri(server),
-                    proxy_ssl=self.proxy_context,
-                    proxy_server_hostname="overridden",
-                    **kwargs,
-                ) as client:
-                    self.assertEqual(client.socket.server_hostname, "overridden")
+        with run_server() as server:
+            # Pass an argument not prefixed with proxy_ for coverage.
+            kwargs = {"all_errors": True} if sys.version_info >= (3, 11) else {}
+            with connect(
+                get_uri(server),
+                proxy_ssl=self.proxy_context,
+                proxy_server_hostname="overridden",
+                **kwargs,
+            ) as client:
+                self.assertEqual(client.socket.server_hostname, "overridden")
         self.assertNumFlows(1)
 
+    @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     def test_https_proxy_invalid_proxy_certificate(self):
         """Client rejects certificate when proxy certificate isn't trusted."""
-        with patch_environ({"https_proxy": "https://localhost:58080"}):
-            with self.assertRaises(ssl.SSLCertVerificationError) as raised:
-                # The proxy certificate isn't trusted.
-                with connect("wss://example.com/"):
-                    self.fail("did not raise")
+        with self.assertRaises(ssl.SSLCertVerificationError) as raised:
+            # The proxy certificate isn't trusted.
+            with connect("wss://example.com/"):
+                self.fail("did not raise")
         self.assertIn(
             "certificate verify failed: unable to get local issuer certificate",
             str(raised.exception),
         )
         self.assertNumFlows(0)
 
+    @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     def test_https_proxy_invalid_server_certificate(self):
         """Client rejects certificate when server certificate isn't trusted."""
-        with patch_environ({"https_proxy": "https://localhost:58080"}):
-            with run_server(ssl=SERVER_CONTEXT) as server:
-                with self.assertRaises(ssl.SSLCertVerificationError) as raised:
-                    # The test certificate is self-signed.
-                    with connect(get_uri(server), proxy_ssl=self.proxy_context):
-                        self.fail("did not raise")
+        with run_server(ssl=SERVER_CONTEXT) as server:
+            with self.assertRaises(ssl.SSLCertVerificationError) as raised:
+                # The test certificate is self-signed.
+                with connect(get_uri(server), proxy_ssl=self.proxy_context):
+                    self.fail("did not raise")
         self.assertIn(
             "certificate verify failed: self signed certificate",
             str(raised.exception).replace("-", " "),
@@ -629,9 +626,12 @@ class ClientUsageErrorsTests(unittest.TestCase):
 
     def test_proxy_ssl_without_https_proxy(self):
         """Client rejects proxy_ssl when proxy isn't HTTPS."""
-        with patch_environ({"https_proxy": "http://localhost:8080"}):
-            with self.assertRaises(ValueError) as raised:
-                connect("ws://localhost/", proxy_ssl=True)
+        with self.assertRaises(ValueError) as raised:
+            connect(
+                "ws://localhost/",
+                proxy="http://localhost:8080",
+                proxy_ssl=True,
+            )
         self.assertEqual(
             str(raised.exception),
             "proxy_ssl argument is incompatible with an http:// proxy",

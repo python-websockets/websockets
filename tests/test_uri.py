@@ -1,10 +1,10 @@
+import os
 import unittest
+from unittest.mock import patch
 
 from websockets.exceptions import InvalidProxy, InvalidURI
 from websockets.uri import *
 from websockets.uri import Proxy, get_proxy, parse_proxy
-
-from .utils import patch_environ
 
 
 VALID_URIS = [
@@ -255,6 +255,6 @@ class URITests(unittest.TestCase):
 
     def test_get_proxy(self):
         for environ, uri, proxy in PROXY_ENVS:
-            with patch_environ(environ):
+            with patch.dict(os.environ, environ):
                 with self.subTest(environ=environ, uri=uri):
                     self.assertEqual(get_proxy(parse_uri(uri)), proxy)

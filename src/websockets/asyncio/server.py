@@ -9,7 +9,7 @@ import socket
 import sys
 from collections.abc import Awaitable, Generator, Iterable, Sequence
 from types import TracebackType
-from typing import Any, Callable, cast
+from typing import Any, Callable, Mapping, cast
 
 from ..exceptions import InvalidHeader
 from ..extensions.base import ServerExtensionFactory
@@ -87,6 +87,8 @@ class ServerConnection(Connection):
         self.server = server
         self.request_rcvd: asyncio.Future[None] = self.loop.create_future()
         self.username: str  # see basic_auth()
+        self.handler: Callable[[ServerConnection], Awaitable[None]]  # see route()
+        self.handler_kwargs: Mapping[str, Any]  # see route()
 
     def respond(self, status: StatusLike, text: str) -> Response:
         """

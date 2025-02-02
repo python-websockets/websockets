@@ -81,7 +81,7 @@ The connection is closed when exiting the context manager.
 How do I reconnect when the connection drops?
 ---------------------------------------------
 
-Use :func:`~websockets.asyncio.client.connect` as an asynchronous iterator::
+Use :func:`connect` as an asynchronous iterator::
 
     from websockets.asyncio.client import connect
     from websockets.exceptions import ConnectionClosed

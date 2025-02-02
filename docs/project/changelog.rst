@@ -56,6 +56,12 @@ Backwards-incompatible changes
 
     See :doc:`keepalive and latency <../topics/keepalive>` for details.
 
+New features
+............
+
+* Added :func:`~asyncio.router.route` and :func:`~asyncio.router.unix_route` to
+  dispatch connections to different handlers depending on the URL.
+
 Improvements
 ............
 

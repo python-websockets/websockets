@@ -82,7 +82,10 @@ from sphinx.domains.python import PythonDomain
 assert PythonDomain.object_types["data"].roles == ("data", "obj")
 PythonDomain.object_types["data"].roles = ("data", "class", "obj")
 
-intersphinx_mapping = {"python": ("https://docs.python.org/3", None)}
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    "werkzeug": ("https://werkzeug.palletsprojects.com/en/stable/", None),
+}
 
 spelling_show_suggestions = True
 

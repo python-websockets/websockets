@@ -12,6 +12,21 @@ Creating a server
 .. autofunction:: unix_serve
     :async:
 
+Routing connections
+-------------------
+
+.. automodule:: websockets.asyncio.router
+
+.. autofunction:: route
+    :async:
+
+.. autofunction:: unix_route
+    :async:
+
+.. autoclass:: Router
+
+.. currentmodule:: websockets.asyncio.server
+
 Running a server
 ----------------
 
@@ -89,7 +104,7 @@ Using a connection
 Broadcast
 ---------
 
-.. autofunction:: websockets.asyncio.server.broadcast
+.. autofunction:: broadcast
 
 HTTP Basic Authentication
 -------------------------
@@ -97,4 +112,4 @@ HTTP Basic Authentication
 websockets supports HTTP Basic Authentication according to
 :rfc:`7235` and :rfc:`7617`.
 
-.. autofunction:: websockets.asyncio.server.basic_auth
+.. autofunction:: basic_auth

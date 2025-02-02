@@ -1,5 +1,6 @@
 import asyncio
 import socket
+import urllib.parse
 
 
 def get_host_port(server):
@@ -9,15 +10,16 @@ def get_host_port(server):
     raise AssertionError("expected at least one IPv4 socket")
 
 
-def get_uri(server):
-    secure = server.server._ssl_context is not None  # hack
+def get_uri(server, secure=None):
+    if secure is None:
+        secure = server.server._ssl_context is not None  # hack
     protocol = "wss" if secure else "ws"
     host, port = get_host_port(server)
     return f"{protocol}://{host}:{port}"
 
 
 async def handler(ws):
-    path = ws.request.path
+    path = urllib.parse.urlparse(ws.request.path).path
     if path == "/":
         # The default path is an eval shell.
         async for expr in ws:

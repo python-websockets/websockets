@@ -10,6 +10,31 @@ Creating a server
 
 .. autofunction:: unix_serve
 
+Routing connections
+-------------------
+
+.. automodule:: websockets.sync.router
+
+.. autofunction:: route
+
+.. autofunction:: unix_route
+
+.. autoclass:: Router
+
+.. currentmodule:: websockets.sync.server
+
+Routing connections
+-------------------
+
+.. autofunction:: route
+    :async:
+
+.. autofunction:: unix_route
+    :async:
+
+.. autoclass:: Server
+
+
 Running a server
 ----------------
 
@@ -78,4 +103,4 @@ HTTP Basic Authentication
 websockets supports HTTP Basic Authentication according to
 :rfc:`7235` and :rfc:`7617`.
 
-.. autofunction:: websockets.sync.server.basic_auth
+.. autofunction:: basic_auth

@@ -116,7 +116,7 @@ Record all connections in a global variable::
         finally:
             CONNECTIONS.remove(websocket)
 
-Then, call :func:`~websockets.asyncio.server.broadcast`::
+Then, call :func:`broadcast`::
 
     from websockets.asyncio.server import broadcast
 
@@ -218,6 +218,8 @@ You may route a connection to different handlers depending on the request path::
         else:
             # No handler for this path; close the connection.
             return
+
+For more complex routing, you may use :func:`~websockets.asyncio.router.route`.
 
 You may also route the connection based on the first message received from the
 client, as shown in the :doc:`tutorial <../intro/tutorial2>`. When you want to

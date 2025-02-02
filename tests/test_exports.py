@@ -2,6 +2,7 @@ import unittest
 
 import websockets
 import websockets.asyncio.client
+import websockets.asyncio.router
 import websockets.asyncio.server
 import websockets.client
 import websockets.datastructures
@@ -16,6 +17,7 @@ combined_exports = [
     for name in (
         []
         + websockets.asyncio.client.__all__
+        + websockets.asyncio.router.__all__
         + websockets.asyncio.server.__all__
         + websockets.client.__all__
         + websockets.datastructures.__all__

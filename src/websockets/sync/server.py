@@ -13,7 +13,7 @@ import threading
 import warnings
 from collections.abc import Iterable, Sequence
 from types import TracebackType
-from typing import Any, Callable, cast
+from typing import Any, Callable, Mapping, cast
 
 from ..exceptions import InvalidHeader
 from ..extensions.base import ServerExtensionFactory
@@ -82,6 +82,8 @@ class ServerConnection(Connection):
             max_queue=max_queue,
         )
         self.username: str  # see basic_auth()
+        self.handler: Callable[[ServerConnection], None]  # see route()
+        self.handler_kwargs: Mapping[str, Any]  # see route()
 
     def respond(self, status: StatusLike, text: str) -> Response:
         """

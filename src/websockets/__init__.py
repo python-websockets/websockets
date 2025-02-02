@@ -12,6 +12,10 @@ __all__ = [
     "connect",
     "unix_connect",
     "ClientConnection",
+    # .asyncio.router
+    "route",
+    "unix_route",
+    "Router",
     # .asyncio.server
     "basic_auth",
     "broadcast",
@@ -79,6 +83,7 @@ __all__ = [
 # When type checking, import non-deprecated aliases eagerly. Else, import on demand.
 if TYPE_CHECKING:
     from .asyncio.client import ClientConnection, connect, unix_connect
+    from .asyncio.router import Router, route, unix_route
     from .asyncio.server import (
         Server,
         ServerConnection,
@@ -138,6 +143,10 @@ else:
             "connect": ".asyncio.client",
             "unix_connect": ".asyncio.client",
             "ClientConnection": ".asyncio.client",
+            # .asyncio.router
+            "route": ".asyncio.router",
+            "unix_route": ".asyncio.router",
+            "Router": ".asyncio.router",
             # .asyncio.server
             "basic_auth": ".asyncio.server",
             "broadcast": ".asyncio.server",

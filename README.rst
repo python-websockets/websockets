@@ -47,7 +47,7 @@ Here's an echo server with the ``asyncio`` API:
     #!/usr/bin/env python
 
     import asyncio
-    from websockets.server import serve
+    from websockets.asyncio.server import serve
 
     async def echo(websocket):
         async for message in websocket:

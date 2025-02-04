@@ -48,7 +48,7 @@ Backwards-incompatible changes
     .. _python-socks: https://github.com/romis2012/python-socks
 
 .. admonition:: Keepalive is enabled in the :mod:`threading` implementation.
-    :class: note
+    :class: important
 
     The :mod:`threading` implementation now sends Ping frames at regular
     intervals and closes the connection if it doesn't receive a matching Pong
@@ -135,7 +135,7 @@ Backwards-incompatible changes
     websockets 13.1 is the last version supporting Python 3.8.
 
 .. admonition:: The new :mod:`asyncio` implementation is now the default.
-    :class: danger
+    :class: attention
 
     The following aliases in the ``websockets`` package were switched to the new
     :mod:`asyncio` implementation::
@@ -749,7 +749,7 @@ Security fix
 ............
 
 .. admonition:: websockets 9.1 fixes a security issue introduced in 8.0.
-    :class: important
+    :class: danger
 
     Version 8.0 was vulnerable to timing attacks on HTTP Basic Auth passwords
     (`CVE-2021-33880`_).
@@ -1168,7 +1168,7 @@ Security fix
 ............
 
 .. admonition:: websockets 5.0 fixes a security issue introduced in 4.0.
-    :class: important
+    :class: danger
 
     Version 4.0 was vulnerable to denial of service by memory exhaustion
     because it didn't enforce ``max_size`` when decompressing compressed

@@ -4,7 +4,7 @@ Server
 .. currentmodule:: websockets.asyncio.server
 
 .. admonition:: This FAQ is written for the new :mod:`asyncio` implementation.
-    :class: hint
+    :class: tip
 
     Answers are also valid for the legacy :mod:`asyncio` implementation.
 

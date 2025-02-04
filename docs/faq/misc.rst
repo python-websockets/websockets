@@ -24,7 +24,9 @@ you must disable:
 * Keepalive: set ``ping_interval=None``
 * UTF-8 decoding: send ``bytes`` rather than ``str``
 
-If websockets is still slower than another Python library, please file a bug.
+Then, please consider whether websockets is the bottleneck of the performance
+of your application. Usually, in real-world applications, CPU time spent in
+websockets is negligible compared to time spent in the application logic.
 
 Are there ``onopen``, ``onmessage``, ``onerror``, and ``onclose`` callbacks?
 ............................................................................

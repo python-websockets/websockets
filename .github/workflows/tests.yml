@@ -60,13 +60,12 @@ jobs:
           - "3.11"
           - "3.12"
           - "3.13"
-# Disable PyPy per https://github.com/python-websockets/websockets/issues/1581
-#           - "pypy-3.10"
+          - "pypy-3.10"
         is_main:
           - ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
-#         exclude:
-#           - python: "pypy-3.10"
-#             is_main: false
+        exclude:
+          - python: "pypy-3.10"
+            is_main: false
     steps:
     - name: Check out repository
       uses: actions/checkout@v4

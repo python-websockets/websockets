@@ -125,8 +125,6 @@ Server
     +------------------------------------+--------+--------+--------+--------+
     | Perform HTTP Basic Authentication  | ✅     | ✅     | ❌     | ✅     |
     +------------------------------------+--------+--------+--------+--------+
-    | Perform HTTP Digest Authentication | ❌     | ❌     | ❌     | ❌     |
-    +------------------------------------+--------+--------+--------+--------+
     | Dispatch connections to handlers   | ✅     | ✅     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
 
@@ -165,15 +163,10 @@ Client
     +------------------------------------+--------+--------+--------+--------+
     | Perform HTTP Basic Authentication  | ✅     | ✅     | ✅     | ✅     |
     +------------------------------------+--------+--------+--------+--------+
-    | Perform HTTP Digest Authentication | ❌     | ❌     | ❌     | ❌     |
-    | (`#784`_)                          |        |        |        |        |
-    +------------------------------------+--------+--------+--------+--------+
     | Connect via HTTP proxy             | ✅     | ✅     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
     | Connect via SOCKS5 proxy           | ✅     | ✅     | —      | ❌     |
     +------------------------------------+--------+--------+--------+--------+
-
-.. _#784: https://github.com/python-websockets/websockets/issues/784
 
 Known limitations
 -----------------
@@ -187,6 +180,10 @@ The server doesn't check the Host header and doesn't respond with HTTP 400 Bad
 Request if it is missing or invalid (`#1246`).
 
 .. _#1246: https://github.com/python-websockets/websockets/issues/1246
+
+The client doesn't support HTTP Digest Authentication (`#784`_).
+
+.. _#784: https://github.com/python-websockets/websockets/issues/784
 
 The client API doesn't attempt to guarantee that there is no more than one
 connection to a given IP address in a CONNECTING state. This behavior is

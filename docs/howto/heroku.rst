@@ -58,11 +58,9 @@ on websockets:
 .. literalinclude:: ../../example/deployment/heroku/requirements.txt
     :language: text
 
-Create a ``Procfile``.
+Create a ``Procfile`` to tell Heroku how to run the app.
 
 .. literalinclude:: ../../example/deployment/heroku/Procfile
-
-This tells Heroku how to run the app.
 
 Confirm that you created the correct files and commit them to git:
 

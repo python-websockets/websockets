@@ -39,8 +39,6 @@ features, which websockets supports fully.
 
    extensions
 
-.. _deployment-howto:
-
 If you're integrating the Sans-I/O layer of websockets into a library, rather
 than building an application with websockets, follow this guide.
 

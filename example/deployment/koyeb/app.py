@@ -22,7 +22,7 @@ async def main():
     port = int(os.environ["PORT"])
     async with serve(echo, "", port, process_request=health_check) as server:
         loop = asyncio.get_running_loop()
-        loop.add_signal_handler(signal.SIGINT, server.close)
+        loop.add_signal_handler(signal.SIGTERM, server.close)
         await server.wait_closed()
 
 

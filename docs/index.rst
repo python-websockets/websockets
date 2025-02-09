@@ -100,6 +100,7 @@ Do you like it? :doc:`Let's dive in! <intro/index>`
 
    intro/index
    howto/index
+   deploy/index
    faq/index
    reference/index
    topics/index

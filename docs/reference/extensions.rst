@@ -16,45 +16,44 @@ Per-Message Deflate
 
 .. automodule:: websockets.extensions.permessage_deflate
 
-    :mod:`websockets.extensions.permessage_deflate` implements WebSocket
-    Per-Message Deflate.
+:mod:`websockets.extensions.permessage_deflate` implements WebSocket Per-Message
+Deflate.
 
-    This extension is specified in :rfc:`7692`.
+This extension is specified in :rfc:`7692`.
 
-    Refer to the :doc:`topic guide on compression <../topics/compression>` to
-    learn more about tuning compression settings.
+Refer to the :doc:`topic guide on compression <../topics/compression>` to learn
+more about tuning compression settings.
 
-    .. autoclass:: ClientPerMessageDeflateFactory
+.. autoclass:: ServerPerMessageDeflateFactory
 
-    .. autoclass:: ServerPerMessageDeflateFactory
+.. autoclass:: ClientPerMessageDeflateFactory
 
 Base classes
 ------------
 
 .. automodule:: websockets.extensions
 
-    :mod:`websockets.extensions` defines base classes for implementing
-     extensions.
+:mod:`websockets.extensions` defines base classes for implementing extensions.
 
-    Refer to the :doc:`how-to guide on extensions <../howto/extensions>` to
-    learn more about writing an extension.
+Refer to the :doc:`how-to guide on extensions <../howto/extensions>` to learn
+more about writing an extension.
 
-    .. autoclass:: Extension
+.. autoclass:: Extension
 
-        .. autoattribute:: name
+    .. autoattribute:: name
 
-        .. automethod:: decode
+    .. automethod:: decode
 
-        .. automethod:: encode
+    .. automethod:: encode
 
-    .. autoclass:: ClientExtensionFactory
+.. autoclass:: ServerExtensionFactory
 
-        .. autoattribute:: name
+    .. automethod:: process_request_params
 
-        .. automethod:: get_request_params
+.. autoclass:: ClientExtensionFactory
 
-        .. automethod:: process_response_params
+    .. autoattribute:: name
 
-    .. autoclass:: ServerExtensionFactory
+    .. automethod:: get_request_params
 
-        .. automethod:: process_request_params
+    .. automethod:: process_response_params

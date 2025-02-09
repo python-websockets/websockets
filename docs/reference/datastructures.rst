@@ -6,61 +6,61 @@ WebSocket events
 
 .. automodule:: websockets.frames
 
-    .. autoclass:: Frame
+.. autoclass:: Frame
 
-    .. autoclass:: Opcode
+.. autoclass:: Opcode
 
-        .. autoattribute:: CONT
-        .. autoattribute:: TEXT
-        .. autoattribute:: BINARY
-        .. autoattribute:: CLOSE
-        .. autoattribute:: PING
-        .. autoattribute:: PONG
+    .. autoattribute:: CONT
+    .. autoattribute:: TEXT
+    .. autoattribute:: BINARY
+    .. autoattribute:: CLOSE
+    .. autoattribute:: PING
+    .. autoattribute:: PONG
 
-    .. autoclass:: Close
+.. autoclass:: Close
 
-    .. autoclass:: CloseCode
+.. autoclass:: CloseCode
 
-        .. autoattribute:: NORMAL_CLOSURE
-        .. autoattribute:: GOING_AWAY
-        .. autoattribute:: PROTOCOL_ERROR
-        .. autoattribute:: UNSUPPORTED_DATA
-        .. autoattribute:: NO_STATUS_RCVD
-        .. autoattribute:: ABNORMAL_CLOSURE
-        .. autoattribute:: INVALID_DATA
-        .. autoattribute:: POLICY_VIOLATION
-        .. autoattribute:: MESSAGE_TOO_BIG
-        .. autoattribute:: MANDATORY_EXTENSION
-        .. autoattribute:: INTERNAL_ERROR
-        .. autoattribute:: SERVICE_RESTART
-        .. autoattribute:: TRY_AGAIN_LATER
-        .. autoattribute:: BAD_GATEWAY
-        .. autoattribute:: TLS_HANDSHAKE
+    .. autoattribute:: NORMAL_CLOSURE
+    .. autoattribute:: GOING_AWAY
+    .. autoattribute:: PROTOCOL_ERROR
+    .. autoattribute:: UNSUPPORTED_DATA
+    .. autoattribute:: NO_STATUS_RCVD
+    .. autoattribute:: ABNORMAL_CLOSURE
+    .. autoattribute:: INVALID_DATA
+    .. autoattribute:: POLICY_VIOLATION
+    .. autoattribute:: MESSAGE_TOO_BIG
+    .. autoattribute:: MANDATORY_EXTENSION
+    .. autoattribute:: INTERNAL_ERROR
+    .. autoattribute:: SERVICE_RESTART
+    .. autoattribute:: TRY_AGAIN_LATER
+    .. autoattribute:: BAD_GATEWAY
+    .. autoattribute:: TLS_HANDSHAKE
 
 HTTP events
 -----------
 
 .. automodule:: websockets.http11
 
-    .. autoclass:: Request
+.. autoclass:: Request
 
-    .. autoclass:: Response
+.. autoclass:: Response
 
 .. automodule:: websockets.datastructures
 
-    .. autoclass:: Headers
+.. autoclass:: Headers
 
-        .. automethod:: get_all
+    .. automethod:: get_all
 
-        .. automethod:: raw_items
+    .. automethod:: raw_items
 
-    .. autoexception:: MultipleValuesError
+.. autoexception:: MultipleValuesError
 
 URIs
 ----
 
 .. automodule:: websockets.uri
 
-    .. autofunction:: parse_uri
+.. autofunction:: parse_uri
 
-    .. autoclass:: WebSocketURI
+.. autoclass:: WebSocketURI

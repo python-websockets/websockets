@@ -3,19 +3,19 @@ Types
 
 .. automodule:: websockets.typing
 
-    .. autodata:: Data
+.. autodata:: Data
 
-    .. autodata:: LoggerLike
+.. autodata:: LoggerLike
 
-    .. autodata:: StatusLike
+.. autodata:: StatusLike
 
-    .. autodata:: Origin
+.. autodata:: Origin
 
-    .. autodata:: Subprotocol
+.. autodata:: Subprotocol
 
-    .. autodata:: ExtensionName
+.. autodata:: ExtensionName
 
-    .. autodata:: ExtensionParameter
+.. autodata:: ExtensionParameter
 
 .. autodata:: websockets.protocol.Event
 

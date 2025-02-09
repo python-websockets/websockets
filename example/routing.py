@@ -146,8 +146,8 @@ url_map = Map(
 
 
 async def main():
-    async with route(url_map, "localhost", 8888):
-        await asyncio.get_running_loop().create_future()  # run forever
+    async with route(url_map, "localhost", 8888) as server:
+        await server.serve_forever()
 
 
 if __name__ == "__main__":

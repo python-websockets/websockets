@@ -14,8 +14,8 @@ async def hello(websocket):
     print(f">>> {greeting}")
 
 async def main():
-    async with serve(hello, "localhost", 8765):
-        await asyncio.get_running_loop().create_future()  # run forever
+    async with serve(hello, "localhost", 8765) as server:
+        await server.serve_forever()
 
 if __name__ == "__main__":
     asyncio.run(main())

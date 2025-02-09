@@ -13,7 +13,7 @@ async def echo(websocket):
         await websocket.send(message)
 
 async def main():
-    async with serve(echo, "localhost", 8765, process_request=health_check):
-        await asyncio.get_running_loop().create_future()  # run forever
+    async with serve(echo, "localhost", 8765, process_request=health_check) as server:
+        await server.serve_forever()
 
 asyncio.run(main())

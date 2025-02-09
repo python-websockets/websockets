@@ -13,8 +13,8 @@ async def show_time(websocket):
         await asyncio.sleep(random.random() * 2 + 1)
 
 async def main():
-    async with serve(show_time, "localhost", 5678):
-        await asyncio.get_running_loop().create_future()  # run forever
+    async with serve(show_time, "localhost", 5678) as server:
+        await server.serve_forever()
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -120,14 +120,10 @@ that runs for each request. When it returns an HTTP response, websockets sends
 that response instead of opening a WebSocket connection. Here, requests to
 ``/healthz`` return an HTTP 200 status code.
 
-To catch the ``SIGTERM`` signal, ``main()`` creates a :class:`~asyncio.Future`
-called ``stop`` and registers a signal handler that sets the result of this
-future. The value of the future doesn't matter; it's only for waiting for
-``SIGTERM``.
-
-Then, by using :func:`~asyncio.server.serve` as a context manager and exiting
-the context when ``stop`` has a result, ``main()`` ensures that the server
-closes connections cleanly and exits on ``SIGTERM``.
+``main()`` registers a signal handler that closes the server when receiving the
+``SIGTERM`` signal. Then, it waits for the server to be closed. Additionally,
+using :func:`~asyncio.server.serve` as a context manager ensures that the server
+will always be closed cleanly, even if the program crashes.
 
 Deploy the WebSocket server
 ---------------------------
@@ -157,14 +153,14 @@ Commit and push your changes:
 
     $ git add .
     $ git commit -m "Deploy to Koyeb."
-    [main ac96d65] Deploy to Koyeb.
-     3 files changed, 18 insertions(+), 2 deletions(-)
+    [main 4a4b6e9] Deploy to Koyeb.
+     3 files changed, 15 insertions(+), 2 deletions(-)
      create mode 100644 Procfile
      create mode 100644 requirements.txt
     $ git push
     ...
     To github.com:python-websockets/websockets-tutorial.git
-    + 6bd6032...ac96d65 main -> main
+    + 6bd6032...4a4b6e9 main -> main
 
 Sign up or log in to Koyeb.
 
@@ -239,7 +235,7 @@ Commit your changes:
     $ git push
     ...
     To github.com:python-websockets/websockets-tutorial.git
-    + ac96d65...0903526 main -> main
+    + 4a4b6e9...968eaaa main -> main
 
 Deploy the web application
 --------------------------

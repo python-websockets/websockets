@@ -101,8 +101,7 @@ Here's an example:
     :emphasize-lines: 13-16,19
 
 When exiting the context manager, :func:`~asyncio.server.serve` closes all
-connections
-with code 1001 (going away). As a consequence:
+connections with code 1001 (going away). As a consequence:
 
 * If the connection handler is awaiting
   :meth:`~asyncio.server.ServerConnection.recv`, it receives a

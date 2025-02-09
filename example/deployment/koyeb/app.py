@@ -19,18 +19,11 @@ def health_check(connection, request):
 
 
 async def main():
-    # Set the stop condition when receiving SIGINT.
-    loop = asyncio.get_running_loop()
-    stop = loop.create_future()
-    loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
-
-    async with serve(
-        echo,
-        host="",
-        port=int(os.environ["PORT"]),
-        process_request=health_check,
-    ):
-        await stop
+    port = int(os.environ["PORT"])
+    async with serve(echo, "", port, process_request=health_check) as server:
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(signal.SIGINT, server.close)
+        await server.wait_closed()
 
 
 if __name__ == "__main__":

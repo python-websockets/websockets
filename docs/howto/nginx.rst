@@ -15,7 +15,7 @@ Run server processes
 Save this app to ``app.py``:
 
 .. literalinclude:: ../../example/deployment/nginx/app.py
-    :emphasize-lines: 21,23
+    :language: python
 
 We'd like nginx to connect to websockets servers via Unix sockets in order to
 avoid the overhead of TCP for communicating between processes running in the

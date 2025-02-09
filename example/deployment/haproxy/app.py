@@ -13,17 +13,11 @@ async def echo(websocket):
 
 
 async def main():
-    # Set the stop condition when receiving SIGTERM.
-    loop = asyncio.get_running_loop()
-    stop = loop.create_future()
-    loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
-
-    async with serve(
-        echo,
-        host="localhost",
-        port=8000 + int(os.environ["SUPERVISOR_PROCESS_NAME"][-2:]),
-    ):
-        await stop
+    port = 8000 + int(os.environ["SUPERVISOR_PROCESS_NAME"][-2:])
+    async with serve(echo, "localhost", port) as server:
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(signal.SIGTERM, server.close)
+        await server.wait_closed()
 
 
 if __name__ == "__main__":

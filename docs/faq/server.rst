@@ -310,7 +310,7 @@ Exit the :func:`~serve` context manager.
 Here's an example that terminates cleanly when it receives SIGTERM on Unix:
 
 .. literalinclude:: ../../example/faq/shutdown_server.py
-    :emphasize-lines: 13-16,19
+    :emphasize-lines: 14-16
 
 How do I stop a server while keeping existing connections open?
 ---------------------------------------------------------------

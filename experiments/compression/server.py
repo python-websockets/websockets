@@ -35,15 +35,6 @@ async def handler(ws):
 
 
 async def server():
-    loop = asyncio.get_running_loop()
-    stop = loop.create_future()
-
-    # Set the stop condition when receiving SIGTERM.
-    print("Stop the server with:")
-    print(f"kill -TERM {os.getpid()}")
-    print()
-    loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
-
     async with serve(
         handler,
         "localhost",
@@ -55,9 +46,15 @@ async def server():
                 compress_settings={"memLevel": ML},
             )
         ],
-    ):
+    ) as server:
+        print("Stop the server with:")
+        print(f"kill -TERM {os.getpid()}")
+        print()
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(signal.SIGTERM, server.close)
+
         tracemalloc.start()
-        await stop
+        await server.wait_closed()
 
 
 asyncio.run(server())

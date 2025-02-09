@@ -15,7 +15,7 @@ Run server processes
 Save this app to ``app.py``:
 
 .. literalinclude:: ../../example/deployment/haproxy/app.py
-    :emphasize-lines: 24
+    :language: python
 
 Each server process listens on a different port by extracting an incremental
 index from an environment variable set by Supervisor.

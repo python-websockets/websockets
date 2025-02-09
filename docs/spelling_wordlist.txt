@@ -27,6 +27,7 @@ Dockerfile
 dyno
 formatter
 fractalideas
+github
 gunicorn
 healthz
 html
@@ -38,7 +39,7 @@ iterable
 js
 keepalive
 KiB
-Koyeb
+koyeb
 kubernetes
 lifecycle
 linkerd

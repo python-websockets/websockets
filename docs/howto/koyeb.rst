@@ -119,13 +119,13 @@ virtualenv as follows:
     $ pip install websockets
 
 Look for the URL of your app in the Koyeb control panel. It looks like
-``https://<koyeb-app>-<github-user>-<koyeb-app-id>.koyeb.app/``. Connect the
+``https://<app>-<user>-<id>.koyeb.app/``. Connect the
 interactive client — you must replace ``https`` with ``wss``  in the URL:
 
 .. code-block:: console
 
-    $ python -m websockets wss://<koyeb-app>-<github-user>-<koyeb-app-id>.koyeb.app/
-    Connected to wss://<koyeb-app>-<github-user>-<koyeb-app-id>.koyeb.app/.
+    $ python -m websockets wss://<app>-<user>-<id>.koyeb.app/
+    Connected to wss://<app>-<user>-<id>.koyeb.app/.
     >
 
 Great! Your app is running!
@@ -146,8 +146,8 @@ Connect an interactive client again:
 
 .. code-block:: console
 
-    $ python -m websockets wss://<koyeb-app>-<github-user>-<koyeb-app-id>.koyeb.app/
-    Connected to wss://<koyeb-app>-<github-user>-<koyeb-app-id>.koyeb.app/.
+    $ python -m websockets wss://<app>-<user>-<id>.koyeb.app/
+    Connected to wss://<app>-<user>-<id>.koyeb.app/.
     >
 
 In the Koyeb control panel, go to the **Settings** tab, click **Pause**, and
@@ -157,8 +157,8 @@ Eventually, the connection gets closed with code 1001 (going away).
 
 .. code-block:: console
 
-    $ python -m websockets wss://<koyeb-app>-<github-user>-<koyeb-app-id>.koyeb.app/
-    Connected to wss://<koyeb-app>-<github-user>-<koyeb-app-id>.koyeb.app/.
+    $ python -m websockets wss://<app>-<user>-<id>.koyeb.app/
+    Connected to wss://<app>-<user>-<id>.koyeb.app/.
     Connection closed: 1001 (going away).
 
 If graceful shutdown wasn't working, the server wouldn't perform a closing

@@ -28,14 +28,20 @@ and a WebSocket server on ``ws://localhost:8001/`` with:
 Now you want to deploy these servers on the Internet. There's a vast range of
 hosting providers to choose from. For the sake of simplicity, we'll rely on:
 
-* GitHub Pages for the HTTP server;
-* Heroku for the WebSocket server.
+* `GitHub Pages`_ for the HTTP server;
+* Koyeb_ for the WebSocket server.
+
+.. _GitHub Pages: https://pages.github.com/
+.. _Koyeb: https://www.koyeb.com/
+
+Koyeb is a modern Platform as a Service provider whose free tier allows you to
+run a web application, including a WebSocket server.
 
 Commit project to git
 ---------------------
 
 Perhaps you committed your work to git while you were progressing through the
-tutorial. If you didn't, now is a good time, because GitHub and Heroku offer
+tutorial. If you didn't, now is a good time, because GitHub and Koyeb offer
 git-based deployment workflows.
 
 Initialize a git repository:
@@ -45,7 +51,7 @@ Initialize a git repository:
     $ git init -b main
     Initialized empty Git repository in websockets-tutorial/.git/
     $ git commit --allow-empty -m "Initial commit."
-    [main (root-commit) ...] Initial commit.
+    [main (root-commit) 8195c1d] Initial commit.
 
 Add all files and commit:
 
@@ -53,7 +59,7 @@ Add all files and commit:
 
     $ git add .
     $ git commit -m "Initial implementation of Connect Four game."
-    [main ...] Initial implementation of Connect Four game.
+    [main 7f0b2c4] Initial implementation of Connect Four game.
      6 files changed, 500 insertions(+)
      create mode 100644 app.py
      create mode 100644 connect4.css
@@ -62,31 +68,57 @@ Add all files and commit:
      create mode 100644 index.html
      create mode 100644 main.js
 
-Prepare the WebSocket server
-----------------------------
+Sign up or log in to GitHub.
 
-Before you deploy the server, you must adapt it to meet requirements of
-Heroku's runtime. This involves two small changes:
+Create a new repository. Set the repository name to ``websockets-tutorial``,
+the visibility to Public, and click **Create repository**.
 
-1. Heroku expects the server to `listen on a specific port`_, provided in the
-   ``$PORT`` environment variable.
+Push your code to this repository. You must replace ``python-websockets`` by
+your GitHub username in the following command:
 
-2. Heroku sends a ``SIGTERM`` signal when `shutting down a dyno`_, which
-   should trigger a clean exit.
+.. code-block:: console
 
-.. _listen on a specific port: https://devcenter.heroku.com/articles/preparing-a-codebase-for-heroku-deployment#4-listen-on-the-correct-port
+    $ git remote add origin git@github.com:python-websockets/websockets-tutorial.git
+    $ git branch -M main
+    $ git push -u origin main
+    ...
+    To github.com:python-websockets/websockets-tutorial.git
+     * [new branch]      main -> main
+    Branch 'main' set up to track remote branch 'main' from 'origin'.
 
-.. _shutting down a dyno: https://devcenter.heroku.com/articles/dynos#shutdown
+Adapt the WebSocket server
+--------------------------
+
+Before you deploy the server, you must adapt it for Koyeb's environment. This
+involves three small changes:
+
+1. Koyeb provides the port on which the server should listen in the ``$PORT``
+   environment variable.
+
+2. Koyeb requires a health check to verify that the server is running. We'll add
+   a HTTP health check.
+
+3. Koyeb sends a ``SIGTERM`` signal when terminating the server. We'll catch it
+   and trigger a clean exit.
 
 Adapt the ``main()`` coroutine accordingly:
 
 .. code-block:: python
 
+    import http
     import os
     import signal
 
 .. literalinclude:: ../../example/tutorial/step3/app.py
+    :pyobject: health_check
+
+.. literalinclude:: ../../example/tutorial/step3/app.py
     :pyobject: main
+
+The ``process_request`` parameter of :func:`~asyncio.server.serve` is a callback
+that runs for each request. When it returns an HTTP response, websockets sends
+that response instead of opening a WebSocket connection. Here, requests to
+``/healthz`` return an HTTP 200 status code.
 
 To catch the ``SIGTERM`` signal, ``main()`` creates a :class:`~asyncio.Future`
 called ``stop`` and registers a signal handler that sets the result of this
@@ -97,8 +129,6 @@ Then, by using :func:`~asyncio.server.serve` as a context manager and exiting
 the context when ``stop`` has a result, ``main()`` ensures that the server
 closes connections cleanly and exits on ``SIGTERM``.
 
-The app is now fully compatible with Heroku.
-
 Deploy the WebSocket server
 ---------------------------
 
@@ -108,12 +138,12 @@ when building the image:
 .. literalinclude:: ../../example/tutorial/step3/requirements.txt
     :language: text
 
-.. admonition:: Heroku treats ``requirements.txt`` as a signal to `detect a Python app`_.
+.. admonition:: Koyeb treats ``requirements.txt`` as a signal to `detect a Python app`__.
     :class: tip
 
     That's why you don't need to declare that you need a Python runtime.
 
-.. _detect a Python app: https://devcenter.heroku.com/articles/python-support#recognizing-a-python-app
+    __ https://www.koyeb.com/docs/build-and-deploy/build-from-git/python#detection
 
 Create a ``Procfile`` file with this content to configure the command for
 running the server:
@@ -121,66 +151,52 @@ running the server:
 .. literalinclude:: ../../example/tutorial/step3/Procfile
     :language: text
 
-Commit your changes:
+Commit and push your changes:
 
 .. code-block:: console
 
     $ git add .
-    $ git commit -m "Deploy to Heroku."
-    [main ...] Deploy to Heroku.
-     3 files changed, 12 insertions(+), 2 deletions(-)
+    $ git commit -m "Deploy to Koyeb."
+    [main ac96d65] Deploy to Koyeb.
+     3 files changed, 18 insertions(+), 2 deletions(-)
      create mode 100644 Procfile
      create mode 100644 requirements.txt
+    $ git push
+    ...
+    To github.com:python-websockets/websockets-tutorial.git
+    + 6bd6032...ac96d65 main -> main
 
-Follow the `set-up instructions`_ to install the Heroku CLI and to log in, if
-you haven't done that yet.
+Sign up or log in to Koyeb.
 
-.. _set-up instructions: https://devcenter.heroku.com/articles/getting-started-with-python#set-up
+In the Koyeb control panel, create a web service with GitHub as the deployment
+method. `Install and authorize Koyeb's GitHub app`__ if you haven't done that yet.
 
-Create a Heroku app. You must choose a unique name and replace
-``websockets-tutorial`` by this name in the following command:
+__ https://www.koyeb.com/docs/build-and-deploy/deploy-with-git#connect-your-github-account-to-koyeb
 
-.. code-block:: console
+Follow the steps to create a new service:
 
-    $ heroku create websockets-tutorial
-    Creating ⬢ websockets-tutorial... done
-    https://websockets-tutorial.herokuapp.com/ | https://git.heroku.com/websockets-tutorial.git
+1. Select the ``websockets-tutorial`` repository in the list of your repositories.
+2. Confirm that the **Free** instance type is selected. Click **Next**.
+3. Configure health checks: change the protocol from TCP to HTTP and set the
+   path to ``/healthz``. Review other settings; defaults should be correct.
+   Click **Deploy**.
 
-If you reuse a name that someone else already uses, you will receive this
-error; if this happens, try another name:
-
-.. code-block:: console
-
-    $ heroku create websockets-tutorial
-    Creating ⬢ websockets-tutorial... !
-     ▸    Name websockets-tutorial is already taken
-
-Deploy by pushing the code to Heroku:
-
-.. code-block:: console
-
-    $ git push heroku
-
-    ... lots of output...
-
-    remote:        Released v1
-    remote:        https://websockets-tutorial.herokuapp.com/ deployed to Heroku
-    remote:
-    remote: Verifying deploy... done.
-    To https://git.heroku.com/websockets-tutorial.git
-     * [new branch]      main -> main
+Koyeb builds the app, deploys it, verifies that the health checks passes, and
+makes the deployment active.
 
 You can test the WebSocket server with the interactive client exactly like you
-did in the first part of the tutorial. Replace ``websockets-tutorial`` by the
-name of your app in the following command:
+did in the first part of the tutorial. The Koyeb control panel provides the URL
+of your app in the format: ``https://<app>-<user>-<id>.koyeb.app/``. Replace
+``https`` with ``wss`` in the URL and connect the interactive client:
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-tutorial.herokuapp.com/
-    Connected to wss://websockets-tutorial.herokuapp.com/.
+    $ python -m websockets wss://<app>-<user>-<id>.koyeb.app/
+    Connected to wss://<app>-<user>-<id>.koyeb.app/.
     > {"type": "init"}
     < {"type": "init", "join": "54ICxFae_Ip7TJE2", "watch": "634w44TblL5Dbd9a"}
-    Connection closed: 1000 (OK).
+
+Press Ctrl-D to terminate the connection.
 
 It works!
 
@@ -199,7 +215,7 @@ You can take this strategy one step further by checking the address of the
 HTTP server and determining the address of the WebSocket server accordingly.
 
 Add this function to ``main.js``; replace ``python-websockets`` by your GitHub
-username and ``websockets-tutorial`` by the name of your app on Heroku:
+username and ``websockets-tutorial`` by the name of your app on Koyeb:
 
 .. literalinclude:: ../../example/tutorial/step3/main.js
     :language: js
@@ -218,42 +234,27 @@ Commit your changes:
 
     $ git add .
     $ git commit -m "Configure WebSocket server address."
-    [main ...] Configure WebSocket server address.
+    [main 0903526] Configure WebSocket server address.
      1 file changed, 11 insertions(+), 1 deletion(-)
+    $ git push
+    ...
+    To github.com:python-websockets/websockets-tutorial.git
+    + ac96d65...0903526 main -> main
 
 Deploy the web application
 --------------------------
-
-Go to GitHub and create a new repository called ``websockets-tutorial``.
-
-Push your code to this repository. You must replace ``python-websockets`` by
-your GitHub username in the following command:
-
-.. code-block:: console
-
-    $ git remote add origin git@github.com:python-websockets/websockets-tutorial.git
-    $ git push -u origin main
-    Enumerating objects: 11, done.
-    Counting objects: 100% (11/11), done.
-    Delta compression using up to 8 threads
-    Compressing objects: 100% (10/10), done.
-    Writing objects: 100% (11/11), 5.90 KiB | 2.95 MiB/s, done.
-    Total 11 (delta 0), reused 0 (delta 0), pack-reused 0
-    To github.com:<username>/websockets-tutorial.git
-     * [new branch]      main -> main
-    Branch 'main' set up to track remote branch 'main' from 'origin'.
 
 Go back to GitHub, open the Settings tab of the repository and select Pages in
 the menu. Select the main branch as source and click Save. GitHub tells you
 that your site is published.
 
-Follow the link and start a game!
+Open https://<your-username>.github.io/websockets-tutorial/ and start a game!
 
 Summary
 -------
 
 In this third part of the tutorial, you learned how to deploy a WebSocket
-application with Heroku.
+application with Koyeb.
 
 You can start a Connect Four game, send the JOIN link to a friend, and play
 over the Internet!

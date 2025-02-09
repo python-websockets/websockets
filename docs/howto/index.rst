@@ -21,7 +21,6 @@ If you're stuck, perhaps you'll find the answer here.
 .. toctree::
    :titlesonly:
 
-   cheatsheet
    patterns
    autoreload
 

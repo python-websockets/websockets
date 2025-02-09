@@ -72,7 +72,7 @@ Here's a basic configuration for a server in production::
 Here's how to enable debug logs for development::
 
     logging.basicConfig(
-        format="%(message)s",
+        format="%(asctime)s %(message)s",
         level=logging.DEBUG,
     )
 

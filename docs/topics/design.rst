@@ -1,7 +1,7 @@
 :orphan:
 
-Design (legacy :mod:`asyncio`)
-==============================
+Design (legacy)
+===============
 
 .. currentmodule:: websockets.legacy
 

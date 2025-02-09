@@ -1,5 +1,5 @@
-Server (legacy :mod:`asyncio`)
-==============================
+Server (legacy)
+===============
 
 .. admonition:: The legacy :mod:`asyncio` implementation is deprecated.
     :class: caution

@@ -51,12 +51,11 @@ application servers.
    sansio/server
    sansio/client
 
-:mod:`asyncio` (legacy)
------------------------
+Legacy
+------
 
-This is the historical implementation.
-
-It is deprecated and will be removed.
+This is the historical implementation. It is deprecated. It will be removed by
+2030.
 
 .. toctree::
    :titlesonly:
@@ -67,7 +66,7 @@ It is deprecated and will be removed.
 Extensions
 ----------
 
-The Per-Message Deflate extension is built in. You may also define custom
+The Per-Message Deflate extension is built-in. You may also define custom
 extensions.
 
 .. toctree::

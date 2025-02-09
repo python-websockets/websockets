@@ -1,5 +1,5 @@
-Client (legacy :mod:`asyncio`)
-==============================
+Client (legacy)
+===============
 
 .. admonition:: The legacy :mod:`asyncio` implementation is deprecated.
     :class: caution

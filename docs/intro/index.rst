@@ -35,6 +35,7 @@ Tutorial
 Learn how to build an real-time web application with websockets.
 
 .. toctree::
+    :maxdepth: 1
 
     tutorial1
     tutorial2

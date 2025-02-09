@@ -68,6 +68,7 @@ Both sides
     | Measure latency                    | ✅     | ✅     | —      | ✅     |
     +------------------------------------+--------+--------+--------+--------+
     | Perform the closing handshake      | ✅     | ✅     | ✅     | ✅     |
+    +------------------------------------+--------+--------+--------+--------+
     | Enforce closing timeout            | ✅     | ✅     | —      | ✅     |
     +------------------------------------+--------+--------+--------+--------+
     | Report close codes and reasons     | ✅     | ✅     | ✅     | ❌     |
@@ -177,7 +178,7 @@ There is no way to control compression of outgoing frames on a per-frame basis
 .. _#538: https://github.com/python-websockets/websockets/issues/538
 
 The server doesn't check the Host header and doesn't respond with HTTP 400 Bad
-Request if it is missing or invalid (`#1246`).
+Request if it is missing or invalid (`#1246`_).
 
 .. _#1246: https://github.com/python-websockets/websockets/issues/1246
 

@@ -1,5 +1,5 @@
-Client (new :mod:`asyncio`)
-===========================
+Client (:mod:`asyncio`)
+=======================
 
 .. automodule:: websockets.asyncio.client
 

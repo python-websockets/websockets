@@ -1,7 +1,7 @@
 :orphan:
 
-Both sides (legacy :mod:`asyncio`)
-==================================
+Both sides (legacy)
+===================
 
 .. admonition:: The legacy :mod:`asyncio` implementation is deprecated.
     :class: caution

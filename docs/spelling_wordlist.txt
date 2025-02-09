@@ -33,6 +33,7 @@ healthz
 html
 hypercorn
 iframe
+io
 IPv
 istio
 iterable

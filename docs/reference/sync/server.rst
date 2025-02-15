@@ -23,18 +23,6 @@ Routing connections
 
 .. currentmodule:: websockets.sync.server
 
-Routing connections
--------------------
-
-.. autofunction:: route
-    :async:
-
-.. autofunction:: unix_route
-    :async:
-
-.. autoclass:: Server
-
-
 Running a server
 ----------------
 

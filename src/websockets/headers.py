@@ -390,7 +390,7 @@ parse_extension_list = parse_extension  # alias for backwards compatibility
 
 
 def build_extension_item(
-    name: ExtensionName, parameters: list[ExtensionParameter]
+    name: ExtensionName, parameters: Sequence[ExtensionParameter]
 ) -> str:
     """
     Build an extension definition.

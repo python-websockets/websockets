@@ -351,7 +351,7 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         self.client_max_window_bits = client_max_window_bits
         self.compress_settings = compress_settings
 
-    def get_request_params(self) -> list[ExtensionParameter]:
+    def get_request_params(self) -> Sequence[ExtensionParameter]:
         """
         Build request parameters.
 

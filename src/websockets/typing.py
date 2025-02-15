@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import http
 import logging
-from typing import TYPE_CHECKING, Any, NewType, Optional, Union
+from typing import TYPE_CHECKING, Any, NewType, Optional, Sequence, Union
 
 
 __all__ = [
@@ -62,7 +62,7 @@ ExtensionParameter = tuple[str, Optional[str]]
 
 # Private types
 
-ExtensionHeader = tuple[ExtensionName, list[ExtensionParameter]]
+ExtensionHeader = tuple[ExtensionName, Sequence[ExtensionParameter]]
 """Extension in a ``Sec-WebSocket-Extensions`` header."""
 
 

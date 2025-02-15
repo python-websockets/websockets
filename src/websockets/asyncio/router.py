@@ -81,7 +81,9 @@ def route(
     """
     Create a WebSocket server dispatching connections to different handlers.
 
-    This feature requires the third-party library `werkzeug`_::
+    This feature requires the third-party library `werkzeug`_:
+
+    .. code-block:: console
 
         $ pip install werkzeug
 

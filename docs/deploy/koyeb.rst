@@ -139,7 +139,6 @@ or press Ctrl-D to terminate the connection:
     < Hello!
     Connection closed: 1000 (OK).
 
-
 You can also confirm that your application shuts down gracefully.
 
 Connect an interactive client again:

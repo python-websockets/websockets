@@ -6,10 +6,13 @@ Security
 Encryption
 ----------
 
-For production use, a server should require encrypted connections.
+In production, you should always secure WebSocket connections with TLS.
 
-See this example of :ref:`encrypting connections with TLS
-<secure-server-example>`.
+Secure WebSocket connections provide confidentiality and integrity, as well as
+better reliability because they reduce the risk of interference by bad proxies.
+
+WebSocket servers are usually deployed behind a reverse proxy that terminates
+TLS. Else, you can :doc:`configure TLS <../howto/encryption>` for the server.
 
 Memory usage
 ------------

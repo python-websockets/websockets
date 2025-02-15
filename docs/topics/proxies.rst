@@ -55,7 +55,9 @@ SOCKS proxies
 -------------
 
 Connecting through a SOCKS proxy requires installing the third-party library
-`python-socks`_::
+`python-socks`_:
+
+.. code-block:: console
 
     $ pip install python-socks\[asyncio\]
 

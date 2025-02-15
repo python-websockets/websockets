@@ -94,7 +94,6 @@ Using a connection
 
     .. autoproperty:: close_reason
 
-
 Broadcast
 ---------
 

@@ -61,7 +61,9 @@ If you have outgrow these simple patterns, websockets provides full-fledged
 routing based on the request path with :func:`~asyncio.router.route`.
 
 This feature builds upon Flask_'s router. To use it, you must install the
-third-party library `werkzeug`_::
+third-party library `werkzeug`_:
+
+.. code-block:: console
 
     $ pip install werkzeug
 
@@ -78,6 +80,5 @@ To give you a sense of what's possible, here's the URL map of the example in
 .. _experiments/routing.py: https://github.com/python-websockets/websockets/blob/main/experiments/routing.py
 
 .. literalinclude:: ../../experiments/routing.py
-    :language: python
     :start-at: url_map = Map(
     :end-at: await server.serve_forever()

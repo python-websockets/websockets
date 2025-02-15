@@ -1,13 +1,18 @@
 How-to guides
 =============
 
-In a hurry? Check out these examples.
+Set up your development environment comfortably.
 
 .. toctree::
 
-   quickstart
-   debugging
    autoreload
+   debugging
+
+Configure websockets securely in production.
+
+.. toctree::
+
+   encryption
 
 If you're stuck, perhaps you'll find the answer here.
 
@@ -25,7 +30,6 @@ Upgrading from the legacy :mod:`asyncio` implementation to the new one?
 Read this.
 
 .. toctree::
-   :maxdepth: 2
 
    upgrade
 

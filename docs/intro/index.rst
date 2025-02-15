@@ -35,7 +35,7 @@ Tutorial
 Learn how to build an real-time web application with websockets.
 
 .. toctree::
-    :maxdepth: 1
+    :maxdepth: 2
 
     tutorial1
     tutorial2
@@ -44,4 +44,9 @@ Learn how to build an real-time web application with websockets.
 In a hurry?
 -----------
 
-Look at the :doc:`quick start guide <../howto/quickstart>`.
+These examples will get you started quickly with websockets.
+
+.. toctree::
+    :maxdepth: 2
+
+    examples

@@ -20,7 +20,6 @@ based on the Deflate_ algorithm specified in :rfc:`7692`.
 the reduction in network bandwidth is usually worth the additional memory and
 CPU cost.
 
-
 Configuring compression
 -----------------------
 

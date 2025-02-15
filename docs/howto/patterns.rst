@@ -1,46 +1,52 @@
-Patterns
-========
+Design a WebSocket application
+==============================
 
 .. currentmodule:: websockets
 
-Here are typical patterns for processing messages in a WebSocket server or
-client. You will certainly implement some of them in your application.
+WebSocket server or client applications follow common patterns. This guide
+describes patterns that you're likely to implement in your application.
 
-This page gives examples of connection handlers for a server. However, they're
-also applicable to a client, simply by assuming that ``websocket`` is a
-connection created with :func:`~asyncio.client.connect`.
+All examples are connection handlers for a server. However, they would also
+apply to a client, assuming that ``websocket`` is a connection created with
+:func:`~asyncio.client.connect`.
 
-WebSocket connections are long-lived. You will usually write a loop to process
-several messages during the lifetime of a connection.
+.. admonition:: WebSocket connections are long-lived.
+    :class: tip
 
-Consumer
---------
+    You need a loop to process several messages during the lifetime of a
+    connection.
+
+Consumer pattern
+----------------
 
 To receive messages from the WebSocket connection::
 
     async def consumer_handler(websocket):
         async for message in websocket:
-            await consumer(message)
+            await consume(message)
 
-In this example, ``consumer()`` is a coroutine implementing your business
-logic for processing a message received on the WebSocket connection. Each
-message may be :class:`str` or :class:`bytes`.
+In this example, ``consume()`` is a coroutine implementing your business logic
+for processing a message received on the WebSocket connection.
 
 Iteration terminates when the client disconnects.
 
-Producer
---------
+Producer pattern
+----------------
 
 To send messages to the WebSocket connection::
 
-    async def producer_handler(websocket):
-        while True:
-            message = await producer()
-            await websocket.send(message)
+    from websockets.exceptions import ConnectionClosed
 
-In this example, ``producer()`` is a coroutine implementing your business
-logic for generating the next message to send on the WebSocket connection.
-Each message must be :class:`str` or :class:`bytes`.
+    async def producer_handler(websocket):
+        try:
+            while True:
+                message = await produce()
+                await websocket.send(message)
+        except ConnectionClosed:
+            break
+
+In this example, ``produce()`` is a coroutine implementing your business logic
+for generating the next message to send on the WebSocket connection.
 
 Iteration terminates when the client disconnects because
 :meth:`~asyncio.server.ServerConnection.send` raises a
@@ -51,8 +57,12 @@ Consumer and producer
 ---------------------
 
 You can receive and send messages on the same WebSocket connection by
-combining the consumer and producer patterns. This requires running two tasks
-in parallel::
+combining the consumer and producer patterns.
+
+This requires running two tasks in parallel. The simplest option offered by
+:mod:`asyncio` is::
+
+    import asyncio
 
     async def handler(websocket):
         await asyncio.gather(
@@ -98,6 +108,10 @@ connect and unregister them when they disconnect::
 
 This example maintains the set of connected clients in memory. This works as
 long as you run a single process. It doesn't scale to multiple processes.
+
+If you just need the set of connected clients, as in this example, use the
+:attr:`~asyncio.server.Server.connections` property of the server. This pattern
+is needed only when recording additional information about each client.
 
 Publish–subscribe
 -----------------

@@ -14,22 +14,19 @@ Configure websockets securely in production.
 
    encryption
 
-If you're stuck, perhaps you'll find the answer here.
+These guides will help you design and build your application.
 
 .. toctree::
+   :maxdepth: 2
 
    patterns
-
-This guide will help you integrate websockets into a broader system.
-
-.. toctree::
-
    django
 
 Upgrading from the legacy :mod:`asyncio` implementation to the new one?
 Read this.
 
 .. toctree::
+   :maxdepth: 2
 
    upgrade
 

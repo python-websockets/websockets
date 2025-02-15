@@ -1,30 +1,39 @@
 Write an extension
 ==================
 
-.. currentmodule:: websockets.extensions
+.. currentmodule:: websockets
 
 During the opening handshake, WebSocket clients and servers negotiate which
-extensions_ will be used with which parameters. Then each frame is processed
-by extensions before being sent or after being received.
+extensions_ will be used and with which parameters.
 
 .. _extensions: https://datatracker.ietf.org/doc/html/rfc6455.html#section-9
 
-As a consequence, writing an extension requires implementing several classes:
+Then, each frame is processed before being sent and after being received
+according to the extensions that were negotiated.
 
-* Extension Factory: it negotiates parameters and instantiates the extension.
+Writing an extension requires implementing at least two classes, an extension
+factory and an extension. They inherit from base classes provided by websockets.
 
-  Clients and servers require separate extension factories with distinct APIs.
+Extension factory
+-----------------
 
-  Extension factories are the public API of an extension.
+An extension factory negotiates parameters and instantiates the extension.
 
-* Extension: it decodes incoming frames and encodes outgoing frames.
+Clients and servers require separate extension factories with distinct APIs.
+Base classes are :class:`~extensions.ClientExtensionFactory` and
+:class:`~extensions.ServerExtensionFactory`.
 
-  If the extension is symmetrical, clients and servers can use the same
-  class.
+Extension factories are the public API of an extension. Extensions are enabled
+with the ``extensions`` parameter of :func:`~asyncio.client.connect` or
+:func:`~asyncio.server.serve`.
 
-  Extensions are initialized by extension factories, so they don't need to be
-  part of the public API of an extension.
+Extension
+---------
 
-websockets provides base classes for extension factories and extensions.
-See :class:`ClientExtensionFactory`, :class:`ServerExtensionFactory`,
-and :class:`Extension` for details.
+An extension decodes incoming frames and encodes outgoing frames.
+
+If the extension is symmetrical, clients and servers can use the same class. The
+base class is :class:`~extensions.Extension`.
+
+Since extensions are initialized by extension factories, they don't need to be
+part of the public API of an extension.

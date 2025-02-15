@@ -68,6 +68,8 @@ New features
 Improvements
 ............
 
+* Refreshed several how-to guides and topic guides.
+
 * Added type overloads for the ``decode`` argument of
   :meth:`~asyncio.connection.Connection.recv`. This may simplify static typing.
 

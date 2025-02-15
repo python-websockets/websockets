@@ -101,6 +101,7 @@ call its APIs in the websockets server.
 Now here's how to implement authentication.
 
 .. literalinclude:: ../../example/django/authentication.py
+    :caption: authentication.py
 
 Let's unpack this code.
 
@@ -113,23 +114,25 @@ your settings module.
 
 The connection handler reads the first message received from the client, which
 is expected to contain a django-sesame token. Then it authenticates the user
-with ``get_user()``, the API for `authentication outside a view`_. If
-authentication fails, it closes the connection and exits.
+with :func:`~sesame.utils.get_user`, the API provided by django-sesame for
+`authentication outside a view`_.
 
 .. _authentication outside a view: https://django-sesame.readthedocs.io/en/stable/howto.html#outside-a-view
 
-When we call an API that makes a database query such as ``get_user()``, we
-wrap the call in :func:`~asyncio.to_thread`. Indeed, the Django ORM doesn't
-support asynchronous I/O. It would block the event loop if it didn't run in a
-separate thread.
+If authentication fails, it closes the connection and exits.
+
+When we call an API that makes a database query such as
+:func:`~sesame.utils.get_user`, we wrap the call in :func:`~asyncio.to_thread`.
+Indeed, the Django ORM doesn't support asynchronous I/O. It would block the
+event loop if it didn't run in a separate thread.
 
 Finally, we start a server with :func:`~websockets.asyncio.server.serve`.
 
 We're ready to test!
 
-Save this code to a file called ``authentication.py``, make sure the
-``DJANGO_SETTINGS_MODULE`` environment variable is set properly, and start the
-websockets server:
+Download :download:`authentication.py <../../example/django/authentication.py>`,
+make sure the ``DJANGO_SETTINGS_MODULE`` environment variable is set properly,
+and start the websockets server:
 
 .. code-block:: console
 
@@ -169,7 +172,7 @@ following code in the JavaScript console of the browser:
     websocket.onmessage = (event) => console.log(event.data);
 
 If you don't want to import your entire Django project into the websockets
-server, you can build a separate Django project with ``django.contrib.auth``,
+server, you can create a simpler Django project with ``django.contrib.auth``,
 ``django-sesame``, a suitable ``User`` model, and a subset of the settings of
 the main project.
 
@@ -184,11 +187,11 @@ action was made. This may be used for showing notifications to other users.
 
 Many use cases for WebSocket with Django follow a similar pattern.
 
-Set up event bus
-................
+Set up event stream
+...................
 
-We need a event bus to enable communications between Django and websockets.
-Both sides connect permanently to the bus. Then Django writes events and
+We need an event stream to enable communications between Django and websockets.
+Both sides connect permanently to the stream. Then Django writes events and
 websockets reads them. For the sake of simplicity, we'll rely on `Redis
 Pub/Sub`_.
 
@@ -219,14 +222,15 @@ change ``get_redis_connection("default")`` in the code below to the same name.
 Publish events
 ..............
 
-Now let's write events to the bus.
+Now let's write events to the stream.
 
 Add the following code to a module that is imported when your Django project
-starts. Typically, you would put it in a ``signals.py`` module, which you
-would import in the ``AppConfig.ready()`` method of one of your apps:
+starts. Typically, you would put it in a :download:`signals.py
+<../../example/django/signals.py>` module, which you would import in the
+``AppConfig.ready()`` method of one of your apps:
 
 .. literalinclude:: ../../example/django/signals.py
-
+    :caption: signals.py
 This code runs every time the admin saves a ``LogEntry`` object to keep track
 of a change. It extracts interesting data, serializes it to JSON, and writes
 an event to Redis.
@@ -256,13 +260,13 @@ We need to add several features:
 
 * Keep track of connected clients so we can broadcast messages.
 * Tell which content types the user has permission to view or to change.
-* Connect to the message bus and read events.
+* Connect to the message stream and read events.
 * Broadcast these events to users who have corresponding permissions.
 
 Here's a complete implementation.
 
 .. literalinclude:: ../../example/django/notifications.py
-
+    :caption: notifications.py
 Since the ``get_content_types()`` function makes a database query, it is
 wrapped inside :func:`asyncio.to_thread()`. It runs once when each WebSocket
 connection is open; then its result is cached for the lifetime of the
@@ -273,13 +277,10 @@ The connection handler merely registers the connection in a global variable,
 associated to the list of content types for which events should be sent to
 that connection, and waits until the client disconnects.
 
-The ``process_events()`` function reads events from Redis and broadcasts them
-to all connections that should receive them. We don't care much if a sending a
-notification fails — this happens when a connection drops between the moment
-we iterate on connections and the moment the corresponding message is sent —
-so we start a task with for each message and forget about it. Also, this means
-we're immediately ready to process the next event, even if it takes time to
-send a message to a slow client.
+The ``process_events()`` function reads events from Redis and broadcasts them to
+all connections that should receive them. We don't care much if a sending a
+notification fails. This happens when a connection drops between the moment we
+iterate on connections and the moment the corresponding message is sent.
 
 Since Redis can publish a message to multiple subscribers, multiple instances
 of this server can safely run in parallel.
@@ -290,4 +291,4 @@ Does it scale?
 In theory, given enough servers, this design can scale to a hundred million
 clients, since Redis can handle ten thousand servers and each server can
 handle ten thousand clients. In practice, you would need a more scalable
-message bus before reaching that scale, due to the volume of messages.
+message stream before reaching that scale, due to the volume of messages.

@@ -73,11 +73,11 @@ first argument to declare which URL patterns map to which handlers. Review the
 documentation of :mod:`werkzeug.routing` to learn about its functionality.
 
 To give you a sense of what's possible, here's the URL map of the example in
-`example/routing.py`_:
+`experiments/routing.py`_:
 
-.. _example/routing.py: https://github.com/python-websockets/websockets/blob/main/example/routing.py
+.. _experiments/routing.py: https://github.com/python-websockets/websockets/blob/main/experiments/routing.py
 
-.. literalinclude:: ../../example/routing.py
+.. literalinclude:: ../../experiments/routing.py
     :language: python
     :start-at: url_map = Map(
     :end-at: await server.serve_forever()

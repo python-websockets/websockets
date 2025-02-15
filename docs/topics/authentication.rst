@@ -313,8 +313,8 @@ To authenticate a websockets client with HTTP Basic Authentication
     async with connect(f"wss://{username}:{password}@.../") as websocket:
         ...
 
-(You must :func:`~urllib.parse.quote` ``username`` and ``password`` if they
-contain unsafe characters.)
+You must :func:`~urllib.parse.quote` ``username`` and ``password`` if they
+contain unsafe characters.
 
 To authenticate a websockets client with HTTP Bearer Authentication
 (:rfc:`6750`), add a suitable ``Authorization`` header:

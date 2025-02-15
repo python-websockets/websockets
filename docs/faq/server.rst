@@ -208,26 +208,8 @@ How do I access the request path?
 
 It is available in the :attr:`~ServerConnection.request` object.
 
-You may route a connection to different handlers depending on the request path::
-
-    async def handler(websocket):
-        if websocket.request.path == "/blue":
-            await blue_handler(websocket)
-        elif websocket.request.path == "/green":
-            await green_handler(websocket)
-        else:
-            # No handler for this path; close the connection.
-            return
-
-For more complex routing, you may use :func:`~websockets.asyncio.router.route`.
-
-You may also route the connection based on the first message received from the
-client, as shown in the :doc:`tutorial <../intro/tutorial2>`. When you want to
-authenticate the connection before routing it, this is usually more convenient.
-
-Generally speaking, there is far less emphasis on the request path in WebSocket
-servers than in HTTP servers. When a WebSocket server provides a single endpoint,
-it may ignore the request path entirely.
+Refer to the :doc:`routing guide <../topics/routing>` for details on how to
+route connections to different handlers depending on the request path.
 
 How do I access HTTP headers?
 -----------------------------

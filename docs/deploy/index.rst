@@ -14,8 +14,8 @@ architecture will almost certainly look like the following diagram:
 The basic unit for scaling a websockets server is "one server process". Each
 blue box in the diagram represents one server process.
 
-There's more variation in routing. While the routing layer is shown as one big
-box, it is likely to involve several subsystems.
+There's more variation in routing connections to processes. While the routing
+layer is shown as one big box, it is likely to involve several subsystems.
 
 As a consequence, when you design a deployment, you must answer two questions:
 
@@ -153,8 +153,8 @@ If you override the default signal handler for SIGINT, which raises
 :exc:`KeyboardInterrupt`, be aware that you won't be able to interrupt a
 program with Ctrl-C anymore when it's stuck in a loop.
 
-Routing connections
--------------------
+Routing connections to processes
+--------------------------------
 
 What does routing involve?
 ..........................

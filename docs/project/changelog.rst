@@ -43,7 +43,9 @@ Backwards-incompatible changes
     SOCKS proxies require installing the third-party library `python-socks`_.
 
     If you want to disable the proxy, add ``proxy=None`` when calling
-    :func:`~asyncio.client.connect`. See :doc:`../topics/proxies` for details.
+    :func:`~asyncio.client.connect`.
+
+    See :doc:`proxies <../topics/proxies>` for details.
 
     .. _python-socks: https://github.com/romis2012/python-socks
 
@@ -60,7 +62,8 @@ New features
 ............
 
 * Added :func:`~asyncio.router.route` and :func:`~asyncio.router.unix_route` to
-  dispatch connections to different handlers depending on the URL.
+  dispatch connections to handlers based on the request path. Read more about
+  routing in :doc:`routing <../topics/routing>`.
 
 Improvements
 ............

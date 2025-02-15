@@ -545,7 +545,10 @@ taking alternate turns.
 
         import logging
 
-        logging.basicConfig(format="%(message)s", level=logging.DEBUG)
+        logging.basicConfig(
+            format="%(asctime)s %(message)s",
+            level=logging.DEBUG,
+        )
 
 If you're stuck, a solution is available at the bottom of this document.
 

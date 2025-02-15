@@ -7,8 +7,7 @@ stop the server and restart it, which slows down your development process.
 
 Web frameworks such as Django or Flask provide a development server that
 reloads the application automatically when you make code changes. There is no
-such functionality in websockets because it's designed for production rather
-than development.
+such functionality in websockets because it's designed only for production.
 
 However, you can achieve the same result easily.
 
@@ -27,5 +26,5 @@ Run your server with ``watchmedo auto-restart``:
     $ watchmedo auto-restart --pattern "*.py" --recursive --signal SIGTERM \
         python app.py
 
-This example assumes that the server is defined in a script called ``app.py``.
-Adapt it as necessary.
+This example assumes that the server is defined in a script called ``app.py``
+and exits cleanly when receiving the ``SIGTERM`` signal. Adapt it as necessary.

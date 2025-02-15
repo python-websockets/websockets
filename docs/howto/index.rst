@@ -4,40 +4,30 @@ How-to guides
 In a hurry? Check out these examples.
 
 .. toctree::
-   :titlesonly:
 
    quickstart
+   debugging
+   autoreload
+
+If you're stuck, perhaps you'll find the answer here.
+
+.. toctree::
+
+   patterns
+
+This guide will help you integrate websockets into a broader system.
+
+.. toctree::
+
+   django
 
 Upgrading from the legacy :mod:`asyncio` implementation to the new one?
 Read this.
 
 .. toctree::
-   :titlesonly:
+   :maxdepth: 2
 
    upgrade
-
-If you're stuck, perhaps you'll find the answer here.
-
-.. toctree::
-   :titlesonly:
-
-   patterns
-   autoreload
-
-This guide will help you integrate websockets into a broader system.
-
-.. toctree::
-   :titlesonly:
-
-   django
-
-The WebSocket protocol makes provisions for extending or specializing its
-features, which websockets supports fully.
-
-.. toctree::
-   :titlesonly:
-
-   extensions
 
 If you're integrating the Sans-I/O layer of websockets into a library, rather
 than building an application with websockets, follow this guide.
@@ -46,3 +36,10 @@ than building an application with websockets, follow this guide.
    :maxdepth: 2
 
    sansio
+
+The WebSocket protocol makes provisions for extending or specializing its
+features, which websockets supports fully.
+
+.. toctree::
+
+   extensions

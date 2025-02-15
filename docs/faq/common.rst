@@ -3,33 +3,6 @@ Both sides
 
 .. currentmodule:: websockets.asyncio.connection
 
-.. _enable-debug-logs:
-
-How do I enable debug logs?
----------------------------
-
-You can enable debug logs to see exactly what websockets is doing.
-
-If logging isn't configured in your application::
-
-    import logging
-
-    logging.basicConfig(
-        format="%(asctime)s %(message)s",
-        level=logging.DEBUG,
-    )
-
-If logging is already configured::
-
-    import logging
-
-    logger = logging.getLogger("websockets")
-    logger.setLevel(logging.DEBUG)
-    logger.addHandler(logging.StreamHandler())
-
-Refer to the :doc:`logging documentation <../topics/logging>` for more details
-on logging in websockets.
-
 What does ``ConnectionClosedError: no close frame received or sent`` mean?
 --------------------------------------------------------------------------
 
@@ -66,9 +39,8 @@ There are several reasons why long-lived connections may be lost:
   connections may terminate connections after a short amount of time, usually
   30 seconds, despite websockets' keepalive mechanism.
 
-If you're facing a reproducible issue, :ref:`enable debug logs
-<enable-debug-logs>` to see when and how connections are closed. connections are
-closed.
+If you're facing a reproducible issue, :doc:`enable debug logs
+<../howto/debugging>` to see when and how connections are closed.
 
 What does ``ConnectionClosedError: sent 1011 (internal error) keepalive ping timeout; no close frame received`` mean?
 ---------------------------------------------------------------------------------------------------------------------

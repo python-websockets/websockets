@@ -12,6 +12,7 @@ try:
 except ImportError:  # Windows has no `readline` normally
     pass
 
+from .frames import Close
 from .sync.client import ClientConnection, connect
 from .version import version as websockets_version
 
@@ -150,7 +151,10 @@ def main() -> None:
     except (KeyboardInterrupt, EOFError):  # ^C, ^D
         stop.set()
         websocket.close()
-        print_over_input("Connection closed.")
+
+        assert websocket.close_code is not None and websocket.close_reason is not None
+        close_status = Close(websocket.close_code, websocket.close_reason)
+        print_over_input(f"Connection closed: {close_status}.")
 
     thread.join()
 

@@ -9,44 +9,12 @@ import threading
 
 try:
     import readline  # noqa: F401
-except ImportError:  # Windows has no `readline` normally
+except ImportError:  # readline isn't available on all platforms
     pass
 
 from .frames import Close
 from .sync.client import ClientConnection, connect
 from .version import version as websockets_version
-
-
-if sys.platform == "win32":
-
-    def win_enable_vt100() -> None:
-        """
-        Enable VT-100 for console output on Windows.
-
-        See also https://github.com/python/cpython/issues/73245.
-
-        """
-        import ctypes
-
-        STD_OUTPUT_HANDLE = ctypes.c_uint(-11)
-        INVALID_HANDLE_VALUE = ctypes.c_uint(-1)
-        ENABLE_VIRTUAL_TERMINAL_PROCESSING = 0x004
-
-        handle = ctypes.windll.kernel32.GetStdHandle(STD_OUTPUT_HANDLE)
-        if handle == INVALID_HANDLE_VALUE:
-            raise RuntimeError("unable to obtain stdout handle")
-
-        cur_mode = ctypes.c_uint()
-        if ctypes.windll.kernel32.GetConsoleMode(handle, ctypes.byref(cur_mode)) == 0:
-            raise RuntimeError("unable to query current console mode")
-
-        # ctypes ints lack support for the required bit-OR operation.
-        # Temporarily convert to Py int, do the OR and convert back.
-        py_int_mode = int.from_bytes(cur_mode, sys.byteorder)
-        new_mode = ctypes.c_uint(py_int_mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING)
-
-        if ctypes.windll.kernel32.SetConsoleMode(handle, new_mode) == 0:
-            raise RuntimeError("unable to set console mode")
 
 
 def print_during_input(string: str) -> None:
@@ -116,17 +84,10 @@ def main() -> None:
     if args.uri is None:
         parser.error("the following arguments are required: <uri>")
 
-    # If we're on Windows, enable VT100 terminal support.
-    if sys.platform == "win32":
-        try:
-            win_enable_vt100()
-        except RuntimeError as exc:
-            sys.stderr.write(
-                f"Unable to set terminal to VT100 mode. This is only "
-                f"supported since Win10 anniversary update. Expect "
-                f"weird symbols on the terminal.\nError: {exc}\n"
-            )
-            sys.stderr.flush()
+    # Enable VT100 to support ANSI escape codes in Command Prompt on Windows.
+    # See https://github.com/python/cpython/issues/74261 for why this works.
+    if sys.platform == "win32":  # pragma: no cover
+        os.system("")
 
     try:
         websocket = connect(args.uri)

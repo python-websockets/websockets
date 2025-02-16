@@ -30,7 +30,7 @@ notice.
 15.0
 ----
 
-*In development*
+*February 16, 2025*
 
 Backwards-incompatible changes
 ..............................

@@ -34,6 +34,9 @@ Documentation = "https://websockets.readthedocs.io/"
 Funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi-websockets&utm_medium=referral&utm_campaign=readme"
 Tracker = "https://github.com/python-websockets/websockets/issues"
 
+[project.scripts]
+websockets = "websockets.__main__:main"
+
 [tool.cibuildwheel]
 enable = ["pypy"]
 

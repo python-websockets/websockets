@@ -25,6 +25,13 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
+.. _15.1:
+
+15.1
+----
+
+*In development*
+
 15.0.1
 ------
 

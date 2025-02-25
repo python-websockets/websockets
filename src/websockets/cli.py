@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+from asyncio import CancelledError
 import os
 import sys
 from typing import Generator
@@ -123,7 +124,7 @@ async def interactive_client(uri: str) -> None:
             [incoming, outgoing],
             return_when=asyncio.FIRST_COMPLETED,
         )
-    except (KeyboardInterrupt, EOFError):  # ^C, ^D  # pragma: no cover
+    except CancelledError:  # ^C, ^D  # pragma: no cover
         pass
     finally:
         incoming.cancel()

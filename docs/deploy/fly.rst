@@ -130,7 +130,7 @@ name of your Fly app in this command:
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.fly.dev/
+    $ websockets wss://websockets-echo.fly.dev/
     Connected to wss://websockets-echo.fly.dev/.
     >
 
@@ -152,7 +152,7 @@ with your app:
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.fly.dev/
+    $ websockets wss://websockets-echo.fly.dev/
     Connected to wss://websockets-echo.fly.dev/.
     >
 
@@ -169,7 +169,7 @@ away).
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.fly.dev/
+    $ websockets wss://websockets-echo.fly.dev/
     Connected to wss://websockets-echo.fly.dev/.
     Connection closed: 1001 (going away).
 

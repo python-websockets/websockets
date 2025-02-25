@@ -87,7 +87,7 @@ Also, websockets provides an interactive client:
 
 .. code-block:: console
 
-    $ python -m websockets ws://localhost:8765/
+    $ websockets ws://localhost:8765/
     Connected to ws://localhost:8765/.
     > Hello world!
     < Hello world!

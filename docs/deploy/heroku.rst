@@ -134,7 +134,7 @@ name of your Heroku app in this command:
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.herokuapp.com/
+    $ websockets wss://websockets-echo.herokuapp.com/
     Connected to wss://websockets-echo.herokuapp.com/.
     >
 
@@ -156,7 +156,7 @@ with your app:
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.herokuapp.com/
+    $ websockets wss://websockets-echo.herokuapp.com/
     Connected to wss://websockets-echo.herokuapp.com/.
     >
 
@@ -173,7 +173,7 @@ away).
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.herokuapp.com/
+    $ websockets wss://websockets-echo.herokuapp.com/
     Connected to wss://websockets-echo.herokuapp.com/.
     Connection closed: 1001 (going away).
 

@@ -144,7 +144,7 @@ prompt:
 
 .. code-block:: console
 
-    $ python -m websockets ws://localhost:8888/
+    $ websockets ws://localhost:8888/
     Connected to ws://localhost:8888/
     > <your token>
     < Hello <your username>!
@@ -157,7 +157,7 @@ closes the connection:
 
 .. code-block:: console
 
-    $ python -m websockets ws://localhost:8888/
+    $ websockets ws://localhost:8888/
     Connected to ws://localhost:8888.
     > not a token
     Connection closed: 1011 (internal error) authentication failed.

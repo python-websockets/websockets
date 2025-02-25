@@ -77,7 +77,7 @@ You can confirm that nginx proxies connections properly:
 
 .. code-block:: console
 
-    $ PYTHONPATH=src python -m websockets ws://localhost:8080/
+    $ PYTHONPATH=src websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.
     > Hello!
     < Hello!

@@ -64,7 +64,7 @@ press Ctrl-D to exit:
 
 .. code-block:: console
 
-    $ python -m websockets ws://localhost:8080/
+    $ websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.
     > Hello!
     < Hello!
@@ -89,7 +89,7 @@ establish a connection and leave it open:
 
 .. code-block:: console
 
-    $ python -m websockets ws://localhost:8080/
+    $ websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.
     >
 
@@ -115,7 +115,7 @@ And you can see that the connection to the app was closed gracefully:
 
 .. code-block:: console
 
-    $ python -m websockets ws://localhost:8080/
+    $ websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.
     Connection closed: 1001 (going away).
 
@@ -128,4 +128,3 @@ In a real deployment, you would likely:
 * Create a virtualenv dedicated to your application.
 * Add ``environment=PATH="path/to/your/virtualenv/bin"`` in the Supervisor
   configuration. Then ``python app.py`` runs in that virtualenv.
-

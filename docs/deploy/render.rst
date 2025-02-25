@@ -129,7 +129,7 @@ name of your Render app in this command:
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.onrender.com/
+    $ websockets wss://websockets-echo.onrender.com/
     Connected to wss://websockets-echo.onrender.com/.
     >
 
@@ -153,7 +153,7 @@ with your app:
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.onrender.com/
+    $ websockets wss://websockets-echo.onrender.com/
     Connected to wss://websockets-echo.onrender.com/.
     >
 
@@ -162,7 +162,7 @@ deployment completes, the connection is closed with code 1001 (going away).
 
 .. code-block:: console
 
-    $ python -m websockets wss://websockets-echo.onrender.com/
+    $ websockets wss://websockets-echo.onrender.com/
     Connected to wss://websockets-echo.onrender.com/.
     Connection closed: 1001 (going away).
 

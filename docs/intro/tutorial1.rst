@@ -53,7 +53,7 @@ Confirm that websockets is installed:
 
 .. code-block:: console
 
-    $ python -m websockets --version
+    $ websockets --version
 
 .. admonition:: This tutorial is written for websockets |release|.
     :class: tip
@@ -239,7 +239,7 @@ Open another shell and run this command:
 
 .. code-block:: console
 
-    $ python -m websockets ws://localhost:8001/
+    $ websockets ws://localhost:8001/
 
 You get a prompt. Type a message and press "Enter". Switch to the shell where
 the server is running and check that the server received the message. Good!

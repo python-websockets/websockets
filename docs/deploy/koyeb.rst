@@ -124,7 +124,7 @@ interactive client — you must replace ``https`` with ``wss``  in the URL:
 
 .. code-block:: console
 
-    $ python -m websockets wss://<app>-<user>-<id>.koyeb.app/
+    $ websockets wss://<app>-<user>-<id>.koyeb.app/
     Connected to wss://<app>-<user>-<id>.koyeb.app/.
     >
 
@@ -145,7 +145,7 @@ Connect an interactive client again:
 
 .. code-block:: console
 
-    $ python -m websockets wss://<app>-<user>-<id>.koyeb.app/
+    $ websockets wss://<app>-<user>-<id>.koyeb.app/
     Connected to wss://<app>-<user>-<id>.koyeb.app/.
     >
 
@@ -156,7 +156,7 @@ Eventually, the connection gets closed with code 1001 (going away).
 
 .. code-block:: console
 
-    $ python -m websockets wss://<app>-<user>-<id>.koyeb.app/
+    $ websockets wss://<app>-<user>-<id>.koyeb.app/
     Connected to wss://<app>-<user>-<id>.koyeb.app/.
     Connection closed: 1001 (going away).
 

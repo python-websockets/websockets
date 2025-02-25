@@ -135,7 +135,7 @@ async def interactive_client(uri: str) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(
-        prog="python -m websockets",
+        prog="websockets",
         description="Interactive WebSocket client.",
         add_help=False,
     )

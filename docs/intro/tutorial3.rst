@@ -187,7 +187,7 @@ of your app in the format: ``https://<app>-<user>-<id>.koyeb.app/``. Replace
 
 .. code-block:: console
 
-    $ python -m websockets wss://<app>-<user>-<id>.koyeb.app/
+    $ websockets wss://<app>-<user>-<id>.koyeb.app/
     Connected to wss://<app>-<user>-<id>.koyeb.app/.
     > {"type": "init"}
     < {"type": "init", "join": "54ICxFae_Ip7TJE2", "watch": "634w44TblL5Dbd9a"}

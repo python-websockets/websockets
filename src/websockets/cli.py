@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from asyncio import CancelledError
 import os
 import sys
+from asyncio import CancelledError
 from typing import Generator
 
 from .asyncio.client import ClientConnection, connect

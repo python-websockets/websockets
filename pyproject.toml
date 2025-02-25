@@ -35,7 +35,7 @@ Funding = "https://tidelift.com/subscription/pkg/pypi-websockets?utm_source=pypi
 Tracker = "https://github.com/python-websockets/websockets/issues"
 
 [project.scripts]
-websockets = "websockets.__main__:main"
+websockets = "websockets.cli:main"
 
 [tool.cibuildwheel]
 enable = ["pypy"]
@@ -69,6 +69,7 @@ exclude_lines = [
     "pragma: no cover",
     "except ImportError:",
     "if self.debug:",
+    "if sys.platform == \"win32\":",
     "if sys.platform != \"win32\":",
     "if TYPE_CHECKING:",
     "raise AssertionError",

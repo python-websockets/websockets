@@ -54,7 +54,7 @@ You can confirm that HAProxy proxies connections properly:
 
 .. code-block:: console
 
-    $ PYTHONPATH=src websockets ws://localhost:8080/
+    $ websockets ws://localhost:8080/
     Connected to ws://localhost:8080/.
     > Hello!
     < Hello!

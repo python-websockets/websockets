@@ -121,9 +121,15 @@ async def interactive_client(uri: str) -> None:
     try:
         await asyncio.wait(
             [incoming, outgoing],
+            # Clean up and exit when the server closes the connection
+            # or the user enters EOT (^D), whichever happens first.
             return_when=asyncio.FIRST_COMPLETED,
         )
-    except (KeyboardInterrupt, EOFError):  # ^C, ^D  # pragma: no cover
+    # asyncio.run() cancels the main task when the user triggers SIGINT (^C).
+    # https://docs.python.org/3/library/asyncio-runner.html#handling-keyboard-interruption
+    # Clean up and exit without re-raising CancelledError to prevent Python
+    # from raising KeyboardInterrupt and displaying a stack track.
+    except asyncio.CancelledError:  # pragma: no cover
         pass
     finally:
         incoming.cancel()
@@ -165,4 +171,8 @@ def main(argv: list[str] | None = None) -> None:
     except ImportError:  # readline isn't available on all platforms
         pass
 
-    asyncio.run(interactive_client(args.uri))
+    # Remove the try/except block when dropping Python < 3.11.
+    try:
+        asyncio.run(interactive_client(args.uri))
+    except KeyboardInterrupt:  # pragma: no cover
+        pass

@@ -38,12 +38,12 @@ To send messages to the WebSocket connection::
     from websockets.exceptions import ConnectionClosed
 
     async def producer_handler(websocket):
-        try:
-            while True:
+        while True:
+            try:
                 message = await produce()
                 await websocket.send(message)
-        except ConnectionClosed:
-            break
+            except ConnectionClosed:
+                break
 
 In this example, ``produce()`` is a coroutine implementing your business logic
 for generating the next message to send on the WebSocket connection.

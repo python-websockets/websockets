@@ -226,6 +226,9 @@ class Connection:
         else:
             self.close(CloseCode.INTERNAL_ERROR)
 
+    def __del__(self) -> None:
+        self.close()
+
     def __iter__(self) -> Iterator[Data]:
         """
         Iterate on incoming messages.

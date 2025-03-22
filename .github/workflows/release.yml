@@ -53,7 +53,7 @@ jobs:
       with:
         platforms: all
     - name: Build wheels
-      uses: pypa/cibuildwheel@v2.22.0
+      uses: pypa/cibuildwheel@v2.23.1
       env:
         BUILD_EXTENSION: yes
     - name: Save wheels

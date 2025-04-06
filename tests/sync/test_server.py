@@ -3,6 +3,7 @@ import hmac
 import http
 import logging
 import socket
+import threading
 import time
 import unittest
 
@@ -12,6 +13,7 @@ from websockets.exceptions import (
     InvalidStatus,
     NegotiationError,
 )
+from websockets import CloseCode, State
 from websockets.http11 import Request, Response
 from websockets.sync.client import connect, unix_connect
 from websockets.sync.server import *
@@ -336,6 +338,71 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         self.assertEqual(
             [str(record.exc_info[1].__cause__) for record in logs.records],
             ["invalid HTTP request line: HELO relay.invalid"],
+        )
+
+    def test_initialize_server_without_tracking_connections(self):
+        """Call Server() constructor without 'connections' arg."""
+        with socket.create_server(("localhost", 0)) as sock:
+            server = Server(socket=sock, handler=handler)
+            self.assertIsInstance(
+                server._connections, set, "Server._connections property not initialized"
+            )
+
+    def test_connections_is_empty_after_disconnects(self):
+        """Clients are added to Server._connections, and removed when disconnected."""
+        with run_server() as server:
+            connections: set[ServerConnection] = server._connections
+            with connect(get_uri(server)) as client:
+                self.assertEqual(len(connections), 1)
+            time.sleep(0.5)
+            self.assertEqual(len(connections), 0)
+
+    def test_shutdown_calls_close_for_all_connections(self):
+        """Graceful shutdown with broken ServerConnection.close() implementations."""
+        CLIENTS_TO_LAUNCH = 3
+
+        connections_attempted = 0
+
+        class ServerConnectionWithBrokenClose(ServerConnection):
+            close_method_called = False
+
+            def close(self, code=CloseCode.NORMAL_CLOSURE, reason=""):
+                """Custom close method that intentionally fails."""
+
+                # Do not increment the counter when calling .close() multiple times
+                if self.close_method_called:
+                    return
+                self.close_method_called = True
+
+                nonlocal connections_attempted
+                connections_attempted += 1
+                raise Exception("broken close method")
+
+        clients: set[threading.Thread] = set()
+        with run_server(create_connection=ServerConnectionWithBrokenClose) as server:
+
+            def client():
+                with connect(get_uri(server)) as client:
+                    time.sleep(1)
+
+            for i in range(CLIENTS_TO_LAUNCH):
+                client_thread = threading.Thread(target=client)
+                client_thread.start()
+                clients.add(client_thread)
+            time.sleep(0.2)
+            self.assertEqual(
+                len(server._connections),
+                CLIENTS_TO_LAUNCH,
+                "not all clients connected to the server yet, increase sleep duration",
+            )
+        server.shutdown()
+        while len(clients) > 0:
+            client = clients.pop()
+            client.join()
+        self.assertEqual(
+            connections_attempted,
+            CLIENTS_TO_LAUNCH,
+            "server did not call ServerConnection.close() on all connections",
         )
 
 

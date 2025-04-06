@@ -7,13 +7,13 @@ import threading
 import time
 import unittest
 
+from websockets import CloseCode
 from websockets.exceptions import (
     ConnectionClosedError,
     ConnectionClosedOK,
     InvalidStatus,
     NegotiationError,
 )
-from websockets import CloseCode, State
 from websockets.http11 import Request, Response
 from websockets.sync.client import connect, unix_connect
 from websockets.sync.server import *
@@ -352,7 +352,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         """Clients are added to Server._connections, and removed when disconnected."""
         with run_server() as server:
             connections: set[ServerConnection] = server._connections
-            with connect(get_uri(server)) as client:
+            with connect(get_uri(server)):
                 self.assertEqual(len(connections), 1)
             time.sleep(0.5)
             self.assertEqual(len(connections), 0)
@@ -382,7 +382,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         with run_server(create_connection=ServerConnectionWithBrokenClose) as server:
 
             def client():
-                with connect(get_uri(server)) as client:
+                with connect(get_uri(server)):
                     time.sleep(1)
 
             for i in range(CLIENTS_TO_LAUNCH):

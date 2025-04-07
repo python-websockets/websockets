@@ -230,6 +230,10 @@ class Server:
         logger: Logger for this server.
             It defaults to ``logging.getLogger("websockets.server")``.
             See the :doc:`logging guide <../../topics/logging>` for details.
+        connections: A set of open :class:`ServerConnection` instances
+            maintained by `handler`. When omitted, e.g., if the handler does
+            not maintain such a set, this defaults to an empty set and the
+            server will not attempt to close connections on shutdown.
 
     """
 
@@ -293,21 +297,11 @@ class Server:
             thread = threading.Thread(target=self.handler, args=(sock, addr))
             thread.start()
 
-    def shutdown(
-        self, *, code: CloseCode = CloseCode.NORMAL_CLOSURE, reason: str = ""
-    ) -> None:
+    def shutdown(self) -> None:
         """
         See :meth:`socketserver.BaseServer.shutdown`.
 
-        Shuts down the server and closes existing connections. Optional arguments
-        ``code`` and ``reason`` can be used to provide additional information to
-        the clients, e.g.,::
-
-            server.shutdown(reason="scheduled_maintenance")
-
-        Args:
-            code: Closing code, defaults to ``CloseCode.NORMAL_CLOSURE``.
-            reason: Closing reason, default to empty string.
+        Shuts down the server and closes existing connections.
 
         """
         self.socket.close()
@@ -318,7 +312,7 @@ class Server:
         conns = list(self._connections)
         for conn in conns:
             try:
-                conn.close(code=code, reason=reason)
+                conn.close()
             except Exception as exc:
                 debug_msg = f"Could not close {conn.id}: {exc}"
                 self.logger.debug(debug_msg, exc_info=exc)

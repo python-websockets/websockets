@@ -159,7 +159,12 @@ class Request:
             raise NotImplementedError("transfer codings aren't supported")
 
         if "Content-Length" in headers:
-            raise ValueError("unsupported request body")
+            content_length = headers["Content-Length"]
+            if content_length != "0":
+                raise ValueError(
+                    f"unsupported request body as 'Content-Length' is "
+                    f"non-zero: {content_length}"
+                )
 
         return cls(path, headers)
 

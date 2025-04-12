@@ -19,7 +19,9 @@ Indeed, there is no good way to be notified when the other player makes a
 move. Workarounds such as polling or long-polling introduce significant
 overhead.
 
-Enter `WebSocket <websocket>`_.
+Enter WebSocket_.
+
+.. _WebSocket: https://developer.mozilla.org/en-US/docs/Web/API/WebSockets_API
 
 The WebSocket protocol provides two-way communication between a browser and a
 server over a persistent connection. That's exactly what you need to exchange

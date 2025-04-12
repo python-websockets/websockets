@@ -83,25 +83,12 @@ class RequestTests(GeneratorTestCase):
             next(self.parse())
         self.assertEqual(
             str(raised.exception),
-            "unsupported request body as 'Content-Length' is non-zero: 3",
+            "unsupported request body",
         )
 
     def test_parse_body_content_length_zero(self):
-        # Example from the protocol overview in RFC 6455
-        self.reader.feed_data(
-            b"GET /chat HTTP/1.1\r\n"
-            b"Host: server.example.com\r\n"
-            b"Upgrade: websocket\r\n"
-            b"Connection: Upgrade\r\n"
-            b"Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n"
-            b"Origin: http://example.com\r\n"
-            b"Sec-WebSocket-Protocol: chat, superchat\r\n"
-            b"Sec-WebSocket-Version: 13\r\n"
-            b"Content-Length: 0\r\n"
-            b"\r\n"
-        )
+        self.reader.feed_data(b"GET / HTTP/1.1\r\nContent-Length: 0\r\n\r\n")
         request = self.assertGeneratorReturns(self.parse())
-        self.assertEqual(request.path, "/chat")
         self.assertEqual(request.headers["Content-Length"], "0")
 
     def test_parse_body_with_transfer_encoding(self):

@@ -32,6 +32,11 @@ notice.
 
 *In development*
 
+Improvements
+............
+
+* Added support for HTTP/1.0 proxies.
+
 15.0.1
 ------
 

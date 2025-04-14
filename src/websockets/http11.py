@@ -214,6 +214,7 @@ class Response:
         read_exact: Callable[[int], Generator[None, None, bytes]],
         read_to_eof: Callable[[int], Generator[None, None, bytes]],
         include_body: bool = True,
+        allow_http10: bool = False,
     ) -> Generator[None, None, Response]:
         """
         Parse a WebSocket handshake response.
@@ -249,10 +250,17 @@ class Response:
             protocol, raw_status_code, raw_reason = status_line.split(b" ", 2)
         except ValueError:  # not enough values to unpack (expected 3, got 1-2)
             raise ValueError(f"invalid HTTP status line: {d(status_line)}") from None
-        if protocol != b"HTTP/1.1":
-            raise ValueError(
-                f"unsupported protocol; expected HTTP/1.1: {d(status_line)}"
-            )
+        if allow_http10:  # some proxies still use HTTP/1.0
+            if protocol not in [b"HTTP/1.1", b"HTTP/1.0"]:
+                raise ValueError(
+                    f"unsupported protocol; expected HTTP/1.1 or HTTP/1.0: "
+                    f"{d(status_line)}"
+                )
+        else:
+            if protocol != b"HTTP/1.1":
+                raise ValueError(
+                    f"unsupported protocol; expected HTTP/1.1: {d(status_line)}"
+                )
         try:
             status_code = int(raw_status_code)
         except ValueError:  # invalid literal for int() with base 10

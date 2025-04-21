@@ -498,8 +498,7 @@ def read_connect_response(sock: socket.socket, deadline: Deadline) -> Response:
         reader.read_line,
         reader.read_exact,
         reader.read_to_eof,
-        include_body=False,
-        allow_http10=True,
+        proxy=True,
     )
     try:
         while True:

@@ -754,8 +754,7 @@ class HTTPProxyConnection(asyncio.Protocol):
             self.reader.read_line,
             self.reader.read_exact,
             self.reader.read_to_eof,
-            include_body=False,
-            allow_http10=True,
+            proxy=True,
         )
 
         loop = asyncio.get_running_loop()

@@ -213,8 +213,7 @@ class Response:
         read_line: Callable[[int], Generator[None, None, bytes]],
         read_exact: Callable[[int], Generator[None, None, bytes]],
         read_to_eof: Callable[[int], Generator[None, None, bytes]],
-        include_body: bool = True,
-        allow_http10: bool = False,
+        proxy: bool = False,
     ) -> Generator[None, None, Response]:
         """
         Parse a WebSocket handshake response.
@@ -250,7 +249,7 @@ class Response:
             protocol, raw_status_code, raw_reason = status_line.split(b" ", 2)
         except ValueError:  # not enough values to unpack (expected 3, got 1-2)
             raise ValueError(f"invalid HTTP status line: {d(status_line)}") from None
-        if allow_http10:  # some proxies still use HTTP/1.0
+        if proxy:  # some proxies still use HTTP/1.0
             if protocol not in [b"HTTP/1.1", b"HTTP/1.0"]:
                 raise ValueError(
                     f"unsupported protocol; expected HTTP/1.1 or HTTP/1.0: "
@@ -277,12 +276,12 @@ class Response:
 
         headers = yield from parse_headers(read_line)
 
-        if include_body:
+        if proxy:
+            body = b""
+        else:
             body = yield from read_body(
                 status_code, headers, read_line, read_exact, read_to_eof
             )
-        else:
-            body = b""
 
         return cls(status_code, reason, headers, body)
 

@@ -328,22 +328,22 @@ class ResponseTests(GeneratorTestCase):
         response = self.assertGeneratorReturns(self.parse())
         self.assertEqual(response.body, b"")
 
-    def test_parse_without_body(self):
+    def test_parse_proxy_response_does_not_read_body(self):
         self.reader.feed_data(b"HTTP/1.1 200 Connection Established\r\n\r\n")
-        response = self.assertGeneratorReturns(self.parse(include_body=False))
+        response = self.assertGeneratorReturns(self.parse(proxy=True))
         self.assertEqual(response.body, b"")
 
-    def test_parse_http10(self):
+    def test_parse_proxy_http10(self):
         self.reader.feed_data(b"HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n")
-        response = self.assertGeneratorReturns(self.parse(allow_http10=True))
+        response = self.assertGeneratorReturns(self.parse(proxy=True))
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.reason_phrase, "OK")
         self.assertEqual(response.body, b"")
 
-    def test_parse_http10_unsupported_protocol(self):
+    def test_parse_proxy_unsupported_protocol(self):
         self.reader.feed_data(b"HTTP/1.2 400 Bad Request\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
-            next(self.parse(allow_http10=True))
+            next(self.parse(proxy=True))
         self.assertEqual(
             str(raised.exception),
             "unsupported protocol; expected HTTP/1.1 or HTTP/1.0: "

@@ -671,6 +671,16 @@ try:
     from python_socks import ProxyType
     from python_socks.async_.asyncio import Proxy as SocksProxy
 
+except ImportError:
+
+    async def connect_socks_proxy(
+        proxy: Proxy,
+        ws_uri: WebSocketURI,
+        **kwargs: Any,
+    ) -> socket.socket:
+        raise ImportError("connecting through a SOCKS proxy requires python-socks")
+
+else:
     SOCKS_PROXY_TYPES = {
         "socks5h": ProxyType.SOCKS5,
         "socks5": ProxyType.SOCKS5,
@@ -708,15 +718,6 @@ try:
             raise
         except Exception as exc:
             raise ProxyError("failed to connect to SOCKS proxy") from exc
-
-except ImportError:
-
-    async def connect_socks_proxy(
-        proxy: Proxy,
-        ws_uri: WebSocketURI,
-        **kwargs: Any,
-    ) -> socket.socket:
-        raise ImportError("python-socks is required to use a SOCKS proxy")
 
 
 def prepare_connect_request(

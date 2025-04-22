@@ -35,6 +35,7 @@ notice.
 Improvements
 ............
 
+* Allowed setting separate limits for messages and fragments with ``max_size``.
 * Added support for HTTP/1.0 proxies.
 
 15.0.1

@@ -365,8 +365,26 @@ class TextTests(ProtocolTestCase):
             Frame(OP_CONT, "😀".encode()[2:]),
         )
 
-    def test_client_receives_fragmented_text_over_size_limit(self):
-        client = Protocol(CLIENT, max_size=3)
+    def test_client_receives_fragmented_text_over_fragment_size_limit(self):
+        client = Protocol(CLIENT, max_size=(None, 3))
+        client.receive_data(b"\x01\x04\xf0\x9f\x98\x80")
+        self.assertIsInstance(client.parser_exc, PayloadTooBig)
+        self.assertEqual(
+            str(client.parser_exc),
+            "frame with 4 bytes exceeds limit of 3 bytes",
+        )
+
+    def test_server_receives_fragmented_text_over_fragment_size_limit(self):
+        server = Protocol(SERVER, max_size=(None, 3))
+        server.receive_data(b"\x01\x84\x00\x00\x00\x00\xf0\x9f\x98\x80")
+        self.assertIsInstance(server.parser_exc, PayloadTooBig)
+        self.assertEqual(
+            str(server.parser_exc),
+            "frame with 4 bytes exceeds limit of 3 bytes",
+        )
+
+    def test_client_receives_fragmented_text_over_message_size_limit(self):
+        client = Protocol(CLIENT, max_size=(3, 2))
         client.receive_data(b"\x01\x02\xf0\x9f")
         self.assertFrameReceived(
             client,
@@ -384,8 +402,8 @@ class TextTests(ProtocolTestCase):
             "frame with 2 bytes after reading 2 bytes exceeds limit of 3 bytes",
         )
 
-    def test_server_receives_fragmented_text_over_size_limit(self):
-        server = Protocol(SERVER, max_size=3)
+    def test_server_receives_fragmented_text_over_message_size_limit(self):
+        server = Protocol(SERVER, max_size=(3, 2))
         server.receive_data(b"\x01\x82\x00\x00\x00\x00\xf0\x9f")
         self.assertFrameReceived(
             server,

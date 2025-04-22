@@ -22,6 +22,7 @@ you must disable:
 
 * Compression: set ``compression=None``
 * Keepalive: set ``ping_interval=None``
+* Limits: set ``max_size=None``
 * UTF-8 decoding: send ``bytes`` rather than ``str``
 
 Then, please consider whether websockets is the bottleneck of the performance

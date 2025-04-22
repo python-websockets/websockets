@@ -150,7 +150,7 @@ def connect(
     ping_timeout: float | None = 20,
     close_timeout: float | None = 10,
     # Limits
-    max_size: int | None = 2**20,
+    max_size: int | None | tuple[int | None, int | None] = 2**20,
     max_queue: int | None | tuple[int | None, int | None] = 16,
     # Logging
     logger: LoggerLike | None = None,
@@ -210,7 +210,9 @@ def connect(
         close_timeout: Timeout for closing the connection in seconds.
             :obj:`None` disables the timeout.
         max_size: Maximum size of incoming messages in bytes.
-            :obj:`None` disables the limit.
+            :obj:`None` disables the limit. You may pass a ``(max_message_size,
+            max_fragment_size)`` tuple to set different limits for messages and
+            fragments when you expect long messages sent in short fragments.
         max_queue: High-water mark of the buffer where frames are received.
             It defaults to 16 frames. The low-water mark defaults to ``max_queue
             // 4``. You may pass a ``(high, low)`` tuple to set the high-water

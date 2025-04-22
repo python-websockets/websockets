@@ -60,8 +60,10 @@ class ClientProtocol(Protocol):
         subprotocols: List of supported subprotocols, in order of decreasing
             preference.
         state: Initial state of the WebSocket connection.
-        max_size: Maximum size of incoming messages in bytes;
-            :obj:`None` disables the limit.
+        max_size: Maximum size of incoming messages in bytes.
+            :obj:`None` disables the limit. You may pass a ``(max_message_size,
+            max_fragment_size)`` tuple to set different limits for messages and
+            fragments when you expect long messages sent in short fragments.
         logger: Logger for this connection;
             defaults to ``logging.getLogger("websockets.client")``;
             see the :doc:`logging guide <../../topics/logging>` for details.
@@ -76,7 +78,7 @@ class ClientProtocol(Protocol):
         extensions: Sequence[ClientExtensionFactory] | None = None,
         subprotocols: Sequence[Subprotocol] | None = None,
         state: State = CONNECTING,
-        max_size: int | None = 2**20,
+        max_size: int | None | tuple[int | None, int | None] = 2**20,
         logger: LoggerLike | None = None,
     ) -> None:
         super().__init__(

@@ -77,8 +77,10 @@ class Protocol:
     Args:
         side: :attr:`~Side.CLIENT` or :attr:`~Side.SERVER`.
         state: Initial state of the WebSocket connection.
-        max_size: Maximum size of incoming messages in bytes;
-            :obj:`None` disables the limit.
+        max_size: Maximum size of incoming messages in bytes.
+            :obj:`None` disables the limit. You may pass a ``(max_message_size,
+            max_fragment_size)`` tuple to set different limits for messages and
+            fragments when you expect long messages sent in short fragments.
         logger: Logger for this connection; depending on ``side``,
             defaults to ``logging.getLogger("websockets.client")``
             or ``logging.getLogger("websockets.server")``;
@@ -91,7 +93,7 @@ class Protocol:
         side: Side,
         *,
         state: State = OPEN,
-        max_size: int | None = 2**20,
+        max_size: tuple[int | None, int | None] | int | None = 2**20,
         logger: LoggerLike | None = None,
     ) -> None:
         # Unique identifier. For logs.
@@ -114,11 +116,14 @@ class Protocol:
         self.state = state
 
         # Maximum size of incoming messages in bytes.
-        self.max_size = max_size
+        if isinstance(max_size, int) or max_size is None:
+            self.max_message_size, self.max_fragment_size = max_size, None
+        else:
+            self.max_message_size, self.max_fragment_size = max_size
 
         # Current size of incoming message in bytes. Only set while reading a
         # fragmented message i.e. a data frames with the FIN bit not set.
-        self.cur_size: int | None = None
+        self.current_size: int | None = None
 
         # True while sending a fragmented message i.e. a data frames with the
         # FIN bit not set.
@@ -578,12 +583,19 @@ class Protocol:
                     # connection isn't closed cleanly.
                     raise EOFError("unexpected end of stream")
 
-                if self.max_size is None:
-                    max_size = None
-                elif self.cur_size is None:
-                    max_size = self.max_size
-                else:
-                    max_size = self.max_size - self.cur_size
+                max_size = None
+
+                if self.max_message_size is not None:
+                    if self.current_size is None:
+                        max_size = self.max_message_size
+                    else:
+                        max_size = self.max_message_size - self.current_size
+
+                if self.max_fragment_size is not None:
+                    if max_size is None:
+                        max_size = self.max_fragment_size
+                    else:
+                        max_size = min(max_size, self.max_fragment_size)
 
                 # During a normal closure, execution ends here on the next
                 # iteration of the loop after receiving a close frame. At
@@ -613,7 +625,7 @@ class Protocol:
             self.parser_exc = exc
 
         except PayloadTooBig as exc:
-            exc.set_current_size(self.cur_size)
+            exc.set_current_size(self.current_size)
             self.fail(CloseCode.MESSAGE_TOO_BIG, str(exc))
             self.parser_exc = exc
 
@@ -664,18 +676,18 @@ class Protocol:
 
         """
         if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
-            if self.cur_size is not None:
+            if self.current_size is not None:
                 raise ProtocolError("expected a continuation frame")
             if not frame.fin:
-                self.cur_size = len(frame.data)
+                self.current_size = len(frame.data)
 
         elif frame.opcode is OP_CONT:
-            if self.cur_size is None:
+            if self.current_size is None:
                 raise ProtocolError("unexpected continuation frame")
             if frame.fin:
-                self.cur_size = None
+                self.current_size = None
             else:
-                self.cur_size += len(frame.data)
+                self.current_size += len(frame.data)
 
         elif frame.opcode is OP_PING:
             # 5.5.2. Ping: "Upon receipt of a Ping frame, an endpoint MUST
@@ -696,7 +708,7 @@ class Protocol:
                 assert self.close_sent is not None
                 self.close_rcvd_then_sent = False
 
-            if self.cur_size is not None:
+            if self.current_size is not None:
                 raise ProtocolError("incomplete fragmented message")
 
             # 5.5.1 Close: "If an endpoint receives a Close frame and did

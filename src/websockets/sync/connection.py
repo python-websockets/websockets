@@ -59,9 +59,11 @@ class Connection:
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
+        self.max_queue: tuple[int | None, int | None]
         if isinstance(max_queue, int) or max_queue is None:
-            max_queue = (max_queue, None)
-        self.max_queue = max_queue
+            self.max_queue = (max_queue, None)
+        else:
+            self.max_queue = max_queue
 
         # Inject reference to this instance in the protocol's logger.
         self.protocol.logger = logging.LoggerAdapter(

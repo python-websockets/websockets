@@ -10,14 +10,16 @@ import zlib
 REPEAT = 10
 
 WB, ML = 12, 5  # defaults used as a reference
+WBITS = range(9, 16)
+MEMLEVELS = range(1, 10)
 
 
 def benchmark(data):
     size = collections.defaultdict(dict)
     duration = collections.defaultdict(dict)
 
-    for wbits in range(9, 16):
-        for memLevel in range(1, 10):
+    for wbits in WBITS:
+        for memLevel in MEMLEVELS:
             encoder = zlib.compressobj(wbits=-wbits, memLevel=memLevel)
             encoded = []
 
@@ -43,14 +45,14 @@ def benchmark(data):
     print("=" * 79)
     print("Compression ratio")
     print("=" * 79)
-    print("\t".join(["wb \\ ml"] + [str(memLevel) for memLevel in range(1, 10)]))
-    for wbits in range(9, 16):
+    print("\t".join(["wb \\ ml"] + [str(memLevel) for memLevel in MEMLEVELS]))
+    for wbits in WBITS:
         print(
             "\t".join(
                 [str(wbits)]
                 + [
                     f"{100 * (1 - size[wbits][memLevel] / raw_size):.1f}%"
-                    for memLevel in range(1, 10)
+                    for memLevel in MEMLEVELS
                 ]
             )
         )
@@ -60,14 +62,14 @@ def benchmark(data):
     print("=" * 79)
     print("CPU time")
     print("=" * 79)
-    print("\t".join(["wb \\ ml"] + [str(memLevel) for memLevel in range(1, 10)]))
-    for wbits in range(9, 16):
+    print("\t".join(["wb \\ ml"] + [str(memLevel) for memLevel in MEMLEVELS]))
+    for wbits in WBITS:
         print(
             "\t".join(
                 [str(wbits)]
                 + [
                     f"{1000 * duration[wbits][memLevel]:.1f}ms"
-                    for memLevel in range(1, 10)
+                    for memLevel in MEMLEVELS
                 ]
             )
         )
@@ -77,14 +79,14 @@ def benchmark(data):
     print("=" * 79)
     print(f"Size vs. {WB} \\ {ML}")
     print("=" * 79)
-    print("\t".join(["wb \\ ml"] + [str(memLevel) for memLevel in range(1, 10)]))
-    for wbits in range(9, 16):
+    print("\t".join(["wb \\ ml"] + [str(memLevel) for memLevel in MEMLEVELS]))
+    for wbits in WBITS:
         print(
             "\t".join(
                 [str(wbits)]
                 + [
                     f"{100 * (size[wbits][memLevel] / size[WB][ML] - 1):.1f}%"
-                    for memLevel in range(1, 10)
+                    for memLevel in MEMLEVELS
                 ]
             )
         )
@@ -94,14 +96,14 @@ def benchmark(data):
     print("=" * 79)
     print(f"Time vs. {WB} \\ {ML}")
     print("=" * 79)
-    print("\t".join(["wb \\ ml"] + [str(memLevel) for memLevel in range(1, 10)]))
-    for wbits in range(9, 16):
+    print("\t".join(["wb \\ ml"] + [str(memLevel) for memLevel in MEMLEVELS]))
+    for wbits in WBITS:
         print(
             "\t".join(
                 [str(wbits)]
                 + [
                     f"{100 * (duration[wbits][memLevel] / duration[WB][ML] - 1):.1f}%"
-                    for memLevel in range(1, 10)
+                    for memLevel in MEMLEVELS
                 ]
             )
         )

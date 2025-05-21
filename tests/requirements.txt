@@ -1,2 +1,3 @@
-python-socks[asyncio]
 mitmproxy
+python-socks[asyncio]
+trio

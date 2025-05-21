@@ -1,10 +1,11 @@
 from __future__ import annotations
 
-import asyncio
 import codecs
-import collections
-from collections.abc import AsyncIterator, Iterable
-from typing import Any, Callable, Generic, Literal, TypeVar, overload
+import math
+from collections.abc import AsyncIterator
+from typing import Any, Callable, Literal, overload
+
+import trio
 
 from ..exceptions import ConcurrencyError
 from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
@@ -14,56 +15,6 @@ from ..typing import Data
 __all__ = ["Assembler"]
 
 UTF8Decoder = codecs.getincrementaldecoder("utf-8")
-
-T = TypeVar("T")
-
-
-class SimpleQueue(Generic[T]):
-    """
-    Simplified version of :class:`asyncio.Queue`.
-
-    Provides only the subset of functionality needed by :class:`Assembler`.
-
-    """
-
-    def __init__(self) -> None:
-        self.loop = asyncio.get_running_loop()
-        self.get_waiter: asyncio.Future[None] | None = None
-        self.queue: collections.deque[T] = collections.deque()
-
-    def __len__(self) -> int:
-        return len(self.queue)
-
-    def put(self, item: T) -> None:
-        """Put an item into the queue without waiting."""
-        self.queue.append(item)
-        if self.get_waiter is not None and not self.get_waiter.done():
-            self.get_waiter.set_result(None)
-
-    async def get(self, block: bool = True) -> T:
-        """Remove and return an item from the queue, waiting if necessary."""
-        if not self.queue:
-            if not block:
-                raise EOFError("stream of frames ended")
-            assert self.get_waiter is None, "cannot call get() concurrently"
-            self.get_waiter = self.loop.create_future()
-            try:
-                await self.get_waiter
-            finally:
-                self.get_waiter.cancel()
-                self.get_waiter = None
-        return self.queue.popleft()
-
-    def reset(self, items: Iterable[T]) -> None:
-        """Put back items into an empty, idle queue."""
-        assert self.get_waiter is None, "cannot reset() while get() is running"
-        assert not self.queue, "cannot reset() while queue isn't empty"
-        self.queue.extend(items)
-
-    def abort(self) -> None:
-        """Close the queue, raising EOFError in get() if necessary."""
-        if self.get_waiter is not None and not self.get_waiter.done():
-            self.get_waiter.set_exception(EOFError("stream of frames ended"))
 
 
 class Assembler:
@@ -89,7 +40,9 @@ class Assembler:
         resume: Callable[[], Any] = lambda: None,
     ) -> None:
         # Queue of incoming frames.
-        self.frames: SimpleQueue[Frame] = SimpleQueue()
+        self.send_frames: trio.MemorySendChannel[Frame]
+        self.recv_frames: trio.MemoryReceiveChannel[Frame]
+        self.send_frames, self.recv_frames = trio.open_memory_channel(math.inf)
 
         # We cannot put a hard limit on the size of the queue because a single
         # call to Protocol.data_received() could produce thousands of frames,
@@ -155,7 +108,10 @@ class Assembler:
 
         try:
             # Fetch the first frame.
-            frame = await self.frames.get(not self.closed)
+            try:
+                frame = await self.recv_frames.receive()
+            except trio.EndOfChannel:
+                raise EOFError("stream of frames ended")
             self.maybe_resume()
             assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
             if decode is None:
@@ -165,12 +121,19 @@ class Assembler:
             # Fetch subsequent frames for fragmented messages.
             while not frame.fin:
                 try:
-                    frame = await self.frames.get(not self.closed)
-                except asyncio.CancelledError:
+                    frame = await self.recv_frames.receive()
+                except trio.Cancelled:
                     # Put frames already received back into the queue
                     # so that future calls to get() can return them.
-                    self.frames.reset(frames)
+                    assert not self.send_frames._state.receive_tasks, (
+                        "no task should be waiting on receive()"
+                    )
+                    assert not self.send_frames._state.data, "queue should be empty"
+                    for frame in frames:
+                        self.send_frames.send_nowait(frame)
                     raise
+                except trio.EndOfChannel:
+                    raise EOFError("stream of frames ended")
                 self.maybe_resume()
                 assert frame.opcode is OP_CONT
                 frames.append(frame)
@@ -231,10 +194,12 @@ class Assembler:
 
         # Yield the first frame.
         try:
-            frame = await self.frames.get(not self.closed)
-        except asyncio.CancelledError:
+            frame = await self.recv_frames.receive()
+        except trio.Cancelled:
             self.get_in_progress = False
             raise
+        except trio.EndOfChannel:
+            raise EOFError("stream of frames ended")
         self.maybe_resume()
         assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
         if decode is None:
@@ -248,11 +213,14 @@ class Assembler:
 
         # Yield subsequent frames for fragmented messages.
         while not frame.fin:
-            # We cannot handle asyncio.CancelledError because we don't buffer
+            # We cannot handle trio.Cancelled because we don't buffer
             # previous fragments — we're streaming them. Canceling get_iter()
             # here will leave the assembler in a stuck state. Future calls to
             # get() or get_iter() will raise ConcurrencyError.
-            frame = await self.frames.get(not self.closed)
+            try:
+                frame = await self.recv_frames.receive()
+            except trio.EndOfChannel:
+                raise EOFError("stream of frames ended")
             self.maybe_resume()
             assert frame.opcode is OP_CONT
             if decode:
@@ -274,7 +242,7 @@ class Assembler:
         if self.closed:
             raise EOFError("stream of frames ended")
 
-        self.frames.put(frame)
+        self.send_frames.send_nowait(frame)
         self.maybe_pause()
 
     def maybe_pause(self) -> None:
@@ -283,8 +251,9 @@ class Assembler:
         if self.high is None:
             return
 
+        # Bypass the statistics() method for performance reasons.
         # Check for "> high" to support high = 0.
-        if len(self.frames) > self.high and not self.paused:
+        if len(self.send_frames._state.data) > self.high and not self.paused:
             self.paused = True
             self.pause()
 
@@ -294,8 +263,9 @@ class Assembler:
         if self.low is None:
             return
 
+        # Bypass the statistics() method for performance reasons.
         # Check for "<= low" to support low = 0.
-        if len(self.frames) <= self.low and self.paused:
+        if len(self.send_frames._state.data) <= self.low and self.paused:
             self.paused = False
             self.resume()
 
@@ -313,4 +283,4 @@ class Assembler:
         self.closed = True
 
         # Unblock get() or get_iter().
-        self.frames.abort()
+        self.send_frames.close()

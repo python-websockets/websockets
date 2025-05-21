@@ -1,4 +1,5 @@
 import asyncio
+import contextlib
 import unittest
 import unittest.mock
 
@@ -32,7 +33,7 @@ class SimpleQueueTests(unittest.IsolatedAsyncioTestCase):
     async def test_get_then_put(self):
         """get returns an item when it is put."""
         getter_task = asyncio.create_task(self.queue.get())
-        await asyncio.sleep(0)  # let the task start
+        await asyncio.sleep(0)  # let the event loop start getter_task
         self.queue.put(42)
         item = await getter_task
         self.assertEqual(item, 42)
@@ -46,7 +47,7 @@ class SimpleQueueTests(unittest.IsolatedAsyncioTestCase):
     async def test_abort(self):
         """abort throws an exception in get."""
         getter_task = asyncio.create_task(self.queue.get())
-        await asyncio.sleep(0)  # let the task start
+        await asyncio.sleep(0)  # let the event loop start getter_task
         self.queue.abort()
         with self.assertRaises(EOFError):
             await getter_task
@@ -58,7 +59,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.resume = unittest.mock.Mock()
         self.assembler = Assembler(high=2, low=1, pause=self.pause, resume=self.resume)
 
-    # Test get
+    # Test get.
 
     async def test_get_text_message_already_received(self):
         """get returns a text message that is already received."""
@@ -107,6 +108,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
     async def test_get_fragmented_text_message_not_received_yet(self):
         """get reassembles a fragmented text message when it is received."""
         getter_task = asyncio.create_task(self.assembler.get())
+        await asyncio.sleep(0)  # let the event loop start getter_task
         self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
         self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
         self.assembler.put(Frame(OP_CONT, b"\xa9"))
@@ -116,6 +118,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
     async def test_get_fragmented_binary_message_not_received_yet(self):
         """get reassembles a fragmented binary message when it is received."""
         getter_task = asyncio.create_task(self.assembler.get())
+        await asyncio.sleep(0)  # let the event loop start getter_task
         self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
         self.assembler.put(Frame(OP_CONT, b"e", fin=False))
         self.assembler.put(Frame(OP_CONT, b"a"))
@@ -126,6 +129,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         """get reassembles a fragmented text message that is partially received."""
         self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
         getter_task = asyncio.create_task(self.assembler.get())
+        await asyncio.sleep(0)  # let the event loop start getter_task
         self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
         self.assembler.put(Frame(OP_CONT, b"\xa9"))
         message = await getter_task
@@ -135,6 +139,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         """get reassembles a fragmented binary message that is partially received."""
         self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
         getter_task = asyncio.create_task(self.assembler.get())
+        await asyncio.sleep(0)  # let the event loop start getter_task
         self.assembler.put(Frame(OP_CONT, b"e", fin=False))
         self.assembler.put(Frame(OP_CONT, b"a"))
         message = await getter_task
@@ -161,11 +166,9 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         # queue is above the low-water mark
         await self.assembler.get()
         self.resume.assert_not_called()
-
         # queue is at the low-water mark
         await self.assembler.get()
         self.resume.assert_called_once_with()
-
         # queue is below the low-water mark
         await self.assembler.get()
         self.resume.assert_called_once_with()
@@ -180,7 +183,6 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         await self.assembler.get()
         await self.assembler.get()
         await self.assembler.get()
-
         self.resume.assert_not_called()
 
     async def test_cancel_get_before_first_frame(self):
@@ -192,7 +194,6 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
             await getter_task
 
         self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
-
         message = await self.assembler.get()
         self.assertEqual(message, "café")
 
@@ -208,11 +209,10 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
 
         self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
         self.assembler.put(Frame(OP_CONT, b"\xa9"))
-
         message = await self.assembler.get()
         self.assertEqual(message, "café")
 
-    # Test get_iter
+    # Test get_iter.
 
     async def test_get_iter_text_message_already_received(self):
         """get_iter yields a text message that is already received."""
@@ -261,42 +261,46 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
     async def test_get_iter_fragmented_text_message_not_received_yet(self):
         """get_iter yields a fragmented text message when it is received."""
         iterator = aiter(self.assembler.get_iter())
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
-        self.assertEqual(await anext(iterator), "ca")
-        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-        self.assertEqual(await anext(iterator), "f")
-        self.assembler.put(Frame(OP_CONT, b"\xa9"))
-        self.assertEqual(await anext(iterator), "é")
+        async with contextlib.aclosing(iterator):
+            self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
+            self.assertEqual(await anext(iterator), "ca")
+            self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
+            self.assertEqual(await anext(iterator), "f")
+            self.assembler.put(Frame(OP_CONT, b"\xa9"))
+            self.assertEqual(await anext(iterator), "é")
 
     async def test_get_iter_fragmented_binary_message_not_received_yet(self):
         """get_iter yields a fragmented binary message when it is received."""
         iterator = aiter(self.assembler.get_iter())
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assertEqual(await anext(iterator), b"t")
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assertEqual(await anext(iterator), b"e")
-        self.assembler.put(Frame(OP_CONT, b"a"))
-        self.assertEqual(await anext(iterator), b"a")
+        async with contextlib.aclosing(iterator):
+            self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+            self.assertEqual(await anext(iterator), b"t")
+            self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+            self.assertEqual(await anext(iterator), b"e")
+            self.assembler.put(Frame(OP_CONT, b"a"))
+            self.assertEqual(await anext(iterator), b"a")
 
     async def test_get_iter_fragmented_text_message_being_received(self):
         """get_iter yields a fragmented text message that is partially received."""
         self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
         iterator = aiter(self.assembler.get_iter())
-        self.assertEqual(await anext(iterator), "ca")
-        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-        self.assertEqual(await anext(iterator), "f")
-        self.assembler.put(Frame(OP_CONT, b"\xa9"))
-        self.assertEqual(await anext(iterator), "é")
+        async with contextlib.aclosing(iterator):
+            self.assertEqual(await anext(iterator), "ca")
+            self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
+            self.assertEqual(await anext(iterator), "f")
+            self.assembler.put(Frame(OP_CONT, b"\xa9"))
+            self.assertEqual(await anext(iterator), "é")
 
     async def test_get_iter_fragmented_binary_message_being_received(self):
         """get_iter yields a fragmented binary message that is partially received."""
         self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
         iterator = aiter(self.assembler.get_iter())
-        self.assertEqual(await anext(iterator), b"t")
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assertEqual(await anext(iterator), b"e")
-        self.assembler.put(Frame(OP_CONT, b"a"))
-        self.assertEqual(await anext(iterator), b"a")
+        async with contextlib.aclosing(iterator):
+            self.assertEqual(await anext(iterator), b"t")
+            self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+            self.assertEqual(await anext(iterator), b"e")
+            self.assembler.put(Frame(OP_CONT, b"a"))
+            self.assertEqual(await anext(iterator), b"a")
 
     async def test_get_iter_encoded_text_message(self):
         """get_iter yields a text message without UTF-8 decoding."""
@@ -321,18 +325,16 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assembler.put(Frame(OP_CONT, b"a"))
 
         iterator = aiter(self.assembler.get_iter())
-
-        # queue is above the low-water mark
-        await anext(iterator)
-        self.resume.assert_not_called()
-
-        # queue is at the low-water mark
-        await anext(iterator)
-        self.resume.assert_called_once_with()
-
-        # queue is below the low-water mark
-        await anext(iterator)
-        self.resume.assert_called_once_with()
+        async with contextlib.aclosing(iterator):
+            # queue is above the low-water mark
+            await anext(iterator)
+            self.resume.assert_not_called()
+            # queue is at the low-water mark
+            await anext(iterator)
+            self.resume.assert_called_once_with()
+            # queue is below the low-water mark
+            await anext(iterator)
+            self.resume.assert_called_once_with()
 
     async def test_get_iter_does_not_resume_reading(self):
         """get_iter does not resume reading when the low-water mark is unset."""
@@ -342,11 +344,11 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assembler.put(Frame(OP_CONT, b"e", fin=False))
         self.assembler.put(Frame(OP_CONT, b"a"))
         iterator = aiter(self.assembler.get_iter())
-        await anext(iterator)
-        await anext(iterator)
-        await anext(iterator)
-
-        self.resume.assert_not_called()
+        async with contextlib.aclosing(iterator):
+            await anext(iterator)
+            await anext(iterator)
+            await anext(iterator)
+            self.resume.assert_not_called()
 
     async def test_cancel_get_iter_before_first_frame(self):
         """get_iter can be canceled safely before reading the first frame."""
@@ -357,7 +359,6 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
             await getter_task
 
         self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
-
         fragments = await alist(self.assembler.get_iter())
         self.assertEqual(fragments, ["café"])
 
@@ -373,11 +374,10 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
 
         self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
         self.assembler.put(Frame(OP_CONT, b"\xa9"))
-
         with self.assertRaises(ConcurrencyError):
             await alist(self.assembler.get_iter())
 
-    # Test put
+    # Test put.
 
     async def test_put_pauses_reading(self):
         """put pauses reading when queue goes above the high-water mark."""
@@ -385,11 +385,9 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
         self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
         self.pause.assert_not_called()
-
         # queue is at the high-water mark
         self.assembler.put(Frame(OP_CONT, b"e", fin=False))
         self.pause.assert_called_once_with()
-
         # queue is above the high-water mark
         self.assembler.put(Frame(OP_CONT, b"a"))
         self.pause.assert_called_once_with()
@@ -402,10 +400,9 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
         self.assembler.put(Frame(OP_CONT, b"e", fin=False))
         self.assembler.put(Frame(OP_CONT, b"a"))
-
         self.pause.assert_not_called()
 
-    # Test termination
+    # Test termination.
 
     async def test_get_fails_when_interrupted_by_close(self):
         """get raises EOFError when close is called."""
@@ -467,7 +464,7 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(fragments, [b"t", b"e", b"a"])
 
     async def test_get_partially_queued_fragmented_message_after_close(self):
-        """get raises EOF on a partial fragmented message after close is called."""
+        """get raises EOFError on a partial fragmented message after close is called."""
         self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
         self.assembler.put(Frame(OP_CONT, b"e", fin=False))
         self.assembler.close()
@@ -496,41 +493,41 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         self.assembler.close()
         self.assembler.close()
 
-    # Test (non-)concurrency
+    # Test (non-)concurrency.
 
     async def test_get_fails_when_get_is_running(self):
         """get cannot be called concurrently."""
-        asyncio.create_task(self.assembler.get())
-        await asyncio.sleep(0)
+        getter_task = asyncio.create_task(self.assembler.get())
+        await asyncio.sleep(0)  # let the event loop start the task
         with self.assertRaises(ConcurrencyError):
             await self.assembler.get()
-        self.assembler.put(Frame(OP_TEXT, b""))  # let task terminate
+        getter_task.cancel()
 
     async def test_get_fails_when_get_iter_is_running(self):
         """get cannot be called concurrently with get_iter."""
-        asyncio.create_task(alist(self.assembler.get_iter()))
-        await asyncio.sleep(0)
+        getter_task = asyncio.create_task(alist(self.assembler.get_iter()))
+        await asyncio.sleep(0)  # let the event loop start the task
         with self.assertRaises(ConcurrencyError):
             await self.assembler.get()
-        self.assembler.put(Frame(OP_TEXT, b""))  # let task terminate
+        getter_task.cancel()
 
     async def test_get_iter_fails_when_get_is_running(self):
         """get_iter cannot be called concurrently with get."""
-        asyncio.create_task(self.assembler.get())
-        await asyncio.sleep(0)
+        getter_task = asyncio.create_task(self.assembler.get())
+        await asyncio.sleep(0)  # let the event loop start the task
         with self.assertRaises(ConcurrencyError):
             await alist(self.assembler.get_iter())
-        self.assembler.put(Frame(OP_TEXT, b""))  # let task terminate
+        getter_task.cancel()
 
     async def test_get_iter_fails_when_get_iter_is_running(self):
         """get_iter cannot be called concurrently."""
-        asyncio.create_task(alist(self.assembler.get_iter()))
-        await asyncio.sleep(0)
+        getter_task = asyncio.create_task(alist(self.assembler.get_iter()))
+        await asyncio.sleep(0)  # let the event loop start the task
         with self.assertRaises(ConcurrencyError):
             await alist(self.assembler.get_iter())
-        self.assembler.put(Frame(OP_TEXT, b""))  # let task terminate
+        getter_task.cancel()
 
-    # Test setting limits
+    # Test setting limits.
 
     async def test_set_high_water_mark(self):
         """high sets the high-water and low-water marks."""

@@ -63,11 +63,10 @@ class Connection(asyncio.Protocol):
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
-        self.max_queue: tuple[int | None, int | None]
         if isinstance(max_queue, int) or max_queue is None:
-            self.max_queue = (max_queue, None)
+            self.max_queue_high, self.max_queue_low = max_queue, None
         else:
-            self.max_queue = max_queue
+            self.max_queue_high, self.max_queue_low = max_queue
         if isinstance(write_limit, int):
             write_limit = (write_limit, None)
         self.write_limit = write_limit
@@ -101,12 +100,12 @@ class Connection(asyncio.Protocol):
         self.close_deadline: float | None = None
 
         # Protect sending fragmented messages.
-        self.fragmented_send_waiter: asyncio.Future[None] | None = None
+        self.send_in_progress: asyncio.Future[None] | None = None
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pong_waiters: dict[bytes, tuple[asyncio.Future[float], float]] = {}
+        self.pending_pings: dict[bytes, tuple[asyncio.Future[float], float]] = {}
 
-        self.latency: float = 0
+        self.latency: float = 0.0
         """
         Latency of the connection, in seconds.
 
@@ -417,8 +416,8 @@ class Connection(asyncio.Protocol):
 
         You may override this behavior with the ``text`` argument:
 
-        * Set ``text=True`` to send a bytestring or bytes-like object
-          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) as a
+        * Set ``text=True`` to send an UTF-8 bytestring or bytes-like object
+          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) in a
           Text_ frame. This improves performance when the message is already
           UTF-8 encoded, for example if the message contains JSON and you're
           using a JSON library that produces a bytestring.
@@ -426,7 +425,7 @@ class Connection(asyncio.Protocol):
           frame. This may be useful for servers that expect binary frames
           instead of text frames.
 
-        :meth:`send` also accepts an iterable or an asynchronous iterable of
+        :meth:`send` also accepts an iterable or asynchronous iterable of
         strings, bytestrings, or bytes-like objects to enable fragmentation_.
         Each item is treated as a message fragment and sent in its own frame.
         All items must be of the same type, or else :meth:`send` will raise a
@@ -468,8 +467,8 @@ class Connection(asyncio.Protocol):
         """
         # While sending a fragmented message, prevent sending other messages
         # until all fragments are sent.
-        while self.fragmented_send_waiter is not None:
-            await asyncio.shield(self.fragmented_send_waiter)
+        while self.send_in_progress is not None:
+            await asyncio.shield(self.send_in_progress)
 
         # Unfragmented message -- this case must be handled first because
         # strings and bytes-like objects are iterable.
@@ -502,8 +501,8 @@ class Connection(asyncio.Protocol):
             except StopIteration:
                 return
 
-            assert self.fragmented_send_waiter is None
-            self.fragmented_send_waiter = self.loop.create_future()
+            assert self.send_in_progress is None
+            self.send_in_progress = self.loop.create_future()
             try:
                 # First fragment.
                 if isinstance(chunk, str):
@@ -549,8 +548,8 @@ class Connection(asyncio.Protocol):
                 raise
 
             finally:
-                self.fragmented_send_waiter.set_result(None)
-                self.fragmented_send_waiter = None
+                self.send_in_progress.set_result(None)
+                self.send_in_progress = None
 
         # Fragmented message -- async iterator.
 
@@ -561,8 +560,8 @@ class Connection(asyncio.Protocol):
             except StopAsyncIteration:
                 return
 
-            assert self.fragmented_send_waiter is None
-            self.fragmented_send_waiter = self.loop.create_future()
+            assert self.send_in_progress is None
+            self.send_in_progress = self.loop.create_future()
             try:
                 # First fragment.
                 if isinstance(chunk, str):
@@ -610,8 +609,8 @@ class Connection(asyncio.Protocol):
                 raise
 
             finally:
-                self.fragmented_send_waiter.set_result(None)
-                self.fragmented_send_waiter = None
+                self.send_in_progress.set_result(None)
+                self.send_in_progress = None
 
         else:
             raise TypeError("data must be str, bytes, iterable, or async iterable")
@@ -639,7 +638,7 @@ class Connection(asyncio.Protocol):
             # The context manager takes care of waiting for the TCP connection
             # to terminate after calling a method that sends a close frame.
             async with self.send_context():
-                if self.fragmented_send_waiter is not None:
+                if self.send_in_progress is not None:
                     self.protocol.fail(
                         CloseCode.INTERNAL_ERROR,
                         "close during fragmented message",
@@ -681,9 +680,9 @@ class Connection(asyncio.Protocol):
 
             ::
 
-                pong_waiter = await ws.ping()
+                pong_received = await ws.ping()
                 # only if you want to wait for the corresponding pong
-                latency = await pong_waiter
+                latency = await pong_received
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -700,19 +699,20 @@ class Connection(asyncio.Protocol):
 
         async with self.send_context():
             # Protect against duplicates if a payload is explicitly set.
-            if data in self.pong_waiters:
+            if data in self.pending_pings:
                 raise ConcurrencyError("already waiting for a pong with the same data")
 
             # Generate a unique random payload otherwise.
-            while data is None or data in self.pong_waiters:
+            while data is None or data in self.pending_pings:
                 data = struct.pack("!I", random.getrandbits(32))
 
-            pong_waiter = self.loop.create_future()
+            pong_received = self.loop.create_future()
+            ping_timestamp = self.loop.time()
             # The event loop's default clock is time.monotonic(). Its resolution
             # is a bit low on Windows (~16ms). This is improved in Python 3.13.
-            self.pong_waiters[data] = (pong_waiter, self.loop.time())
+            self.pending_pings[data] = (pong_received, ping_timestamp)
             self.protocol.send_ping(data)
-            return pong_waiter
+            return pong_received
 
     async def pong(self, data: DataLike = b"") -> None:
         """
@@ -761,7 +761,7 @@ class Connection(asyncio.Protocol):
 
         """
         # Ignore unsolicited pong.
-        if data not in self.pong_waiters:
+        if data not in self.pending_pings:
             return
 
         pong_timestamp = self.loop.time()
@@ -770,41 +770,39 @@ class Connection(asyncio.Protocol):
         # Acknowledge all previous pings too in that case.
         ping_id = None
         ping_ids = []
-        for ping_id, (pong_waiter, ping_timestamp) in self.pong_waiters.items():
+        for ping_id, (pong_received, ping_timestamp) in self.pending_pings.items():
             ping_ids.append(ping_id)
             latency = pong_timestamp - ping_timestamp
-            if not pong_waiter.done():
-                pong_waiter.set_result(latency)
+            if not pong_received.done():
+                pong_received.set_result(latency)
             if ping_id == data:
                 self.latency = latency
                 break
         else:
             raise AssertionError("solicited pong not found in pings")
 
-        # Remove acknowledged pings from self.pong_waiters.
+        # Remove acknowledged pings from self.pending_pings.
         for ping_id in ping_ids:
-            del self.pong_waiters[ping_id]
+            del self.pending_pings[ping_id]
 
-    def abort_pings(self) -> None:
+    def terminate_pending_pings(self) -> None:
         """
-        Raise ConnectionClosed in pending pings.
-
-        They'll never receive a pong once the connection is closed.
+        Raise ConnectionClosed in pending pings when the connection is closed.
 
         """
         assert self.protocol.state is CLOSED
         exc = self.protocol.close_exc
 
-        for pong_waiter, _ping_timestamp in self.pong_waiters.values():
-            if not pong_waiter.done():
-                pong_waiter.set_exception(exc)
+        for pong_received, _ping_timestamp in self.pending_pings.values():
+            if not pong_received.done():
+                pong_received.set_exception(exc)
             # If the exception is never retrieved, it will be logged when ping
             # is garbage-collected. This is confusing for users.
             # Given that ping is done (with an exception), canceling it does
             # nothing, but it prevents logging the exception.
-            pong_waiter.cancel()
+            pong_received.cancel()
 
-        self.pong_waiters.clear()
+        self.pending_pings.clear()
 
     async def keepalive(self) -> None:
         """
@@ -825,7 +823,7 @@ class Connection(asyncio.Protocol):
                 # connection to be closed before raising ConnectionClosed.
                 # However, connection_lost() cancels keepalive_task before
                 # it gets a chance to resume excuting.
-                pong_waiter = await self.ping()
+                pong_received = await self.ping()
                 if self.debug:
                     self.logger.debug("% sent keepalive ping")
 
@@ -834,10 +832,11 @@ class Connection(asyncio.Protocol):
                         async with asyncio_timeout(self.ping_timeout):
                             # connection_lost cancels keepalive immediately
                             # after setting a ConnectionClosed exception on
-                            # pong_waiter. A CancelledError is raised here,
+                            # pong_received. A CancelledError is raised here,
                             # not a ConnectionClosed exception.
-                            latency = await pong_waiter
-                        self.logger.debug("% received keepalive pong")
+                            latency = await pong_received
+                            if self.debug:
+                                self.logger.debug("% received keepalive pong")
                     except asyncio.TimeoutError:
                         if self.debug:
                             self.logger.debug("- timed out waiting for keepalive pong")
@@ -908,14 +907,13 @@ class Connection(asyncio.Protocol):
                 # Check if the connection is expected to close soon.
                 if self.protocol.close_expected():
                     wait_for_close = True
-                    # If the connection is expected to close soon, set the
-                    # close deadline based on the close timeout.
-                    # Since we tested earlier that protocol.state was OPEN
+                    # Set the close deadline based on the close timeout.
+                    # Since we tested earlier that protocol.state is OPEN
                     # (or CONNECTING), self.close_deadline is still None.
+                    assert self.close_deadline is None
                     if self.close_timeout is not None:
-                        assert self.close_deadline is None
                         self.close_deadline = self.loop.time() + self.close_timeout
-                # Write outgoing data to the socket and enforce flow control.
+                # Write outgoing data to the socket with flow control.
                 try:
                     self.send_data()
                     await self.drain()
@@ -933,9 +931,8 @@ class Connection(asyncio.Protocol):
             # will be closing soon if it isn't in the expected state.
             wait_for_close = True
             # Calculate close_deadline if it wasn't set yet.
-            if self.close_timeout is not None:
-                if self.close_deadline is None:
-                    self.close_deadline = self.loop.time() + self.close_timeout
+            if self.close_deadline is None and self.close_timeout is not None:
+                self.close_deadline = self.loop.time() + self.close_timeout
             raise_close_exc = True
 
         # If the connection is expected to close soon and the close timeout
@@ -966,9 +963,6 @@ class Connection(asyncio.Protocol):
         """
         Send outgoing data.
 
-        Raises:
-            OSError: When a socket operations fails.
-
         """
         for data in self.protocol.data_to_send():
             if data:
@@ -982,7 +976,7 @@ class Connection(asyncio.Protocol):
                     # OSError is plausible. uvloop can raise RuntimeError here.
                     try:
                         self.transport.write_eof()
-                    except (OSError, RuntimeError):  # pragma: no cover
+                    except Exception:  # pragma: no cover
                         pass
                 # Else, close the TCP connection.
                 else:  # pragma: no cover
@@ -1005,7 +999,8 @@ class Connection(asyncio.Protocol):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         transport = cast(asyncio.Transport, transport)
         self.recv_messages = Assembler(
-            *self.max_queue,
+            self.max_queue_high,
+            self.max_queue_low,
             pause=transport.pause_reading,
             resume=transport.resume_reading,
         )
@@ -1022,7 +1017,7 @@ class Connection(asyncio.Protocol):
 
         # Abort recv() and pending pings with a ConnectionClosed exception.
         self.recv_messages.close()
-        self.abort_pings()
+        self.terminate_pending_pings()
 
         if self.keepalive_task is not None:
             self.keepalive_task.cancel()
@@ -1092,12 +1087,10 @@ class Connection(asyncio.Protocol):
                 self.logger.debug("! error while sending data", exc_info=True)
             self.set_recv_exc(exc)
 
+        # If needed, set the close deadline based on the close timeout.
         if self.protocol.close_expected():
-            # If the connection is expected to close soon, set the
-            # close deadline based on the close timeout.
-            if self.close_timeout is not None:
-                if self.close_deadline is None:
-                    self.close_deadline = self.loop.time() + self.close_timeout
+            if self.close_deadline is None and self.close_timeout is not None:
+                self.close_deadline = self.loop.time() + self.close_timeout
 
         for event in events:
             # This isn't expected to raise an exception.
@@ -1205,7 +1198,7 @@ def broadcast(
         if connection.protocol.state is not OPEN:
             continue
 
-        if connection.fragmented_send_waiter is not None:
+        if connection.send_in_progress is not None:
             if raise_exceptions:
                 exception = ConcurrencyError("sending a fragmented message")
                 exceptions.append(exception)

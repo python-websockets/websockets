@@ -254,7 +254,7 @@ class Protocol:
 
     # Public methods for receiving data.
 
-    def receive_data(self, data: bytes) -> None:
+    def receive_data(self, data: bytes | bytearray) -> None:
         """
         Receive data from the network.
 

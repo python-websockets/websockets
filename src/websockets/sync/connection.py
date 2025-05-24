@@ -104,7 +104,7 @@ class Connection:
         self.send_in_progress = False
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pong_waiters: dict[bytes, tuple[threading.Event, float, bool]] = {}
+        self.pending_pings: dict[bytes, tuple[threading.Event, float, bool]] = {}
 
         self.latency: float = 0
         """
@@ -633,8 +633,9 @@ class Connection:
 
             ::
 
-                pong_event = ws.ping()
-                pong_event.wait()  # only if you want to wait for the pong
+                pong_received = ws.ping()
+                # only if you want to wait for the corresponding pong
+                pong_received.wait()
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -651,17 +652,17 @@ class Connection:
 
         with self.send_context():
             # Protect against duplicates if a payload is explicitly set.
-            if data in self.pong_waiters:
+            if data in self.pending_pings:
                 raise ConcurrencyError("already waiting for a pong with the same data")
 
             # Generate a unique random payload otherwise.
-            while data is None or data in self.pong_waiters:
+            while data is None or data in self.pending_pings:
                 data = struct.pack("!I", random.getrandbits(32))
 
-            pong_waiter = threading.Event()
-            self.pong_waiters[data] = (pong_waiter, time.monotonic(), ack_on_close)
+            pong_received = threading.Event()
+            self.pending_pings[data] = (pong_received, time.monotonic(), ack_on_close)
             self.protocol.send_ping(data)
-            return pong_waiter
+            return pong_received
 
     def pong(self, data: DataLike = b"") -> None:
         """
@@ -711,7 +712,7 @@ class Connection:
         """
         with self.protocol_mutex:
             # Ignore unsolicited pong.
-            if data not in self.pong_waiters:
+            if data not in self.pending_pings:
                 return
 
             pong_timestamp = time.monotonic()
@@ -721,21 +722,21 @@ class Connection:
             ping_id = None
             ping_ids = []
             for ping_id, (
-                pong_waiter,
+                pong_received,
                 ping_timestamp,
                 _ack_on_close,
-            ) in self.pong_waiters.items():
+            ) in self.pending_pings.items():
                 ping_ids.append(ping_id)
-                pong_waiter.set()
+                pong_received.set()
                 if ping_id == data:
                     self.latency = pong_timestamp - ping_timestamp
                     break
             else:
                 raise AssertionError("solicited pong not found in pings")
 
-            # Remove acknowledged pings from self.pong_waiters.
+            # Remove acknowledged pings from self.pending_pings.
             for ping_id in ping_ids:
-                del self.pong_waiters[ping_id]
+                del self.pending_pings[ping_id]
 
     def acknowledge_pending_pings(self) -> None:
         """
@@ -744,11 +745,11 @@ class Connection:
         """
         assert self.protocol.state is CLOSED
 
-        for pong_waiter, _ping_timestamp, ack_on_close in self.pong_waiters.values():
+        for pong_received, _ping_timestamp, ack_on_close in self.pending_pings.values():
             if ack_on_close:
-                pong_waiter.set()
+                pong_received.set()
 
-        self.pong_waiters.clear()
+        self.pending_pings.clear()
 
     def keepalive(self) -> None:
         """
@@ -766,15 +767,14 @@ class Connection:
                     break
 
                 try:
-                    pong_waiter = self.ping(ack_on_close=True)
+                    pong_received = self.ping(ack_on_close=True)
                 except ConnectionClosed:
                     break
                 if self.debug:
                     self.logger.debug("% sent keepalive ping")
 
                 if self.ping_timeout is not None:
-                    #
-                    if pong_waiter.wait(self.ping_timeout):
+                    if pong_received.wait(self.ping_timeout):
                         if self.debug:
                             self.logger.debug("% received keepalive pong")
                     else:
@@ -808,7 +808,7 @@ class Connection:
 
         Run this method in a thread as long as the connection is alive.
 
-        ``recv_events()`` exits immediately when the ``self.socket`` is closed.
+        ``recv_events()`` exits immediately when ``self.socket`` is closed.
 
         """
         try:
@@ -983,6 +983,7 @@ class Connection:
                 # Minor layering violation: we assume that the connection
                 # will be closing soon if it isn't in the expected state.
                 wait_for_close = True
+                # TODO: calculate close deadline if not set?
                 raise_close_exc = True
 
         # To avoid a deadlock, release the connection lock by exiting the

@@ -157,6 +157,7 @@ def connect(
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
     create_connection: type[ClientConnection] | None = None,
+    # Other keyword arguments are passed to socket.create_connection
     **kwargs: Any,
 ) -> ClientConnection:
     """
@@ -230,6 +231,7 @@ def connect(
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
+        InvalidProxy: If ``proxy`` isn't a valid proxy.
         OSError: If the TCP connection fails.
         InvalidHandshake: If the opening handshake fails.
         TimeoutError: If the opening handshake times out.
@@ -539,7 +541,8 @@ def connect_http_proxy(
 
     # Send CONNECT request to the proxy and read response.
 
-    sock.sendall(prepare_connect_request(proxy, ws_uri, user_agent_header))
+    request = prepare_connect_request(proxy, ws_uri, user_agent_header)
+    sock.sendall(request)
     try:
         read_connect_response(sock, deadline)
     except Exception:

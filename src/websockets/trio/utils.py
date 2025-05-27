@@ -1,7 +1,13 @@
+import sys
+
 import trio
 
 
-__all__ = ["wait_for_any_event"]
+if sys.version_info[:2] < (3, 11):  # pragma: no cover
+    from exceptiongroup import BaseExceptionGroup
+
+
+__all__ = ["race_events"]
 
 
 # Based on https://trio.readthedocs.io/en/stable/reference-core.html#custom-supervisors
@@ -12,7 +18,7 @@ async def jockey(event: trio.Event, cancel_scope: trio.CancelScope) -> None:
     cancel_scope.cancel()
 
 
-async def wait_for_any_event(*events: trio.Event) -> None:
+async def race_events(*events: trio.Event) -> None:
     """
     Wait for any of the given events to be set.
 
@@ -23,6 +29,14 @@ async def wait_for_any_event(*events: trio.Event) -> None:
     if not events:
         raise ValueError("no events provided")
 
-    async with trio.open_nursery() as nursery:
-        for event in events:
-            nursery.start_soon(jockey, event, nursery.cancel_scope)
+    try:
+        async with trio.open_nursery() as nursery:
+            for event in events:
+                nursery.start_soon(jockey, event, nursery.cancel_scope)
+    except BaseExceptionGroup as exc:
+        try:
+            trio._util.raise_single_exception_from_group(exc)
+        except trio._util.MultipleExceptionError:  # pragma: no cover
+            raise AssertionError(
+                "race_events should be canceled; please file a bug report"
+            ) from exc

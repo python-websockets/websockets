@@ -42,7 +42,8 @@ class IsolatedTrioTestCase(unittest.TestCase):
                     finally:
                         await self.asyncTearDown()
             except BaseExceptionGroup as exc:
-                # Unwrap exceptions like unittest.SkipTest.
+                # Unwrap exceptions like unittest.SkipTest. Multiple exceptions
+                # could occur is a test fails with multiple errors; this is OK.
                 try:
                     trio._util.raise_single_exception_from_group(exc)
                 except trio._util.MultipleExceptionError:  # pragma: no cover

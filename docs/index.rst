@@ -70,6 +70,10 @@ Here's an echo server and corresponding client.
 
     .. literalinclude:: ../example/sync/echo.py
 
+.. tab:: trio
+
+    .. literalinclude:: ../example/trio/echo.py
+
 .. tab:: asyncio
     :new-set:
 
@@ -78,6 +82,11 @@ Here's an echo server and corresponding client.
 .. tab:: threading
 
     .. literalinclude:: ../example/sync/hello.py
+
+.. tab:: trio
+
+    .. literalinclude:: ../example/trio/hello.py
+
 
 Don't worry about the opening and closing handshakes, pings and pongs, or any
 other behavior described in the WebSocket specification. websockets takes care

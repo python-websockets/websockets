@@ -85,6 +85,7 @@ PythonDomain.object_types["data"].roles = ("data", "class", "obj")
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "sesame": ("https://django-sesame.readthedocs.io/en/stable/", None),
+    "trio": ("https://trio.readthedocs.io/en/stable/", None),
     "werkzeug": ("https://werkzeug.palletsprojects.com/en/stable/", None),
 }
 

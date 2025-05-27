@@ -1,7 +1,7 @@
-Server (:mod:`asyncio`)
+Server (:mod:`trio`)
 =======================
 
-.. automodule:: websockets.asyncio.server
+.. automodule:: websockets.trio.server
 
 Creating a server
 -----------------
@@ -9,23 +9,7 @@ Creating a server
 .. autofunction:: serve
     :async:
 
-.. autofunction:: unix_serve
-    :async:
-
-Routing connections
--------------------
-
-.. automodule:: websockets.asyncio.router
-
-.. autofunction:: route
-    :async:
-
-.. autofunction:: unix_route
-    :async:
-
-.. autoclass:: Router
-
-.. currentmodule:: websockets.asyncio.server
+.. currentmodule:: websockets.trio.server
 
 Running a server
 ----------------
@@ -34,19 +18,9 @@ Running a server
 
     .. autoattribute:: connections
 
-    .. automethod:: close
+    .. automethod:: aclose
 
-    .. automethod:: wait_closed
-
-    .. automethod:: get_loop
-
-    .. automethod:: is_serving
-
-    .. automethod:: start_serving
-
-    .. automethod:: serve_forever
-
-    .. autoproperty:: sockets
+    .. autoattribute:: listeners
 
 Using a connection
 ------------------
@@ -61,7 +35,7 @@ Using a connection
 
     .. automethod:: send
 
-    .. automethod:: close
+    .. automethod:: aclose
 
     .. automethod:: wait_closed
 
@@ -100,11 +74,6 @@ Using a connection
     .. autoproperty:: close_code
 
     .. autoproperty:: close_reason
-
-Broadcast
----------
-
-.. autofunction:: broadcast
 
 HTTP Basic Authentication
 -------------------------

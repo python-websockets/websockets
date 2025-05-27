@@ -1,4 +1,3 @@
-import asyncio
 import contextlib
 import http
 import logging
@@ -9,9 +8,8 @@ import sys
 import unittest
 from unittest.mock import patch
 
-from websockets.asyncio.client import *
-from websockets.asyncio.compatibility import TimeoutError
-from websockets.asyncio.server import serve, unix_serve
+import trio
+
 from websockets.client import backoff
 from websockets.exceptions import (
     InvalidHandshake,
@@ -24,10 +22,12 @@ from websockets.exceptions import (
     SecurityError,
 )
 from websockets.extensions.permessage_deflate import PerMessageDeflate
+from websockets.trio.client import *
 
 from ..proxy import ProxyMixin
-from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
-from .server import args, get_host_port, get_uri, handler
+from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT
+from .server import get_host_port, get_uri, run_server
+from .utils import IsolatedTrioTestCase
 
 
 @contextlib.asynccontextmanager
@@ -47,7 +47,7 @@ async def short_backoff_delay():
 
 @contextlib.asynccontextmanager
 async def few_redirects():
-    from websockets.asyncio import client
+    from websockets.trio import client
 
     max_redirects = client.MAX_REDIRECTS
     client.MAX_REDIRECTS = 2
@@ -57,31 +57,31 @@ async def few_redirects():
         client.MAX_REDIRECTS = max_redirects
 
 
-class ClientTests(unittest.IsolatedAsyncioTestCase):
+class ClientTests(IsolatedTrioTestCase):
     async def test_connection(self):
         """Client connects to server."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
 
     async def test_explicit_host_port(self):
         """Client connects using an explicit host / port."""
-        async with serve(*args) as server:
-            host, port = get_host_port(server)
+        async with run_server() as server:
+            host, port = get_host_port(server.listeners)
             async with connect("ws://overridden/", host=host, port=port) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
 
-    async def test_existing_socket(self):
-        """Client connects using a pre-existing socket."""
-        async with serve(*args) as server:
-            with socket.create_connection(get_host_port(server)) as sock:
-                # Use a non-existing domain to ensure we connect via sock.
-                async with connect("ws://invalid/", sock=sock) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
+    async def test_existing_stream(self):
+        """Client connects using a pre-existing stream."""
+        async with run_server() as server:
+            stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+            # Use a non-existing domain to ensure we connect via stream.
+            async with connect("ws://invalid/", stream=stream) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
 
     async def test_compression_is_enabled(self):
         """Client enables compression by default."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(
                     [type(ext) for ext in client.protocol.extensions],
@@ -90,13 +90,13 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_disable_compression(self):
         """Client disables compression."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server), compression=None) as client:
                 self.assertEqual(client.protocol.extensions, [])
 
     async def test_additional_headers(self):
         """Client can set additional headers with additional_headers."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(
                 get_uri(server), additional_headers={"Authorization": "Bearer ..."}
             ) as client:
@@ -104,19 +104,19 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_override_user_agent(self):
         """Client can override User-Agent header with user_agent_header."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server), user_agent_header="Smith") as client:
                 self.assertEqual(client.request.headers["User-Agent"], "Smith")
 
     async def test_remove_user_agent(self):
         """Client can remove User-Agent header with user_agent_header."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server), user_agent_header=None) as client:
                 self.assertNotIn("User-Agent", client.request.headers)
 
     async def test_legacy_user_agent(self):
         """Client can override User-Agent header with additional_headers."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(
                 get_uri(server), additional_headers={"User-Agent": "Smith"}
             ) as client:
@@ -124,23 +124,23 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_keepalive_is_enabled(self):
         """Client enables keepalive and measures latency by default."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server), ping_interval=MS) as client:
                 self.assertEqual(client.latency, 0)
-                await asyncio.sleep(2 * MS)
+                await trio.sleep(2 * MS)
                 self.assertGreater(client.latency, 0)
 
     async def test_disable_keepalive(self):
         """Client disables keepalive."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server), ping_interval=None) as client:
-                await asyncio.sleep(2 * MS)
+                await trio.sleep(2 * MS)
                 self.assertEqual(client.latency, 0)
 
     async def test_logger(self):
         """Client accepts a logger argument."""
         logger = logging.getLogger("test")
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server), logger=logger) as client:
                 self.assertEqual(client.logger.name, logger.name)
 
@@ -152,7 +152,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             client.create_connection_ran = True
             return client
 
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(
                 get_uri(server), create_connection=create_connection
             ) as client:
@@ -169,16 +169,16 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             iterations += 1
             # Retriable errors
             if iterations == 1:
-                await asyncio.sleep(3 * MS)
+                await trio.sleep(3 * MS)
             elif iterations == 2:
-                connection.transport.close()
+                await connection.stream.aclose()
             elif iterations == 3:
                 return connection.respond(http.HTTPStatus.SERVICE_UNAVAILABLE, "🚒")
             # Fatal error
             elif iterations == 6:
                 return connection.respond(http.HTTPStatus.PAYMENT_REQUIRED, "💸")
 
-        async with serve(*args, process_request=process_request) as server:
+        async with run_server(process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async for client in connect(get_uri(server), open_timeout=3 * MS):
                     self.assertEqual(client.protocol.state.name, "OPEN")
@@ -211,7 +211,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                     return Exception("🫖 💔 ☕️")
             self.fail("unexpected exception")
 
-        async with serve(*args, process_request=process_request) as server:
+        async with run_server(process_request=process_request) as server:
             with self.assertRaises(Exception) as raised:
                 async for _ in connect(
                     get_uri(server), process_exception=process_exception
@@ -236,7 +236,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                 raise Exception("🫖 💔 ☕️")
             self.fail("unexpected exception")
 
-        async with serve(*args, process_request=process_request) as server:
+        async with run_server(process_request=process_request) as server:
             with self.assertRaises(Exception) as raised:
                 async for _ in connect(
                     get_uri(server), process_exception=process_exception
@@ -257,7 +257,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                 response.headers["Location"] = "/"
                 return response
 
-        async with serve(*args, process_request=redirect) as server:
+        async with run_server(process_request=redirect) as server:
             async with connect(get_uri(server) + "/redirect") as client:
                 self.assertEqual(client.protocol.uri.path, "/")
 
@@ -269,8 +269,8 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             response.headers["Location"] = get_uri(other_server)
             return response
 
-        async with serve(*args, process_request=redirect) as server:
-            async with serve(*args) as other_server:
+        async with run_server(process_request=redirect) as server:
+            async with run_server() as other_server:
                 async with connect(get_uri(server)):
                     self.assertFalse(server.connections)
                     self.assertTrue(other_server.connections)
@@ -284,7 +284,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             response.headers["Location"] = request.path
             return response
 
-        async with serve(*args, process_request=redirect) as server:
+        async with run_server(process_request=redirect) as server:
             with self.assertRaises(SecurityError) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -303,8 +303,8 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                 response.headers["Location"] = "/"
                 return response
 
-        async with serve(*args, process_request=redirect) as server:
-            host, port = get_host_port(server)
+        async with run_server(process_request=redirect) as server:
+            host, port = get_host_port(server.listeners)
             async with connect(
                 "ws://overridden/redirect", host=host, port=port
             ) as client:
@@ -318,8 +318,8 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             response.headers["Location"] = "ws://other/"
             return response
 
-        async with serve(*args, process_request=redirect) as server:
-            host, port = get_host_port(server)
+        async with run_server(process_request=redirect) as server:
+            host, port = get_host_port(server.listeners)
             with self.assertRaises(ValueError) as raised:
                 async with connect("ws://overridden/", host=host, port=port):
                     self.fail("did not raise")
@@ -330,24 +330,24 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             "with an explicit host or port",
         )
 
-    async def test_redirect_with_existing_socket(self):
-        """Client doesn't follow redirect when using a pre-existing socket."""
+    async def test_redirect_with_existing_stream(self):
+        """Client doesn't follow redirect when using a pre-existing stream."""
 
         def redirect(connection, request):
             response = connection.respond(http.HTTPStatus.FOUND, "")
             response.headers["Location"] = "/"
             return response
 
-        async with serve(*args, process_request=redirect) as server:
-            with socket.create_connection(get_host_port(server)) as sock:
-                with self.assertRaises(ValueError) as raised:
-                    # Use a non-existing domain to ensure we connect via sock.
-                    async with connect("ws://invalid/redirect", sock=sock):
-                        self.fail("did not raise")
+        async with run_server(process_request=redirect) as server:
+            stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+            with self.assertRaises(ValueError) as raised:
+                # Use a non-existing domain to ensure we connect via sock.
+                async with connect("ws://invalid/redirect", stream=stream):
+                    self.fail("did not raise")
 
         self.assertEqual(
             str(raised.exception),
-            "cannot follow redirect to ws://invalid/ with a preexisting socket",
+            "cannot follow redirect to ws://invalid/ with a preexisting stream",
         )
 
     async def test_invalid_uri(self):
@@ -370,7 +370,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         # The connection will be open for the server but failed for the client.
         # Use a connection handler that exits immediately to avoid an exception.
-        async with serve(*args, process_response=remove_accept_header) as server:
+        async with run_server(process_response=remove_accept_header) as server:
             with self.assertRaises(InvalidHandshake) as raised:
                 async with connect(get_uri(server) + "/no-op", close_timeout=MS):
                     self.fail("did not raise")
@@ -385,7 +385,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         with socket.create_server(("localhost", 0)) as sock:
             host, port = sock.getsockname()
             with self.assertRaises(TimeoutError) as raised:
-                async with connect(f"ws://{host}:{port}", open_timeout=MS):
+                async with connect(f"ws://{host}:{port}", open_timeout=2 * MS):
                     self.fail("did not raise")
             self.assertEqual(
                 str(raised.exception),
@@ -395,10 +395,10 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_connection_closed_during_handshake(self):
         """Client reads EOF before receiving handshake response from server."""
 
-        def close_connection(self, request):
-            self.transport.close()
+        async def close_connection(self, request):
+            await self.stream.aclose()
 
-        async with serve(*args, process_request=close_connection) as server:
+        async with run_server(process_request=close_connection) as server:
             with self.assertRaises(InvalidMessage) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -418,7 +418,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         def http_response(connection, request):
             return connection.respond(http.HTTPStatus.OK, "👌")
 
-        async with serve(*args, process_request=http_response) as server:
+        async with run_server(process_request=http_response) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -434,7 +434,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             del response.headers["Content-Length"]
             return response
 
-        async with serve(*args, process_request=http_response) as server:
+        async with run_server(process_request=http_response) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -445,84 +445,101 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
     async def test_junk_handshake(self):
         """Client closes the connection when receiving non-HTTP response from server."""
 
-        async def junk(reader, writer):
+        async def junk(stream):
             # Wait for the client to send the handshake request.
-            await asyncio.sleep(MS)
-            writer.write(b"220 smtp.invalid ESMTP Postfix\r\n")
+            await trio.testing.wait_all_tasks_blocked()
+            await stream.send_all(b"220 smtp.invalid ESMTP Postfix\r\n")
             # Wait for the client to close the connection.
-            await reader.read(4096)
-            writer.close()
+            await stream.receive_some()
+            await stream.aclose()
 
-        server = await asyncio.start_server(junk, "localhost", 0)
-        host, port = get_host_port(server)
-        async with server:
-            with self.assertRaises(InvalidMessage) as raised:
-                async with connect(f"ws://{host}:{port}"):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "did not receive a valid HTTP response",
-            )
-            self.assertIsInstance(raised.exception.__cause__, ValueError)
-            self.assertEqual(
-                str(raised.exception.__cause__),
-                "unsupported protocol; expected HTTP/1.1: "
-                "220 smtp.invalid ESMTP Postfix",
-            )
+        async with trio.open_nursery() as nursery:
+            try:
+                listeners = await nursery.start(trio.serve_tcp, junk, 0)
+                host, port = get_host_port(listeners)
+                with self.assertRaises(InvalidMessage) as raised:
+                    async with connect(f"ws://{host}:{port}"):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "did not receive a valid HTTP response",
+                )
+                self.assertIsInstance(raised.exception.__cause__, ValueError)
+                self.assertEqual(
+                    str(raised.exception.__cause__),
+                    "unsupported protocol; expected HTTP/1.1: "
+                    "220 smtp.invalid ESMTP Postfix",
+                )
+            finally:
+                nursery.cancel_scope.cancel()
 
 
-class SecureClientTests(unittest.IsolatedAsyncioTestCase):
+class SecureClientTests(IsolatedTrioTestCase):
     async def test_connection(self):
         """Client connects to server securely."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
-            async with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            async with connect(
+                get_uri(server, secure=True), ssl=CLIENT_CONTEXT
+            ) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
-                ssl_object = client.transport.get_extra_info("ssl_object")
+                ssl_object = client.stream._ssl_object
                 self.assertEqual(ssl_object.version()[:3], "TLS")
 
     async def test_set_server_hostname_implicitly(self):
         """Client sets server_hostname to the host in the WebSocket URI."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
-            host, port = get_host_port(server)
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            host, port = get_host_port(server.listeners)
             async with connect(
                 "wss://overridden/", host=host, port=port, ssl=CLIENT_CONTEXT
             ) as client:
-                ssl_object = client.transport.get_extra_info("ssl_object")
+                ssl_object = client.stream._ssl_object
                 self.assertEqual(ssl_object.server_hostname, "overridden")
 
     async def test_set_server_hostname_explicitly(self):
         """Client sets server_hostname to the value provided in argument."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
+        async with run_server(ssl=SERVER_CONTEXT) as server:
             async with connect(
-                get_uri(server), ssl=CLIENT_CONTEXT, server_hostname="overridden"
+                get_uri(server, secure=True),
+                ssl=CLIENT_CONTEXT,
+                server_hostname="overridden",
             ) as client:
-                ssl_object = client.transport.get_extra_info("ssl_object")
+                ssl_object = client.stream._ssl_object
                 self.assertEqual(ssl_object.server_hostname, "overridden")
 
     async def test_reject_invalid_server_certificate(self):
         """Client rejects certificate where server certificate isn't trusted."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
-            with self.assertRaises(ssl.SSLCertVerificationError) as raised:
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            with self.assertRaises(trio.BrokenResourceError) as raised:
                 # The test certificate is self-signed.
-                async with connect(get_uri(server)):
+                async with connect(get_uri(server, secure=True)):
                     self.fail("did not raise")
+            self.assertIsInstance(
+                raised.exception.__cause__,
+                ssl.SSLCertVerificationError,
+            )
             self.assertIn(
                 "certificate verify failed: self signed certificate",
-                str(raised.exception).replace("-", " "),
+                str(raised.exception.__cause__).replace("-", " "),
             )
 
     async def test_reject_invalid_server_hostname(self):
         """Client rejects certificate where server hostname doesn't match."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
-            with self.assertRaises(ssl.SSLCertVerificationError) as raised:
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            with self.assertRaises(trio.BrokenResourceError) as raised:
                 # This hostname isn't included in the test certificate.
                 async with connect(
-                    get_uri(server), ssl=CLIENT_CONTEXT, server_hostname="invalid"
+                    get_uri(server, secure=True),
+                    ssl=CLIENT_CONTEXT,
+                    server_hostname="invalid",
                 ):
                     self.fail("did not raise")
+            self.assertIsInstance(
+                raised.exception.__cause__,
+                ssl.SSLCertVerificationError,
+            )
             self.assertIn(
                 "certificate verify failed: Hostname mismatch",
-                str(raised.exception),
+                str(raised.exception.__cause__),
             )
 
     async def test_cross_origin_redirect(self):
@@ -530,12 +547,12 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
 
         def redirect(connection, request):
             response = connection.respond(http.HTTPStatus.FOUND, "")
-            response.headers["Location"] = get_uri(other_server)
+            response.headers["Location"] = get_uri(other_server, secure=True)
             return response
 
-        async with serve(*args, ssl=SERVER_CONTEXT, process_request=redirect) as server:
-            async with serve(*args, ssl=SERVER_CONTEXT) as other_server:
-                async with connect(get_uri(server), ssl=CLIENT_CONTEXT):
+        async with run_server(ssl=SERVER_CONTEXT, process_request=redirect) as server:
+            async with run_server(ssl=SERVER_CONTEXT) as other_server:
+                async with connect(get_uri(server, secure=True), ssl=CLIENT_CONTEXT):
                     self.assertFalse(server.connections)
                     self.assertTrue(other_server.connections)
 
@@ -547,9 +564,9 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
             response.headers["Location"] = insecure_uri
             return response
 
-        async with serve(*args, ssl=SERVER_CONTEXT, process_request=redirect) as server:
+        async with run_server(ssl=SERVER_CONTEXT, process_request=redirect) as server:
             with self.assertRaises(SecurityError) as raised:
-                secure_uri = get_uri(server)
+                secure_uri = get_uri(server, secure=True)
                 insecure_uri = secure_uri.replace("wss://", "ws://")
                 async with connect(secure_uri, ssl=CLIENT_CONTEXT):
                     self.fail("did not raise")
@@ -561,13 +578,13 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
 
 
 @unittest.skipUnless("mitmproxy" in sys.modules, "mitmproxy not installed")
-class SocksProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
+class SocksProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
     proxy_mode = "socks5@51080"
 
     @patch.dict(os.environ, {"socks_proxy": "http://localhost:51080"})
     async def test_socks_proxy(self):
         """Client connects to server through a SOCKS5 proxy."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(1)
@@ -575,8 +592,10 @@ class SocksProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
     @patch.dict(os.environ, {"socks_proxy": "http://localhost:51080"})
     async def test_secure_socks_proxy(self):
         """Client connects to server securely through a SOCKS5 proxy."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
-            async with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            async with connect(
+                get_uri(server, secure=True), ssl=CLIENT_CONTEXT
+            ) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(1)
 
@@ -585,7 +604,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         """Client connects to server through an authenticated SOCKS5 proxy."""
         try:
             self.proxy_options.update(proxyauth="hello:iloveyou")
-            async with serve(*args) as server:
+            async with run_server() as server:
                 async with connect(get_uri(server)) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
         finally:
@@ -630,7 +649,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
             host, port = sock.getsockname()
             with patch.dict(os.environ, {"socks_proxy": f"http://{host}:{port}"}):
                 with self.assertRaises(TimeoutError) as raised:
-                    async with connect("ws://example.com/", open_timeout=MS):
+                    async with connect("ws://example.com/", open_timeout=2 * MS):
                         self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
@@ -640,7 +659,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_explicit_socks_proxy(self):
         """Client connects to server through a SOCKS5 proxy set explicitly."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(
                 get_uri(server),
                 # Take this opportunity to test socks5 instead of socks5h.
@@ -650,24 +669,24 @@ class SocksProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         self.assertNumFlows(1)
 
     @patch.dict(os.environ, {"socks_proxy": "http://localhost:51080"})
-    async def test_ignore_proxy_with_existing_socket(self):
-        """Client connects using a pre-existing socket."""
-        async with serve(*args) as server:
-            with socket.create_connection(get_host_port(server)) as sock:
-                # Use a non-existing domain to ensure we connect via sock.
-                async with connect("ws://invalid/", sock=sock) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
+    async def test_ignore_proxy_with_existing_stream(self):
+        """Cli ent connects using a pre-existing stream."""
+        async with run_server() as server:
+            stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+            # Use a non-existing domain to ensure we connect via stream.
+            async with connect("ws://invalid/", stream=stream) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(0)
 
 
 @unittest.skipUnless("mitmproxy" in sys.modules, "mitmproxy not installed")
-class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
+class HTTPProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
     proxy_mode = "regular@58080"
 
     @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     async def test_http_proxy(self):
         """Client connects to server through an HTTP proxy."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(1)
@@ -675,10 +694,12 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
     @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     async def test_secure_http_proxy(self):
         """Client connects to server securely through an HTTP proxy."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
-            async with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            async with connect(
+                get_uri(server, secure=True), ssl=CLIENT_CONTEXT
+            ) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
-                ssl_object = client.transport.get_extra_info("ssl_object")
+                ssl_object = client.stream._ssl_object
                 self.assertEqual(ssl_object.version()[:3], "TLS")
         self.assertNumFlows(1)
 
@@ -687,7 +708,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         """Client connects to server through an authenticated HTTP proxy."""
         try:
             self.proxy_options.update(proxyauth="hello:iloveyou")
-            async with serve(*args) as server:
+            async with run_server() as server:
                 async with connect(get_uri(server)) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
         finally:
@@ -709,24 +730,6 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
             "proxy rejected connection: HTTP 407",
         )
         self.assertNumFlows(0)
-
-    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
-    async def test_http_proxy_override_user_agent(self):
-        """Client can override User-Agent header with user_agent_header."""
-        async with serve(*args) as server:
-            async with connect(get_uri(server), user_agent_header="Smith") as client:
-                self.assertEqual(client.protocol.state.name, "OPEN")
-        [http_connect] = self.get_http_connects()
-        self.assertEqual(http_connect.request.headers[b"User-Agent"], "Smith")
-
-    @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
-    async def test_http_proxy_remove_user_agent(self):
-        """Client can remove User-Agent header with user_agent_header."""
-        async with serve(*args) as server:
-            async with connect(get_uri(server), user_agent_header=None) as client:
-                self.assertEqual(client.protocol.state.name, "OPEN")
-        [http_connect] = self.get_http_connects()
-        self.assertNotIn(b"User-Agent", http_connect.request.headers)
 
     @patch.dict(os.environ, {"https_proxy": "http://localhost:58080"})
     async def test_http_proxy_protocol_error(self):
@@ -776,7 +779,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
             host, port = sock.getsockname()
             with patch.dict(os.environ, {"https_proxy": f"http://{host}:{port}"}):
                 with self.assertRaises(TimeoutError) as raised:
-                    async with connect("ws://example.com/", open_timeout=MS):
+                    async with connect("ws://example.com/", open_timeout=2 * MS):
                         self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
@@ -786,7 +789,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
     @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     async def test_https_proxy(self):
         """Client connects to server through an HTTPS proxy."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             async with connect(
                 get_uri(server),
                 proxy_ssl=self.proxy_context,
@@ -797,21 +800,21 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
     @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     async def test_secure_https_proxy(self):
         """Client connects to server securely through an HTTPS proxy."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
+        async with run_server(ssl=SERVER_CONTEXT) as server:
             async with connect(
-                get_uri(server),
+                get_uri(server, secure=True),
                 ssl=CLIENT_CONTEXT,
                 proxy_ssl=self.proxy_context,
             ) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
-                ssl_object = client.transport.get_extra_info("ssl_object")
+                ssl_object = client.stream._ssl_object
                 self.assertEqual(ssl_object.version()[:3], "TLS")
         self.assertNumFlows(1)
 
     @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     async def test_https_server_hostname(self):
         """Client sets server_hostname to the value of proxy_server_hostname."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             # Pass an argument not prefixed with proxy_ for coverage.
             kwargs = {"all_errors": True} if sys.version_info >= (3, 12) else {}
             async with connect(
@@ -820,139 +823,64 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
                 proxy_server_hostname="overridden",
                 **kwargs,
             ) as client:
-                ssl_object = client.transport.get_extra_info("ssl_object")
+                ssl_object = client.stream._ssl_object
                 self.assertEqual(ssl_object.server_hostname, "overridden")
         self.assertNumFlows(1)
 
     @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     async def test_https_proxy_invalid_proxy_certificate(self):
         """Client rejects certificate when proxy certificate isn't trusted."""
-        with self.assertRaises(ssl.SSLCertVerificationError) as raised:
+        with self.assertRaises(trio.BrokenResourceError) as raised:
             # The proxy certificate isn't trusted.
             async with connect("wss://example.com/"):
                 self.fail("did not raise")
+        self.assertIsInstance(raised.exception.__cause__, ssl.SSLCertVerificationError)
         self.assertIn(
             "certificate verify failed: unable to get local issuer certificate",
-            str(raised.exception),
+            str(raised.exception.__cause__),
         )
 
     @patch.dict(os.environ, {"https_proxy": "https://localhost:58080"})
     async def test_https_proxy_invalid_server_certificate(self):
         """Client rejects certificate when proxy certificate isn't trusted."""
-        async with serve(*args, ssl=SERVER_CONTEXT) as server:
-            with self.assertRaises(ssl.SSLCertVerificationError) as raised:
+        async with run_server(ssl=SERVER_CONTEXT) as server:
+            with self.assertRaises(trio.BrokenResourceError) as raised:
                 # The test certificate is self-signed.
-                async with connect(get_uri(server), proxy_ssl=self.proxy_context):
+                async with connect(
+                    get_uri(server, secure=True), proxy_ssl=self.proxy_context
+                ):
                     self.fail("did not raise")
+        self.assertIsInstance(raised.exception.__cause__, ssl.SSLCertVerificationError)
         self.assertIn(
             "certificate verify failed: self signed certificate",
-            str(raised.exception).replace("-", " "),
+            str(raised.exception.__cause__).replace("-", " "),
         )
         self.assertNumFlows(1)
 
 
-@unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
-class UnixClientTests(unittest.IsolatedAsyncioTestCase):
-    async def test_connection(self):
-        """Client connects to server over a Unix socket."""
-        with temp_unix_socket_path() as path:
-            async with unix_serve(handler, path):
-                async with unix_connect(path) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
-
-    async def test_set_host_header(self):
-        """Client sets the Host header to the host in the WebSocket URI."""
-        # This is part of the documented behavior of unix_connect().
-        with temp_unix_socket_path() as path:
-            async with unix_serve(handler, path):
-                async with unix_connect(path, uri="ws://overridden/") as client:
-                    self.assertEqual(client.request.headers["Host"], "overridden")
-
-    async def test_cross_origin_redirect(self):
-        """Client doesn't follows redirect to a URI on a different origin."""
-
-        def redirect(connection, request):
-            response = connection.respond(http.HTTPStatus.FOUND, "")
-            response.headers["Location"] = "ws://other/"
-            return response
-
-        with temp_unix_socket_path() as path:
-            async with unix_serve(handler, path, process_request=redirect):
-                with self.assertRaises(ValueError) as raised:
-                    async with unix_connect(path):
-                        self.fail("did not raise")
-
-        self.assertEqual(
-            str(raised.exception),
-            "cannot follow cross-origin redirect to ws://other/ with a Unix socket",
-        )
-
-    async def test_secure_connection(self):
-        """Client connects to server securely over a Unix socket."""
-        with temp_unix_socket_path() as path:
-            async with unix_serve(handler, path, ssl=SERVER_CONTEXT):
-                async with unix_connect(path, ssl=CLIENT_CONTEXT) as client:
-                    self.assertEqual(client.protocol.state.name, "OPEN")
-                    ssl_object = client.transport.get_extra_info("ssl_object")
-                    self.assertEqual(ssl_object.version()[:3], "TLS")
-
-    async def test_set_server_hostname(self):
-        """Client sets server_hostname to the host in the WebSocket URI."""
-        # This is part of the documented behavior of unix_connect().
-        with temp_unix_socket_path() as path:
-            async with unix_serve(handler, path, ssl=SERVER_CONTEXT):
-                async with unix_connect(
-                    path,
-                    ssl=CLIENT_CONTEXT,
-                    uri="wss://overridden/",
-                ) as client:
-                    ssl_object = client.transport.get_extra_info("ssl_object")
-                    self.assertEqual(ssl_object.server_hostname, "overridden")
-
-
-class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
+class ClientUsageErrorsTests(IsolatedTrioTestCase):
     async def test_ssl_without_secure_uri(self):
         """Client rejects ssl when URI isn't secure."""
         with self.assertRaises(ValueError) as raised:
-            await connect("ws://localhost/", ssl=CLIENT_CONTEXT)
+            async with connect("ws://localhost/", ssl=CLIENT_CONTEXT):
+                self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
             "ssl argument is incompatible with a ws:// URI",
         )
 
-    async def test_secure_uri_without_ssl(self):
-        """Client rejects ssl=None when URI is secure."""
-        with self.assertRaises(ValueError) as raised:
-            await connect("wss://localhost/", ssl=None)
-        self.assertEqual(
-            str(raised.exception),
-            "ssl=None is incompatible with a wss:// URI",
-        )
-
     async def test_proxy_ssl_without_https_proxy(self):
         """Client rejects proxy_ssl when proxy isn't HTTPS."""
         with self.assertRaises(ValueError) as raised:
-            await connect(
+            async with connect(
                 "ws://localhost/",
                 proxy="http://localhost:8080",
                 proxy_ssl=True,
-            )
+            ):
+                self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
             "proxy_ssl argument is incompatible with an http:// proxy",
-        )
-
-    async def test_https_proxy_without_ssl(self):
-        """Client rejects proxy_ssl=None when proxy is HTTPS."""
-        with self.assertRaises(ValueError) as raised:
-            await connect(
-                "ws://localhost/",
-                proxy="https://localhost:8080",
-                proxy_ssl=None,
-            )
-        self.assertEqual(
-            str(raised.exception),
-            "proxy_ssl=None is incompatible with an https:// proxy",
         )
 
     async def test_unsupported_proxy(self):
@@ -965,30 +893,11 @@ class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
             "other://localhost:51080 isn't a valid proxy: scheme other isn't supported",
         )
 
-    async def test_unix_without_path_or_sock(self):
-        """Unix client requires path when sock isn't provided."""
-        with self.assertRaises(ValueError) as raised:
-            await unix_connect()
-        self.assertEqual(
-            str(raised.exception),
-            "no path and sock were specified",
-        )
-
-    async def test_unix_with_path_and_sock(self):
-        """Unix client rejects path when sock is provided."""
-        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.addCleanup(sock.close)
-        with self.assertRaises(ValueError) as raised:
-            await unix_connect(path="/", sock=sock)
-        self.assertEqual(
-            str(raised.exception),
-            "path and sock can not be specified at the same time",
-        )
-
     async def test_invalid_subprotocol(self):
         """Client rejects single value of subprotocols."""
         with self.assertRaises(TypeError) as raised:
-            await connect("ws://localhost/", subprotocols="chat")
+            async with connect("ws://localhost/", subprotocols="chat"):
+                self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
             "subprotocols must be a list, not a str",
@@ -997,7 +906,8 @@ class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
     async def test_unsupported_compression(self):
         """Client rejects incorrect value of compression."""
         with self.assertRaises(ValueError) as raised:
-            await connect("ws://localhost/", compression=False)
+            async with connect("ws://localhost/", compression=False):
+                self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
             "unsupported compression: False",
@@ -1005,7 +915,7 @@ class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_reentrancy(self):
         """Client isn't reentrant."""
-        async with serve(*args) as server:
+        async with run_server() as server:
             connecter = connect(get_uri(server))
             async with connecter:
                 with self.assertRaises(RuntimeError) as raised:

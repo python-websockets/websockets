@@ -32,7 +32,13 @@ from .connection import Connection
 from .utils import Deadline
 
 
-__all__ = ["serve", "unix_serve", "ServerConnection", "Server", "basic_auth"]
+__all__ = [
+    "serve",
+    "unix_serve",
+    "ServerConnection",
+    "Server",
+    "basic_auth",
+]
 
 
 class ServerConnection(Connection):
@@ -72,7 +78,6 @@ class ServerConnection(Connection):
         max_queue: int | None | tuple[int | None, int | None] = 16,
     ) -> None:
         self.protocol: ServerProtocol
-        self.request_rcvd = threading.Event()
         super().__init__(
             socket,
             protocol,
@@ -81,6 +86,7 @@ class ServerConnection(Connection):
             close_timeout=close_timeout,
             max_queue=max_queue,
         )
+        self.request_rcvd = threading.Event()
         self.username: str  # see basic_auth()
         self.handler: Callable[[ServerConnection], None]  # see route()
         self.handler_kwargs: Mapping[str, Any]  # see route()
@@ -154,7 +160,7 @@ class ServerConnection(Connection):
                 else:
                     self.response = response
 
-                if server_header:
+                if server_header is not None:
                     self.response.headers["Server"] = server_header
 
                 response = None
@@ -218,14 +224,12 @@ class Server:
     """
     WebSocket server returned by :func:`serve`.
 
-    This class mirrors the API of :class:`~socketserver.BaseServer`, notably the
-    :meth:`~socketserver.BaseServer.serve_forever` and
-    :meth:`~socketserver.BaseServer.shutdown` methods, as well as the context
-    manager protocol.
+    This class mirrors partially the API of :class:`~socketserver.BaseServer`.
 
-    Args:
-        socket: Server socket listening for new connections.
-        handler: Handler for one connection. Receives the socket and address
+
+        Args:
+        socket: Server socket accepting new connections.
+        handler: Handler for one connection. It receives the socket and address
             returned by :meth:`~socket.socket.accept`.
         logger: Logger for this server.
             It defaults to ``logging.getLogger("websockets.server")``.
@@ -387,8 +391,8 @@ def serve(
 
     This function returns a :class:`Server` whose API mirrors
     :class:`~socketserver.BaseServer`. Treat it as a context manager to ensure
-    that it will be closed and call :meth:`~Server.serve_forever` to serve
-    requests::
+    that it will be closed gracefully and call :meth:`~Server.serve_forever` to
+    serve requests::
 
         from websockets.sync.server import serve
 
@@ -605,7 +609,12 @@ def serve(
                 connection.recv_events_thread.join()
                 return
 
-            assert connection.protocol.state is OPEN
+            if connection.protocol.state is not OPEN:
+                # process_request or process_response rejected the handshake.
+                connection.close_socket()
+                connection.recv_events_thread.join()
+                return
+
             try:
                 connection.start_keepalive()
                 handler(connection)

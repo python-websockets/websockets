@@ -230,6 +230,10 @@ class Server:
         logger: Logger for this server.
             It defaults to ``logging.getLogger("websockets.server")``.
             See the :doc:`logging guide <../../topics/logging>` for details.
+        connections: A set of open :class:`ServerConnection` instances
+            maintained by `handler`. When omitted, e.g., if the handler does
+            not maintain such a set, this defaults to an empty set and the
+            server will not attempt to close connections on shutdown.
 
     """
 
@@ -238,12 +242,20 @@ class Server:
         socket: socket.socket,
         handler: Callable[[socket.socket, Any], None],
         logger: LoggerLike | None = None,
+        *,
+        connections: set[ServerConnection] | None = None,
     ) -> None:
         self.socket = socket
         self.handler = handler
         if logger is None:
             logger = logging.getLogger("websockets.server")
         self.logger = logger
+
+        # _connections tracks active connections
+        if connections is None:
+            connections = set()
+        self._connections = connections
+
         if sys.platform != "win32":
             self.shutdown_watcher, self.shutdown_notifier = os.pipe()
 
@@ -289,10 +301,21 @@ class Server:
         """
         See :meth:`socketserver.BaseServer.shutdown`.
 
+        Shuts down the server and closes existing connections.
+
         """
         self.socket.close()
         if sys.platform != "win32":
             os.write(self.shutdown_notifier, b"x")
+
+        # Close all connections
+        conns = list(self._connections)
+        for conn in conns:
+            try:
+                conn.close()
+            except Exception as exc:
+                debug_msg = f"Could not close {conn.id}: {exc}"
+                self.logger.debug(debug_msg, exc_info=exc)
 
     def fileno(self) -> int:
         """
@@ -518,6 +541,24 @@ def serve(
             do_handshake_on_connect=False,
         )
 
+    # Stores active ServerConnection instances, used by the server to handle graceful
+    # shutdown in Server.shutdown()
+    connections: set[ServerConnection] = set()
+
+    def on_connection_created(connection: ServerConnection) -> None:
+        # Invoked from conn_handler() to add a new ServerConnection instance to
+        # Server._connections
+        connections.add(connection)
+
+    def on_connection_closed(connection: ServerConnection) -> None:
+        # Invoked from conn_handler() to remove a closed ServerConnection instance from
+        # Server._connections. Keeping only active references in the set is important
+        # for avoiding memory leaks.
+        try:
+            connections.remove(connection)
+        except KeyError:  # pragma: no cover
+            pass
+
     # Define request handler
 
     def conn_handler(sock: socket.socket, addr: Any) -> None:
@@ -583,6 +624,7 @@ def serve(
                 close_timeout=close_timeout,
                 max_queue=max_queue,
             )
+            on_connection_created(connection)
         except Exception:
             sock.close()
             return
@@ -597,11 +639,13 @@ def serve(
                 )
             except TimeoutError:
                 connection.close_socket()
+                on_connection_closed(connection)
                 connection.recv_events_thread.join()
                 return
             except Exception:
                 connection.logger.error("opening handshake failed", exc_info=True)
                 connection.close_socket()
+                on_connection_closed(connection)
                 connection.recv_events_thread.join()
                 return
 
@@ -612,8 +656,10 @@ def serve(
             except Exception:
                 connection.logger.error("connection handler failed", exc_info=True)
                 connection.close(CloseCode.INTERNAL_ERROR)
+                on_connection_closed(connection)
             else:
                 connection.close()
+                on_connection_closed(connection)
 
         except Exception:  # pragma: no cover
             # Don't leak sockets on unexpected errors.
@@ -621,7 +667,7 @@ def serve(
 
     # Initialize server
 
-    return Server(sock, conn_handler, logger)
+    return Server(sock, conn_handler, logger, connections=connections)
 
 
 def unix_serve(

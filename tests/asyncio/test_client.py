@@ -354,6 +354,25 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             "cannot follow redirect to ws://invalid/ with a preexisting socket",
         )
 
+    async def test_not_a_websocket_redirect(self):
+        """Client raises an explicit error when redirected to an absolute uri that isn't using websocket protocole."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = "https://not-a-websocket.com"
+            return response
+
+        async with serve(*args, process_request=redirect) as server:
+            host, port = get_host_port(server)
+            with self.assertRaises(InvalidURI) as raised:
+                async with connect("ws://overridden/", host=host, port=port):
+                    self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            "Redirection URI is invalid isn't a valid URI: https://not-a-websocket.com isn't a valid URI: scheme isn't ws or wss"
+        )
+
     async def test_invalid_uri(self):
         """Client receives an invalid URI."""
         with self.assertRaises(InvalidURI):

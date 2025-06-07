@@ -370,7 +370,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             str(raised.exception),
-            "Redirection URI is invalid isn't a valid URI: https://not-a-websocket.com isn't a valid URI: scheme isn't ws or wss"
+            "Redirection URI is invalid isn't a valid URI: https://not-a-websocket.com isn't a valid URI: scheme isn't ws or wss",
         )
 
     async def test_invalid_uri(self):

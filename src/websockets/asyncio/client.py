@@ -19,6 +19,7 @@ from ..exceptions import (
     InvalidProxyStatus,
     InvalidStatus,
     InvalidURI,
+    InvalidRedirectURI,
     ProxyError,
     SecurityError,
 )
@@ -497,7 +498,7 @@ class connect:
         try:
             new_ws_uri = parse_uri(new_uri)
         except InvalidURI as uri_exception:
-            raise InvalidURI("Redirection URI is invalid", uri_exception)
+            raise InvalidRedirectURI(uri_exception.uri, uri_exception.msg)
 
         # If connect() received a socket, it is closed and cannot be reused.
         if self.connection_kwargs.get("sock") is not None:

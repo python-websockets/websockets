@@ -355,7 +355,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_not_a_websocket_redirect(self):
-        """Client raises an explicit error when redirected to an absolute uri that isn't using websocket protocole."""
+        """Client raises an explicit error when redirected to an absolute URI that isn't using websocket protocole."""
 
         def redirect(connection, request):
             response = connection.respond(http.HTTPStatus.FOUND, "")
@@ -370,7 +370,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         self.assertEqual(
             str(raised.exception),
-            "Redirection URI is invalid isn't a valid URI: https://not-a-websocket.com isn't a valid URI: scheme isn't ws or wss",
+            "Redirection URI https://not-a-websocket.com isn't a valid URI: scheme isn't ws or wss",
         )
 
     async def test_invalid_uri(self):

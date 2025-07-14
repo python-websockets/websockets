@@ -10,7 +10,7 @@ import socket
 import warnings
 from collections.abc import Awaitable, Generator, Iterable, Sequence
 from types import TracebackType
-from typing import Any, Callable, Union, cast
+from typing import Any, Callable, cast
 
 from ..asyncio.compatibility import asyncio_timeout
 from ..datastructures import Headers, HeadersLike, MultipleValuesError
@@ -48,8 +48,7 @@ __all__ = [
 ]
 
 
-# Change to HeadersLike | ... when dropping Python < 3.10.
-HeadersLikeOrCallable = Union[HeadersLike, Callable[[str, Headers], HeadersLike]]
+HeadersLikeOrCallable = HeadersLike | Callable[[str, Headers], HeadersLike]
 
 HTTPResponse = tuple[StatusLike, HeadersLike, bytes]
 
@@ -706,7 +705,8 @@ class WebSocketServer:
             self.logger.info("server listening on %s", name)
 
         # Initialized here because we need a reference to the event loop.
-        # This should be moved back to __init__ when dropping Python < 3.10.
+        # This could be moved back to __init__ now that Python < 3.10 isn't
+        # supported anymore, but I'm not taking that risk in legacy code.
         self.closed_waiter = server.get_loop().create_future()
 
     def register(self, protocol: WebSocketServerProtocol) -> None:
@@ -1124,7 +1124,7 @@ class Serve:
         self.ws_server.wrap(server)
         return self.ws_server
 
-    # yield from serve(...) - remove when dropping Python < 3.10
+    # yield from serve(...) - remove when dropping Python < 3.11
 
     __iter__ = __await__
 

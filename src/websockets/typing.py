@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import http
 import logging
-from typing import TYPE_CHECKING, Any, NewType, Optional, Sequence, Union
+from typing import TYPE_CHECKING, Any, NewType, Sequence
 
 
 __all__ = [
@@ -18,8 +18,7 @@ __all__ = [
 
 # Public types used in the signature of public APIs
 
-# Change to str | bytes when dropping Python < 3.10.
-Data = Union[str, bytes]
+Data = str | bytes
 """Types supported in a WebSocket message:
 :class:`str` for a Text_ frame, :class:`bytes` for a Binary_.
 
@@ -29,17 +28,15 @@ Data = Union[str, bytes]
 """
 
 
-# Change to logging.Logger | ... when dropping Python < 3.10.
 if TYPE_CHECKING:
-    LoggerLike = Union[logging.Logger, logging.LoggerAdapter[Any]]
+    LoggerLike = logging.Logger | logging.LoggerAdapter[Any]
     """Types accepted where a :class:`~logging.Logger` is expected."""
 else:  # remove this branch when dropping support for Python < 3.11
-    LoggerLike = Union[logging.Logger, logging.LoggerAdapter]
+    LoggerLike = logging.Logger | logging.LoggerAdapter
     """Types accepted where a :class:`~logging.Logger` is expected."""
 
 
-# Change to http.HTTPStatus | int when dropping Python < 3.10.
-StatusLike = Union[http.HTTPStatus, int]
+StatusLike = http.HTTPStatus | int
 """
 Types accepted where an :class:`~http.HTTPStatus` is expected."""
 
@@ -55,8 +52,7 @@ Subprotocol = NewType("Subprotocol", str)
 ExtensionName = NewType("ExtensionName", str)
 """Name of a WebSocket extension."""
 
-# Change to tuple[str, str | None] when dropping Python < 3.10.
-ExtensionParameter = tuple[str, Optional[str]]
+ExtensionParameter = tuple[str, str | None]
 """Parameter of a WebSocket extension."""
 
 

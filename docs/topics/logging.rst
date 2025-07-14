@@ -133,8 +133,7 @@ Here's how to include them in logs, assuming they're in the
 
     async with serve(
         ...,
-        # Python < 3.10 requires passing None as the second argument.
-        logger=LoggerAdapter(logging.getLogger("websockets.server"), None),
+        logger=LoggerAdapter(logging.getLogger("websockets.server")),
     ):
         ...
 
@@ -176,8 +175,7 @@ a :class:`~logging.LoggerAdapter`::
 
     async with serve(
         ...,
-        # Python < 3.10 requires passing None as the second argument.
-        logger=LoggerAdapter(logging.getLogger("websockets.server"), None),
+        logger=LoggerAdapter(logging.getLogger("websockets.server")),
     ):
         ...
 

@@ -834,7 +834,7 @@ class serve:
         self.server.wrap(server)
         return self.server
 
-    # ... = yield from serve(...) - remove when dropping Python < 3.10
+    # ... = yield from serve(...) - remove when dropping Python < 3.11
 
     __iter__ = __await__
 

@@ -19,7 +19,7 @@ from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, AssertNoLogsMixin
+from ..utils import MS
 from .connection import InterceptingConnection
 from .utils import alist
 
@@ -28,7 +28,7 @@ from .utils import alist
 # All tests run on the client side and the server side to validate this.
 
 
-class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase):
+class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     LOCAL = CLIENT
     REMOTE = SERVER
 
@@ -790,8 +790,7 @@ class ClientConnectionTests(AssertNoLogsMixin, unittest.IsolatedAsyncioTestCase)
 
         exc = raised.exception
         self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
-        # Remove socket.timeout when dropping Python < 3.10.
-        self.assertIsInstance(exc.__cause__, (socket.timeout, TimeoutError))
+        self.assertIsInstance(exc.__cause__, TimeoutError)
 
     async def test_close_preserves_queued_messages(self):
         """close preserves messages buffered in the assembler."""

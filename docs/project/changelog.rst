@@ -25,12 +25,20 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
-.. _15.1:
+.. _16.0:
 
-15.1
+16.0
 ----
 
 *In development*
+
+Backwards-incompatible changes
+..............................
+
+.. admonition:: websockets 16.0 requires Python ≥ 3.10.
+    :class: tip
+
+    websockets 15.0 is the last version supporting Python 3.9.
 
 Improvements
 ............

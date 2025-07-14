@@ -579,7 +579,7 @@ class connect:
             # Re-raise exception with an informative error message.
             raise TimeoutError("timed out during opening handshake") from exc
 
-    # ... = yield from connect(...) - remove when dropping Python < 3.10
+    # ... = yield from connect(...) - remove when dropping Python < 3.11
 
     __iter__ = __await__
 
@@ -629,8 +629,7 @@ class connect:
                 self.logger.info(
                     "connect failed; reconnecting in %.1f seconds: %s",
                     delay,
-                    # Remove first argument when dropping Python 3.9.
-                    traceback.format_exception_only(type(exc), exc)[0].strip(),
+                    traceback.format_exception_only(exc)[0].strip(),
                 )
                 await asyncio.sleep(delay)
                 continue

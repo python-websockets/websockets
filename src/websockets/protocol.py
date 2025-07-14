@@ -4,7 +4,6 @@ import enum
 import logging
 import uuid
 from collections.abc import Generator
-from typing import Union
 
 from .exceptions import (
     ConnectionClosed,
@@ -39,8 +38,7 @@ __all__ = [
     "SEND_EOF",
 ]
 
-# Change to Request | Response | Frame when dropping Python < 3.10.
-Event = Union[Request, Response, Frame]
+Event = Request | Response | Frame
 """Events that :meth:`~Protocol.events_received` may return."""
 
 

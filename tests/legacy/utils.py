@@ -3,10 +3,8 @@ import functools
 import sys
 import unittest
 
-from ..utils import AssertNoLogsMixin
 
-
-class AsyncioTestCase(AssertNoLogsMixin, unittest.TestCase):
+class AsyncioTestCase(unittest.TestCase):
     """
     Base class for tests that sets up an isolated event loop for each test.
 

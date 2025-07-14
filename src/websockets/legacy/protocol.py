@@ -230,8 +230,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self._paused = False
         self._drain_waiter: asyncio.Future[None] | None = None
 
-        self._drain_lock = asyncio.Lock()
-
         # This class implements the data transfer and closing handshake, which
         # are shared between the client-side and the server-side.
         # Subclasses implement the opening handshake and, on success, execute
@@ -1166,12 +1164,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     async def drain(self) -> None:
         try:
-            # drain() cannot be called concurrently by multiple coroutines.
-            # See https://github.com/python/cpython/issues/74116 for details.
-            # This workaround can be removed when dropping Python < 3.10.
-            async with self._drain_lock:
-                # Handle flow control automatically.
-                await self._drain()
+            # Handle flow control automatically.
+            await self._drain()
         except ConnectionError:
             # Terminate the connection if the socket died.
             self.fail_connection()
@@ -1626,11 +1620,7 @@ def broadcast(
             else:
                 websocket.logger.warning(
                     "skipped broadcast: failed to write message: %s",
-                    traceback.format_exception_only(
-                        # Remove first argument when dropping Python 3.9.
-                        type(write_exception),
-                        write_exception,
-                    )[0].strip(),
+                    traceback.format_exception_only(write_exception)[0].strip(),
                 )
 
     if raise_exceptions and exceptions:

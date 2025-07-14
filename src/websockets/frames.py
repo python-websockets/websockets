@@ -7,7 +7,7 @@ import os
 import secrets
 import struct
 from collections.abc import Generator, Sequence
-from typing import Callable, Union
+from typing import Callable
 
 from .exceptions import PayloadTooBig, ProtocolError
 
@@ -140,7 +140,7 @@ class Frame:
     """
 
     opcode: Opcode
-    data: Union[bytes, bytearray, memoryview]
+    data: bytes | bytearray | memoryview
     fin: bool = True
     rsv1: bool = False
     rsv2: bool = False

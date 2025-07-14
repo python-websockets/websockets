@@ -539,8 +539,7 @@ class ClientConnectionTests(unittest.TestCase):
 
         exc = raised.exception
         self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
-        # Remove socket.timeout when dropping Python < 3.10.
-        self.assertIsInstance(exc.__cause__, (socket.timeout, TimeoutError))
+        self.assertIsInstance(exc.__cause__, TimeoutError)
 
     def test_close_preserves_queued_messages(self):
         """close preserves messages buffered in the assembler."""

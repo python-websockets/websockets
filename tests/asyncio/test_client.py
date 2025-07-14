@@ -30,8 +30,6 @@ from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
 from .server import args, get_host_port, get_uri, handler
 
 
-# Decorate tests that need it with @short_backoff_delay() instead of using it as
-# a context manager when dropping support for Python < 3.10.
 @contextlib.asynccontextmanager
 async def short_backoff_delay():
     defaults = backoff.__defaults__
@@ -47,8 +45,6 @@ async def short_backoff_delay():
         backoff.__defaults__ = defaults
 
 
-# Decorate tests that need it with @few_redirects() instead of using it as a
-# context manager when dropping support for Python < 3.10.
 @contextlib.asynccontextmanager
 async def few_redirects():
     from websockets.asyncio import client
@@ -162,6 +158,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             ) as client:
                 self.assertTrue(client.create_connection_ran)
 
+    @short_backoff_delay()
     async def test_reconnect(self):
         """Client reconnects to server."""
         iterations = 0
@@ -183,10 +180,9 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                async with short_backoff_delay():
-                    async for client in connect(get_uri(server), open_timeout=3 * MS):
-                        self.assertEqual(client.protocol.state.name, "OPEN")
-                        successful += 1
+                async for client in connect(get_uri(server), open_timeout=3 * MS):
+                    self.assertEqual(client.protocol.state.name, "OPEN")
+                    successful += 1
 
         self.assertEqual(
             str(raised.exception),
@@ -195,6 +191,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(iterations, 6)
         self.assertEqual(successful, 2)
 
+    @short_backoff_delay()
     async def test_reconnect_with_custom_process_exception(self):
         """Client runs process_exception to tell if errors are retryable or fatal."""
         iteration = 0
@@ -216,11 +213,10 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(Exception) as raised:
-                async with short_backoff_delay():
-                    async for _ in connect(
-                        get_uri(server), process_exception=process_exception
-                    ):
-                        self.fail("did not raise")
+                async for _ in connect(
+                    get_uri(server), process_exception=process_exception
+                ):
+                    self.fail("did not raise")
 
         self.assertEqual(iteration, 2)
         self.assertEqual(
@@ -228,6 +224,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             "🫖 💔 ☕️",
         )
 
+    @short_backoff_delay()
     async def test_reconnect_with_custom_process_exception_raising_exception(self):
         """Client supports raising an exception in process_exception."""
 
@@ -241,11 +238,10 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(Exception) as raised:
-                async with short_backoff_delay():
-                    async for _ in connect(
-                        get_uri(server), process_exception=process_exception
-                    ):
-                        self.fail("did not raise")
+                async for _ in connect(
+                    get_uri(server), process_exception=process_exception
+                ):
+                    self.fail("did not raise")
 
         self.assertEqual(
             str(raised.exception),
@@ -279,6 +275,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse(server.connections)
                     self.assertTrue(other_server.connections)
 
+    @few_redirects()
     async def test_redirect_limit(self):
         """Client stops following redirects after limit is reached."""
 
@@ -288,10 +285,9 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             return response
 
         async with serve(*args, process_request=redirect) as server:
-            async with few_redirects():
-                with self.assertRaises(SecurityError) as raised:
-                    async with connect(get_uri(server)):
-                        self.fail("did not raise")
+            with self.assertRaises(SecurityError) as raised:
+                async with connect(get_uri(server)):
+                    self.fail("did not raise")
 
         self.assertEqual(
             str(raised.exception),

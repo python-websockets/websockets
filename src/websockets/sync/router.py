@@ -35,6 +35,10 @@ except ImportError:
     ) -> Server:
         raise ImportError("unix_route() requires werkzeug")
 
+    class Router:
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            raise ImportError("Router() requires werkzeug")
+
 else:
 
     class Router:

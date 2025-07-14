@@ -162,6 +162,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
 
 
 @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
+@unittest.skipUnless("werkzeug" in sys.modules, "werkzeug not installed")
 class UnixRouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     def test_router_supports_unix_sockets(self):
         """Router supports Unix sockets."""

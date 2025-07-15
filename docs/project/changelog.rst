@@ -40,6 +40,11 @@ Backwards-incompatible changes
 
     websockets 15.0 is the last version supporting Python 3.9.
 
+New features
+............
+
+* Validated compatibility with Python 3.14.
+
 Improvements
 ............
 

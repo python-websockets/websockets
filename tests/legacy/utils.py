@@ -1,5 +1,6 @@
 import asyncio
 import functools
+import inspect
 import sys
 import unittest
 
@@ -23,7 +24,7 @@ class AsyncioTestCase(unittest.TestCase):
         super().__init_subclass__(**kwargs)
         for name in unittest.defaultTestLoader.getTestCaseNames(cls):
             test = getattr(cls, name)
-            if asyncio.iscoroutinefunction(test):
+            if inspect.iscoroutinefunction(test):
                 setattr(cls, name, cls.convert_async_to_sync(test))
 
     @staticmethod

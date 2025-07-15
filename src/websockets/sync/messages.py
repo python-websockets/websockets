@@ -193,6 +193,7 @@ class Assembler:
         finally:
             self.get_in_progress = False
 
+        # This converts frame.data to bytes when it's a bytearray.
         data = b"".join(frame.data for frame in frames)
         if decode:
             return data.decode()
@@ -255,7 +256,8 @@ class Assembler:
             decoder = UTF8Decoder()
             yield decoder.decode(frame.data, frame.fin)
         else:
-            yield frame.data
+            # Convert to bytes when frame.data is a bytearray.
+            yield bytes(frame.data)
 
         # Following frames, for fragmented messages
         while not frame.fin:
@@ -266,7 +268,8 @@ class Assembler:
             if decode:
                 yield decoder.decode(frame.data, frame.fin)
             else:
-                yield frame.data
+                # Convert to bytes when frame.data is a bytearray.
+                yield bytes(frame.data)
 
         self.get_in_progress = False
 

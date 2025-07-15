@@ -39,7 +39,7 @@ from ..frames import (
     Opcode,
 )
 from ..protocol import State
-from ..typing import Data, LoggerLike, Subprotocol
+from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
 from .framing import Frame, prepare_ctrl, prepare_data
 
 
@@ -563,7 +563,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
     async def send(
         self,
-        message: Data | Iterable[Data] | AsyncIterable[Data],
+        message: DataLike | Iterable[DataLike] | AsyncIterable[DataLike],
     ) -> None:
         """
         Send a message.
@@ -638,7 +638,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         elif isinstance(message, Iterable):
             # Work around https://github.com/python/mypy/issues/6227
-            message = cast(Iterable[Data], message)
+            message = cast(Iterable[DataLike], message)
 
             iter_message = iter(message)
             try:
@@ -678,14 +678,14 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # Implement aiter_message = aiter(message) without aiter
             # Work around https://github.com/python/mypy/issues/5738
             aiter_message = cast(
-                Callable[[AsyncIterable[Data]], AsyncIterator[Data]],
+                Callable[[AsyncIterable[DataLike]], AsyncIterator[DataLike]],
                 type(message).__aiter__,
             )(message)
             try:
                 # Implement fragment = anext(aiter_message) without anext
                 # Work around https://github.com/python/mypy/issues/5738
                 fragment = await cast(
-                    Callable[[AsyncIterator[Data]], Awaitable[Data]],
+                    Callable[[AsyncIterator[DataLike]], Awaitable[DataLike]],
                     type(aiter_message).__anext__,
                 )(aiter_message)
             except StopAsyncIteration:
@@ -788,7 +788,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         await asyncio.shield(self.connection_lost_waiter)
 
-    async def ping(self, data: Data | None = None) -> Awaitable[float]:
+    async def ping(self, data: DataLike | None = None) -> Awaitable[float]:
         """
         Send a Ping_.
 
@@ -847,7 +847,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         return asyncio.shield(pong_waiter)
 
-    async def pong(self, data: Data = b"") -> None:
+    async def pong(self, data: DataLike = b"") -> None:
         """
         Send a Pong_.
 
@@ -1025,10 +1025,12 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         # Shortcut for the common case - no fragmentation
         if frame.fin:
+            if isinstance(frame.data, memoryview):
+                raise AssertionError("only compressed outgoing frames use memoryview")
             return frame.data.decode() if text else bytes(frame.data)
 
         # 5.4. Fragmentation
-        fragments: list[Data] = []
+        fragments: list[DataLike] = []
         max_size = self.max_size
         if text:
             decoder_factory = codecs.getincrementaldecoder("utf-8")
@@ -1152,7 +1154,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             self.logger.debug("< %s", frame)
         return frame
 
-    def write_frame_sync(self, fin: bool, opcode: int, data: bytes) -> None:
+    def write_frame_sync(self, fin: bool, opcode: int, data: BytesLike) -> None:
         frame = Frame(fin, Opcode(opcode), data)
         if self.debug:
             self.logger.debug("> %s", frame)
@@ -1174,7 +1176,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             await self.ensure_open()
 
     async def write_frame(
-        self, fin: bool, opcode: int, data: bytes, *, _state: int = State.OPEN
+        self, fin: bool, opcode: int, data: BytesLike, *, _state: int = State.OPEN
     ) -> None:
         # Defensive assertion for protocol compliance.
         if self.state is not _state:  # pragma: no cover
@@ -1184,7 +1186,9 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         self.write_frame_sync(fin, opcode, data)
         await self.drain()
 
-    async def write_close_frame(self, close: Close, data: bytes | None = None) -> None:
+    async def write_close_frame(
+        self, close: Close, data: BytesLike | None = None
+    ) -> None:
         """
         Write a close frame if and only if the connection state is OPEN.
 
@@ -1538,7 +1542,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
 def broadcast(
     websockets: Iterable[WebSocketCommonProtocol],
-    message: Data,
+    message: DataLike,
     raise_exceptions: bool = False,
 ) -> None:
     """

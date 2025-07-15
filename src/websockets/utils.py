@@ -5,6 +5,8 @@ import hashlib
 import secrets
 import sys
 
+from .typing import BytesLike
+
 
 __all__ = ["accept_key", "apply_mask"]
 
@@ -33,7 +35,7 @@ def accept_key(key: str) -> str:
     return base64.b64encode(sha1).decode()
 
 
-def apply_mask(data: bytes, mask: bytes) -> bytes:
+def apply_mask(data: BytesLike, mask: bytes | bytearray) -> bytes:
     """
     Apply masking to the data of a WebSocket message.
 

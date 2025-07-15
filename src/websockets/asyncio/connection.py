@@ -19,10 +19,10 @@ from ..exceptions import (
     ConnectionClosedOK,
     ProtocolError,
 )
-from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode
+from ..frames import DATA_OPCODES, CloseCode, Frame, Opcode
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
-from ..typing import Data, LoggerLike, Subprotocol
+from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
 from .compatibility import (
     TimeoutError,
     aiter,
@@ -402,7 +402,7 @@ class Connection(asyncio.Protocol):
 
     async def send(
         self,
-        message: Data | Iterable[Data] | AsyncIterable[Data],
+        message: DataLike | Iterable[DataLike] | AsyncIterable[DataLike],
         text: bool | None = None,
     ) -> None:
         """
@@ -657,7 +657,7 @@ class Connection(asyncio.Protocol):
         """
         await asyncio.shield(self.connection_lost_waiter)
 
-    async def ping(self, data: Data | None = None) -> Awaitable[float]:
+    async def ping(self, data: DataLike | None = None) -> Awaitable[float]:
         """
         Send a Ping_.
 
@@ -710,7 +710,7 @@ class Connection(asyncio.Protocol):
             self.protocol.send_ping(data)
             return pong_waiter
 
-    async def pong(self, data: Data = b"") -> None:
+    async def pong(self, data: DataLike = b"") -> None:
         """
         Send a Pong_.
 
@@ -1134,7 +1134,7 @@ class Connection(asyncio.Protocol):
 
 def broadcast(
     connections: Iterable[Connection],
-    message: Data,
+    message: DataLike,
     raise_exceptions: bool = False,
 ) -> None:
     """

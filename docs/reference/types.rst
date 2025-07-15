@@ -5,6 +5,10 @@ Types
 
 .. autodata:: Data
 
+.. autodata:: BytesLike
+
+.. autodata:: DataLike
+
 .. autodata:: LoggerLike
 
 .. autodata:: StatusLike

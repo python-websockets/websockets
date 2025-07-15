@@ -13,7 +13,7 @@ from ..exceptions import (
     PayloadTooBig,
     ProtocolError,
 )
-from ..typing import ExtensionName, ExtensionParameter
+from ..typing import BytesLike, ExtensionName, ExtensionParameter
 from .base import ClientExtensionFactory, Extension, ServerExtensionFactory
 
 
@@ -129,6 +129,7 @@ class PerMessageDeflate(Extension):
         # Uncompress data. Protect against zip bombs by preventing zlib from
         # decompressing more than max_length bytes (except when the limit is
         # disabled with max_size = None).
+        data: BytesLike
         if frame.fin and len(frame.data) < 2044:
             # Profiling shows that appending four bytes, which makes a copy, is
             # faster than calling decompress() again when data is less than 2kB.
@@ -182,6 +183,7 @@ class PerMessageDeflate(Extension):
                 )
 
         # Compress data.
+        data: BytesLike
         data = self.encoder.compress(frame.data) + self.encoder.flush(zlib.Z_SYNC_FLUSH)
         if frame.fin:
             # Sync flush generates between 5 or 6 bytes, ending with the bytes

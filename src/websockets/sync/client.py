@@ -16,7 +16,7 @@ from ..headers import build_authorization_basic, build_host, validate_subprotoco
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
 from ..streams import StreamReader
-from ..typing import LoggerLike, Origin, Subprotocol
+from ..typing import BytesLike, LoggerLike, Origin, Subprotocol
 from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
 from .connection import Connection
 from .utils import Deadline
@@ -633,10 +633,10 @@ class SSLSSLSocket:
         except ssl_module.SSLEOFError:
             return b""  # always ignore ragged EOFs
 
-    def send(self, data: bytes) -> int:
+    def send(self, data: BytesLike) -> int:
         return self.run_io(self.ssl_object.write, data)
 
-    def sendall(self, data: bytes) -> None:
+    def sendall(self, data: BytesLike) -> None:
         # adapted from ssl_module.SSLSocket.sendall()
         count = 0
         with memoryview(data) as view, view.cast("B") as byte_view:

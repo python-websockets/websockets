@@ -20,13 +20,18 @@ __all__ = [
 
 Data = str | bytes
 """Types supported in a WebSocket message:
-:class:`str` for a Text_ frame, :class:`bytes` for a Binary_.
+:class:`str` for a Text_ frame, :class:`bytes` for a Binary_ frame.
 
 .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 .. _Binary : https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
 
 """
 
+BytesLike = bytes | bytearray | memoryview
+"""Types accepted where :class:`bytes` is expected."""
+
+DataLike = str | bytes | bytearray | memoryview
+"""Types accepted where :class:`Data` is expected."""
 
 if TYPE_CHECKING:
     LoggerLike = logging.Logger | logging.LoggerAdapter[Any]

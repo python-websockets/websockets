@@ -18,10 +18,10 @@ from ..exceptions import (
     ConnectionClosedOK,
     ProtocolError,
 )
-from ..frames import DATA_OPCODES, BytesLike, CloseCode, Frame, Opcode
+from ..frames import DATA_OPCODES, CloseCode, Frame, Opcode
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
-from ..typing import Data, LoggerLike, Subprotocol
+from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
 from .messages import Assembler
 from .utils import Deadline
 
@@ -410,7 +410,7 @@ class Connection:
 
     def send(
         self,
-        message: Data | Iterable[Data],
+        message: DataLike | Iterable[DataLike],
         text: bool | None = None,
     ) -> None:
         """
@@ -602,7 +602,7 @@ class Connection:
 
     def ping(
         self,
-        data: Data | None = None,
+        data: DataLike | None = None,
         ack_on_close: bool = False,
     ) -> threading.Event:
         """
@@ -659,7 +659,7 @@ class Connection:
             self.protocol.send_ping(data)
             return pong_waiter
 
-    def pong(self, data: Data = b"") -> None:
+    def pong(self, data: DataLike = b"") -> None:
         """
         Send a Pong_.
 

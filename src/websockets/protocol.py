@@ -28,7 +28,7 @@ from .frames import (
 )
 from .http11 import Request, Response
 from .streams import StreamReader
-from .typing import LoggerLike, Origin, Subprotocol
+from .typing import BytesLike, LoggerLike, Origin, Subprotocol
 
 
 __all__ = [
@@ -291,7 +291,7 @@ class Protocol:
 
     # Public methods for sending events.
 
-    def send_continuation(self, data: bytes, fin: bool) -> None:
+    def send_continuation(self, data: BytesLike, fin: bool) -> None:
         """
         Send a `Continuation frame`_.
 
@@ -315,7 +315,7 @@ class Protocol:
         self.expect_continuation_frame = not fin
         self.send_frame(Frame(OP_CONT, data, fin))
 
-    def send_text(self, data: bytes, fin: bool = True) -> None:
+    def send_text(self, data: BytesLike, fin: bool = True) -> None:
         """
         Send a `Text frame`_.
 
@@ -338,7 +338,7 @@ class Protocol:
         self.expect_continuation_frame = not fin
         self.send_frame(Frame(OP_TEXT, data, fin))
 
-    def send_binary(self, data: bytes, fin: bool = True) -> None:
+    def send_binary(self, data: BytesLike, fin: bool = True) -> None:
         """
         Send a `Binary frame`_.
 
@@ -397,7 +397,7 @@ class Protocol:
         self.close_sent = close
         self.state = CLOSING
 
-    def send_ping(self, data: bytes) -> None:
+    def send_ping(self, data: BytesLike) -> None:
         """
         Send a `Ping frame`_.
 
@@ -413,7 +413,7 @@ class Protocol:
             raise InvalidState(f"connection is {self.state.name.lower()}")
         self.send_frame(Frame(OP_PING, data))
 
-    def send_pong(self, data: bytes) -> None:
+    def send_pong(self, data: BytesLike) -> None:
         """
         Send a `Pong frame`_.
 

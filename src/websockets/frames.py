@@ -10,6 +10,7 @@ from collections.abc import Generator, Sequence
 from typing import Callable
 
 from .exceptions import PayloadTooBig, ProtocolError
+from .typing import BytesLike
 
 
 try:
@@ -118,9 +119,6 @@ OK_CLOSE_CODES = {
 }
 
 
-BytesLike = bytes, bytearray, memoryview
-
-
 @dataclasses.dataclass
 class Frame:
     """
@@ -140,7 +138,7 @@ class Frame:
     """
 
     opcode: Opcode
-    data: bytes | bytearray | memoryview
+    data: BytesLike
     fin: bool = True
     rsv1: bool = False
     rsv2: bool = False
@@ -202,7 +200,7 @@ class Frame:
     @classmethod
     def parse(
         cls,
-        read_exact: Callable[[int], Generator[None, None, bytes]],
+        read_exact: Callable[[int], Generator[None, None, bytes | bytearray]],
         *,
         mask: bool,
         max_size: int | None = None,
@@ -324,6 +322,7 @@ class Frame:
             output.write(mask_bytes)
 
         # Prepare the data.
+        data: BytesLike
         if mask:
             data = apply_mask(self.data, mask_bytes)
         else:
@@ -383,7 +382,7 @@ class Close:
         return result
 
     @classmethod
-    def parse(cls, data: bytes) -> Close:
+    def parse(cls, data: BytesLike) -> Close:
         """
         Parse the payload of a close frame.
 
@@ -395,6 +394,8 @@ class Close:
             UnicodeDecodeError: If the reason isn't valid UTF-8.
 
         """
+        if isinstance(data, memoryview):
+            raise AssertionError("only compressed outgoing frames use memoryview")
         if len(data) >= 2:
             (code,) = struct.unpack("!H", data[:2])
             reason = data[2:].decode()

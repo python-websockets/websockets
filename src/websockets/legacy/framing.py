@@ -6,8 +6,7 @@ from typing import Any, Callable, NamedTuple
 
 from .. import extensions, frames
 from ..exceptions import PayloadTooBig, ProtocolError
-from ..frames import BytesLike
-from ..typing import Data
+from ..typing import BytesLike, DataLike
 
 
 try:
@@ -19,7 +18,7 @@ except ImportError:
 class Frame(NamedTuple):
     fin: bool
     opcode: frames.Opcode
-    data: bytes
+    data: BytesLike
     rsv1: bool = False
     rsv2: bool = False
     rsv3: bool = False
@@ -147,7 +146,7 @@ class Frame(NamedTuple):
         write(self.new_frame.serialize(mask=mask, extensions=extensions))
 
 
-def prepare_data(data: Data) -> tuple[int, bytes]:
+def prepare_data(data: DataLike) -> tuple[int, BytesLike]:
     """
     Convert a string or byte-like object to an opcode and a bytes-like object.
 
@@ -171,7 +170,7 @@ def prepare_data(data: Data) -> tuple[int, bytes]:
         raise TypeError("data must be str or bytes-like")
 
 
-def prepare_ctrl(data: Data) -> bytes:
+def prepare_ctrl(data: DataLike) -> bytes:
     """
     Convert a string or byte-like object to bytes.
 

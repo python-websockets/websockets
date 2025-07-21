@@ -12,7 +12,7 @@ from types import TracebackType
 from typing import Any, Callable, Literal, cast
 
 from ..client import ClientProtocol, backoff
-from ..datastructures import Headers, HeadersLike
+from ..datastructures import HeadersLike
 from ..exceptions import (
     InvalidMessage,
     InvalidProxyMessage,
@@ -23,12 +23,13 @@ from ..exceptions import (
 )
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
-from ..headers import build_authorization_basic, build_host, validate_subprotocols
+from ..headers import validate_subprotocols
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
+from ..proxy import Proxy, get_proxy, parse_proxy, prepare_connect_request
 from ..streams import StreamReader
 from ..typing import LoggerLike, Origin, Subprotocol
-from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
+from ..uri import WebSocketURI, parse_uri
 from .compatibility import TimeoutError, asyncio_timeout
 from .connection import Connection
 
@@ -719,25 +720,6 @@ else:
             raise
         except Exception as exc:
             raise ProxyError("failed to connect to SOCKS proxy") from exc
-
-
-def prepare_connect_request(
-    proxy: Proxy,
-    ws_uri: WebSocketURI,
-    user_agent_header: str | None = None,
-) -> bytes:
-    host = build_host(ws_uri.host, ws_uri.port, ws_uri.secure, always_include_port=True)
-    headers = Headers()
-    headers["Host"] = build_host(ws_uri.host, ws_uri.port, ws_uri.secure)
-    if user_agent_header is not None:
-        headers["User-Agent"] = user_agent_header
-    if proxy.username is not None:
-        assert proxy.password is not None  # enforced by parse_proxy()
-        headers["Proxy-Authorization"] = build_authorization_basic(
-            proxy.username, proxy.password
-        )
-    # We cannot use the Request class because it supports only GET requests.
-    return f"CONNECT {host} HTTP/1.1\r\n".encode() + headers.serialize()
 
 
 class HTTPProxyConnection(asyncio.Protocol):

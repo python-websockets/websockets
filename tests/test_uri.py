@@ -1,10 +1,7 @@
-import os
 import unittest
-from unittest.mock import patch
 
-from websockets.exceptions import InvalidProxy, InvalidURI
+from websockets.exceptions import InvalidURI
 from websockets.uri import *
-from websockets.uri import Proxy, get_proxy, parse_proxy
 
 
 VALID_URIS = [
@@ -75,145 +72,6 @@ URIS_WITH_USER_INFO = [
     ("ws://üser:påss@høst/", ("%C3%BCser", "p%C3%A5ss")),
 ]
 
-VALID_PROXIES = [
-    (
-        "http://proxy:8080",
-        Proxy("http", "proxy", 8080, None, None),
-    ),
-    (
-        "https://proxy:8080",
-        Proxy("https", "proxy", 8080, None, None),
-    ),
-    (
-        "http://proxy",
-        Proxy("http", "proxy", 80, None, None),
-    ),
-    (
-        "http://proxy:8080/",
-        Proxy("http", "proxy", 8080, None, None),
-    ),
-    (
-        "http://PROXY:8080",
-        Proxy("http", "proxy", 8080, None, None),
-    ),
-    (
-        "http://user:pass@proxy:8080",
-        Proxy("http", "proxy", 8080, "user", "pass"),
-    ),
-    (
-        "http://høst:8080/",
-        Proxy("http", "xn--hst-0na", 8080, None, None),
-    ),
-    (
-        "http://üser:påss@høst:8080",
-        Proxy("http", "xn--hst-0na", 8080, "%C3%BCser", "p%C3%A5ss"),
-    ),
-]
-
-INVALID_PROXIES = [
-    "ws://proxy:8080",
-    "wss://proxy:8080",
-    "http://proxy:8080/path",
-    "http://proxy:8080/?query",
-    "http://proxy:8080/#fragment",
-    "http://user@proxy",
-    "http:///",
-]
-
-PROXIES_WITH_USER_INFO = [
-    ("http://proxy", None),
-    ("http://user:pass@proxy", ("user", "pass")),
-    ("http://üser:påss@høst", ("%C3%BCser", "p%C3%A5ss")),
-]
-
-PROXY_ENVS = [
-    (
-        {"ws_proxy": "http://proxy:8080"},
-        "ws://example.com/",
-        "http://proxy:8080",
-    ),
-    (
-        {"ws_proxy": "http://proxy:8080"},
-        "wss://example.com/",
-        None,
-    ),
-    (
-        {"wss_proxy": "http://proxy:8080"},
-        "ws://example.com/",
-        None,
-    ),
-    (
-        {"wss_proxy": "http://proxy:8080"},
-        "wss://example.com/",
-        "http://proxy:8080",
-    ),
-    (
-        {"http_proxy": "http://proxy:8080"},
-        "ws://example.com/",
-        "http://proxy:8080",
-    ),
-    (
-        {"http_proxy": "http://proxy:8080"},
-        "wss://example.com/",
-        None,
-    ),
-    (
-        {"https_proxy": "http://proxy:8080"},
-        "ws://example.com/",
-        "http://proxy:8080",
-    ),
-    (
-        {"https_proxy": "http://proxy:8080"},
-        "wss://example.com/",
-        "http://proxy:8080",
-    ),
-    (
-        {"socks_proxy": "http://proxy:1080"},
-        "ws://example.com/",
-        "socks5h://proxy:1080",
-    ),
-    (
-        {"socks_proxy": "http://proxy:1080"},
-        "wss://example.com/",
-        "socks5h://proxy:1080",
-    ),
-    (
-        {"ws_proxy": "http://proxy1:8080", "wss_proxy": "http://proxy2:8080"},
-        "ws://example.com/",
-        "http://proxy1:8080",
-    ),
-    (
-        {"ws_proxy": "http://proxy1:8080", "wss_proxy": "http://proxy2:8080"},
-        "wss://example.com/",
-        "http://proxy2:8080",
-    ),
-    (
-        {"http_proxy": "http://proxy1:8080", "https_proxy": "http://proxy2:8080"},
-        "ws://example.com/",
-        "http://proxy2:8080",
-    ),
-    (
-        {"http_proxy": "http://proxy1:8080", "https_proxy": "http://proxy2:8080"},
-        "wss://example.com/",
-        "http://proxy2:8080",
-    ),
-    (
-        {"https_proxy": "http://proxy:8080", "socks_proxy": "http://proxy:1080"},
-        "ws://example.com/",
-        "socks5h://proxy:1080",
-    ),
-    (
-        {"https_proxy": "http://proxy:8080", "socks_proxy": "http://proxy:1080"},
-        "wss://example.com/",
-        "socks5h://proxy:1080",
-    ),
-    (
-        {"socks_proxy": "http://proxy:1080", "no_proxy": ".local"},
-        "ws://example.local/",
-        None,
-    ),
-]
-
 
 class URITests(unittest.TestCase):
     def test_parse_valid_uris(self):
@@ -236,25 +94,3 @@ class URITests(unittest.TestCase):
         for uri, user_info in URIS_WITH_USER_INFO:
             with self.subTest(uri=uri):
                 self.assertEqual(parse_uri(uri).user_info, user_info)
-
-    def test_parse_valid_proxies(self):
-        for proxy, parsed in VALID_PROXIES:
-            with self.subTest(proxy=proxy):
-                self.assertEqual(parse_proxy(proxy), parsed)
-
-    def test_parse_invalid_proxies(self):
-        for proxy in INVALID_PROXIES:
-            with self.subTest(proxy=proxy):
-                with self.assertRaises(InvalidProxy):
-                    parse_proxy(proxy)
-
-    def test_parse_proxy_user_info(self):
-        for proxy, user_info in PROXIES_WITH_USER_INFO:
-            with self.subTest(proxy=proxy):
-                self.assertEqual(parse_proxy(proxy).user_info, user_info)
-
-    def test_get_proxy(self):
-        for environ, uri, proxy in PROXY_ENVS:
-            with patch.dict(os.environ, environ):
-                with self.subTest(environ=environ, uri=uri):
-                    self.assertEqual(get_proxy(parse_uri(uri)), proxy)

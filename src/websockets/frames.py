@@ -360,7 +360,7 @@ class Close:
 
     """
 
-    code: int
+    code: CloseCode | int
     reason: str
 
     def __str__(self) -> str:

@@ -361,7 +361,7 @@ class Protocol:
         self.expect_continuation_frame = not fin
         self.send_frame(Frame(OP_BINARY, data, fin))
 
-    def send_close(self, code: int | None = None, reason: str = "") -> None:
+    def send_close(self, code: CloseCode | int | None = None, reason: str = "") -> None:
         """
         Send a `Close frame`_.
 
@@ -429,7 +429,7 @@ class Protocol:
             raise InvalidState(f"connection is {self.state.name.lower()}")
         self.send_frame(Frame(OP_PONG, data))
 
-    def fail(self, code: int, reason: str = "") -> None:
+    def fail(self, code: CloseCode | int, reason: str = "") -> None:
         """
         `Fail the WebSocket connection`_.
 

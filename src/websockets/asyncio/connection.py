@@ -616,7 +616,11 @@ class Connection(asyncio.Protocol):
         else:
             raise TypeError("data must be str, bytes, iterable, or async iterable")
 
-    async def close(self, code: int = 1000, reason: str = "") -> None:
+    async def close(
+        self,
+        code: CloseCode | int = CloseCode.NORMAL_CLOSURE,
+        reason: str = "",
+    ) -> None:
         """
         Perform the closing handshake.
 

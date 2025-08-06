@@ -568,7 +568,11 @@ class Connection:
         else:
             raise TypeError("data must be str, bytes, or iterable")
 
-    def close(self, code: int = CloseCode.NORMAL_CLOSURE, reason: str = "") -> None:
+    def close(
+        self,
+        code: CloseCode | int = CloseCode.NORMAL_CLOSURE,
+        reason: str = "",
+    ) -> None:
         """
         Perform the closing handshake.
 

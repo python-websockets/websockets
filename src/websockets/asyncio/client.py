@@ -50,7 +50,7 @@ class ClientConnection(Connection):
         async for message in websocket:
             await process(message)
 
-    The iterator exits normally when the connection is closed with close code
+    The iterator exits normally when the connection is closed with code
     1000 (OK) or 1001 (going away) or without a close code. It raises a
     :exc:`~websockets.exceptions.ConnectionClosedError` when the connection is
     closed with any other code.

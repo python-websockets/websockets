@@ -19,9 +19,8 @@ from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 
 from ..protocol import RecordingProtocol
-from ..utils import MS
+from ..utils import MS, alist
 from .connection import InterceptingConnection
-from .utils import alist
 
 
 # Connection implements symmetrical behavior between clients and servers.

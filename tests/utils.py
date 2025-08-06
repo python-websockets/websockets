@@ -112,6 +112,13 @@ class DeprecationTestCase(unittest.TestCase):
         self.assertEqual(str(warning.message), message)
 
 
+async def alist(async_iterable):
+    items = []
+    async for item in async_iterable:
+        items.append(item)
+    return items
+
+
 @contextlib.contextmanager
 def temp_unix_socket_path():
     with tempfile.TemporaryDirectory() as temp_dir:

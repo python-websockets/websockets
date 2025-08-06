@@ -405,18 +405,25 @@ class Server:
         # but before it starts executing.
         self.handlers[connection] = self.loop.create_task(self.conn_handler(connection))
 
-    def close(self, close_connections: bool = True) -> None:
+    def close(
+        self,
+        close_connections: bool = True,
+        code: CloseCode | int = CloseCode.GOING_AWAY,
+        reason: str = "",
+    ) -> None:
         """
         Close the server.
 
         * Close the underlying :class:`asyncio.Server`.
-        * When ``close_connections`` is :obj:`True`, which is the default,
-          close existing connections. Specifically:
+        * When ``close_connections`` is :obj:`True`, which is the default, close
+          existing connections. Specifically:
 
           * Reject opening WebSocket connections with an HTTP 503 (service
             unavailable) error. This happens when the server accepted the TCP
             connection but didn't complete the opening handshake before closing.
-          * Close open WebSocket connections with close code 1001 (going away).
+          * Close open WebSocket connections with code 1001 (going away).
+            ``code`` and ``reason`` can be customized, for example to use code
+            1012 (service restart).
 
         * Wait until all connection handlers terminate.
 
@@ -425,16 +432,21 @@ class Server:
         """
         if self.close_task is None:
             self.close_task = self.get_loop().create_task(
-                self._close(close_connections)
+                self._close(close_connections, code, reason)
             )
 
-    async def _close(self, close_connections: bool) -> None:
+    async def _close(
+        self,
+        close_connections: bool = True,
+        code: CloseCode | int = CloseCode.GOING_AWAY,
+        reason: str = "",
+    ) -> None:
         """
         Implementation of :meth:`close`.
 
         This calls :meth:`~asyncio.Server.close` on the underlying
         :class:`asyncio.Server` object to stop accepting new connections and
-        then closes open connections with close code 1001.
+        then closes open connections.
 
         """
         self.logger.info("server closing")
@@ -447,11 +459,13 @@ class Server:
         # details. This workaround can be removed when dropping Python < 3.11.
         await asyncio.sleep(0)
 
+        # After server.close(), handshake() closes OPENING connections with an
+        # HTTP 503 error.
+
         if close_connections:
-            # Close OPEN connections with close code 1001. After server.close(),
-            # handshake() closes OPENING connections with an HTTP 503 error.
+            # Close OPEN connections with code 1001 by default.
             close_tasks = [
-                asyncio.create_task(connection.close(1001))
+                asyncio.create_task(connection.close(code, reason))
                 for connection in self.handlers
                 if connection.protocol.state is not CONNECTING
             ]

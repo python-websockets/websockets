@@ -507,6 +507,19 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                     "received 1001 (going away); then sent 1001 (going away)",
                 )
 
+    async def test_close_server_closes_open_connections_with_code_and_reason(self):
+        """Server closes open connections with custom code and reason when closing."""
+        async with serve(*args) as server:
+            async with connect(get_uri(server)) as client:
+                server.close(code=1012, reason="restarting")
+                with self.assertRaises(ConnectionClosedError) as raised:
+                    await client.recv()
+                self.assertEqual(
+                    str(raised.exception),
+                    "received 1012 (service restart) restarting; "
+                    "then sent 1012 (service restart) restarting",
+                )
+
     async def test_close_server_keeps_connections_open(self):
         """Server waits for client to close open connections when closing."""
         async with serve(*args) as server:

@@ -49,7 +49,11 @@ Improvements
 ............
 
 * Allowed setting separate limits for messages and fragments with ``max_size``.
+
 * Added support for HTTP/1.0 proxies.
+
+* Added support for customizing the close code and reason for connections in
+  :meth:`Server.close <asyncio.server.Server.close>`.
 
 15.0.1
 ------

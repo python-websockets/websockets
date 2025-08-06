@@ -8,7 +8,7 @@ from websockets.asyncio.messages import SimpleQueue
 from websockets.exceptions import ConcurrencyError
 from websockets.frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 
-from .utils import alist
+from ..utils import alist
 
 
 class SimpleQueueTests(unittest.IsolatedAsyncioTestCase):

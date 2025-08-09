@@ -1370,7 +1370,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         This requires:
 
-        1. Stopping all processing of incoming data, which means cancelling
+        1. Stopping all processing of incoming data, which means canceling
            :attr:`transfer_data_task`. The close code will be 1006 unless a
            close frame was received earlier.
 

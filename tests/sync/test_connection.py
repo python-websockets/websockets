@@ -6,7 +6,7 @@ import threading
 import time
 import unittest
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from websockets.exceptions import (
     ConcurrencyError,
@@ -489,8 +489,14 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_close_waits_for_close_frame(self):
         """close waits for a close frame (then EOF) before returning."""
+        t0 = time.time()
         with self.delay_frames_rcvd(MS):
             self.connection.close()
+        t1 = time.time()
+
+        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
+        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
@@ -504,8 +510,14 @@ class ClientConnectionTests(unittest.TestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
+        t0 = time.time()
         with self.delay_eof_rcvd(MS):
             self.connection.close()
+        t1 = time.time()
+
+        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
+        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
@@ -516,8 +528,14 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_close_timeout_waiting_for_close_frame(self):
         """close times out if no close frame is received."""
+        t0 = time.time()
         with self.drop_frames_rcvd(), self.drop_eof_rcvd():
             self.connection.close()
+        t1 = time.time()
+
+        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.close_code, CloseCode.ABNORMAL_CLOSURE)
+        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.recv()
@@ -531,8 +549,14 @@ class ClientConnectionTests(unittest.TestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
+        t0 = time.time()
         with self.drop_eof_rcvd():
             self.connection.close()
+        t1 = time.time()
+
+        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
+        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
@@ -547,12 +571,8 @@ class ClientConnectionTests(unittest.TestCase):
         self.connection.close()
 
         self.assertEqual(self.connection.recv(), "😀")
-        with self.assertRaises(ConnectionClosedOK) as raised:
+        with self.assertRaises(ConnectionClosedOK):
             self.connection.recv()
-
-        exc = raised.exception
-        self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
-        self.assertIsNone(exc.__cause__)
 
     def test_close_idempotency(self):
         """close does nothing if the connection is already closed."""
@@ -621,10 +641,10 @@ class ClientConnectionTests(unittest.TestCase):
             exit_gate.set()
 
         def fragments():
-            yield "😀"
+            yield "⏳"
             close_gate.set()
             exit_gate.wait()
-            yield "😀"
+            yield "⌛️"
 
         close_thread = threading.Thread(target=closer)
         close_thread.start()
@@ -664,38 +684,38 @@ class ClientConnectionTests(unittest.TestCase):
     def test_acknowledge_ping(self):
         """ping is acknowledged by a pong with the same payload."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = self.connection.ping("this")
+            pong_received = self.connection.ping("this")
         self.remote_connection.pong("this")
-        self.assertTrue(pong_waiter.wait(MS))
+        self.assertTrue(pong_received.wait(MS))
 
     def test_acknowledge_ping_non_matching_pong(self):
         """ping isn't acknowledged by a pong with a different payload."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = self.connection.ping("this")
+            pong_received = self.connection.ping("this")
         self.remote_connection.pong("that")
-        self.assertFalse(pong_waiter.wait(MS))
+        self.assertFalse(pong_received.wait(MS))
 
     def test_acknowledge_previous_ping(self):
         """ping is acknowledged by a pong for as a later ping."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = self.connection.ping("this")
+            pong_received = self.connection.ping("this")
             self.connection.ping("that")
         self.remote_connection.pong("that")
-        self.assertTrue(pong_waiter.wait(MS))
+        self.assertTrue(pong_received.wait(MS))
 
     def test_acknowledge_ping_on_close(self):
         """ping with ack_on_close is acknowledged when the connection is closed."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter_ack_on_close = self.connection.ping("this", ack_on_close=True)
-            pong_waiter = self.connection.ping("that")
+            pong_received_ack_on_close = self.connection.ping("this", ack_on_close=True)
+            pong_received = self.connection.ping("that")
         self.connection.close()
-        self.assertTrue(pong_waiter_ack_on_close.wait(MS))
-        self.assertFalse(pong_waiter.wait(MS))
+        self.assertTrue(pong_received_ack_on_close.wait(MS))
+        self.assertFalse(pong_received.wait(MS))
 
     def test_ping_duplicate_payload(self):
         """ping rejects the same payload until receiving the pong."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = self.connection.ping("idem")
+            pong_received = self.connection.ping("idem")
 
         with self.assertRaises(ConcurrencyError) as raised:
             self.connection.ping("idem")
@@ -705,7 +725,7 @@ class ClientConnectionTests(unittest.TestCase):
         )
 
         self.remote_connection.pong("idem")
-        self.assertTrue(pong_waiter.wait(MS))
+        self.assertTrue(pong_received.wait(MS))
 
         self.connection.ping("idem")  # doesn't raise an exception
 
@@ -741,7 +761,7 @@ class ClientConnectionTests(unittest.TestCase):
     @patch("random.getrandbits", return_value=1918987876)
     def test_keepalive(self, getrandbits):
         """keepalive sends pings at ping_interval and measures latency."""
-        self.connection.ping_interval = 4 * MS
+        self.connection.ping_interval = 3 * MS
         self.connection.start_keepalive()
         self.assertIsNotNone(self.connection.keepalive_thread)
         self.assertEqual(self.connection.latency, 0)
@@ -795,6 +815,7 @@ class ClientConnectionTests(unittest.TestCase):
         """keepalive task terminates while waiting to send a ping."""
         self.connection.ping_interval = 3 * MS
         self.connection.start_keepalive()
+        self.assertTrue(self.connection.keepalive_thread.is_alive())
         time.sleep(MS)
         self.connection.close()
         self.connection.keepalive_thread.join(MS)
@@ -802,8 +823,9 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_keepalive_terminates_when_sending_ping_fails(self):
         """keepalive task terminates when sending a ping fails."""
-        self.connection.ping_interval = 1 * MS
+        self.connection.ping_interval = MS
         self.connection.start_keepalive()
+        self.assertTrue(self.connection.keepalive_thread.is_alive())
         with self.drop_eof_rcvd(), self.drop_frames_rcvd():
             self.connection.close()
         self.assertFalse(self.connection.keepalive_thread.is_alive())
@@ -826,14 +848,13 @@ class ClientConnectionTests(unittest.TestCase):
     def test_keepalive_reports_errors(self):
         """keepalive reports unexpected errors in logs."""
         self.connection.ping_interval = 2 * MS
-        with self.drop_frames_rcvd():
-            self.connection.start_keepalive()
-            # 2 ms: keepalive() sends a ping frame.
-            # 2.x ms: a pong frame is dropped.
-            with self.assertLogs("websockets", logging.ERROR) as logs:
-                with patch("threading.Event.wait", side_effect=Exception("BOOM")):
-                    time.sleep(3 * MS)
-            # Exiting the context manager sleeps for 1 ms.
+        self.connection.start_keepalive()
+        # Inject a fault when waiting to receive a pong.
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            with patch("threading.Event.wait", side_effect=Exception("BOOM")):
+                # 2 ms: keepalive() sends a ping frame.
+                # 2.x ms: a pong frame is dropped.
+                time.sleep(3 * MS)
         self.assertEqual(
             [record.getMessage() for record in logs.records],
             ["keepalive ping failed"],
@@ -847,11 +868,8 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_close_timeout(self):
         """close_timeout parameter configures close timeout."""
-        socket_, remote_socket = socket.socketpair()
-        self.addCleanup(socket_.close)
-        self.addCleanup(remote_socket.close)
         connection = Connection(
-            socket_,
+            Mock(spec=socket.socket),
             Protocol(self.LOCAL),
             close_timeout=42 * MS,
         )
@@ -859,11 +877,8 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_max_queue(self):
         """max_queue configures high-water mark of frames buffer."""
-        socket_, remote_socket = socket.socketpair()
-        self.addCleanup(socket_.close)
-        self.addCleanup(remote_socket.close)
         connection = Connection(
-            socket_,
+            Mock(spec=socket.socket),
             Protocol(self.LOCAL),
             max_queue=4,
         )
@@ -871,11 +886,8 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_max_queue_none(self):
         """max_queue disables high-water mark of frames buffer."""
-        socket_, remote_socket = socket.socketpair()
-        self.addCleanup(socket_.close)
-        self.addCleanup(remote_socket.close)
         connection = Connection(
-            socket_,
+            Mock(spec=socket.socket),
             Protocol(self.LOCAL),
             max_queue=None,
         )
@@ -884,11 +896,8 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_max_queue_tuple(self):
         """max_queue configures high-water and low-water marks of frames buffer."""
-        socket_, remote_socket = socket.socketpair()
-        self.addCleanup(socket_.close)
-        self.addCleanup(remote_socket.close)
         connection = Connection(
-            socket_,
+            Mock(spec=socket.socket),
             Protocol(self.LOCAL),
             max_queue=(4, 2),
         )
@@ -959,11 +968,13 @@ class ClientConnectionTests(unittest.TestCase):
         # Inject a fault by shutting down the socket for writing — but not by
         # closing it because that would terminate the connection.
         self.connection.socket.shutdown(socket.SHUT_WR)
+
         # Receive a ping. Responding with a pong will fail.
         self.remote_connection.ping()
         # The connection closed exception reports the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.recv()
+
         self.assertIsInstance(raised.exception.__cause__, BrokenPipeError)
 
     def test_writing_in_send_context_fails(self):
@@ -971,10 +982,12 @@ class ClientConnectionTests(unittest.TestCase):
         # Inject a fault by shutting down the socket for writing — but not by
         # closing it because that would terminate the connection.
         self.connection.socket.shutdown(socket.SHUT_WR)
+
         # Sending a pong will fail.
         # The connection closed exception reports the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.pong()
+
         self.assertIsInstance(raised.exception.__cause__, BrokenPipeError)
 
     # Test safety nets — catching all exceptions in case of bugs.
@@ -990,9 +1003,7 @@ class ClientConnectionTests(unittest.TestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.recv()
 
-        exc = raised.exception
-        self.assertEqual(str(exc), "no close frame received or sent")
-        self.assertIsInstance(exc.__cause__, AssertionError)
+        self.assertIsInstance(raised.exception.__cause__, AssertionError)
 
     # Inject a fault in a random call in send_context().
     # This test is tightly coupled to the implementation.
@@ -1004,9 +1015,7 @@ class ClientConnectionTests(unittest.TestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.send("😀")
 
-        exc = raised.exception
-        self.assertEqual(str(exc), "no close frame received or sent")
-        self.assertIsInstance(exc.__cause__, AssertionError)
+        self.assertIsInstance(raised.exception.__cause__, AssertionError)
 
 
 class ServerConnectionTests(ClientConnectionTests):

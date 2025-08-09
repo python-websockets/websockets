@@ -605,7 +605,12 @@ def serve(
                 connection.recv_events_thread.join()
                 return
 
-            assert connection.protocol.state is OPEN
+            if connection.protocol.state is not OPEN:
+                # process_request or process_response rejected the handshake.
+                connection.close_socket()
+                connection.recv_events_thread.join()
+                return
+
             try:
                 connection.start_keepalive()
                 handler(connection)

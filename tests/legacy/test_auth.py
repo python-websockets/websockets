@@ -1,3 +1,4 @@
+import contextlib
 import hmac
 import unittest
 import urllib.error
@@ -131,12 +132,13 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
     def test_basic_auth_missing_credentials_details(self):
         with self.assertRaises(urllib.error.HTTPError) as raised:
             self.loop.run_until_complete(self.make_http_request())
-        self.assertEqual(raised.exception.code, 401)
-        self.assertEqual(
-            raised.exception.headers["WWW-Authenticate"],
-            'Basic realm="auth-tests", charset="UTF-8"',
-        )
-        self.assertEqual(raised.exception.read().decode(), "Missing credentials\n")
+        with contextlib.closing(raised.exception):
+            self.assertEqual(raised.exception.code, 401)
+            self.assertEqual(
+                raised.exception.headers["WWW-Authenticate"],
+                'Basic realm="auth-tests", charset="UTF-8"',
+            )
+            self.assertEqual(raised.exception.read().decode(), "Missing credentials\n")
 
     @with_server(create_protocol=create_protocol)
     def test_basic_auth_unsupported_credentials(self):
@@ -150,12 +152,15 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
             self.loop.run_until_complete(
                 self.make_http_request(headers={"Authorization": "Digest ..."})
             )
-        self.assertEqual(raised.exception.code, 401)
-        self.assertEqual(
-            raised.exception.headers["WWW-Authenticate"],
-            'Basic realm="auth-tests", charset="UTF-8"',
-        )
-        self.assertEqual(raised.exception.read().decode(), "Unsupported credentials\n")
+        with contextlib.closing(raised.exception):
+            self.assertEqual(raised.exception.code, 401)
+            self.assertEqual(
+                raised.exception.headers["WWW-Authenticate"],
+                'Basic realm="auth-tests", charset="UTF-8"',
+            )
+            self.assertEqual(
+                raised.exception.read().decode(), "Unsupported credentials\n"
+            )
 
     @with_server(create_protocol=create_protocol)
     def test_basic_auth_invalid_username(self):
@@ -176,9 +181,10 @@ class AuthClientServerTests(ClientServerTestsMixin, AsyncioTestCase):
             self.loop.run_until_complete(
                 self.make_http_request(headers={"Authorization": authorization})
             )
-        self.assertEqual(raised.exception.code, 401)
-        self.assertEqual(
-            raised.exception.headers["WWW-Authenticate"],
-            'Basic realm="auth-tests", charset="UTF-8"',
-        )
-        self.assertEqual(raised.exception.read().decode(), "Invalid credentials\n")
+        with contextlib.closing(raised.exception):
+            self.assertEqual(raised.exception.code, 401)
+            self.assertEqual(
+                raised.exception.headers["WWW-Authenticate"],
+                'Basic realm="auth-tests", charset="UTF-8"',
+            )
+            self.assertEqual(raised.exception.read().decode(), "Invalid credentials\n")

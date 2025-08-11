@@ -731,8 +731,9 @@ class CommonClientServerTests:
         with self.assertRaises(urllib.error.HTTPError) as raised:
             self.loop.run_until_complete(self.make_http_request())
 
-        self.assertEqual(raised.exception.code, 426)
-        self.assertEqual(raised.exception.headers["Upgrade"], "websocket")
+        with contextlib.closing(raised.exception):
+            self.assertEqual(raised.exception.code, 426)
+            self.assertEqual(raised.exception.headers["Upgrade"], "websocket")
 
     @with_server(create_protocol=HealthCheckServerProtocol)
     def test_ws_connection_http_endpoint(self):

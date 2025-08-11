@@ -37,62 +37,6 @@ except ImportError:
 
 else:
 
-    class Router:
-        """WebSocket router supporting :func:`route`."""
-
-        def __init__(
-            self,
-            url_map: Map,
-            server_name: str | None = None,
-            url_scheme: str = "ws",
-        ) -> None:
-            self.url_map = url_map
-            self.server_name = server_name
-            self.url_scheme = url_scheme
-            for rule in self.url_map.iter_rules():
-                rule.websocket = True
-
-        def get_server_name(
-            self, connection: ServerConnection, request: Request
-        ) -> str:
-            if self.server_name is None:
-                return request.headers["Host"]
-            else:
-                return self.server_name
-
-        def redirect(self, connection: ServerConnection, url: str) -> Response:
-            response = connection.respond(http.HTTPStatus.FOUND, f"Found at {url}")
-            response.headers["Location"] = url
-            return response
-
-        def not_found(self, connection: ServerConnection) -> Response:
-            return connection.respond(http.HTTPStatus.NOT_FOUND, "Not Found")
-
-        def route_request(
-            self, connection: ServerConnection, request: Request
-        ) -> Response | None:
-            """Route incoming request."""
-            url_map_adapter = self.url_map.bind(
-                server_name=self.get_server_name(connection, request),
-                url_scheme=self.url_scheme,
-            )
-            try:
-                parsed = urllib.parse.urlparse(request.path)
-                handler, kwargs = url_map_adapter.match(
-                    path_info=parsed.path,
-                    query_args=parsed.query,
-                )
-            except RequestRedirect as redirect:
-                return self.redirect(connection, redirect.new_url)
-            except NotFound:
-                return self.not_found(connection)
-            connection.handler, connection.handler_kwargs = handler, kwargs
-            return None
-
-        def handler(self, connection: ServerConnection) -> None:
-            """Handle a connection."""
-            return connection.handler(connection, **connection.handler_kwargs)
-
     def route(
         url_map: Map,
         *args: Any,
@@ -212,3 +156,58 @@ else:
 
         """
         return route(url_map, unix=True, path=path, **kwargs)
+
+
+class Router:
+    """WebSocket router supporting :func:`route`."""
+
+    def __init__(
+        self,
+        url_map: Map,
+        server_name: str | None = None,
+        url_scheme: str = "ws",
+    ) -> None:
+        self.url_map = url_map
+        self.server_name = server_name
+        self.url_scheme = url_scheme
+        for rule in self.url_map.iter_rules():
+            rule.websocket = True
+
+    def get_server_name(self, connection: ServerConnection, request: Request) -> str:
+        if self.server_name is None:
+            return request.headers["Host"]
+        else:
+            return self.server_name
+
+    def redirect(self, connection: ServerConnection, url: str) -> Response:
+        response = connection.respond(http.HTTPStatus.FOUND, f"Found at {url}")
+        response.headers["Location"] = url
+        return response
+
+    def not_found(self, connection: ServerConnection) -> Response:
+        return connection.respond(http.HTTPStatus.NOT_FOUND, "Not Found")
+
+    def route_request(
+        self, connection: ServerConnection, request: Request
+    ) -> Response | None:
+        """Route incoming request."""
+        url_map_adapter = self.url_map.bind(
+            server_name=self.get_server_name(connection, request),
+            url_scheme=self.url_scheme,
+        )
+        try:
+            parsed = urllib.parse.urlparse(request.path)
+            handler, kwargs = url_map_adapter.match(
+                path_info=parsed.path,
+                query_args=parsed.query,
+            )
+        except RequestRedirect as redirect:
+            return self.redirect(connection, redirect.new_url)
+        except NotFound:
+            return self.not_found(connection)
+        connection.handler, connection.handler_kwargs = handler, kwargs
+        return None
+
+    def handler(self, connection: ServerConnection) -> None:
+        """Handle a connection."""
+        return connection.handler(connection, **connection.handler_kwargs)

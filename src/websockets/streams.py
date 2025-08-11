@@ -112,7 +112,7 @@ class StreamReader:
             # tell if until either feed_data() or feed_eof() is called.
             yield
 
-    def feed_data(self, data: bytes) -> None:
+    def feed_data(self, data: bytes | bytearray) -> None:
         """
         Write data to the stream.
 

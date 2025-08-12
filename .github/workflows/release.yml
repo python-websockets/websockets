@@ -61,6 +61,7 @@ jobs:
       with:
         name: dist-${{ matrix.os }}
         path: wheelhouse/*.whl
+    timeout-minutes: 30
 
   upload:
     name: Upload
@@ -91,3 +92,4 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release -R python-websockets/websockets create ${{ github.ref_name }} --notes "See https://websockets.readthedocs.io/en/stable/project/changelog.html for details."
+    timeout-minutes: 5

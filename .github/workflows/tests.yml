@@ -28,6 +28,7 @@ jobs:
       run: tox -e coverage
     - name: Run tests with per-module coverage
       run: tox -e maxi_cov
+    timeout-minutes: 3
 
   quality:
     name: Run code quality checks
@@ -45,6 +46,7 @@ jobs:
       run: tox -e ruff
     - name: Check types statically
       run: tox -e mypy
+    timeout-minutes: 1
 
   matrix:
     name: Run tests on Python ${{ matrix.python }}
@@ -78,3 +80,4 @@ jobs:
       run: pip install tox
     - name: Run tests
       run: tox -e py
+    timeout-minutes: 2

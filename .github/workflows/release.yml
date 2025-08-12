@@ -76,20 +76,20 @@ jobs:
       attestations: write
       contents: write
     steps:
-      - name: Download artifacts
-        uses: actions/download-artifact@v5
-        with:
-          pattern: dist-*
-          merge-multiple: true
-          path: dist
-      - name: Attest provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: dist/*
-      - name: Upload to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-      - name: Create GitHub release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: gh release -R python-websockets/websockets create ${{ github.ref_name }} --notes "See https://websockets.readthedocs.io/en/stable/project/changelog.html for details."
+    - name: Download artifacts
+      uses: actions/download-artifact@v5
+      with:
+        pattern: dist-*
+        merge-multiple: true
+        path: dist
+    - name: Attest provenance
+      uses: actions/attest-build-provenance@v2
+      with:
+        subject-path: dist/*
+    - name: Upload to PyPI
+      uses: pypa/gh-action-pypi-publish@release/v1
+    - name: Create GitHub release
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: gh release -R python-websockets/websockets create ${{ github.ref_name }} --notes "See https://websockets.readthedocs.io/en/stable/project/changelog.html for details."
     timeout-minutes: 5

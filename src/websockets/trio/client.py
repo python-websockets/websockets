@@ -233,6 +233,9 @@ class connect:
 
     """
 
+    # Arguments of type SSLContext don't render correctly in the documentation
+    # because of https://github.com/sphinx-doc/sphinx/issues/13838.
+
     def __init__(
         self,
         uri: str,

@@ -554,7 +554,7 @@ class Server:
         await self.server.serve_forever()
 
     @property
-    def sockets(self) -> Iterable[socket.socket]:
+    def sockets(self) -> tuple[socket.socket, ...]:
         """
         See :attr:`asyncio.Server.sockets`.
 

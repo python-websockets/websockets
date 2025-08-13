@@ -1231,7 +1231,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             while True:
                 await asyncio.sleep(self.ping_interval)
 
-                self.logger.debug("% sending keepalive ping")
+                if self.debug:
+                    self.logger.debug("% sending keepalive ping")
                 pong_waiter = await self.ping()
 
                 if self.ping_timeout is not None:
@@ -1242,7 +1243,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                             # Raises ConnectionClosed if the connection is lost,
                             # when connection_lost() calls abort_pings().
                             await pong_waiter
-                        self.logger.debug("% received keepalive pong")
+                        if self.debug:
+                            self.logger.debug("% received keepalive pong")
                     except asyncio.TimeoutError:
                         if self.debug:
                             self.logger.debug("- timed out waiting for keepalive pong")
@@ -1469,7 +1471,8 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         """
         self.state = State.CLOSED
-        self.logger.debug("= connection is CLOSED")
+        if self.debug:
+            self.logger.debug("= connection is CLOSED")
 
         self.abort_pings()
 

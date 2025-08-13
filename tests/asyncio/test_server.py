@@ -568,7 +568,7 @@ class SecureServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async with serve(*args, ssl=SERVER_CONTEXT) as server:
             async with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
                 await self.assertEval(client, "ws.protocol.state.name", "OPEN")
-                await self.assertEval(client, SSL_OBJECT + ".version()[:3]", "TLS")
+                await self.assertEval(client, f"{SSL_OBJECT}.version()[:3]", "TLS")
 
     async def test_timeout_during_tls_handshake(self):
         """Server times out before receiving TLS handshake request from client."""
@@ -604,7 +604,7 @@ class SecureUnixServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             async with unix_serve(handler, path, ssl=SERVER_CONTEXT):
                 async with unix_connect(path, ssl=CLIENT_CONTEXT) as client:
                     await self.assertEval(client, "ws.protocol.state.name", "OPEN")
-                    await self.assertEval(client, SSL_OBJECT + ".version()[:3]", "TLS")
+                    await self.assertEval(client, f"{SSL_OBJECT}.version()[:3]", "TLS")
 
 
 class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):

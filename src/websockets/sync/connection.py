@@ -59,11 +59,10 @@ class Connection:
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
-        self.max_queue: tuple[int | None, int | None]
         if isinstance(max_queue, int) or max_queue is None:
-            self.max_queue = (max_queue, None)
+            max_queue_high, max_queue_low = max_queue, None
         else:
-            self.max_queue = max_queue
+            max_queue_high, max_queue_low = max_queue
 
         # Inject reference to this instance in the protocol's logger.
         self.protocol.logger = logging.LoggerAdapter(
@@ -92,7 +91,8 @@ class Connection:
 
         # Assembler turning frames into messages and serializing reads.
         self.recv_messages = Assembler(
-            *self.max_queue,
+            max_queue_high,
+            max_queue_low,
             pause=self.recv_flow_control.acquire,
             resume=self.recv_flow_control.release,
         )
@@ -104,9 +104,9 @@ class Connection:
         self.send_in_progress = False
 
         # Mapping of ping IDs to pong waiters, in chronological order.
-        self.pong_waiters: dict[bytes, tuple[threading.Event, float, bool]] = {}
+        self.pending_pings: dict[bytes, tuple[threading.Event, float, bool]] = {}
 
-        self.latency: float = 0
+        self.latency: float = 0.0
         """
         Latency of the connection, in seconds.
 
@@ -284,8 +284,8 @@ class Connection:
         is ``0`` or negative, check if a message has been received already and
         return it, else raise :exc:`TimeoutError`.
 
-        If the message is fragmented, wait until all fragments are received,
-        reassemble them, and return the whole message.
+        When the message is fragmented, :meth:`recv` waits until all fragments
+        are received, reassembles them, and returns the whole message.
 
         Args:
             timeout: Timeout for receiving a message in seconds.
@@ -425,8 +425,8 @@ class Connection:
 
         You may override this behavior with the ``text`` argument:
 
-        * Set ``text=True`` to send a bytestring or bytes-like object
-          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) as a
+        * Set ``text=True`` to send an UTF-8 bytestring or bytes-like object
+          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) in a
           Text_ frame. This improves performance when the message is already
           UTF-8 encoded, for example if the message contains JSON and you're
           using a JSON library that produces a bytestring.
@@ -530,7 +530,7 @@ class Connection:
                             self.protocol.send_binary(chunk, fin=False)
                     encode = False
                 else:
-                    raise TypeError("data iterable must contain bytes or str")
+                    raise TypeError("iterable must contain bytes or str")
 
                 # Other fragments
                 for chunk in chunks:
@@ -543,7 +543,7 @@ class Connection:
                             assert self.send_in_progress
                             self.protocol.send_continuation(chunk, fin=False)
                     else:
-                        raise TypeError("data iterable must contain uniform types")
+                        raise TypeError("iterable must contain uniform types")
 
                 # Final fragment.
                 with self.send_context():
@@ -633,8 +633,9 @@ class Connection:
 
             ::
 
-                pong_event = ws.ping()
-                pong_event.wait()  # only if you want to wait for the pong
+                pong_received = ws.ping()
+                # only if you want to wait for the corresponding pong
+                pong_received.wait()
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -651,17 +652,18 @@ class Connection:
 
         with self.send_context():
             # Protect against duplicates if a payload is explicitly set.
-            if data in self.pong_waiters:
+            if data in self.pending_pings:
                 raise ConcurrencyError("already waiting for a pong with the same data")
 
             # Generate a unique random payload otherwise.
-            while data is None or data in self.pong_waiters:
+            while data is None or data in self.pending_pings:
                 data = struct.pack("!I", random.getrandbits(32))
 
-            pong_waiter = threading.Event()
-            self.pong_waiters[data] = (pong_waiter, time.monotonic(), ack_on_close)
+            pong_received = threading.Event()
+            ping_timestamp = time.monotonic()
+            self.pending_pings[data] = (pong_received, ping_timestamp, ack_on_close)
             self.protocol.send_ping(data)
-            return pong_waiter
+            return pong_received
 
     def pong(self, data: DataLike = b"") -> None:
         """
@@ -711,7 +713,7 @@ class Connection:
         """
         with self.protocol_mutex:
             # Ignore unsolicited pong.
-            if data not in self.pong_waiters:
+            if data not in self.pending_pings:
                 return
 
             pong_timestamp = time.monotonic()
@@ -721,21 +723,21 @@ class Connection:
             ping_id = None
             ping_ids = []
             for ping_id, (
-                pong_waiter,
+                pong_received,
                 ping_timestamp,
                 _ack_on_close,
-            ) in self.pong_waiters.items():
+            ) in self.pending_pings.items():
                 ping_ids.append(ping_id)
-                pong_waiter.set()
+                pong_received.set()
                 if ping_id == data:
                     self.latency = pong_timestamp - ping_timestamp
                     break
             else:
                 raise AssertionError("solicited pong not found in pings")
 
-            # Remove acknowledged pings from self.pong_waiters.
+            # Remove acknowledged pings from self.pending_pings.
             for ping_id in ping_ids:
-                del self.pong_waiters[ping_id]
+                del self.pending_pings[ping_id]
 
     def acknowledge_pending_pings(self) -> None:
         """
@@ -744,11 +746,11 @@ class Connection:
         """
         assert self.protocol.state is CLOSED
 
-        for pong_waiter, _ping_timestamp, ack_on_close in self.pong_waiters.values():
+        for pong_received, _ping_timestamp, ack_on_close in self.pending_pings.values():
             if ack_on_close:
-                pong_waiter.set()
+                pong_received.set()
 
-        self.pong_waiters.clear()
+        self.pending_pings.clear()
 
     def keepalive(self) -> None:
         """
@@ -766,15 +768,14 @@ class Connection:
                     break
 
                 try:
-                    pong_waiter = self.ping(ack_on_close=True)
+                    pong_received = self.ping(ack_on_close=True)
                 except ConnectionClosed:
                     break
                 if self.debug:
                     self.logger.debug("% sent keepalive ping")
 
                 if self.ping_timeout is not None:
-                    #
-                    if pong_waiter.wait(self.ping_timeout):
+                    if pong_received.wait(self.ping_timeout):
                         if self.debug:
                             self.logger.debug("% received keepalive pong")
                     else:
@@ -808,15 +809,17 @@ class Connection:
 
         Run this method in a thread as long as the connection is alive.
 
-        ``recv_events()`` exits immediately when the ``self.socket`` is closed.
+        ``recv_events()`` exits immediately when ``self.socket`` is closed.
 
         """
         try:
             while True:
                 try:
+                    # If the assembler buffer is full, block until it drains.
                     with self.recv_flow_control:
-                        if self.close_deadline is not None:
-                            self.socket.settimeout(self.close_deadline.timeout())
+                        pass
+                    if self.close_deadline is not None:
+                        self.socket.settimeout(self.close_deadline.timeout())
                     data = self.socket.recv(self.recv_bufsize)
                 except Exception as exc:
                     if self.debug:
@@ -859,9 +862,8 @@ class Connection:
                         self.set_recv_exc(exc)
                         break
 
+                    # If needed, set the close deadline based on the close timeout.
                     if self.protocol.close_expected():
-                        # If the connection is expected to close soon, set the
-                        # close deadline based on the close timeout.
                         if self.close_deadline is None:
                             self.close_deadline = Deadline(self.close_timeout)
 
@@ -878,6 +880,7 @@ class Connection:
 
             # Breaking out of the while True: ... loop means that we believe
             # that the socket doesn't work anymore.
+
             with self.protocol_mutex:
                 # Feed the end of the data stream to the protocol.
                 self.protocol.receive_eof()
@@ -957,11 +960,10 @@ class Connection:
                     # Check if the connection is expected to close soon.
                     if self.protocol.close_expected():
                         wait_for_close = True
-                        # If the connection is expected to close soon, set the
-                        # close deadline based on the close timeout.
-                        # Since we tested earlier that protocol.state was OPEN
+                        # Set the close deadline based on the close timeout.
+                        # Since we tested earlier that protocol.state is OPEN
                         # (or CONNECTING) and we didn't release protocol_mutex,
-                        # it is certain that self.close_deadline is still None.
+                        # self.close_deadline is still None.
                         assert self.close_deadline is None
                         self.close_deadline = Deadline(self.close_timeout)
                     # Write outgoing data to the socket.
@@ -983,6 +985,9 @@ class Connection:
                 # Minor layering violation: we assume that the connection
                 # will be closing soon if it isn't in the expected state.
                 wait_for_close = True
+                # Calculate close_deadline if it wasn't set yet.
+                if self.close_deadline is None:
+                    self.close_deadline = Deadline(self.close_timeout)
                 raise_close_exc = True
 
         # To avoid a deadlock, release the connection lock by exiting the
@@ -991,13 +996,10 @@ class Connection:
         # If the connection is expected to close soon and the close timeout
         # elapses, close the socket to terminate the connection.
         if wait_for_close:
-            if self.close_deadline is None:
-                timeout = self.close_timeout
-            else:
-                # Thread.join() returns immediately if timeout is negative.
-                timeout = self.close_deadline.timeout(raise_if_elapsed=False)
+            # Thread.join() returns immediately if timeout is negative.
+            assert self.close_deadline is not None
+            timeout = self.close_deadline.timeout(raise_if_elapsed=False)
             self.recv_events_thread.join(timeout)
-
             if self.recv_events_thread.is_alive():
                 # There's no risk to overwrite another error because
                 # original_exc is never set when wait_for_close is True.
@@ -1023,9 +1025,6 @@ class Connection:
 
         This method requires holding protocol_mutex.
 
-        Raises:
-            OSError: When a socket operations fails.
-
         """
         assert self.protocol_mutex.locked()
         for data in self.protocol.data_to_send():
@@ -1047,7 +1046,7 @@ class Connection:
 
         """
         assert self.protocol_mutex.locked()
-        if self.recv_exc is None:  # pragma: no branch
+        if self.recv_exc is None:
             self.recv_exc = exc
 
     def close_socket(self) -> None:

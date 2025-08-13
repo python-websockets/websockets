@@ -3,7 +3,6 @@
 """Client example using the asyncio API."""
 
 import asyncio
-
 from websockets.asyncio.client import connect
 
 

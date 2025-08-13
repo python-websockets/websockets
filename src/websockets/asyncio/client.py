@@ -12,7 +12,7 @@ from types import TracebackType
 from typing import Any, Callable, Literal, cast
 
 from ..client import ClientProtocol, backoff
-from ..datastructures import Headers, HeadersLike
+from ..datastructures import HeadersLike
 from ..exceptions import (
     InvalidMessage,
     InvalidProxyMessage,
@@ -23,12 +23,13 @@ from ..exceptions import (
 )
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
-from ..headers import build_authorization_basic, build_host, validate_subprotocols
+from ..headers import validate_subprotocols
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
+from ..proxy import Proxy, get_proxy, parse_proxy, prepare_connect_request
 from ..streams import StreamReader
 from ..typing import LoggerLike, Origin, Subprotocol
-from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
+from ..uri import WebSocketURI, parse_uri
 from .compatibility import TimeoutError, asyncio_timeout
 from .connection import Connection
 
@@ -342,7 +343,7 @@ class connect:
         if create_connection is None:
             create_connection = ClientConnection
 
-        def protocol_factory(uri: WebSocketURI) -> ClientConnection:
+        def factory(uri: WebSocketURI) -> ClientConnection:
             # This is a protocol in the Sans-I/O implementation of websockets.
             protocol = ClientProtocol(
                 uri,
@@ -364,18 +365,18 @@ class connect:
             return connection
 
         self.proxy = proxy
-        self.protocol_factory = protocol_factory
+        self.factory = factory
         self.additional_headers = additional_headers
         self.user_agent_header = user_agent_header
         self.process_exception = process_exception
         self.open_timeout = open_timeout
         self.logger = logger
-        self.connection_kwargs = kwargs
+        self.create_connection_kwargs = kwargs
 
-    async def create_connection(self) -> ClientConnection:
+    async def create_client_connection(self) -> ClientConnection:
         """Create TCP or Unix connection."""
         loop = asyncio.get_running_loop()
-        kwargs = self.connection_kwargs.copy()
+        kwargs = self.create_connection_kwargs.copy()
 
         ws_uri = parse_uri(self.uri)
 
@@ -388,7 +389,7 @@ class connect:
             proxy = get_proxy(ws_uri)
 
         def factory() -> ClientConnection:
-            return self.protocol_factory(ws_uri)
+            return self.factory(ws_uri)
 
         if ws_uri.secure:
             kwargs.setdefault("ssl", True)
@@ -459,7 +460,7 @@ class connect:
                     transport = new_transport
                 connection.connection_made(transport)
             else:
-                raise AssertionError("unsupported proxy")
+                raise NotImplementedError(f"unsupported proxy: {proxy}")
         else:
             # Connect to the server directly.
             if kwargs.get("sock") is None:
@@ -496,7 +497,7 @@ class connect:
         new_ws_uri = parse_uri(new_uri)
 
         # If connect() received a socket, it is closed and cannot be reused.
-        if self.connection_kwargs.get("sock") is not None:
+        if self.create_connection_kwargs.get("sock") is not None:
             return ValueError(
                 f"cannot follow redirect to {new_uri} with a preexisting socket"
             )
@@ -512,7 +513,7 @@ class connect:
             or old_ws_uri.port != new_ws_uri.port
         ):
             # Cross-origin redirects on Unix sockets don't quite make sense.
-            if self.connection_kwargs.get("unix", False):
+            if self.create_connection_kwargs.get("unix", False):
                 return ValueError(
                     f"cannot follow cross-origin redirect to {new_uri} "
                     f"with a Unix socket"
@@ -520,8 +521,8 @@ class connect:
 
             # Cross-origin redirects when host and port are overridden are ill-defined.
             if (
-                self.connection_kwargs.get("host") is not None
-                or self.connection_kwargs.get("port") is not None
+                self.create_connection_kwargs.get("host") is not None
+                or self.create_connection_kwargs.get("port") is not None
             ):
                 return ValueError(
                     f"cannot follow cross-origin redirect to {new_uri} "
@@ -540,14 +541,14 @@ class connect:
         try:
             async with asyncio_timeout(self.open_timeout):
                 for _ in range(MAX_REDIRECTS):
-                    self.connection = await self.create_connection()
+                    connection = await self.create_client_connection()
                     try:
-                        await self.connection.handshake(
+                        await connection.handshake(
                             self.additional_headers,
                             self.user_agent_header,
                         )
                     except asyncio.CancelledError:
-                        self.connection.transport.abort()
+                        connection.transport.abort()
                         raise
                     except Exception as exc:
                         # Always close the connection even though keep-alive is
@@ -556,7 +557,7 @@ class connect:
                         # protocol. In the current design of connect(), there is
                         # no easy way to reuse the network connection that works
                         # in every case nor to reinitialize the protocol.
-                        self.connection.transport.abort()
+                        connection.transport.abort()
 
                         uri_or_exc = self.process_redirect(exc)
                         # Response is a valid redirect; follow it.
@@ -570,8 +571,8 @@ class connect:
                             raise uri_or_exc from exc
 
                     else:
-                        self.connection.start_keepalive()
-                        return self.connection
+                        connection.start_keepalive()
+                        return connection
                 else:
                     raise SecurityError(f"more than {MAX_REDIRECTS} redirects")
 
@@ -586,7 +587,10 @@ class connect:
     # async with connect(...) as ...: ...
 
     async def __aenter__(self) -> ClientConnection:
-        return await self
+        if hasattr(self, "connection"):
+            raise RuntimeError("connect() isn't reentrant")
+        self.connection = await self
+        return self.connection
 
     async def __aexit__(
         self,
@@ -594,7 +598,10 @@ class connect:
         exc_value: BaseException | None,
         traceback: TracebackType | None,
     ) -> None:
-        await self.connection.close()
+        try:
+            await self.connection.close()
+        finally:
+            del self.connection
 
     # async for ... in connect(...):
 
@@ -602,8 +609,8 @@ class connect:
         delays: Generator[float] | None = None
         while True:
             try:
-                async with self as protocol:
-                    yield protocol
+                async with self as connection:
+                    yield connection
             except Exception as exc:
                 # Determine whether the exception is retryable or fatal.
                 # The API of process_exception is "return an exception or None";
@@ -632,7 +639,6 @@ class connect:
                     traceback.format_exception_only(exc)[0].strip(),
                 )
                 await asyncio.sleep(delay)
-                continue
 
             else:
                 # The connection succeeded. Reset backoff.
@@ -721,25 +727,6 @@ else:
             raise ProxyError("failed to connect to SOCKS proxy") from exc
 
 
-def prepare_connect_request(
-    proxy: Proxy,
-    ws_uri: WebSocketURI,
-    user_agent_header: str | None = None,
-) -> bytes:
-    host = build_host(ws_uri.host, ws_uri.port, ws_uri.secure, always_include_port=True)
-    headers = Headers()
-    headers["Host"] = build_host(ws_uri.host, ws_uri.port, ws_uri.secure)
-    if user_agent_header is not None:
-        headers["User-Agent"] = user_agent_header
-    if proxy.username is not None:
-        assert proxy.password is not None  # enforced by parse_proxy()
-        headers["Proxy-Authorization"] = build_authorization_basic(
-            proxy.username, proxy.password
-        )
-    # We cannot use the Request class because it supports only GET requests.
-    return f"CONNECT {host} HTTP/1.1\r\n".encode() + headers.serialize()
-
-
 class HTTPProxyConnection(asyncio.Protocol):
     def __init__(
         self,
@@ -795,8 +782,7 @@ class HTTPProxyConnection(asyncio.Protocol):
 
     def connection_lost(self, exc: Exception | None) -> None:
         self.reader.feed_eof()
-        if exc is not None:
-            self.response.set_exception(exc)
+        self.run_parser()
 
 
 async def connect_http_proxy(
@@ -815,8 +801,8 @@ async def connect_http_proxy(
     try:
         # This raises exceptions if the connection to the proxy fails.
         await protocol.response
-    except Exception:
-        transport.close()
+    except (asyncio.CancelledError, Exception):
+        transport.abort()
         raise
 
     return transport

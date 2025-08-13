@@ -86,12 +86,12 @@ else:
         when the server runs behind a reverse proxy that modifies the ``Host``
         header or terminates TLS, you need additional configuration:
 
-        * Set ``server_name`` to the name of the server as seen by clients. When not
-        provided, websockets uses the value of the ``Host`` header.
+        * Set ``server_name`` to the name of the server as seen by clients. When
+          not provided, websockets uses the value of the ``Host`` header.
 
-        * Set ``ssl=True`` to generate ``wss://`` URIs without actually enabling
-        TLS. Under the hood, this bind the URL map with a ``url_scheme`` of
-        ``wss://`` instead of ``ws://``.
+        * Set ``ssl=True`` to generate ``wss://`` URIs without enabling TLS.
+          Under the hood, this bind the URL map with a ``url_scheme`` of
+          ``wss://`` instead of ``ws://``.
 
         There is no need to specify ``websocket=True`` in each rule. It is added
         automatically.

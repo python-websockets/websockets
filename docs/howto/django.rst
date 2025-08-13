@@ -231,6 +231,7 @@ starts. Typically, you would put it in a :download:`signals.py
 
 .. literalinclude:: ../../example/django/signals.py
     :caption: signals.py
+
 This code runs every time the admin saves a ``LogEntry`` object to keep track
 of a change. It extracts interesting data, serializes it to JSON, and writes
 an event to Redis.
@@ -267,6 +268,7 @@ Here's a complete implementation.
 
 .. literalinclude:: ../../example/django/notifications.py
     :caption: notifications.py
+
 Since the ``get_content_types()`` function makes a database query, it is
 wrapped inside :func:`asyncio.to_thread()`. It runs once when each WebSocket
 connection is open; then its result is cached for the lifetime of the

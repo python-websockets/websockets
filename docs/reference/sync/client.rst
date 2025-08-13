@@ -39,7 +39,7 @@ Using a connection
 
     .. autoproperty:: remote_address
 
-    .. autoproperty:: latency
+    .. autoattribute:: latency
 
     .. autoproperty:: state
 

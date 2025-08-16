@@ -17,7 +17,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Install Python 3.x
       uses: actions/setup-python@v5
       with:
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Check out repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Install Python 3.x
       uses: actions/setup-python@v5
       with:
@@ -70,7 +70,7 @@ jobs:
             is_main: false
     steps:
     - name: Check out repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
     - name: Install Python ${{ matrix.python }}
       uses: actions/setup-python@v5
       with:

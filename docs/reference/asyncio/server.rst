@@ -46,7 +46,7 @@ Running a server
 
     .. automethod:: serve_forever
 
-    .. autoattribute:: sockets
+    .. autoproperty:: sockets
 
 Using a connection
 ------------------

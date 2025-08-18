@@ -1,5 +1,6 @@
 import logging
 import os
+import tracemalloc
 
 
 format = "%(asctime)s %(levelname)s %(name)s %(message)s"
@@ -12,3 +13,7 @@ else:
     level = logging.CRITICAL
 
 logging.basicConfig(format=format, level=level)
+
+if bool(os.environ.get("WEBSOCKETS_TRACE")):  # pragma: no cover
+    # Trace allocations to debug resource warnings.
+    tracemalloc.start()

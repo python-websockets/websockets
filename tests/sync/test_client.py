@@ -44,7 +44,7 @@ class ClientTests(unittest.TestCase):
         """Client connects using a pre-existing socket."""
         with run_server() as server:
             with socket.create_connection(server.socket.getsockname()) as sock:
-                # Use a non-existing domain to ensure we connect to sock.
+                # Use a non-existing domain to ensure we connect via sock.
                 with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
 
@@ -225,9 +225,11 @@ class ClientTests(unittest.TestCase):
 
         class JunkHandler(socketserver.BaseRequestHandler):
             def handle(self):
-                time.sleep(MS)  # wait for the client to send the handshake request
+                # Wait for the client to send the handshake request.
+                time.sleep(MS)
                 self.request.send(b"220 smtp.invalid ESMTP Postfix\r\n")
-                self.request.recv(4096)  # wait for the client to close the connection
+                # Wait for the client to close the connection.
+                self.request.recv(4096)
                 self.request.close()
 
         server = socketserver.TCPServer(("localhost", 0), JunkHandler)
@@ -401,7 +403,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.TestCase):
         """Client connects using a pre-existing socket."""
         with run_server() as server:
             with socket.create_connection(server.socket.getsockname()) as sock:
-                # Use a non-existing domain to ensure we connect to sock.
+                # Use a non-existing domain to ensure we connect via sock.
                 with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(0)
@@ -648,7 +650,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
             connect(
                 "ws://localhost/",
                 proxy="http://localhost:8080",
-                proxy_ssl=True,
+                proxy_ssl=CLIENT_CONTEXT,
             )
         self.assertEqual(
             str(raised.exception),

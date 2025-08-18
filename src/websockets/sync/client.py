@@ -8,16 +8,17 @@ from collections.abc import Sequence
 from typing import Any, Callable, Literal, TypeVar, cast
 
 from ..client import ClientProtocol
-from ..datastructures import Headers, HeadersLike
+from ..datastructures import HeadersLike
 from ..exceptions import InvalidProxyMessage, InvalidProxyStatus, ProxyError
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
-from ..headers import build_authorization_basic, build_host, validate_subprotocols
+from ..headers import validate_subprotocols
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
+from ..proxy import Proxy, get_proxy, parse_proxy, prepare_connect_request
 from ..streams import StreamReader
 from ..typing import BytesLike, LoggerLike, Origin, Subprotocol
-from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
+from ..uri import WebSocketURI, parse_uri
 from .connection import Connection
 from .utils import Deadline
 
@@ -156,6 +157,7 @@ def connect(
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
     create_connection: type[ClientConnection] | None = None,
+    # Other keyword arguments are passed to socket.create_connection
     **kwargs: Any,
 ) -> ClientConnection:
     """
@@ -229,6 +231,7 @@ def connect(
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
+        InvalidProxy: If ``proxy`` isn't a valid proxy.
         OSError: If the TCP connection fails.
         InvalidHandshake: If the opening handshake fails.
         TimeoutError: If the opening handshake times out.
@@ -476,25 +479,6 @@ else:
             raise ProxyError("failed to connect to SOCKS proxy") from exc
 
 
-def prepare_connect_request(
-    proxy: Proxy,
-    ws_uri: WebSocketURI,
-    user_agent_header: str | None = None,
-) -> bytes:
-    host = build_host(ws_uri.host, ws_uri.port, ws_uri.secure, always_include_port=True)
-    headers = Headers()
-    headers["Host"] = build_host(ws_uri.host, ws_uri.port, ws_uri.secure)
-    if user_agent_header is not None:
-        headers["User-Agent"] = user_agent_header
-    if proxy.username is not None:
-        assert proxy.password is not None  # enforced by parse_proxy()
-        headers["Proxy-Authorization"] = build_authorization_basic(
-            proxy.username, proxy.password
-        )
-    # We cannot use the Request class because it supports only GET requests.
-    return f"CONNECT {host} HTTP/1.1\r\n".encode() + headers.serialize()
-
-
 def read_connect_response(sock: socket.socket, deadline: Deadline) -> Response:
     reader = StreamReader()
     parser = Response.parse(
@@ -557,7 +541,8 @@ def connect_http_proxy(
 
     # Send CONNECT request to the proxy and read response.
 
-    sock.sendall(prepare_connect_request(proxy, ws_uri, user_agent_header))
+    request = prepare_connect_request(proxy, ws_uri, user_agent_header)
+    sock.sendall(request)
     try:
         read_connect_response(sock, deadline)
     except Exception:

@@ -27,7 +27,7 @@ from ..headers import build_authorization_basic, build_host, validate_subprotoco
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
 from ..streams import StreamReader
-from ..typing import LoggerLike, Origin, Subprotocol
+from ..typing import Data, LoggerLike, Origin, Subprotocol
 from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
 from .compatibility import TimeoutError, asyncio_timeout
 from .connection import Connection
@@ -55,8 +55,8 @@ class ClientConnection(Connection):
     :exc:`~websockets.exceptions.ConnectionClosedError` when the connection is
     closed with any other code.
 
-    The ``ping_interval``, ``ping_timeout``, ``close_timeout``, ``max_queue``,
-    and ``write_limit`` arguments have the same meaning as in :func:`connect`.
+    The ``ping_interval``, ``ping_timeout``, ``ping_data``, ``close_timeout``,
+    ``max_queue`` and ``write_limit`` arguments have the same meaning as in :func:`connect`.
 
     Args:
         protocol: Sans-I/O connection.
@@ -69,6 +69,7 @@ class ClientConnection(Connection):
         *,
         ping_interval: float | None = 20,
         ping_timeout: float | None = 20,
+        ping_data: Data | None = None,
         close_timeout: float | None = 10,
         max_queue: int | None | tuple[int | None, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
@@ -78,6 +79,7 @@ class ClientConnection(Connection):
             protocol,
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,
+            ping_data=ping_data,
             close_timeout=close_timeout,
             max_queue=max_queue,
             write_limit=write_limit,
@@ -233,6 +235,8 @@ class connect:
             :obj:`None` disables keepalive.
         ping_timeout: Timeout for keepalive pings in seconds.
             :obj:`None` disables timeouts.
+        ping_data: Payload to send in keepalive pings.
+            :obj:`None` sends an ramdon bytes ping.
         close_timeout: Timeout for closing the connection in seconds.
             :obj:`None` disables the timeout.
         max_size: Maximum size of incoming messages in bytes.
@@ -246,7 +250,7 @@ class connect:
             you may set it to ``None``, although that's a bad idea.
         write_limit: High-water mark of write buffer in bytes. It is passed to
             :meth:`~asyncio.WriteTransport.set_write_buffer_limits`. It defaults
-            to 32 KiB. You may pass a ``(high, low)`` tuple to set the
+            to 32KiB. You may pass a ``(high, low)`` tuple to set the
             high-water and low-water marks.
         logger: Logger for this client.
             It defaults to ``logging.getLogger("websockets.client")``.
@@ -314,6 +318,7 @@ class connect:
         open_timeout: float | None = 10,
         ping_interval: float | None = 20,
         ping_timeout: float | None = 20,
+        ping_data: Data | None = None,
         close_timeout: float | None = 10,
         # Limits
         max_size: int | None | tuple[int | None, int | None] = 2**20,
@@ -357,6 +362,7 @@ class connect:
                 protocol,
                 ping_interval=ping_interval,
                 ping_timeout=ping_timeout,
+                ping_data=ping_data,
                 close_timeout=close_timeout,
                 max_queue=max_queue,
                 write_limit=write_limit,

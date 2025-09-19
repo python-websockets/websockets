@@ -55,6 +55,7 @@ class Connection(asyncio.Protocol):
         *,
         ping_interval: float | None = 20,
         ping_timeout: float | None = 20,
+        ping_data: Data | None = None,
         close_timeout: float | None = 10,
         max_queue: int | None | tuple[int | None, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
@@ -62,6 +63,7 @@ class Connection(asyncio.Protocol):
         self.protocol = protocol
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
+        self.ping_data = ping_data
         self.close_timeout = close_timeout
         self.max_queue: tuple[int | None, int | None]
         if isinstance(max_queue, int) or max_queue is None:
@@ -825,7 +827,7 @@ class Connection(asyncio.Protocol):
                 # connection to be closed before raising ConnectionClosed.
                 # However, connection_lost() cancels keepalive_task before
                 # it gets a chance to resume excuting.
-                pong_waiter = await self.ping()
+                pong_waiter = await self.ping(self.ping_data)
                 if self.debug:
                     self.logger.debug("% sent keepalive ping")
 

@@ -250,7 +250,7 @@ class connect:
             you may set it to ``None``, although that's a bad idea.
         write_limit: High-water mark of write buffer in bytes. It is passed to
             :meth:`~asyncio.WriteTransport.set_write_buffer_limits`. It defaults
-            to 32KiB. You may pass a ``(high, low)`` tuple to set the
+            to 32 KiB. You may pass a ``(high, low)`` tuple to set the
             high-water and low-water marks.
         logger: Logger for this client.
             It defaults to ``logging.getLogger("websockets.client")``.

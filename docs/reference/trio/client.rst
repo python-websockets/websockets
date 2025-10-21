@@ -1,6 +1,12 @@
 Client (:mod:`trio`)
 =======================
 
+.. admonition:: The :mod:`trio` API is experimental.
+    :class: caution
+
+    Please provide feedback in GitHub issues about the API, especially if you
+    believe there's a more intuitive or convenient way to connect to a server.
+
 .. automodule:: websockets.trio.client
 
 Opening a connection

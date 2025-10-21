@@ -1,6 +1,12 @@
 Server (:mod:`trio`)
 =======================
 
+.. admonition:: The :mod:`trio` API is experimental.
+    :class: caution
+
+    Please provide feedback in GitHub issues about the API, especially if you
+    believe there's a more intuitive or convenient way to run a server.
+
 .. automodule:: websockets.trio.server
 
 Creating a server

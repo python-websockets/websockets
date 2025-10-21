@@ -8,16 +8,17 @@ from collections.abc import Sequence
 from typing import Any, Callable, Literal, TypeVar, cast
 
 from ..client import ClientProtocol
-from ..datastructures import Headers, HeadersLike
+from ..datastructures import HeadersLike
 from ..exceptions import InvalidProxyMessage, InvalidProxyStatus, ProxyError
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
-from ..headers import build_authorization_basic, build_host, validate_subprotocols
+from ..headers import validate_subprotocols
 from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
+from ..proxy import Proxy, get_proxy, parse_proxy, prepare_connect_request
 from ..streams import StreamReader
 from ..typing import BytesLike, LoggerLike, Origin, Subprotocol
-from ..uri import Proxy, WebSocketURI, get_proxy, parse_proxy, parse_uri
+from ..uri import WebSocketURI, parse_uri
 from .connection import Connection
 from .utils import Deadline
 
@@ -62,7 +63,6 @@ class ClientConnection(Connection):
         max_queue: int | None | tuple[int | None, int | None] = 16,
     ) -> None:
         self.protocol: ClientProtocol
-        self.response_rcvd = threading.Event()
         super().__init__(
             socket,
             protocol,
@@ -71,6 +71,7 @@ class ClientConnection(Connection):
             close_timeout=close_timeout,
             max_queue=max_queue,
         )
+        self.response_rcvd = threading.Event()
 
     def handshake(
         self,
@@ -156,6 +157,7 @@ def connect(
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
     create_connection: type[ClientConnection] | None = None,
+    # Other keyword arguments are passed to socket.create_connection
     **kwargs: Any,
 ) -> ClientConnection:
     """
@@ -189,8 +191,8 @@ def connect(
         compression: The "permessage-deflate" extension is enabled by default.
             Set ``compression`` to :obj:`None` to disable it. See the
             :doc:`compression guide <../../topics/compression>` for details.
-        additional_headers (HeadersLike | None): Arbitrary HTTP headers to add
-            to the handshake request.
+        additional_headers: Arbitrary HTTP headers to add to the handshake
+            request.
         user_agent_header: Value of  the ``User-Agent`` request header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
@@ -229,6 +231,7 @@ def connect(
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
+        InvalidProxy: If ``proxy`` isn't a valid proxy.
         OSError: If the TCP connection fails.
         InvalidHandshake: If the opening handshake fails.
         TimeoutError: If the opening handshake times out.
@@ -249,6 +252,17 @@ def connect(
     if not ws_uri.secure and ssl is not None:
         raise ValueError("ssl argument is incompatible with a ws:// URI")
 
+    if subprotocols is not None:
+        validate_subprotocols(subprotocols)
+
+    if compression == "deflate":
+        extensions = enable_client_permessage_deflate(extensions)
+    elif compression is not None:
+        raise ValueError(f"unsupported compression: {compression}")
+
+    if create_connection is None:
+        create_connection = ClientConnection
+
     # Private APIs for unix_connect()
     unix: bool = kwargs.pop("unix", False)
     path: str | None = kwargs.pop("path", None)
@@ -258,14 +272,6 @@ def connect(
             raise ValueError("missing path argument")
         elif path is not None and sock is not None:
             raise ValueError("path and sock arguments are incompatible")
-
-    if subprotocols is not None:
-        validate_subprotocols(subprotocols)
-
-    if compression == "deflate":
-        extensions = enable_client_permessage_deflate(extensions)
-    elif compression is not None:
-        raise ValueError(f"unsupported compression: {compression}")
 
     if unix:
         proxy = None
@@ -278,9 +284,6 @@ def connect(
     # The TCP and TLS timeouts must be set on the socket, then removed
     # to avoid conflicting with the WebSocket timeout in handshake().
     deadline = Deadline(open_timeout)
-
-    if create_connection is None:
-        create_connection = ClientConnection
 
     try:
         # Connect socket
@@ -320,7 +323,7 @@ def connect(
                         **kwargs,
                     )
                 else:
-                    raise AssertionError("unsupported proxy")
+                    raise NotImplementedError("unsupported proxy")
             else:
                 kwargs.setdefault("timeout", deadline.timeout())
                 sock = socket.create_connection(
@@ -476,25 +479,6 @@ else:
             raise ProxyError("failed to connect to SOCKS proxy") from exc
 
 
-def prepare_connect_request(
-    proxy: Proxy,
-    ws_uri: WebSocketURI,
-    user_agent_header: str | None = None,
-) -> bytes:
-    host = build_host(ws_uri.host, ws_uri.port, ws_uri.secure, always_include_port=True)
-    headers = Headers()
-    headers["Host"] = build_host(ws_uri.host, ws_uri.port, ws_uri.secure)
-    if user_agent_header is not None:
-        headers["User-Agent"] = user_agent_header
-    if proxy.username is not None:
-        assert proxy.password is not None  # enforced by parse_proxy()
-        headers["Proxy-Authorization"] = build_authorization_basic(
-            proxy.username, proxy.password
-        )
-    # We cannot use the Request class because it supports only GET requests.
-    return f"CONNECT {host} HTTP/1.1\r\n".encode() + headers.serialize()
-
-
 def read_connect_response(sock: socket.socket, deadline: Deadline) -> Response:
     reader = StreamReader()
     parser = Response.parse(
@@ -557,7 +541,8 @@ def connect_http_proxy(
 
     # Send CONNECT request to the proxy and read response.
 
-    sock.sendall(prepare_connect_request(proxy, ws_uri, user_agent_header))
+    request = prepare_connect_request(proxy, ws_uri, user_agent_header)
+    sock.sendall(request)
     try:
         read_connect_response(sock, deadline)
     except Exception:

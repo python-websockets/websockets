@@ -8,9 +8,8 @@ from websockets.asyncio.client import connect, unix_connect
 from websockets.asyncio.router import *
 from websockets.exceptions import InvalidStatus
 
-from ..utils import CLIENT_CONTEXT, SERVER_CONTEXT, temp_unix_socket_path
+from ..utils import CLIENT_CONTEXT, SERVER_CONTEXT, alist, temp_unix_socket_path
 from .server import EvalShellMixin, get_uri, handler
-from .utils import alist
 
 
 try:

@@ -1,6 +1,10 @@
 import logging
 import os
-import tracemalloc
+import platform
+
+
+if platform.python_implementation() != "PyPy":  # pragma: no branch
+    import tracemalloc
 
 
 format = "%(asctime)s %(levelname)s %(name)s %(message)s"

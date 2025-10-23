@@ -20,13 +20,14 @@ from websockets.sync.connection import *
 from ..protocol import RecordingProtocol
 from ..utils import MS
 from .connection import InterceptingConnection
+from .utils import ThreadTestCase
 
 
 # Connection implements symmetrical behavior between clients and servers.
 # All tests run on the client side and the server side to validate this.
 
 
-class ClientConnectionTests(unittest.TestCase):
+class ClientConnectionTests(ThreadTestCase):
     LOCAL = CLIENT
     REMOTE = SERVER
 
@@ -196,37 +197,27 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_recv_during_recv(self):
         """recv raises ConcurrencyError when called concurrently."""
-        recv_thread = threading.Thread(target=self.connection.recv)
-        recv_thread.start()
-
-        with self.assertRaises(ConcurrencyError) as raised:
-            self.connection.recv()
+        with self.run_in_thread(self.connection.recv):
+            with self.assertRaises(ConcurrencyError) as raised:
+                self.connection.recv()
+            self.remote_connection.send("")
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another thread "
             "is already running recv or recv_streaming",
         )
-
-        self.remote_connection.send("")
-        recv_thread.join()
 
     def test_recv_during_recv_streaming(self):
         """recv raises ConcurrencyError when called concurrently with recv_streaming."""
-        recv_streaming_thread = threading.Thread(
-            target=lambda: list(self.connection.recv_streaming())
-        )
-        recv_streaming_thread.start()
-
-        with self.assertRaises(ConcurrencyError) as raised:
-            self.connection.recv()
+        with self.run_in_thread(lambda: list(self.connection.recv_streaming())):
+            with self.assertRaises(ConcurrencyError) as raised:
+                self.connection.recv()
+            self.remote_connection.send("")
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another thread "
             "is already running recv or recv_streaming",
         )
-
-        self.remote_connection.send("")
-        recv_streaming_thread.join()
 
     # Test recv_streaming.
 
@@ -305,39 +296,29 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_recv_streaming_during_recv(self):
         """recv_streaming raises ConcurrencyError when called concurrently with recv."""
-        recv_thread = threading.Thread(target=self.connection.recv)
-        recv_thread.start()
-
-        with self.assertRaises(ConcurrencyError) as raised:
-            for _ in self.connection.recv_streaming():
-                self.fail("did not raise")
+        with self.run_in_thread(self.connection.recv):
+            with self.assertRaises(ConcurrencyError) as raised:
+                for _ in self.connection.recv_streaming():
+                    self.fail("did not raise")
+            self.remote_connection.send("")
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another thread "
             "is already running recv or recv_streaming",
         )
 
-        self.remote_connection.send("")
-        recv_thread.join()
-
     def test_recv_streaming_during_recv_streaming(self):
         """recv_streaming raises ConcurrencyError when called concurrently."""
-        recv_streaming_thread = threading.Thread(
-            target=lambda: list(self.connection.recv_streaming())
-        )
-        recv_streaming_thread.start()
-
-        with self.assertRaises(ConcurrencyError) as raised:
-            for _ in self.connection.recv_streaming():
-                self.fail("did not raise")
+        with self.run_in_thread(lambda: list(self.connection.recv_streaming())):
+            with self.assertRaises(ConcurrencyError) as raised:
+                for _ in self.connection.recv_streaming():
+                    self.fail("did not raise")
+            self.remote_connection.send("")
         self.assertEqual(
             str(raised.exception),
             r"cannot call recv_streaming while another thread "
             r"is already running recv or recv_streaming",
         )
-
-        self.remote_connection.send("")
-        recv_streaming_thread.join()
 
     # Test send.
 
@@ -411,43 +392,40 @@ class ClientConnectionTests(unittest.TestCase):
 
     def test_send_during_send(self):
         """send raises ConcurrencyError when called concurrently."""
-        recv_thread = threading.Thread(target=self.remote_connection.recv)
-        recv_thread.start()
+        with self.run_in_thread(self.remote_connection.recv):
+            send_gate = threading.Event()
+            exit_gate = threading.Event()
 
-        send_gate = threading.Event()
-        exit_gate = threading.Event()
+            def fragments():
+                yield "😀"
+                send_gate.set()
+                exit_gate.wait()
+                yield "😀"
 
-        def fragments():
-            yield "😀"
-            send_gate.set()
-            exit_gate.wait()
-            yield "😀"
+            send_thread = threading.Thread(
+                target=self.connection.send,
+                args=(fragments(),),
+            )
+            send_thread.start()
 
-        send_thread = threading.Thread(
-            target=self.connection.send,
-            args=(fragments(),),
-        )
-        send_thread.start()
+            send_gate.wait()
+            # The check happens in four code paths, depending on the argument.
+            for message in [
+                "😀",
+                b"\x01\x02\xfe\xff",
+                ["😀", "😀"],
+                [b"\x01\x02", b"\xfe\xff"],
+            ]:
+                with self.subTest(message=message):
+                    with self.assertRaises(ConcurrencyError) as raised:
+                        self.connection.send(message)
+                    self.assertEqual(
+                        str(raised.exception),
+                        "cannot call send while another thread is already running send",
+                    )
 
-        send_gate.wait()
-        # The check happens in four code paths, depending on the argument.
-        for message in [
-            "😀",
-            b"\x01\x02\xfe\xff",
-            ["😀", "😀"],
-            [b"\x01\x02", b"\xfe\xff"],
-        ]:
-            with self.subTest(message=message):
-                with self.assertRaises(ConcurrencyError) as raised:
-                    self.connection.send(message)
-                self.assertEqual(
-                    str(raised.exception),
-                    "cannot call send while another thread is already running send",
-                )
-
-        exit_gate.set()
-        send_thread.join()
-        recv_thread.join()
+            exit_gate.set()
+            send_thread.join()
 
     def test_send_empty_iterable(self):
         """send does nothing when called with an empty iterable."""
@@ -571,44 +549,30 @@ class ClientConnectionTests(unittest.TestCase):
             with self.delay_frames_rcvd(4 * MS):
                 self.connection.close()
 
-        close_thread = threading.Thread(target=closer)
-        close_thread.start()
+        with self.run_in_thread(closer):
+            #  run_in_thread() waits for MS, which lets closer() send a close frame.
+            self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
 
-        # Let closer() initiate the closing handshake and send a close frame.
-        time.sleep(MS)
-        self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+            # Connection isn't closed yet.
+            with self.assertRaises(TimeoutError):
+                self.connection.recv(timeout=MS)
 
-        # Connection isn't closed yet.
-        with self.assertRaises(TimeoutError):
-            self.connection.recv(timeout=MS)
+            self.connection.close()
+            self.assertNoFrameSent()
 
-        self.connection.close()
-        self.assertNoFrameSent()
-
-        # Connection is closed now.
-        with self.assertRaises(ConnectionClosedOK):
-            self.connection.recv(timeout=MS)
-
-        close_thread.join()
+            # Connection is closed now.
+            with self.assertRaises(ConnectionClosedOK):
+                self.connection.recv(timeout=MS)
 
     def test_close_during_recv(self):
         """close aborts recv when called concurrently with recv."""
-
-        def closer():
-            time.sleep(MS)
-            self.connection.close()
-
-        close_thread = threading.Thread(target=closer)
-        close_thread.start()
-
-        with self.assertRaises(ConnectionClosedOK) as raised:
-            self.connection.recv()
+        with self.run_in_thread(self.connection.close):
+            with self.assertRaises(ConnectionClosedOK) as raised:
+                self.connection.recv()
 
         exc = raised.exception
         self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
         self.assertIsNone(exc.__cause__)
-
-        close_thread.join()
 
     def test_close_during_send(self):
         """close fails the connection when called concurrently with send."""

@@ -628,38 +628,38 @@ class ClientConnectionTests(ThreadTestCase):
     def test_acknowledge_ping(self):
         """ping is acknowledged by a pong with the same payload."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = self.connection.ping("this")
+            pong_received = self.connection.ping("this")
         self.remote_connection.pong("this")
-        self.assertTrue(pong_waiter.wait(MS))
+        self.assertTrue(pong_received.wait(MS))
 
     def test_acknowledge_ping_non_matching_pong(self):
         """ping isn't acknowledged by a pong with a different payload."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = self.connection.ping("this")
+            pong_received = self.connection.ping("this")
         self.remote_connection.pong("that")
-        self.assertFalse(pong_waiter.wait(MS))
+        self.assertFalse(pong_received.wait(MS))
 
     def test_acknowledge_previous_ping(self):
         """ping is acknowledged by a pong for as a later ping."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = self.connection.ping("this")
+            pong_received = self.connection.ping("this")
             self.connection.ping("that")
         self.remote_connection.pong("that")
-        self.assertTrue(pong_waiter.wait(MS))
+        self.assertTrue(pong_received.wait(MS))
 
     def test_acknowledge_ping_on_close(self):
         """ping with ack_on_close is acknowledged when the connection is closed."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter_ack_on_close = self.connection.ping("this", ack_on_close=True)
-            pong_waiter = self.connection.ping("that")
+            pong_received_aoc = self.connection.ping("this", ack_on_close=True)
+            pong_received = self.connection.ping("that")
         self.connection.close()
-        self.assertTrue(pong_waiter_ack_on_close.wait(MS))
-        self.assertFalse(pong_waiter.wait(MS))
+        self.assertTrue(pong_received_aoc.wait(MS))
+        self.assertFalse(pong_received.wait(MS))
 
     def test_ping_duplicate_payload(self):
         """ping rejects the same payload until receiving the pong."""
         with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = self.connection.ping("idem")
+            pong_received = self.connection.ping("idem")
 
         with self.assertRaises(ConcurrencyError) as raised:
             self.connection.ping("idem")
@@ -669,7 +669,7 @@ class ClientConnectionTests(ThreadTestCase):
         )
 
         self.remote_connection.pong("idem")
-        self.assertTrue(pong_waiter.wait(MS))
+        self.assertTrue(pong_received.wait(MS))
 
         self.connection.ping("idem")  # doesn't raise an exception
 

@@ -63,14 +63,14 @@ class Connection(asyncio.Protocol):
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout
         self.close_timeout = close_timeout
-        self.max_queue: tuple[int | None, int | None]
         if isinstance(max_queue, int) or max_queue is None:
-            self.max_queue = (max_queue, None)
+            self.max_queue_high, self.max_queue_low = max_queue, None
         else:
-            self.max_queue = max_queue
+            self.max_queue_high, self.max_queue_low = max_queue
         if isinstance(write_limit, int):
-            write_limit = (write_limit, None)
-        self.write_limit = write_limit
+            self.write_limit_high, self.write_limit_low = write_limit, None
+        else:
+            self.write_limit_high, self.write_limit_low = write_limit
 
         # Inject reference to this instance in the protocol's logger.
         self.protocol.logger = logging.LoggerAdapter(
@@ -1005,11 +1005,15 @@ class Connection(asyncio.Protocol):
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         transport = cast(asyncio.Transport, transport)
         self.recv_messages = Assembler(
-            *self.max_queue,
+            self.max_queue_high,
+            self.max_queue_low,
             pause=transport.pause_reading,
             resume=transport.resume_reading,
         )
-        transport.set_write_buffer_limits(*self.write_limit)
+        transport.set_write_buffer_limits(
+            self.write_limit_high,
+            self.write_limit_low,
+        )
         self.transport = transport
 
     def connection_lost(self, exc: Exception | None) -> None:

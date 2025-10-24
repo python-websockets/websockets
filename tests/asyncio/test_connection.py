@@ -554,7 +554,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_send_while_send_blocked(self):
         """send waits for a previous call to send to complete."""
-        # This test fails if the guard with fragmented_send_waiter is removed
+        # This test fails if the guard with send_in_progress is removed
         # from send() in the case when message is an Iterable.
         self.connection.pause_writing()
         asyncio.create_task(self.connection.send(["⏳", "⌛️"]))
@@ -579,7 +579,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_send_while_send_async_blocked(self):
         """send waits for a previous call to send to complete."""
-        # This test fails if the guard with fragmented_send_waiter is removed
+        # This test fails if the guard with send_in_progress is removed
         # from send() in the case when message is an AsyncIterable.
         self.connection.pause_writing()
 
@@ -609,7 +609,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_send_during_send_async(self):
         """send waits for a previous call to send to complete."""
-        # This test fails if the guard with fragmented_send_waiter is removed
+        # This test fails if the guard with send_in_progress is removed
         # from send() in the case when message is an AsyncIterable.
         gate = asyncio.get_running_loop().create_future()
 
@@ -884,54 +884,54 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def test_acknowledge_ping(self):
         """ping is acknowledged by a pong with the same payload."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = await self.connection.ping("this")
+            pong_received = await self.connection.ping("this")
         await self.remote_connection.pong("this")
         async with asyncio_timeout(MS):
-            await pong_waiter
+            await pong_received
 
     async def test_acknowledge_canceled_ping(self):
         """ping is acknowledged by a pong with the same payload after being canceled."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = await self.connection.ping("this")
-        pong_waiter.cancel()
+            pong_received = await self.connection.ping("this")
+        pong_received.cancel()
         await self.remote_connection.pong("this")
         with self.assertRaises(asyncio.CancelledError):
-            await pong_waiter
+            await pong_received
 
     async def test_acknowledge_ping_non_matching_pong(self):
         """ping isn't acknowledged by a pong with a different payload."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = await self.connection.ping("this")
+            pong_received = await self.connection.ping("this")
         await self.remote_connection.pong("that")
         with self.assertRaises(TimeoutError):
             async with asyncio_timeout(MS):
-                await pong_waiter
+                await pong_received
 
     async def test_acknowledge_previous_ping(self):
         """ping is acknowledged by a pong for a later ping."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = await self.connection.ping("this")
+            pong_received = await self.connection.ping("this")
             await self.connection.ping("that")
         await self.remote_connection.pong("that")
         async with asyncio_timeout(MS):
-            await pong_waiter
+            await pong_received
 
     async def test_acknowledge_previous_canceled_ping(self):
         """ping is acknowledged by a pong for a later ping after being canceled."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = await self.connection.ping("this")
-            pong_waiter_2 = await self.connection.ping("that")
-        pong_waiter.cancel()
+            pong_received = await self.connection.ping("this")
+            pong_received_2 = await self.connection.ping("that")
+        pong_received.cancel()
         await self.remote_connection.pong("that")
         async with asyncio_timeout(MS):
-            await pong_waiter_2
+            await pong_received_2
         with self.assertRaises(asyncio.CancelledError):
-            await pong_waiter
+            await pong_received
 
     async def test_ping_duplicate_payload(self):
         """ping rejects the same payload until receiving the pong."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
-            pong_waiter = await self.connection.ping("idem")
+            pong_received = await self.connection.ping("idem")
 
         with self.assertRaises(ConcurrencyError) as raised:
             await self.connection.ping("idem")
@@ -942,7 +942,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
         await self.remote_connection.pong("idem")
         async with asyncio_timeout(MS):
-            await pong_waiter
+            await pong_received
 
         await self.connection.ping("idem")  # doesn't raise an exception
 
@@ -1060,9 +1060,9 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             await asyncio.sleep(2 * MS)
             # Exiting the context manager sleeps for 1 ms.
         # 3 ms: inject a fault: raise an exception in the pending pong waiter.
-        pong_waiter = next(iter(self.connection.pong_waiters.values()))[0]
+        pong_received = next(iter(self.connection.pending_pings.values()))[0]
         with self.assertLogs("websockets", logging.ERROR) as logs:
-            pong_waiter.set_exception(Exception("BOOM"))
+            pong_received.set_exception(Exception("BOOM"))
             await asyncio.sleep(0)
         self.assertEqual(
             [record.getMessage() for record in logs.records],

@@ -136,8 +136,8 @@ measured during the last exchange of Ping and Pong frames::
 Alternatively, you can measure the latency at any time by calling
 :attr:`~asyncio.connection.Connection.ping` and awaiting its result::
 
-    pong_waiter = await websocket.ping()
-    latency = await pong_waiter
+    pong_received = await websocket.ping()
+    latency = await pong_received
 
 Latency between a client and a server may increase for two reasons:
 

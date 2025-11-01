@@ -100,19 +100,19 @@ class Connection(asyncio.Protocol):
         # Deadline for the closing handshake.
         self.close_deadline: float | None = None
 
-        # Protect sending fragmented messages.
+        # Whether we are busy sending a fragmented message.
         self.send_in_progress: asyncio.Future[None] | None = None
 
         # Mapping of ping IDs to pong waiters, in chronological order.
         self.pending_pings: dict[bytes, tuple[asyncio.Future[float], float]] = {}
 
-        self.latency: float = 0
+        self.latency: float = 0.0
         """
         Latency of the connection, in seconds.
 
         Latency is defined as the round-trip time of the connection. It is
         measured by sending a Ping frame and waiting for a matching Pong frame.
-        Before the first measurement, :attr:`latency` is ``0``.
+        Before the first measurement, :attr:`latency` is ``0.0``.
 
         By default, websockets enables a :ref:`keepalive <keepalive>` mechanism
         that sends Ping frames automatically at regular intervals. You can also
@@ -130,7 +130,7 @@ class Connection(asyncio.Protocol):
         # connection state becomes CLOSED.
         self.connection_lost_waiter: asyncio.Future[None] = self.loop.create_future()
 
-        # Adapted from asyncio.FlowControlMixin
+        # Adapted from asyncio.FlowControlMixin.
         self.paused: bool = False
         self.drain_waiters: collections.deque[asyncio.Future[None]] = (
             collections.deque()
@@ -291,9 +291,9 @@ class Connection(asyncio.Protocol):
               return a bytestring (:class:`bytes`). This improves performance
               when decoding isn't needed, for example if the message contains
               JSON and you're using a JSON library that expects a bytestring.
-            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
-              and return a string (:class:`str`). This may be useful for
-              servers that send binary frames instead of text frames.
+            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames and
+              return strings (:class:`str`). This may be useful for servers that
+              send binary frames instead of text frames.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -363,12 +363,12 @@ class Connection(asyncio.Protocol):
 
             You may override this behavior with the ``decode`` argument:
 
-            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames
-              and return bytestrings (:class:`bytes`). This may be useful to
-              optimize performance when decoding isn't needed.
-            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
-              and return strings (:class:`str`). This is useful for servers
-              that send binary frames instead of text frames.
+            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames and
+              yield bytestrings (:class:`bytes`). This improves performance
+              when decoding isn't needed.
+            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames and
+              yield strings (:class:`str`). This may be useful for servers that
+              send binary frames instead of text frames.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -417,8 +417,8 @@ class Connection(asyncio.Protocol):
 
         You may override this behavior with the ``text`` argument:
 
-        * Set ``text=True`` to send a bytestring or bytes-like object
-          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) as a
+        * Set ``text=True`` to send an UTF-8 bytestring or bytes-like object
+          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) in a
           Text_ frame. This improves performance when the message is already
           UTF-8 encoded, for example if the message contains JSON and you're
           using a JSON library that produces a bytestring.
@@ -426,7 +426,7 @@ class Connection(asyncio.Protocol):
           frame. This may be useful for servers that expect binary frames
           instead of text frames.
 
-        :meth:`send` also accepts an iterable or an asynchronous iterable of
+        :meth:`send` also accepts an iterable or asynchronous iterable of
         strings, bytestrings, or bytes-like objects to enable fragmentation_.
         Each item is treated as a message fragment and sent in its own frame.
         All items must be of the same type, or else :meth:`send` will raise a
@@ -441,8 +441,8 @@ class Connection(asyncio.Protocol):
         Canceling :meth:`send` is discouraged. Instead, you should close the
         connection with :meth:`close`. Indeed, there are only two situations
         where :meth:`send` may yield control to the event loop and then get
-        canceled; in both cases, :meth:`close` has the same effect and is
-        more clear:
+        canceled; in both cases, :meth:`close` has the same effect and the
+        effect is more obvious:
 
         1. The write buffer is full. If you don't want to wait until enough
            data is sent, your only alternative is to close the connection.
@@ -708,9 +708,10 @@ class Connection(asyncio.Protocol):
                 data = struct.pack("!I", random.getrandbits(32))
 
             pong_received = self.loop.create_future()
+            ping_timestamp = self.loop.time()
             # The event loop's default clock is time.monotonic(). Its resolution
             # is a bit low on Windows (~16ms). This is improved in Python 3.13.
-            self.pending_pings[data] = (pong_received, self.loop.time())
+            self.pending_pings[data] = (pong_received, ping_timestamp)
             self.protocol.send_ping(data)
             return pong_received
 
@@ -787,9 +788,7 @@ class Connection(asyncio.Protocol):
 
     def terminate_pending_pings(self) -> None:
         """
-        Raise ConnectionClosed in pending pings.
-
-        They'll never receive a pong once the connection is closed.
+        Raise ConnectionClosed in pending pings when the connection is closed.
 
         """
         assert self.protocol.state is CLOSED
@@ -837,7 +836,8 @@ class Connection(asyncio.Protocol):
                             # pong_received. A CancelledError is raised here,
                             # not a ConnectionClosed exception.
                             latency = await pong_received
-                        self.logger.debug("% received keepalive pong")
+                            if self.debug:
+                                self.logger.debug("% received keepalive pong")
                     except asyncio.TimeoutError:
                         if self.debug:
                             self.logger.debug("- timed out waiting for keepalive pong")
@@ -908,20 +908,22 @@ class Connection(asyncio.Protocol):
                 # Check if the connection is expected to close soon.
                 if self.protocol.close_expected():
                     wait_for_close = True
-                    # If the connection is expected to close soon, set the
-                    # close deadline based on the close timeout.
-                    # Since we tested earlier that protocol.state was OPEN
+                    # Set the close deadline based on the close timeout.
+                    # Since we tested earlier that protocol.state is OPEN
                     # (or CONNECTING), self.close_deadline is still None.
+                    assert self.close_deadline is None
                     if self.close_timeout is not None:
-                        assert self.close_deadline is None
                         self.close_deadline = self.loop.time() + self.close_timeout
-                # Write outgoing data to the socket and enforce flow control.
+                # Write outgoing data to the socket with flow control.
                 try:
                     self.send_data()
                     await self.drain()
                 except Exception as exc:
                     if self.debug:
-                        self.logger.debug("! error while sending data", exc_info=True)
+                        self.logger.debug(
+                            "! error while sending data",
+                            exc_info=True,
+                        )
                     # While the only expected exception here is OSError,
                     # other exceptions would be treated identically.
                     wait_for_close = False
@@ -933,8 +935,8 @@ class Connection(asyncio.Protocol):
             # will be closing soon if it isn't in the expected state.
             wait_for_close = True
             # Calculate close_deadline if it wasn't set yet.
-            if self.close_timeout is not None:
-                if self.close_deadline is None:
+            if self.close_deadline is None:
+                if self.close_timeout is not None:
                     self.close_deadline = self.loop.time() + self.close_timeout
             raise_close_exc = True
 
@@ -945,7 +947,7 @@ class Connection(asyncio.Protocol):
                 async with asyncio_timeout_at(self.close_deadline):
                     await asyncio.shield(self.connection_lost_waiter)
             except TimeoutError:
-                # There's no risk to overwrite another error because
+                # There's no risk of overwriting another error because
                 # original_exc is never set when wait_for_close is True.
                 assert original_exc is None
                 original_exc = TimeoutError("timed out while closing connection")
@@ -966,9 +968,6 @@ class Connection(asyncio.Protocol):
         """
         Send outgoing data.
 
-        Raises:
-            OSError: When a socket operations fails.
-
         """
         for data in self.protocol.data_to_send():
             if data:
@@ -982,7 +981,7 @@ class Connection(asyncio.Protocol):
                     # OSError is plausible. uvloop can raise RuntimeError here.
                     try:
                         self.transport.write_eof()
-                    except (OSError, RuntimeError):  # pragma: no cover
+                    except Exception:  # pragma: no cover
                         pass
                 # Else, close the TCP connection.
                 else:  # pragma: no cover
@@ -993,6 +992,8 @@ class Connection(asyncio.Protocol):
     def set_recv_exc(self, exc: BaseException | None) -> None:
         """
         Set recv_exc, if not set yet.
+
+        This method must be called only from connection callbacks.
 
         """
         if self.recv_exc is None:
@@ -1096,26 +1097,29 @@ class Connection(asyncio.Protocol):
                 self.logger.debug("! error while sending data", exc_info=True)
             self.set_recv_exc(exc)
 
+        # If needed, set the close deadline based on the close timeout.
         if self.protocol.close_expected():
-            # If the connection is expected to close soon, set the
-            # close deadline based on the close timeout.
-            if self.close_timeout is not None:
-                if self.close_deadline is None:
+            if self.close_deadline is None:
+                if self.close_timeout is not None:
                     self.close_deadline = self.loop.time() + self.close_timeout
+
+        # If self.send_data raised an exception, then events are lost.
+        # Given that automatic responses write small amounts of data,
+        # this should be uncommon, so we don't handle the edge case.
 
         for event in events:
             # This isn't expected to raise an exception.
             self.process_event(event)
 
     def eof_received(self) -> None:
-        # Feed the end of the data stream to the connection.
+        # Feed the end of the data stream to the protocol.
         self.protocol.receive_eof()
 
         # This isn't expected to raise an exception.
         events = self.protocol.events_received()
 
         # There is no error handling because send_data() can only write
-        # the end of the data stream here and it shouldn't raise errors.
+        # the end of the data stream and it handles errors by itself.
         self.send_data()
 
         # This code path is triggered when receiving an HTTP response

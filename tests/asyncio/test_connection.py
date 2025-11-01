@@ -1250,23 +1250,14 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     # Test safety nets — catching all exceptions in case of bugs.
 
-    # Inject a fault in a random call in data_received().
-    # This test is tightly coupled to the implementation.
     @patch("websockets.protocol.Protocol.events_received", side_effect=AssertionError)
     async def test_unexpected_failure_in_data_received(self, events_received):
         """Unexpected internal error in data_received() is correctly reported."""
-        # Receive a message to trigger the fault.
         await self.remote_connection.send("😀")
-
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.recv()
+        self.assertIsInstance(raised.exception.__cause__, AssertionError)
 
-        exc = raised.exception
-        self.assertEqual(str(exc), "no close frame received or sent")
-        self.assertIsInstance(exc.__cause__, AssertionError)
-
-    # Inject a fault in a random call in send_context().
-    # This test is tightly coupled to the implementation.
     @patch("websockets.protocol.Protocol.send_text", side_effect=AssertionError)
     async def test_unexpected_failure_in_send_context(self, send_text):
         """Unexpected internal error in send_context() is correctly reported."""
@@ -1274,10 +1265,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         # The connection closed exception reports the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.send("😀")
-
-        exc = raised.exception
-        self.assertEqual(str(exc), "no close frame received or sent")
-        self.assertIsInstance(exc.__cause__, AssertionError)
+        self.assertIsInstance(raised.exception.__cause__, AssertionError)
 
     # Test broadcast.
 

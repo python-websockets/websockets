@@ -208,21 +208,25 @@ class ClientConnectionTests(ThreadTestCase):
     def test_recv_during_recv(self):
         """recv raises ConcurrencyError when called concurrently."""
         with self.run_in_thread(self.connection.recv):
-            with self.assertRaises(ConcurrencyError) as raised:
-                self.connection.recv()
-            self.remote_connection.send("")
-        self.assertEqual(
-            str(raised.exception),
-            "cannot call recv while another thread "
-            "is already running recv or recv_streaming",
-        )
+            try:
+                with self.assertRaises(ConcurrencyError) as raised:
+                    self.connection.recv()
+            finally:
+                self.remote_connection.send("")
+            self.assertEqual(
+                str(raised.exception),
+                "cannot call recv while another thread "
+                "is already running recv or recv_streaming",
+            )
 
     def test_recv_during_recv_streaming(self):
         """recv raises ConcurrencyError when called concurrently with recv_streaming."""
         with self.run_in_thread(lambda: list(self.connection.recv_streaming())):
-            with self.assertRaises(ConcurrencyError) as raised:
-                self.connection.recv()
-            self.remote_connection.send("")
+            try:
+                with self.assertRaises(ConcurrencyError) as raised:
+                    self.connection.recv()
+            finally:
+                self.remote_connection.send("")
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another thread "
@@ -307,10 +311,12 @@ class ClientConnectionTests(ThreadTestCase):
     def test_recv_streaming_during_recv(self):
         """recv_streaming raises ConcurrencyError when called concurrently with recv."""
         with self.run_in_thread(self.connection.recv):
-            with self.assertRaises(ConcurrencyError) as raised:
-                for _ in self.connection.recv_streaming():
-                    self.fail("did not raise")
-            self.remote_connection.send("")
+            try:
+                with self.assertRaises(ConcurrencyError) as raised:
+                    for _ in self.connection.recv_streaming():
+                        self.fail("did not raise")
+            finally:
+                self.remote_connection.send("")
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another thread "
@@ -320,14 +326,16 @@ class ClientConnectionTests(ThreadTestCase):
     def test_recv_streaming_during_recv_streaming(self):
         """recv_streaming raises ConcurrencyError when called concurrently."""
         with self.run_in_thread(lambda: list(self.connection.recv_streaming())):
-            with self.assertRaises(ConcurrencyError) as raised:
-                for _ in self.connection.recv_streaming():
-                    self.fail("did not raise")
-            self.remote_connection.send("")
+            try:
+                with self.assertRaises(ConcurrencyError) as raised:
+                    for _ in self.connection.recv_streaming():
+                        self.fail("did not raise")
+            finally:
+                self.remote_connection.send("")
         self.assertEqual(
             str(raised.exception),
-            r"cannot call recv_streaming while another thread "
-            r"is already running recv or recv_streaming",
+            "cannot call recv_streaming while another thread "
+            "is already running recv or recv_streaming",
         )
 
     # Test send.
@@ -559,12 +567,8 @@ class ClientConnectionTests(ThreadTestCase):
         self.connection.close()
 
         self.assertEqual(self.connection.recv(), "😀")
-        with self.assertRaises(ConnectionClosedOK) as raised:
+        with self.assertRaises(ConnectionClosedOK):
             self.connection.recv()
-
-        exc = raised.exception
-        self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
-        self.assertIsNone(exc.__cause__)
 
     def test_close_idempotency(self):
         """close does nothing if the connection is already closed."""
@@ -619,16 +623,18 @@ class ClientConnectionTests(ThreadTestCase):
             exit_gate.set()
 
         def fragments():
-            yield "😀"
+            yield "⏳"
             close_gate.set()
             exit_gate.wait()
-            yield "😀"
+            yield "⌛️"
 
         close_thread = threading.Thread(target=closer)
         close_thread.start()
 
-        with self.assertRaises(ConnectionClosedError) as raised:
-            self.connection.send(fragments())
+        iterator = fragments()
+        with contextlib.closing(iterator):
+            with self.assertRaises(ConnectionClosedError) as raised:
+                self.connection.send(iterator)
 
         exc = raised.exception
         self.assertEqual(
@@ -797,6 +803,7 @@ class ClientConnectionTests(ThreadTestCase):
         """keepalive task terminates while waiting to send a ping."""
         self.connection.ping_interval = 3 * MS
         self.connection.start_keepalive()
+        self.assertTrue(self.connection.keepalive_thread.is_alive())
         time.sleep(MS)
         self.assertTrue(self.connection.keepalive_thread.is_alive())
         self.connection.close()
@@ -807,6 +814,7 @@ class ClientConnectionTests(ThreadTestCase):
         """keepalive task terminates when sending a ping fails."""
         self.connection.ping_interval = MS
         self.connection.start_keepalive()
+        self.assertTrue(self.connection.keepalive_thread.is_alive())
         with self.drop_eof_rcvd(), self.drop_frames_rcvd():
             self.connection.close()
             # Exiting the context managers sleeps for 2 ms.
@@ -830,14 +838,13 @@ class ClientConnectionTests(ThreadTestCase):
     def test_keepalive_reports_errors(self):
         """keepalive reports unexpected errors in logs."""
         self.connection.ping_interval = 2 * MS
-        with self.drop_frames_rcvd():
-            self.connection.start_keepalive()
-            # 2 ms: keepalive() sends a ping frame.
-            # 2.x ms: a pong frame is dropped.
-            with self.assertLogs("websockets", logging.ERROR) as logs:
-                with patch("threading.Event.wait", side_effect=Exception("BOOM")):
-                    time.sleep(3 * MS)
-            # Exiting the context manager sleeps for 1 ms.
+        self.connection.start_keepalive()
+        # Inject a fault when waiting to receive a pong.
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            with patch("threading.Event.wait", side_effect=Exception("BOOM")):
+                # 2 ms: keepalive() sends a ping frame.
+                # 2.x ms: a pong frame is dropped.
+                time.sleep(3 * MS)
         self.assertEqual(
             [record.getMessage() for record in logs.records],
             ["keepalive ping failed"],

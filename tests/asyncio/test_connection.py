@@ -1,5 +1,6 @@
 import asyncio
 import contextlib
+import itertools
 import logging
 import socket
 import sys
@@ -903,9 +904,10 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     # Test ping.
 
-    @patch("random.getrandbits", return_value=1918987876)
+    @patch("random.getrandbits")
     async def test_ping(self, getrandbits):
         """ping sends a ping frame with a random payload."""
+        getrandbits.side_effect = itertools.count(1918987876)
         await self.connection.ping()
         getrandbits.assert_called_once_with(32)
         await self.assertFrameSent(Frame(Opcode.PING, b"rand"))
@@ -1014,9 +1016,10 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     # Test keepalive.
 
-    @patch("random.getrandbits", return_value=1918987876)
+    @patch("random.getrandbits")
     async def test_keepalive(self, getrandbits):
         """keepalive sends pings at ping_interval and measures latency."""
+        getrandbits.side_effect = itertools.count(1918987876)
         self.connection.ping_interval = 3 * MS
         self.connection.start_keepalive()
         self.assertIsNotNone(self.connection.keepalive_task)
@@ -1035,9 +1038,10 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.connection.start_keepalive()
         self.assertIsNone(self.connection.keepalive_task)
 
-    @patch("random.getrandbits", return_value=1918987876)
+    @patch("random.getrandbits")
     async def test_keepalive_times_out(self, getrandbits):
         """keepalive closes the connection if ping_timeout elapses."""
+        getrandbits.side_effect = itertools.count(1918987876)
         self.connection.ping_interval = 4 * MS
         self.connection.ping_timeout = 2 * MS
         async with self.drop_frames_rcvd():
@@ -1050,9 +1054,10 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         # 7 ms: check that the connection is closed.
         self.assertEqual(self.connection.state, State.CLOSED)
 
-    @patch("random.getrandbits", return_value=1918987876)
+    @patch("random.getrandbits")
     async def test_keepalive_ignores_timeout(self, getrandbits):
         """keepalive ignores timeouts if ping_timeout isn't set."""
+        getrandbits.side_effect = itertools.count(1918987876)
         self.connection.ping_interval = 4 * MS
         self.connection.ping_timeout = None
         async with self.drop_frames_rcvd():

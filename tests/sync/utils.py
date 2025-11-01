@@ -8,7 +8,7 @@ from ..utils import MS
 
 class ThreadTestCase(unittest.TestCase):
     @contextlib.contextmanager
-    def run_in_thread(self, target):
+    def run_in_thread(self, target, args=(), kwargs=None):
         """
         Run ``target`` function without arguments in a thread.
 
@@ -16,7 +16,7 @@ class ThreadTestCase(unittest.TestCase):
         for 1ms on entry and joins the thread with a 1ms timeout on exit.
 
         """
-        thread = threading.Thread(target=target)
+        thread = threading.Thread(target=target, args=args, kwargs=kwargs)
         thread.start()
         time.sleep(MS)
         try:

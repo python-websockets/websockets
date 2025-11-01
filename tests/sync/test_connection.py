@@ -44,14 +44,20 @@ class ClientConnectionTests(ThreadTestCase):
 
     # Test helpers built upon RecordingProtocol and InterceptingConnection.
 
+    def wait_for_remote_side(self):
+        """Wait for the remote side to process messages."""
+        # We don't have a way to tell if the remote side is blocked on I/O.
+        # The sync tests still run faster than the asyncio and trio tests :-)
+        time.sleep(MS)
+
     def assertFrameSent(self, frame):
         """Check that a single frame was sent."""
-        time.sleep(MS)  # let the remote side process messages
+        self.wait_for_remote_side()
         self.assertEqual(self.remote_connection.protocol.get_frames_rcvd(), [frame])
 
     def assertNoFrameSent(self):
         """Check that no frame was sent."""
-        time.sleep(MS)  # let the remote side process messages
+        self.wait_for_remote_side()
         self.assertEqual(self.remote_connection.protocol.get_frames_rcvd(), [])
 
     @contextlib.contextmanager
@@ -59,28 +65,28 @@ class ClientConnectionTests(ThreadTestCase):
         """Delay frames before they're received by the connection."""
         with self.remote_connection.delay_frames_sent(delay):
             yield
-            time.sleep(MS)  # let the remote side process messages
+            self.wait_for_remote_side()
 
     @contextlib.contextmanager
     def delay_eof_rcvd(self, delay):
         """Delay EOF before it's received by the connection."""
         with self.remote_connection.delay_eof_sent(delay):
             yield
-            time.sleep(MS)  # let the remote side process messages
+            self.wait_for_remote_side()
 
     @contextlib.contextmanager
     def drop_frames_rcvd(self):
         """Drop frames before they're received by the connection."""
         with self.remote_connection.drop_frames_sent():
             yield
-            time.sleep(MS)  # let the remote side process messages
+            self.wait_for_remote_side()
 
     @contextlib.contextmanager
     def drop_eof_rcvd(self):
         """Drop EOF before it's received by the connection."""
         with self.remote_connection.drop_eof_sent():
             yield
-            time.sleep(MS)  # let the remote side process messages
+            self.wait_for_remote_side()
 
     # Test __enter__ and __exit__.
 
@@ -736,9 +742,9 @@ class ClientConnectionTests(ThreadTestCase):
         with self.drop_frames_rcvd():
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
+            # 4.x ms: a pong frame is dropped.
             time.sleep(4 * MS)
             # Exiting the context manager sleeps for 1 ms.
-            # 4.x ms: a pong frame is dropped.
         # 6 ms: no pong frame is received; the connection is closed.
         time.sleep(2 * MS)
         # 7 ms: check that the connection is closed.
@@ -752,9 +758,9 @@ class ClientConnectionTests(ThreadTestCase):
         with self.drop_frames_rcvd():
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
+            # 4.x ms: a pong frame is dropped.
             time.sleep(4 * MS)
             # Exiting the context manager sleeps for 1 ms.
-            # 4.x ms: a pong frame is dropped.
         # 6 ms: no pong frame is received; the connection remains open.
         time.sleep(2 * MS)
         # 7 ms: check that the connection is still open.
@@ -765,16 +771,18 @@ class ClientConnectionTests(ThreadTestCase):
         self.connection.ping_interval = 3 * MS
         self.connection.start_keepalive()
         time.sleep(MS)
+        self.assertTrue(self.connection.keepalive_thread.is_alive())
         self.connection.close()
         self.connection.keepalive_thread.join(MS)
         self.assertFalse(self.connection.keepalive_thread.is_alive())
 
     def test_keepalive_terminates_when_sending_ping_fails(self):
         """keepalive task terminates when sending a ping fails."""
-        self.connection.ping_interval = 1 * MS
+        self.connection.ping_interval = MS
         self.connection.start_keepalive()
         with self.drop_eof_rcvd(), self.drop_frames_rcvd():
             self.connection.close()
+            # Exiting the context managers sleeps for 2 ms.
         self.assertFalse(self.connection.keepalive_thread.is_alive())
 
     def test_keepalive_terminates_while_waiting_for_pong(self):

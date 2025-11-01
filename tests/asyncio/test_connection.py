@@ -1118,21 +1118,28 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_close_timeout(self):
         """close_timeout parameter configures close timeout."""
-        connection = Connection(Protocol(self.LOCAL), close_timeout=42 * MS)
+        connection = Connection(
+            Protocol(self.LOCAL),
+            close_timeout=42 * MS,
+        )
         self.assertEqual(connection.close_timeout, 42 * MS)
 
     async def test_max_queue(self):
         """max_queue configures high-water mark of frames buffer."""
-        connection = Connection(Protocol(self.LOCAL), max_queue=4)
-        transport = Mock()
-        connection.connection_made(transport)
+        connection = Connection(
+            Protocol(self.LOCAL),
+            max_queue=4,
+        )
+        connection.connection_made(Mock(spec=asyncio.Transport))
         self.assertEqual(connection.recv_messages.high, 4)
 
     async def test_max_queue_none(self):
         """max_queue disables high-water mark of frames buffer."""
-        connection = Connection(Protocol(self.LOCAL), max_queue=None)
-        transport = Mock()
-        connection.connection_made(transport)
+        connection = Connection(
+            Protocol(self.LOCAL),
+            max_queue=None,
+        )
+        connection.connection_made(Mock(spec=asyncio.Transport))
         self.assertEqual(connection.recv_messages.high, None)
         self.assertEqual(connection.recv_messages.low, None)
 
@@ -1142,8 +1149,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             Protocol(self.LOCAL),
             max_queue=(4, 2),
         )
-        transport = Mock()
-        connection.connection_made(transport)
+        connection.connection_made(Mock(spec=asyncio.Transport))
         self.assertEqual(connection.recv_messages.high, 4)
         self.assertEqual(connection.recv_messages.low, 2)
 
@@ -1153,7 +1159,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             Protocol(self.LOCAL),
             write_limit=4096,
         )
-        transport = Mock()
+        transport = Mock(spec=asyncio.Transport)
         connection.connection_made(transport)
         transport.set_write_buffer_limits.assert_called_once_with(4096, None)
 
@@ -1163,7 +1169,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             Protocol(self.LOCAL),
             write_limit=(4096, 2048),
         )
-        transport = Mock()
+        transport = Mock(spec=asyncio.Transport)
         connection.connection_made(transport)
         transport.set_write_buffer_limits.assert_called_once_with(4096, 2048)
 
@@ -1177,13 +1183,13 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         """Connection has a logger attribute."""
         self.assertIsInstance(self.connection.logger, logging.LoggerAdapter)
 
-    @patch("asyncio.BaseTransport.get_extra_info", return_value=("sock", 1234))
+    @patch("asyncio.Transport.get_extra_info", return_value=("sock", 1234))
     async def test_local_address(self, get_extra_info):
         """Connection provides a local_address attribute."""
         self.assertEqual(self.connection.local_address, ("sock", 1234))
         get_extra_info.assert_called_with("sockname")
 
-    @patch("asyncio.BaseTransport.get_extra_info", return_value=("peer", 1234))
+    @patch("asyncio.Transport.get_extra_info", return_value=("peer", 1234))
     async def test_remote_address(self, get_extra_info):
         """Connection provides a remote_address attribute."""
         self.assertEqual(self.connection.remote_address, ("peer", 1234))

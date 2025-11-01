@@ -49,6 +49,7 @@ archs = ["auto", "aarch64"]
 
 [tool.coverage.run]
 branch = true
+core = "ctrace"
 omit = [
     # */websockets matches src/websockets and .tox/**/site-packages/websockets
     "*/websockets/__main__.py",

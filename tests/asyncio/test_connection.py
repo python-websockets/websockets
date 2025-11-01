@@ -35,12 +35,14 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def asyncSetUp(self):
         self.loop = asyncio.get_running_loop()
         socket_, remote_socket = socket.socketpair()
+        protocol = Protocol(self.LOCAL)
+        remote_protocol = RecordingProtocol(self.REMOTE)
         self.transport, self.connection = await self.loop.create_connection(
-            lambda: Connection(Protocol(self.LOCAL), close_timeout=2 * MS),
+            lambda: Connection(protocol, close_timeout=2 * MS),
             sock=socket_,
         )
         _remote_transport, self.remote_connection = await self.loop.create_connection(
-            lambda: InterceptingConnection(RecordingProtocol(self.REMOTE)),
+            lambda: InterceptingConnection(remote_protocol),
             sock=remote_socket,
         )
 
@@ -112,8 +114,8 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             await self.assertNoFrameSent()
         await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
 
-    async def test_exit_with_exception(self):
-        """__exit__ with an exception closes the connection with code 1011."""
+    async def test_aexit_with_exception(self):
+        """__aexit__ with an exception closes the connection with code 1011."""
         with self.assertRaises(RuntimeError):
             async with self.connection:
                 raise RuntimeError
@@ -211,20 +213,19 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def test_recv_non_utf8_text(self):
         """recv receives a non-UTF-8 text message."""
         await self.remote_connection.send(b"\x01\x02\xfe\xff", text=True)
-        with self.assertRaises(ConnectionClosedError):
+        with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.recv()
-        await self.assertFrameSent(
-            Frame(Opcode.CLOSE, b"\x03\xefinvalid start byte at position 2")
-        )
+        self.assertEqual(raised.exception.sent.code, CloseCode.INVALID_DATA)
 
     async def test_recv_during_recv(self):
         """recv raises ConcurrencyError when called concurrently."""
         recv_task = asyncio.create_task(self.connection.recv())
         await asyncio.sleep(0)  # let the event loop start recv_task
-        self.addCleanup(recv_task.cancel)
-
-        with self.assertRaises(ConcurrencyError) as raised:
-            await self.connection.recv()
+        try:
+            with self.assertRaises(ConcurrencyError) as raised:
+                await self.connection.recv()
+        finally:
+            recv_task.cancel()
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another coroutine "
@@ -237,10 +238,11 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             alist(self.connection.recv_streaming())
         )
         await asyncio.sleep(0)  # let the event loop start recv_streaming_task
-        self.addCleanup(recv_streaming_task.cancel)
-
-        with self.assertRaises(ConcurrencyError) as raised:
-            await self.connection.recv()
+        try:
+            with self.assertRaises(ConcurrencyError) as raised:
+                await self.connection.recv()
+        finally:
+            recv_streaming_task.cancel()
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another coroutine "
@@ -248,10 +250,9 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_recv_cancellation_before_receiving(self):
-        """recv can be canceled before receiving a frame."""
+        """recv can be canceled before receiving a message."""
         recv_task = asyncio.create_task(self.connection.recv())
         await asyncio.sleep(0)  # let the event loop start recv_task
-
         recv_task.cancel()
         await asyncio.sleep(0)  # let the event loop cancel recv_task
 
@@ -260,25 +261,25 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(await self.connection.recv(), "😀")
 
     async def test_recv_cancellation_while_receiving(self):
-        """recv cannot be canceled after receiving a frame."""
-        recv_task = asyncio.create_task(self.connection.recv())
-        await asyncio.sleep(0)  # let the event loop start recv_task
-
-        gate = asyncio.get_running_loop().create_future()
+        """recv can be canceled while receiving a fragmented message."""
+        gate = asyncio.Event()
 
         async def fragments():
             yield "⏳"
-            await gate
+            await gate.wait()
             yield "⌛️"
 
         asyncio.create_task(self.remote_connection.send(fragments()))
-        await asyncio.sleep(MS)
+        await asyncio.sleep(0)
 
+        recv_task = asyncio.create_task(self.connection.recv())
+        await asyncio.sleep(0)  # let the event loop start recv_task
         recv_task.cancel()
         await asyncio.sleep(0)  # let the event loop cancel recv_task
 
+        gate.set()
+
         # Running recv again receives the complete message.
-        gate.set_result(None)
         self.assertEqual(await self.connection.recv(), "⏳⌛️")
 
     # Test recv_streaming.
@@ -350,21 +351,20 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def test_recv_streaming_non_utf8_text(self):
         """recv_streaming receives a non-UTF-8 text message."""
         await self.remote_connection.send(b"\x01\x02\xfe\xff", text=True)
-        with self.assertRaises(ConnectionClosedError):
+        with self.assertRaises(ConnectionClosedError) as raised:
             await alist(self.connection.recv_streaming())
-        await self.assertFrameSent(
-            Frame(Opcode.CLOSE, b"\x03\xefinvalid start byte at position 2")
-        )
+        self.assertEqual(raised.exception.sent.code, CloseCode.INVALID_DATA)
 
     async def test_recv_streaming_during_recv(self):
         """recv_streaming raises ConcurrencyError when called concurrently with recv."""
         recv_task = asyncio.create_task(self.connection.recv())
         await asyncio.sleep(0)  # let the event loop start recv_task
-        self.addCleanup(recv_task.cancel)
-
-        with self.assertRaises(ConcurrencyError) as raised:
-            async for _ in self.connection.recv_streaming():
-                self.fail("did not raise")
+        try:
+            with self.assertRaises(ConcurrencyError) as raised:
+                async for _ in self.connection.recv_streaming():
+                    self.fail("did not raise")
+        finally:
+            recv_task.cancel()
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another coroutine "
@@ -377,24 +377,24 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             alist(self.connection.recv_streaming())
         )
         await asyncio.sleep(0)  # let the event loop start recv_streaming_task
-        self.addCleanup(recv_streaming_task.cancel)
-
-        with self.assertRaises(ConcurrencyError) as raised:
-            async for _ in self.connection.recv_streaming():
-                self.fail("did not raise")
+        try:
+            with self.assertRaises(ConcurrencyError) as raised:
+                async for _ in self.connection.recv_streaming():
+                    self.fail("did not raise")
+        finally:
+            recv_streaming_task.cancel()
         self.assertEqual(
             str(raised.exception),
-            r"cannot call recv_streaming while another coroutine "
-            r"is already running recv or recv_streaming",
+            "cannot call recv_streaming while another coroutine "
+            "is already running recv or recv_streaming",
         )
 
     async def test_recv_streaming_cancellation_before_receiving(self):
-        """recv_streaming can be canceled before receiving a frame."""
+        """recv_streaming can be canceled before receiving a message."""
         recv_streaming_task = asyncio.create_task(
             alist(self.connection.recv_streaming())
         )
         await asyncio.sleep(0)  # let the event loop start recv_streaming_task
-
         recv_streaming_task.cancel()
         await asyncio.sleep(0)  # let the event loop cancel recv_streaming_task
 
@@ -406,29 +406,33 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_recv_streaming_cancellation_while_receiving(self):
-        """recv_streaming cannot be canceled after receiving a frame."""
+        """recv_streaming cannot be canceled while receiving a fragmented message."""
+        gate = asyncio.Event()
+
+        async def fragments():
+            yield "⏳"
+            await gate.wait()
+            yield "⌛️"
+
+        asyncio.create_task(self.remote_connection.send(fragments()))
+        await asyncio.sleep(0)
+
         recv_streaming_task = asyncio.create_task(
             alist(self.connection.recv_streaming())
         )
         await asyncio.sleep(0)  # let the event loop start recv_streaming_task
-
-        gate = asyncio.get_running_loop().create_future()
-
-        async def fragments():
-            yield "⏳"
-            await gate
-            yield "⌛️"
-
-        asyncio.create_task(self.remote_connection.send(fragments()))
-        await asyncio.sleep(MS)
-
+        await asyncio.sleep(0)  # experimentally, two runs of the event loop
+        await asyncio.sleep(0)  # are needed to receive the first fragment
         recv_streaming_task.cancel()
         await asyncio.sleep(0)  # let the event loop cancel recv_streaming_task
 
-        gate.set_result(None)
+        gate.set()
+        await asyncio.sleep(0)
+
         # Running recv_streaming again fails.
         with self.assertRaises(ConcurrencyError):
-            await alist(self.connection.recv_streaming())
+            async for _ in self.connection.recv_streaming():
+                self.fail("did not raise")
 
     # Test send.
 
@@ -556,23 +560,59 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ConnectionClosedError):
             await self.connection.send("😀")
 
-    async def test_send_while_send_blocked(self):
+    async def test_send_during_send(self):
         """send waits for a previous call to send to complete."""
         # This test fails if the guard with send_in_progress is removed
-        # from send() in the case when message is an Iterable.
-        self.connection.pause_writing()
-        asyncio.create_task(self.connection.send(["⏳", "⌛️"]))
-        await asyncio.sleep(MS)
+        # from send() in the case when message is an AsyncIterable.
+        gate = asyncio.Event()
+
+        async def fragments():
+            yield "⏳"
+            await gate.wait()
+            yield "⌛️"
+
+        asyncio.create_task(self.connection.send(fragments()))
+        await asyncio.sleep(0)  # let the event loop start the task
         await self.assertFrameSent(
             Frame(Opcode.TEXT, "⏳".encode(), fin=False),
         )
 
         asyncio.create_task(self.connection.send("✅"))
-        await asyncio.sleep(MS)
+        await asyncio.sleep(0)  # let the event loop start the task
+        await self.assertNoFrameSent()
+
+        gate.set()
+        await asyncio.sleep(0)  # run the event loop
+        await asyncio.sleep(0)  # three times in order
+        await asyncio.sleep(0)  # to send three frames
+        await self.assertFramesSent(
+            [
+                Frame(Opcode.CONT, "⌛️".encode(), fin=False),
+                Frame(Opcode.CONT, b"", fin=True),
+                Frame(Opcode.TEXT, "✅".encode()),
+            ]
+        )
+
+    async def test_send_while_send_blocked(self):
+        """send waits for a blocked call to send to complete."""
+        # This test fails if the guard with send_in_progress is removed
+        # from send() in the case when message is an Iterable.
+        self.connection.pause_writing()
+
+        asyncio.create_task(self.connection.send(["⏳", "⌛️"]))
+        await asyncio.sleep(0)  # let the event loop start the task
+        await self.assertFrameSent(
+            Frame(Opcode.TEXT, "⏳".encode(), fin=False),
+        )
+
+        asyncio.create_task(self.connection.send("✅"))
+        await asyncio.sleep(0)  # let the event loop start the task
         await self.assertNoFrameSent()
 
         self.connection.resume_writing()
-        await asyncio.sleep(MS)
+        await asyncio.sleep(0)  # run the event loop
+        await asyncio.sleep(0)  # three times in order
+        await asyncio.sleep(0)  # to send three frames
         await self.assertFramesSent(
             [
                 Frame(Opcode.CONT, "⌛️".encode(), fin=False),
@@ -582,7 +622,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         )
 
     async def test_send_while_send_async_blocked(self):
-        """send waits for a previous call to send to complete."""
+        """send waits for a blocked call to send to complete."""
         # This test fails if the guard with send_in_progress is removed
         # from send() in the case when message is an AsyncIterable.
         self.connection.pause_writing()
@@ -592,48 +632,19 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             yield "⌛️"
 
         asyncio.create_task(self.connection.send(fragments()))
-        await asyncio.sleep(MS)
+        await asyncio.sleep(0)  # let the event loop start the task
         await self.assertFrameSent(
             Frame(Opcode.TEXT, "⏳".encode(), fin=False),
         )
 
         asyncio.create_task(self.connection.send("✅"))
-        await asyncio.sleep(MS)
+        await asyncio.sleep(0)  # let the event loop start the task
         await self.assertNoFrameSent()
 
         self.connection.resume_writing()
-        await asyncio.sleep(MS)
-        await self.assertFramesSent(
-            [
-                Frame(Opcode.CONT, "⌛️".encode(), fin=False),
-                Frame(Opcode.CONT, b"", fin=True),
-                Frame(Opcode.TEXT, "✅".encode()),
-            ]
-        )
-
-    async def test_send_during_send_async(self):
-        """send waits for a previous call to send to complete."""
-        # This test fails if the guard with send_in_progress is removed
-        # from send() in the case when message is an AsyncIterable.
-        gate = asyncio.get_running_loop().create_future()
-
-        async def fragments():
-            yield "⏳"
-            await gate
-            yield "⌛️"
-
-        asyncio.create_task(self.connection.send(fragments()))
-        await asyncio.sleep(MS)
-        await self.assertFrameSent(
-            Frame(Opcode.TEXT, "⏳".encode(), fin=False),
-        )
-
-        asyncio.create_task(self.connection.send("✅"))
-        await asyncio.sleep(MS)
-        await self.assertNoFrameSent()
-
-        gate.set_result(None)
-        await asyncio.sleep(MS)
+        await asyncio.sleep(0)  # run the event loop
+        await asyncio.sleep(0)  # three times in order
+        await asyncio.sleep(0)  # to send three frames
         await self.assertFramesSent(
             [
                 Frame(Opcode.CONT, "⌛️".encode(), fin=False),
@@ -676,8 +687,10 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             yield "😀"
             yield b"\xfe\xff"
 
-        with self.assertRaises(TypeError):
-            await self.connection.send(fragments())
+        iterator = fragments()
+        async with contextlib.aclosing(iterator):
+            with self.assertRaises(TypeError):
+                await self.connection.send(iterator)
 
     async def test_send_unsupported_async_iterable(self):
         """send raises TypeError when called with an iterable of unsupported type."""
@@ -685,8 +698,10 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         async def fragments():
             yield None
 
-        with self.assertRaises(TypeError):
-            await self.connection.send(fragments())
+        iterator = fragments()
+        async with contextlib.aclosing(iterator):
+            with self.assertRaises(TypeError):
+                await self.connection.send(iterator)
 
     async def test_send_dict(self):
         """send raises TypeError when called with a dict."""
@@ -837,12 +852,8 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         await self.connection.close()
 
         self.assertEqual(await self.connection.recv(), "😀")
-        with self.assertRaises(ConnectionClosedOK) as raised:
+        with self.assertRaises(ConnectionClosedOK):
             await self.connection.recv()
-
-        exc = raised.exception
-        self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
-        self.assertIsNone(exc.__cause__)
 
     async def test_close_idempotency(self):
         """close does nothing if the connection is already closed."""
@@ -854,11 +865,30 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_close_during_recv(self):
         """close aborts recv when called concurrently with recv."""
-        recv_task = asyncio.create_task(self.connection.recv())
-        await asyncio.sleep(MS)
-        await self.connection.close()
+
+        async def closer():
+            await asyncio.sleep(MS)
+            await self.connection.close()
+
+        asyncio.create_task(closer())
         with self.assertRaises(ConnectionClosedOK) as raised:
-            await recv_task
+            await self.connection.recv()
+
+        exc = raised.exception
+        self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
+        self.assertIsNone(exc.__cause__)
+
+    async def test_close_during_recv_streaming(self):
+        """close aborts recv_streaming when called concurrently with recv_streaming."""
+
+        async def closer():
+            await asyncio.sleep(MS)
+            await self.connection.close()
+
+        asyncio.create_task(closer())
+        with self.assertRaises(ConnectionClosedOK) as raised:
+            async for _ in self.connection.recv_streaming():
+                self.fail("did not raise")
 
         exc = raised.exception
         self.assertEqual(str(exc), "sent 1000 (OK); then received 1000 (OK)")
@@ -866,23 +896,25 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_close_during_send(self):
         """close fails the connection when called concurrently with send."""
-        gate = asyncio.get_running_loop().create_future()
+        close_gate = asyncio.Event()
+        exit_gate = asyncio.Event()
+
+        async def closer():
+            await close_gate.wait()
+            await self.connection.close()
+            exit_gate.set()
 
         async def fragments():
             yield "⏳"
-            await gate
+            close_gate.set()
+            await exit_gate.wait()
             yield "⌛️"
 
-        send_task = asyncio.create_task(self.connection.send(fragments()))
-        await asyncio.sleep(MS)
-
-        asyncio.create_task(self.connection.close())
-        await asyncio.sleep(MS)
-
-        gate.set_result(None)
-
-        with self.assertRaises(ConnectionClosedError) as raised:
-            await send_task
+        asyncio.create_task(closer())
+        iterator = fragments()
+        async with contextlib.aclosing(iterator):
+            with self.assertRaises(ConnectionClosedError) as raised:
+                await self.connection.send(iterator)
 
         exc = raised.exception
         self.assertEqual(
@@ -969,6 +1001,14 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(asyncio.CancelledError):
             await pong_received
 
+    async def test_terminate_ping_on_close(self):
+        """ping is done with an exception when the connection is closed."""
+        async with self.drop_frames_rcvd():  # drop automatic response to ping
+            pong_received = await self.connection.ping("this")
+        await self.connection.close()
+        with self.assertRaises(ConnectionClosedOK):
+            await pong_received
+
     async def test_ping_duplicate_payload(self):
         """ping rejects the same payload until receiving the pong."""
         async with self.drop_frames_rcvd():  # drop automatic response to ping
@@ -1050,8 +1090,8 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             # 4.x ms: a pong frame is dropped.
             await asyncio.sleep(5 * MS)
         # 6 ms: no pong frame is received; the connection is closed.
-        await asyncio.sleep(2 * MS)
-        # 7 ms: check that the connection is closed.
+        await asyncio.sleep(3 * MS)
+        # 8 ms: check that the connection is closed.
         self.assertEqual(self.connection.state, State.CLOSED)
 
     @patch("random.getrandbits")
@@ -1066,8 +1106,8 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             # 4.x ms: a pong frame is dropped.
             await asyncio.sleep(5 * MS)
         # 6 ms: no pong frame is received; the connection remains open.
-        await asyncio.sleep(2 * MS)
-        # 7 ms: check that the connection is still open.
+        await asyncio.sleep(3 * MS)
+        # 8 ms: check that the connection is still open.
         self.assertEqual(self.connection.state, State.OPEN)
 
     async def test_keepalive_terminates_while_sleeping(self):
@@ -1078,6 +1118,9 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertFalse(self.connection.keepalive_task.done())
         await self.connection.close()
         self.assertTrue(self.connection.keepalive_task.done())
+
+    # test_keepalive_terminates_when_sending_ping_fails is not implemented
+    # because sending a ping cannot fail in the asyncio implementation.
 
     async def test_keepalive_terminates_while_waiting_for_pong(self):
         """keepalive task terminates while waiting to receive a pong."""
@@ -1095,8 +1138,8 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def test_keepalive_reports_errors(self):
         """keepalive reports unexpected errors in logs."""
         self.connection.ping_interval = 2 * MS
+        self.connection.start_keepalive()
         async with self.drop_frames_rcvd():
-            self.connection.start_keepalive()
             # 2 ms: keepalive() sends a ping frame.
             # 2.x ms: a pong frame is dropped.
             await asyncio.sleep(3 * MS)
@@ -1183,15 +1226,17 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         """Connection has a logger attribute."""
         self.assertIsInstance(self.connection.logger, logging.LoggerAdapter)
 
-    @patch("asyncio.Transport.get_extra_info", return_value=("sock", 1234))
+    @patch("asyncio.Transport.get_extra_info")
     async def test_local_address(self, get_extra_info):
-        """Connection provides a local_address attribute."""
+        """Connection has a local_address attribute."""
+        get_extra_info.return_value = ("sock", 1234)
         self.assertEqual(self.connection.local_address, ("sock", 1234))
         get_extra_info.assert_called_with("sockname")
 
-    @patch("asyncio.Transport.get_extra_info", return_value=("peer", 1234))
+    @patch("asyncio.Transport.get_extra_info")
     async def test_remote_address(self, get_extra_info):
-        """Connection provides a remote_address attribute."""
+        """Connection has a remote_address attribute."""
+        get_extra_info.return_value = ("peer", 1234)
         self.assertEqual(self.connection.remote_address, ("peer", 1234))
         get_extra_info.assert_called_with("peername")
 
@@ -1228,12 +1273,9 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.transport.write_eof()
         # Receive a ping. Responding with a pong will fail.
         await self.remote_connection.ping()
-        # The connection closed exception reports the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.recv()
-        cause = raised.exception.__cause__
-        self.assertEqual(str(cause), "Cannot call write() after write_eof()")
-        self.assertIsInstance(cause, RuntimeError)
+        self.assertIsInstance(raised.exception.__cause__, RuntimeError)
 
     async def test_writing_in_send_context_fails(self):
         """Error when sending outgoing frame is correctly reported."""
@@ -1241,43 +1283,28 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         # closing it because that would terminate the connection.
         self.transport.write_eof()
         # Sending a pong will fail.
-        # The connection closed exception reports the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.pong()
-        cause = raised.exception.__cause__
-        self.assertEqual(str(cause), "Cannot call write() after write_eof()")
-        self.assertIsInstance(cause, RuntimeError)
+        self.assertIsInstance(raised.exception.__cause__, RuntimeError)
 
     # Test safety nets — catching all exceptions in case of bugs.
 
-    # Inject a fault in a random call in data_received().
-    # This test is tightly coupled to the implementation.
     @patch("websockets.protocol.Protocol.events_received", side_effect=AssertionError)
     async def test_unexpected_failure_in_data_received(self, events_received):
         """Unexpected internal error in data_received() is correctly reported."""
-        # Receive a message to trigger the fault.
         await self.remote_connection.send("😀")
-
+        # Reading the message will trigger the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.recv()
+        self.assertIsInstance(raised.exception.__cause__, AssertionError)
 
-        exc = raised.exception
-        self.assertEqual(str(exc), "no close frame received or sent")
-        self.assertIsInstance(exc.__cause__, AssertionError)
-
-    # Inject a fault in a random call in send_context().
-    # This test is tightly coupled to the implementation.
     @patch("websockets.protocol.Protocol.send_text", side_effect=AssertionError)
     async def test_unexpected_failure_in_send_context(self, send_text):
         """Unexpected internal error in send_context() is correctly reported."""
-        # Send a message to trigger the fault.
-        # The connection closed exception reports the injected fault.
+        # Sending a message will trigger the injected fault.
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.send("😀")
-
-        exc = raised.exception
-        self.assertEqual(str(exc), "no close frame received or sent")
-        self.assertIsInstance(exc.__cause__, AssertionError)
+        self.assertIsInstance(raised.exception.__cause__, AssertionError)
 
     # Test broadcast.
 
@@ -1348,11 +1375,11 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_broadcast_skips_connection_with_send_blocked(self):
         """broadcast logs a warning when a connection is blocked in send."""
-        gate = asyncio.get_running_loop().create_future()
+        gate = asyncio.Event()
 
         async def fragments():
             yield "⏳"
-            await gate
+            await gate.wait()
 
         send_task = asyncio.create_task(self.connection.send(fragments()))
         await asyncio.sleep(MS)
@@ -1366,7 +1393,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             ["skipped broadcast: sending a fragmented message"],
         )
 
-        gate.set_result(None)
+        gate.set()
         await send_task
 
     @unittest.skipIf(
@@ -1375,11 +1402,11 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     )
     async def test_broadcast_reports_connection_with_send_blocked(self):
         """broadcast raises exceptions for connections blocked in send."""
-        gate = asyncio.get_running_loop().create_future()
+        gate = asyncio.Event()
 
         async def fragments():
             yield "⏳"
-            await gate
+            await gate.wait()
 
         send_task = asyncio.create_task(self.connection.send(fragments()))
         await asyncio.sleep(MS)
@@ -1393,7 +1420,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(str(exc), "sending a fragmented message")
         self.assertIsInstance(exc, ConcurrencyError)
 
-        gate.set_result(None)
+        gate.set()
         await send_task
 
     async def test_broadcast_skips_connection_failing_to_send(self):

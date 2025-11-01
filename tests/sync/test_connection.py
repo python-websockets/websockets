@@ -107,40 +107,45 @@ class ClientConnectionTests(ThreadTestCase):
     def test_iter_text(self):
         """__iter__ yields text messages."""
         iterator = iter(self.connection)
-        self.remote_connection.send("😀")
-        self.assertEqual(next(iterator), "😀")
-        self.remote_connection.send("😀")
-        self.assertEqual(next(iterator), "😀")
+        with contextlib.closing(iterator):
+            self.remote_connection.send("😀")
+            self.assertEqual(next(iterator), "😀")
+            self.remote_connection.send("😀")
+            self.assertEqual(next(iterator), "😀")
 
     def test_iter_binary(self):
         """__iter__ yields binary messages."""
         iterator = iter(self.connection)
-        self.remote_connection.send(b"\x01\x02\xfe\xff")
-        self.assertEqual(next(iterator), b"\x01\x02\xfe\xff")
-        self.remote_connection.send(b"\x01\x02\xfe\xff")
-        self.assertEqual(next(iterator), b"\x01\x02\xfe\xff")
+        with contextlib.closing(iterator):
+            self.remote_connection.send(b"\x01\x02\xfe\xff")
+            self.assertEqual(next(iterator), b"\x01\x02\xfe\xff")
+            self.remote_connection.send(b"\x01\x02\xfe\xff")
+            self.assertEqual(next(iterator), b"\x01\x02\xfe\xff")
 
     def test_iter_mixed(self):
         """__iter__ yields a mix of text and binary messages."""
         iterator = iter(self.connection)
-        self.remote_connection.send("😀")
-        self.assertEqual(next(iterator), "😀")
-        self.remote_connection.send(b"\x01\x02\xfe\xff")
-        self.assertEqual(next(iterator), b"\x01\x02\xfe\xff")
+        with contextlib.closing(iterator):
+            self.remote_connection.send("😀")
+            self.assertEqual(next(iterator), "😀")
+            self.remote_connection.send(b"\x01\x02\xfe\xff")
+            self.assertEqual(next(iterator), b"\x01\x02\xfe\xff")
 
     def test_iter_connection_closed_ok(self):
         """__iter__ terminates after a normal closure."""
         iterator = iter(self.connection)
-        self.remote_connection.close()
-        with self.assertRaises(StopIteration):
-            next(iterator)
+        with contextlib.closing(iterator):
+            self.remote_connection.close()
+            with self.assertRaises(StopIteration):
+                next(iterator)
 
     def test_iter_connection_closed_error(self):
         """__iter__ raises ConnectionClosedError after an error."""
         iterator = iter(self.connection)
-        self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
-        with self.assertRaises(ConnectionClosedError):
-            next(iterator)
+        with contextlib.closing(iterator):
+            self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
+            with self.assertRaises(ConnectionClosedError):
+                next(iterator)
 
     # Test recv.
 

@@ -124,41 +124,46 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_aiter_text(self):
         """__aiter__ yields text messages."""
-        aiterator = aiter(self.connection)
-        await self.remote_connection.send("😀")
-        self.assertEqual(await anext(aiterator), "😀")
-        await self.remote_connection.send("😀")
-        self.assertEqual(await anext(aiterator), "😀")
+        iterator = aiter(self.connection)
+        async with contextlib.aclosing(iterator):
+            await self.remote_connection.send("😀")
+            self.assertEqual(await anext(iterator), "😀")
+            await self.remote_connection.send("😀")
+            self.assertEqual(await anext(iterator), "😀")
 
     async def test_aiter_binary(self):
         """__aiter__ yields binary messages."""
-        aiterator = aiter(self.connection)
-        await self.remote_connection.send(b"\x01\x02\xfe\xff")
-        self.assertEqual(await anext(aiterator), b"\x01\x02\xfe\xff")
-        await self.remote_connection.send(b"\x01\x02\xfe\xff")
-        self.assertEqual(await anext(aiterator), b"\x01\x02\xfe\xff")
+        iterator = aiter(self.connection)
+        async with contextlib.aclosing(iterator):
+            await self.remote_connection.send(b"\x01\x02\xfe\xff")
+            self.assertEqual(await anext(iterator), b"\x01\x02\xfe\xff")
+            await self.remote_connection.send(b"\x01\x02\xfe\xff")
+            self.assertEqual(await anext(iterator), b"\x01\x02\xfe\xff")
 
     async def test_aiter_mixed(self):
         """__aiter__ yields a mix of text and binary messages."""
-        aiterator = aiter(self.connection)
-        await self.remote_connection.send("😀")
-        self.assertEqual(await anext(aiterator), "😀")
-        await self.remote_connection.send(b"\x01\x02\xfe\xff")
-        self.assertEqual(await anext(aiterator), b"\x01\x02\xfe\xff")
+        iterator = aiter(self.connection)
+        async with contextlib.aclosing(iterator):
+            await self.remote_connection.send("😀")
+            self.assertEqual(await anext(iterator), "😀")
+            await self.remote_connection.send(b"\x01\x02\xfe\xff")
+            self.assertEqual(await anext(iterator), b"\x01\x02\xfe\xff")
 
     async def test_aiter_connection_closed_ok(self):
         """__aiter__ terminates after a normal closure."""
-        aiterator = aiter(self.connection)
-        await self.remote_connection.close()
-        with self.assertRaises(StopAsyncIteration):
-            await anext(aiterator)
+        iterator = aiter(self.connection)
+        async with contextlib.aclosing(iterator):
+            await self.remote_connection.close()
+            with self.assertRaises(StopAsyncIteration):
+                await anext(iterator)
 
     async def test_aiter_connection_closed_error(self):
         """__aiter__ raises ConnectionClosedError after an error."""
-        aiterator = aiter(self.connection)
-        await self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
-        with self.assertRaises(ConnectionClosedError):
-            await anext(aiterator)
+        iterator = aiter(self.connection)
+        async with contextlib.aclosing(iterator):
+            await self.remote_connection.close(code=CloseCode.INTERNAL_ERROR)
+            with self.assertRaises(ConnectionClosedError):
+                await anext(iterator)
 
     # Test recv.
 

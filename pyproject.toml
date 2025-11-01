@@ -6,7 +6,7 @@ build-backend = "setuptools.build_meta"
 name = "websockets"
 description = "An implementation of the WebSocket Protocol (RFC 6455 & 7692)"
 requires-python = ">=3.10"
-license = { text = "BSD-3-Clause" }
+license = "BSD-3-Clause"
 authors = [
     { name = "Aymeric Augustin", email = "aymeric.augustin@m4x.org" },
 ]
@@ -15,7 +15,6 @@ classifiers = [
     "Development Status :: 5 - Production/Stable",
     "Environment :: Web Environment",
     "Intended Audience :: Developers",
-    "License :: OSI Approved :: BSD License",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
     "Programming Language :: Python :: 3",

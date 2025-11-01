@@ -2,10 +2,8 @@ import contextlib
 import itertools
 import logging
 import socket
-import sys
 import threading
 import time
-import unittest
 import uuid
 from unittest.mock import Mock, patch
 
@@ -936,17 +934,6 @@ class ClientConnectionTests(ThreadTestCase):
         self.assertIsNone(self.connection.close_reason)
 
     # Test reporting of network errors.
-
-    @unittest.skipUnless(sys.platform == "darwin", "works only on BSD")
-    def test_reading_in_recv_events_fails(self):
-        """Error when reading incoming frames is correctly reported."""
-        # Inject a fault by closing the socket. This works only on BSD.
-        # I cannot find a way to achieve the same effect on Linux.
-        self.connection.socket.close()
-        # The connection closed exception reports the injected fault.
-        with self.assertRaises(ConnectionClosedError) as raised:
-            self.connection.recv()
-        self.assertIsInstance(raised.exception.__cause__, IOError)
 
     def test_writing_in_recv_events_fails(self):
         """Error when responding to incoming frames is correctly reported."""

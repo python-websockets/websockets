@@ -21,7 +21,7 @@ class InterceptingConnection(Connection):
         """
         Add a delay before sending frames.
 
-        This can result in out-of-order writes, which is unrealistic.
+        Misuse can result in out-of-order writes, which is unrealistic.
 
         """
         assert self.transport.delay_write is None
@@ -36,7 +36,7 @@ class InterceptingConnection(Connection):
         """
         Add a delay before sending EOF.
 
-        This can result in out-of-order writes, which is unrealistic.
+        Misuse can result in out-of-order writes, which is unrealistic.
 
         """
         assert self.transport.delay_write_eof is None
@@ -83,9 +83,9 @@ class InterceptingTransport:
 
     This is coupled to the implementation, which relies on these two methods.
 
-    Since ``write()`` and ``write_eof()`` are not coroutines, this effect is
-    achieved by scheduling writes at a later time, after the methods return.
-    This can easily result in out-of-order writes, which is unrealistic.
+    Since ``write()`` and ``write_eof()`` are synchronous, we can only schedule
+    writes at a later time, after they return. This is unrealistic and can lead
+    to out-of-order writes if tests aren't written carefully.
 
     """
 
@@ -101,15 +101,15 @@ class InterceptingTransport:
         return getattr(self.transport, name)
 
     def write(self, data):
-        if not self.drop_write:
-            if self.delay_write is not None:
-                self.loop.call_later(self.delay_write, self.transport.write, data)
-            else:
-                self.transport.write(data)
+        if self.delay_write is not None:
+            assert not self.drop_write
+            self.loop.call_later(self.delay_write, self.transport.write, data)
+        elif not self.drop_write:
+            self.transport.write(data)
 
     def write_eof(self):
-        if not self.drop_write_eof:
-            if self.delay_write_eof is not None:
-                self.loop.call_later(self.delay_write_eof, self.transport.write_eof)
-            else:
-                self.transport.write_eof()
+        if self.delay_write_eof is not None:
+            assert not self.drop_write_eof
+            self.loop.call_later(self.delay_write_eof, self.transport.write_eof)
+        elif not self.drop_write_eof:
+            self.transport.write_eof()

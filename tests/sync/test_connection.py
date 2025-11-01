@@ -7,7 +7,7 @@ import threading
 import time
 import unittest
 import uuid
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from websockets.exceptions import (
     ConcurrencyError,
@@ -853,11 +853,8 @@ class ClientConnectionTests(ThreadTestCase):
 
     def test_close_timeout(self):
         """close_timeout parameter configures close timeout."""
-        socket_, remote_socket = socket.socketpair()
-        self.addCleanup(socket_.close)
-        self.addCleanup(remote_socket.close)
         connection = Connection(
-            socket_,
+            Mock(spec=socket.socket),
             Protocol(self.LOCAL),
             close_timeout=42 * MS,
         )
@@ -865,11 +862,8 @@ class ClientConnectionTests(ThreadTestCase):
 
     def test_max_queue(self):
         """max_queue configures high-water mark of frames buffer."""
-        socket_, remote_socket = socket.socketpair()
-        self.addCleanup(socket_.close)
-        self.addCleanup(remote_socket.close)
         connection = Connection(
-            socket_,
+            Mock(spec=socket.socket),
             Protocol(self.LOCAL),
             max_queue=4,
         )
@@ -877,11 +871,8 @@ class ClientConnectionTests(ThreadTestCase):
 
     def test_max_queue_none(self):
         """max_queue disables high-water mark of frames buffer."""
-        socket_, remote_socket = socket.socketpair()
-        self.addCleanup(socket_.close)
-        self.addCleanup(remote_socket.close)
         connection = Connection(
-            socket_,
+            Mock(spec=socket.socket),
             Protocol(self.LOCAL),
             max_queue=None,
         )
@@ -890,11 +881,8 @@ class ClientConnectionTests(ThreadTestCase):
 
     def test_max_queue_tuple(self):
         """max_queue configures high-water and low-water marks of frames buffer."""
-        socket_, remote_socket = socket.socketpair()
-        self.addCleanup(socket_.close)
-        self.addCleanup(remote_socket.close)
         connection = Connection(
-            socket_,
+            Mock(spec=socket.socket),
             Protocol(self.LOCAL),
             max_queue=(4, 2),
         )

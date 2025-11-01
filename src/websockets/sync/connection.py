@@ -106,13 +106,13 @@ class Connection:
         # Mapping of ping IDs to pong waiters, in chronological order.
         self.pending_pings: dict[bytes, tuple[threading.Event, float, bool]] = {}
 
-        self.latency: float = 0
+        self.latency: float = 0.0
         """
         Latency of the connection, in seconds.
 
         Latency is defined as the round-trip time of the connection. It is
         measured by sending a Ping frame and waiting for a matching Pong frame.
-        Before the first measurement, :attr:`latency` is ``0``.
+        Before the first measurement, :attr:`latency` is ``0.0``.
 
         By default, websockets enables a :ref:`keepalive <keepalive>` mechanism
         that sends Ping frames automatically at regular intervals. You can also
@@ -122,8 +122,8 @@ class Connection:
         # Thread that sends keepalive pings. None when ping_interval is None.
         self.keepalive_thread: threading.Thread | None = None
 
-        # Exception raised in recv_events, to be chained to ConnectionClosed
-        # in the user thread in order to show why the TCP connection dropped.
+        # Exception raised while reading from the connection, to be chained to
+        # ConnectionClosed in order to show why the TCP connection dropped.
         self.recv_exc: BaseException | None = None
 
         # Receiving events from the socket. This thread is marked as daemon to
@@ -284,8 +284,8 @@ class Connection:
         is ``0`` or negative, check if a message has been received already and
         return it, else raise :exc:`TimeoutError`.
 
-        If the message is fragmented, wait until all fragments are received,
-        reassemble them, and return the whole message.
+        When the message is fragmented, :meth:`recv` waits until all fragments
+        are received, reassembles them, and returns the whole message.
 
         Args:
             timeout: Timeout for receiving a message in seconds.
@@ -305,9 +305,9 @@ class Connection:
               return a bytestring (:class:`bytes`). This improves performance
               when decoding isn't needed, for example if the message contains
               JSON and you're using a JSON library that expects a bytestring.
-            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
-              and return a string (:class:`str`). This may be useful for
-              servers that send binary frames instead of text frames.
+            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames and
+              return strings (:class:`str`). This may be useful for servers that
+              send binary frames instead of text frames.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -372,12 +372,12 @@ class Connection:
 
             You may override this behavior with the ``decode`` argument:
 
-            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames
-              and return bytestrings (:class:`bytes`). This may be useful to
-              optimize performance when decoding isn't needed.
-            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames
-              and return strings (:class:`str`). This is useful for servers
-              that send binary frames instead of text frames.
+            * Set ``decode=False`` to disable UTF-8 decoding of Text_ frames and
+              yield bytestrings (:class:`bytes`). This improves performance
+              when decoding isn't needed.
+            * Set ``decode=True`` to force UTF-8 decoding of Binary_ frames and
+              yield strings (:class:`str`). This may be useful for servers that
+              send binary frames instead of text frames.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -425,8 +425,8 @@ class Connection:
 
         You may override this behavior with the ``text`` argument:
 
-        * Set ``text=True`` to send a bytestring or bytes-like object
-          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) as a
+        * Set ``text=True`` to send an UTF-8 bytestring or bytes-like object
+          (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) in a
           Text_ frame. This improves performance when the message is already
           UTF-8 encoded, for example if the message contains JSON and you're
           using a JSON library that produces a bytestring.
@@ -530,7 +530,7 @@ class Connection:
                             self.protocol.send_binary(chunk, fin=False)
                     encode = False
                 else:
-                    raise TypeError("data iterable must contain bytes or str")
+                    raise TypeError("iterable must contain bytes or str")
 
                 # Other fragments
                 for chunk in chunks:
@@ -543,7 +543,7 @@ class Connection:
                             assert self.send_in_progress
                             self.protocol.send_continuation(chunk, fin=False)
                     else:
-                        raise TypeError("data iterable must contain uniform types")
+                        raise TypeError("iterable must contain uniform types")
 
                 # Final fragment.
                 with self.send_context():
@@ -576,9 +576,8 @@ class Connection:
         """
         Perform the closing handshake.
 
-        :meth:`close` waits for the other end to complete the handshake, for the
-        TCP connection to terminate, and for all incoming messages to be read
-        with :meth:`recv`.
+        :meth:`close` waits for the other end to complete the handshake and
+        for the TCP connection to terminate.
 
         :meth:`close` is idempotent: it doesn't do anything once the
         connection is closed.
@@ -633,8 +632,9 @@ class Connection:
 
             ::
 
-                pong_event = ws.ping()
-                pong_event.wait()  # only if you want to wait for the pong
+                pong_received = ws.ping()
+                # only if you want to wait for the corresponding pong
+                pong_received.wait()
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -659,7 +659,8 @@ class Connection:
                 data = struct.pack("!I", random.getrandbits(32))
 
             pong_received = threading.Event()
-            self.pending_pings[data] = (pong_received, time.monotonic(), ack_on_close)
+            ping_timestamp = time.monotonic()
+            self.pending_pings[data] = (pong_received, ping_timestamp, ack_on_close)
             self.protocol.send_ping(data)
             return pong_received
 
@@ -737,7 +738,7 @@ class Connection:
             for ping_id in ping_ids:
                 del self.pending_pings[ping_id]
 
-    def acknowledge_pending_pings(self) -> None:
+    def terminate_pending_pings(self) -> None:
         """
         Acknowledge pending pings when the connection is closed.
 
@@ -773,7 +774,6 @@ class Connection:
                     self.logger.debug("% sent keepalive ping")
 
                 if self.ping_timeout is not None:
-                    #
                     if pong_received.wait(self.ping_timeout):
                         if self.debug:
                             self.logger.debug("% received keepalive pong")
@@ -808,15 +808,17 @@ class Connection:
 
         Run this method in a thread as long as the connection is alive.
 
-        ``recv_events()`` exits immediately when the ``self.socket`` is closed.
+        ``recv_events()`` exits immediately when ``self.socket`` is closed.
 
         """
         try:
             while True:
                 try:
+                    # If the assembler buffer is full, block until it drains.
                     with self.recv_flow_control:
-                        if self.close_deadline is not None:
-                            self.socket.settimeout(self.close_deadline.timeout())
+                        pass
+                    if self.close_deadline is not None:
+                        self.socket.settimeout(self.close_deadline.timeout())
                     data = self.socket.recv(self.recv_bufsize)
                 except Exception as exc:
                     if self.debug:
@@ -859,9 +861,8 @@ class Connection:
                         self.set_recv_exc(exc)
                         break
 
+                    # If needed, set the close deadline based on the close timeout.
                     if self.protocol.close_expected():
-                        # If the connection is expected to close soon, set the
-                        # close deadline based on the close timeout.
                         if self.close_deadline is None:
                             self.close_deadline = Deadline(self.close_timeout)
 
@@ -878,6 +879,7 @@ class Connection:
 
             # Breaking out of the while True: ... loop means that we believe
             # that the socket doesn't work anymore.
+
             with self.protocol_mutex:
                 # Feed the end of the data stream to the protocol.
                 self.protocol.receive_eof()
@@ -886,7 +888,7 @@ class Connection:
                 events = self.protocol.events_received()
 
                 # There is no error handling because send_data() can only write
-                # the end of the data stream here and it handles errors itself.
+                # the end of the data stream and it handles errors by itself.
                 self.send_data()
 
             # This code path is triggered when receiving an HTTP response
@@ -918,7 +920,7 @@ class Connection:
 
         On entry, :meth:`send_context` acquires the connection lock and checks
         that the connection is open; on exit, it writes outgoing data to the
-        socket::
+        socket and releases the connection lock::
 
             with self.send_context():
                 self.protocol.send_text(message.encode())
@@ -957,11 +959,10 @@ class Connection:
                     # Check if the connection is expected to close soon.
                     if self.protocol.close_expected():
                         wait_for_close = True
-                        # If the connection is expected to close soon, set the
-                        # close deadline based on the close timeout.
-                        # Since we tested earlier that protocol.state was OPEN
+                        # Set the close deadline based on the close timeout.
+                        # Since we tested earlier that protocol.state is OPEN
                         # (or CONNECTING) and we didn't release protocol_mutex,
-                        # it is certain that self.close_deadline is still None.
+                        # self.close_deadline is still None.
                         assert self.close_deadline is None
                         self.close_deadline = Deadline(self.close_timeout)
                     # Write outgoing data to the socket.
@@ -983,6 +984,9 @@ class Connection:
                 # Minor layering violation: we assume that the connection
                 # will be closing soon if it isn't in the expected state.
                 wait_for_close = True
+                # Calculate close_deadline if it wasn't set yet.
+                if self.close_deadline is None:
+                    self.close_deadline = Deadline(self.close_timeout)
                 raise_close_exc = True
 
         # To avoid a deadlock, release the connection lock by exiting the
@@ -991,15 +995,12 @@ class Connection:
         # If the connection is expected to close soon and the close timeout
         # elapses, close the socket to terminate the connection.
         if wait_for_close:
-            if self.close_deadline is None:
-                timeout = self.close_timeout
-            else:
-                # Thread.join() returns immediately if timeout is negative.
-                timeout = self.close_deadline.timeout(raise_if_elapsed=False)
+            # Thread.join() returns immediately if timeout is negative.
+            assert self.close_deadline is not None
+            timeout = self.close_deadline.timeout(raise_if_elapsed=False)
             self.recv_events_thread.join(timeout)
-
             if self.recv_events_thread.is_alive():
-                # There's no risk to overwrite another error because
+                # There's no risk of overwriting another error because
                 # original_exc is never set when wait_for_close is True.
                 assert original_exc is None
                 original_exc = TimeoutError("timed out while closing connection")
@@ -1023,9 +1024,6 @@ class Connection:
 
         This method requires holding protocol_mutex.
 
-        Raises:
-            OSError: When a socket operations fails.
-
         """
         assert self.protocol_mutex.locked()
         for data in self.protocol.data_to_send():
@@ -1043,11 +1041,12 @@ class Connection:
         """
         Set recv_exc, if not set yet.
 
-        This method requires holding protocol_mutex.
+        This method requires holding protocol_mutex and must be called only from
+        the thread running recv_events().
 
         """
         assert self.protocol_mutex.locked()
-        if self.recv_exc is None:  # pragma: no branch
+        if self.recv_exc is None:
             self.recv_exc = exc
 
     def close_socket(self) -> None:
@@ -1061,8 +1060,8 @@ class Connection:
         # shutdown() is required to interrupt recv() on Linux.
         try:
             self.socket.shutdown(socket.SHUT_RDWR)
-        except OSError:
-            pass  # socket is already closed
+        except OSError:  # socket already closed
+            pass
         self.socket.close()
 
         # Calling protocol.receive_eof() is safe because it's idempotent.
@@ -1071,8 +1070,8 @@ class Connection:
             self.protocol.receive_eof()
             assert self.protocol.state is CLOSED
 
-        # Abort recv() with a ConnectionClosed exception.
-        self.recv_messages.close()
+            # Abort recv() with a ConnectionClosed exception.
+            self.recv_messages.close()
 
-        # Acknowledge pings sent with the ack_on_close option.
-        self.acknowledge_pending_pings()
+            # Acknowledge pings sent with the ack_on_close option.
+            self.terminate_pending_pings()

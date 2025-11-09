@@ -1000,3 +1000,16 @@ class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
             str(raised.exception),
             "unsupported compression: False",
         )
+
+    async def test_reentrancy(self):
+        """Client isn't reentrant."""
+        async with serve(*args) as server:
+            connecter = connect(get_uri(server))
+            async with connecter:
+                with self.assertRaises(RuntimeError) as raised:
+                    async with connecter:
+                        self.fail("did not raise")
+        self.assertEqual(
+            str(raised.exception),
+            "connect() isn't reentrant",
+        )

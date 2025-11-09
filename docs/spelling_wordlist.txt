@@ -47,6 +47,7 @@ lifecycle
 linkerd
 liveness
 lookups
+macOS
 MiB
 middleware
 mutex

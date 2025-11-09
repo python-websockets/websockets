@@ -162,17 +162,17 @@ class ServerConnection(Connection):
                         )
 
                 if response is None:
-                    if self.server.socket_closed.is_set():
+                    if not self.server.socket_closed.is_set():
+                        self.response = self.protocol.accept(self.request)
+                    else:
                         self.response = self.protocol.reject(
                             http.HTTPStatus.SERVICE_UNAVAILABLE,
                             "Server is shutting down.\n",
                         )
-                    else:
-                        self.response = self.protocol.accept(self.request)
                 else:
                     self.response = response
 
-                if server_header:
+                if server_header is not None:
                     self.response.headers["Server"] = server_header
 
                 response = None
@@ -226,17 +226,11 @@ class Server:
     """
     WebSocket server returned by :func:`serve`.
 
-    This class mirrors the API of :class:`~socketserver.BaseServer`, notably the
-    :meth:`~socketserver.BaseServer.serve_forever` and
-    :meth:`~socketserver.BaseServer.shutdown` methods, as well as the context
-    manager protocol.
-
-    It keeps track of WebSocket connections in order to close them properly
-    when shutting down.
+    This class mirrors partially the API of :class:`~socketserver.BaseServer`.
 
     Args:
-        socket: Server socket listening for new connections.
-        handler: Handler for one connection. Receives the socket and address
+        socket: Server socket accepting new connections.
+        handler: Handler for one connection. It receives the socket and address
             returned by :meth:`~socket.socket.accept`.
         logger: Logger for this server.
             It defaults to ``logging.getLogger("websockets.server")``.
@@ -258,7 +252,7 @@ class Server:
             logger = logging.getLogger("websockets.server")
         self.logger = logger
 
-        # Synchronize access to closing, all_connections, and handler_threads.
+        # Synchronize access to all_connections and handler_threads.
         self.lock = threading.Lock()
 
         # Keep track of active connections and connection handler threads.
@@ -332,9 +326,9 @@ class Server:
                 # terminate, so there's no point using daemon threads.
                 thread = threading.Thread(target=self.handler, args=(sock, addr))
                 # The thread must be registered in self.handler_threads now,
-                # before it's started. Otherwise, a race condition could
-                # happen when closing the server after starting the thread
-                # but before it starts executing.
+                # before it's started. If it was registered in sock_handler(),
+                # a race condition could happen when closing the server after
+                # starting the thread but before it executes.
                 with self.lock:
                     self.handler_threads.add(thread)
                 thread.start()
@@ -383,8 +377,10 @@ class Server:
         # Wait until serve_forever() no longer accepts new connections nor
         # starts threads to handle them, meaning that self.handler_threads
         # won't get new entries.
+        # Also reject OPENING connections with HTTP 503 -- see handshake().
         self.socket_closed.wait()
 
+        # Close OPEN connections.
         if close_connections:
             # At this point, all threads are started, but some may still be in
             # the opening handshake. Close open connections until no thread is
@@ -409,7 +405,7 @@ class Server:
                 if not connections:
                     time.sleep(self.SHUTDOWN_POLLING_INTERVAL)
                     continue
-                # Close OPEN connections and wait until they're closed.
+                # Close open connections and wait until they're closed.
                 with concurrent.futures.ThreadPoolExecutor() as executor:
                     for connection in connections:
                         executor.submit(connection.close, code, reason)
@@ -511,7 +507,7 @@ def serve(
     Create a WebSocket server listening on ``host`` and ``port``.
 
     Whenever a client connects, the server creates a :class:`ServerConnection`,
-    performs the opening handshake, and delegates to the ``handler``.
+    performs the opening handshake, and delegates to the ``handler`` function.
 
     The handler receives the :class:`ServerConnection` instance, which you can
     use to send and receive messages.
@@ -519,10 +515,10 @@ def serve(
     Once the handler completes, either normally or with an exception, the server
     performs the closing handshake and closes the connection.
 
-    This function returns a :class:`Server` whose API mirrors
+    This function returns a :class:`Server` object whose API mirrors
     :class:`~socketserver.BaseServer`. Treat it as a context manager to ensure
-    that it will be closed and call :meth:`~Server.serve_forever` to serve
-    requests::
+    that it will be closed gracefully and call :meth:`~Server.serve_forever` to
+    serve requests::
 
         from websockets.sync.server import serve
 
@@ -531,6 +527,9 @@ def serve(
 
         with serve(handler, ...) as server:
             server.serve_forever()
+
+        To stop the server gracefully, call its :meth:`~Server.shutdown` method
+        from another thread.
 
     Args:
         handler: Connection handler. It receives the WebSocket connection,
@@ -639,8 +638,12 @@ def serve(
         else:
             sock = socket.create_server((host, port), **kwargs)
     else:
+        if host is not None:
+            raise ValueError("host is incompatible with sock")
+        if port is not None:
+            raise ValueError("port is incompatible with sock")
         if path is not None:
-            raise ValueError("path and sock arguments are incompatible")
+            raise ValueError("path is incompatible with sock")
 
     # Initialize TLS wrapper
 
@@ -654,7 +657,7 @@ def serve(
 
     # Define request handler
 
-    def conn_handler(sock: socket.socket, addr: Any) -> None:
+    def sock_handler(sock: socket.socket, addr: Any) -> None:
         # Calculate timeouts on the TLS and WebSocket handshakes.
         # The TLS timeout must be set on the socket, then removed
         # to avoid conflicting with the WebSocket timeout in handshake().
@@ -726,9 +729,6 @@ def serve(
                 with server.lock:
                     server.handler_threads.discard(threading.current_thread())
 
-        with server.lock:
-            server.all_connections.add(connection)
-
         try:
             connection.handshake(
                 process_request,
@@ -741,6 +741,8 @@ def serve(
                 connection.close_socket()
                 return
 
+            with server.lock:
+                server.all_connections.add(connection)
             connection.start_keepalive()
             try:
                 handler(connection)
@@ -749,6 +751,9 @@ def serve(
                 connection.close(CloseCode.INTERNAL_ERROR)
             else:
                 connection.close()
+            finally:
+                with server.lock:
+                    server.all_connections.discard(connection)
 
         except Exception:
             # Don't leak sockets when the opening handshake times out or an
@@ -756,17 +761,13 @@ def serve(
             connection.close_socket()
 
         finally:
-            # Registration is tied to the lifecycle of conn_handler() because
-            # the server waits for connection handlers to terminate, even if
-            # all connections are already closed.
             with server.lock:
-                server.all_connections.discard(connection)
                 server.handler_threads.discard(threading.current_thread())
 
     # Initialize server
 
     # The `server` variable is captured by the closure of conn_handler().
-    server = Server(sock, conn_handler, logger)
+    server = Server(sock, sock_handler, logger)
     return server
 
 

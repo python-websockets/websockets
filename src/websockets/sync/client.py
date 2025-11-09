@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 import socket
 import ssl as ssl_module
 import threading
@@ -157,6 +158,7 @@ def connect(
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
     create_connection: type[ClientConnection] | None = None,
+    # Other keyword arguments are passed to socket.create_connection
     **kwargs: Any,
 ) -> ClientConnection:
     """
@@ -190,8 +192,8 @@ def connect(
         compression: The "permessage-deflate" extension is enabled by default.
             Set ``compression`` to :obj:`None` to disable it. See the
             :doc:`compression guide <../../topics/compression>` for details.
-        additional_headers (HeadersLike | None): Arbitrary HTTP headers to add
-            to the handshake request.
+        additional_headers: Arbitrary HTTP headers to add to the handshake
+            request.
         user_agent_header: Value of  the ``User-Agent`` request header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
@@ -230,6 +232,7 @@ def connect(
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
+        InvalidProxy: If ``proxy`` isn't a valid proxy.
         OSError: If the TCP connection fails.
         InvalidHandshake: If the opening handshake fails.
         TimeoutError: If the opening handshake times out.
@@ -250,6 +253,20 @@ def connect(
     if not ws_uri.secure and ssl is not None:
         raise ValueError("ssl argument is incompatible with a ws:// URI")
 
+    if subprotocols is not None:
+        validate_subprotocols(subprotocols)
+
+    if compression == "deflate":
+        extensions = enable_client_permessage_deflate(extensions)
+    elif compression is not None:
+        raise ValueError(f"unsupported compression: {compression}")
+
+    if logger is None:
+        logger = logging.getLogger("websockets.client")
+
+    if create_connection is None:
+        create_connection = ClientConnection
+
     # Private APIs for unix_connect()
     unix: bool = kwargs.pop("unix", False)
     path: str | None = kwargs.pop("path", None)
@@ -258,15 +275,7 @@ def connect(
         if path is None and sock is None:
             raise ValueError("missing path argument")
         elif path is not None and sock is not None:
-            raise ValueError("path and sock arguments are incompatible")
-
-    if subprotocols is not None:
-        validate_subprotocols(subprotocols)
-
-    if compression == "deflate":
-        extensions = enable_client_permessage_deflate(extensions)
-    elif compression is not None:
-        raise ValueError(f"unsupported compression: {compression}")
+            raise ValueError("path is incompatible with sock")
 
     if unix:
         proxy = None
@@ -280,9 +289,6 @@ def connect(
     # to avoid conflicting with the WebSocket timeout in handshake().
     deadline = Deadline(open_timeout)
 
-    if create_connection is None:
-        create_connection = ClientConnection
-
     try:
         # Connect socket
 
@@ -292,10 +298,11 @@ def connect(
                 sock.settimeout(deadline.timeout())
                 assert path is not None  # mypy cannot figure this out
                 sock.connect(path)
+
             elif proxy is not None:
                 proxy_parsed = parse_proxy(proxy)
+
                 if proxy_parsed.scheme[:5] == "socks":
-                    # Connect to the server through the proxy.
                     sock = connect_socks_proxy(
                         proxy_parsed,
                         ws_uri,
@@ -304,13 +311,12 @@ def connect(
                         # python_socks is consistent across implementations.
                         local_addr=kwargs.pop("source_address", None),
                     )
+
                 elif proxy_parsed.scheme[:4] == "http":
-                    # Validate the proxy_ssl argument.
                     if proxy_parsed.scheme != "https" and proxy_ssl is not None:
                         raise ValueError(
                             "proxy_ssl argument is incompatible with an http:// proxy"
                         )
-                    # Connect to the server through the proxy.
                     sock = connect_http_proxy(
                         proxy_parsed,
                         ws_uri,
@@ -320,14 +326,17 @@ def connect(
                         server_hostname=proxy_server_hostname,
                         **kwargs,
                     )
+
                 else:
-                    raise AssertionError("unsupported proxy")
-            else:
+                    raise AssertionError("parse_proxy returned unsupported proxy")
+
+            else:  # proxy is None
                 kwargs.setdefault("timeout", deadline.timeout())
                 sock = socket.create_connection(
                     (ws_uri.host, ws_uri.port),
                     **kwargs,
                 )
+
             sock.settimeout(None)
 
         # Disable Nagle algorithm
@@ -364,6 +373,7 @@ def connect(
 
         # Initialize WebSocket connection
 
+        # create_connection defaults to ClientConnection.
         connection = create_connection(
             sock,
             protocol,
@@ -539,7 +549,8 @@ def connect_http_proxy(
 
     # Send CONNECT request to the proxy and read response.
 
-    sock.sendall(prepare_connect_request(proxy, ws_uri, user_agent_header))
+    request = prepare_connect_request(proxy, ws_uri, user_agent_header)
+    sock.sendall(request)
     try:
         read_connect_response(sock, deadline)
     except Exception:

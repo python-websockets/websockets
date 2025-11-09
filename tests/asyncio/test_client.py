@@ -69,7 +69,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         """Client connects using a pre-existing socket."""
         async with serve(*args) as server:
             with socket.create_connection(get_host_port(server)) as sock:
-                # Use a non-existing domain to ensure we connect to sock.
+                # Use a non-existing domain to ensure we connect via sock.
                 async with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
 
@@ -340,7 +340,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         async with serve(*args, process_request=redirect) as server:
             with socket.create_connection(get_host_port(server)) as sock:
                 with self.assertRaises(ValueError) as raised:
-                    # Use a non-existing domain to ensure we connect to sock.
+                    # Use a non-existing domain to ensure we connect via sock.
                     async with connect("ws://invalid/redirect", sock=sock):
                         self.fail("did not raise")
 
@@ -492,9 +492,11 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         """Client closes the connection when receiving non-HTTP response from server."""
 
         async def junk(reader, writer):
-            await asyncio.sleep(MS)  # wait for the client to send the handshake request
+            # Wait for the client to send the handshake request.
+            await asyncio.sleep(MS)
             writer.write(b"220 smtp.invalid ESMTP Postfix\r\n")
-            await reader.read(4096)  # wait for the client to close the connection
+            # Wait for the client to close the connection.
+            await reader.read(4096)
             writer.close()
 
         server = await asyncio.start_server(junk, "localhost", 0)
@@ -698,7 +700,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
         """Client connects using a pre-existing socket."""
         async with serve(*args) as server:
             with socket.create_connection(get_host_port(server)) as sock:
-                # Use a non-existing domain to ensure we connect to sock.
+                # Use a non-existing domain to ensure we connect via sock.
                 async with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
         self.assertNumFlows(0)

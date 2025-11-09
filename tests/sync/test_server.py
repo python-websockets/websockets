@@ -67,7 +67,8 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         """Server receives connection using a pre-existing socket."""
         with socket.create_server(("localhost", 0)) as sock:
             host, port = sock.getsockname()
-            with run_server(sock=sock):
+            # Unset the default values of host and port set by run_server.
+            with run_server(host=None, port=None, sock=sock):
                 with connect(f"ws://{host}:{port}/") as client:
                     self.assertEval(client, "ws.protocol.state.name", "OPEN")
 
@@ -329,9 +330,19 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
     def test_timeout_during_handshake(self):
         """Server times out before receiving handshake request from client."""
-        with run_server(open_timeout=MS) as server:
-            with socket.create_connection(server.socket.getsockname()) as sock:
-                self.assertEqual(sock.recv(4096), b"")
+        with self.assertLogs("websockets", logging.DEBUG) as logs:
+            with run_server(open_timeout=MS) as server:
+                with socket.create_connection(server.socket.getsockname()) as sock:
+                    # Wait for the server to close the connection.
+                    self.assertEqual(sock.recv(4096), b"")
+
+        messages = [record.getMessage() for record in logs.records]
+        self.assertIn("! no valid HTTP request", messages)
+        record = logs.records[messages.index("! no valid HTTP request")]
+        self.assertEqual(
+            str(record.exc_info[1]),
+            "connection closed while reading HTTP request line",
+        )
 
     def test_connection_closed_during_handshake(self):
         """Server reads EOF before receiving handshake request from client."""
@@ -366,6 +377,26 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             "invalid HTTP request line: HELO relay.invalid",
         )
 
+    def test_shutdown_stops_accepting_connections(self):
+        """Server stops accepting connections."""
+        with run_server() as server:
+            # Connect a client and disable close_connections to delay closing.
+            uri = get_uri(server)
+            with connect(uri):
+                shutdown_thread = threading.Thread(
+                    target=server.shutdown,
+                    kwargs={"close_connections": False},
+                )
+                shutdown_thread.start()
+                time.sleep(MS)
+
+                # Server cannot receive new connections.
+                with self.assertRaises(OSError):
+                    with connect(uri):
+                        self.fail("did not raise")
+
+            shutdown_thread.join()
+
     def test_shutdown_rejects_connecting_connections(self):
         """Server rejects connecting connections with HTTP 503."""
 
@@ -373,7 +404,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             ws.server.socket_closed.wait()
 
         def shutdown_server(server):
-            time.sleep(5 * MS)
+            time.sleep(2 * MS)
             server.shutdown()
 
         with run_server(process_request=process_request) as server:
@@ -416,7 +447,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
     def test_shutdown_keeps_connections_open(self):
         """Server waits for the client to close open connections."""
         with run_server() as server:
-            with connect(get_uri(server)) as client:
+            with connect(get_uri(server)):
                 shutdown_thread = threading.Thread(
                     target=server.shutdown,
                     kwargs={"close_connections": False},
@@ -427,10 +458,9 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 shutdown_thread.join(MS)
                 self.assertTrue(shutdown_thread.is_alive())
 
-                # Once the client closes the connection, the server terminates.
-                client.close()
-                shutdown_thread.join(MS)
-                self.assertFalse(shutdown_thread.is_alive())
+            # Once the client closes the connection, the server terminates.
+            shutdown_thread.join(MS)
+            self.assertFalse(shutdown_thread.is_alive())
 
     @patch("websockets.sync.server.Server.SHUTDOWN_POLLING_INTERVAL", MS)
     def test_shutdown_keeps_handlers_running(self):
@@ -451,6 +481,18 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 shutdown_thread.join(5 * MS)
                 self.assertFalse(shutdown_thread.is_alive())
 
+    def test_context_manager_closes_server(self):
+        """Server closes when exiting context manager."""
+        with self.assertLogs("websockets", logging.INFO) as logs:
+            with serve(handler, "localhost", 0) as server:
+                thread = threading.Thread(target=server.serve_forever)
+                thread.start()
+                self.addCleanup(thread.join)
+                with connect(get_uri(server)) as client:
+                    self.assertEval(client, "ws.protocol.state.name", "OPEN")
+
+        self.assertEqual(logs.records[-1].getMessage(), "server closed")
+
     def test_fileno(self):
         """Server provides a fileno method."""
         with run_server() as server:
@@ -469,6 +511,7 @@ class SecureServerTests(EvalShellMixin, unittest.TestCase):
         """Server times out before receiving TLS handshake request from client."""
         with run_server(ssl=SERVER_CONTEXT, open_timeout=MS) as server:
             with socket.create_connection(server.socket.getsockname()) as sock:
+                # Wait for the server to close the connection.
                 self.assertEqual(sock.recv(4096), b"")
 
     def test_connection_closed_during_tls_handshake(self):
@@ -501,6 +544,28 @@ class SecureUnixServerTests(EvalShellMixin, unittest.TestCase):
 
 
 class ServerUsageErrorsTests(unittest.TestCase):
+    def test_host_and_sock(self):
+        """Server rejects host when sock is provided."""
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.addCleanup(sock.close)
+        with self.assertRaises(ValueError) as raised:
+            serve(handler, host="localhost", sock=sock)
+        self.assertEqual(
+            str(raised.exception),
+            "host is incompatible with sock",
+        )
+
+    def test_port_and_sock(self):
+        """Server rejects port when sock is provided."""
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.addCleanup(sock.close)
+        with self.assertRaises(ValueError) as raised:
+            serve(handler, port=0, sock=sock)
+        self.assertEqual(
+            str(raised.exception),
+            "port is incompatible with sock",
+        )
+
     def test_unix_without_path_or_sock(self):
         """Unix server requires path when sock isn't provided."""
         with self.assertRaises(ValueError) as raised:
@@ -518,7 +583,7 @@ class ServerUsageErrorsTests(unittest.TestCase):
             unix_serve(handler, path="/", sock=sock)
         self.assertEqual(
             str(raised.exception),
-            "path and sock arguments are incompatible",
+            "path is incompatible with sock",
         )
 
     def test_invalid_subprotocol(self):
@@ -629,10 +694,11 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             ) as client:
                 self.assertEval(client, "ws.username", "bye")
 
-    def test_check_credentials(self):
+    def test_check_credentials_function(self):
         """basic_auth accepts a check_credentials function."""
 
         def check_credentials(username, password):
+            self.assertEqual(username, "hello")
             return hmac.compare_digest(password, "iloveyou")
 
         with run_server(

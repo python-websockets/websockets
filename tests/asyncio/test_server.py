@@ -445,12 +445,22 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_timeout_during_handshake(self):
         """Server times out before receiving handshake request from client."""
-        async with serve(*args, open_timeout=MS) as server:
-            reader, writer = await asyncio.open_connection(*get_host_port(server))
-            try:
-                self.assertEqual(await reader.read(4096), b"")
-            finally:
-                writer.close()
+        with self.assertLogs("websockets", logging.DEBUG) as logs:
+            async with serve(*args, open_timeout=MS) as server:
+                reader, writer = await asyncio.open_connection(*get_host_port(server))
+                try:
+                    # Wait for the server to close the connection.
+                    self.assertEqual(await reader.read(4096), b"")
+                finally:
+                    writer.close()
+
+        messages = [record.getMessage() for record in logs.records]
+        self.assertIn("! no valid HTTP request", messages)
+        record = logs.records[messages.index("! no valid HTTP request")]
+        self.assertEqual(
+            str(record.exc_info[1]),
+            "connection closed while reading HTTP request line",
+        )
 
     async def test_connection_closed_during_handshake(self):
         """Server reads EOF before receiving handshake request from client."""
@@ -487,6 +497,20 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             "invalid HTTP request line: HELO relay.invalid",
         )
 
+    async def test_close_stops_accepting_connections(self):
+        """Server stops accepting connections."""
+        async with serve(*args) as server:
+            # Connect a client and disable close_connections to delay closing.
+            uri = get_uri(server)
+            async with connect(uri):
+                server.close(close_connections=False)
+                await asyncio.sleep(0)
+
+                # Server cannot receive new connections.
+                with self.assertRaises(OSError):
+                    async with connect(uri):
+                        self.fail("did not raise")
+
     async def test_close_rejects_connecting_connections(self):
         """Server rejects connecting connections with HTTP 503."""
 
@@ -495,7 +519,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 await asyncio.sleep(0)  # pragma: no cover
 
         async with serve(*args, process_request=process_request) as server:
-            asyncio.get_running_loop().call_later(MS, server.close)
+            asyncio.get_running_loop().call_later(2 * MS, server.close)
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
@@ -532,22 +556,17 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     async def test_close_keeps_connections_open(self):
         """Server waits for the client to close open connections."""
         async with serve(*args) as server:
-            async with connect(get_uri(server)) as client:
+            async with connect(get_uri(server)):
                 server.close(close_connections=False)
-
-                # Server cannot receive new connections.
-                await asyncio.sleep(0)
-                self.assertFalse(server.sockets)
 
                 # The server waits for the client to close the connection.
                 with self.assertRaises(TimeoutError):
                     async with asyncio.timeout(MS):
                         await server.wait_closed()
 
-                # Once the client closes the connection, the server terminates.
-                await client.close()
-                async with asyncio.timeout(MS):
-                    await server.wait_closed()
+            # Once the client closes the connection, the server terminates.
+            async with asyncio.timeout(MS):
+                await server.wait_closed()
 
     async def test_close_keeps_handlers_running(self):
         """Server waits for connection handlers to terminate."""
@@ -567,6 +586,15 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 async with asyncio.timeout(5 * MS):
                     await server.wait_closed()
 
+    async def test_context_manager_closes_server(self):
+        """Server closes when exiting context manager."""
+        with self.assertLogs("websockets", logging.INFO) as logs:
+            async with serve(handler, "localhost", 0) as server:
+                async with connect(get_uri(server)) as client:
+                    await self.assertEval(client, "ws.protocol.state.name", "OPEN")
+
+        self.assertEqual(logs.records[-1].getMessage(), "server closed")
+
     async def test_sockets(self):
         """Server provides a sockets property."""
         async with serve(*args) as server:
@@ -583,13 +611,14 @@ class SecureServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         async with serve(*args, ssl=SERVER_CONTEXT) as server:
             async with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
                 await self.assertEval(client, "ws.protocol.state.name", "OPEN")
-                await self.assertEval(client, SSL_OBJECT + ".version()[:3]", "TLS")
+                await self.assertEval(client, f"{SSL_OBJECT}.version()[:3]", "TLS")
 
     async def test_timeout_during_tls_handshake(self):
         """Server times out before receiving TLS handshake request from client."""
         async with serve(*args, ssl=SERVER_CONTEXT, open_timeout=MS) as server:
             reader, writer = await asyncio.open_connection(*get_host_port(server))
             try:
+                # Wait for the server to close the connection.
                 self.assertEqual(await reader.read(4096), b"")
             finally:
                 writer.close()
@@ -619,10 +648,32 @@ class SecureUnixServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             async with unix_serve(handler, path, ssl=SERVER_CONTEXT):
                 async with unix_connect(path, ssl=CLIENT_CONTEXT) as client:
                     await self.assertEval(client, "ws.protocol.state.name", "OPEN")
-                    await self.assertEval(client, SSL_OBJECT + ".version()[:3]", "TLS")
+                    await self.assertEval(client, f"{SSL_OBJECT}.version()[:3]", "TLS")
 
 
 class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
+    async def test_host_and_sock(self):
+        """Server rejects host when sock is provided."""
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.addCleanup(sock.close)
+        with self.assertRaises(ValueError) as raised:
+            await serve(handler, host="localhost", sock=sock)
+        self.assertEqual(
+            str(raised.exception),
+            "host/port and sock can not be specified at the same time",
+        )
+
+    async def test_port_and_sock(self):
+        """Server rejects port when sock is provided."""
+        sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.addCleanup(sock.close)
+        with self.assertRaises(ValueError) as raised:
+            await serve(handler, port=0, sock=sock)
+        self.assertEqual(
+            str(raised.exception),
+            "host/port and sock can not be specified at the same time",
+        )
+
     async def test_unix_without_path_or_sock(self):
         """Unix server requires path when sock isn't provided."""
         with self.assertRaises(ValueError) as raised:
@@ -761,6 +812,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """basic_auth accepts a check_credentials function."""
 
         def check_credentials(username, password):
+            self.assertEqual(username, "hello")
             return hmac.compare_digest(password, "iloveyou")
 
         async with serve(
@@ -777,6 +829,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """basic_auth accepts a check_credentials coroutine."""
 
         async def check_credentials(username, password):
+            self.assertEqual(username, "hello")
             return hmac.compare_digest(password, "iloveyou")
 
         async with serve(

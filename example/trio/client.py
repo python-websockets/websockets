@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 
-"""Client example using the asyncio API."""
+"""Client example using the trio API."""
 
-import asyncio
-from websockets.asyncio.client import connect
+import trio
+from websockets.trio.client import connect
 
 
 async def hello():
@@ -18,4 +18,4 @@ async def hello():
 
 
 if __name__ == "__main__":
-    asyncio.run(hello())
+    trio.run(hello)

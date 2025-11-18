@@ -11,6 +11,7 @@ from .asyncio.messages import SimpleQueue
 from .exceptions import ConnectionClosed
 from .frames import Close
 from .streams import StreamReader
+from .uri import parse_uri
 from .version import version as websockets_version
 
 
@@ -101,9 +102,14 @@ async def send_outgoing_messages(
             break
 
 
-async def interactive_client(uri: str) -> None:
+async def interactive_client(uri: str, insecure: bool = False) -> None:
     try:
-        websocket = await connect(uri)
+        if insecure and parse_uri(uri).secure:
+            import ssl
+
+            websocket = await connect(uri, ssl=ssl._create_unverified_context())
+        else:
+            websocket = await connect(uri)
     except Exception as exc:
         print(f"Failed to connect to {uri}: {exc}.")
         sys.exit(1)
@@ -151,6 +157,9 @@ def main(argv: list[str] | None = None) -> None:
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--version", action="store_true")
     group.add_argument("uri", metavar="<uri>", nargs="?")
+
+    parser.add_argument("--insecure", action="store_true")
+
     args = parser.parse_args(argv)
 
     if args.version:
@@ -173,6 +182,6 @@ def main(argv: list[str] | None = None) -> None:
 
     # Remove the try/except block when dropping Python < 3.11.
     try:
-        asyncio.run(interactive_client(args.uri))
+        asyncio.run(interactive_client(args.uri, insecure=args.insecure))
     except KeyboardInterrupt:  # pragma: no cover
         pass

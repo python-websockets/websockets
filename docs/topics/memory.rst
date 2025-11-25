@@ -152,6 +152,14 @@ and :func:`~asyncio.server.serve` varies across implementations.
   use up to 4 bytes of memory per character, the queue may use up to ``4 *
   max_size * max_queue`` bytes of memory. By default, this is 128 MiB.
 
-* In the :mod:`threading` implementation, there is no queue of incoming
-  messages. The ``max_queue`` argument doesn't exist. The connection keeps at
-  most one message in memory at a time.
+* In the :mod:`threading` implementation, ``max_queue`` has the same semantics
+  as in the new :mod:`asyncio` implementation. It is the high-water mark of a
+  queue of incoming frames. It defaults to 16 frames. If the queue grows larger,
+  the connection stops reading from the network until the application consumes
+  messages and the queue goes below the low-water mark. This creates backpressure
+  on the TCP connection.
+
+  Each item in the queue is a frame. A frame can be a message or a message
+  fragment. Either way, it must be smaller than ``max_size``, the maximum size
+  of a message. The queue may use up to ``max_size * max_queue`` bytes of
+  memory. By default, this is 16 MiB.

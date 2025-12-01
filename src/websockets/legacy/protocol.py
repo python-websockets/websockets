@@ -637,9 +637,6 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         # Fragmented message -- regular iterator.
 
         elif isinstance(message, Iterable):
-            # Work around https://github.com/python/mypy/issues/6227
-            message = cast(Iterable[DataLike], message)
-
             iter_message = iter(message)
             try:
                 fragment = next(iter_message)

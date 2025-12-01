@@ -383,7 +383,7 @@ Backwards-incompatible changes
 New features
 ............
 
-.. admonition:: websockets 11.0 introduces a new :mod:`asyncio` implementation.
+.. admonition:: websockets 13.0 introduces a new :mod:`asyncio` implementation.
     :class: important
 
     This new implementation is intended to be a drop-in replacement for the

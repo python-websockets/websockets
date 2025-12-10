@@ -4,6 +4,12 @@ export PYTHONASYNCIODEBUG=1
 export PYTHONPATH=src
 export PYTHONWARNINGS=default
 
+# Work around https://github.com/python/cpython/issues/128384. This prevents
+# a test failure in the legacy implementation on free-threaded Python.
+# Remove when dropping the legacy implementation.
+# Also remove -X context_aware_warnings=0 in tox.ini.
+export PYTHON_CONTEXT_AWARE_WARNINGS=0
+
 build:
 	python setup.py build_ext --inplace
 

@@ -45,6 +45,8 @@ New features
 
 * Validated compatibility with Python 3.14.
 
+* Added support for free-threaded Python.
+
 Improvements
 ............
 

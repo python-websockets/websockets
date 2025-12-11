@@ -9,7 +9,7 @@ from collections.abc import Generator
 from typing import Callable
 
 from .datastructures import Headers
-from .exceptions import SecurityError
+from .exceptions import InvalidMethod, SecurityError
 from .version import version as websockets_version
 
 
@@ -148,7 +148,7 @@ class Request:
                 f"unsupported protocol; expected HTTP/1.1: {d(request_line)}"
             )
         if method != b"GET":
-            raise ValueError(f"unsupported HTTP method; expected GET; got {d(method)}")
+            raise InvalidMethod(d(method))
         path = raw_path.decode("ascii", "surrogateescape")
 
         headers = yield from parse_headers(read_line)

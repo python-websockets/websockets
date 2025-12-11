@@ -15,6 +15,7 @@ from .exceptions import (
     InvalidHeader,
     InvalidHeaderValue,
     InvalidMessage,
+    InvalidMethod,
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
@@ -547,6 +548,18 @@ class ServerProtocol(Protocol):
                 request = yield from Request.parse(
                     self.reader.read_line,
                 )
+            except InvalidMethod as exc:
+                self.handshake_exc = exc
+                response = self.reject(
+                    http.HTTPStatus.METHOD_NOT_ALLOWED,
+                    f"Failed to open a WebSocket connection: {exc}.\n",
+                )
+                response.headers["Allow"] = "GET"
+                self.send_response(response)
+                self.parser = self.discard()
+                next(self.parser)  # start coroutine
+                yield
+                return
             except Exception as exc:
                 self.handshake_exc = InvalidMessage(
                     "did not receive a valid HTTP request"
@@ -556,6 +569,7 @@ class ServerProtocol(Protocol):
                 self.parser = self.discard()
                 next(self.parser)  # start coroutine
                 yield
+                return
 
             if self.debug:
                 self.logger.debug("< GET %s HTTP/1.1", request.path)

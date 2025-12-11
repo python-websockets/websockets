@@ -9,6 +9,7 @@ from websockets.datastructures import Headers
 from websockets.exceptions import (
     InvalidHeader,
     InvalidMessage,
+    InvalidMethod,
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
@@ -256,6 +257,70 @@ class RequestTests(unittest.TestCase):
             str(server.handshake_exc.__cause__),
             "invalid HTTP request line: HELO relay.invalid",
         )
+
+    @patch("email.utils.formatdate", return_value=DATE)
+    def test_receive_head_request(self, _formatdate):
+        """Server receives a HEAD request and returns 405 Method Not Allowed."""
+        server = ServerProtocol()
+        server.receive_data(
+            (
+                f"HEAD /test HTTP/1.1\r\n"
+                f"Host: example.com\r\n"
+                f"\r\n"
+            ).encode(),
+        )
+
+        self.assertEqual(server.events_received(), [])
+        self.assertIsInstance(server.handshake_exc, InvalidMethod)
+        self.assertEqual(str(server.handshake_exc), "invalid HTTP method; expected GET; got HEAD")
+        self.assertEqual(
+            server.data_to_send(),
+            [
+                f"HTTP/1.1 405 Method Not Allowed\r\n"
+                f"Date: {DATE}\r\n"
+                f"Connection: close\r\n"
+                f"Content-Length: 84\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"Allow: GET\r\n"
+                f"\r\n"
+                f"Failed to open a WebSocket connection: "
+                f"invalid HTTP method; expected GET; got HEAD.\n".encode(),
+                b"",
+            ],
+        )
+        self.assertTrue(server.close_expected())
+
+    @patch("email.utils.formatdate", return_value=DATE)
+    def test_receive_post_request(self, _formatdate):
+        """Server receives a POST request and returns 405 Method Not Allowed."""
+        server = ServerProtocol()
+        server.receive_data(
+            (
+                f"POST /test HTTP/1.1\r\n"
+                f"Host: example.com\r\n"
+                f"\r\n"
+            ).encode(),
+        )
+
+        self.assertEqual(server.events_received(), [])
+        self.assertIsInstance(server.handshake_exc, InvalidMethod)
+        self.assertEqual(str(server.handshake_exc), "invalid HTTP method; expected GET; got POST")
+        self.assertEqual(
+            server.data_to_send(),
+            [
+                f"HTTP/1.1 405 Method Not Allowed\r\n"
+                f"Date: {DATE}\r\n"
+                f"Connection: close\r\n"
+                f"Content-Length: 84\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"Allow: GET\r\n"
+                f"\r\n"
+                f"Failed to open a WebSocket connection: "
+                f"invalid HTTP method; expected GET; got POST.\n".encode(),
+                b"",
+            ],
+        )
+        self.assertTrue(server.close_expected())
 
 
 class ResponseTests(unittest.TestCase):

@@ -3,8 +3,9 @@ from __future__ import annotations
 import argparse
 import asyncio
 import os
+import ssl
 import sys
-from typing import Generator
+from typing import Any, Generator
 
 from .asyncio.client import ClientConnection, connect
 from .asyncio.messages import SimpleQueue
@@ -101,9 +102,9 @@ async def send_outgoing_messages(
             break
 
 
-async def interactive_client(uri: str) -> None:
+async def interactive_client(uri: str, **kwargs: Any) -> None:
     try:
-        websocket = await connect(uri)
+        websocket = await connect(uri, **kwargs)
     except Exception as exc:
         print(f"Failed to connect to {uri}: {exc}.")
         sys.exit(1)
@@ -151,6 +152,11 @@ def main(argv: list[str] | None = None) -> None:
     group = parser.add_mutually_exclusive_group()
     group.add_argument("--version", action="store_true")
     group.add_argument("uri", metavar="<uri>", nargs="?")
+    parser.add_argument(
+        "--insecure",
+        action="store_true",
+        help="Disable SSL certificate verification for wss:// connections.",
+    )
     args = parser.parse_args(argv)
 
     if args.version:
@@ -171,8 +177,15 @@ def main(argv: list[str] | None = None) -> None:
     except ImportError:  # readline isn't available on all platforms
         pass
 
+    kwargs: dict[str, Any] = {}
+    if args.insecure:
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        kwargs["ssl"] = ssl_context
+
     # Remove the try/except block when dropping Python < 3.11.
     try:
-        asyncio.run(interactive_client(args.uri))
+        asyncio.run(interactive_client(args.uri, **kwargs))
     except KeyboardInterrupt:  # pragma: no cover
         pass

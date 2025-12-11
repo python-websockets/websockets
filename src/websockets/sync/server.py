@@ -233,6 +233,9 @@ class Server:
 
     """
 
+    connections: set[ServerConnection]
+    """Set of active connections."""
+
     def __init__(
         self,
         socket: socket.socket,
@@ -246,6 +249,8 @@ class Server:
         self.logger = logger
         if sys.platform != "win32":
             self.shutdown_watcher, self.shutdown_notifier = os.pipe()
+        self.connections = set()
+        self.connections_lock = threading.Lock()
 
     def serve_forever(self) -> None:
         """
@@ -293,6 +298,10 @@ class Server:
         self.socket.close()
         if sys.platform != "win32":
             os.write(self.shutdown_notifier, b"x")
+        # Close all active connections gracefully.
+        with self.connections_lock:
+            for connection in self.connections:
+                connection.close(CloseCode.GOING_AWAY)
 
     def fileno(self) -> int:
         """
@@ -520,6 +529,9 @@ def serve(
 
     # Define request handler
 
+    # Use a list to allow conn_handler to access server before it's assigned.
+    server_ref: list[Server] = []
+
     def conn_handler(sock: socket.socket, addr: Any) -> None:
         # Calculate timeouts on the TLS and WebSocket handshakes.
         # The TLS timeout must be set on the socket, then removed
@@ -587,6 +599,11 @@ def serve(
             sock.close()
             return
 
+        # Register connection for tracking.
+        server = server_ref[0]
+        with server.connections_lock:
+            server.connections.add(connection)
+
         try:
             try:
                 connection.handshake(
@@ -618,10 +635,16 @@ def serve(
         except Exception:  # pragma: no cover
             # Don't leak sockets on unexpected errors.
             sock.close()
+        finally:
+            # Unregister connection.
+            with server.connections_lock:
+                server.connections.discard(connection)
 
     # Initialize server
 
-    return Server(sock, conn_handler, logger)
+    server = Server(sock, conn_handler, logger)
+    server_ref.append(server)
+    return server
 
 
 def unix_serve(

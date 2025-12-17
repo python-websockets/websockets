@@ -288,6 +288,24 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             with self.assertRaises(OSError):
                 server.socket.accept()
 
+    def test_shutdown_closes_connections(self):
+        """Server closes active connections on shutdown."""
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                # Connection is open
+                self.assertEval(client, "ws.protocol.state.name", "OPEN")
+                # Check connection is tracked
+                self.assertEqual(len(server.connections), 1)
+                # Shutdown server
+                server.shutdown()
+                # Connection should be closed with GOING_AWAY
+                with self.assertRaises(ConnectionClosedOK) as raised:
+                    client.recv()
+                self.assertEqual(
+                    str(raised.exception),
+                    "received 1001 (going away); then sent 1001 (going away)",
+                )
+
     def test_handshake_fails(self):
         """Server receives connection from client but the handshake fails."""
 

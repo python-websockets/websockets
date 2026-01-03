@@ -743,6 +743,7 @@ class Connection:
         Acknowledge pending pings when the connection is closed.
 
         """
+        assert self.protocol_mutex.locked()
         assert self.protocol.state is CLOSED
 
         for pong_received, _ping_timestamp, ack_on_close in self.pending_pings.values():

@@ -88,7 +88,9 @@ the frequency of system calls or the need to pause reading or writing.
 You should keep these buffers small. Increasing them can help with spiky
 workloads but it can also backfire because it delays backpressure.
 
-* In the :mod:`asyncio` implementation, there is no library-level read buffer.
+* In the :mod:`asyncio` implementation, there is no library-level read buffer
+  for plain TCP connections. There is a 256 KiB read buffer for TLS connections,
+  plus 32KiB on Windows with the default event loop.
 
   There is a write buffer. The ``write_limit`` argument of
   :func:`~asyncio.client.connect` and :func:`~asyncio.server.serve` controls its
@@ -106,6 +108,9 @@ workloads but it can also backfire because it delays backpressure.
   above the high-water mark, the connection stops reading from the network until
   it drains under the low-water mark. This creates backpressure on the TCP
   connection.
+
+  In addition, there is a 256 KiB read buffer for TLS connections, plus 32KiB on
+  Windows.
 
   There is a write buffer. It as controlled by ``write_limit``. It behaves like
   the :mod:`asyncio` implementation described above.

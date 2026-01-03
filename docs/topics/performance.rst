@@ -5,6 +5,13 @@ Performance
 
 Here are tips to optimize performance.
 
+TLS
+---
+
+You should terminate TLS in a reverse proxy rather than in a websockets server.
+
+This will reduce memory usage of the websockets server and improve performance.
+
 uvloop
 ------
 

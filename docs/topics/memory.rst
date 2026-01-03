@@ -88,8 +88,7 @@ the frequency of system calls or the need to pause reading or writing.
 You should keep these buffers small. Increasing them can help with spiky
 workloads but it can also backfire because it delays backpressure.
 
-* In the new :mod:`asyncio` implementation, there is no library-level read
-  buffer.
+* In the :mod:`asyncio` implementation, there is no library-level read buffer.
 
   There is a write buffer. The ``write_limit`` argument of
   :func:`~asyncio.client.connect` and :func:`~asyncio.server.serve` controls its
@@ -97,6 +96,9 @@ workloads but it can also backfire because it delays backpressure.
   :meth:`~asyncio.connection.Connection.send` waits until it drains under the
   low-water mark to return. This creates backpressure on coroutines that send
   messages.
+
+* In the :mod:`threading` implementation, there are no library-level buffers.
+  All I/O operations are performed directly on the :class:`~socket.socket`.
 
 * In the legacy :mod:`asyncio` implementation, there is a library-level read
   buffer. The ``read_limit`` argument of :func:`~legacy.client.connect` and
@@ -106,10 +108,7 @@ workloads but it can also backfire because it delays backpressure.
   connection.
 
   There is a write buffer. It as controlled by ``write_limit``. It behaves like
-  the new :mod:`asyncio` implementation described above.
-
-* In the :mod:`threading` implementation, there are no library-level buffers.
-  All I/O operations are performed directly on the :class:`~socket.socket`.
+  the :mod:`asyncio` implementation described above.
 
 websockets' buffers
 ...................
@@ -131,11 +130,11 @@ attacks.
 The behavior of the ``max_queue`` argument of :func:`~asyncio.client.connect`
 and :func:`~asyncio.server.serve` varies across implementations.
 
-* In the new :mod:`asyncio` implementation, ``max_queue`` is the high-water mark
-  of a queue of incoming frames. It defaults to 16 frames. If the queue grows
-  larger, the connection stops reading from the network until the application
-  consumes messages and the queue goes below the low-water mark. This creates
-  backpressure on the TCP connection.
+* In the :mod:`asyncio` and :mod:`threading` implementations, ``max_queue`` is
+  the high-water mark of a queue of incoming frames. It defaults to 16 frames.
+  If the queue grows larger, the connection stops reading from the network until
+  the application consumes messages and the queue goes below the low-water mark.
+  This creates backpressure on the TCP connection.
 
   Each item in the queue is a frame. A frame can be a message or a message
   fragment. Either way, it must be smaller than ``max_size``, the maximum size
@@ -151,7 +150,3 @@ and :func:`~asyncio.server.serve` varies across implementations.
   Text messages are decoded before they're added to the queue. Since Python can
   use up to 4 bytes of memory per character, the queue may use up to ``4 *
   max_size * max_queue`` bytes of memory. By default, this is 128 MiB.
-
-* In the :mod:`threading` implementation, there is no queue of incoming
-  messages. The ``max_queue`` argument doesn't exist. The connection keeps at
-  most one message in memory at a time.

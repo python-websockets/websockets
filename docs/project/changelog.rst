@@ -302,9 +302,9 @@ New features
 * :func:`~asyncio.client.connect` now follows redirects in the new
   :mod:`asyncio` implementation.
 
-* Added HTTP Basic Auth to the new :mod:`asyncio` and :mod:`threading`
-  implementations of servers.
 
+* Added HTTP Basic Auth to the :mod:`asyncio` and :mod:`threading`
+  implementations of servers.
 * Made the set of active connections available in the :attr:`Server.connections
   <asyncio.server.Server.connections>` property.
 
@@ -320,7 +320,7 @@ Improvements
 Bug fixes
 .........
 
-* The new :mod:`asyncio` and :mod:`threading` implementations of servers don't
+* The :mod:`asyncio` and :mod:`threading` implementations of servers don't
   start the connection handler anymore when ``process_request`` or
   ``process_response`` returns an HTTP response.
 

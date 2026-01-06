@@ -177,6 +177,16 @@ class InvalidURI(WebSocketException):
         return f"{self.uri} isn't a valid URI: {self.msg}"
 
 
+class InvalidRedirectURI(InvalidURI):
+    """
+    Raised when redirected to a URI that isn't a valid WebSocket URI.
+
+    """
+
+    def __str__(self) -> str:
+        return f"Redirection URI {self.uri} isn't a valid URI: {self.msg}"
+
+
 class InvalidProxy(WebSocketException):
     """
     Raised when connecting via a proxy that isn't valid.

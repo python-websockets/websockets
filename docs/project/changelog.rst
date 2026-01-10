@@ -60,6 +60,9 @@ Improvements
 Bug fixes
 .........
 
+* Prevented :meth:`~asyncio.connection.Connection.recv` from returning
+  :class:`bytearray` instead of :class:`bytes` in edge cases.
+
 * Fixed a race condition that could lead to an exception when closing
   connections in the :mod:`threading` implementation.
 

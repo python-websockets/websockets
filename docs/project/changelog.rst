@@ -57,6 +57,12 @@ Improvements
 * Added support for customizing the close code and reason for connections in
   :meth:`Server.close <asyncio.server.Server.close>`.
 
+Bug fixes
+.........
+
+* Fixed a race condition that could lead to an exception when closing
+  connections in the :mod:`threading` implementation.
+
 15.0.1
 ------
 

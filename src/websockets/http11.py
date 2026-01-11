@@ -125,6 +125,7 @@ class Request:
         Raises:
             EOFError: If the connection is closed without a full HTTP request.
             SecurityError: If the request exceeds a security limit.
+            InvalidMethod: If the HTTP method isn't GET.
             ValueError: If the request isn't well formatted.
 
         """

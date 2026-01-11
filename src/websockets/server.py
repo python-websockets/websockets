@@ -550,14 +550,19 @@ class ServerProtocol(Protocol):
                 )
             except InvalidMethod as exc:
                 self.handshake_exc = exc
-                response = self.reject(
-                    http.HTTPStatus.METHOD_NOT_ALLOWED,
-                    f"Failed to open a WebSocket connection: {exc}.\n",
+                # Build 405 response without calling reject() to maintain layering
+                body = f"Failed to open a WebSocket connection: {exc}.\n".encode()
+                headers = Headers(
+                    [
+                        ("Date", email.utils.formatdate(usegmt=True)),
+                        ("Connection", "close"),
+                        ("Content-Length", str(len(body))),
+                        ("Content-Type", "text/plain; charset=utf-8"),
+                        ("Allow", "GET"),
+                    ]
                 )
-                response.headers["Allow"] = "GET"
+                response = Response(405, "Method Not Allowed", headers, body)
                 self.send_response(response)
-                self.parser = self.discard()
-                next(self.parser)  # start coroutine
                 yield
                 return
             except Exception as exc:

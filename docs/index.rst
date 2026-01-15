@@ -58,7 +58,7 @@ list of features provided by each implementation.
 
    The new implementation provides the same features as the historical
    implementation, and then some. If you're using the historical implementation,
-   you should :doc:`ugrade to the new implementation <howto/upgrade>`.
+   you should :doc:`upgrade to the new implementation <howto/upgrade>`.
 
 Here's an echo server and corresponding client.
 

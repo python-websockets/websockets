@@ -157,6 +157,7 @@ def connect(
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
     create_connection: type[ClientConnection] | None = None,
+    # Other keyword arguments are passed to socket.create_connection
     **kwargs: Any,
 ) -> ClientConnection:
     """
@@ -190,8 +191,8 @@ def connect(
         compression: The "permessage-deflate" extension is enabled by default.
             Set ``compression`` to :obj:`None` to disable it. See the
             :doc:`compression guide <../../topics/compression>` for details.
-        additional_headers (HeadersLike | None): Arbitrary HTTP headers to add
-            to the handshake request.
+        additional_headers: Arbitrary HTTP headers to add to the handshake
+            request.
         user_agent_header: Value of  the ``User-Agent`` request header.
             It defaults to ``"Python/x.y.z websockets/X.Y"``.
             Setting it to :obj:`None` removes the header.
@@ -230,6 +231,7 @@ def connect(
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
+        InvalidProxy: If ``proxy`` isn't a valid proxy.
         OSError: If the TCP connection fails.
         InvalidHandshake: If the opening handshake fails.
         TimeoutError: If the opening handshake times out.
@@ -250,6 +252,17 @@ def connect(
     if not ws_uri.secure and ssl is not None:
         raise ValueError("ssl argument is incompatible with a ws:// URI")
 
+    if subprotocols is not None:
+        validate_subprotocols(subprotocols)
+
+    if compression == "deflate":
+        extensions = enable_client_permessage_deflate(extensions)
+    elif compression is not None:
+        raise ValueError(f"unsupported compression: {compression}")
+
+    if create_connection is None:
+        create_connection = ClientConnection
+
     # Private APIs for unix_connect()
     unix: bool = kwargs.pop("unix", False)
     path: str | None = kwargs.pop("path", None)
@@ -259,14 +272,6 @@ def connect(
             raise ValueError("missing path argument")
         elif path is not None and sock is not None:
             raise ValueError("path and sock arguments are incompatible")
-
-    if subprotocols is not None:
-        validate_subprotocols(subprotocols)
-
-    if compression == "deflate":
-        extensions = enable_client_permessage_deflate(extensions)
-    elif compression is not None:
-        raise ValueError(f"unsupported compression: {compression}")
 
     if unix:
         proxy = None
@@ -279,9 +284,6 @@ def connect(
     # The TCP and TLS timeouts must be set on the socket, then removed
     # to avoid conflicting with the WebSocket timeout in handshake().
     deadline = Deadline(open_timeout)
-
-    if create_connection is None:
-        create_connection = ClientConnection
 
     try:
         # Connect socket
@@ -320,8 +322,8 @@ def connect(
                         server_hostname=proxy_server_hostname,
                         **kwargs,
                     )
-                else:
-                    raise AssertionError("unsupported proxy")
+                else:  # pragma: no cover
+                    raise NotImplementedError("unsupported proxy")
             else:
                 kwargs.setdefault("timeout", deadline.timeout())
                 sock = socket.create_connection(
@@ -539,7 +541,8 @@ def connect_http_proxy(
 
     # Send CONNECT request to the proxy and read response.
 
-    sock.sendall(prepare_connect_request(proxy, ws_uri, user_agent_header))
+    request = prepare_connect_request(proxy, ws_uri, user_agent_header)
+    sock.sendall(request)
     try:
         read_connect_response(sock, deadline)
     except Exception:

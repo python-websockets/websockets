@@ -43,6 +43,14 @@ Backwards-incompatible changes
 New features
 ............
 
+.. admonition:: websockets 16.0 introduces a :mod:`trio` implementation.
+    :class: important
+
+    It is an alternative to the :mod:`asyncio` implementation.
+
+    See :func:`websockets.trio.client.connect` and
+    :func:`websockets.trio.server.serve` for details.
+
 * Validated compatibility with Python 3.14.
 
 * Added support for free-threaded Python.

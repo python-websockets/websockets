@@ -50,6 +50,8 @@ nitpick_ignore = [
     ("py:meth", "protocol.WebSocketCommonProtocol.connection_lost"),
     ("py:meth", "protocol.WebSocketCommonProtocol.read_message"),
     ("py:meth", "protocol.WebSocketCommonProtocol.write_frame"),
+    # Caused by https://github.com/sphinx-doc/sphinx/issues/13838
+    ("py:class", "ssl_module.SSLContext"),
 ]
 
 # Add any Sphinx extension module names here, as strings. They can be
@@ -85,6 +87,7 @@ PythonDomain.object_types["data"].roles = ("data", "class", "obj")
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "sesame": ("https://django-sesame.readthedocs.io/en/stable/", None),
+    "trio": ("https://trio.readthedocs.io/en/stable/", None),
     "werkzeug": ("https://werkzeug.palletsprojects.com/en/stable/", None),
 }
 

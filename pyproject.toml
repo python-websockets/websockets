@@ -73,6 +73,7 @@ exclude_lines = [
     "if sys.platform != \"win32\":",
     "if TYPE_CHECKING:",
     "raise AssertionError",
+    "raise NotImplementedError",
     "self.fail\\(\".*\"\\)",
     "@overload",
     "@unittest.skip",

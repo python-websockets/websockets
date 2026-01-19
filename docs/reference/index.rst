@@ -37,6 +37,17 @@ This alternative implementation can be a good choice for clients.
    sync/server
    sync/client
 
+:mod:`trio`
+------------
+
+This is another option for servers that handle many clients concurrently.
+
+.. toctree::
+   :titlesonly:
+
+   trio/server
+   trio/client
+
 `Sans-I/O`_
 -----------
 

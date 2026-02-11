@@ -32,6 +32,11 @@ notice.
 
 *In development*
 
+Improvements
+............
+
+* Added wheels for ARMv7, PowerPC, RISC-V, and S/390.
+
 .. _16.0:
 
 16.0

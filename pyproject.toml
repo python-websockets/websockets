@@ -45,7 +45,7 @@ archs = ["x86_64", "universal2", "arm64"]
 
 # On an Linux Intel runner with QEMU installed, build Intel and ARM wheels.
 [tool.cibuildwheel.linux]
-archs = ["auto", "aarch64"]
+archs = ["auto", "aarch64", "armv7l", "ppc64le", "riscv64", "s390x"]
 
 [tool.coverage.run]
 branch = true

@@ -74,6 +74,7 @@ jobs:
     permissions:
       id-token: write
       attestations: write
+      artifact-metadata: write
       contents: write
     steps:
     - name: Download artifacts
@@ -83,7 +84,7 @@ jobs:
         merge-multiple: true
         path: dist
     - name: Attest provenance
-      uses: actions/attest-build-provenance@v3
+      uses: actions/attest@v4
       with:
         subject-path: dist/*
     - name: Upload to PyPI

@@ -1,4 +1,5 @@
 import contextlib
+import sys
 import unittest
 import unittest.mock
 
@@ -11,6 +12,10 @@ from websockets.trio.messages import *
 
 from ..utils import alist
 from .utils import IsolatedTrioTestCase
+
+
+if sys.version_info[:2] < (3, 11):  # pragma: no cover
+    from exceptiongroup import ExceptionGroup
 
 
 class AssemblerTests(IsolatedTrioTestCase):
@@ -508,31 +513,35 @@ class AssemblerTests(IsolatedTrioTestCase):
 
     async def test_get_fails_when_get_is_running(self):
         """get cannot be called concurrently."""
-        with trio.testing.RaisesGroup(ConcurrencyError):
+        with self.assertRaises(ExceptionGroup) as raised:
             async with trio.open_nursery() as nursery:
                 nursery.start_soon(self.assembler.get)
                 nursery.start_soon(self.assembler.get)
+        self.assertIsInstance(raised.exception.exceptions[0], ConcurrencyError)
 
     async def test_get_fails_when_get_iter_is_running(self):
         """get cannot be called concurrently with get_iter."""
-        with trio.testing.RaisesGroup(ConcurrencyError):
+        with self.assertRaises(ExceptionGroup) as raised:
             async with trio.open_nursery() as nursery:
                 nursery.start_soon(lambda: alist(self.assembler.get_iter()))
                 nursery.start_soon(self.assembler.get)
+        self.assertIsInstance(raised.exception.exceptions[0], ConcurrencyError)
 
     async def test_get_iter_fails_when_get_is_running(self):
         """get_iter cannot be called concurrently with get."""
-        with trio.testing.RaisesGroup(ConcurrencyError):
+        with self.assertRaises(ExceptionGroup) as raised:
             async with trio.open_nursery() as nursery:
                 nursery.start_soon(self.assembler.get)
                 nursery.start_soon(lambda: alist(self.assembler.get_iter()))
+        self.assertIsInstance(raised.exception.exceptions[0], ConcurrencyError)
 
     async def test_get_iter_fails_when_get_iter_is_running(self):
         """get_iter cannot be called concurrently."""
-        with trio.testing.RaisesGroup(ConcurrencyError):
+        with self.assertRaises(ExceptionGroup) as raised:
             async with trio.open_nursery() as nursery:
                 nursery.start_soon(lambda: alist(self.assembler.get_iter()))
                 nursery.start_soon(lambda: alist(self.assembler.get_iter()))
+        self.assertIsInstance(raised.exception.exceptions[0], ConcurrencyError)
 
     # Test setting limits.
 

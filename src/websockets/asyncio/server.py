@@ -169,7 +169,7 @@ class ServerConnection(Connection):
                     assert isinstance(response, Response)  # help mypy
                     self.response = response
 
-                if server_header:
+                if server_header is not None:
                     self.response.headers["Server"] = server_header
 
                 response = None
@@ -231,12 +231,9 @@ class Server:
 
     This class mirrors the API of :class:`asyncio.Server`.
 
-    It keeps track of WebSocket connections in order to close them properly
-    when shutting down.
-
     Args:
         handler: Connection handler. It receives the WebSocket connection,
-            which is a :class:`ServerConnection`, in argument.
+            which is a :class:`ServerConnection`.
         process_request: Intercept the request during the opening handshake.
             Return an HTTP response to force the response. Return :obj:`None` to
             continue normally. When you force an HTTP 101 Continue response, the
@@ -310,7 +307,11 @@ class Server:
         It can be useful in combination with :func:`~broadcast`.
 
         """
-        return {connection for connection in self.handlers if connection.state is OPEN}
+        return {
+            connection
+            for connection in self.handlers
+            if connection.protocol.state is OPEN
+        }
 
     def wrap(self, server: asyncio.Server) -> None:
         """
@@ -351,6 +352,8 @@ class Server:
 
         """
         try:
+            # Apply open_timeout to the WebSocket handshake.
+            # Use ssl_handshake_timeout for the TLS handshake.
             async with asyncio_timeout(self.open_timeout):
                 try:
                     await connection.handshake(
@@ -425,7 +428,7 @@ class Server:
             ``code`` and ``reason`` can be customized, for example to use code
             1012 (service restart).
 
-        * Wait until all connection handlers terminate.
+        * Wait until all connection handlers have returned.
 
         :meth:`close` is idempotent.
 
@@ -452,6 +455,7 @@ class Server:
         self.logger.info("server closing")
 
         # Stop accepting new connections.
+        # Reject OPENING connections with HTTP 503 -- see handshake().
         self.server.close()
 
         # Wait until all accepted connections reach connection_made() and call
@@ -459,15 +463,12 @@ class Server:
         # details. This workaround can be removed when dropping Python < 3.11.
         await asyncio.sleep(0)
 
-        # After server.close(), handshake() closes OPENING connections with an
-        # HTTP 503 error.
-
+        # Close OPEN connections.
         if close_connections:
-            # Close OPEN connections with code 1001 by default.
             close_tasks = [
                 asyncio.create_task(connection.close(code, reason))
                 for connection in self.handlers
-                if connection.protocol.state is not CONNECTING
+                if connection.protocol.state is OPEN
             ]
             # asyncio.wait doesn't accept an empty first argument.
             if close_tasks:
@@ -476,7 +477,7 @@ class Server:
         # Wait until all TCP connections are closed.
         await self.server.wait_closed()
 
-        # Wait until all connection handlers terminate.
+        # Wait until all connection handlers have returned.
         # asyncio.wait doesn't accept an empty first argument.
         if self.handlers:
             await asyncio.wait(self.handlers.values())
@@ -590,18 +591,18 @@ class serve:
 
     This coroutine returns a :class:`Server` whose API mirrors
     :class:`asyncio.Server`. Treat it as an asynchronous context manager to
-    ensure that the server will be closed::
+    ensure that the server will be closed gracefully::
 
         from websockets.asyncio.server import serve
 
-        def handler(websocket):
+        async def handler(websocket):
             ...
 
-        # set this future to exit the server
-        stop = asyncio.get_running_loop().create_future()
+        # set this event to exit the server
+        stop = asyncio.Event()
 
         async with serve(handler, host, port):
-            await stop
+            await stop.wait()
 
     Alternatively, call :meth:`~Server.serve_forever` to serve requests and
     cancel it to stop the server::

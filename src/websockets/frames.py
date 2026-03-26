@@ -159,7 +159,11 @@ class Frame:
         if self.opcode is OP_TEXT:
             # Decoding only the beginning and the end is needlessly hard.
             # Decode the entire payload then elide later if necessary.
-            data = repr(bytes(self.data).decode())
+            # Use errors='replace' because a non-final frame (fin=False) may
+            # end in the middle of a multi-byte UTF-8 sequence (e.g. Japanese,
+            # Chinese, emoji). A bare .decode() would raise UnicodeDecodeError
+            # and crash the connection when DEBUG logging is enabled.
+            data = repr(bytes(self.data).decode(errors="replace"))
         elif self.opcode is OP_BINARY:
             # We'll show at most the first 16 bytes and the last 8 bytes.
             # Encode just what we need, plus two dummy bytes to elide later.

@@ -47,6 +47,14 @@ def apply_mask(data: BytesLike, mask: bytes | bytearray) -> bytes:
     if len(mask) != 4:
         raise ValueError("mask must contain 4 bytes")
 
+    # Python 3.15+ requires C-contiguous buffers for int.from_bytes()
+    # CPython (https://github.com/python/cpython/pull/132109) optimized
+    # int.from_bytes() to use the buffer protocol with PyBUF_SIMPLE, which requires
+    # C-contiguous buffers. Non-contiguous memoryviews (e.g., created by [::-1])
+    # now raise BufferError. Convert to bytes to create a contiguous copy.
+    if isinstance(data, memoryview) and not data.c_contiguous:
+        data = bytes(data)
+
     data_int = int.from_bytes(data, sys.byteorder)
     mask_repeated = mask * (len(data) // 4) + mask[: len(data) % 4]
     mask_int = int.from_bytes(mask_repeated, sys.byteorder)

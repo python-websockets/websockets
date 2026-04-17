@@ -569,6 +569,17 @@ class Connect:
             if not old_wsuri.secure and new_wsuri.secure:
                 factory.keywords["secure"] = True
                 self._create_connection.keywords.setdefault("ssl", True)
+            # Strip credentials to avoid leaking them to a different origin.
+            extra_headers = factory.keywords.get("extra_headers")
+            if extra_headers is not None:  # pragma: no cover
+                factory.keywords["extra_headers"] = Headers(
+                    (
+                        (key, value)
+                        for key, value in Headers(extra_headers).raw_items()
+                        if key.lower()
+                        not in ["authorization", "cookie", "proxy-authorization"]
+                    )
+                )
             # Replace secure, host, and port arguments of the protocol factory.
             factory = functools.partial(
                 factory.func,

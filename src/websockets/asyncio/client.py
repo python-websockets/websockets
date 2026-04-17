@@ -12,7 +12,7 @@ from types import TracebackType
 from typing import Any, Callable, Literal, cast
 
 from ..client import ClientProtocol, backoff
-from ..datastructures import HeadersLike
+from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
     InvalidMessage,
     InvalidProxyMessage,
@@ -527,6 +527,17 @@ class connect:
                 return ValueError(
                     f"cannot follow cross-origin redirect to {new_uri} "
                     f"with an explicit host or port"
+                )
+
+            # Strip credentials to avoid leaking them to a different origin.
+            if self.additional_headers is not None:
+                self.additional_headers = Headers(
+                    (
+                        (key, value)
+                        for key, value in Headers(self.additional_headers).raw_items()
+                        if key.lower()
+                        not in ["authorization", "cookie", "proxy-authorization"]
+                    )
                 )
 
         return new_uri

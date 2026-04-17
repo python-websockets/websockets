@@ -35,6 +35,9 @@ notice.
 Improvements
 ............
 
+* Stripped ``Authorization``, ``Cookie``, and ``Proxy-Authorization`` headers
+  when clients follow cross-origin redirects, a security hardening measure.
+
 * Added wheels for ARMv7, PowerPC, RISC-V, and S/390.
 
 .. _16.0:

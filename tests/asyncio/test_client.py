@@ -350,6 +350,53 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             "cannot follow redirect to ws://invalid/ with a preexisting socket",
         )
 
+    async def test_cross_origin_redirect_strips_credentials(self):
+        """Client strips credentials when following a cross-origin redirect."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = get_uri(other_server)
+            return response
+
+        async with serve(*args, process_request=redirect) as server:
+            async with serve(*args) as other_server:
+                async with connect(
+                    get_uri(server),
+                    additional_headers={
+                        "Authorization": "Bearer secret",
+                        "Cookie": "session=secret",
+                        "Proxy-Authorization": "Basic secret",
+                        "X-Custom": "keep",
+                    },
+                ) as client:
+                    self.assertNotIn("Authorization", client.request.headers)
+                    self.assertNotIn("Cookie", client.request.headers)
+                    self.assertNotIn("Proxy-Authorization", client.request.headers)
+                    self.assertIn("X-Custom", client.request.headers)
+
+    async def test_same_origin_redirect_preserves_credentials(self):
+        """Client preserves credentials when following a same-origin redirect."""
+
+        def redirect(connection, request):
+            if request.path == "/redirect":
+                response = connection.respond(http.HTTPStatus.FOUND, "")
+                response.headers["Location"] = "/"
+                return response
+
+        async with serve(*args, process_request=redirect) as server:
+            async with connect(
+                get_uri(server) + "/redirect",
+                additional_headers={
+                    "Authorization": "Bearer secret",
+                    "Cookie": "session=secret",
+                    "Proxy-Authorization": "Basic secret",
+                    "X-Custom": "keep",
+                },
+            ) as client:
+                self.assertIn("Authorization", client.request.headers)
+                self.assertIn("Cookie", client.request.headers)
+                self.assertIn("Proxy-Authorization", client.request.headers)
+
     async def test_invalid_uri(self):
         """Client receives an invalid URI."""
         with self.assertRaises(InvalidURI):

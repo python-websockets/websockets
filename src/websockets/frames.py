@@ -159,7 +159,13 @@ class Frame:
         if self.opcode is OP_TEXT:
             # Decoding only the beginning and the end is needlessly hard.
             # Decode the entire payload then elide later if necessary.
-            data = repr(bytes(self.data).decode())
+            # If the frame contains an incomplete UTF-8 sequence (e.g., a
+            # text message fragmented at a byte boundary that isn't a
+            # character boundary), fall back to a hex representation.
+            try:
+                data = repr(bytes(self.data).decode())
+            except UnicodeDecodeError:
+                data = " ".join(f"{byte:02x}" for byte in self.data)
         elif self.opcode is OP_BINARY:
             # We'll show at most the first 16 bytes and the last 8 bytes.
             # Encode just what we need, plus two dummy bytes to elide later.

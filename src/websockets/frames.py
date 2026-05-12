@@ -147,6 +147,15 @@ class Frame:
     # Configure if you want to see more in logs. Should be a multiple of 3.
     MAX_LOG_SIZE = int(os.environ.get("WEBSOCKETS_MAX_LOG_SIZE", "75"))
 
+    def _format_binary(self) -> str:
+        # We'll show at most the first 16 bytes and the last 8 bytes.
+        # Encode just what we need, plus two dummy bytes to elide later.
+        binary = self.data
+        if len(binary) > self.MAX_LOG_SIZE // 3:
+            cut = (self.MAX_LOG_SIZE // 3 - 1) // 3  # by default cut = 8
+            binary = b"".join([binary[: 2 * cut], b"\x00\x00", binary[-cut:]])
+        return " ".join(f"{byte:02x}" for byte in binary)
+
     def __str__(self) -> str:
         """
         Return a human-readable representation of a frame.
@@ -159,15 +168,14 @@ class Frame:
         if self.opcode is OP_TEXT:
             # Decoding only the beginning and the end is needlessly hard.
             # Decode the entire payload then elide later if necessary.
-            data = repr(bytes(self.data).decode())
+            # Fragmentation may split a multi-byte UTF-8 sequence; fall back to
+            # a binary representation when the payload doesn't decode cleanly.
+            try:
+                data = repr(bytes(self.data).decode())
+            except UnicodeDecodeError:
+                data = self._format_binary()
         elif self.opcode is OP_BINARY:
-            # We'll show at most the first 16 bytes and the last 8 bytes.
-            # Encode just what we need, plus two dummy bytes to elide later.
-            binary = self.data
-            if len(binary) > self.MAX_LOG_SIZE // 3:
-                cut = (self.MAX_LOG_SIZE // 3 - 1) // 3  # by default cut = 8
-                binary = b"".join([binary[: 2 * cut], b"\x00\x00", binary[-cut:]])
-            data = " ".join(f"{byte:02x}" for byte in binary)
+            data = self._format_binary()
         elif self.opcode is OP_CLOSE:
             data = str(Close.parse(self.data))
         elif self.data:
@@ -180,11 +188,7 @@ class Frame:
                 data = repr(bytes(self.data).decode())
                 coding = "text"
             except (UnicodeDecodeError, AttributeError):
-                binary = self.data
-                if len(binary) > self.MAX_LOG_SIZE // 3:
-                    cut = (self.MAX_LOG_SIZE // 3 - 1) // 3  # by default cut = 8
-                    binary = b"".join([binary[: 2 * cut], b"\x00\x00", binary[-cut:]])
-                data = " ".join(f"{byte:02x}" for byte in binary)
+                data = self._format_binary()
                 coding = "binary"
         else:
             data = "''"

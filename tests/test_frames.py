@@ -275,6 +275,19 @@ class StrTests(unittest.TestCase):
             "TEXT 'Hello\\nworld!' [12 bytes]",
         )
 
+    def test_text_fragment_with_partial_utf8(self):
+        self.assertEqual(
+            str(Frame(OP_TEXT, b" cr\xc3", fin=False)),
+            "TEXT 20 63 72 c3 [4 bytes, continued]",
+        )
+
+    def test_text_fragment_with_partial_utf8_truncated(self):
+        self.assertEqual(
+            str(Frame(OP_TEXT, "café ".encode() * 16 + b"\xc3", fin=False)),
+            "TEXT 63 61 66 c3 a9 20 63 61 66 c3 a9 20 63 61 66 c3 ..."
+            " 20 63 61 66 c3 a9 20 c3 [97 bytes, continued]",
+        )
+
     def test_binary(self):
         self.assertEqual(
             str(Frame(OP_BINARY, b"\x00\x01\x02\x03")),

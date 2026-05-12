@@ -40,6 +40,12 @@ Improvements
 
 * Added wheels for ARMv7, PowerPC, RISC-V, and S/390.
 
+Bug fixes
+.........
+
+* Prevented an exception when logging a text frame that splits a multi-byte
+  UTF-8 sequence across fragments.
+
 .. _16.0:
 
 16.0

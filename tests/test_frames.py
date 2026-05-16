@@ -5,7 +5,7 @@ from unittest.mock import patch
 
 from websockets.exceptions import PayloadTooBig, ProtocolError
 from websockets.frames import *
-from websockets.frames import CloseCode
+from websockets.frames import CloseCode, is_utf8_fragment
 from websockets.streams import StreamReader
 
 from .utils import GeneratorTestCase
@@ -434,3 +434,49 @@ class CloseTests(unittest.TestCase):
     def test_serialize_errors(self):
         with self.assertRaises(ProtocolError):
             Close(999, "").serialize()
+
+
+class MiscTests(unittest.TestCase):
+    VALID_DATA = [
+        data.encode()
+        for data in [
+            "",
+            "a",
+            "α",
+            "あ",
+            "😀",
+            "aαあ😀",
+            "😀あαa",
+        ]
+    ]
+
+    def test_is_utf8_fragment_true(self):
+        for data in self.VALID_DATA:
+            for start in range(len(data)):
+                for end in range(start, len(data) + 1):
+                    with self.subTest(data=data[start:end]):
+                        self.assertTrue(is_utf8_fragment(data[start:end]))
+
+    INVALID_DATA = [
+        b"\xff",
+        b"a\xff",
+        b"\xffa",
+        b"a\xffa",
+        b"\xc1\x81\x81",
+        b"\x00",
+    ]
+
+    def test_is_utf8_fragment_false(self):
+        for data in self.INVALID_DATA:
+            with self.subTest(data=data):
+                self.assertFalse(is_utf8_fragment(data))
+
+    def test_is_utf8_fragment_must_start_clean(self):
+        data = "αあ".encode()
+        self.assertTrue(is_utf8_fragment(data[:-1], must_start_clean=True))
+        self.assertFalse(is_utf8_fragment(data[1:-1], must_start_clean=True))
+
+    def test_is_utf8_fragment_must_end_clean(self):
+        data = "αあ".encode()
+        self.assertTrue(is_utf8_fragment(data[1:], must_end_clean=True))
+        self.assertFalse(is_utf8_fragment(data[1:-1], must_end_clean=True))

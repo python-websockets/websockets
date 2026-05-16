@@ -427,5 +427,77 @@ class Close:
             raise ProtocolError("invalid status code")
 
 
+def is_utf8_fragment(
+    data: bytes,
+    must_start_clean: bool = False,
+    must_end_clean: bool = False,
+) -> bool:
+    """Guess if data is a fragment of UTF-8 text."""
+    # Possible byte sequences for UTF-8 characters are:
+    # 0xxxxxxx
+    # 110xxxxx 10xxxxxx
+    # 1110xxxx 10xxxxxx 10xxxxxx
+    # 11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+
+    # The algorithm determines ``start`` and ``end`` so that ``data[start:end]``
+    # must be a valid UTF-8 sequence for data to be a valid UTF-8 fragment.
+
+    start, end = 0, len(data)
+
+    if not must_start_clean:
+        # Remove continuation bytes from the beginning.
+        max_start = min(3, len(data))
+        while start < max_start:
+            byte = data[start]
+
+            # Continuation byte
+            if byte & 0b11000000 == 0b10000000:
+                start += 1
+                continue
+
+            break
+
+    if not must_end_clean:
+        # Remove a partial multibyte sequence from the end.
+        end -= 1  # index of the last byte
+        min_end = max(len(data) - 4, start)
+        while end >= min_end:
+            byte = data[end]
+            # Continuation byte
+            if byte & 0b11000000 == 0b10000000:
+                end -= 1
+                continue
+
+            # ASCII byte
+            if byte & 0b10000000 == 0b00000000:
+                seq_len = 1
+            # Leading byte of a 2-byte sequence
+            elif byte & 0b11100000 == 0b11000000:
+                seq_len = 2
+            # Leading byte of a 3-byte sequence
+            elif byte & 0b11110000 == 0b11100000:
+                seq_len = 3
+            # Leading byte of a 4-byte sequence
+            elif byte & 0b11111000 == 0b11110000:
+                seq_len = 4
+            # Invalid byte
+            else:
+                seq_len = 0
+
+            # Cut only when there's an incomplete sequence at the end.
+            if seq_len <= len(data) - end:
+                end = len(data)
+
+            break
+
+    try:
+        text = data[start:end].decode()
+    except UnicodeDecodeError:
+        return False
+    else:
+        # Non-printable characters signal binary data.
+        return "\\x" not in repr(text)
+
+
 # At the bottom to break import cycles created by type annotations.
 from . import extensions  # noqa: E402

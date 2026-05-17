@@ -174,7 +174,7 @@ class FrameTests(FramesTestCase):
         class Rot13:
             @staticmethod
             def encode(frame):
-                assert frame.opcode == OP_TEXT
+                assert frame.opcode is OP_TEXT
                 text = frame.data.decode()
                 data = codecs.encode(text, "rot13").encode()
                 return dataclasses.replace(frame, data=data)
@@ -229,25 +229,31 @@ class StrTests(unittest.TestCase):
             "CONT fc fd fe ff [binary, 4 bytes]",
         )
 
+    def test_cont_text_fragmented(self):
+        self.assertEqual(
+            str(Frame(OP_CONT, b"\xa9caf\xc3", fin=False)),
+            "CONT '�caf�' [text, 5 bytes, continued]",
+        )
+
     def test_cont_text_truncated(self):
         self.assertEqual(
-            str(Frame(OP_CONT, b"caf\xc3\xa9 " * 16, fin=False)),
+            str(Frame(OP_CONT, b"caf\xc3\xa9 " * 64, fin=False)),
             "CONT 'café café café café café café café café café ca..."
-            "fé café café café café ' [text, 96 bytes, continued]",
+            "fé café café café café ' [text, 384 bytes, continued]",
         )
 
     def test_cont_binary_truncated(self):
         self.assertEqual(
-            str(Frame(OP_CONT, bytes(range(256)), fin=False)),
+            str(Frame(OP_CONT, bytes(range(256)) * 2, fin=False)),
             "CONT 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
-            " f8 f9 fa fb fc fd fe ff [binary, 256 bytes, continued]",
+            " f8 f9 fa fb fc fd fe ff [binary, 512 bytes, continued]",
         )
 
     def test_cont_binary_truncated_from_memoryview(self):
         self.assertEqual(
-            str(Frame(OP_CONT, memoryview(bytes(range(256))), fin=False)),
+            str(Frame(OP_CONT, memoryview(bytes(range(256)) * 2), fin=False)),
             "CONT 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
-            " f8 f9 fa fb fc fd fe ff [binary, 256 bytes, continued]",
+            " f8 f9 fa fb fc fd fe ff [binary, 512 bytes, continued]",
         )
 
     def test_text(self):
@@ -262,11 +268,17 @@ class StrTests(unittest.TestCase):
             "TEXT 'café' [5 bytes, continued]",
         )
 
+    def test_text_fragmented(self):
+        self.assertEqual(
+            str(Frame(OP_TEXT, b"caf\xc3", fin=False)),
+            "TEXT 'caf�' [4 bytes, continued]",
+        )
+
     def test_text_truncated(self):
         self.assertEqual(
-            str(Frame(OP_TEXT, b"caf\xc3\xa9 " * 16)),
+            str(Frame(OP_TEXT, b"caf\xc3\xa9 " * 64)),
             "TEXT 'café café café café café café café café café ca..."
-            "fé café café café café ' [96 bytes]",
+            "fé café café café café ' [384 bytes]",
         )
 
     def test_text_with_newline(self):
@@ -301,16 +313,16 @@ class StrTests(unittest.TestCase):
 
     def test_binary_truncated(self):
         self.assertEqual(
-            str(Frame(OP_BINARY, bytes(range(256)))),
+            str(Frame(OP_BINARY, bytes(range(256)) * 2)),
             "BINARY 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
-            " f8 f9 fa fb fc fd fe ff [256 bytes]",
+            " f8 f9 fa fb fc fd fe ff [512 bytes]",
         )
 
     def test_binary_truncated_from_memoryview(self):
         self.assertEqual(
-            str(Frame(OP_BINARY, memoryview(bytes(range(256))))),
+            str(Frame(OP_BINARY, memoryview(bytes(range(256)) * 2))),
             "BINARY 00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f ..."
-            " f8 f9 fa fb fc fd fe ff [256 bytes]",
+            " f8 f9 fa fb fc fd fe ff [512 bytes]",
         )
 
     def test_close(self):
@@ -323,6 +335,12 @@ class StrTests(unittest.TestCase):
         self.assertEqual(
             str(Frame(OP_CLOSE, b"\x03\xe9Bye!")),
             "CLOSE 1001 (going away) Bye! [6 bytes]",
+        )
+
+    def test_close_invalid(self):
+        self.assertEqual(
+            str(Frame(OP_CLOSE, b"\x00\x01\x02\x03")),
+            "CLOSE 00 01 02 03 [binary, 4 bytes]",
         )
 
     def test_ping(self):

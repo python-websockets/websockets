@@ -40,6 +40,12 @@ Improvements
 
 * Added wheels for ARMv7, PowerPC, RISC-V, and S/390.
 
+Bug fixes
+.........
+
+* Prevented ``Frame.__str__`` from crashing when a text frame is fragmented in
+  the middle of a UTF-8 sequence.
+
 .. _16.0:
 
 16.0

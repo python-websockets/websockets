@@ -38,6 +38,8 @@ Improvements
 * Stripped ``Authorization``, ``Cookie``, and ``Proxy-Authorization`` headers
   when clients follow cross-origin redirects, a security hardening measure.
 
+* Escaped control characters in incoming messages in ``python -m websockets``.
+
 * Added wheels for ARMv7, PowerPC, RISC-V, and S/390.
 
 Bug fixes

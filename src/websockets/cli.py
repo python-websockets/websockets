@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import itertools
 import os
 import sys
 from typing import Generator
@@ -15,6 +16,27 @@ from .version import version as websockets_version
 
 
 __all__ = ["main"]
+
+# Escape ASCII control characters (0-31 and 128-159) as well as DEL (127).
+# Do not escape NO-BREAK SPACE (160) and SOFT HYPHEN (173), even if Python
+# considers them non-printable, since they don't cause issues in terminal.
+
+# >>> [i for i in range(256) if not any((
+# ...     chr(i).isprintable(),
+# ...     i < 32,
+# ...     i == 127,
+# ...     128 <= i < 160,
+# ... ))]
+# [160, 173]
+
+TERMINAL_ESCAPES = str.maketrans(
+    {i: repr(chr(i))[1:-1] for i in itertools.chain(range(32), range(127, 160))}
+)
+
+
+def escape(string: str) -> str:
+    """Make a string safe for a terminal by escaping control characters."""
+    return string.translate(TERMINAL_ESCAPES)
 
 
 def print_during_input(string: str) -> None:
@@ -81,7 +103,7 @@ class ReadLines(asyncio.Protocol):
 async def print_incoming_messages(websocket: ClientConnection) -> None:
     async for message in websocket:
         if isinstance(message, str):
-            print_during_input("< " + message)
+            print_during_input("< " + escape(message))
         else:
             print_during_input("< (binary) " + message.hex())
 
@@ -139,7 +161,7 @@ async def interactive_client(uri: str) -> None:
     await websocket.close()
     assert websocket.close_code is not None and websocket.close_reason is not None
     close_status = Close(websocket.close_code, websocket.close_reason)
-    print_over_input(f"Connection closed: {close_status}.")
+    print_over_input(f"Connection closed: {escape(str(close_status))}.")
 
 
 def main(argv: list[str] | None = None) -> None:

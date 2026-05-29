@@ -76,6 +76,18 @@ class CLITests(unittest.TestCase):
             add_connection_messages("\n< (binary) 746561\n", server_uri),
         )
 
+    def test_escape_control_characters(self):
+        def handler(websocket):
+            websocket.send("line1\nline2\rline3")
+
+        with run_server(handler) as server:
+            server_uri = get_uri(server)
+            output = self.run_main([server_uri], "")
+        self.assertEqual(
+            remove_commands_and_prompts(output),
+            add_connection_messages("\n< line1\\nline2\\rline3\n", server_uri),
+        )
+
     def test_send_message(self):
         def echo_handler(websocket):
             websocket.send(websocket.recv())

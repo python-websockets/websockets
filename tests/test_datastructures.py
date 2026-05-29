@@ -1,6 +1,7 @@
 import unittest
 
 from websockets.datastructures import *
+from websockets.exceptions import InvalidHeaderValue
 
 
 class MultipleValuesErrorTests(unittest.TestCase):
@@ -120,6 +121,10 @@ class HeadersTests(unittest.TestCase):
     def test_setitem_case_insensitive(self):
         self.headers["upgrade"] = "websocket"
         self.assertEqual(self.headers["Upgrade"], "websocket")
+
+    def test_setitem_invalid_value(self):
+        with self.assertRaises(InvalidHeaderValue):
+            self.headers["X-Invalid"] = "multi\r\nline"
 
     def test_delitem(self):
         del self.headers["Connection"]

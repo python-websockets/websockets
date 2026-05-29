@@ -145,7 +145,7 @@ class BasicTests(unittest.TestCase):
                 Headers(
                     {
                         "Connection": "close",
-                        "Content-Length": 6,
+                        "Content-Length": "6",
                         "Content-Type": "text/plain",
                     }
                 ),

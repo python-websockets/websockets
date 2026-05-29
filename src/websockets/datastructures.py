@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from collections.abc import Iterable, Iterator, Mapping, MutableMapping
 from typing import Any, Protocol
 
@@ -22,6 +23,10 @@ class MultipleValuesError(LookupError):
         if len(self.args) == 1:
             return repr(self.args[0])
         return super().__str__()
+
+
+# Obsolete line folding for header values is not supported.
+is_valid_header_value = re.compile(r"[\x09\x20-\x7e\x80-\xff]*").fullmatch
 
 
 class Headers(MutableMapping[str, str]):
@@ -107,6 +112,8 @@ class Headers(MutableMapping[str, str]):
             raise MultipleValuesError(key)
 
     def __setitem__(self, key: str, value: str) -> None:
+        if not is_valid_header_value(str(value)):
+            raise InvalidHeaderValue(value)
         self._dict.setdefault(key.lower(), []).append(value)
         self._list.append((key, value))
 
@@ -181,3 +188,7 @@ In addition to :class:`Headers` itself, this includes dict-like types where both
 keys and values are :class:`str`.
 
 """
+
+
+# At the bottom to break an import cycle.
+from .exceptions import InvalidHeaderValue  # noqa: E402

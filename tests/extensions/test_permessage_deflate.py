@@ -289,6 +289,14 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         with self.assertRaises(PayloadTooBig):
             self.extension.decode(enc_frame, max_size=10)
 
+    def test_decompress_max_size_off_by_one(self):
+        # A message exceeding max_size by a few bytes was silently truncated.
+        # See https://github.com/python-websockets/websockets/issues/1715.
+        frame = Frame(OP_BINARY, b"a" * 2**21)
+        enc_frame = self.extension.encode(frame)
+        with self.assertRaises(PayloadTooBig):
+            self.extension.decode(enc_frame, max_size=2**21 - 1)
+
 
 class ClientPerMessageDeflateFactoryTests(
     unittest.TestCase, PerMessageDeflateTestsMixin

@@ -1336,6 +1336,16 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         broadcast([self.connection], b"\x01\x02\xfe\xff", raise_exceptions=True)
         await self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
 
+    async def test_broadcast_text_from_bytes(self):
+        """broadcast broadcasts a text message from bytes."""
+        broadcast([self.connection], "😀".encode(), text=True)
+        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    async def test_broadcast_binary_from_str(self):
+        """broadcast broadcasts a binary message from a str."""
+        broadcast([self.connection], "😀", text=False)
+        await self.assertFrameSent(Frame(Opcode.BINARY, "😀".encode()))
+
     async def test_broadcast_no_clients(self):
         """broadcast does nothing when called with an empty list of clients."""
         broadcast([], "😀")

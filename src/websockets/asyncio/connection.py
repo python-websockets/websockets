@@ -1148,6 +1148,8 @@ def broadcast(
     connections: Iterable[Connection],
     message: DataLike,
     raise_exceptions: bool = False,
+    *,
+    text: bool | None = None,
 ) -> None:
     """
     Broadcast a message to several WebSocket connections.
@@ -1158,6 +1160,17 @@ def broadcast(
 
     .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
     .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+    You may override this behavior with the ``text`` argument:
+
+    * Set ``text=True`` to send an UTF-8 bytestring or bytes-like object
+      (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) in a
+      Text_ frame. This improves performance when the message is already
+      UTF-8 encoded, for example if the message contains JSON and you're
+      using a JSON library that produces a bytestring.
+    * Set ``text=False`` to send a string (:class:`str`) in a Binary_
+      frame. This may be useful for servers that expect binary frames
+      instead of text frames.
 
     :func:`broadcast` pushes the message synchronously to all connections even
     if their write buffers are overflowing. There's no backpressure.
@@ -1189,16 +1202,18 @@ def broadcast(
         websockets: WebSocket connections to which the message will be sent.
         message: Message to send.
         raise_exceptions: Whether to raise an exception in case of failures.
+        text: Send ``message`` in a Text_ frame if :obj:`True`, in a Binary_
+            frame if :obj:`False`, or according to its type if :obj:`None`.
 
     Raises:
         TypeError: If ``message`` doesn't have a supported type.
 
     """
     if isinstance(message, str):
-        send_method = "send_text"
+        send_method = "send_binary" if text is False else "send_text"
         message = message.encode()
     elif isinstance(message, BytesLike):
-        send_method = "send_binary"
+        send_method = "send_text" if text is True else "send_binary"
     else:
         raise TypeError("data must be str or bytes")
 

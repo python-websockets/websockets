@@ -397,30 +397,38 @@ class HeadersTests(GeneratorTestCase):
         self.reader = StreamReader()
 
     def parse_headers(self):
-        return parse_headers(self.reader.read_line)
+        try:
+            next(parse_headers(self.reader.read_line))
+        except StopIteration as exc:
+            return exc.value
+
+    def test_parse_iso_8859_1(self):
+        self.reader.feed_data(b"X-Drink: caf\xe9\r\n\r\n")
+        headers = self.parse_headers()
+        self.assertEqual(headers["X-Drink"], "café")
 
     def test_parse_invalid_name(self):
         self.reader.feed_data(b"foo bar: baz qux\r\n\r\n")
         with self.assertRaises(ValueError):
-            next(self.parse_headers())
+            self.parse_headers()
 
     def test_parse_invalid_value(self):
         self.reader.feed_data(b"foo: \x00\x00\x0f\r\n\r\n")
         with self.assertRaises(ValueError):
-            next(self.parse_headers())
+            self.parse_headers()
 
     def test_parse_too_long_value(self):
         self.reader.feed_data(b"foo: bar\r\n" * 129 + b"\r\n")
         with self.assertRaises(SecurityError):
-            next(self.parse_headers())
+            self.parse_headers()
 
     def test_parse_too_long_line(self):
         # Header line contains 5 + 8186 + 2 = 8193 bytes.
         self.reader.feed_data(b"foo: " + b"a" * 8186 + b"\r\n\r\n")
         with self.assertRaises(SecurityError):
-            next(self.parse_headers())
+            self.parse_headers()
 
     def test_parse_invalid_line_ending(self):
         self.reader.feed_data(b"foo: bar\n\n")
         with self.assertRaises(EOFError):
-            next(self.parse_headers())
+            self.parse_headers()

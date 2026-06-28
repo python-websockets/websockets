@@ -149,7 +149,10 @@ class Request:
             )
         if method != b"GET":
             raise ValueError(f"unsupported HTTP method; expected GET; got {d(method)}")
-        path = raw_path.decode("ascii", "surrogateescape")
+
+        # RFC 9110 defers the definition of URIs to RFC 3986, which allows only
+        # a subset of ASCII. Non-ASCII IRIs must be UTF-8 then percent-encoded.
+        path = raw_path.decode("ascii")
 
         headers = yield from parse_headers(read_line)
 
@@ -272,7 +275,10 @@ class Response:
             )
         if not _value_re.fullmatch(raw_reason):
             raise ValueError(f"invalid HTTP reason phrase: {d(raw_reason)}")
-        reason = raw_reason.decode("ascii", "surrogateescape")
+
+        # RFC 2616 implies ISO-8859-1. It's easy to reverse and cannot crash.
+        # Non-ASCII never worked reliably and the reason isn't useful anyway.
+        reason = raw_reason.decode("iso-8859-1")
 
         headers = yield from parse_headers(read_line)
 
@@ -368,7 +374,10 @@ def parse_headers(
             raise ValueError(f"invalid HTTP header value: {d(raw_value)}")
 
         name = raw_name.decode("ascii")  # guaranteed to be ASCII at this point
-        value = raw_value.decode("ascii", "surrogateescape")
+        # Headers should be ASCII. Section 5.5 of RFC 9110 says: "Historically,
+        # HTTP allowed field content with text in the ISO-8859-1 charset."
+        # It's easy to reverse and cannot crash, making it a decent choice.
+        value = raw_value.decode("iso-8859-1")
 
         # Since we just validated raw_value, we don't need to revalidate it.
         headers.set_insecure(name, value)

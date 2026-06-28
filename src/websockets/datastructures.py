@@ -113,7 +113,7 @@ class Headers(MutableMapping[str, str]):
 
     def __setitem__(self, key: str, value: str) -> None:
         if not is_valid_header_value(str(value)):
-            raise InvalidHeaderValue(value)
+            raise InvalidHeaderValue(key, value)
         self._dict.setdefault(key.lower(), []).append(value)
         self._list.append((key, value))
 

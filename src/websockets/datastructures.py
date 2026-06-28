@@ -165,6 +165,16 @@ class Headers(MutableMapping[str, str]):
         """
         return iter(self._list)
 
+    # Internal menthods
+
+    def set_insecure(self, key: str, value: str) -> None:
+        """
+        Set a header without validating its value.
+
+        """
+        self._dict.setdefault(key.lower(), []).append(value)
+        self._list.append((key, value))
+
 
 # copy of _typeshed.SupportsKeysAndGetItem.
 class SupportsKeysAndGetItem(Protocol):  # pragma: no cover

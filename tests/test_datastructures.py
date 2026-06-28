@@ -173,6 +173,14 @@ class HeadersTests(unittest.TestCase):
             [("Connection", "Upgrade"), ("Server", "websockets")],
         )
 
+    def test_set_insecure(self):
+        self.headers.set_insecure("Upgrade", "websocket")
+        self.assertEqual(self.headers["Upgrade"], "websocket")
+
+    def test_set_insecure_invalid_value(self):
+        self.headers.set_insecure("X-Invalid", "multi\r\nline")
+        self.assertEqual(self.headers["X-Invalid"], "multi\r\nline")  # oops
+
 
 class MultiValueHeadersTests(unittest.TestCase):
     def setUp(self):

@@ -42,6 +42,10 @@ Improvements
 
 * Added wheels for ARMv7, PowerPC, RISC-V, and S/390.
 
+* Added the ``text`` argument to :func:`~asyncio.server.broadcast`, mirroring
+  :meth:`~asyncio.connection.Connection.send`, to force sending a Text or
+  Binary frame regardless of the type of ``message``.
+
 Bug fixes
 .........
 

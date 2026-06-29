@@ -297,6 +297,22 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         with self.assertRaises(PayloadTooBig):
             self.extension.decode(enc_frame, max_size=2**21 - 1)
 
+    # Invalid frames are rejected.
+
+    def test_rsv1_on_continuation_frame(self):
+        frame1 = Frame(OP_TEXT, b"tea ", fin=False)
+        frame2 = Frame(OP_CONT, b"time")
+
+        enc_frame1 = self.extension.encode(frame1)
+        enc_frame2 = self.extension.encode(frame2)
+
+        # Incorrectly set RSV1 on a continuation frame.
+        enc_frame2 = dataclasses.replace(enc_frame2, rsv1=True)
+
+        self.extension.decode(enc_frame1)
+        with self.assertRaises(ProtocolError):
+            self.extension.decode(enc_frame2)
+
 
 class ClientPerMessageDeflateFactoryTests(
     unittest.TestCase, PerMessageDeflateTestsMixin

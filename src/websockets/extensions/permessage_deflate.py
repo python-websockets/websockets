@@ -109,6 +109,8 @@ class PerMessageDeflate(Extension):
         if frame.opcode is frames.OP_CONT:
             if not self.decode_cont_data:
                 return frame
+            if frame.rsv1:
+                raise ProtocolError("RSV1 bit set in continuation frame")
             if frame.fin:
                 self.decode_cont_data = False
 

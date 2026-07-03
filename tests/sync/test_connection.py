@@ -661,6 +661,33 @@ class ClientConnectionTests(ThreadTestCase):
         )
         self.assertIsNone(exc.__cause__)
 
+    # Test closing the connection when the opening handshake fails.
+
+    def test_stops_reading_when_the_opening_handshake_fails(self):
+        """recv_events stops reading when the opening handshake fails."""
+        socket_, remote_socket = socket.socketpair()
+        self.addCleanup(remote_socket.close)
+        # Simulate the state of the protocol after the opening handshake
+        # failed: EOF was sent, incoming data is discarded, and the state
+        # is still CONNECTING. See ClientProtocol.parse and
+        # ServerProtocol.parse.
+        protocol = Protocol(self.LOCAL, state=State.CONNECTING)
+        protocol.send_eof()
+        protocol.parser = protocol.discard()
+        next(protocol.parser)  # start coroutine
+        connection = Connection(socket_, protocol, close_timeout=20 * MS)
+        self.addCleanup(connection.close_socket)
+
+        t0 = time.time()
+        remote_socket.sendall(b"remaining data to discard")
+        connection.recv_events_thread.join(1)
+        t1 = time.time()
+
+        # The connection closes promptly instead of waiting for the peer to
+        # close the TCP connection.
+        self.assertFalse(connection.recv_events_thread.is_alive())
+        self.assertLess(t1 - t0, 10 * MS)
+
     # Test ping.
 
     @patch("random.getrandbits")

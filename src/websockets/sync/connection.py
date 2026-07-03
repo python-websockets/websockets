@@ -22,7 +22,7 @@ from ..exceptions import (
 )
 from ..frames import DATA_OPCODES, CloseCode, Frame, Opcode
 from ..http11 import Request, Response
-from ..protocol import CLOSED, OPEN, Event, Protocol, State
+from ..protocol import CLOSED, CONNECTING, OPEN, Event, Protocol, State
 from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
 from .messages import Assembler
 from .utils import Deadline
@@ -870,6 +870,14 @@ class Connection:
                         if self.close_deadline is None:
                             self.close_deadline = Deadline(self.close_timeout)
 
+                    # If the opening handshake failed, the connection never
+                    # reached the OPEN state and there's no closing handshake
+                    # to wait for. Remember this so we can stop reading below.
+                    handshake_failed = (
+                        self.protocol.state is CONNECTING
+                        and self.protocol.close_expected()
+                    )
+
                 # Unlock conn_mutex before processing events. Else, the
                 # application can't send messages in response to events.
 
@@ -880,6 +888,17 @@ class Connection:
                 for event in events:
                     # This isn't expected to raise an exception.
                     self.process_event(event)
+
+                # When the opening handshake fails, the connection is unusable
+                # and close_socket() runs as soon as the handshake failure
+                # propagates. Stop reading instead of waiting for the peer to
+                # close the TCP connection, because closing a socket in one
+                # thread doesn't always interrupt recv() in another thread --
+                # e.g. on macOS, when the protocol already half-closed the
+                # socket, shutdown() fails with ENOTCONN and close() doesn't
+                # interrupt recv().
+                if handshake_failed:
+                    break
 
             # Breaking out of the while True: ... loop means that we believe
             # that the socket doesn't work anymore.

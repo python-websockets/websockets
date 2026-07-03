@@ -117,6 +117,9 @@ Bug fixes
 
 * Restored compatibility of the ``websockets`` CLI with Windows.
 
+* Fixed a race condition that could delay closing connections in the
+  :mod:`threading` implementation.
+
 .. _16.1.1:
 
 16.1.1

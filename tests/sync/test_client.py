@@ -1,3 +1,4 @@
+import errno
 import http
 import logging
 import os
@@ -189,6 +190,79 @@ class ClientTests(unittest.TestCase):
                 str(raised.exception.__cause__),
                 "connection closed while reading HTTP status line",
             )
+
+    def test_connection_closed_promptly_after_invalid_status_response(self):
+        """Client closes the connection promptly when the handshake fails."""
+
+        class HalfClosingSocket(socket.socket):
+            """
+            Reproduces the shutdown()/close() semantics observed on macOS:
+            once the protocol half-closes the socket for writing, a further
+            shutdown() raises ENOTCONN instead of succeeding, and close()
+            doesn't interrupt a recv() call already blocked in another
+            thread.
+
+            """
+
+            def __init__(self, plain):
+                super().__init__(fileno=plain.detach())
+                self.half_closed = False
+
+            def shutdown(self, how):
+                if how == socket.SHUT_WR and not self.half_closed:
+                    self.half_closed = True
+                    super().shutdown(how)
+                else:
+                    raise OSError(errno.ENOTCONN, "Socket is not connected")
+
+            def close(self):
+                pass  # doesn't interrupt a recv() blocked in another thread
+
+            def really_close(self):
+                super().close()
+
+        response = (
+            b"HTTP/1.1 302 Found\r\n"
+            b"Location: http://localhost/\r\n"
+            b"Content-Length: 0\r\n"
+            b"\r\n"
+        )
+        keep_open = threading.Event()
+
+        def keep_connection_open():
+            conn, _ = server.accept()
+            with conn:
+                request = b""
+                while b"\r\n\r\n" not in request:
+                    data = conn.recv(4096)
+                    if data == b"":  # pragma: no cover
+                        return
+                    request += data
+                conn.sendall(response)
+                # Keep the TCP connection open past the handshake failure.
+                keep_open.wait()
+
+        with socket.create_server(("localhost", 0)) as server:
+            host, port = server.getsockname()
+
+            thread = threading.Thread(target=keep_connection_open)
+            thread.start()
+            self.addCleanup(thread.join)
+            self.addCleanup(keep_open.set)
+
+            plain = socket.create_connection((host, port))
+            sock = HalfClosingSocket(plain)
+            self.addCleanup(sock.really_close)
+
+            t0 = time.time()
+            with self.assertRaises(InvalidStatus):
+                with connect(f"ws://{host}:{port}/", sock=sock, close_timeout=20 * MS):
+                    self.fail("did not raise")
+            t1 = time.time()
+
+        # The client doesn't wait anywhere close to close_timeout because it
+        # doesn't wait for the peer to close the connection.
+        self.assertLess(t1 - t0, 10 * MS)
 
     def test_http_response(self):
         """Client reads HTTP response."""

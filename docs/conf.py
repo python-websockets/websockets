@@ -8,7 +8,6 @@ import datetime
 import importlib
 import inspect
 import os
-import subprocess
 import sys
 
 # -- Path setup --------------------------------------------------------------
@@ -25,7 +24,6 @@ project = "websockets"
 copyright = f"2013-{datetime.date.today().year}, Aymeric Augustin and contributors"
 author = "Aymeric Augustin"
 
-from websockets.version import tag as version, version as release
 
 
 # -- General configuration ---------------------------------------------------

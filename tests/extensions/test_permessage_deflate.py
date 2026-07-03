@@ -213,6 +213,31 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame1, frame1)
         self.assertEqual(dec_frame2, frame2)
 
+    def test_decode_rsv1_on_compressed_continuation_frame(self):
+        # RSV1 marks the first frame of a compressed message; it must not be
+        # set on continuation frames (RFC 7692, section 6.2).
+        frame1 = Frame(OP_TEXT, "café".encode(), fin=False)
+        frame2 = Frame(OP_CONT, " & ".encode(), fin=False)
+
+        enc_frame1 = self.extension.encode(frame1)
+        enc_frame2 = self.extension.encode(frame2)
+
+        self.extension.decode(enc_frame1)
+
+        with self.assertRaises(ProtocolError):
+            self.extension.decode(dataclasses.replace(enc_frame2, rsv1=True))
+
+    def test_decode_rsv1_on_uncompressed_continuation_frame(self):
+        # An uncompressed message has no RSV1 on any of its frames, including
+        # continuation frames (RFC 7692, section 6.2).
+        frame1 = Frame(OP_TEXT, "café".encode(), fin=False)
+        frame2 = Frame(OP_CONT, " & ".encode(), fin=False)
+
+        self.extension.decode(frame1)
+
+        with self.assertRaises(ProtocolError):
+            self.extension.decode(dataclasses.replace(frame2, rsv1=True))
+
     def test_context_takeover(self):
         frame = Frame(OP_TEXT, "café".encode())
 

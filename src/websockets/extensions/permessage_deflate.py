@@ -104,9 +104,12 @@ class PerMessageDeflate(Extension):
             return frame
 
         # Handle continuation data frames:
+        # - reject the rsv1 flag, which is only valid on the first frame
         # - skip if the message isn't encoded
         # - reset "decode continuation data" flag if it's a final frame
         if frame.opcode is frames.OP_CONT:
+            if frame.rsv1:
+                raise ProtocolError("reserved bits must be 0")
             if not self.decode_cont_data:
                 return frame
             if frame.fin:

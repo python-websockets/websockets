@@ -48,6 +48,9 @@ Bug fixes
 * Prevented ``Frame.__str__`` from crashing when a text frame is fragmented in
   the middle of a UTF-8 sequence.
 
+* Rejected incoming ``permessage-deflate`` continuation frames with the RSV1
+  bit set, as required by :rfc:`7692`.
+
 .. _16.0:
 
 16.0

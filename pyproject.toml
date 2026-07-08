@@ -47,6 +47,10 @@ archs = ["x86_64", "universal2", "arm64"]
 [tool.cibuildwheel.linux]
 archs = ["auto", "aarch64", "armv7l", "ppc64le", "riscv64", "s390x"]
 
+[tool.codespell]
+skip = "docs/_build,docs/_static,*.svg"
+ignore-words-list = "caf,te"  # used in tests
+
 [tool.coverage.run]
 branch = true
 core = "ctrace"

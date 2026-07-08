@@ -8,8 +8,10 @@ import datetime
 import importlib
 import inspect
 import os
-import subprocess
 import sys
+
+from websockets.version import commit
+
 
 # -- Path setup --------------------------------------------------------------
 
@@ -25,7 +27,7 @@ project = "websockets"
 copyright = f"2013-{datetime.date.today().year}, Aymeric Augustin and contributors"
 author = "Aymeric Augustin"
 
-from websockets.version import tag as version, version as release
+from websockets.version import tag as version, version as release  # noqa: E402, F401
 
 
 # -- General configuration ---------------------------------------------------
@@ -68,7 +70,7 @@ extensions = [
 ]
 # It is currently inconvenient to install PyEnchant on Apple Silicon.
 try:
-    import sphinxcontrib.spelling
+    import sphinxcontrib.spelling  # noqa: F401
 except ImportError:
     extensions.remove("sphinxcontrib.spelling")
 
@@ -77,7 +79,8 @@ autodoc_typehints = "description"
 autodoc_typehints_description_target = "documented"
 
 # Workaround for https://github.com/sphinx-doc/sphinx/issues/9560
-from sphinx.domains.python import PythonDomain
+from sphinx.domains.python import PythonDomain  # noqa: E402
+
 
 assert PythonDomain.object_types["data"].roles == ("data", "obj")
 PythonDomain.object_types["data"].roles = ("data", "class", "obj")
@@ -98,10 +101,11 @@ templates_path = ["_templates"]
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 
+
 # Configure viewcode extension.
-from websockets.version import commit
 
 code_url = f"https://github.com/python-websockets/websockets/blob/{commit}"
+
 
 def linkcode_resolve(domain, info):
     # Non-linkable objects from the starter kit in the tutorial.
@@ -136,6 +140,7 @@ def linkcode_resolve(domain, info):
     start, end = lines[1], lines[1] + len(lines[0]) - 1
 
     return f"{code_url}/{file}#L{start}-L{end}"
+
 
 # Configure opengraph extension
 

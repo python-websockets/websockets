@@ -14,12 +14,11 @@ build:
 	python setup.py build_ext --inplace
 
 spell:
-	codespell src -w
-	codespell tests -Lcaf,te -w
+	codespell --write-changes compliance src docs tests
 
 style:
-	ruff format compliance src tests
-	ruff check --fix compliance src tests
+	ruff format compliance docs src tests
+	ruff check --fix compliance docs src tests
 
 types:
 	mypy --strict src

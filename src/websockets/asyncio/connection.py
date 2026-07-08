@@ -823,7 +823,7 @@ class Connection(asyncio.Protocol):
                 # closing because ping(), via send_context(), waits for the
                 # connection to be closed before raising ConnectionClosed.
                 # However, connection_lost() cancels keepalive_task before
-                # it gets a chance to resume excuting.
+                # it gets a chance to resume executing.
                 pong_received = await self.ping()
                 if self.debug:
                     self.logger.debug("% sent keepalive ping")

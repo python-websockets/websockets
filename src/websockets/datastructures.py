@@ -165,7 +165,7 @@ class Headers(MutableMapping[str, str]):
         """
         return iter(self._list)
 
-    # Internal menthods
+    # Internal methods
 
     def set_insecure(self, key: str, value: str) -> None:
         """

@@ -78,7 +78,9 @@ autodoc_typehints = "description"
 
 autodoc_typehints_description_target = "documented"
 
-# Workaround for https://github.com/sphinx-doc/sphinx/issues/9560
+# Workaround for https://github.com/sphinx-doc/sphinx/issues/9560 (fixed)
+# but still needed due to https://github.com/sphinx-doc/sphinx/pull/14171
+# See reference/types.rst for details.
 from sphinx.domains.python import PythonDomain  # noqa: E402
 
 

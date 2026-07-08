@@ -517,7 +517,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
 
     def test_http_proxy_connection_timeout(self):
         """Client times out while connecting to the HTTP proxy."""
-        # Replace the proxy with a TCP server that does't respond.
+        # Replace the proxy with a TCP server that doesn't respond.
         with socket.create_server(("localhost", 0)) as sock:
             host, port = sock.getsockname()
             with patch.dict(os.environ, {"https_proxy": f"http://{host}:{port}"}):

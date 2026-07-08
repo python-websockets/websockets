@@ -43,7 +43,7 @@ DATE = email.utils.formatdate(usegmt=True)
 # Unit for timeouts. May be increased in slow or noisy environments by setting
 # the WEBSOCKETS_TESTS_TIMEOUT_FACTOR environment variable.
 
-# Downstream distributors insist on running the test suite despites my pleas to
+# Downstream distributors insist on running the test suite despites my plea to
 # the contrary. They do it on build farms with unstable performance, leading to
 # flakiness, and then they file bugs. Make tests 100x slower to avoid flakiness.
 

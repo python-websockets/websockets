@@ -13,6 +13,10 @@ export PYTHON_CONTEXT_AWARE_WARNINGS=0
 build:
 	python setup.py build_ext --inplace
 
+spell:
+	codespell src -w
+	codespell tests -Lcaf,te -w
+
 style:
 	ruff format compliance src tests
 	ruff check --fix compliance src tests

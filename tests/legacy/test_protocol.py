@@ -1343,7 +1343,7 @@ class CommonTests:
         self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
-        self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
+        self.loop.run_until_complete(self.protocol.close(reason="oh no!"))
 
         self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertNoFrameSent()
@@ -1362,7 +1362,7 @@ class CommonTests:
         self.assertOneFrameSent(*self.close_frame)
 
         # Closing the connection again is a no-op.
-        self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
+        self.loop.run_until_complete(self.protocol.close(reason="oh no!"))
 
         self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertNoFrameSent()
@@ -1376,7 +1376,7 @@ class CommonTests:
         self.run_loop_once()
 
         with self.assertNoLogs("websockets", logging.ERROR):
-            self.loop.run_until_complete(self.protocol.close(reason="oh noes!"))
+            self.loop.run_until_complete(self.protocol.close(reason="oh no!"))
 
         self.assertConnectionClosed(CloseCode.NORMAL_CLOSURE, "close")
         self.assertOneFrameSent(*self.close_frame)

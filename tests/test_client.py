@@ -144,7 +144,7 @@ class RequestTests(unittest.TestCase):
                 self.assertEqual(request.headers["Host"], host)
 
     def test_user_info(self):
-        """connect() perfoms HTTP Basic Authentication with user info from the URI."""
+        """connect() performs HTTP Basic Authentication with user info from the URI."""
         client = ClientProtocol(parse_uri("wss://hello:iloveyou@example.com/"))
         request = client.connect()
 

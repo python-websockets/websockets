@@ -7,7 +7,6 @@ import unittest
 import uuid
 from unittest.mock import Mock, patch
 
-from websockets.asyncio.compatibility import TimeoutError, aiter, anext, asyncio_timeout
 from websockets.asyncio.connection import *
 from websockets.asyncio.connection import broadcast
 from websockets.exceptions import (
@@ -958,7 +957,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         async with self.drop_frames_rcvd():  # drop automatic response to ping
             pong_received = await self.connection.ping("this")
         await self.remote_connection.pong("this")
-        async with asyncio_timeout(MS):
+        async with asyncio.timeout(MS):
             await pong_received
 
     async def test_acknowledge_canceled_ping(self):
@@ -976,7 +975,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             pong_received = await self.connection.ping("this")
         await self.remote_connection.pong("that")
         with self.assertRaises(TimeoutError):
-            async with asyncio_timeout(MS):
+            async with asyncio.timeout(MS):
                 await pong_received
 
     async def test_acknowledge_previous_ping(self):
@@ -985,7 +984,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             pong_received = await self.connection.ping("this")
             await self.connection.ping("that")
         await self.remote_connection.pong("that")
-        async with asyncio_timeout(MS):
+        async with asyncio.timeout(MS):
             await pong_received
 
     async def test_acknowledge_previous_canceled_ping(self):
@@ -995,7 +994,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             pong_received_2 = await self.connection.ping("that")
         pong_received.cancel()
         await self.remote_connection.pong("that")
-        async with asyncio_timeout(MS):
+        async with asyncio.timeout(MS):
             await pong_received_2
         with self.assertRaises(asyncio.CancelledError):
             await pong_received
@@ -1021,7 +1020,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         )
 
         await self.remote_connection.pong("idem")
-        async with asyncio_timeout(MS):
+        async with asyncio.timeout(MS):
             await pong_received
 
         await self.connection.ping("idem")  # doesn't raise an exception

@@ -14,7 +14,6 @@ import urllib.request
 import warnings
 from unittest.mock import patch
 
-from websockets.asyncio.compatibility import asyncio_timeout
 from websockets.datastructures import Headers
 from websockets.exceptions import (
     ConnectionClosed,
@@ -1144,7 +1143,7 @@ class CommonClientServerTests:
 
         async def cancelled_client():
             start_client = connect(get_server_uri(self.server), sock=sock)
-            async with asyncio_timeout(5 * MS):
+            async with asyncio.timeout(5 * MS):
                 await start_client
 
         with self.assertRaises(asyncio.TimeoutError):

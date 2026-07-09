@@ -30,7 +30,6 @@ from ..proxy import Proxy, get_proxy, parse_proxy, prepare_connect_request
 from ..streams import StreamReader
 from ..typing import LoggerLike, Origin, Subprotocol
 from ..uri import WebSocketURI, parse_uri
-from .compatibility import TimeoutError, asyncio_timeout
 from .connection import Connection
 
 
@@ -549,7 +548,7 @@ class connect:
 
     async def __await_impl__(self) -> ClientConnection:
         try:
-            async with asyncio_timeout(self.open_timeout):
+            async with asyncio.timeout(self.open_timeout):
                 for _ in range(MAX_REDIRECTS):
                     self.connection = await self.create_connection()
                     try:

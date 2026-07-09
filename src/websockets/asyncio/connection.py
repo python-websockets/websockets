@@ -22,13 +22,6 @@ from ..frames import DATA_OPCODES, CloseCode, Frame, Opcode
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
 from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
-from .compatibility import (
-    TimeoutError,
-    aiter,
-    anext,
-    asyncio_timeout,
-    asyncio_timeout_at,
-)
 from .messages import Assembler
 
 
@@ -830,7 +823,7 @@ class Connection(asyncio.Protocol):
 
                 if self.ping_timeout is not None:
                     try:
-                        async with asyncio_timeout(self.ping_timeout):
+                        async with asyncio.timeout(self.ping_timeout):
                             # connection_lost cancels keepalive immediately
                             # after setting a ConnectionClosed exception on
                             # pong_received. A CancelledError is raised here,
@@ -944,7 +937,7 @@ class Connection(asyncio.Protocol):
         # elapses, close the socket to terminate the connection.
         if wait_for_close:
             try:
-                async with asyncio_timeout_at(self.close_deadline):
+                async with asyncio.timeout_at(self.close_deadline):
                     await asyncio.shield(self.connection_lost_waiter)
             except TimeoutError:
                 # There's no risk of overwriting another error because

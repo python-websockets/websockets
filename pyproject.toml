@@ -57,8 +57,6 @@ core = "ctrace"
 omit = [
     # */websockets matches src/websockets and .tox/**/site-packages/websockets
     "*/websockets/__main__.py",
-    "*/websockets/asyncio/async_timeout.py",
-    "*/websockets/asyncio/compatibility.py",
     "tests/maxi_cov.py",
 ]
 

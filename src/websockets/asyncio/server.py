@@ -24,7 +24,6 @@ from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
-from .compatibility import asyncio_timeout
 from .connection import Connection, broadcast
 
 
@@ -351,7 +350,7 @@ class Server:
 
         """
         try:
-            async with asyncio_timeout(self.open_timeout):
+            async with asyncio.timeout(self.open_timeout):
                 try:
                     await connection.handshake(
                         self.process_request,

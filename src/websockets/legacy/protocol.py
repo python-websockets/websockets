@@ -14,7 +14,6 @@ import warnings
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Iterable, Mapping
 from typing import Any, Callable, Deque, cast
 
-from ..asyncio.compatibility import asyncio_timeout
 from ..datastructures import Headers
 from ..exceptions import (
     ConnectionClosed,
@@ -745,7 +744,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
         """
         try:
-            async with asyncio_timeout(self.close_timeout):
+            async with asyncio.timeout(self.close_timeout):
                 await self.write_close_frame(Close(code, reason))
         except asyncio.TimeoutError:
             # If the close frame cannot be sent because the send buffers
@@ -753,7 +752,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
             # Fail the connection to shut down faster.
             self.fail_connection()
 
-        # If no close frame is received within the timeout, asyncio_timeout()
+        # If no close frame is received within the timeout, asyncio.timeout()
         # cancels the data transfer task and raises TimeoutError.
 
         # If close() is called multiple times concurrently and one of these
@@ -763,7 +762,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         try:
             # If close() is canceled during the wait, self.transfer_data_task
             # is canceled before the timeout elapses.
-            async with asyncio_timeout(self.close_timeout):
+            async with asyncio.timeout(self.close_timeout):
                 await self.transfer_data_task
         except (asyncio.TimeoutError, asyncio.CancelledError):
             pass
@@ -1233,7 +1232,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
 
                 if self.ping_timeout is not None:
                     try:
-                        async with asyncio_timeout(self.ping_timeout):
+                        async with asyncio.timeout(self.ping_timeout):
                             # Raises CancelledError if the connection is closed,
                             # when close_connection() cancels keepalive_ping().
                             # Raises ConnectionClosed if the connection is lost,
@@ -1349,7 +1348,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         """
         if not self.connection_lost_waiter.done():
             try:
-                async with asyncio_timeout(self.close_timeout):
+                async with asyncio.timeout(self.close_timeout):
                     await asyncio.shield(self.connection_lost_waiter)
             except asyncio.TimeoutError:
                 pass

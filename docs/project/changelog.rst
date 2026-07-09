@@ -32,6 +32,12 @@ notice.
 
 *In development*
 
+New features
+............
+
+* Added an option to force :func:`~asyncio.server.broadcast` to send
+  :class:`bytes` in text frames, or :class:`str` in binary frames.
+
 Improvements
 ............
 
@@ -40,16 +46,17 @@ Improvements
 
 * Escaped control characters in incoming messages in ``python -m websockets``.
 
-* Added wheels for ARMv7, PowerPC, RISC-V, and S/390.
+* Blocked non-ASCII values in :class:`~datastructures.Headers`.
 
-* Added an option to force :func:`~asyncio.connection.broadcast` to send
-  :class:`bytes` in text frames, or :class:`str` in binary frames.
+* Rejected incorrect fragmented, compressed messages.
+
+* Added wheels for ARMv7, PowerPC, RISC-V, and S/390.
 
 Bug fixes
 .........
 
-* Prevented ``Frame.__str__`` from crashing when a text frame is fragmented in
-  the middle of a UTF-8 sequence.
+* Prevented ``str(frame)`` from crashing when a text frame is fragmented in the
+  middle of a UTF-8 sequence.
 
 .. _16.0:
 

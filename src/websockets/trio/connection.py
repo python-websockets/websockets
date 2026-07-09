@@ -472,6 +472,7 @@ class Connection(trio.abc.AsyncResource):
 
         Args:
             message: Message to send.
+            text: Force sending in a Text_ or Binary_ frame.
 
         Raises:
             ConnectionClosed: When the connection is closed.

@@ -460,6 +460,7 @@ class Connection(asyncio.Protocol):
 
         Args:
             message: Message to send.
+            text: Force sending in a Text_ or Binary_ frame.
 
         Raises:
             ConnectionClosed: When the connection is closed.
@@ -1202,8 +1203,7 @@ def broadcast(
         websockets: WebSocket connections to which the message will be sent.
         message: Message to send.
         raise_exceptions: Whether to raise an exception in case of failures.
-        text: Send ``message`` in a Text_ frame if :obj:`True`, in a Binary_
-            frame if :obj:`False`, or according to its type if :obj:`None`.
+        text: Force sending in Text_ or Binary_ frames.
 
     Raises:
         TypeError: If ``message`` doesn't have a supported type.

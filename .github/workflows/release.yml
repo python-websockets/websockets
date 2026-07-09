@@ -61,7 +61,7 @@ jobs:
       with:
         name: dist-${{ matrix.os }}
         path: wheelhouse/*.whl
-    timeout-minutes: 30
+    timeout-minutes: 60
 
   upload:
     name: Upload

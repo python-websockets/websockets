@@ -151,29 +151,39 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         def handler(ws):
             self.fail("handler must not run")
 
-        with run_server(handler, process_request=process_request) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 403",
-            )
+        with self.assertNoLogs("websockets", logging.ERROR):
+            with run_server(handler, process_request=process_request) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 403",
+                )
 
     def test_process_request_raises_exception(self):
         """Server returns an error if process_request raises an exception."""
 
         def process_request(ws, request):
-            raise RuntimeError
+            raise RuntimeError("BOOM")
 
-        with run_server(process_request=process_request) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 500",
-            )
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            with run_server(process_request=process_request) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 500",
+                )
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["opening handshake failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["BOOM"],
+        )
 
     def test_process_response_returns_none(self):
         """Server runs process_response but keeps the handshake response."""
@@ -213,16 +223,25 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
         """Server returns an error if process_response raises an exception."""
 
         def process_response(ws, request, response):
-            raise RuntimeError
+            raise RuntimeError("BOOM")
 
-        with run_server(process_response=process_response) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 500",
-            )
+        with self.assertLogs("websockets", logging.ERROR) as logs:
+            with run_server(process_response=process_response) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 500",
+                )
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["opening handshake failed"],
+        )
+        self.assertEqual(
+            [str(record.exc_info[1]) for record in logs.records],
+            ["BOOM"],
+        )
 
     def test_override_server(self):
         """Server can override Server header with server_header."""

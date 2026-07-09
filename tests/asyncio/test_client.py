@@ -10,7 +10,6 @@ import unittest
 from unittest.mock import patch
 
 from websockets.asyncio.client import *
-from websockets.asyncio.compatibility import TimeoutError
 from websockets.asyncio.server import serve, unix_serve
 from websockets.client import backoff
 from websockets.exceptions import (

@@ -5,7 +5,6 @@ import unittest.mock
 
 import trio.testing
 
-from websockets.asyncio.compatibility import aiter, anext
 from websockets.exceptions import ConcurrencyError
 from websockets.frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
 from websockets.trio.messages import *

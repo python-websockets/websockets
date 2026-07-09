@@ -3,7 +3,6 @@ import contextlib
 import unittest
 import unittest.mock
 
-from websockets.asyncio.compatibility import aiter, anext
 from websockets.asyncio.messages import *
 from websockets.asyncio.messages import SimpleQueue
 from websockets.exceptions import ConcurrencyError

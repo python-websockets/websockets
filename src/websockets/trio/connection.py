@@ -12,11 +12,6 @@ from typing import Any, Literal, overload
 import trio
 import trio.abc
 
-from ..asyncio.compatibility import (
-    TimeoutError,
-    aiter,
-    anext,
-)
 from ..exceptions import (
     ConcurrencyError,
     ConnectionClosed,

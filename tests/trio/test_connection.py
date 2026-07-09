@@ -6,7 +6,6 @@ from unittest.mock import patch
 
 import trio.testing
 
-from websockets.asyncio.compatibility import TimeoutError, aiter, anext
 from websockets.exceptions import (
     ConcurrencyError,
     ConnectionClosedError,

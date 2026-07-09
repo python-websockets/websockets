@@ -7,7 +7,6 @@ import socket
 import unittest
 
 from websockets.asyncio.client import connect, unix_connect
-from websockets.asyncio.compatibility import TimeoutError, asyncio_timeout
 from websockets.asyncio.server import *
 from websockets.exceptions import (
     ConnectionClosedError,
@@ -532,12 +531,12 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
                 # The server waits for the client to close the connection.
                 with self.assertRaises(TimeoutError):
-                    async with asyncio_timeout(MS):
+                    async with asyncio.timeout(MS):
                         await server.wait_closed()
 
                 # Once the client closes the connection, the server terminates.
                 await client.close()
-                async with asyncio_timeout(MS):
+                async with asyncio.timeout(MS):
                     await server.wait_closed()
 
     async def test_close_server_keeps_handlers_running(self):
@@ -551,11 +550,11 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
                 # The server waits for the connection handler to terminate.
                 with self.assertRaises(TimeoutError):
-                    async with asyncio_timeout(2 * MS):
+                    async with asyncio.timeout(2 * MS):
                         await server.wait_closed()
 
                 # Set a large timeout here, else the test becomes flaky.
-                async with asyncio_timeout(5 * MS):
+                async with asyncio.timeout(5 * MS):
                     await server.wait_closed()
 
 

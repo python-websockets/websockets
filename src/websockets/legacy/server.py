@@ -12,7 +12,6 @@ from collections.abc import Awaitable, Generator, Iterable, Sequence
 from types import TracebackType
 from typing import Any, Callable, cast
 
-from ..asyncio.compatibility import asyncio_timeout
 from ..datastructures import Headers, HeadersLike, MultipleValuesError
 from ..exceptions import (
     InvalidHandshake,
@@ -157,7 +156,7 @@ class WebSocketServerProtocol(WebSocketCommonProtocol):
         """
         try:
             try:
-                async with asyncio_timeout(self.open_timeout):
+                async with asyncio.timeout(self.open_timeout):
                     await self.handshake(
                         origins=self.origins,
                         available_extensions=self.available_extensions,

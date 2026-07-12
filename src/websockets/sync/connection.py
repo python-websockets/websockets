@@ -46,7 +46,7 @@ class Connection:
 
     def __init__(
         self,
-        socket: socket.socket,
+        sock: socket.socket,
         protocol: Protocol,
         *,
         ping_interval: float | None = 20,
@@ -54,7 +54,7 @@ class Connection:
         close_timeout: float | None = 10,
         max_queue: int | None | tuple[int | None, int | None] = 16,
     ) -> None:
-        self.socket = socket
+        self.socket = sock
         self.protocol = protocol
         self.ping_interval = ping_interval
         self.ping_timeout = ping_timeout

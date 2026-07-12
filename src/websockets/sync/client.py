@@ -54,7 +54,7 @@ class ClientConnection(Connection):
 
     def __init__(
         self,
-        socket: socket.socket,
+        sock: socket.socket,
         protocol: ClientProtocol,
         *,
         ping_interval: float | None = 20,
@@ -65,7 +65,7 @@ class ClientConnection(Connection):
         self.protocol: ClientProtocol
         self.response_rcvd = threading.Event()
         super().__init__(
-            socket,
+            sock,
             protocol,
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,

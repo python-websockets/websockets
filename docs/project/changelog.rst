@@ -25,13 +25,26 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
+.. _17.0:
 
-.. _16.2:
-
-16.2
+17.0
 ----
 
 *In development*
+
+Backwards-incompatible changes
+..............................
+
+.. admonition:: In the :mod:`threading` implementation, the ``socket`` argument
+    is renamed to ``sock``.
+    :class: note
+
+    The first argument of :class:`~sync.client.ClientConnection` and
+    :class:`~sync.server.ServerConnection` is renamed from ``socket`` to
+    ``sock`` for consistency with :func:`~sync.client.connect` and
+    :func:`~sync.server.serve`.  The first argument of
+    :class:`~sync.server.Server` is also renamed. If you're passing it as a
+    keyword argument, you must change your code.
 
 .. _16.1:
 

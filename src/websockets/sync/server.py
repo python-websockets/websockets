@@ -6,7 +6,6 @@ import logging
 import re
 import selectors
 import socket
-import socket as socket_module  # shadowed by the socket argument in Server.__init__()
 import ssl as ssl_module
 import sys
 import threading
@@ -63,7 +62,7 @@ class ServerConnection(Connection):
 
     def __init__(
         self,
-        socket: socket.socket,
+        sock: socket.socket,
         protocol: ServerProtocol,
         *,
         ping_interval: float | None = 20,
@@ -74,7 +73,7 @@ class ServerConnection(Connection):
         self.protocol: ServerProtocol
         self.request_rcvd = threading.Event()
         super().__init__(
-            socket,
+            sock,
             protocol,
             ping_interval=ping_interval,
             ping_timeout=ping_timeout,
@@ -235,11 +234,11 @@ class Server:
 
     def __init__(
         self,
-        socket: socket.socket,
+        sock: socket.socket,
         handler: Callable[[socket.socket, Any], None],
         logger: LoggerLike | None = None,
     ) -> None:
-        self.socket = socket
+        self.socket = sock
         self.handler = handler
         if logger is None:
             logger = logging.getLogger("websockets.server")
@@ -247,7 +246,7 @@ class Server:
         # On Windows, closing the socket wakes up the poller in serve_forever(),
         # making the notification mechanism unnecessary.
         if sys.platform != "win32":
-            self.shutdown_watcher, self.shutdown_notifier = socket_module.socketpair()
+            self.shutdown_watcher, self.shutdown_notifier = socket.socketpair()
 
     def serve_forever(self) -> None:
         """

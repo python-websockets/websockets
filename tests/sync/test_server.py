@@ -3,6 +3,7 @@ import hmac
 import http
 import logging
 import socket
+import threading
 import time
 import unittest
 
@@ -145,20 +146,37 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
     def test_process_request_returns_response(self):
         """Server aborts handshake if process_request returns a response."""
 
+        assertions = []
+
+        def trace(frame, event, arg):
+            if (
+                event == "exception"
+                and arg[0] is AssertionError
+                and frame.f_code.co_name == "conn_handler"
+            ):
+                assertions.append(arg[1])
+            return trace
+
         def process_request(ws, request):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
         def handler(ws):
             self.fail("handler must not run")
 
-        with run_server(handler, process_request=process_request) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                with connect(get_uri(server)):
-                    self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 403",
-            )
+        threading.settrace(trace)
+        try:
+            with run_server(handler, process_request=process_request) as server:
+                with self.assertRaises(InvalidStatus) as raised:
+                    with connect(get_uri(server)):
+                        self.fail("did not raise")
+                self.assertEqual(
+                    str(raised.exception),
+                    "server rejected WebSocket connection: HTTP 403",
+                )
+        finally:
+            threading.settrace(None)
+
+        self.assertEqual(assertions, [])
 
     def test_process_request_raises_exception(self):
         """Server returns an error if process_request raises an exception."""

@@ -59,6 +59,12 @@ New features
 * Added the ``--insecure`` option to the ``websockets`` CLI to disable TLS
   certificate validation.
 
+Bug fixes
+.........
+
+* Avoided an internal assertion when the :mod:`threading` server rejects an
+  opening handshake. (:issue:`1722`)
+
 .. _16.1:
 
 16.1

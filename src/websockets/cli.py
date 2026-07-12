@@ -170,14 +170,30 @@ def main(argv: list[str] | None = None) -> None:
         description="Interactive WebSocket client.",
         add_help=False,
     )
-    group = parser.add_mutually_exclusive_group()
-    group.add_argument("--version", action="store_true")
-    group.add_argument("uri", metavar="<uri>", nargs="?")
+    parser.add_argument(
+        "--help",
+        action="store_true",
+        help="show usage and exit",
+    )
+    parser.add_argument(
+        "--version",
+        action="store_true",
+        help="show version and exit",
+    )
+    parser.add_argument(
+        "uri",
+        metavar="<uri>",
+        nargs="?",
+    )
     args = parser.parse_args(argv)
+
+    if args.help:
+        parser.print_usage()
+        sys.exit(0)
 
     if args.version:
         print(f"websockets {websockets_version}")
-        return
+        sys.exit(0)
 
     if args.uri is None:
         parser.print_usage()

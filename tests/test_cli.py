@@ -48,8 +48,12 @@ class CLITests(unittest.TestCase):
                 main(argv)
             return stdout.getvalue()
 
+    def test_help(self):
+        output = self.run_main(["--help"], expected_exit_code=0)
+        self.assertTrue(output.startswith("usage: websockets "))
+
     def test_version(self):
-        output = self.run_main(["--version"])
+        output = self.run_main(["--version"], expected_exit_code=0)
         self.assertEqual(output, f"websockets {version}\n")
 
     def test_receive_text_message(self):
@@ -121,4 +125,4 @@ class CLITests(unittest.TestCase):
 
     def test_no_args(self):
         output = self.run_main([], expected_exit_code=2)
-        self.assertEqual(output, "usage: websockets [--version | <uri>]\n")
+        self.assertTrue(output.startswith("usage: websockets "))

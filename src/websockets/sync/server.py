@@ -271,19 +271,23 @@ class Server:
         if sys.platform != "win32":
             poller.register(self.shutdown_watcher, selectors.EVENT_READ)
 
-        while True:
-            poller.select()
-            try:
-                # If the socket is closed, this will raise an exception and exit
-                # the loop. So we don't need to check the return value of select().
-                sock, addr = self.socket.accept()
-            except OSError:
-                break
-            # Since there isn't a mechanism for tracking connections and waiting
-            # for them to terminate, we cannot use daemon threads, or else all
-            # connections would be terminate brutally when closing the server.
-            thread = threading.Thread(target=self.handler, args=(sock, addr))
-            thread.start()
+        try:
+            while True:
+                poller.select()
+                try:
+                    # If the socket is closed, this raises an exception and
+                    # exits the loop; no need to check what select() returned.
+                    sock, addr = self.socket.accept()
+                except OSError:
+                    break
+                # Since we don't track connections, we cannot wait for handlers
+                # to terminate, so we cannot use daemon threads. If we did, all
+                # connections would be closed brutally when closing the server.
+                thread = threading.Thread(target=self.handler, args=(sock, addr))
+                thread.start()
+        finally:
+            if sys.platform != "win32":
+                os.close(self.shutdown_watcher)
 
     def shutdown(self) -> None:
         """
@@ -292,7 +296,12 @@ class Server:
         """
         self.socket.close()
         if sys.platform != "win32":
-            os.write(self.shutdown_notifier, b"x")
+            try:
+                os.write(self.shutdown_notifier, b"x")
+            except OSError:
+                pass  # shutdown() was already called
+            else:
+                os.close(self.shutdown_notifier)
 
     def fileno(self) -> int:
         """

@@ -1,5 +1,5 @@
 from websockets.datastructures import Headers
-from websockets.exceptions import SecurityError
+from websockets.exceptions import InvalidHandshake, SecurityError
 from websockets.http11 import *
 from websockets.http11 import parse_headers
 from websockets.streams import StreamReader
@@ -61,7 +61,7 @@ class RequestTests(GeneratorTestCase):
 
     def test_parse_unsupported_method(self):
         self.reader.feed_data(b"OPTIONS * HTTP/1.1\r\n\r\n")
-        with self.assertRaises(ValueError) as raised:
+        with self.assertRaises(InvalidHandshake) as raised:
             next(self.parse())
         self.assertEqual(
             str(raised.exception),

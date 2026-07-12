@@ -9,7 +9,7 @@ from collections.abc import Generator
 from typing import Callable
 
 from .datastructures import Headers
-from .exceptions import SecurityError
+from .exceptions import InvalidHandshake, SecurityError
 from .version import version as websockets_version
 
 
@@ -148,7 +148,9 @@ class Request:
                 f"unsupported protocol; expected HTTP/1.1: {d(request_line)}"
             )
         if method != b"GET":
-            raise ValueError(f"unsupported HTTP method; expected GET; got {d(method)}")
+            raise InvalidHandshake(
+                f"unsupported HTTP method; expected GET; got {d(method)}"
+            )
 
         # RFC 9110 defers the definition of URIs to RFC 3986, which allows only
         # a subset of ASCII. Non-ASCII IRIs must be UTF-8 then percent-encoded.

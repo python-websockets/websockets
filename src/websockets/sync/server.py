@@ -15,7 +15,7 @@ from collections.abc import Iterable, Sequence
 from types import TracebackType
 from typing import Any, Callable, Mapping, cast
 
-from ..exceptions import InvalidHeader
+from ..exceptions import InvalidHandshake, InvalidHeader, InvalidMessage
 from ..extensions.base import ServerExtensionFactory
 from ..extensions.permessage_deflate import enable_server_permessage_deflate
 from ..frames import CloseCode
@@ -186,7 +186,13 @@ class ServerConnection(Connection):
         # response that rejects the handshake.
 
         if self.protocol.handshake_exc is not None:
-            raise self.protocol.handshake_exc
+            # Suppress re-raise for unsupported HTTP methods (HEAD, POST, etc.)
+            # — the connection is already being closed cleanly by send_eof().
+            if not (
+                isinstance(self.protocol.handshake_exc, InvalidMessage)
+                and isinstance(self.protocol.handshake_exc.__cause__, InvalidHandshake)
+            ):
+                raise self.protocol.handshake_exc
 
     def process_event(self, event: Event) -> None:
         """

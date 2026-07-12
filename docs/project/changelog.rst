@@ -375,9 +375,9 @@ New features
 * :func:`~asyncio.client.connect` now follows redirects in the new
   :mod:`asyncio` implementation.
 
-
 * Added HTTP Basic Auth to the :mod:`asyncio` and :mod:`threading`
   implementations of servers.
+
 * Made the set of active connections available in the :attr:`Server.connections
   <asyncio.server.Server.connections>` property.
 

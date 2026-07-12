@@ -159,8 +159,7 @@ def process_exception(exc: Exception) -> Exception | None:
 
     """
     # This catches python-socks' ProxyConnectionError and ProxyTimeoutError.
-    # Remove asyncio.TimeoutError when dropping Python < 3.11.
-    if isinstance(exc, (OSError, TimeoutError, asyncio.TimeoutError)):
+    if isinstance(exc, (OSError, TimeoutError)):
         return None
     if isinstance(exc, InvalidMessage) and isinstance(exc.__cause__, EOFError):
         return None
@@ -590,10 +589,6 @@ class connect:
         except TimeoutError as exc:
             # Re-raise exception with an informative error message.
             raise TimeoutError("timed out during opening handshake") from exc
-
-    # ... = yield from connect(...) - remove when dropping Python < 3.11
-
-    __iter__ = __await__
 
     # async with connect(...) as ...: ...
 

@@ -6,7 +6,6 @@ import contextlib
 import logging
 import random
 import struct
-import sys
 import traceback
 import uuid
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Iterable, Mapping
@@ -1191,9 +1190,9 @@ def broadcast(
     errors on connections where the closing handshake is in progress.
 
     :func:`broadcast` ignores failures to write the message on some connections.
-    It continues writing to other connections. On Python 3.11 and above, you may
-    set ``raise_exceptions`` to :obj:`True` to record failures and raise all
-    exceptions in a :pep:`654` :exc:`ExceptionGroup`.
+    It continues writing to other connections. You may set ``raise_exceptions``
+    to :obj:`True` to record failures and raise all exceptions in a :pep:`654`
+    :exc:`ExceptionGroup`.
 
     While :func:`broadcast` makes more sense for servers, it works identically
     with clients, if you have a use case for opening connections to many servers
@@ -1218,8 +1217,6 @@ def broadcast(
         raise TypeError("data must be str or bytes")
 
     if raise_exceptions:
-        if sys.version_info[:2] < (3, 11):  # pragma: no cover
-            raise ValueError("raise_exceptions requires at least Python 3.11")
         exceptions: list[Exception] = []
 
     for connection in connections:

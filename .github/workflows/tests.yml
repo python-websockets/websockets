@@ -57,17 +57,17 @@ jobs:
     strategy:
       matrix:
         python:
-          - "3.10"
           - "3.11"
           - "3.12"
           - "3.13"
           - "3.14"
-          - "3.14t"
-          - "pypy-3.10"
+          - "3.15"
+          - "3.15t"
+          - "pypy-3.11"
         is_main:
           - ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
         exclude:
-          - python: "pypy-3.10"
+          - python: "pypy-3.11"
             is_main: false
     steps:
     - name: Check out repository

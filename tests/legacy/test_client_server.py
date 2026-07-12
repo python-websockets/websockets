@@ -8,7 +8,6 @@ import random
 import re
 import socket
 import ssl
-import sys
 import unittest
 import urllib.error
 import urllib.request
@@ -1366,43 +1365,6 @@ class ClientServerOriginTests(ClientServerTestsMixin, AsyncioTestCase):
     def test_checking_lack_of_origin_succeeds_backwards_compatibility(self):
         self.loop.run_until_complete(self.client.send("Hello!"))
         self.assertEqual(self.loop.run_until_complete(self.client.recv()), "Hello!")
-
-
-@unittest.skipIf(
-    sys.version_info[:2] >= (3, 11), "asyncio.coroutine has been removed in Python 3.11"
-)
-class YieldFromTests(ClientServerTestsMixin, AsyncioTestCase):  # pragma: no cover
-    @with_server()
-    def test_client(self):
-        # @asyncio.coroutine is deprecated on Python ≥ 3.8
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-
-            @asyncio.coroutine
-            def run_client():
-                # Yield from connect.
-                client = yield from connect(get_server_uri(self.server))
-                self.assertEqual(client.state, State.OPEN)
-                yield from client.close()
-                self.assertEqual(client.state, State.CLOSED)
-
-        self.loop.run_until_complete(run_client())
-
-    def test_server(self):
-        # @asyncio.coroutine is deprecated on Python ≥ 3.8
-        with warnings.catch_warnings():
-            warnings.simplefilter("ignore")
-
-            @asyncio.coroutine
-            def run_server():
-                # Yield from serve.
-                server = yield from serve(default_handler, "localhost", 0)
-                self.assertTrue(server.sockets)
-                server.close()
-                yield from server.wait_closed()
-                self.assertFalse(server.sockets)
-
-        self.loop.run_until_complete(run_server())
 
 
 class AsyncAwaitTests(ClientServerTestsMixin, AsyncioTestCase):

@@ -682,10 +682,6 @@ class Connect:
             else:
                 raise SecurityError("too many redirects")
 
-    # ... = yield from connect(...) - remove when dropping Python < 3.11
-
-    __iter__ = __await__
-
 
 connect = Connect
 

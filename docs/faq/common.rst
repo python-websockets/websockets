@@ -81,14 +81,10 @@ you can adjust it with the ``ping_timeout`` argument.
 How do I set a timeout on :meth:`~Connection.recv`?
 ---------------------------------------------------
 
-On Python ≥ 3.11, use :func:`asyncio.timeout`::
+Use :func:`asyncio.timeout`::
 
     async with asyncio.timeout(timeout=10):
         message = await websocket.recv()
-
-On older versions of Python, use :func:`asyncio.wait_for`::
-
-    message = await asyncio.wait_for(websocket.recv(), timeout=10)
 
 This technique works for most APIs. When it doesn't, for example with
 asynchronous context managers, websockets provides an ``open_timeout`` argument.

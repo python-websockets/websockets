@@ -1,7 +1,6 @@
 import asyncio
 import contextlib
 import logging
-import sys
 import unittest
 import unittest.mock
 import warnings
@@ -1462,10 +1461,6 @@ class CommonTests:
         broadcast([self.protocol], "café")
         self.assertOneFrameSent(True, OP_TEXT, "café".encode())
 
-    @unittest.skipIf(
-        sys.version_info[:2] < (3, 11),
-        "raise_exceptions requires Python 3.11+",
-    )
     def test_broadcast_text_reports_no_errors(self):
         broadcast([self.protocol], "café", raise_exceptions=True)
         self.assertOneFrameSent(True, OP_TEXT, "café".encode())
@@ -1474,10 +1469,6 @@ class CommonTests:
         broadcast([self.protocol], b"tea")
         self.assertOneFrameSent(True, OP_BINARY, b"tea")
 
-    @unittest.skipIf(
-        sys.version_info[:2] < (3, 11),
-        "raise_exceptions requires Python 3.11+",
-    )
     def test_broadcast_binary_reports_no_errors(self):
         broadcast([self.protocol], b"tea", raise_exceptions=True)
         self.assertOneFrameSent(True, OP_BINARY, b"tea")
@@ -1527,10 +1518,6 @@ class CommonTests:
             ["skipped broadcast: sending a fragmented message"],
         )
 
-    @unittest.skipIf(
-        sys.version_info[:2] < (3, 11),
-        "raise_exceptions requires Python 3.11+",
-    )
     def test_broadcast_reports_connection_sending_fragmented_text(self):
         self.make_drain_slow()
         self.loop.create_task(self.protocol.send(["ca", "fé"]))
@@ -1557,10 +1544,6 @@ class CommonTests:
             ["skipped broadcast: failed to write message: RuntimeError: BOOM"],
         )
 
-    @unittest.skipIf(
-        sys.version_info[:2] < (3, 11),
-        "raise_exceptions requires Python 3.11+",
-    )
     def test_broadcast_reports_connection_failing_to_send(self):
         # Configure mock to raise an exception when writing to the network.
         self.protocol.transport.write.side_effect = RuntimeError("BOOM")

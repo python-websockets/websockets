@@ -454,11 +454,6 @@ class Server:
         # Stop accepting new connections.
         self.server.close()
 
-        # Wait until all accepted connections reach connection_made() and call
-        # register(). See https://github.com/python/cpython/issues/79033 for
-        # details. This workaround can be removed when dropping Python < 3.11.
-        await asyncio.sleep(0)
-
         # After server.close(), handshake() closes OPENING connections with an
         # HTTP 503 error.
 
@@ -847,10 +842,6 @@ class serve:
         server = await self.create_server
         self.server.wrap(server)
         return self.server
-
-    # ... = yield from serve(...) - remove when dropping Python < 3.11
-
-    __iter__ = __await__
 
 
 def unix_serve(

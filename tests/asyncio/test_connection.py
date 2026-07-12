@@ -3,7 +3,6 @@ import contextlib
 import itertools
 import logging
 import socket
-import sys
 import unittest
 import uuid
 from unittest.mock import Mock, patch
@@ -1313,10 +1312,6 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         broadcast([self.connection], "😀")
         await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
 
-    @unittest.skipIf(
-        sys.version_info[:2] < (3, 11),
-        "raise_exceptions requires Python 3.11+",
-    )
     async def test_broadcast_text_reports_no_errors(self):
         """broadcast broadcasts a text message without raising exceptions."""
         broadcast([self.connection], "😀", raise_exceptions=True)
@@ -1327,10 +1322,6 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         broadcast([self.connection], b"\x01\x02\xfe\xff")
         await self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
 
-    @unittest.skipIf(
-        sys.version_info[:2] < (3, 11),
-        "raise_exceptions requires Python 3.11+",
-    )
     async def test_broadcast_binary_reports_no_errors(self):
         """broadcast broadcasts a binary message without raising exceptions."""
         broadcast([self.connection], b"\x01\x02\xfe\xff", raise_exceptions=True)
@@ -1406,10 +1397,6 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         gate.set()
         await send_task
 
-    @unittest.skipIf(
-        sys.version_info[:2] < (3, 11),
-        "raise_exceptions requires Python 3.11+",
-    )
     async def test_broadcast_reports_connection_with_send_blocked(self):
         """broadcast raises exceptions for connections blocked in send."""
         gate = asyncio.Event()
@@ -1449,10 +1436,6 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
             ],
         )
 
-    @unittest.skipIf(
-        sys.version_info[:2] < (3, 11),
-        "raise_exceptions requires Python 3.11+",
-    )
     async def test_broadcast_reports_connection_failing_to_send(self):
         """broadcast raises exceptions for connections failing to send."""
         # Inject a fault by shutting down the transport for writing.

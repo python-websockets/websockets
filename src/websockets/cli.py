@@ -193,8 +193,4 @@ def main(argv: list[str] | None = None) -> None:
     except ImportError:  # readline isn't available on all platforms
         pass
 
-    # Remove the try/except block when dropping Python < 3.11.
-    try:
-        asyncio.run(interactive_client(args.uri))
-    except KeyboardInterrupt:  # pragma: no cover
-        pass
+    asyncio.run(interactive_client(args.uri))

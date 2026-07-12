@@ -89,7 +89,6 @@ class ProxyMixin:
             mode=[cls.proxy_mode],
             # Don't intercept connections, but record them.
             ignore_hosts=["^localhost:", "^127.0.0.1:", "^::1:"],
-            # This option requires mitmproxy 11.0.0, which requires Python 3.11.
             show_ignored_hosts=True,
         )
         cls.proxy_master = master = Master(options)

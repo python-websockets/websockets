@@ -7,7 +7,6 @@ import logging
 import random
 import ssl
 import struct
-import sys
 import time
 import traceback
 import uuid
@@ -1573,9 +1572,9 @@ def broadcast(
     errors on connections where the closing handshake is in progress.
 
     :func:`broadcast` ignores failures to write the message on some connections.
-    It continues writing to other connections. On Python 3.11 and above, you may
-    set ``raise_exceptions`` to :obj:`True` to record failures and raise all
-    exceptions in a :pep:`654` :exc:`ExceptionGroup`.
+    It continues writing to other connections. You may set ``raise_exceptions``
+    to :obj:`True` to record failures and raise all exceptions in a :pep:`654`
+    :exc:`ExceptionGroup`.
 
     While :func:`broadcast` makes more sense for servers, it works identically
     with clients, if you have a use case for opening connections to many servers
@@ -1594,8 +1593,6 @@ def broadcast(
         raise TypeError("data must be str or bytes-like")
 
     if raise_exceptions:
-        if sys.version_info[:2] < (3, 11):  # pragma: no cover
-            raise ValueError("raise_exceptions requires at least Python 3.11")
         exceptions = []
 
     opcode, data = prepare_data(message)

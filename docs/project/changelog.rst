@@ -35,6 +35,11 @@ notice.
 Backwards-incompatible changes
 ..............................
 
+.. admonition:: websockets 17.0 requires Python ≥ 3.11.
+    :class: tip
+
+    websockets 16.1 is the last version supporting Python 3.10.
+
 .. admonition:: In the :mod:`threading` implementation, the ``socket`` argument
     is renamed to ``sock``.
     :class: note
@@ -45,6 +50,11 @@ Backwards-incompatible changes
     :func:`~sync.server.serve`.  The first argument of
     :class:`~sync.server.Server` is also renamed. If you're passing it as a
     keyword argument, you must change your code.
+
+New features
+............
+
+* Validated compatibility with Python 3.15.
 
 .. _16.1:
 

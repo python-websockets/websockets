@@ -56,6 +56,9 @@ New features
 
 * Validated compatibility with Python 3.15.
 
+* Added the ``--insecure`` option to the ``websockets`` CLI to disable TLS
+  certificate validation.
+
 .. _16.1:
 
 16.1
@@ -75,7 +78,7 @@ Improvements
 * Stripped ``Authorization``, ``Cookie``, and ``Proxy-Authorization`` headers
   when clients follow cross-origin redirects, a security hardening measure.
 
-* Escaped control characters in incoming messages in ``python -m websockets``.
+* Escaped control characters in incoming messages in the ``websockets`` CLI.
 
 * Blocked non-ASCII values in :class:`~datastructures.Headers`.
 
@@ -135,10 +138,15 @@ Bug fixes
 
 *March 5, 2025*
 
+Improvements
+............
+
+* Added an entry point for running the CLI as ``websockets``.
+
 Bug fixes
 .........
 
-* Prevented an exception when exiting the interactive client.
+* Prevented an exception when exiting the CLI.
 
 .. _15.0:
 

@@ -4,8 +4,9 @@ import argparse
 import asyncio
 import itertools
 import os
+import ssl
 import sys
-from typing import Generator
+from typing import Any, Generator
 
 from .asyncio.client import ClientConnection, connect
 from .asyncio.messages import SimpleQueue
@@ -123,9 +124,9 @@ async def send_outgoing_messages(
             break
 
 
-async def interactive_client(uri: str) -> None:
+async def interactive_client(uri: str, **kwargs: Any) -> None:
     try:
-        websocket = await connect(uri)
+        websocket = await connect(uri, **kwargs)
     except Exception as exc:
         print(f"Failed to connect to {uri}: {exc}.")
         sys.exit(1)
@@ -176,6 +177,11 @@ def main(argv: list[str] | None = None) -> None:
         help="show usage and exit",
     )
     parser.add_argument(
+        "--insecure",
+        action="store_true",
+        help="disable TLS certificate verification",
+    )
+    parser.add_argument(
         "--version",
         action="store_true",
         help="show version and exit",
@@ -209,4 +215,10 @@ def main(argv: list[str] | None = None) -> None:
     except ImportError:  # readline isn't available on all platforms
         pass
 
-    asyncio.run(interactive_client(args.uri))
+    kwargs = {}
+    if args.insecure and args.uri.startswith("wss://"):
+        # This isn't a public API but it's mentioned in the changelog:
+        # https://docs.python.org/3/whatsnew/3.4.html#changed-in-3-4-3
+        kwargs["ssl"] = ssl._create_unverified_context()
+
+    asyncio.run(interactive_client(args.uri, **kwargs))

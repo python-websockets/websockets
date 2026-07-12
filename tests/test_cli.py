@@ -11,6 +11,7 @@ from websockets.version import version
 # Run a test server in a thread. This is easier than running an asyncio server
 # because we would have to run main() in a thread, due to using asyncio.run().
 from .sync.server import get_uri, run_server
+from .utils import SERVER_CONTEXT
 
 
 vt100_commands = re.compile(r"\x1b\[[A-Z]|\x1b[78]|\r")
@@ -22,6 +23,10 @@ def remove_commands_and_prompts(output):
 
 def add_connection_messages(output, server_uri):
     return f"Connected to {server_uri}.\n{output}Connection closed: 1000 (OK).\n"
+
+
+def echo_handler(websocket):
+    websocket.send(websocket.recv())
 
 
 class CLITests(unittest.TestCase):
@@ -93,9 +98,6 @@ class CLITests(unittest.TestCase):
         )
 
     def test_send_message(self):
-        def echo_handler(websocket):
-            websocket.send(websocket.recv())
-
         with run_server(echo_handler) as server:
             server_uri = get_uri(server)
             output = self.run_main([server_uri], "hello\n")
@@ -115,6 +117,21 @@ class CLITests(unittest.TestCase):
         self.assertEqual(
             remove_commands_and_prompts(output),
             add_connection_messages("", server_uri),
+        )
+
+    def test_insecure_connection_rejected(self):
+        with run_server(echo_handler, ssl=SERVER_CONTEXT) as server:
+            server_uri = get_uri(server, secure=True)
+            output = self.run_main([server_uri], "hello\n", expected_exit_code=1)
+        self.assertTrue(output.startswith(f"Failed to connect to {server_uri}: "))
+
+    def test_insecure_connection_accepted(self):
+        with run_server(echo_handler, ssl=SERVER_CONTEXT) as server:
+            server_uri = get_uri(server, secure=True)
+            output = self.run_main([server_uri, "--insecure"], "hello\n")
+        self.assertEqual(
+            remove_commands_and_prompts(output),
+            add_connection_messages("\n< hello\n", server_uri),
         )
 
     def test_connection_failure(self):

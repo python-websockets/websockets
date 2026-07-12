@@ -552,6 +552,18 @@ class ServerProtocol(Protocol):
                     "did not receive a valid HTTP request"
                 )
                 self.handshake_exc.__cause__ = exc
+                if isinstance(exc, InvalidHandshake):
+                    # Send HTTP 405 for unsupported methods — matching
+                    # gorilla/websocket (StatusMethodNotAllowed) and ws
+                    # (405 abortHandshake).  send_response() already
+                    # closes the connection for non-101 responses, so
+                    # skip the common handler below.
+                    response = self.reject(
+                        405, "Only GET is supported.\n"
+                    )
+                    self.send_response(response)
+                    yield
+                    return
                 self.send_eof()
                 self.parser = self.discard()
                 next(self.parser)  # start coroutine

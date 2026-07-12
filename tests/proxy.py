@@ -7,8 +7,8 @@ import warnings
 
 try:
     # Ignore deprecation warnings raised by mitmproxy dependencies at import time.
-    warnings.filterwarnings("ignore", category=DeprecationWarning, module="passlib")
-    warnings.filterwarnings("ignore", category=DeprecationWarning, module="pyasn1")
+    for module in ["ldap3", "mitmproxy", "passlib", "pyasn1", "pyparsing"]:
+        warnings.filterwarnings("ignore", category=DeprecationWarning, module=module)
 
     from mitmproxy import ctx
     from mitmproxy.addons import core, next_layer, proxyauth, proxyserver, tlsconfig

@@ -3,10 +3,10 @@ from __future__ import annotations
 import hmac
 import http
 import logging
-import os
 import re
 import selectors
 import socket
+import socket as socket_module  # shadowed by the socket argument in Server.__init__()
 import ssl as ssl_module
 import sys
 import threading
@@ -244,8 +244,10 @@ class Server:
         if logger is None:
             logger = logging.getLogger("websockets.server")
         self.logger = logger
+        # On Windows, closing the socket wakes up the poller in serve_forever(),
+        # making the notification mechanism unnecessary.
         if sys.platform != "win32":
-            self.shutdown_watcher, self.shutdown_notifier = os.pipe()
+            self.shutdown_watcher, self.shutdown_notifier = socket_module.socketpair()
 
     def serve_forever(self) -> None:
         """
@@ -287,7 +289,7 @@ class Server:
                 thread.start()
         finally:
             if sys.platform != "win32":
-                os.close(self.shutdown_watcher)
+                self.shutdown_watcher.close()
 
     def shutdown(self) -> None:
         """
@@ -297,11 +299,11 @@ class Server:
         self.socket.close()
         if sys.platform != "win32":
             try:
-                os.write(self.shutdown_notifier, b"x")
+                self.shutdown_notifier.send(b"x")
             except OSError:
                 pass  # shutdown() was already called
-            else:
-                os.close(self.shutdown_notifier)
+            finally:
+                self.shutdown_notifier.close()
 
     def fileno(self) -> int:
         """

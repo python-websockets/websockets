@@ -59,6 +59,11 @@ New features
 * Added the ``--insecure`` option to the ``websockets`` CLI to disable TLS
   certificate validation.
 
+Bug fixes
+.........
+
+* * Restored compatibility of the ``websockets`` CLI with Windows.
+
 .. _16.1:
 
 16.1

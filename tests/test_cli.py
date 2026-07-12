@@ -32,9 +32,9 @@ def echo_handler(websocket):
 class CLITests(unittest.TestCase):
     def run_main(self, argv, inputs="", close_input=False, expected_exit_code=None):
         # Replace sys.stdin with a file-like object backed by a file descriptor
-        # for compatibility with loop.connect_read_pipe().
+        # so it be left open and block readline(), or be closed to simulate EOF.
         stdin_read_fd, stdin_write_fd = os.pipe()
-        stdin = io.FileIO(stdin_read_fd)
+        stdin = open(stdin_read_fd)
         self.addCleanup(stdin.close)
         os.write(stdin_write_fd, inputs.encode())
         if close_input:
@@ -113,7 +113,7 @@ class CLITests(unittest.TestCase):
 
         with run_server(wait_handler) as server:
             server_uri = get_uri(server)
-            output = self.run_main([server_uri], "", close_input=True)
+            output = self.run_main([server_uri], close_input=True)
         self.assertEqual(
             remove_commands_and_prompts(output),
             add_connection_messages("", server_uri),

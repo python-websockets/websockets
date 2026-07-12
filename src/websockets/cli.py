@@ -6,13 +6,12 @@ import itertools
 import os
 import ssl
 import sys
-from typing import Any, Generator
+import threading
+from typing import Any, Callable
 
 from .asyncio.client import ClientConnection, connect
-from .asyncio.messages import SimpleQueue
 from .exceptions import ConnectionClosed
 from .frames import Close
-from .streams import StreamReader
 from .version import version as websockets_version
 
 
@@ -72,35 +71,6 @@ def print_over_input(string: str) -> None:
     sys.stdout.flush()
 
 
-class ReadLines(asyncio.Protocol):
-    def __init__(self) -> None:
-        self.reader = StreamReader()
-        self.messages: SimpleQueue[str] = SimpleQueue()
-
-    def parse(self) -> Generator[None, None, None]:
-        while True:
-            sys.stdout.write("> ")
-            sys.stdout.flush()
-            line = yield from self.reader.read_line(sys.maxsize)
-            self.messages.put(line.decode().rstrip("\r\n"))
-
-    def connection_made(self, transport: asyncio.BaseTransport) -> None:
-        self.parser = self.parse()
-        next(self.parser)
-
-    def data_received(self, data: bytes) -> None:
-        self.reader.feed_data(data)
-        next(self.parser)
-
-    def eof_received(self) -> None:
-        self.reader.feed_eof()
-        # next(self.parser) isn't useful and would raise EOFError.
-
-    def connection_lost(self, exc: Exception | None) -> None:
-        self.reader.discard()
-        self.messages.abort()
-
-
 async def print_incoming_messages(websocket: ClientConnection) -> None:
     async for message in websocket:
         if isinstance(message, str):
@@ -109,15 +79,27 @@ async def print_incoming_messages(websocket: ClientConnection) -> None:
             print_during_input("< (binary) " + message.hex())
 
 
-async def send_outgoing_messages(
-    websocket: ClientConnection,
-    messages: SimpleQueue[str],
+def read_outgoing_messages(
+    queue_for_sending: Callable[[str], None],
+    notify_end_of_file: Callable[[], None],
 ) -> None:
     while True:
-        try:
-            message = await messages.get()
-        except EOFError:
+        sys.stdout.write("> ")
+        sys.stdout.flush()
+        line = sys.stdin.readline()
+        if not line:
+            notify_end_of_file()
             break
+        message = line.rstrip("\r\n")
+        queue_for_sending(message)
+
+
+async def send_outgoing_messages(
+    websocket: ClientConnection,
+    messages: asyncio.Queue[str],
+) -> None:
+    while True:
+        message = await messages.get()
         try:
             await websocket.send(message)
         except ConnectionClosed:  # pragma: no cover
@@ -133,17 +115,39 @@ async def interactive_client(uri: str, **kwargs: Any) -> None:
     else:
         print(f"Connected to {uri}.")
 
-    loop = asyncio.get_running_loop()
-    transport, protocol = await loop.connect_read_pipe(ReadLines, sys.stdin)
-    incoming = asyncio.create_task(
-        print_incoming_messages(websocket),
-    )
-    outgoing = asyncio.create_task(
-        send_outgoing_messages(websocket, protocol.messages),
-    )
+    # Read messsages from stdin in a thread because Windows doesn't support
+    # reading asynchronously (#1681), and a daemon thread to avoid blocking
+    # Ctrl-C because signals are only delivered to the main thread.
+    loop = asyncio.get_event_loop()
+    messages: asyncio.Queue[str] = asyncio.Queue()
+    # When dropping support for Python < 3.13, change notify_end_of_file() to
+    # call messages.shutdown() and break when asyncio.QueueShutdownError is
+    # raised in send_outgoing_messages().
+    shutdown: asyncio.Future[None] = loop.create_future()
+
+    def queue_for_sending(message: str) -> None:
+        try:
+            loop.call_soon_threadsafe(messages.put_nowait, message)
+        except RuntimeError:  # Event loop is closed  # pragma: no cover
+            pass
+
+    def notify_end_of_file() -> None:
+        try:
+            loop.call_soon_threadsafe(shutdown.set_result, None)
+        except RuntimeError:  # Event loop is closed  # pragma: no cover
+            pass
+
+    threading.Thread(
+        target=read_outgoing_messages,
+        args=(queue_for_sending, notify_end_of_file),
+        daemon=True,
+    ).start()
+
+    incoming = asyncio.create_task(print_incoming_messages(websocket))
+    outgoing = asyncio.create_task(send_outgoing_messages(websocket, messages))
     try:
         await asyncio.wait(
-            [incoming, outgoing],
+            [incoming, outgoing, shutdown],
             # Clean up and exit when the server closes the connection
             # or the user enters EOT (^D), whichever happens first.
             return_when=asyncio.FIRST_COMPLETED,
@@ -157,7 +161,6 @@ async def interactive_client(uri: str, **kwargs: Any) -> None:
     finally:
         incoming.cancel()
         outgoing.cancel()
-        transport.close()
 
     await websocket.close()
     assert websocket.close_code is not None and websocket.close_reason is not None

@@ -262,17 +262,20 @@ class Server:
 
         """
         poller = selectors.DefaultSelector()
-        try:
-            poller.register(self.socket, selectors.EVENT_READ)
-        except ValueError:  # pragma: no cover
-            # If shutdown() is called before poller.register(),
-            # the socket is closed and poller.register() raises
-            # ValueError: Invalid file descriptor: -1
-            return
         if sys.platform != "win32":
             poller.register(self.shutdown_watcher, selectors.EVENT_READ)
 
         try:
+            try:
+                poller.register(self.socket, selectors.EVENT_READ)
+            except (OSError, ValueError):  # pragma: no cover
+                # shutdown() was called before poller.register().
+                # This may result in:
+                # * OSError: [Errno 9] Bad file descriptor
+                #   (only observed on free-threaded Python)
+                # * ValueError: Invalid file descriptor: -1
+                return
+
             while True:
                 poller.select()
                 try:

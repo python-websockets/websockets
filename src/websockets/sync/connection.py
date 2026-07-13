@@ -1064,7 +1064,12 @@ class Connection:
             self.socket.shutdown(socket.SHUT_RDWR)
         except OSError:  # socket already closed
             pass
-        self.socket.close()
+        try:
+            self.socket.close()
+        except OSError:  # socket already closed  # pragma: no cover
+            # OSError: [Errno 9] Bad file descriptor
+            # (only observed on free-threaded Python)
+            pass
 
         # Calling protocol.receive_eof() is safe because it's idempotent.
         # This guarantees that the protocol state becomes CLOSED.

@@ -16,7 +16,8 @@ WebSocket servers often send the same message to all connected clients or to a
 subset of clients for which the message is relevant.
 
 Let's explore options for broadcasting a message, explain the design of
-:func:`~asyncio.server.broadcast`, and discuss alternatives.
+:func:`~asyncio.server.broadcast` in the :mod:`asyncio` implementation, and
+discuss alternatives.
 
 For each option, we'll provide a connection handler called ``handler()`` and a
 function or coroutine called ``broadcast()`` that sends a message to all

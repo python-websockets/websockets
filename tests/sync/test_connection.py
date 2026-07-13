@@ -15,6 +15,7 @@ from websockets.exceptions import (
 from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 from websockets.sync.connection import *
+from websockets.sync.connection import broadcast
 
 from ..protocol import RecordingProtocol
 from ..utils import MS
@@ -53,6 +54,11 @@ class ClientConnectionTests(ThreadTestCase):
         """Check that a single frame was sent."""
         self.wait_for_remote_side()
         self.assertEqual(self.remote_connection.protocol.get_frames_rcvd(), [frame])
+
+    def assertFramesSent(self, frames):
+        """Check that several frames were sent."""
+        self.wait_for_remote_side()
+        self.assertEqual(self.remote_connection.protocol.get_frames_rcvd(), frames)
 
     def assertNoFrameSent(self):
         """Check that no frame was sent."""
@@ -991,6 +997,153 @@ class ClientConnectionTests(ThreadTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.send("😀")
         self.assertIsInstance(raised.exception.__cause__, AssertionError)
+
+    # Test broadcast.
+
+    def test_broadcast_text(self):
+        """broadcast broadcasts a text message."""
+        broadcast([self.connection], "😀")
+        self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    def test_broadcast_text_reports_no_errors(self):
+        """broadcast broadcasts a text message without raising exceptions."""
+        broadcast([self.connection], "😀", raise_exceptions=True)
+        self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    def test_broadcast_binary(self):
+        """broadcast broadcasts a binary message."""
+        broadcast([self.connection], b"\x01\x02\xfe\xff")
+        self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+
+    def test_broadcast_binary_reports_no_errors(self):
+        """broadcast broadcasts a binary message without raising exceptions."""
+        broadcast([self.connection], b"\x01\x02\xfe\xff", raise_exceptions=True)
+        self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+
+    def test_broadcast_text_from_bytes(self):
+        """broadcast broadcasts a text message from bytes."""
+        broadcast([self.connection], "😀".encode(), text=True)
+        self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    def test_broadcast_binary_from_str(self):
+        """broadcast broadcasts a binary message from a str."""
+        broadcast([self.connection], "😀", text=False)
+        self.assertFrameSent(Frame(Opcode.BINARY, "😀".encode()))
+
+    def test_broadcast_no_clients(self):
+        """broadcast does nothing when called with an empty list of clients."""
+        broadcast([], "😀")
+        self.assertNoFrameSent()
+
+    def test_broadcast_two_clients(self):
+        """broadcast broadcasts a message to several clients."""
+        broadcast([self.connection, self.connection], "😀")
+        self.assertFramesSent(
+            [
+                Frame(Opcode.TEXT, "😀".encode()),
+                Frame(Opcode.TEXT, "😀".encode()),
+            ]
+        )
+
+    def test_broadcast_skips_closed_connection(self):
+        """broadcast ignores closed connections."""
+        self.connection.close()
+        self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+
+        with self.assertNoLogs("websockets", logging.WARNING):
+            broadcast([self.connection], "😀")
+        self.assertNoFrameSent()
+
+    def test_broadcast_skips_closing_connection(self):
+        """broadcast ignores closing connections."""
+
+        def closer():
+            with self.delay_frames_rcvd(MS):
+                self.connection.close()
+
+        with self.run_in_thread(closer):
+            self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+
+            with self.assertNoLogs("websockets", logging.WARNING):
+                broadcast([self.connection], "😀")
+            self.assertNoFrameSent()
+
+    def test_broadcast_skips_connection_with_send_blocked(self):
+        """broadcast logs a warning when a connection is blocked in send."""
+        gate = threading.Event()
+
+        def fragments():
+            yield "⏳"
+            gate.wait()
+
+        with self.run_in_thread(self.connection.send, args=(fragments(),)):
+            self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+
+            with self.assertLogs("websockets", logging.WARNING) as logs:
+                broadcast([self.connection], "😀")
+
+            self.assertEqual(
+                [record.getMessage() for record in logs.records],
+                ["skipped broadcast: sending a fragmented message"],
+            )
+
+            gate.set()
+
+    def test_broadcast_reports_connection_with_send_blocked(self):
+        """broadcast raises exceptions for connections blocked in send."""
+        gate = threading.Event()
+
+        def fragments():
+            yield "⏳"
+            gate.wait()
+
+        with self.run_in_thread(self.connection.send, args=(fragments(),)):
+            self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+
+            with self.assertRaises(ExceptionGroup) as raised:
+                broadcast([self.connection], "😀", raise_exceptions=True)
+
+            self.assertEqual(
+                str(raised.exception), "skipped broadcast (1 sub-exception)"
+            )
+            exc = raised.exception.exceptions[0]
+            self.assertEqual(str(exc), "sending a fragmented message")
+            self.assertIsInstance(exc, ConcurrencyError)
+
+            gate.set()
+
+    @patch("socket.socket.sendall", side_effect=BrokenPipeError(32, "Broken pipe"))
+    def test_broadcast_skips_connection_failing_to_send(self, sendall):
+        """broadcast logs a warning when a connection fails to send."""
+        with self.assertLogs("websockets", logging.WARNING) as logs:
+            broadcast([self.connection], "😀")
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            [
+                "skipped broadcast: failed to write message: "
+                "BrokenPipeError: [Errno 32] Broken pipe"
+            ],
+        )
+
+    @patch("socket.socket.sendall", side_effect=BrokenPipeError(32, "Broken pipe"))
+    def test_broadcast_reports_connection_failing_to_send(self, sendall):
+        """broadcast raises exceptions for connections failing to send."""
+        with self.assertRaises(ExceptionGroup) as raised:
+            broadcast([self.connection], "😀", raise_exceptions=True)
+
+        self.assertEqual(str(raised.exception), "skipped broadcast (1 sub-exception)")
+        exc = raised.exception.exceptions[0]
+        self.assertEqual(str(exc), "failed to write message")
+        self.assertIsInstance(exc, RuntimeError)
+        cause = exc.__cause__
+        self.assertEqual(str(cause), "[Errno 32] Broken pipe")
+        self.assertIsInstance(cause, BrokenPipeError)
+
+    def test_broadcast_type_error(self):
+        """broadcast raises TypeError when called with an unsupported type."""
+        with self.assertRaises(TypeError):
+            broadcast([self.connection], ["⏳", "⌛️"])
 
 
 class ServerConnectionTests(ClientConnectionTests):

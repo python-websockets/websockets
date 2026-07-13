@@ -56,6 +56,8 @@ New features
 
 * Validated compatibility with Python 3.15.
 
+* Added :func:`~sync.server.broadcast` to the :mod:`threading` implementation.
+
 * Added the ``--insecure`` option to the ``websockets`` CLI to disable TLS
   certificate validation.
 

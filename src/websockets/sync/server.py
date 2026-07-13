@@ -27,11 +27,18 @@ from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
-from .connection import Connection
+from .connection import Connection, broadcast
 from .utils import Deadline
 
 
-__all__ = ["serve", "unix_serve", "ServerConnection", "Server", "basic_auth"]
+__all__ = [
+    "broadcast",
+    "serve",
+    "unix_serve",
+    "ServerConnection",
+    "Server",
+    "basic_auth",
+]
 
 
 class ServerConnection(Connection):

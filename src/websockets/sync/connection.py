@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import concurrent.futures
 import contextlib
 import logging
 import random
@@ -7,6 +8,7 @@ import socket
 import struct
 import threading
 import time
+import traceback
 import uuid
 from collections.abc import Iterable, Iterator, Mapping
 from types import TracebackType
@@ -1082,3 +1084,128 @@ class Connection:
 
             # Acknowledge pings sent with the ack_on_close option.
             self.terminate_pending_pings()
+
+
+# broadcast() is defined in the connection module even though it's primarily
+# used by servers and documented in the server module because it works with
+# client connections too and because it's easier to test together with the
+# Connection class.
+
+
+def broadcast(
+    connections: Iterable[Connection],
+    message: DataLike,
+    raise_exceptions: bool = False,
+    *,
+    text: bool | None = None,
+    **kwargs: Any,
+) -> None:
+    """
+    Broadcast a message to several WebSocket connections.
+
+    A string (:class:`str`) is sent as a Text_ frame. A bytestring or bytes-like
+    object (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) is sent
+    as a Binary_ frame.
+
+    .. _Text: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+    .. _Binary: https://datatracker.ietf.org/doc/html/rfc6455#section-5.6
+
+    You may override this behavior with the ``text`` argument:
+
+    * Set ``text=True`` to send an UTF-8 bytestring or bytes-like object
+      (:class:`bytes`, :class:`bytearray`, or :class:`memoryview`) in a
+      Text_ frame. This improves performance when the message is already
+      UTF-8 encoded, for example if the message contains JSON and you're
+      using a JSON library that produces a bytestring.
+    * Set ``text=False`` to send a string (:class:`str`) in a Binary_
+      frame. This may be useful for servers that expect binary frames
+      instead of text frames.
+
+    :func:`broadcast` relies on :class:`concurrent.futures.ThreadPoolExecutor`
+    to send the messages. Make sure the thread pool is large enough relative to
+    the number of clients, so that slow or stuck connections don't clog it. If
+    that's an issue, then you should be using an asynchronous implementation.
+    You can configure the thread pool by passing additional keyword arguments to
+    :func:`broadcast`, such as ``max_workers``.
+
+    Unlike :meth:`~websockets.asyncio.connection.Connection.send`,
+    :func:`broadcast` doesn't support sending fragmented messages. Indeed,
+    fragmentation is useful for sending large messages without buffering them in
+    memory, while :func:`broadcast` buffers one copy per connection as fast as
+    possible.
+
+    :func:`broadcast` skips connections that aren't open in order to avoid
+    errors on connections where the closing handshake is in progress.
+
+    :func:`broadcast` ignores failures to write the message on some connections.
+    It continues writing to other connections. You may set ``raise_exceptions``
+    to :obj:`True` to record failures and raise all exceptions in a :pep:`654`
+    :exc:`ExceptionGroup`.
+
+    While :func:`broadcast` makes more sense for servers, it works identically
+    with clients, if you have a use case for opening connections to many servers
+    and broadcasting a message to them.
+
+    Args:
+        websockets: WebSocket connections to which the message will be sent.
+        message: Message to send.
+        raise_exceptions: Whether to raise an exception in case of failures.
+        text: Force sending in Text_ or Binary_ frames.
+
+    Raises:
+        TypeError: If ``message`` doesn't have a supported type.
+
+    """
+    if isinstance(message, str):
+        send_method = "send_binary" if text is False else "send_text"
+        message = message.encode()
+    elif isinstance(message, BytesLike):
+        send_method = "send_text" if text is True else "send_binary"
+    else:
+        raise TypeError("data must be str or bytes")
+
+    if raise_exceptions:
+        exceptions: list[Exception] = []
+
+    def send_message(connection: Connection) -> None:
+        exception: Exception
+
+        with connection.protocol_mutex:
+            if connection.protocol.state is not OPEN:
+                return
+
+            if connection.send_in_progress:
+                if raise_exceptions:
+                    exception = ConcurrencyError("sending a fragmented message")
+                    exceptions.append(exception)
+                else:
+                    connection.logger.warning(
+                        "skipped broadcast: sending a fragmented message",
+                    )
+                return
+
+            try:
+                # Call connection.protocol.send_text or send_binary.
+                # Either way, message is already converted to bytes.
+                getattr(connection.protocol, send_method)(message)
+                connection.send_data()
+            except Exception as write_exception:
+                if raise_exceptions:
+                    exception = RuntimeError("failed to write message")
+                    exception.__cause__ = write_exception
+                    exceptions.append(exception)
+                else:
+                    connection.logger.warning(
+                        "skipped broadcast: failed to write message: %s",
+                        traceback.format_exception_only(write_exception)[0].strip(),
+                    )
+
+    with concurrent.futures.ThreadPoolExecutor(**kwargs) as executor:
+        executor.map(send_message, connections)
+
+    if raise_exceptions and exceptions:
+        raise ExceptionGroup("skipped broadcast", exceptions)
+
+
+# Pretend that broadcast is actually defined in the server module.
+broadcast.__module__ = "websockets.sync.server"

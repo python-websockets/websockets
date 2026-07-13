@@ -85,6 +85,11 @@ Using a connection
 
     .. autoproperty:: close_reason
 
+Broadcast
+---------
+
+.. autofunction:: broadcast
+
 HTTP Basic Authentication
 -------------------------
 

@@ -234,6 +234,8 @@ class connect:
             :obj:`None` disables timeouts.
         close_timeout: Timeout for closing the connection in seconds.
             :obj:`None` disables the timeout.
+        reconnect_delays: Delays in seconds between reconnection attempts.
+            Default is exponential backoff with 5s jitter, capped at 60s.
         max_size: Maximum size of incoming messages in bytes.
             :obj:`None` disables the limit. You may pass a ``(max_message_size,
             max_fragment_size)`` tuple to set different limits for messages and
@@ -314,13 +316,14 @@ class connect:
         ping_interval: float | None = 20,
         ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
+        reconnect_delays: Callable[[], Generator[float]] = backoff,
         # Limits
         max_size: int | None | tuple[int | None, int | None] = 2**20,
         max_queue: int | None | tuple[int | None, int | None] = 16,
         write_limit: int | tuple[int, int | None] = 2**15,
         # Logging
         logger: LoggerLike | None = None,
-        # Escape hatch for advanced customization
+        # Escape hatches for advanced customization
         create_connection: type[ClientConnection] | None = None,
         # Other keyword arguments are passed to loop.create_connection
         **kwargs: Any,
@@ -368,6 +371,7 @@ class connect:
         self.user_agent_header = user_agent_header
         self.process_exception = process_exception
         self.open_timeout = open_timeout
+        self.reconnect_delays = reconnect_delays
         self.logger = logger
         self.connection_kwargs = kwargs
 
@@ -630,7 +634,7 @@ class connect:
                 # The connection failed with a retryable error.
                 # Start or continue backoff and reconnect.
                 if delays is None:
-                    delays = backoff()
+                    delays = self.reconnect_delays()
                 delay = next(delays)
                 self.logger.info(
                     "connect failed; reconnecting in %.1f seconds: %s",

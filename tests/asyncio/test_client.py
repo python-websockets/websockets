@@ -29,19 +29,14 @@ from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
 from .server import args, get_host_port, get_uri, handler
 
 
-@contextlib.asynccontextmanager
-async def short_backoff_delay():
+def short_backoff():
     defaults = backoff.__defaults__
-    backoff.__defaults__ = (
+    yield from backoff(
         defaults[0] * MS,
         defaults[1] * MS,
         defaults[2] * MS,
         defaults[3],
     )
-    try:
-        yield
-    finally:
-        backoff.__defaults__ = defaults
 
 
 @contextlib.asynccontextmanager
@@ -157,7 +152,6 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             ) as client:
                 self.assertTrue(client.create_connection_ran)
 
-    @short_backoff_delay()
     async def test_reconnect(self):
         """Client reconnects to server."""
         iterations = 0
@@ -179,7 +173,11 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
         async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
-                async for client in connect(get_uri(server), open_timeout=3 * MS):
+                async for client in connect(
+                    get_uri(server),
+                    open_timeout=3 * MS,
+                    reconnect_delays=short_backoff,
+                ):
                     self.assertEqual(client.protocol.state.name, "OPEN")
                     successful += 1
 
@@ -190,7 +188,6 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(iterations, 6)
         self.assertEqual(successful, 2)
 
-    @short_backoff_delay()
     async def test_reconnect_with_custom_process_exception(self):
         """Client runs process_exception to tell if errors are retryable or fatal."""
         iteration = 0
@@ -213,7 +210,9 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(Exception) as raised:
                 async for _ in connect(
-                    get_uri(server), process_exception=process_exception
+                    get_uri(server),
+                    process_exception=process_exception,
+                    reconnect_delays=short_backoff,
                 ):
                     self.fail("did not raise")
 
@@ -223,7 +222,6 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             "🫖 💔 ☕️",
         )
 
-    @short_backoff_delay()
     async def test_reconnect_with_custom_process_exception_raising_exception(self):
         """Client supports raising an exception in process_exception."""
 
@@ -238,7 +236,9 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         async with serve(*args, process_request=process_request) as server:
             with self.assertRaises(Exception) as raised:
                 async for _ in connect(
-                    get_uri(server), process_exception=process_exception
+                    get_uri(server),
+                    process_exception=process_exception,
+                    reconnect_delays=short_backoff,
                 ):
                     self.fail("did not raise")
 

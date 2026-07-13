@@ -59,10 +59,17 @@ New features
 * Added the ``--insecure`` option to the ``websockets`` CLI to disable TLS
   certificate validation.
 
+Improvements
+............
+
+* Added the ``reconnect_delays`` argument for customizing the delays between
+  reconnection attempts in :func:`~asyncio.client.connect`, beyond existing
+  ``WEBSOCKETS_BACKOFF_*`` environment variables.
+
 Bug fixes
 .........
 
-* * Restored compatibility of the ``websockets`` CLI with Windows.
+* Restored compatibility of the ``websockets`` CLI with Windows.
 
 .. _16.1:
 

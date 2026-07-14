@@ -9,6 +9,7 @@ from websockets.datastructures import Headers
 from websockets.exceptions import (
     InvalidHeader,
     InvalidMessage,
+    InvalidMethod,
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
@@ -356,6 +357,22 @@ class HandshakeTests(unittest.TestCase):
         server.send_response(response)
 
         self.assertHandshakeSuccess(server)
+
+    def test_invalid_method(self):
+        """Handshake fails when the request method isn't GET."""
+        server = ServerProtocol()
+        request = make_request()
+        request.method = "POST"
+        response = server.accept(request)
+        server.send_response(response)
+
+        self.assertEqual(response.status_code, 405)
+        self.assertEqual(response.headers["Allow"], "GET")
+        self.assertHandshakeError(
+            server,
+            InvalidMethod,
+            "unsupported HTTP method: POST",
+        )
 
     def test_missing_connection(self):
         """Handshake fails when the Connection header is missing."""

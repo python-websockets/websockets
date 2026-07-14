@@ -13,6 +13,7 @@
             * :exc:`InvalidProxyMessage`
             * :exc:`InvalidProxyStatus`
         * :exc:`InvalidMessage`
+        * :exc:`InvalidMethod`
         * :exc:`InvalidStatus`
         * :exc:`InvalidStatusCode` (legacy)
         * :exc:`InvalidHeader`
@@ -53,6 +54,7 @@ __all__ = [
     "InvalidProxyMessage",
     "InvalidProxyStatus",
     "InvalidMessage",
+    "InvalidMethod",
     "InvalidStatus",
     "InvalidHeader",
     "InvalidHeaderFormat",
@@ -240,6 +242,19 @@ class InvalidMessage(InvalidHandshake):
     Raised when a handshake request or response is malformed.
 
     """
+
+
+class InvalidMethod(InvalidHandshake):
+    """
+    Raised when a handshake request doesn't use HTTP GET.
+
+    """
+
+    def __init__(self, method: str) -> None:
+        self.method = method
+
+    def __str__(self) -> str:
+        return f"unsupported HTTP method: {self.method}"
 
 
 class InvalidStatus(InvalidHandshake):

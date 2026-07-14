@@ -42,6 +42,8 @@ also reported by :func:`~websockets.asyncio.server.serve` in logs.
 
 .. autoexception:: InvalidMessage
 
+.. autoexception:: InvalidMethod
+
 .. autoexception:: InvalidStatus
 
 .. autoexception:: InvalidHeader

@@ -40,6 +40,13 @@ Backwards-incompatible changes
 
     websockets 16.1 is the last version supporting Python 3.10.
 
+.. admonition:: ``process_request`` may receive requests using an HTTP method
+    other than ``GET``.
+    :class: important
+
+    Previously, the server closed the connection without returning an HTTP
+    response. Now, ``process_request`` runs and can return an HTTP response.
+
 .. admonition:: In the :mod:`threading` implementation, the ``socket`` argument
     is renamed to ``sock``.
     :class: note
@@ -63,6 +70,9 @@ New features
 
 Improvements
 ............
+
+* Replied with HTTP 405 Method Not Allowed when the handshake request doesn't
+  use the GET method, instead of closing the connection.
 
 * Added the ``reconnect_delays`` argument for customizing the delays between
   reconnection attempts in :func:`~asyncio.client.connect`, beyond existing

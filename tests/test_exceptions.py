@@ -104,6 +104,10 @@ class ExceptionsTests(unittest.TestCase):
                 "malformed HTTP message",
             ),
             (
+                InvalidMethod("POST"),
+                "unsupported HTTP method: POST",
+            ),
+            (
                 InvalidStatus(Response(401, "Unauthorized", Headers())),
                 "server rejected WebSocket connection: HTTP 401",
             ),

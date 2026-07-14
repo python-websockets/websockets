@@ -83,10 +83,14 @@ class Request:
     Attributes:
         path: Request path, including optional query.
         headers: Request headers.
+        method: Request method; WebSocket handshake requests use GET.
     """
 
     path: str
     headers: Headers
+    # method comes before path in the HTTP request, but it has a default,
+    # so it must be declared after path and headers which don't have one.
+    method: str = "GET"
     # body isn't useful is the context of this library.
 
     _exception: Exception | None = None
@@ -109,14 +113,12 @@ class Request:
 
         This is a generator-based coroutine.
 
-        The request path isn't URL-decoded or validated in any way.
+        The request method, path, and headers are expected to contain only ASCII
+        characters. The request path isn't URL-decoded or validated in any way.
 
-        The request path and headers are expected to contain only ASCII
-        characters. Other characters are represented with surrogate escapes.
-
-        :meth:`parse` doesn't attempt to read the request body because
-        WebSocket handshake requests don't have one. If the request contains a
-        body, it may be read from the data stream after :meth:`parse` returns.
+        :meth:`parse` doesn't read the request body because WebSocket handshake
+        requests don't have one. If the request contains a body, it may be read
+        from the data stream after :meth:`parse` returns.
 
         Args:
             read_line: Generator-based coroutine that reads a LF-terminated
@@ -130,9 +132,9 @@ class Request:
         """
         # https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1
 
-        # Parsing is simple because fixed values are expected for method and
-        # version and because path isn't checked. Since WebSocket software tends
-        # to implement HTTP/1.1 strictly, there's little need for lenient parsing.
+        # Parsing is simple because a fixed value is expected for the version
+        # and because path isn't checked. Since WebSocket libraries generally
+        # implement HTTP/1.1 strictly, there's little need for lenient parsing.
 
         try:
             request_line = yield from parse_line(read_line)
@@ -140,15 +142,14 @@ class Request:
             raise EOFError("connection closed while reading HTTP request line") from exc
 
         try:
-            method, raw_path, protocol = request_line.split(b" ", 2)
+            raw_method, raw_path, protocol = request_line.split(b" ", 2)
         except ValueError:  # not enough values to unpack (expected 3, got 1-2)
             raise ValueError(f"invalid HTTP request line: {d(request_line)}") from None
         if protocol != b"HTTP/1.1":
             raise ValueError(
                 f"unsupported protocol; expected HTTP/1.1: {d(request_line)}"
             )
-        if method != b"GET":
-            raise ValueError(f"unsupported HTTP method; expected GET; got {d(method)}")
+        method = raw_method.decode("ascii")
 
         # RFC 9110 defers the definition of URIs to RFC 3986, which allows only
         # a subset of ASCII. Non-ASCII IRIs must be UTF-8 then percent-encoded.
@@ -167,7 +168,7 @@ class Request:
             if int(headers["Content-Length"]) != 0:
                 raise ValueError("unsupported request body")
 
-        return cls(path, headers)
+        return cls(path, headers, method)
 
     def serialize(self) -> bytes:
         """
@@ -176,7 +177,7 @@ class Request:
         """
         # Since the request line and headers only contain ASCII characters,
         # we can keep this simple.
-        request = f"GET {self.path} HTTP/1.1\r\n".encode()
+        request = f"{self.method} {self.path} HTTP/1.1\r\n".encode()
         request += self.headers.serialize()
         return request
 

@@ -15,6 +15,7 @@ from .exceptions import (
     InvalidHeader,
     InvalidHeaderValue,
     InvalidMessage,
+    InvalidMethod,
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
@@ -147,6 +148,17 @@ class ServerProtocol(Protocol):
                 http.HTTPStatus.FORBIDDEN,
                 f"Failed to open a WebSocket connection: {exc}.\n",
             )
+        except InvalidMethod as exc:
+            request._exception = exc
+            self.handshake_exc = exc
+            if self.debug:
+                self.logger.debug("! invalid method", exc_info=True)
+            response = self.reject(
+                http.HTTPStatus.METHOD_NOT_ALLOWED,
+                f"Failed to open a WebSocket connection: {exc}.\n",
+            )
+            response.headers["Allow"] = "GET"
+            return response
         except InvalidUpgrade as exc:
             request._exception = exc
             self.handshake_exc = exc
@@ -209,10 +221,9 @@ class ServerProtocol(Protocol):
         """
         Check a handshake request and negotiate extensions and subprotocol.
 
-        This function doesn't verify that the request is an HTTP/1.1 or higher
-        GET request and doesn't check the ``Host`` header. These controls are
-        usually performed earlier in the HTTP request handling code. They're
-        the responsibility of the caller.
+        This function doesn't verify that that it's an HTTP/1.1 request and
+        doesn't check the ``Host`` header. These controls must be performed
+        by the HTTP stack earlier. They're the responsibility of the caller.
 
         Args:
             request: WebSocket handshake request received from the client.
@@ -222,10 +233,15 @@ class ServerProtocol(Protocol):
             ``Sec-WebSocket-Protocol`` headers for the handshake response.
 
         Raises:
+            InvalidMethod: If the request method isn't GET; then the
+                server must return a 405 Method Not Allowed error.
             InvalidHandshake: If the handshake request is invalid;
                 then the server must return 400 Bad Request error.
 
         """
+        if request.method != "GET":
+            raise InvalidMethod(request.method)
+
         headers = request.headers
 
         connection: list[ConnectionOption] = sum(
@@ -558,7 +574,7 @@ class ServerProtocol(Protocol):
                 yield
 
             if self.debug:
-                self.logger.debug("< GET %s HTTP/1.1", request.path)
+                self.logger.debug("< %s %s HTTP/1.1", request.method, request.path)
                 for key, value in request.headers.raw_items():
                     self.logger.debug("< %s: %s", key, value)
 

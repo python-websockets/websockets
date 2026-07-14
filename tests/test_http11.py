@@ -39,6 +39,16 @@ class RequestTests(GeneratorTestCase):
         self.assertEqual(request.method, "OPTIONS")
         self.assertEqual(request.path, "*")
 
+    def test_parse_non_ascii_method(self):
+        self.reader.feed_data(b"G\xc9T /chat HTTP/1.1\r\n\r\n")
+        with self.assertRaises(UnicodeDecodeError):
+            next(self.parse())
+
+    def test_parse_non_ascii_path(self):
+        self.reader.feed_data(b"GET /caf\xe9 HTTP/1.1\r\n\r\n")
+        with self.assertRaises(UnicodeDecodeError):
+            next(self.parse())
+
     def test_parse_empty(self):
         self.reader.feed_eof()
         with self.assertRaises(EOFError) as raised:
@@ -200,6 +210,11 @@ class ResponseTests(GeneratorTestCase):
         self.assertEqual(
             str(raised.exception), "invalid status code; expected 100–599; got 007"
         )
+
+    def test_parse_iso_8859_1_reason(self):
+        self.reader.feed_data(b"HTTP/1.1 200 \xd8K\r\nContent-Length: 0\r\n\r\n")
+        response = self.assertGeneratorReturns(self.parse())
+        self.assertEqual(response.reason_phrase, "ØK")
 
     def test_parse_invalid_reason(self):
         self.reader.feed_data(b"HTTP/1.1 200 \x7f\r\n\r\n")

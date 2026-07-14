@@ -115,6 +115,8 @@ class Request:
 
         The request method, path, and headers are expected to contain only ASCII
         characters. The request path isn't URL-decoded or validated in any way.
+        Non-ASCII header values are decoded as ISO-8859-1, which has been
+        historically allowed, but is now deprecated.
 
         :meth:`parse` doesn't read the request body because WebSocket handshake
         requests don't have one. If the request contains a body, it may be read
@@ -127,6 +129,7 @@ class Request:
         Raises:
             EOFError: If the connection is closed without a full HTTP request.
             SecurityError: If the request exceeds a security limit.
+            UnicodeDecodeError: If the request method or path isn't ASCII.
             ValueError: If the request isn't well formatted.
 
         """
@@ -224,8 +227,9 @@ class Response:
 
         This is a generator-based coroutine.
 
-        The reason phrase and headers are expected to contain only ASCII
-        characters. Other characters are represented with surrogate escapes.
+        The reason phrase and header values are expected to contain only ASCII
+        characters. Non-ASCII values are decoded as ISO-8859-1, which has been
+        historically allowed, but is now deprecated.
 
         Args:
             read_line: Generator-based coroutine that reads a LF-terminated
@@ -339,7 +343,9 @@ def parse_headers(
     """
     Parse HTTP headers.
 
-    Non-ASCII characters are represented with surrogate escapes.
+    Header values are expected to contain only ASCII characters. Non-ASCII
+    values are decoded as ISO-8859-1, which has been historically allowed,
+    but is now deprecated.
 
     Args:
         read_line: Generator-based coroutine that reads a LF-terminated line

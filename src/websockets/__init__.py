@@ -214,11 +214,6 @@ else:
             "Subprotocol": ".typing",
         },
         deprecated_aliases={
-            # deprecated in 9.0 - 2021-09-01
-            "framing": ".legacy",
-            "handshake": ".legacy",
-            "parse_uri": ".uri",
-            "WebSocketURI": ".uri",
             # deprecated in 14.0 - 2024-11-09
             # .legacy.auth
             "BasicAuthWebSocketServerProtocol": ".legacy.auth",

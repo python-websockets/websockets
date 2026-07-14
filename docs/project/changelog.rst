@@ -40,6 +40,11 @@ Backwards-incompatible changes
 
     websockets 16.1 is the last version supporting Python 3.10.
 
+.. admonition:: Aliases for modules moved or deprecated in 9.0 are removed.
+    :class: tip
+
+    See the changelog of version 9.0 for details.
+
 .. admonition:: ``process_request`` may receive requests using an HTTP method
     other than ``GET``.
     :class: important

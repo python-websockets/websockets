@@ -113,6 +113,9 @@ class ServerProtocol(Protocol):
                 "select_subprotocol",
                 select_subprotocol.__get__(self, self.__class__),
             )
+        # True when a WebSocket handshake was attempted via accept();
+        # False when a plain HTTP response sent by process_request().
+        self.accept_called = False
 
     def accept(self, request: Request) -> Response:
         """
@@ -136,6 +139,7 @@ class ServerProtocol(Protocol):
             WebSocket handshake response or HTTP response to send to the client.
 
         """
+        self.accept_called = True
         try:
             (
                 accept_header,
@@ -550,8 +554,12 @@ class ServerProtocol(Protocol):
             self.logger.info("connection open")
 
         else:
+            if self.accept_called:
+                log_message = "connection rejected (%d %s)"
+            else:
+                log_message = "HTTP response sent (%d %s)"
             self.logger.info(
-                "connection rejected (%d %s)",
+                log_message,
                 response.status_code,
                 response.reason_phrase,
             )

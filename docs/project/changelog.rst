@@ -83,6 +83,9 @@ Improvements
   when the handshake request exceeds a security limit, instead of closing
   the connection.
 
+* Clarified logs when ``process_request`` sends a plain HTTP response, without
+  attempting to open a WebSocket connection.
+
 * Added the ``reconnect_delays`` argument for customizing the delays between
   reconnection attempts in :func:`~asyncio.client.connect`, beyond existing
   ``WEBSOCKETS_BACKOFF_*`` environment variables.

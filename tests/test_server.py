@@ -71,12 +71,13 @@ class BasicTests(unittest.TestCase):
         self.assertFalse(server.close_expected())
         self.assertEqual(server.state, CONNECTING)
 
-    def test_accept_and_send_successful_response(self, _formatdate):
+    def test_send_response_after_accept(self, _formatdate):
         """Server accepts a handshake request and sends a successful response."""
         server = ServerProtocol()
         request = make_request()
         response = server.accept(request)
-        server.send_response(response)
+        with self.assertLogs("websockets.server", logging.INFO) as logs:
+            server.send_response(response)
 
         self.assertEqual(
             server.data_to_send(),
@@ -91,14 +92,19 @@ class BasicTests(unittest.TestCase):
         )
         self.assertFalse(server.close_expected())
         self.assertEqual(server.state, OPEN)
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["connection open"],
+        )
 
-    def test_send_response_after_failed_accept(self, _formatdate):
+    def test_send_response_after_accept_failed(self, _formatdate):
         """Server accepts a handshake request but sends a failed response."""
         server = ServerProtocol()
         request = make_request()
         del request.headers["Sec-WebSocket-Key"]
         response = server.accept(request)
-        server.send_response(response)
+        with self.assertLogs("websockets.server", logging.INFO) as logs:
+            server.send_response(response)
 
         self.assertEqual(
             server.data_to_send(),
@@ -116,12 +122,17 @@ class BasicTests(unittest.TestCase):
         )
         self.assertTrue(server.close_expected())
         self.assertEqual(server.state, CONNECTING)
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["connection rejected (400 Bad Request)"],
+        )
 
     def test_send_response_after_reject(self, _formatdate):
         """Server rejects a handshake request and sends a failed response."""
         server = ServerProtocol()
         response = server.reject(http.HTTPStatus.NOT_FOUND, "Sorry folks.\n")
-        server.send_response(response)
+        with self.assertLogs("websockets.server", logging.INFO) as logs:
+            server.send_response(response)
 
         self.assertEqual(
             server.data_to_send(),
@@ -138,24 +149,29 @@ class BasicTests(unittest.TestCase):
         )
         self.assertTrue(server.close_expected())
         self.assertEqual(server.state, CONNECTING)
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["HTTP response sent (404 Not Found)"],
+        )
 
     def test_send_response_without_accept_or_reject(self, _formatdate):
         """Server doesn't accept or reject and sends a failed response."""
         server = ServerProtocol()
-        server.send_response(
-            Response(
-                410,
-                "Gone",
-                Headers(
-                    {
-                        "Connection": "close",
-                        "Content-Length": "6",
-                        "Content-Type": "text/plain",
-                    }
-                ),
-                b"AWOL.\n",
-            )
+        response = Response(
+            410,
+            "Gone",
+            Headers(
+                {
+                    "Connection": "close",
+                    "Content-Length": "6",
+                    "Content-Type": "text/plain",
+                }
+            ),
+            b"AWOL.\n",
         )
+        with self.assertLogs("websockets.server", logging.INFO) as logs:
+            server.send_response(response)
+
         self.assertEqual(
             server.data_to_send(),
             [
@@ -170,6 +186,10 @@ class BasicTests(unittest.TestCase):
         )
         self.assertTrue(server.close_expected())
         self.assertEqual(server.state, CONNECTING)
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["HTTP response sent (410 Gone)"],
+        )
 
 
 class RequestTests(unittest.TestCase):

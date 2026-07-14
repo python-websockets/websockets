@@ -960,9 +960,10 @@ class ClientConnectionTests(ThreadTestCase):
 
     def test_writing_in_recv_events_fails(self):
         """Error when responding to incoming frames is correctly reported."""
-        # Inject a fault by shutting down the socket for writing — but not by
-        # closing it because that would terminate the connection.
-        self.connection.socket.shutdown(socket.SHUT_WR)
+        # Inject a fault by making sendall() fail. Use a mock rather than a real
+        # shutdown(SHUT_WR) so the remote side doesn't terminate the connection.
+        self.connection.socket = Mock(wraps=self.connection.socket)
+        self.connection.socket.sendall.side_effect = BrokenPipeError
         # Receive a ping. Responding with a pong will fail.
         self.remote_connection.ping()
         with self.assertRaises(ConnectionClosedError) as raised:
@@ -971,9 +972,10 @@ class ClientConnectionTests(ThreadTestCase):
 
     def test_writing_in_send_context_fails(self):
         """Error when sending outgoing frame is correctly reported."""
-        # Inject a fault by shutting down the socket for writing — but not by
-        # closing it because that would terminate the connection.
-        self.connection.socket.shutdown(socket.SHUT_WR)
+        # Inject a fault by making sendall() fail. Use a mock rather than a real
+        # shutdown(SHUT_WR) so the remote side doesn't terminate the connection.
+        self.connection.socket = Mock(wraps=self.connection.socket)
+        self.connection.socket.sendall.side_effect = BrokenPipeError
         # Sending a pong will fail.
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.pong()
@@ -1112,9 +1114,13 @@ class ClientConnectionTests(ThreadTestCase):
 
             gate.set()
 
-    @patch("socket.socket.sendall", side_effect=BrokenPipeError(32, "Broken pipe"))
-    def test_broadcast_skips_connection_failing_to_send(self, sendall):
+    def test_broadcast_skips_connection_failing_to_send(self):
         """broadcast logs a warning when a connection fails to send."""
+        # Inject a fault by making sendall() fail. Use a mock rather than a real
+        # shutdown(SHUT_WR) so the remote side doesn't terminate the connection.
+        self.connection.socket = Mock(wraps=self.connection.socket)
+        self.connection.socket.sendall.side_effect = BrokenPipeError(32, "Broken pipe")
+
         with self.assertLogs("websockets", logging.WARNING) as logs:
             broadcast([self.connection], "😀")
 
@@ -1126,9 +1132,13 @@ class ClientConnectionTests(ThreadTestCase):
             ],
         )
 
-    @patch("socket.socket.sendall", side_effect=BrokenPipeError(32, "Broken pipe"))
-    def test_broadcast_reports_connection_failing_to_send(self, sendall):
+    def test_broadcast_reports_connection_failing_to_send(self):
         """broadcast raises exceptions for connections failing to send."""
+        # Inject a fault by making sendall() fail. Use a mock rather than a real
+        # shutdown(SHUT_WR) so the remote side doesn't terminate the connection.
+        self.connection.socket = Mock(wraps=self.connection.socket)
+        self.connection.socket.sendall.side_effect = BrokenPipeError(32, "Broken pipe")
+
         with self.assertRaises(ExceptionGroup) as raised:
             broadcast([self.connection], "😀", raise_exceptions=True)
 

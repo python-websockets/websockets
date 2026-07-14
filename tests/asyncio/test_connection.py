@@ -1266,8 +1266,8 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_writing_in_data_received_fails(self):
         """Error when responding to incoming frames is correctly reported."""
-        # Inject a fault by shutting down the transport for writing — but not by
-        # closing it because that would terminate the connection.
+        # Inject a fault by shutting down the transport for writing.
+        # Don't close it because that would terminate the connection.
         self.transport.write_eof()
         # Receive a ping. Responding with a pong will fail.
         await self.remote_connection.ping()
@@ -1277,8 +1277,8 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
 
     async def test_writing_in_send_context_fails(self):
         """Error when sending outgoing frame is correctly reported."""
-        # Inject a fault by shutting down the transport for writing — but not by
-        # closing it because that would terminate the connection.
+        # Inject a fault by shutting down the transport for writing.
+        # Don't close it because that would terminate the connection.
         self.transport.write_eof()
         # Sending a pong will fail.
         with self.assertRaises(ConnectionClosedError) as raised:
@@ -1422,6 +1422,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def test_broadcast_skips_connection_failing_to_send(self):
         """broadcast logs a warning when a connection fails to send."""
         # Inject a fault by shutting down the transport for writing.
+        # Don't close it because that would terminate the connection.
         self.transport.write_eof()
 
         with self.assertLogs("websockets", logging.WARNING) as logs:
@@ -1438,6 +1439,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
     async def test_broadcast_reports_connection_failing_to_send(self):
         """broadcast raises exceptions for connections failing to send."""
         # Inject a fault by shutting down the transport for writing.
+        # Don't close it because that would terminate the connection.
         self.transport.write_eof()
 
         with self.assertRaises(ExceptionGroup) as raised:

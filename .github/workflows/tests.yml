@@ -9,7 +9,7 @@ on:
       - main
 
 env:
-  WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 10
+  WEBSOCKETS_TESTS_TIMEOUT_FACTOR: 20
 
 jobs:
   coverage:

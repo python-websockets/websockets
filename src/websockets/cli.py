@@ -115,7 +115,7 @@ async def interactive_client(uri: str, **kwargs: Any) -> None:
     else:
         print(f"Connected to {uri}.")
 
-    # Read messsages from stdin in a thread because Windows doesn't support
+    # Read messages from stdin in a thread because Windows doesn't support
     # reading asynchronously (#1681), and a daemon thread to avoid blocking
     # Ctrl-C because signals are only delivered to the main thread.
     loop = asyncio.get_event_loop()

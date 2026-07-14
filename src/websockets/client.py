@@ -15,6 +15,7 @@ from .exceptions import (
     InvalidStatus,
     InvalidUpgrade,
     NegotiationError,
+    StatusLineTooLong,
 )
 from .extensions import ClientExtensionFactory, Extension
 from .headers import (
@@ -305,6 +306,12 @@ class ClientProtocol(Protocol):
                     self.reader.read_exact,
                     self.reader.read_to_eof,
                 )
+            except StatusLineTooLong as exc:
+                self.handshake_exc = exc
+                self.send_eof()
+                self.parser = self.discard()
+                next(self.parser)  # start coroutine
+                yield
             except Exception as exc:
                 self.handshake_exc = InvalidMessage(
                     "did not receive a valid HTTP response"

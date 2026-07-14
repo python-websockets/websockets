@@ -46,6 +46,13 @@ You may change these limits by setting the :envvar:`WEBSOCKETS_MAX_LINE_LENGTH`,
 :envvar:`WEBSOCKETS_MAX_NUM_HEADERS`, and :envvar:`WEBSOCKETS_MAX_BODY_SIZE`
 environment variables respectively.
 
+When a handshake request exceeds one of these limits, the server replies with
+HTTP 414 URI Too Long or 431 Request Header Fields Too Large, then closes the
+connection.
+
+When a handshake response exceeds one of these limits, the client closes the
+connection and raises an exception.
+
 Identification
 --------------
 

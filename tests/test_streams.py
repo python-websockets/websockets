@@ -56,11 +56,32 @@ class StreamReaderTests(GeneratorTestCase):
             "read 5 bytes, expected no more than 2 bytes",
         )
 
+    def test_read_line_too_long_custom_exc_type(self):
+        self.reader.feed_data(b"spam\neggs\n")
+
+        gen = self.reader.read_line(2, too_long_exc_type=ValueError)
+        with self.assertRaises(ValueError) as raised:
+            next(gen)
+        self.assertEqual(
+            str(raised.exception),
+            "read 5 bytes, expected no more than 2 bytes",
+        )
+
     def test_read_line_too_long_need_more_data(self):
         self.reader.feed_data(b"spa")
 
         gen = self.reader.read_line(2)
         with self.assertRaises(RuntimeError) as raised:
+            next(gen)
+        self.assertEqual(
+            str(raised.exception),
+            "read 3 bytes, expected no more than 2 bytes",
+        )
+
+    def test_read_line_too_long_custom_exc_type_need_more_data(self):
+        self.reader.feed_data(b"spa")
+        gen = self.reader.read_line(2, too_long_exc_type=ValueError)
+        with self.assertRaises(ValueError) as raised:
             next(gen)
         self.assertEqual(
             str(raised.exception),
@@ -127,6 +148,17 @@ class StreamReaderTests(GeneratorTestCase):
 
         self.reader.feed_data(b"spam")
         with self.assertRaises(RuntimeError) as raised:
+            next(gen)
+        self.assertEqual(
+            str(raised.exception),
+            "read 4 bytes, expected no more than 2 bytes",
+        )
+
+    def test_read_to_eof_too_long_custom_exc_type(self):
+        gen = self.reader.read_to_eof(2, too_long_exc_type=ValueError)
+
+        self.reader.feed_data(b"spam")
+        with self.assertRaises(ValueError) as raised:
             next(gen)
         self.assertEqual(
             str(raised.exception),

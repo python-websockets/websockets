@@ -11,6 +11,7 @@ from typing import Any, Callable, cast
 
 from .datastructures import Headers, MultipleValuesError
 from .exceptions import (
+    HeaderLineTooLong,
     InvalidHandshake,
     InvalidHeader,
     InvalidHeaderValue,
@@ -19,6 +20,8 @@ from .exceptions import (
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
+    RequestLineTooLong,
+    TooManyHeaders,
 )
 from .extensions import Extension, ServerExtensionFactory
 from .headers import (
@@ -563,6 +566,27 @@ class ServerProtocol(Protocol):
                 request = yield from Request.parse(
                     self.reader.read_line,
                 )
+            except RequestLineTooLong as exc:
+                self.handshake_exc = exc
+                if self.debug:
+                    self.logger.debug("! request line too long", exc_info=True)
+                response = self.reject(
+                    # Change to http.HTTPStatus.URI_TOO_LONG when dropping Python < 3.13
+                    http.HTTPStatus.REQUEST_URI_TOO_LONG,
+                    f"Failed to open a WebSocket connection: {exc}.\n",
+                )
+                self.send_response(response)
+                yield
+            except (HeaderLineTooLong, TooManyHeaders) as exc:
+                self.handshake_exc = exc
+                if self.debug:
+                    self.logger.debug("! header fields too large", exc_info=True)
+                response = self.reject(
+                    http.HTTPStatus.REQUEST_HEADER_FIELDS_TOO_LARGE,
+                    f"Failed to open a WebSocket connection: {exc}.\n",
+                )
+                self.send_response(response)
+                yield
             except Exception as exc:
                 self.handshake_exc = InvalidMessage(
                     "did not receive a valid HTTP request"

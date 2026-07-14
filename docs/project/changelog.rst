@@ -79,6 +79,10 @@ Improvements
 * Replied with HTTP 405 Method Not Allowed when the handshake request doesn't
   use the GET method, instead of closing the connection.
 
+* Replied with HTTP 414 URI Too Long or 431 Request Header Fields Too Large
+  when the handshake request exceeds a security limit, instead of closing
+  the connection.
+
 * Added the ``reconnect_delays`` argument for customizing the delays between
   reconnection attempts in :func:`~asyncio.client.connect`, beyond existing
   ``WEBSOCKETS_BACKOFF_*`` environment variables.

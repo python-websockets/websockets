@@ -1,5 +1,11 @@
 from websockets.datastructures import Headers
-from websockets.exceptions import SecurityError
+from websockets.exceptions import (
+    HeaderLineTooLong,
+    RequestLineTooLong,
+    SecurityError,
+    StatusLineTooLong,
+    TooManyHeaders,
+)
 from websockets.http11 import *
 from websockets.http11 import parse_headers
 from websockets.streams import StreamReader
@@ -56,6 +62,17 @@ class RequestTests(GeneratorTestCase):
         self.assertEqual(
             str(raised.exception),
             "connection closed while reading HTTP request line",
+        )
+
+    def test_parse_request_line_too_long(self):
+        # Request line contains 5 + 8186 + 9 = 8200 bytes before the line
+        # ending, which exceeds the 8192-byte limit.
+        self.reader.feed_data(b"GET /" + b"a" * 8186 + b" HTTP/1.1\r\n\r\n")
+        with self.assertRaises(RequestLineTooLong) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "read 8202 bytes, expected no more than 8192 bytes",
         )
 
     def test_parse_invalid_request_line(self):
@@ -176,6 +193,17 @@ class ResponseTests(GeneratorTestCase):
             "connection closed while reading HTTP status line",
         )
 
+    def test_parse_status_line_too_long(self):
+        # Status line contains 9 + 8191 = 8200 bytes before the line ending,
+        # which exceeds the 8192-byte limit.
+        self.reader.feed_data(b"HTTP/1.1 " + b"a" * 8191 + b"\r\n\r\n")
+        with self.assertRaises(StatusLineTooLong) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "read 8202 bytes, expected no more than 8192 bytes",
+        )
+
     def test_parse_invalid_status_line(self):
         self.reader.feed_data(b"Hello!\r\n")
         with self.assertRaises(ValueError) as raised:
@@ -248,7 +276,7 @@ class ResponseTests(GeneratorTestCase):
             next(self.parse())
         self.assertEqual(
             str(raised.exception),
-            "body too large: over 1048576 bytes",
+            "read 1048577 bytes, expected no more than 1048576 bytes",
         )
 
     def test_parse_body_with_content_length(self):
@@ -430,16 +458,21 @@ class HeadersTests(GeneratorTestCase):
         with self.assertRaises(ValueError):
             self.parse_headers()
 
-    def test_parse_too_long_value(self):
+    def test_parse_too_many_headers(self):
         self.reader.feed_data(b"foo: bar\r\n" * 129 + b"\r\n")
-        with self.assertRaises(SecurityError):
+        with self.assertRaises(TooManyHeaders) as raised:
             self.parse_headers()
+        self.assertEqual(str(raised.exception), "expected no more than 128 headers")
 
     def test_parse_too_long_line(self):
-        # Header line contains 5 + 8186 + 2 = 8193 bytes.
-        self.reader.feed_data(b"foo: " + b"a" * 8186 + b"\r\n\r\n")
-        with self.assertRaises(SecurityError):
+        # Header line contains 5 + 8195 = 8200 bytes before the line ending,
+        # which exceeds the 8192-byte limit.
+        self.reader.feed_data(b"foo: " + b"a" * 8195 + b"\r\n\r\n")
+        with self.assertRaises(HeaderLineTooLong) as raised:
             self.parse_headers()
+        self.assertEqual(
+            str(raised.exception), "read 8202 bytes, expected no more than 8192 bytes"
+        )
 
     def test_parse_invalid_line_ending(self):
         self.reader.feed_data(b"foo: bar\n\n")

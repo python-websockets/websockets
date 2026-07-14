@@ -7,12 +7,15 @@ from unittest.mock import patch
 
 from websockets.datastructures import Headers
 from websockets.exceptions import (
+    HeaderLineTooLong,
     InvalidHeader,
     InvalidMessage,
     InvalidMethod,
     InvalidOrigin,
     InvalidUpgrade,
     NegotiationError,
+    RequestLineTooLong,
+    TooManyHeaders,
 )
 from websockets.frames import OP_TEXT, Frame
 from websockets.http11 import Request, Response
@@ -257,6 +260,102 @@ class RequestTests(unittest.TestCase):
             str(server.handshake_exc.__cause__),
             "invalid HTTP request line: HELO relay.invalid",
         )
+
+    @patch("email.utils.formatdate", return_value=DATE)
+    def test_receive_request_line_too_long(self, _formatdate):
+        """Server rejects a handshake request with a request line that's too long."""
+        server = ServerProtocol()
+        server.receive_data(b"GET /" + b"a" * 8186 + b" HTTP/1.1\r\n\r\n")
+
+        self.assertEqual(server.events_received(), [])
+        self.assertIsInstance(server.handshake_exc, RequestLineTooLong)
+        self.assertEqual(
+            str(server.handshake_exc),
+            "read 8202 bytes, expected no more than 8192 bytes",
+        )
+
+        self.assertEqual(
+            server.data_to_send(),
+            [
+                f"HTTP/1.1 414 URI Too Long\r\n"
+                f"Date: {DATE}\r\n"
+                f"Connection: close\r\n"
+                f"Content-Length: 90\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"\r\n"
+                f"Failed to open a WebSocket connection: "
+                f"read 8202 bytes, expected no more than 8192 bytes.\n".encode(),
+                b"",
+            ]
+            if sys.version_info[:2] >= (3, 13)
+            else [
+                f"HTTP/1.1 414 Request-URI Too Long\r\n"
+                f"Date: {DATE}\r\n"
+                f"Connection: close\r\n"
+                f"Content-Length: 90\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"\r\n"
+                f"Failed to open a WebSocket connection: "
+                f"read 8202 bytes, expected no more than 8192 bytes.\n".encode(),
+                b"",
+            ],
+        )
+        self.assertTrue(server.close_expected())
+
+    @patch("email.utils.formatdate", return_value=DATE)
+    def test_receive_header_line_too_long(self, _formatdate):
+        """Server rejects a handshake request with a header line that's too long."""
+        server = ServerProtocol()
+        server.receive_data(b"GET / HTTP/1.1\r\nX-Long: " + b"a" * 8192 + b"\r\n\r\n")
+
+        self.assertEqual(server.events_received(), [])
+        self.assertIsInstance(server.handshake_exc, HeaderLineTooLong)
+        self.assertEqual(
+            str(server.handshake_exc),
+            "read 8202 bytes, expected no more than 8192 bytes",
+        )
+
+        self.assertEqual(
+            server.data_to_send(),
+            [
+                f"HTTP/1.1 431 Request Header Fields Too Large\r\n"
+                f"Date: {DATE}\r\n"
+                f"Connection: close\r\n"
+                f"Content-Length: 90\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"\r\n"
+                f"Failed to open a WebSocket connection: "
+                f"read 8202 bytes, expected no more than 8192 bytes.\n".encode(),
+                b"",
+            ],
+        )
+        self.assertTrue(server.close_expected())
+
+    @patch("email.utils.formatdate", return_value=DATE)
+    def test_receive_too_many_headers(self, _formatdate):
+        """Server rejects a handshake request with too many headers."""
+        server = ServerProtocol()
+        server.receive_data(b"GET / HTTP/1.1\r\n" + b"X-Foo: bar\r\n" * 129 + b"\r\n")
+
+        self.assertEqual(server.events_received(), [])
+        self.assertIsInstance(server.handshake_exc, TooManyHeaders)
+        self.assertEqual(str(server.handshake_exc), "expected no more than 128 headers")
+
+        self.assertEqual(
+            server.data_to_send(),
+            [
+                f"HTTP/1.1 431 Request Header Fields Too Large\r\n"
+                f"Date: {DATE}\r\n"
+                f"Connection: close\r\n"
+                f"Content-Length: 74\r\n"
+                f"Content-Type: text/plain; charset=utf-8\r\n"
+                f"\r\n"
+                f"Failed to open a WebSocket connection: "
+                f"expected no more than 128 headers.\n".encode(),
+                b"",
+            ],
+        )
+        self.assertTrue(server.close_expected())
 
 
 class ResponseTests(unittest.TestCase):

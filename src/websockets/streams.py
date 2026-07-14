@@ -17,7 +17,11 @@ class StreamReader:
         self.buffer = bytearray()
         self.eof = False
 
-    def read_line(self, m: int) -> Generator[None, None, bytearray]:
+    def read_line(
+        self,
+        m: int,
+        too_long_exc_type: type[Exception] = RuntimeError,
+    ) -> Generator[None, None, bytearray]:
         """
         Read a LF-terminated line from the stream.
 
@@ -27,10 +31,12 @@ class StreamReader:
 
         Args:
             m: Maximum number bytes to read; this is a security limit.
+            too_long_exc_type: exception to raise if the line ends in more
+                than ``m`` bytes; defaults to :exc:`RuntimeError`.
 
         Raises:
             EOFError: If the stream ends without a LF.
-            RuntimeError: If the stream ends in more than ``m`` bytes.
+            RuntimeError: If the line ends in more than ``m`` bytes.
 
         """
         n = 0  # number of bytes to read
@@ -41,12 +47,14 @@ class StreamReader:
                 break
             p = len(self.buffer)
             if p > m:
-                raise RuntimeError(f"read {p} bytes, expected no more than {m} bytes")
+                raise too_long_exc_type(
+                    f"read {p} bytes, expected no more than {m} bytes"
+                )
             if self.eof:
                 raise EOFError(f"stream ends after {p} bytes, before end of line")
             yield
         if n > m:
-            raise RuntimeError(f"read {n} bytes, expected no more than {m} bytes")
+            raise too_long_exc_type(f"read {n} bytes, expected no more than {m} bytes")
         r = self.buffer[:n]
         del self.buffer[:n]
         return r
@@ -74,7 +82,11 @@ class StreamReader:
         del self.buffer[:n]
         return r
 
-    def read_to_eof(self, m: int) -> Generator[None, None, bytearray]:
+    def read_to_eof(
+        self,
+        m: int,
+        too_long_exc_type: type[Exception] = RuntimeError,
+    ) -> Generator[None, None, bytearray]:
         """
         Read all bytes from the stream.
 
@@ -82,6 +94,8 @@ class StreamReader:
 
         Args:
             m: Maximum number bytes to read; this is a security limit.
+            too_long_exc_type: exception to raise if the stream ends in more
+                than ``m`` bytes; defaults to :exc:`RuntimeError`.
 
         Raises:
             RuntimeError: If the stream ends in more than ``m`` bytes.
@@ -90,7 +104,9 @@ class StreamReader:
         while not self.eof:
             p = len(self.buffer)
             if p > m:
-                raise RuntimeError(f"read {p} bytes, expected no more than {m} bytes")
+                raise too_long_exc_type(
+                    f"read {p} bytes, expected no more than {m} bytes"
+                )
             yield
         r = self.buffer[:]
         del self.buffer[:]

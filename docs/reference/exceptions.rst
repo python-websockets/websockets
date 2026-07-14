@@ -34,6 +34,14 @@ also reported by :func:`~websockets.asyncio.server.serve` in logs.
 
 .. autoexception:: SecurityError
 
+.. autoexception:: RequestLineTooLong
+
+.. autoexception:: StatusLineTooLong
+
+.. autoexception:: HeaderLineTooLong
+
+.. autoexception:: TooManyHeaders
+
 .. autoexception:: ProxyError
 
 .. autoexception:: InvalidProxyMessage

@@ -9,7 +9,13 @@ from collections.abc import Generator
 from typing import Callable
 
 from .datastructures import Headers
-from .exceptions import SecurityError
+from .exceptions import (
+    HeaderLineTooLong,
+    RequestLineTooLong,
+    SecurityError,
+    StatusLineTooLong,
+    TooManyHeaders,
+)
 from .version import version as websockets_version
 
 
@@ -106,7 +112,9 @@ class Request:
     @classmethod
     def parse(
         cls,
-        read_line: Callable[[int], Generator[None, None, bytes | bytearray]],
+        read_line: Callable[
+            [int, type[Exception]], Generator[None, None, bytes | bytearray]
+        ],
     ) -> Generator[None, None, Request]:
         """
         Parse a WebSocket handshake request.
@@ -128,7 +136,9 @@ class Request:
 
         Raises:
             EOFError: If the connection is closed without a full HTTP request.
-            SecurityError: If the request exceeds a security limit.
+            RequestLineTooLong: If the request line is too long.
+            HeaderLineTooLong: If a header line is too long.
+            TooManyHeaders: If there are too many headers.
             UnicodeDecodeError: If the request method or path isn't ASCII.
             ValueError: If the request isn't well formatted.
 
@@ -140,7 +150,7 @@ class Request:
         # implement HTTP/1.1 strictly, there's little need for lenient parsing.
 
         try:
-            request_line = yield from parse_line(read_line)
+            request_line = yield from parse_line(read_line, RequestLineTooLong)
         except EOFError as exc:
             raise EOFError("connection closed while reading HTTP request line") from exc
 
@@ -217,9 +227,13 @@ class Response:
     @classmethod
     def parse(
         cls,
-        read_line: Callable[[int], Generator[None, None, bytes | bytearray]],
+        read_line: Callable[
+            [int, type[Exception]], Generator[None, None, bytes | bytearray]
+        ],
         read_exact: Callable[[int], Generator[None, None, bytes | bytearray]],
-        read_to_eof: Callable[[int], Generator[None, None, bytes | bytearray]],
+        read_to_eof: Callable[
+            [int, type[Exception]], Generator[None, None, bytes | bytearray]
+        ],
         proxy: bool = False,
     ) -> Generator[None, None, Response]:
         """
@@ -241,7 +255,10 @@ class Response:
 
         Raises:
             EOFError: If the connection is closed without a full HTTP response.
-            SecurityError: If the response exceeds a security limit.
+            StatusLineTooLong: If the status line is too long.
+            HeaderLineTooLong: If a header line is too long.
+            TooManyHeaders: If there are too many headers.
+            SecurityError: If the response body exceeds a security limit.
             LookupError: If the response isn't well formatted.
             ValueError: If the response isn't well formatted.
 
@@ -249,7 +266,7 @@ class Response:
         # https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.2
 
         try:
-            status_line = yield from parse_line(read_line)
+            status_line = yield from parse_line(read_line, StatusLineTooLong)
         except EOFError as exc:
             raise EOFError("connection closed while reading HTTP status line") from exc
 
@@ -311,7 +328,10 @@ class Response:
 
 
 def parse_line(
-    read_line: Callable[[int], Generator[None, None, bytes | bytearray]],
+    read_line: Callable[
+        [int, type[Exception]], Generator[None, None, bytes | bytearray]
+    ],
+    too_long_exc_type: type[Exception] = SecurityError,
 ) -> Generator[None, None, bytes | bytearray]:
     """
     Parse a single line.
@@ -321,16 +341,15 @@ def parse_line(
     Args:
         read_line: Generator-based coroutine that reads a LF-terminated line
             or raises an exception if there isn't enough data.
+        too_long_exc_type: exception to raise if the line is too long;
+            defaults to :exc:`SecurityError`.
 
     Raises:
         EOFError: If the connection is closed without a CRLF.
         SecurityError: If the response exceeds a security limit.
 
     """
-    try:
-        line = yield from read_line(MAX_LINE_LENGTH)
-    except RuntimeError:
-        raise SecurityError("line too long")
+    line = yield from read_line(MAX_LINE_LENGTH, too_long_exc_type)
     # Not mandatory but safe - https://datatracker.ietf.org/doc/html/rfc7230#section-3.5
     if not line.endswith(b"\r\n"):
         raise EOFError("line without CRLF")
@@ -338,7 +357,9 @@ def parse_line(
 
 
 def parse_headers(
-    read_line: Callable[[int], Generator[None, None, bytes | bytearray]],
+    read_line: Callable[
+        [int, type[Exception]], Generator[None, None, bytes | bytearray]
+    ],
 ) -> Generator[None, None, Headers]:
     """
     Parse HTTP headers.
@@ -353,7 +374,8 @@ def parse_headers(
 
     Raises:
         EOFError: If the connection is closed without complete headers.
-        SecurityError: If the request exceeds a security limit.
+        HeaderLineTooLong: If a header line is too long.
+        TooManyHeaders: If there are too many headers.
         ValueError: If the request isn't well formatted.
 
     """
@@ -364,7 +386,7 @@ def parse_headers(
     headers = Headers()
     for _ in range(MAX_NUM_HEADERS + 1):
         try:
-            line = yield from parse_line(read_line)
+            line = yield from parse_line(read_line, HeaderLineTooLong)
         except EOFError as exc:
             raise EOFError("connection closed while reading HTTP headers") from exc
         if line == b"":
@@ -390,7 +412,7 @@ def parse_headers(
         headers.set_insecure(name, value)
 
     else:
-        raise SecurityError("too many HTTP headers")
+        raise TooManyHeaders(f"expected no more than {MAX_NUM_HEADERS} headers")
 
     return headers
 
@@ -398,9 +420,13 @@ def parse_headers(
 def read_body(
     status_code: int,
     headers: Headers,
-    read_line: Callable[[int], Generator[None, None, bytes | bytearray]],
+    read_line: Callable[
+        [int, type[Exception]], Generator[None, None, bytes | bytearray]
+    ],
     read_exact: Callable[[int], Generator[None, None, bytes | bytearray]],
-    read_to_eof: Callable[[int], Generator[None, None, bytes | bytearray]],
+    read_to_eof: Callable[
+        [int, type[Exception]], Generator[None, None, bytes | bytearray]
+    ],
 ) -> Generator[None, None, bytes | bytearray]:
     # https://datatracker.ietf.org/doc/html/rfc7230#section-3.3.3
 
@@ -420,7 +446,7 @@ def read_body(
 
         body = b""
         while True:
-            chunk_size_line = yield from parse_line(read_line)
+            chunk_size_line = yield from parse_line(read_line, SecurityError)
             raw_chunk_size = chunk_size_line.split(b";", 1)[0]
             # Set a lower limit than default_max_str_digits; 1 EB is plenty.
             if len(raw_chunk_size) > 15:
@@ -450,7 +476,4 @@ def read_body(
         return (yield from read_exact(content_length))
 
     else:
-        try:
-            return (yield from read_to_eof(MAX_BODY_SIZE))
-        except RuntimeError:
-            raise SecurityError(f"body too large: over {MAX_BODY_SIZE} bytes")
+        return (yield from read_to_eof(MAX_BODY_SIZE, SecurityError))

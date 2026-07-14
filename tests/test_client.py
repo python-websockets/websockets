@@ -13,6 +13,7 @@ from websockets.exceptions import (
     InvalidHeader,
     InvalidMessage,
     InvalidStatus,
+    StatusLineTooLong,
 )
 from websockets.frames import OP_TEXT, Frame
 from websockets.http11 import Request, Response
@@ -278,7 +279,7 @@ class ResponseTests(unittest.TestCase):
             "connection closed while reading HTTP headers",
         )
 
-    def test_receive_random_response(self, _generate_key):
+    def test_receive_junk_response(self, _generate_key):
         """Client receives a junk handshake response."""
         client = ClientProtocol(URI)
         client.receive_data(b"220 smtp.invalid\r\n")
@@ -296,6 +297,18 @@ class ResponseTests(unittest.TestCase):
         self.assertEqual(
             str(client.handshake_exc.__cause__),
             "invalid HTTP status line: 220 smtp.invalid",
+        )
+
+    def test_receive_status_line_too_long(self, _generate_key):
+        """Client receives a handshake response with a status line that's too long."""
+        client = ClientProtocol(URI)
+        client.receive_data(b"HTTP/1.1 " + b"a" * 8191 + b"\r\n\r\n")
+
+        self.assertEqual(client.events_received(), [])
+        self.assertIsInstance(client.handshake_exc, StatusLineTooLong)
+        self.assertEqual(
+            str(client.handshake_exc),
+            "read 8202 bytes, expected no more than 8192 bytes",
         )
 
 

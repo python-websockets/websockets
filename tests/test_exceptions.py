@@ -96,6 +96,22 @@ class ExceptionsTests(unittest.TestCase):
                 "redirect from WSS to WS",
             ),
             (
+                RequestLineTooLong("read 8202 bytes, expected no more than 8192 bytes"),
+                "read 8202 bytes, expected no more than 8192 bytes",
+            ),
+            (
+                StatusLineTooLong("read 8202 bytes, expected no more than 8192 bytes"),
+                "read 8202 bytes, expected no more than 8192 bytes",
+            ),
+            (
+                HeaderLineTooLong("read 8202 bytes, expected no more than 8192 bytes"),
+                "read 8202 bytes, expected no more than 8192 bytes",
+            ),
+            (
+                TooManyHeaders("expected no more than 128 headers"),
+                "expected no more than 128 headers",
+            ),
+            (
                 ProxyError("failed to connect to SOCKS proxy"),
                 "failed to connect to SOCKS proxy",
             ),

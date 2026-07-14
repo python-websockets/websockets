@@ -9,6 +9,10 @@
     * :exc:`InvalidProxy`
     * :exc:`InvalidHandshake`
         * :exc:`SecurityError`
+            * :exc:`RequestLineTooLong`
+            * :exc:`StatusLineTooLong`
+            * :exc:`HeaderLineTooLong`
+            * :exc:`TooManyHeaders`
         * :exc:`ProxyError`
             * :exc:`InvalidProxyMessage`
             * :exc:`InvalidProxyStatus`
@@ -50,6 +54,10 @@ __all__ = [
     "InvalidProxy",
     "InvalidHandshake",
     "SecurityError",
+    "RequestLineTooLong",
+    "StatusLineTooLong",
+    "HeaderLineTooLong",
+    "TooManyHeaders",
     "ProxyError",
     "InvalidProxyMessage",
     "InvalidProxyStatus",
@@ -206,6 +214,34 @@ class SecurityError(InvalidHandshake):
 
     Security limits can be configured with :doc:`environment variables
     <../reference/variables>`.
+
+    """
+
+
+class RequestLineTooLong(SecurityError):
+    """
+    Raised when the request line of a handshake request is too long.
+
+    """
+
+
+class StatusLineTooLong(SecurityError):
+    """
+    Raised when the status line of a handshake response is too long.
+
+    """
+
+
+class HeaderLineTooLong(SecurityError):
+    """
+    Raised when a header line of a handshake request or response is too long.
+
+    """
+
+
+class TooManyHeaders(SecurityError):
+    """
+    Raised when a handshake request or response has too many headers.
 
     """
 

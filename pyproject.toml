@@ -39,13 +39,14 @@ websockets = "websockets.cli:main"
 [tool.cibuildwheel]
 enable = ["pypy"]
 
-# On a macOS runner, build Intel, Universal, and Apple Silicon wheels.
-[tool.cibuildwheel.macos]
-archs = ["x86_64", "universal2", "arm64"]
-
-# On an Linux Intel runner with QEMU installed, build Intel and ARM wheels.
 [tool.cibuildwheel.linux]
-archs = ["auto", "aarch64", "armv7l", "ppc64le", "riscv64", "s390x"]
+archs = ["x86_64", "aarch64", "i686", "armv7l", "ppc64le", "riscv64", "s390x"]
+
+[tool.cibuildwheel.macos]
+archs = ["arm64", "x86_64", "universal2"]
+
+[tool.cibuildwheel.windows]
+archs = ["AMD64", "ARM64", "x86"]
 
 [tool.codespell]
 skip = "docs/_build,docs/_static,*.svg"

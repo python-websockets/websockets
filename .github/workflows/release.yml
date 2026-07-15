@@ -39,6 +39,8 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
+          # GitHub Actions doesn't provide windows-latest-arm:
+          # https://github.com/actions/runner-images/issues/13885
           - windows-11-arm
           - macOS-latest
     steps:

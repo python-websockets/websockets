@@ -90,6 +90,8 @@ Improvements
   reconnection attempts in :func:`~asyncio.client.connect`, beyond existing
   ``WEBSOCKETS_BACKOFF_*`` environment variables.
 
+* Added wheels for Windows ARM64.
+
 Bug fixes
 .........
 

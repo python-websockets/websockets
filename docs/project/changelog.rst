@@ -83,6 +83,8 @@ Improvements
   when the handshake request exceeds a security limit, instead of closing
   the connection.
 
+* Reduced noise in server logs when clients fail to establish a connection.
+
 * Clarified logs when ``process_request`` sends a plain HTTP response, without
   attempting to open a WebSocket connection.
 

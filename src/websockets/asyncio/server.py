@@ -148,6 +148,7 @@ class ServerConnection(Connection):
                             response = await response
                     except Exception as exc:
                         self.protocol.handshake_exc = exc
+                        self.logger.error("process_request failed", exc_info=True)
                         response = self.protocol.reject(
                             http.HTTPStatus.INTERNAL_SERVER_ERROR,
                             (
@@ -180,6 +181,7 @@ class ServerConnection(Connection):
                             response = await response
                     except Exception as exc:
                         self.protocol.handshake_exc = exc
+                        self.logger.error("process_response failed", exc_info=True)
                         response = self.protocol.reject(
                             http.HTTPStatus.INTERNAL_SERVER_ERROR,
                             (
@@ -361,7 +363,6 @@ class Server:
                     connection.transport.abort()
                     raise
                 except Exception:
-                    connection.logger.error("opening handshake failed", exc_info=True)
                     connection.transport.abort()
                     return
 

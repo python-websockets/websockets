@@ -212,7 +212,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 )
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["opening handshake failed"],
+            ["process_request failed"],
         )
         self.assertEqual(
             [str(record.exc_info[1]) for record in logs.records],
@@ -236,7 +236,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 )
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["opening handshake failed"],
+            ["process_request failed"],
         )
         self.assertEqual(
             [str(record.exc_info[1]) for record in logs.records],
@@ -328,7 +328,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 )
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["opening handshake failed"],
+            ["process_response failed"],
         )
         self.assertEqual(
             [str(record.exc_info[1]) for record in logs.records],
@@ -352,7 +352,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 )
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["opening handshake failed"],
+            ["process_response failed"],
         )
         self.assertEqual(
             [str(record.exc_info[1]) for record in logs.records],
@@ -448,13 +448,22 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_connection_closed_during_handshake(self):
         """Server reads EOF before receiving handshake request from client."""
-        async with serve(*args) as server:
-            _reader, writer = await asyncio.open_connection(*get_host_port(server))
-            writer.close()
+        with self.assertLogs("websockets", logging.DEBUG) as logs:
+            async with serve(*args) as server:
+                _reader, writer = await asyncio.open_connection(*get_host_port(server))
+                writer.close()
+
+        messages = [record.getMessage() for record in logs.records]
+        self.assertIn("! no valid HTTP request", messages)
+        record = logs.records[messages.index("! no valid HTTP request")]
+        self.assertEqual(
+            str(record.exc_info[1]),
+            "connection closed while reading HTTP request line",
+        )
 
     async def test_junk_handshake(self):
         """Server closes the connection when receiving non-HTTP request from client."""
-        with self.assertLogs("websockets", logging.ERROR) as logs:
+        with self.assertLogs("websockets", logging.DEBUG) as logs:
             async with serve(*args) as server:
                 reader, writer = await asyncio.open_connection(*get_host_port(server))
                 writer.write(b"HELO relay.invalid\r\n")
@@ -464,17 +473,12 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 finally:
                     writer.close()
 
+        messages = [record.getMessage() for record in logs.records]
+        self.assertIn("! no valid HTTP request", messages)
+        record = logs.records[messages.index("! no valid HTTP request")]
         self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["opening handshake failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["did not receive a valid HTTP request"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1].__cause__) for record in logs.records],
-            ["invalid HTTP request line: HELO relay.invalid"],
+            str(record.exc_info[1]),
+            "invalid HTTP request line: HELO relay.invalid",
         )
 
     async def test_close_server_rejects_connecting_connections(self):

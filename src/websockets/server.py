@@ -599,6 +599,8 @@ class ServerProtocol(Protocol):
                 self.handshake_exc = InvalidMessage(
                     "did not receive a valid HTTP request"
                 )
+                if self.debug:
+                    self.logger.debug("! no valid HTTP request", exc_info=True)
                 self.handshake_exc.__cause__ = exc
                 self.send_eof()
                 self.parser = self.discard()

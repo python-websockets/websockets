@@ -178,7 +178,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 )
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["opening handshake failed"],
+            ["process_request failed"],
         )
         self.assertEqual(
             [str(record.exc_info[1]) for record in logs.records],
@@ -236,7 +236,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                 )
         self.assertEqual(
             [record.getMessage() for record in logs.records],
-            ["opening handshake failed"],
+            ["process_response failed"],
         )
         self.assertEqual(
             [str(record.exc_info[1]) for record in logs.records],
@@ -330,31 +330,35 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
 
     def test_connection_closed_during_handshake(self):
         """Server reads EOF before receiving handshake request from client."""
-        with run_server() as server:
-            with socket.create_connection(server.socket.getsockname()):
-                # Wait for the server to receive the connection, then close it.
-                time.sleep(MS)
+        with self.assertLogs("websockets", logging.DEBUG) as logs:
+            with run_server() as server:
+                with socket.create_connection(server.socket.getsockname()):
+                    # Wait for the server to receive the connection, then close it.
+                    time.sleep(MS)
+
+        messages = [record.getMessage() for record in logs.records]
+        self.assertIn("! no valid HTTP request", messages)
+        record = logs.records[messages.index("! no valid HTTP request")]
+        self.assertEqual(
+            str(record.exc_info[1]),
+            "connection closed while reading HTTP request line",
+        )
 
     def test_junk_handshake(self):
         """Server closes the connection when receiving non-HTTP request from client."""
-        with self.assertLogs("websockets.server", logging.ERROR) as logs:
+        with self.assertLogs("websockets.server", logging.DEBUG) as logs:
             with run_server() as server:
                 with socket.create_connection(server.socket.getsockname()) as sock:
                     sock.send(b"HELO relay.invalid\r\n")
                     # Wait for the server to close the connection.
                     self.assertEqual(sock.recv(4096), b"")
 
+        messages = [record.getMessage() for record in logs.records]
+        self.assertIn("! no valid HTTP request", messages)
+        record = logs.records[messages.index("! no valid HTTP request")]
         self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["opening handshake failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["did not receive a valid HTTP request"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1].__cause__) for record in logs.records],
-            ["invalid HTTP request line: HELO relay.invalid"],
+            str(record.exc_info[1]),
+            "invalid HTTP request line: HELO relay.invalid",
         )
 
 

@@ -147,6 +147,7 @@ class ServerConnection(Connection):
                         response = process_request(self, self.request)
                     except Exception as exc:
                         self.protocol.handshake_exc = exc
+                        self.logger.error("process_request failed", exc_info=True)
                         response = self.protocol.reject(
                             http.HTTPStatus.INTERNAL_SERVER_ERROR,
                             (
@@ -170,6 +171,7 @@ class ServerConnection(Connection):
                         response = process_response(self, self.request, self.response)
                     except Exception as exc:
                         self.protocol.handshake_exc = exc
+                        self.logger.error("process_response failed", exc_info=True)
                         response = self.protocol.reject(
                             http.HTTPStatus.INTERNAL_SERVER_ERROR,
                             (
@@ -620,7 +622,6 @@ def serve(
                 connection.recv_events_thread.join()
                 return
             except Exception:
-                connection.logger.error("opening handshake failed", exc_info=True)
                 connection.close_socket()
                 connection.recv_events_thread.join()
                 return

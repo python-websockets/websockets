@@ -39,6 +39,7 @@ jobs:
         os:
           - ubuntu-latest
           - windows-latest
+          - windows-11-arm
           - macOS-latest
     steps:
     - name: Check out repository

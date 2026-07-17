@@ -122,6 +122,14 @@ class HeadersTests(unittest.TestCase):
         self.headers["upgrade"] = "websocket"
         self.assertEqual(self.headers["Upgrade"], "websocket")
 
+    def test_setitem_non_ascii_value(self):
+        self.headers["X-Non-ASCII"] = "café"
+        self.assertEqual(self.headers["X-Non-ASCII"], "café")
+
+    def test_setitem_non_latin1_value(self):
+        with self.assertRaises(InvalidHeaderValue):
+            self.headers["X-Invalid"] = "→"
+
     def test_setitem_invalid_value(self):
         with self.assertRaises(InvalidHeaderValue):
             self.headers["X-Invalid"] = "multi\r\nline"
@@ -180,6 +188,14 @@ class HeadersTests(unittest.TestCase):
     def test_set_insecure_invalid_value(self):
         self.headers.set_insecure("X-Invalid", "multi\r\nline")
         self.assertEqual(self.headers["X-Invalid"], "multi\r\nline")  # oops
+
+    def test_serialize_non_ascii_value(self):
+        self.headers.clear()
+        self.headers.set_insecure("X-Non-ASCII", "café")
+        self.assertEqual(
+            self.headers.serialize(),
+            b"X-Non-ASCII: caf\xe9\r\n\r\n",
+        )
 
 
 class MultiValueHeadersTests(unittest.TestCase):

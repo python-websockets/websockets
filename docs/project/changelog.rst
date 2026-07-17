@@ -52,6 +52,14 @@ Backwards-incompatible changes
     Previously, the server closed the connection without returning an HTTP
     response. Now, ``process_request`` runs and can return an HTTP response.
 
+.. admonition:: Encoding and decoding non-ASCII headers in handshake requests
+    and responses changed.
+    :class: note
+
+    The previous behavior was undocumented, inconsistent, and didn't match the
+    HTTP specification. If you relied on the encoding being UTF-8 or ASCII with
+    surrogate escapes, depending on the context, you must switch to ISO-8859-1.
+
 .. admonition:: In the :mod:`threading` implementation, the ``socket`` argument
     is renamed to ``sock``.
     :class: note
@@ -75,6 +83,9 @@ New features
 
 Improvements
 ............
+
+* Supported non-ASCII headers consistently in handshake requests and responses,
+  using ISO-8859-1 encoding.
 
 * Replied with HTTP 405 Method Not Allowed when the handshake request doesn't
   use the GET method, instead of closing the connection.

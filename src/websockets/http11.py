@@ -86,6 +86,10 @@ class Request:
     """
     WebSocket handshake request.
 
+    ``method`` and ``path`` must contain only ASCII characters. ``headers``
+    should contain only ASCII characters; however, non-ASCII header values are
+    tolerated and encoded as ISO-8859-1.
+
     Attributes:
         path: Request path, including optional query.
         headers: Request headers.
@@ -121,10 +125,10 @@ class Request:
 
         This is a generator-based coroutine.
 
-        The request method, path, and headers are expected to contain only ASCII
-        characters. The request path isn't URL-decoded or validated in any way.
-        Non-ASCII header values are decoded as ISO-8859-1, which has been
-        historically allowed, but is now deprecated.
+        The request method and path must contain only ASCII characters. The
+        request path isn't URL-decoded or validated in any way. Request headers
+        should contain only ASCII characters; however, non-ASCII header values
+        are tolerated and decoded with ISO-8859-1.
 
         :meth:`parse` doesn't read the request body because WebSocket handshake
         requests don't have one. If the request contains a body, it may be read
@@ -188,9 +192,10 @@ class Request:
         Serialize a WebSocket handshake request.
 
         """
-        # Since the request line and headers only contain ASCII characters,
-        # we can keep this simple.
-        request = f"{self.method} {self.path} HTTP/1.1\r\n".encode()
+        # Methods are hardcoded and always ASCII. Non-ASCII paths are converted
+        # from URI to IRI and percent-encoded. Enforce ASCII as a safety net.
+        request_line = f"{self.method} {self.path} HTTP/1.1\r\n"
+        request = request_line.encode("ascii")
         request += self.headers.serialize()
         return request
 
@@ -199,6 +204,10 @@ class Request:
 class Response:
     """
     WebSocket handshake response.
+
+    ``reason_phrase`` and ``headers`` should contain only ASCII characters;
+    however, non-ASCII reason phrases and header values are tolerated and
+    encoded as ISO-8859-1.
 
     Attributes:
         status_code: Response code.
@@ -241,9 +250,9 @@ class Response:
 
         This is a generator-based coroutine.
 
-        The reason phrase and header values are expected to contain only ASCII
-        characters. Non-ASCII values are decoded as ISO-8859-1, which has been
-        historically allowed, but is now deprecated.
+        The reason phrase and headers should contain only ASCII characters;
+        however, non-ASCII reason phrases and header values are tolerated and
+        decoded as ISO-8859-1.
 
         Args:
             read_line: Generator-based coroutine that reads a LF-terminated
@@ -319,9 +328,9 @@ class Response:
         Serialize a WebSocket handshake response.
 
         """
-        # Since the status line and headers only contain ASCII characters,
-        # we can keep this simple.
-        response = f"HTTP/1.1 {self.status_code} {self.reason_phrase}\r\n".encode()
+        # Encode the reason phrase as ISO-8859-1 to round-trip cleanly.
+        status_line = f"HTTP/1.1 {self.status_code} {self.reason_phrase}\r\n"
+        response = status_line.encode("iso-8859-1")
         response += self.headers.serialize()
         response += self.body
         return response
@@ -364,9 +373,8 @@ def parse_headers(
     """
     Parse HTTP headers.
 
-    Header values are expected to contain only ASCII characters. Non-ASCII
-    values are decoded as ISO-8859-1, which has been historically allowed,
-    but is now deprecated.
+    Headers should contain only ASCII characters; however, non-ASCII values are
+    tolerated and decoded as ISO-8859-1.
 
     Args:
         read_line: Generator-based coroutine that reads a LF-terminated line
@@ -404,8 +412,10 @@ def parse_headers(
 
         name = raw_name.decode("ascii")  # guaranteed to be ASCII at this point
         # Headers should be ASCII. Section 5.5 of RFC 9110 says: "Historically,
-        # HTTP allowed field content with text in the ISO-8859-1 charset."
-        # It's easy to reverse and cannot crash, making it a decent choice.
+        # HTTP allowed field content with text in the ISO-8859-1 charset." and
+        # "A recipient SHOULD treat other allowed octets in field content (i.e.,
+        # obs-text) as opaque data." ISO-8859-1 is an opaque representation of
+        # arbitrary binary data in a str object and it is easy to reverse.
         value = raw_value.decode("iso-8859-1")
 
         # Since we just validated raw_value, we don't need to revalidate it.

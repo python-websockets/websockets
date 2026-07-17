@@ -431,6 +431,13 @@ class ResponseTests(GeneratorTestCase):
             b"Hello world!\n",
         )
 
+    def test_serialize_iso_8859_1_reason(self):
+        response = Response(200, "ØK", Headers([("Content-Length", "0")]))
+        self.assertEqual(
+            response.serialize(),
+            b"HTTP/1.1 200 \xd8K\r\nContent-Length: 0\r\n\r\n",
+        )
+
 
 class HeadersTests(GeneratorTestCase):
     def setUp(self):

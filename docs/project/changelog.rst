@@ -120,7 +120,7 @@ Improvements
 
 * Escaped control characters in incoming messages in the ``websockets`` CLI.
 
-* Blocked non-ASCII values in :class:`~datastructures.Headers`.
+* Prevented setting invalid header values in :class:`~datastructures.Headers`.
 
 * Rejected incorrect fragmented, compressed messages.
 

@@ -87,6 +87,39 @@ terminates, after canceling the other task::
         for task in pending:
             task.cancel()
 
+Multiple consumers
+------------------
+
+You can run multiple consumer tasks to process incoming messages concurrently.
+This helps when a single consumer can't keep up with incoming messages.
+
+Use :class:`~asyncio.Queue` to distribute messages to multiple consumers in a
+:class:`~asyncio.TaskGroup`::
+
+    import asyncio
+
+    async def worker(queue):
+        while True:
+            message = await queue.get()
+            await consume_slowly(message)
+            queue.task_done()
+
+
+    async def run_workers(queue, num_workers=16):
+        async with asyncio.TaskGroup() as task_group:
+            for _ in range(num_workers):
+                task_group.create_task(worker(queue))
+
+    async def handler(websocket):
+        queue = asyncio.Queue()
+        workers_task = asyncio.create_task(run_workers(queue))
+        try:
+            async for message in websocket:
+                await queue.put(message)
+        finally:
+            await queue.join()
+            workers_task.cancel()
+
 Registration
 ------------
 

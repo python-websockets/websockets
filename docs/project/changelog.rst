@@ -110,6 +110,18 @@ Bug fixes
 
 * Restored compatibility of the ``websockets`` CLI with Windows.
 
+.. _16.1.1:
+
+16.1.1
+------
+
+*July 18, 2026*
+
+Bug fixes
+.........
+
+* Reverted a backwards-incompatible change in decoding non-ASCII header values.
+
 .. _16.1:
 
 16.1

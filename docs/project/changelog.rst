@@ -46,7 +46,7 @@ Improvements
 
 * Escaped control characters in incoming messages in ``python -m websockets``.
 
-* Blocked non-ASCII values in :class:`~datastructures.Headers`.
+* Prevented setting invalid header values in :class:`~datastructures.Headers`.
 
 * Rejected incorrect fragmented, compressed messages.
 

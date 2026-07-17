@@ -25,6 +25,18 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
+.. _16.1.1:
+
+16.1.1
+------
+
+*July 18, 2026*
+
+Bug fixes
+.........
+
+* Reverted a backwards-incompatible change in decoding non-ASCII header values.
+
 .. _16.1:
 
 16.1

@@ -2,7 +2,7 @@
    :width: 480px
    :alt: websockets
 
-|licence| |version| |pyversions| |tests| |docs| |openssf|
+|licence| |version| |pyversions|
 
 .. |licence| image:: https://img.shields.io/pypi/l/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
@@ -12,15 +12,6 @@
 
 .. |pyversions| image:: https://img.shields.io/pypi/pyversions/websockets.svg
     :target: https://pypi.python.org/pypi/websockets
-
-.. |tests| image:: https://img.shields.io/github/checks-status/python-websockets/websockets/main?label=tests
-   :target: https://github.com/python-websockets/websockets/actions/workflows/tests.yml
-
-.. |docs| image:: https://img.shields.io/readthedocs/websockets.svg
-   :target: https://websockets.readthedocs.io/
-
-.. |openssf| image:: https://bestpractices.coreinfrastructure.org/projects/6475/badge
-   :target: https://bestpractices.coreinfrastructure.org/projects/6475
 
 What is ``websockets``?
 -----------------------

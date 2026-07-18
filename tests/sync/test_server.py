@@ -3,8 +3,10 @@ import hmac
 import http
 import logging
 import socket
+import threading
 import time
 import unittest
+from unittest.mock import patch
 
 from websockets.exceptions import (
     ConnectionClosedError,
@@ -243,13 +245,13 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             ["BOOM"],
         )
 
-    def test_override_server(self):
+    def test_override_server_header(self):
         """Server can override Server header with server_header."""
         with run_server(server_header="Neo") as server:
             with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.response.headers['Server']", "Neo")
 
-    def test_remove_server(self):
+    def test_remove_server_header(self):
         """Server can remove Server header with server_header."""
         with run_server(server_header=None) as server:
             with connect(get_uri(server)) as client:
@@ -294,18 +296,21 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.create_connection_ran", "True")
 
-    def test_fileno(self):
-        """Server provides a fileno attribute."""
+    def test_connections(self):
+        """Server provides a connections property."""
         with run_server() as server:
-            self.assertIsInstance(server.fileno(), int)
-
-    def test_shutdown(self):
-        """Server provides a shutdown method."""
-        with run_server() as server:
-            server.shutdown()
-            # Check that the server socket is closed.
-            with self.assertRaises(OSError):
-                server.socket.accept()
+            self.assertEqual(server.connections, set())
+            with (
+                connect(get_uri(server)) as client1,
+                connect(get_uri(server)) as client2,
+            ):
+                client1.send("ws.id")
+                client2.send("ws.id")
+                self.assertEqual(
+                    {str(connection.id) for connection in server.connections},
+                    {client1.recv(), client2.recv()},
+                )
+            self.assertEqual(server.connections, set())
 
     def test_handshake_fails(self):
         """Server receives connection from client but the handshake fails."""
@@ -360,6 +365,96 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             str(record.exc_info[1]),
             "invalid HTTP request line: HELO relay.invalid",
         )
+
+    def test_shutdown_rejects_connecting_connections(self):
+        """Server rejects connecting connections with HTTP 503."""
+
+        def process_request(ws, _request):
+            ws.server.socket_closed.wait()
+
+        def shutdown_server(server):
+            time.sleep(5 * MS)
+            server.shutdown()
+
+        with run_server(process_request=process_request) as server:
+            shutdown_thread = threading.Thread(target=shutdown_server, args=(server,))
+            shutdown_thread.start()
+            with self.assertRaises(InvalidStatus) as raised:
+                with connect(get_uri(server)):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 503",
+            )
+            shutdown_thread.join(MS)
+
+    def test_shutdown_closes_open_connections(self):
+        """Server closes open connections with code 1001."""
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                server.shutdown()
+                with self.assertRaises(ConnectionClosedOK) as raised:
+                    client.recv()
+                self.assertEqual(
+                    str(raised.exception),
+                    "received 1001 (going away); then sent 1001 (going away)",
+                )
+
+    def test_shutdown_closes_open_connections_with_code_and_reason(self):
+        """Server closes open connections with a custom code and reason."""
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                server.shutdown(code=1012, reason="restarting")
+                with self.assertRaises(ConnectionClosedError) as raised:
+                    client.recv()
+                self.assertEqual(
+                    str(raised.exception),
+                    "received 1012 (service restart) restarting; "
+                    "then sent 1012 (service restart) restarting",
+                )
+
+    def test_shutdown_keeps_connections_open(self):
+        """Server waits for the client to close open connections."""
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                shutdown_thread = threading.Thread(
+                    target=server.shutdown,
+                    kwargs={"close_connections": False},
+                )
+                shutdown_thread.start()
+
+                # The server waits for the client to close the connection.
+                shutdown_thread.join(MS)
+                self.assertTrue(shutdown_thread.is_alive())
+
+                # Once the client closes the connection, the server terminates.
+                client.close()
+                shutdown_thread.join(MS)
+                self.assertFalse(shutdown_thread.is_alive())
+
+    @patch("websockets.sync.server.Server.SHUTDOWN_POLLING_INTERVAL", MS)
+    def test_shutdown_keeps_handlers_running(self):
+        """Server waits for connection handlers to terminate."""
+        with run_server() as server:
+            with connect(get_uri(server) + "/delay") as client:
+                # Delay termination of the connection handler.
+                client.send(str(3 * MS))
+
+                shutdown_thread = threading.Thread(target=server.shutdown)
+                shutdown_thread.start()
+
+                # The server waits for the connection handler to terminate.
+                shutdown_thread.join(2 * MS)
+                self.assertTrue(shutdown_thread.is_alive())
+
+                # Set a longer timeout here, else the test becomes flaky.
+                shutdown_thread.join(5 * MS)
+                self.assertFalse(shutdown_thread.is_alive())
+
+    def test_fileno(self):
+        """Server provides a fileno method."""
+        with run_server() as server:
+            self.assertIsInstance(server.fileno(), int)
 
 
 class SecureServerTests(EvalShellMixin, unittest.TestCase):

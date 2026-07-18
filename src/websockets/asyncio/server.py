@@ -292,8 +292,9 @@ class Server:
             logger = logging.getLogger("websockets.server")
         self.logger = logger
 
-        # Keep track of active connections.
-        self.handlers: dict[ServerConnection, asyncio.Task[None]] = {}
+        # Keep track of active connections and connection handler tasks.
+        self.all_connections: set[ServerConnection] = set()
+        self.handler_tasks: set[asyncio.Task[None]] = set()
 
         # Task responsible for closing the server and terminating connections.
         self.close_task: asyncio.Task[None] | None = None
@@ -311,7 +312,11 @@ class Server:
         It can be useful in combination with :func:`~broadcast`.
 
         """
-        return {connection for connection in self.handlers if connection.state is OPEN}
+        return {
+            connection
+            for connection in self.all_connections
+            if connection.state is OPEN
+        }
 
     def wrap(self, server: asyncio.Server) -> None:
         """
@@ -392,18 +397,23 @@ class Server:
             # Registration is tied to the lifecycle of conn_handler() because
             # the server waits for connection handlers to terminate, even if
             # all connections are already closed.
-            del self.handlers[connection]
+            self.all_connections.discard(connection)
+            task = asyncio.current_task()
+            assert task is not None  # help mypy
+            self.handler_tasks.discard(task)
 
     def start_connection_handler(self, connection: ServerConnection) -> None:
         """
         Register a connection with this server.
 
         """
-        # The connection must be registered in self.handlers immediately.
+        # The connection must be registered in self.all_connections now.
         # If it was registered in conn_handler(), a race condition could
         # happen when closing the server after scheduling conn_handler()
         # but before it starts executing.
-        self.handlers[connection] = self.loop.create_task(self.conn_handler(connection))
+        self.all_connections.add(connection)
+        handler_task = self.loop.create_task(self.conn_handler(connection))
+        self.handler_tasks.add(handler_task)
 
     def close(
         self,
@@ -458,10 +468,10 @@ class Server:
         # HTTP 503 error.
 
         if close_connections:
-            # Close OPEN connections with code 1001 by default.
+            # Close OPEN connections.
             close_tasks = [
                 asyncio.create_task(connection.close(code, reason))
-                for connection in self.handlers
+                for connection in self.all_connections
                 if connection.protocol.state is not CONNECTING
             ]
             # asyncio.wait doesn't accept an empty first argument.
@@ -473,8 +483,8 @@ class Server:
 
         # Wait until all connection handlers terminate.
         # asyncio.wait doesn't accept an empty first argument.
-        if self.handlers:
-            await asyncio.wait(self.handlers.values())
+        if self.handler_tasks:
+            await asyncio.wait(self.handler_tasks)
 
         # Tell wait_closed() to return.
         self.closed_waiter.set_result(None)

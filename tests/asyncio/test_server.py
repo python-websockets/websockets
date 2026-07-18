@@ -359,13 +359,13 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             ["BOOM"],
         )
 
-    async def test_override_server(self):
+    async def test_override_server_header(self):
         """Server can override Server header with server_header."""
         async with serve(*args, server_header="Neo") as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.response.headers['Server']", "Neo")
 
-    async def test_remove_server(self):
+    async def test_remove_server_header(self):
         """Server can remove Server header with server_header."""
         async with serve(*args, server_header=None) as server:
             async with connect(get_uri(server)) as client:
@@ -416,10 +416,16 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """Server provides a connections property."""
         async with serve(*args) as server:
             self.assertEqual(server.connections, set())
-            async with connect(get_uri(server)) as client:
-                self.assertEqual(len(server.connections), 1)
-                ws_id = str(next(iter(server.connections)).id)
-                await self.assertEval(client, "ws.id", ws_id)
+            async with (
+                connect(get_uri(server)) as client1,
+                connect(get_uri(server)) as client2,
+            ):
+                await client1.send("ws.id")
+                await client2.send("ws.id")
+                self.assertEqual(
+                    {str(connection.id) for connection in server.connections},
+                    {await client1.recv(), await client2.recv()},
+                )
             self.assertEqual(server.connections, set())
 
     async def test_handshake_fails(self):
@@ -481,8 +487,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             "invalid HTTP request line: HELO relay.invalid",
         )
 
-    async def test_close_server_rejects_connecting_connections(self):
-        """Server rejects connecting connections with HTTP 503 when closing."""
+    async def test_close_rejects_connecting_connections(self):
+        """Server rejects connecting connections with HTTP 503."""
 
         async def process_request(ws, _request):
             while ws.server.is_serving():
@@ -498,8 +504,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 "server rejected WebSocket connection: HTTP 503",
             )
 
-    async def test_close_server_closes_open_connections(self):
-        """Server closes open connections with close code 1001 when closing."""
+    async def test_close_closes_open_connections(self):
+        """Server closes open connections with close code 1001."""
         async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 server.close()
@@ -510,8 +516,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                     "received 1001 (going away); then sent 1001 (going away)",
                 )
 
-    async def test_close_server_closes_open_connections_with_code_and_reason(self):
-        """Server closes open connections with custom code and reason when closing."""
+    async def test_close_closes_open_connections_with_code_and_reason(self):
+        """Server closes open connections with custom code and reason."""
         async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 server.close(code=1012, reason="restarting")
@@ -523,8 +529,8 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                     "then sent 1012 (service restart) restarting",
                 )
 
-    async def test_close_server_keeps_connections_open(self):
-        """Server waits for client to close open connections when closing."""
+    async def test_close_keeps_connections_open(self):
+        """Server waits for the client to close open connections."""
         async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 server.close(close_connections=False)
@@ -543,7 +549,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 async with asyncio.timeout(MS):
                     await server.wait_closed()
 
-    async def test_close_server_keeps_handlers_running(self):
+    async def test_close_keeps_handlers_running(self):
         """Server waits for connection handlers to terminate."""
         async with serve(*args) as server:
             async with connect(get_uri(server) + "/delay") as client:
@@ -557,9 +563,15 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                     async with asyncio.timeout(2 * MS):
                         await server.wait_closed()
 
-                # Set a large timeout here, else the test becomes flaky.
+                # Set a longer timeout here, else the test becomes flaky.
                 async with asyncio.timeout(5 * MS):
                     await server.wait_closed()
+
+    async def test_sockets(self):
+        """Server provides a sockets property."""
+        async with serve(*args) as server:
+            sock = server.sockets[0]
+            self.assertIsInstance(sock.fileno(), int)
 
 
 SSL_OBJECT = "ws.transport.get_extra_info('ssl_object')"

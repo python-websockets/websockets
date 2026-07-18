@@ -71,19 +71,19 @@ class ClientTests(unittest.TestCase):
             ) as client:
                 self.assertEqual(client.request.headers["Authorization"], "Bearer ...")
 
-    def test_override_user_agent(self):
+    def test_override_user_agent_header(self):
         """Client can override User-Agent header with user_agent_header."""
         with run_server() as server:
             with connect(get_uri(server), user_agent_header="Smith") as client:
                 self.assertEqual(client.request.headers["User-Agent"], "Smith")
 
-    def test_remove_user_agent(self):
+    def test_remove_user_agent_header(self):
         """Client can remove User-Agent header with user_agent_header."""
         with run_server() as server:
             with connect(get_uri(server), user_agent_header=None) as client:
                 self.assertNotIn("User-Agent", client.request.headers)
 
-    def test_legacy_user_agent(self):
+    def test_legacy_user_agent_header(self):
         """Client can override User-Agent header with additional_headers."""
         with run_server() as server:
             with connect(

@@ -96,19 +96,19 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             ) as client:
                 self.assertEqual(client.request.headers["Authorization"], "Bearer ...")
 
-    async def test_override_user_agent(self):
+    async def test_override_user_agent_header(self):
         """Client can override User-Agent header with user_agent_header."""
         async with serve(*args) as server:
             async with connect(get_uri(server), user_agent_header="Smith") as client:
                 self.assertEqual(client.request.headers["User-Agent"], "Smith")
 
-    async def test_remove_user_agent(self):
+    async def test_remove_user_agent_header(self):
         """Client can remove User-Agent header with user_agent_header."""
         async with serve(*args) as server:
             async with connect(get_uri(server), user_agent_header=None) as client:
                 self.assertNotIn("User-Agent", client.request.headers)
 
-    async def test_legacy_user_agent(self):
+    async def test_legacy_user_agent_header(self):
         """Client can override User-Agent header with additional_headers."""
         async with serve(*args) as server:
             async with connect(

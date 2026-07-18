@@ -1,6 +1,7 @@
 import contextlib
 import ssl
 import threading
+import time
 import urllib.parse
 
 from websockets.sync.router import *
@@ -26,6 +27,10 @@ def handler(ws):
         raise RuntimeError
     elif path == "/no-op":
         pass
+    elif path == "/delay":
+        delay = float(ws.recv())
+        ws.close()
+        time.sleep(delay)
     else:
         raise AssertionError(f"unexpected path: {path}")
 
@@ -47,29 +52,11 @@ def run_server_or_router(
     with serve_or_route(handler_or_url_map, host, port, **kwargs) as server:
         thread = threading.Thread(target=server.serve_forever)
         thread.start()
-
-        # HACK: since the sync server doesn't track connections (yet), we record
-        # a reference to the thread handling the most recent connection, then we
-        # can wait for that thread to terminate when exiting the context.
-        handler_thread = None
-        original_handler = server.handler
-
-        def handler(sock, addr):
-            nonlocal handler_thread
-            handler_thread = threading.current_thread()
-            original_handler(sock, addr)
-
-        server.handler = handler
-
         try:
             yield server
         finally:
             server.shutdown()
             thread.join()
-
-            # HACK: wait for the thread handling the most recent connection.
-            if handler_thread is not None:
-                handler_thread.join()
 
 
 def run_server(handler=handler, **kwargs):

@@ -28,6 +28,8 @@ Running a server
 
 .. autoclass:: Server
 
+    .. autoattribute:: connections
+
     .. automethod:: serve_forever
 
     .. automethod:: shutdown

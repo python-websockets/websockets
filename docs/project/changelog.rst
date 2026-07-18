@@ -78,6 +78,13 @@ New features
 
 * Added :func:`~sync.server.broadcast` to the :mod:`threading` implementation.
 
+* Made the set of active connections available in the :attr:`Server.connections
+  <sync.server.Server.connections>` property in the :mod:`threading`
+  implementation.
+
+* Closed connections when shutting down the server in the :mod:`threading`
+  implementation. See :meth:`~sync.server.Server.shutdown` for details.
+
 * Added the ``--insecure`` option to the ``websockets`` CLI to disable TLS
   certificate validation.
 

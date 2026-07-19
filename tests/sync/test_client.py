@@ -220,7 +220,45 @@ class ClientTests(unittest.TestCase):
         self.assertEqual(raised.exception.response.status_code, 200)
         self.assertEqual(raised.exception.response.body.decode(), "👌")
 
-    def test_junk_handshake(self):
+    def test_http_response_with_keep_alive(self):
+        """Client reads HTTP response and server keeps connection alive."""
+
+        class KeepAliveHandler(socketserver.BaseRequestHandler):
+            def handle(self):
+                time.sleep(MS)  # wait for the client to send the handshake request
+                self.request.recv(4096)  # assume we read the full handshake request
+                self.request.send(
+                    b"HTTP/1.1 410 Gone\r\n"
+                    b"Connection: keep-alive\r\n"  # default in HTTP/1.1
+                    b"Content-Length: 0\r\n"  # avoids "read body until EOF"
+                    b"\r\n"
+                )
+                # Wait for the client to close the connection.
+                self.request.recv(4096)
+                self.request.close()
+
+        server = socketserver.TCPServer(("localhost", 0), KeepAliveHandler)
+        host, port = server.server_address
+        with server:
+            thread = threading.Thread(target=server.serve_forever, args=(MS,))
+            thread.start()
+            try:
+                t0 = time.time()
+                with self.assertRaises(InvalidStatus) as raised:
+                    with connect(f"ws://{host}:{port}"):
+                        self.fail("did not raise")
+                t1 = time.time()
+            finally:
+                server.shutdown()
+                thread.join()
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 410",
+        )
+        self.assertLess(t1 - t0, 5 * MS)
+
+    def test_junk_handshake_response(self):
         """Client closes the connection when receiving non-HTTP response from server."""
 
         class JunkHandler(socketserver.BaseRequestHandler):

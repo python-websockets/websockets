@@ -467,7 +467,7 @@ class ServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             "connection closed while reading HTTP request line",
         )
 
-    async def test_junk_handshake(self):
+    async def test_junk_handshake_request(self):
         """Server closes the connection when receiving non-HTTP request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             async with serve(*args) as server:

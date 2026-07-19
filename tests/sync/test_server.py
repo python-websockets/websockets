@@ -349,7 +349,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
             "connection closed while reading HTTP request line",
         )
 
-    def test_junk_handshake(self):
+    def test_junk_handshake_request(self):
         """Server closes the connection when receiving non-HTTP request from client."""
         with self.assertLogs("websockets.server", logging.DEBUG) as logs:
             with run_server() as server:

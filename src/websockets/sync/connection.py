@@ -22,7 +22,7 @@ from ..exceptions import (
 )
 from ..frames import DATA_OPCODES, CloseCode, Frame, Opcode
 from ..http11 import Request, Response
-from ..protocol import CLOSED, OPEN, Event, Protocol, State
+from ..protocol import CLOSED, CONNECTING, OPEN, Event, Protocol, State
 from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
 from .messages import Assembler
 from .utils import Deadline
@@ -815,8 +815,19 @@ class Connection:
         ``recv_events()`` exits immediately when ``self.socket`` is closed.
 
         """
+        # When the opening handshake fails, we cannot trust rules in RFC 6455
+        # for closing TCP connections will be followed. The HTTP server could
+        # keep the connection alive after sending the response. We attempt to
+        # close the connection immediately. Unfortunately, this is unreliable
+        # on macOS; recv() may block until close_timeout elapses:
+        # https://github.com/python-websockets/websockets/issues/1596
+        # https://github.com/python/cpython/issues/154224
+        # In that case, break out of the loop to prevent recv() from blocking
+        # until close_timeout elapses.
+        close_expected_while_connecting = False
+
         try:
-            while True:
+            while not close_expected_while_connecting:
                 try:
                     # If the assembler buffer is full, block until it drains.
                     with self.recv_flow_control:
@@ -869,6 +880,10 @@ class Connection:
                     if self.protocol.close_expected():
                         if self.close_deadline is None:
                             self.close_deadline = Deadline(self.close_timeout)
+                        # Ignore coverage because the opening handshake is
+                        # tested in test_client.py, not test_connection.py.
+                        if self.protocol.state is CONNECTING:  # pragma: no cover
+                            close_expected_while_connecting = True
 
                 # Unlock conn_mutex before processing events. Else, the
                 # application can't send messages in response to events.
@@ -881,8 +896,8 @@ class Connection:
                     # This isn't expected to raise an exception.
                     self.process_event(event)
 
-            # Breaking out of the while True: ... loop means that we believe
-            # that the socket doesn't work anymore.
+            # Breaking out of the while not close_expected_while_connecting: ...
+            # loop means that we believe that the socket doesn't work anymore.
 
             with self.protocol_mutex:
                 # Feed the end of the data stream to the protocol.

@@ -488,7 +488,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(raised.exception.response.status_code, 200)
         self.assertEqual(raised.exception.response.body.decode(), "👌")
 
-    async def test_junk_handshake(self):
+    async def test_junk_handshake_response(self):
         """Client closes the connection when receiving non-HTTP response from server."""
 
         async def junk(reader, writer):

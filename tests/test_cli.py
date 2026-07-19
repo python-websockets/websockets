@@ -55,6 +55,7 @@ class CLITests(unittest.TestCase):
 
     def test_help(self):
         output = self.run_main(["--help"], expected_exit_code=0)
+        output = vt100_commands.sub("", output)  # remove colors
         self.assertTrue(output.startswith("usage: websockets "))
 
     def test_version(self):
@@ -142,4 +143,5 @@ class CLITests(unittest.TestCase):
 
     def test_no_args(self):
         output = self.run_main([], expected_exit_code=2)
+        output = vt100_commands.sub("", output)  # remove colors
         self.assertTrue(output.startswith("usage: websockets "))

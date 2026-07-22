@@ -172,7 +172,7 @@ class ServerConnection(Connection):
                 else:
                     self.response = response
 
-                if server_header:
+                if server_header is not None:
                     self.response.headers["Server"] = server_header
 
                 response = None
@@ -226,17 +226,14 @@ class Server:
     """
     WebSocket server returned by :func:`serve`.
 
-    This class mirrors the API of :class:`~socketserver.BaseServer`, notably the
-    :meth:`~socketserver.BaseServer.serve_forever` and
-    :meth:`~socketserver.BaseServer.shutdown` methods, as well as the context
-    manager protocol.
+    This class mirrors partially the API of :class:`~socketserver.BaseServer`.
 
     It keeps track of WebSocket connections in order to close them properly
     when shutting down.
 
     Args:
-        socket: Server socket listening for new connections.
-        handler: Handler for one connection. Receives the socket and address
+        socket: Server socket accepting new connections.
+        handler: Handler for one connection. It receives the socket and address
             returned by :meth:`~socket.socket.accept`.
         logger: Logger for this server.
             It defaults to ``logging.getLogger("websockets.server")``.
@@ -521,8 +518,8 @@ def serve(
 
     This function returns a :class:`Server` whose API mirrors
     :class:`~socketserver.BaseServer`. Treat it as a context manager to ensure
-    that it will be closed and call :meth:`~Server.serve_forever` to serve
-    requests::
+    that it will be closed gracefully and call :meth:`~Server.serve_forever` to
+    serve requests::
 
         from websockets.sync.server import serve
 

@@ -196,17 +196,6 @@ class ServerConnection(Connection):
 
                 self.protocol.send_response(self.response)
 
-        # self.protocol.handshake_exc is set when the connection is lost before
-        # receiving a request, when the request cannot be parsed, or when the
-        # handshake fails, including when process_request or process_response
-        # raises an exception.
-
-        # It isn't set when process_request or process_response sends an HTTP
-        # response that rejects the handshake.
-
-        if self.protocol.handshake_exc is not None:
-            raise self.protocol.handshake_exc
-
     def process_event(self, event: Event) -> None:
         """
         Process one incoming event.
@@ -358,26 +347,18 @@ class Server:
         """
         try:
             async with asyncio.timeout(self.open_timeout):
-                try:
-                    await connection.handshake(
-                        self.process_request,
-                        self.process_response,
-                        self.server_header,
-                    )
-                except asyncio.CancelledError:
-                    connection.transport.abort()
-                    raise
-                except Exception:
-                    connection.transport.abort()
-                    return
+                await connection.handshake(
+                    self.process_request,
+                    self.process_response,
+                    self.server_header,
+                )
 
             if connection.protocol.state is not OPEN:
-                # process_request or process_response rejected the handshake.
                 connection.transport.abort()
                 return
 
+            connection.start_keepalive()
             try:
-                connection.start_keepalive()
                 await self.handler(connection)
             except Exception:
                 connection.logger.error("connection handler failed", exc_info=True)
@@ -385,12 +366,9 @@ class Server:
             else:
                 await connection.close()
 
-        except TimeoutError:
-            # When the opening handshake times out, there's nothing to log.
-            pass
-
-        except Exception:  # pragma: no cover
-            # Don't leak connections on unexpected errors.
+        except Exception:
+            # Don't leak connections when the opening handshake times out or an
+            # unexpected error occurs.
             connection.transport.abort()
 
         finally:
@@ -398,9 +376,7 @@ class Server:
             # the server waits for connection handlers to terminate, even if
             # all connections are already closed.
             self.all_connections.discard(connection)
-            task = asyncio.current_task()
-            assert task is not None  # help mypy
-            self.handler_tasks.discard(task)
+            self.handler_tasks.discard(asyncio.current_task())
 
     def start_connection_handler(self, connection: ServerConnection) -> None:
         """

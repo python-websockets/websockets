@@ -196,17 +196,6 @@ class ServerConnection(Connection):
 
                 self.protocol.send_response(self.response)
 
-        # self.protocol.handshake_exc is set when the connection is lost before
-        # receiving a request, when the request cannot be parsed, or when the
-        # handshake fails, including when process_request or process_response
-        # raises an exception.
-
-        # It isn't set when process_request or process_response sends an HTTP
-        # response that rejects the handshake.
-
-        if self.protocol.handshake_exc is not None:
-            raise self.protocol.handshake_exc
-
     def process_event(self, event: Event) -> None:
         """
         Process one incoming event.
@@ -741,30 +730,19 @@ def serve(
             server.all_connections.add(connection)
 
         try:
-            try:
-                connection.handshake(
-                    process_request,
-                    process_response,
-                    server_header,
-                    deadline.timeout(),
-                )
-            except TimeoutError:
-                connection.close_socket()
-                connection.recv_events_thread.join()
-                return
-            except Exception:
-                connection.close_socket()
-                connection.recv_events_thread.join()
-                return
+            connection.handshake(
+                process_request,
+                process_response,
+                server_header,
+                deadline.timeout(),
+            )
 
             if connection.protocol.state is not OPEN:
-                # process_request or process_response rejected the handshake.
                 connection.close_socket()
-                connection.recv_events_thread.join()
                 return
 
+            connection.start_keepalive()
             try:
-                connection.start_keepalive()
                 handler(connection)
             except Exception:
                 connection.logger.error("connection handler failed", exc_info=True)
@@ -772,9 +750,10 @@ def serve(
             else:
                 connection.close()
 
-        except Exception:  # pragma: no cover
-            # Don't leak sockets on unexpected errors.
-            sock.close()
+        except Exception:
+            # Don't leak sockets when the opening handshake times out or an
+            # unexpected error occurs.
+            connection.close_socket()
 
         finally:
             # Registration is tied to the lifecycle of conn_handler() because

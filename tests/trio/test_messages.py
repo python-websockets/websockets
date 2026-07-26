@@ -1,5 +1,4 @@
 import contextlib
-import sys
 import unittest
 import unittest.mock
 
@@ -11,10 +10,6 @@ from websockets.trio.messages import *
 
 from ..utils import alist
 from .utils import IsolatedTrioTestCase
-
-
-if sys.version_info[:2] < (3, 11):  # pragma: no cover
-    from exceptiongroup import ExceptionGroup
 
 
 class AssemblerTests(IsolatedTrioTestCase):

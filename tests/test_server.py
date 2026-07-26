@@ -599,14 +599,11 @@ class HandshakeTests(unittest.TestCase):
         server.send_response(response)
 
         self.assertEqual(response.status_code, 400)
-        if sys.version_info[:2] >= (3, 11):
-            b64_exc = "Only base64 data is allowed"
-        else:  # pragma: no cover
-            b64_exc = "Non-base64 digit found"
         self.assertHandshakeError(
             server,
             InvalidHeader,
-            f"invalid Sec-WebSocket-Key header: <not Base64 data>; {b64_exc}",
+            "invalid Sec-WebSocket-Key header: <not Base64 data>; "
+            "Only base64 data is allowed",
         )
 
     def test_truncated_key(self):

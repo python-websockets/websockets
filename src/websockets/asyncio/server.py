@@ -6,7 +6,6 @@ import http
 import logging
 import re
 import socket
-import sys
 from collections.abc import Awaitable, Generator, Iterable, Sequence
 from types import TracebackType
 from typing import Any, Callable, Mapping, cast
@@ -748,8 +747,7 @@ class serve:
 
         if kwargs.get("ssl") is not None:
             kwargs.setdefault("ssl_handshake_timeout", open_timeout)
-            if sys.version_info[:2] >= (3, 11):  # pragma: no branch
-                kwargs.setdefault("ssl_shutdown_timeout", close_timeout)
+            kwargs.setdefault("ssl_shutdown_timeout", close_timeout)
 
         def factory() -> ServerConnection:
             """

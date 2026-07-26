@@ -595,13 +595,12 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
     def test_https_proxy_server_hostname(self):
         """Client sets server_hostname to the value of proxy_server_hostname."""
         with run_server() as server:
-            # Pass an argument not prefixed with proxy_ for coverage.
-            kwargs = {"all_errors": True} if sys.version_info >= (3, 11) else {}
             with connect(
                 get_uri(server),
                 proxy_ssl=self.proxy_context,
                 proxy_server_hostname="overridden",
-                **kwargs,
+                # Pass an argument not prefixed with proxy_ for coverage.
+                all_errors=True,
             ) as client:
                 self.assertEqual(client.socket.server_hostname, "overridden")
         self.assertNumFlows(1)

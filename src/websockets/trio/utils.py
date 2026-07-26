@@ -1,10 +1,4 @@
-import sys
-
 import trio
-
-
-if sys.version_info[:2] < (3, 11):  # pragma: no cover
-    from exceptiongroup import BaseExceptionGroup
 
 
 __all__ = ["race_events"]

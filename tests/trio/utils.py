@@ -1,13 +1,8 @@
 import functools
 import inspect
-import sys
 import unittest
 
 import trio.testing
-
-
-if sys.version_info[:2] < (3, 11):  # pragma: no cover
-    from exceptiongroup import BaseExceptionGroup
 
 
 class IsolatedTrioTestCase(unittest.TestCase):

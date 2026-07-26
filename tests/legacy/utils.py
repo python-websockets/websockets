@@ -1,7 +1,6 @@
 import asyncio
 import functools
 import inspect
-import sys
 import unittest
 
 
@@ -60,17 +59,6 @@ class AsyncioTestCase(unittest.TestCase):
         Check recorded deprecation warnings match a list of expected messages.
 
         """
-        # Work around https://github.com/python/cpython/issues/90476.
-        if sys.version_info[:2] < (3, 11):  # pragma: no cover
-            recorded_warnings = [
-                recorded
-                for recorded in recorded_warnings
-                if not (
-                    type(recorded.message) is ResourceWarning
-                    and str(recorded.message).startswith("unclosed transport")
-                )
-            ]
-
         for recorded in recorded_warnings:
             self.assertIs(type(recorded.message), DeprecationWarning)
         self.assertEqual(

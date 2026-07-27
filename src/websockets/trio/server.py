@@ -156,13 +156,7 @@ class ServerConnection(Connection):
                         )
 
                 if response is None:
-                    if not self.server.closing:
-                        self.response = self.protocol.accept(self.request)
-                    else:
-                        self.response = self.protocol.reject(
-                            http.HTTPStatus.SERVICE_UNAVAILABLE,
-                            "Server is shutting down.\n",
-                        )
+                    self.response = self.protocol.accept(self.request)
                 else:
                     assert isinstance(response, Response)  # help mypy
                     self.response = response
@@ -191,6 +185,18 @@ class ServerConnection(Connection):
                 if response is not None:
                     assert isinstance(response, Response)  # help mypy
                     self.response = response
+
+                # Reject the connection if the server started closing during the
+                # opening handshake. Don't yield before send_response() to avoid
+                # a race condition after checking if the server is closing.
+                if (
+                    self.response.status_code == http.HTTPStatus.SWITCHING_PROTOCOLS
+                    and self.server.closing
+                ):
+                    self.response = self.protocol.reject(
+                        http.HTTPStatus.SERVICE_UNAVAILABLE,
+                        "Server is shutting down.\n",
+                    )
 
                 self.protocol.send_response(self.response)
 

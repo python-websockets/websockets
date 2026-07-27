@@ -162,13 +162,7 @@ class ServerConnection(Connection):
                         )
 
                 if response is None:
-                    if not self.server.socket_closed.is_set():
-                        self.response = self.protocol.accept(self.request)
-                    else:
-                        self.response = self.protocol.reject(
-                            http.HTTPStatus.SERVICE_UNAVAILABLE,
-                            "Server is shutting down.\n",
-                        )
+                    self.response = self.protocol.accept(self.request)
                 else:
                     self.response = response
 
@@ -193,6 +187,18 @@ class ServerConnection(Connection):
 
                     if response is not None:
                         self.response = response
+
+                # Reject the connection if the server started closing during the
+                # opening handshake. shutdown() runs a loop to catch cases where
+                # the server shuts down between this check and send_response().
+                if (
+                    self.response.status_code == http.HTTPStatus.SWITCHING_PROTOCOLS
+                    and self.server.socket_closed.is_set()
+                ):
+                    self.response = self.protocol.reject(
+                        http.HTTPStatus.SERVICE_UNAVAILABLE,
+                        "Server is shutting down.\n",
+                    )
 
                 self.protocol.send_response(self.response)
 

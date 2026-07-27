@@ -46,13 +46,7 @@ Backwards-incompatible changes
     See the changelog of version 9.0 for details.
 
 .. admonition:: ``process_request`` may receive requests using an HTTP method
-    other than ``GET``.
-    :class: caution
-
-    Previously, the server closed the connection without returning an HTTP
-    response. Now, ``process_request`` runs and can return an HTTP response.
-
-.. admonition:: ``process_request`` may receive requests using HTTP/1.0.
+    other than ``GET`` or using the HTTP/1.0 protocol.
     :class: caution
 
     Previously, the server closed the connection without returning an HTTP
@@ -109,9 +103,7 @@ Improvements
   using ISO-8859-1 encoding.
 
 * Replied with HTTP 405 Method Not Allowed when the handshake request doesn't
-  use the GET method, instead of closing the connection.
-
-* Replied with HTTP 505 HTTP Version Not Supported when the handshake request
+  use the GET method, and with HTTP 505 HTTP Version Not Supported when it
   doesn't use HTTP/1.1, instead of closing the connection.
 
 * Replied with HTTP 414 URI Too Long or 431 Request Header Fields Too Large

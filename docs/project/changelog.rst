@@ -47,7 +47,7 @@ Backwards-incompatible changes
 
 .. admonition:: ``process_request`` may receive requests using an HTTP method
     other than ``GET``.
-    :class: important
+    :class: caution
 
     Previously, the server closed the connection without returning an HTTP
     response. Now, ``process_request`` runs and can return an HTTP response.

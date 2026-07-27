@@ -14,6 +14,7 @@ from websockets.exceptions import (
 from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 from websockets.trio.connection import *
+from websockets.trio.connection import broadcast
 
 from ..protocol import RecordingProtocol
 from ..utils import MS, alist
@@ -1220,7 +1221,7 @@ class ClientConnectionTests(IsolatedTrioTestCase):
 
     async def test_writing_in_recv_events_fails(self):
         """Error when responding to incoming frames is correctly reported."""
-        # Inject a fault by shutting down the stream for writing — but not the
+        # Inject a fault by closing the stream for writing. Don't close the
         # stream for reading because that would terminate the connection.
         self.connection.stream.send_stream.close()
         # Receive a ping. Responding with a pong will fail.
@@ -1231,7 +1232,7 @@ class ClientConnectionTests(IsolatedTrioTestCase):
 
     async def test_writing_in_send_context_fails(self):
         """Error when sending outgoing frame is correctly reported."""
-        # Inject a fault by shutting down the stream for writing — but not the
+        # Inject a fault by closing the stream for writing. Don't close the
         # stream for reading because that would terminate the connection.
         self.connection.stream.send_stream.close()
         # Sending a pong will fail.
@@ -1257,6 +1258,156 @@ class ClientConnectionTests(IsolatedTrioTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.send("😀")
         self.assertIsInstance(raised.exception.__cause__, AssertionError)
+
+    # Test broadcast.
+
+    async def test_broadcast_text(self):
+        """broadcast broadcasts a text message."""
+        await broadcast([self.connection], "😀")
+        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    async def test_broadcast_text_reports_no_errors(self):
+        """broadcast broadcasts a text message without raising exceptions."""
+        await broadcast([self.connection], "😀", raise_exceptions=True)
+        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    async def test_broadcast_binary(self):
+        """broadcast broadcasts a binary message."""
+        await broadcast([self.connection], b"\x01\x02\xfe\xff")
+        await self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+
+    async def test_broadcast_binary_reports_no_errors(self):
+        """broadcast broadcasts a binary message without raising exceptions."""
+        await broadcast([self.connection], b"\x01\x02\xfe\xff", raise_exceptions=True)
+        await self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+
+    async def test_broadcast_text_from_bytes(self):
+        """broadcast broadcasts a text message from bytes."""
+        await broadcast([self.connection], "😀".encode(), text=True)
+        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+
+    async def test_broadcast_binary_from_str(self):
+        """broadcast broadcasts a binary message from a str."""
+        await broadcast([self.connection], "😀", text=False)
+        await self.assertFrameSent(Frame(Opcode.BINARY, "😀".encode()))
+
+    async def test_broadcast_no_clients(self):
+        """broadcast does nothing when called with an empty list of clients."""
+        await broadcast([], "😀")
+        await self.assertNoFrameSent()
+
+    async def test_broadcast_two_clients(self):
+        """broadcast broadcasts a message to several clients."""
+        await broadcast([self.connection, self.connection], "😀")
+        await self.assertFramesSent(
+            [
+                Frame(Opcode.TEXT, "😀".encode()),
+                Frame(Opcode.TEXT, "😀".encode()),
+            ]
+        )
+
+    async def test_broadcast_skips_closed_connection(self):
+        """broadcast ignores closed connections."""
+        await self.connection.aclose()
+        await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+
+        with self.assertNoLogs("websockets", logging.WARNING):
+            await broadcast([self.connection], "😀")
+        await self.assertNoFrameSent()
+
+    async def test_broadcast_skips_closing_connection(self):
+        """broadcast ignores closing connections."""
+        async with self.delay_frames_rcvd(MS):
+            self.nursery.start_soon(self.connection.aclose)
+            await trio.testing.wait_all_tasks_blocked()
+            await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+
+            with self.assertNoLogs("websockets", logging.WARNING):
+                await broadcast([self.connection], "😀")
+            await self.assertNoFrameSent()
+
+    async def test_broadcast_skips_connection_with_send_blocked(self):
+        """broadcast logs a warning when a connection is blocked in send."""
+        gate = trio.Event()
+
+        async def fragments():
+            yield "⏳"
+            await gate.wait()
+
+        self.nursery.start_soon(self.connection.send, fragments())
+        await trio.testing.wait_all_tasks_blocked()
+        await self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+
+        with self.assertLogs("websockets", logging.WARNING) as logs:
+            await broadcast([self.connection], "😀")
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            ["skipped broadcast: sending a fragmented message"],
+        )
+
+        gate.set()
+
+    async def test_broadcast_reports_connection_with_send_blocked(self):
+        """broadcast raises exceptions for connections blocked in send."""
+        gate = trio.Event()
+
+        async def fragments():
+            yield "⏳"
+            await gate.wait()
+
+        self.nursery.start_soon(self.connection.send, fragments())
+        await trio.testing.wait_all_tasks_blocked()
+        await self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+
+        with self.assertRaises(ExceptionGroup) as raised:
+            await broadcast([self.connection], "😀", raise_exceptions=True)
+
+        self.assertEqual(str(raised.exception), "skipped broadcast (1 sub-exception)")
+        exc = raised.exception.exceptions[0]
+        self.assertEqual(str(exc), "sending a fragmented message")
+        self.assertIsInstance(exc, ConcurrencyError)
+
+        gate.set()
+
+    async def test_broadcast_skips_connection_failing_to_send(self):
+        """broadcast logs a warning when a connection fails to send."""
+        # Inject a fault by closing the stream for writing. Don't close the
+        # stream for reading because that would terminate the connection.
+        self.connection.stream.send_stream.close()
+
+        with self.assertLogs("websockets", logging.WARNING) as logs:
+            await broadcast([self.connection], "😀")
+
+        self.assertEqual(
+            [record.getMessage() for record in logs.records],
+            [
+                "skipped broadcast: failed to write message: "
+                "trio.ClosedResourceError: virtual connection closed"
+            ],
+        )
+
+    async def test_broadcast_reports_connection_failing_to_send(self):
+        """broadcast raises exceptions for connections failing to send."""
+        # Inject a fault by closing the stream for writing. Don't close the
+        # stream for reading because that would terminate the connection.
+        self.connection.stream.send_stream.close()
+
+        with self.assertRaises(ExceptionGroup) as raised:
+            await broadcast([self.connection], "😀", raise_exceptions=True)
+
+        self.assertEqual(str(raised.exception), "skipped broadcast (1 sub-exception)")
+        exc = raised.exception.exceptions[0]
+        self.assertEqual(str(exc), "failed to write message")
+        self.assertIsInstance(exc, RuntimeError)
+        cause = exc.__cause__
+        self.assertEqual(str(cause), "virtual connection closed")
+        self.assertIsInstance(cause, trio.ClosedResourceError)
+
+    async def test_broadcast_type_error(self):
+        """broadcast raises TypeError when called with an unsupported type."""
+        with self.assertRaises(TypeError):
+            await broadcast([self.connection], ["⏳", "⌛️"])
 
 
 class ServerConnectionTests(ClientConnectionTests):

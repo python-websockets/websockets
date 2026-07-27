@@ -21,11 +21,12 @@ from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
-from .connection import Connection
+from .connection import Connection, broadcast
 from .utils import race_events
 
 
 __all__ = [
+    "broadcast",
     "serve",
     "ServerConnection",
     "Server",
@@ -248,6 +249,7 @@ class Server(trio.abc.AsyncResource):
 
         This property contains all connections that completed the opening
         handshake successfully and didn't start the closing handshake yet.
+        It can be useful in combination with :func:`~broadcast`.
 
         """
         return {

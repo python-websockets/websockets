@@ -503,7 +503,7 @@ class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
             uri = get_uri(server)
             async with connect(uri):
                 self.nursery.start_soon(close_server, server)
-                await trio.sleep(0)
+                await trio.testing.wait_all_tasks_blocked()
 
                 # Server cannot receive new connections.
                 with self.assertRaises(OSError):

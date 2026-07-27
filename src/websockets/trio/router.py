@@ -5,11 +5,13 @@ import ssl as ssl_module
 import urllib.parse
 from typing import Any, Awaitable, Callable, Literal
 
+import trio
+
 from ..http11 import Request, Response
 from .server import Server, ServerConnection, serve
 
 
-__all__ = ["route", "unix_route", "Router"]
+__all__ = ["route", "Router"]
 
 
 try:
@@ -24,16 +26,10 @@ except ImportError:
         server_name: str | None = None,
         ssl: ssl_module.SSLContext | Literal[True] | None = None,
         create_router: type[Router] | None = None,
+        task_status: trio.TaskStatus[Server] = trio.TASK_STATUS_IGNORED,
         **kwargs: Any,
-    ) -> Awaitable[Server]:
+    ) -> Awaitable[None]:
         raise ImportError("route() requires werkzeug")
-
-    def unix_route(
-        url_map: Map,
-        path: str | None = None,
-        **kwargs: Any,
-    ) -> Awaitable[Server]:
-        raise ImportError("unix_route() requires werkzeug")
 
 else:
 
@@ -43,8 +39,9 @@ else:
         server_name: str | None = None,
         ssl: ssl_module.SSLContext | Literal[True] | None = None,
         create_router: type[Router] | None = None,
+        task_status: trio.TaskStatus[Server] = trio.TASK_STATUS_IGNORED,
         **kwargs: Any,
-    ) -> Awaitable[Server]:
+    ) -> Awaitable[None]:
         """
         Create a WebSocket server dispatching connections to different handlers.
 
@@ -57,7 +54,7 @@ else:
         .. _werkzeug: https://werkzeug.palletsprojects.com/
 
         :func:`route` accepts the same arguments as
-        :func:`~websockets.sync.server.serve`, except as described below.
+        :func:`~websockets.trio.server.serve`, except as described below.
 
         The first argument is a :class:`werkzeug.routing.Map` that maps URL patterns
         to connection handlers. In addition to the connection, handlers receive
@@ -65,7 +62,7 @@ else:
 
         Here's an example::
 
-            from websockets.asyncio.router import route
+            from websockets.trio.router import route
             from werkzeug.routing import Map, Rule
 
             async def channel_handler(websocket, channel_id):
@@ -76,12 +73,13 @@ else:
                 ...
             ])
 
-            # set this future to exit the server
-            stop = asyncio.get_running_loop().create_future()
+            # set this event to exit the server
+            stop = trio.Event()
 
-            async with route(url_map, ...) as server:
-                await stop
-
+            with trio.open_nursery() as nursery:
+                server = await nursery.start(route, url_map, ...)
+                async with server:
+                    await stop.wait()
 
         Refer to the documentation of :mod:`werkzeug.routing` for details.
 
@@ -107,6 +105,8 @@ else:
                 :obj:`True` if a reverse proxy terminates TLS connections.
             create_router: Factory for the :class:`Router` dispatching requests to
                 handlers. Set it to a wrapper or a subclass to customize routing.
+            task_status: For compatibility with :meth:`nursery.start
+                <trio.Nursery.start>`.
 
         """
         url_scheme = "ws" if ssl is None else "wss"
@@ -147,26 +147,9 @@ else:
             router.handler,
             *args,
             process_request=process_request,
+            task_status=task_status,
             **kwargs,
         )
-
-    def unix_route(
-        url_map: Map,
-        path: str | None = None,
-        **kwargs: Any,
-    ) -> Awaitable[Server]:
-        """
-        Create a WebSocket Unix server dispatching connections to different handlers.
-
-        :func:`unix_route` combines the behaviors of :func:`route` and
-        :func:`~websockets.asyncio.server.unix_serve`.
-
-        Args:
-            url_map: Mapping of URL patterns to connection handlers.
-            path: File system path to the Unix socket.
-
-        """
-        return route(url_map, unix=True, path=path, **kwargs)
 
 
 class Router:

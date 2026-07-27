@@ -24,6 +24,23 @@ Creating a server
 
     .. _does not provide: https://github.com/python-trio/trio/issues/279
 
+Routing connections
+-------------------
+
+.. automodule:: websockets.trio.router
+
+.. autofunction:: route
+    :async:
+
+.. admonition:: ``unix_route`` is not available in the Trio implementation.
+    :class: note
+
+    This is because ``unix_serve`` isn't available either, as explained above.
+
+.. autoclass:: Router
+
+.. currentmodule:: websockets.trio.server
+
 Running a server
 ----------------
 

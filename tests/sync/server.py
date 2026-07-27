@@ -4,8 +4,8 @@ import threading
 import time
 import urllib.parse
 
-from websockets.sync.router import *
-from websockets.sync.server import *
+from websockets.sync.router import route, unix_route
+from websockets.sync.server import serve, unix_serve
 
 
 def get_uri(server, secure=None):

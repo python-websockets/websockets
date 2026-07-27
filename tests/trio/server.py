@@ -6,7 +6,8 @@ import urllib.parse
 
 import trio
 
-from websockets.trio.server import *
+from websockets.trio.router import route
+from websockets.trio.server import serve
 
 
 def get_host_port(listeners):
@@ -46,14 +47,26 @@ async def handler(ws):
         raise AssertionError(f"unexpected path: {path}")
 
 
+class EvalShellMixin:
+    async def assertEval(self, client, expr, value):
+        await client.send(expr)
+        self.assertEqual(await client.recv(), value)
+
+
 kwargs = {"port": 0, "host": "localhost"}
 
 
 @contextlib.asynccontextmanager
-async def run_server(handler=handler, **overrides):
+async def run_server_or_route(
+    serve_or_route,
+    handler_or_url_map,
+    **overrides,
+):
     merged_kwargs = {**kwargs, **overrides}
     async with trio.open_nursery() as nursery:
-        server = await nursery.start(functools.partial(serve, handler, **merged_kwargs))
+        server = await nursery.start(
+            functools.partial(serve_or_route, handler_or_url_map, **merged_kwargs)
+        )
         try:
             yield server
         finally:
@@ -63,7 +76,9 @@ async def run_server(handler=handler, **overrides):
             nursery.cancel_scope.cancel()
 
 
-class EvalShellMixin:
-    async def assertEval(self, client, expr, value):
-        await client.send(expr)
-        self.assertEqual(await client.recv(), value)
+def run_server(handler=handler, **overrides):
+    return run_server_or_route(serve, handler, **overrides)
+
+
+def run_router(url_map, **overrides):
+    return run_server_or_route(route, url_map, **overrides)

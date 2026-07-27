@@ -37,11 +37,11 @@ async def handler(ws):
         raise AssertionError(f"unexpected path: {path}")
 
 
-# This shortcut avoids repeating serve(handler, "localhost", 0) for every test.
-args = handler, "localhost", 0
-
-
 class EvalShellMixin:
     async def assertEval(self, client, expr, value):
         await client.send(expr)
         self.assertEqual(await client.recv(), value)
+
+
+# This shortcut avoids repeating serve(handler, "localhost", 0) for every test.
+args = handler, "localhost", 0

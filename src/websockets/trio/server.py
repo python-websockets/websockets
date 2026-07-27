@@ -5,9 +5,9 @@ import http
 import logging
 import re
 import ssl as ssl_module
-from collections.abc import Awaitable, Sequence
+from collections.abc import Awaitable, Mapping, Sequence
 from types import TracebackType
-from typing import Callable
+from typing import Any, Callable
 
 import trio
 import trio.abc
@@ -88,6 +88,7 @@ class ServerConnection(Connection):
         self.request_rcvd: trio.Event = trio.Event()
         self.username: str  # see basic_auth()
         self.handler: Callable[[ServerConnection], Awaitable[None]]  # see route()
+        self.handler_kwargs: Mapping[str, Any]  # see route()
 
     def respond(self, status: StatusLike, text: str) -> Response:
         """

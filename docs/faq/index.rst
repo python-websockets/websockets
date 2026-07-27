@@ -20,6 +20,6 @@ Frequently asked questions
 
     server
     client
-    common
+    connection
     asyncio
     misc

@@ -41,6 +41,8 @@ Using a connection
 
 .. autoclass:: ServerConnection
 
+    .. automethod:: respond
+
     .. automethod:: __iter__
 
     .. automethod:: recv
@@ -54,8 +56,6 @@ Using a connection
     .. automethod:: ping
 
     .. automethod:: pong
-
-    .. automethod:: respond
 
     WebSocket connection objects also provide these attributes:
 

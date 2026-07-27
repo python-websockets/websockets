@@ -395,6 +395,7 @@ class Connection(asyncio.Protocol):
     async def send(
         self,
         message: DataLike | Iterable[DataLike] | AsyncIterable[DataLike],
+        *,
         text: bool | None = None,
     ) -> None:
         """
@@ -1140,9 +1141,9 @@ class Connection(asyncio.Protocol):
 def broadcast(
     connections: Iterable[Connection],
     message: DataLike,
-    raise_exceptions: bool = False,
     *,
     text: bool | None = None,
+    raise_exceptions: bool = False,
 ) -> None:
     """
     Broadcast a message to several WebSocket connections.

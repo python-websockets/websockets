@@ -411,6 +411,7 @@ class Connection(trio.abc.AsyncResource):
     async def send(
         self,
         message: DataLike | Iterable[DataLike] | AsyncIterable[DataLike],
+        *,
         text: bool | None = None,
     ) -> None:
         """
@@ -676,6 +677,7 @@ class Connection(trio.abc.AsyncResource):
     async def ping(
         self,
         data: DataLike | None = None,
+        *,
         ack_on_close: bool = False,
     ) -> trio.Event:
         """
@@ -1130,8 +1132,8 @@ class Connection(trio.abc.AsyncResource):
 async def broadcast(
     connections: Iterable[Connection],
     message: DataLike,
-    raise_exceptions: bool = False,
     *,
+    raise_exceptions: bool = False,
     text: bool | None = None,
 ) -> None:
     """

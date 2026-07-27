@@ -413,6 +413,7 @@ class Connection:
     def send(
         self,
         message: DataLike | Iterable[DataLike],
+        *,
         text: bool | None = None,
     ) -> None:
         """
@@ -609,6 +610,7 @@ class Connection:
     def ping(
         self,
         data: DataLike | None = None,
+        *,
         ack_on_close: bool = False,
     ) -> threading.Event:
         """
@@ -1110,8 +1112,8 @@ class Connection:
 def broadcast(
     connections: Iterable[Connection],
     message: DataLike,
-    raise_exceptions: bool = False,
     *,
+    raise_exceptions: bool = False,
     text: bool | None = None,
     **kwargs: Any,
 ) -> None:

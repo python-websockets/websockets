@@ -52,6 +52,16 @@ Backwards-incompatible changes
     Previously, the server closed the connection without returning an HTTP
     response. Now, ``process_request`` runs and can return an HTTP response.
 
+.. admonition:: Several boolean arguments are now keyword-only.
+    :class: note
+
+    If you were passing some of the following as positional arguments, you must
+    update your code to pass them as keyword arguments.
+
+    * ``send(text=...)``
+    * ``ping(ack_on_close=...)``
+    * ``broadcast(raise_exceptions=...)``
+
 .. admonition:: Encoding and decoding non-ASCII headers in handshake requests
     and responses changed.
     :class: note

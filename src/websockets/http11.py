@@ -94,13 +94,15 @@ class Request:
         path: Request path, including optional query.
         headers: Request headers.
         method: Request method; WebSocket handshake requests use GET.
+        protocol: Request protocol; WebSocket handshake requests use HTTP/1.1.
     """
 
     path: str
     headers: Headers
-    # method comes before path in the HTTP request, but it has a default,
-    # so it must be declared after path and headers which don't have one.
+    # method and protocol have a default value, so they're declared after path
+    # and headers which don't.
     method: str = "GET"
+    protocol: str = "HTTP/1.1"
     # body isn't useful is the context of this library.
 
     _exception: Exception | None = None
@@ -159,14 +161,16 @@ class Request:
             raise EOFError("connection closed while reading HTTP request line") from exc
 
         try:
-            raw_method, raw_path, protocol = request_line.split(b" ", 2)
+            raw_method, raw_path, raw_protocol = request_line.split(b" ", 2)
         except ValueError:  # not enough values to unpack (expected 3, got 1-2)
             raise ValueError(f"invalid HTTP request line: {d(request_line)}") from None
-        if protocol != b"HTTP/1.1":
+        if raw_protocol not in [b"HTTP/1.1", b"HTTP/1.0"]:
             raise ValueError(
-                f"unsupported protocol; expected HTTP/1.1: {d(request_line)}"
+                f"unsupported protocol; expected HTTP/1.1 or HTTP/1.0: "
+                f"{d(request_line)}"
             )
         method = raw_method.decode("ascii")
+        protocol = raw_protocol.decode("ascii")
 
         # RFC 9110 defers the definition of URIs to RFC 3986, which allows only
         # a subset of ASCII. Non-ASCII IRIs must be UTF-8 then percent-encoded.
@@ -185,7 +189,7 @@ class Request:
             if int(headers["Content-Length"]) != 0:
                 raise ValueError("unsupported request body")
 
-        return cls(path, headers, method)
+        return cls(path, headers, method, protocol)
 
     def serialize(self) -> bytes:
         """
@@ -194,7 +198,7 @@ class Request:
         """
         # Methods are hardcoded and always ASCII. Non-ASCII paths are converted
         # from URI to IRI and percent-encoded. Enforce ASCII as a safety net.
-        request_line = f"{self.method} {self.path} HTTP/1.1\r\n"
+        request_line = f"{self.method} {self.path} {self.protocol}\r\n"
         request = request_line.encode("ascii")
         request += self.headers.serialize()
         return request

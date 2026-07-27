@@ -18,6 +18,7 @@
             * :exc:`InvalidProxyStatus`
         * :exc:`InvalidMessage`
         * :exc:`InvalidMethod`
+        * :exc:`InvalidProtocol`
         * :exc:`InvalidStatus`
         * :exc:`InvalidStatusCode` (legacy)
         * :exc:`InvalidHeader`
@@ -63,6 +64,7 @@ __all__ = [
     "InvalidProxyStatus",
     "InvalidMessage",
     "InvalidMethod",
+    "InvalidProtocol",
     "InvalidStatus",
     "InvalidHeader",
     "InvalidHeaderFormat",
@@ -291,6 +293,19 @@ class InvalidMethod(InvalidHandshake):
 
     def __str__(self) -> str:
         return f"unsupported HTTP method: {self.method}"
+
+
+class InvalidProtocol(InvalidHandshake):
+    """
+    Raised when a handshake request doesn't use HTTP/1.1.
+
+    """
+
+    def __init__(self, protocol: str) -> None:
+        self.protocol = protocol
+
+    def __str__(self) -> str:
+        return f"unsupported HTTP version: {self.protocol}"
 
 
 class InvalidStatus(InvalidHandshake):

@@ -37,6 +37,7 @@ class RequestTests(GeneratorTestCase):
         request = self.assertGeneratorReturns(self.parse())
         self.assertEqual(request.method, "GET")
         self.assertEqual(request.path, "/chat")
+        self.assertEqual(request.protocol, "HTTP/1.1")
         self.assertEqual(request.headers["Upgrade"], "websocket")
 
     def test_parse_non_get_method(self):
@@ -44,6 +45,13 @@ class RequestTests(GeneratorTestCase):
         request = self.assertGeneratorReturns(self.parse())
         self.assertEqual(request.method, "OPTIONS")
         self.assertEqual(request.path, "*")
+
+    def test_parse_http_1_0(self):
+        self.reader.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
+        request = self.assertGeneratorReturns(self.parse())
+        self.assertEqual(request.method, "GET")
+        self.assertEqual(request.path, "/chat")
+        self.assertEqual(request.protocol, "HTTP/1.0")
 
     def test_parse_non_ascii_method(self):
         self.reader.feed_data(b"G\xc9T /chat HTTP/1.1\r\n\r\n")
@@ -85,12 +93,12 @@ class RequestTests(GeneratorTestCase):
         )
 
     def test_parse_unsupported_protocol(self):
-        self.reader.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
+        self.reader.feed_data(b"GET /chat HTTP/2.0\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
         self.assertEqual(
             str(raised.exception),
-            "unsupported protocol; expected HTTP/1.1: GET /chat HTTP/1.0",
+            "unsupported protocol; expected HTTP/1.1 or HTTP/1.0: GET /chat HTTP/2.0",
         )
 
     def test_parse_invalid_header(self):

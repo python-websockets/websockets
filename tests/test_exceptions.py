@@ -124,6 +124,10 @@ class ExceptionsTests(unittest.TestCase):
                 "unsupported HTTP method: POST",
             ),
             (
+                InvalidProtocol("HTTP/2.0"),
+                "unsupported HTTP version: HTTP/2.0",
+            ),
+            (
                 InvalidStatus(Response(401, "Unauthorized", Headers())),
                 "server rejected WebSocket connection: HTTP 401",
             ),

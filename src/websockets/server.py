@@ -18,6 +18,7 @@ from .exceptions import (
     InvalidMessage,
     InvalidMethod,
     InvalidOrigin,
+    InvalidProtocol,
     InvalidUpgrade,
     NegotiationError,
     RequestLineTooLong,
@@ -166,6 +167,15 @@ class ServerProtocol(Protocol):
             )
             response.headers["Allow"] = "GET"
             return response
+        except InvalidProtocol as exc:
+            request._exception = exc
+            self.handshake_exc = exc
+            if self.debug:
+                self.logger.debug("! invalid protocol", exc_info=True)
+            return self.reject(
+                http.HTTPStatus.HTTP_VERSION_NOT_SUPPORTED,
+                f"Failed to open a WebSocket connection: {exc}.\n",
+            )
         except InvalidUpgrade as exc:
             request._exception = exc
             self.handshake_exc = exc
@@ -228,9 +238,9 @@ class ServerProtocol(Protocol):
         """
         Check a handshake request and negotiate extensions and subprotocol.
 
-        This function doesn't verify that that it's an HTTP/1.1 request and
-        doesn't check the ``Host`` header. These controls must be performed
-        by the HTTP stack earlier. They're the responsibility of the caller.
+        This function doesn't check the ``Host`` header. This control must be
+        performed by the HTTP stack earlier. It's the responsibility of the
+        caller.
 
         Args:
             request: WebSocket handshake request received from the client.
@@ -242,12 +252,18 @@ class ServerProtocol(Protocol):
         Raises:
             InvalidMethod: If the request method isn't GET; then the
                 server must return a 405 Method Not Allowed error.
+            InvalidProtocol: If the request protocol isn't HTTP/1.1; then
+                the server must return a 505 HTTP Version Not Supported
+                error.
             InvalidHandshake: If the handshake request is invalid;
-                then the server must return 400 Bad Request error.
+                then the server must return a 400 Bad Request error.
 
         """
         if request.method != "GET":
             raise InvalidMethod(request.method)
+
+        if request.protocol != "HTTP/1.1":
+            raise InvalidProtocol(request.protocol)
 
         headers = request.headers
 
@@ -608,7 +624,9 @@ class ServerProtocol(Protocol):
                 yield
 
             if self.debug:
-                self.logger.debug("< %s %s HTTP/1.1", request.method, request.path)
+                self.logger.debug(
+                    "< %s %s %s", request.method, request.path, request.protocol
+                )
                 for key, value in request.headers.raw_items():
                     self.logger.debug("< %s: %s", key, value)
 

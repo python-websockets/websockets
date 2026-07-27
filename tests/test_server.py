@@ -12,6 +12,7 @@ from websockets.exceptions import (
     InvalidMessage,
     InvalidMethod,
     InvalidOrigin,
+    InvalidProtocol,
     InvalidUpgrade,
     NegotiationError,
     RequestLineTooLong,
@@ -491,6 +492,21 @@ class HandshakeTests(unittest.TestCase):
             server,
             InvalidMethod,
             "unsupported HTTP method: POST",
+        )
+
+    def test_invalid_protocol(self):
+        """Handshake fails when the request protocol isn't HTTP/1.1."""
+        server = ServerProtocol()
+        request = make_request()
+        request.protocol = "HTTP/1.0"
+        response = server.accept(request)
+        server.send_response(response)
+
+        self.assertEqual(response.status_code, 505)
+        self.assertHandshakeError(
+            server,
+            InvalidProtocol,
+            "unsupported HTTP version: HTTP/1.0",
         )
 
     def test_missing_connection(self):

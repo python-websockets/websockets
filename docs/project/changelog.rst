@@ -52,6 +52,12 @@ Backwards-incompatible changes
     Previously, the server closed the connection without returning an HTTP
     response. Now, ``process_request`` runs and can return an HTTP response.
 
+.. admonition:: ``process_request`` may receive requests using HTTP/1.0.
+    :class: caution
+
+    Previously, the server closed the connection without returning an HTTP
+    response. Now, ``process_request`` runs and can return an HTTP response.
+
 .. admonition:: Encoding and decoding non-ASCII headers in handshake requests
     and responses changed.
     :class: note
@@ -104,6 +110,9 @@ Improvements
 
 * Replied with HTTP 405 Method Not Allowed when the handshake request doesn't
   use the GET method, instead of closing the connection.
+
+* Replied with HTTP 505 HTTP Version Not Supported when the handshake request
+  doesn't use HTTP/1.1, instead of closing the connection.
 
 * Replied with HTTP 414 URI Too Long or 431 Request Header Fields Too Large
   when the handshake request exceeds a security limit, instead of closing

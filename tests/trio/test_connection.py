@@ -17,7 +17,7 @@ from websockets.trio.connection import *
 from websockets.trio.connection import broadcast
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, alist
+from ..utils import MS, LoggingTestCase, alist
 from .connection import InterceptingConnection
 from .utils import IsolatedTrioTestCase
 
@@ -26,7 +26,7 @@ from .utils import IsolatedTrioTestCase
 # All tests run on the client side and the server side to validate this.
 
 
-class ClientConnectionTests(IsolatedTrioTestCase):
+class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
     LOCAL = CLIENT
     REMOTE = SERVER
 
@@ -1080,14 +1080,7 @@ class ClientConnectionTests(IsolatedTrioTestCase):
                 # 2 ms: keepalive() sends a ping frame.
                 # 2.x ms: a pong frame is dropped.
                 await trio.sleep(3 * MS)
-        self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["keepalive ping failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["BOOM"],
-        )
+        self.assertExceptionLogged(logs, "keepalive ping failed", "BOOM")
 
     # Test parameters.
 

@@ -18,7 +18,7 @@ from websockets.frames import CloseCode, Frame, Opcode
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, alist
+from ..utils import MS, LoggingTestCase, alist
 from .connection import InterceptingConnection
 
 
@@ -26,7 +26,7 @@ from .connection import InterceptingConnection
 # All tests run on the client side and the server side to validate this.
 
 
-class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
+class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
     LOCAL = CLIENT
     REMOTE = SERVER
 
@@ -1146,14 +1146,7 @@ class ClientConnectionTests(unittest.IsolatedAsyncioTestCase):
         with self.assertLogs("websockets", logging.ERROR) as logs:
             pong_received.set_exception(Exception("BOOM"))
             await asyncio.sleep(0)
-        self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["keepalive ping failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["BOOM"],
-        )
+        self.assertExceptionLogged(logs, "keepalive ping failed", "BOOM")
 
     # Test parameters.
 

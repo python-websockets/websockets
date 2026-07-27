@@ -19,6 +19,7 @@ from ..utils import (
     CLIENT_CONTEXT,
     MS,
     SERVER_CONTEXT,
+    LoggingTestCase,
 )
 from .server import (
     EvalShellMixin,
@@ -30,7 +31,7 @@ from .server import (
 from .utils import IsolatedTrioTestCase
 
 
-class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
+class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
     async def test_connection(self):
         """Server receives connection from client and the handshake succeeds."""
         async with run_server() as server:
@@ -205,14 +206,7 @@ class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
                     str(raised.exception),
                     "server rejected WebSocket connection: HTTP 500",
                 )
-        self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["process_request failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["BOOM"],
-        )
+        self.assertExceptionLogged(logs, "process_request failed", "BOOM")
 
     async def test_async_process_request_raises_exception(self):
         """Server returns an error if async process_request raises an exception."""
@@ -229,14 +223,7 @@ class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
                     str(raised.exception),
                     "server rejected WebSocket connection: HTTP 500",
                 )
-        self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["process_request failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["BOOM"],
-        )
+        self.assertExceptionLogged(logs, "process_request failed", "BOOM")
 
     async def test_process_response_returns_none(self):
         """Server runs process_response but keeps the handshake response."""
@@ -321,14 +308,7 @@ class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
                     str(raised.exception),
                     "server rejected WebSocket connection: HTTP 500",
                 )
-        self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["process_response failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["BOOM"],
-        )
+        self.assertExceptionLogged(logs, "process_response failed", "BOOM")
 
     async def test_async_process_response_raises_exception(self):
         """Server returns an error if async process_response raises an exception."""
@@ -345,14 +325,7 @@ class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
                     str(raised.exception),
                     "server rejected WebSocket connection: HTTP 500",
                 )
-        self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["process_response failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["BOOM"],
-        )
+        self.assertExceptionLogged(logs, "process_response failed", "BOOM")
 
     async def test_override_serve_header(self):
         """Server can override Server header with server_header."""
@@ -449,11 +422,9 @@ class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
                 finally:
                     await stream.aclose()
 
-        messages = [record.getMessage() for record in logs.records]
-        self.assertIn("! no valid HTTP request", messages)
-        record = logs.records[messages.index("! no valid HTTP request")]
-        self.assertEqual(
-            str(record.exc_info[1]),
+        self.assertExceptionLogged(
+            logs,
+            "! no valid HTTP request",
             "connection closed while reading HTTP request line",
         )
 
@@ -464,11 +435,9 @@ class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
                 stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
                 await stream.aclose()
 
-        messages = [record.getMessage() for record in logs.records]
-        self.assertIn("! no valid HTTP request", messages)
-        record = logs.records[messages.index("! no valid HTTP request")]
-        self.assertEqual(
-            str(record.exc_info[1]),
+        self.assertExceptionLogged(
+            logs,
+            "! no valid HTTP request",
             "connection closed while reading HTTP request line",
         )
 
@@ -484,11 +453,9 @@ class ServerTests(EvalShellMixin, IsolatedTrioTestCase):
                 finally:
                     await stream.aclose()
 
-        messages = [record.getMessage() for record in logs.records]
-        self.assertIn("! no valid HTTP request", messages)
-        record = logs.records[messages.index("! no valid HTTP request")]
-        self.assertEqual(
-            str(record.exc_info[1]),
+        self.assertExceptionLogged(
+            logs,
+            "! no valid HTTP request",
             "invalid HTTP request line: HELO relay.invalid",
         )
 

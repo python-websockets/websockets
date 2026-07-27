@@ -23,6 +23,7 @@ from ..utils import (
     MS,
     SERVER_CONTEXT,
     DeprecationTestCase,
+    LoggingTestCase,
     temp_unix_socket_path,
 )
 from .server import (
@@ -34,7 +35,7 @@ from .server import (
 )
 
 
-class ServerTests(EvalShellMixin, unittest.TestCase):
+class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
     def test_connection(self):
         """Server receives connection from client and the handshake succeeds."""
         with run_server() as server:
@@ -179,14 +180,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                     str(raised.exception),
                     "server rejected WebSocket connection: HTTP 500",
                 )
-        self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["process_request failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["BOOM"],
-        )
+        self.assertExceptionLogged(logs, "process_request failed", "BOOM")
 
     def test_process_response_returns_none(self):
         """Server runs process_response but keeps the handshake response."""
@@ -237,14 +231,7 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                     str(raised.exception),
                     "server rejected WebSocket connection: HTTP 500",
                 )
-        self.assertEqual(
-            [record.getMessage() for record in logs.records],
-            ["process_response failed"],
-        )
-        self.assertEqual(
-            [str(record.exc_info[1]) for record in logs.records],
-            ["BOOM"],
-        )
+        self.assertExceptionLogged(logs, "process_response failed", "BOOM")
 
     def test_override_server_header(self):
         """Server can override Server header with server_header."""
@@ -336,11 +323,9 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                     # Wait for the server to close the connection.
                     self.assertEqual(sock.recv(4096), b"")
 
-        messages = [record.getMessage() for record in logs.records]
-        self.assertIn("! no valid HTTP request", messages)
-        record = logs.records[messages.index("! no valid HTTP request")]
-        self.assertEqual(
-            str(record.exc_info[1]),
+        self.assertExceptionLogged(
+            logs,
+            "! no valid HTTP request",
             "connection closed while reading HTTP request line",
         )
 
@@ -352,11 +337,9 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                     # Wait for the server to receive the connection, then close it.
                     time.sleep(MS)
 
-        messages = [record.getMessage() for record in logs.records]
-        self.assertIn("! no valid HTTP request", messages)
-        record = logs.records[messages.index("! no valid HTTP request")]
-        self.assertEqual(
-            str(record.exc_info[1]),
+        self.assertExceptionLogged(
+            logs,
+            "! no valid HTTP request",
             "connection closed while reading HTTP request line",
         )
 
@@ -369,11 +352,9 @@ class ServerTests(EvalShellMixin, unittest.TestCase):
                     # Wait for the server to close the connection.
                     self.assertEqual(sock.recv(4096), b"")
 
-        messages = [record.getMessage() for record in logs.records]
-        self.assertIn("! no valid HTTP request", messages)
-        record = logs.records[messages.index("! no valid HTTP request")]
-        self.assertEqual(
-            str(record.exc_info[1]),
+        self.assertExceptionLogged(
+            logs,
+            "! no valid HTTP request",
             "invalid HTTP request line: HELO relay.invalid",
         )
 

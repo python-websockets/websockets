@@ -90,6 +90,23 @@ class GeneratorTestCase(unittest.TestCase):
         return raised.exception.value
 
 
+class LoggingTestCase(unittest.TestCase):
+    """
+    Base class for testing logging output.
+
+    """
+
+    def assertExceptionLogged(self, logs, log_message, exc_message):
+        """
+        Check that a log record with the given message carries the given exception.
+
+        """
+        messages = [record.getMessage() for record in logs.records]
+        self.assertIn(log_message, messages)
+        record = logs.records[messages.index(log_message)]
+        self.assertEqual(str(record.exc_info[1]), exc_message)
+
+
 class DeprecationTestCase(unittest.TestCase):
     """
     Base class for testing deprecations.

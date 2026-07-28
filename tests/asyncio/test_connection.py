@@ -15,7 +15,7 @@ from websockets.exceptions import (
     ConnectionClosedOK,
 )
 from websockets.frames import BINARY, CLOSE, CONT, PING, PONG, TEXT, CloseCode, Frame
-from websockets.protocol import CLIENT, SERVER, Protocol, State
+from websockets.protocol import CLIENT, CLOSED, OPEN, SERVER, Protocol
 
 from ..protocol import RecordingProtocol
 from ..utils import MS, LoggingTestCase, alist
@@ -730,7 +730,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             await self.connection.close()
         t1 = self.loop.time()
 
-        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
         self.assertGreater(t1 - t0, MS)
 
@@ -751,7 +751,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             await self.connection.close()
         t1 = self.loop.time()
 
-        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
         self.assertGreater(t1 - t0, MS)
 
@@ -771,7 +771,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             await self.connection.close()
         t1 = self.loop.time()
 
-        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
         self.assertGreater(t1 - t0, MS)
 
@@ -794,7 +794,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             await self.connection.close()
         t1 = self.loop.time()
 
-        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
         self.assertGreater(t1 - t0, MS)
 
@@ -812,7 +812,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             await self.connection.close()
         t1 = self.loop.time()
 
-        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.ABNORMAL_CLOSURE)
         self.assertGreater(t1 - t0, 2 * MS)
 
@@ -833,7 +833,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             await self.connection.close()
         t1 = self.loop.time()
 
-        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
         self.assertGreater(t1 - t0, 2 * MS)
 
@@ -1090,7 +1090,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         # 6 ms: no pong frame is received; the connection is closed.
         await asyncio.sleep(3 * MS)
         # 8 ms: check that the connection is closed.
-        self.assertEqual(self.connection.state, State.CLOSED)
+        self.assertEqual(self.connection.state, CLOSED)
 
     @patch("random.getrandbits")
     async def test_keepalive_ignores_timeout(self, getrandbits):
@@ -1106,7 +1106,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         # 6 ms: no pong frame is received; the connection remains open.
         await asyncio.sleep(3 * MS)
         # 8 ms: check that the connection is still open.
-        self.assertEqual(self.connection.state, State.OPEN)
+        self.assertEqual(self.connection.state, OPEN)
 
     async def test_keepalive_terminates_while_sleeping(self):
         """keepalive task terminates while waiting to send a ping."""
@@ -1233,7 +1233,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
     async def test_state(self):
         """Connection has a state attribute."""
-        self.assertIs(self.connection.state, State.OPEN)
+        self.assertIs(self.connection.state, OPEN)
 
     async def test_request(self):
         """Connection has a request attribute."""

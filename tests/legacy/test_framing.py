@@ -6,7 +6,14 @@ import unittest.mock
 import warnings
 
 from websockets.exceptions import PayloadTooBig, ProtocolError
-from websockets.frames import OP_BINARY, OP_CLOSE, OP_PING, OP_PONG, OP_TEXT, CloseCode
+from websockets.frames import (
+    BINARY as OP_BINARY,
+    CLOSE as OP_CLOSE,
+    PING as OP_PING,
+    PONG as OP_PONG,
+    TEXT as OP_TEXT,
+    CloseCode,
+)
 from websockets.legacy.framing import *
 
 from .utils import AsyncioTestCase

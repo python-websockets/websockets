@@ -15,13 +15,13 @@ from .exceptions import (
 )
 from .extensions import Extension
 from .frames import (
+    BINARY,
+    CLOSE,
+    CONT,
     OK_CLOSE_CODES,
-    OP_BINARY,
-    OP_CLOSE,
-    OP_CONT,
-    OP_PING,
-    OP_PONG,
-    OP_TEXT,
+    PING,
+    PONG,
+    TEXT,
     Close,
     CloseCode,
     Frame,
@@ -313,7 +313,7 @@ class Protocol:
         if self._state is not OPEN:
             raise InvalidState(f"connection is {self.state.name.lower()}")
         self.expect_continuation_frame = not fin
-        self.send_frame(Frame(OP_CONT, data, fin))
+        self.send_frame(Frame(CONT, data, fin))
 
     def send_text(self, data: BytesLike, fin: bool = True) -> None:
         """
@@ -336,7 +336,7 @@ class Protocol:
         if self._state is not OPEN:
             raise InvalidState(f"connection is {self.state.name.lower()}")
         self.expect_continuation_frame = not fin
-        self.send_frame(Frame(OP_TEXT, data, fin))
+        self.send_frame(Frame(TEXT, data, fin))
 
     def send_binary(self, data: BytesLike, fin: bool = True) -> None:
         """
@@ -359,7 +359,7 @@ class Protocol:
         if self._state is not OPEN:
             raise InvalidState(f"connection is {self.state.name.lower()}")
         self.expect_continuation_frame = not fin
-        self.send_frame(Frame(OP_BINARY, data, fin))
+        self.send_frame(Frame(BINARY, data, fin))
 
     def send_close(self, code: CloseCode | int | None = None, reason: str = "") -> None:
         """
@@ -390,7 +390,7 @@ class Protocol:
             close = Close(code, reason)
             data = close.serialize()
         # 7.1.3. The WebSocket Closing Handshake is Started
-        self.send_frame(Frame(OP_CLOSE, data))
+        self.send_frame(Frame(CLOSE, data))
         # Since the state is OPEN, no close frame was received yet.
         # As a consequence, self.close_rcvd_then_sent remains None.
         assert self.close_rcvd is None
@@ -411,7 +411,7 @@ class Protocol:
         # RFC 6455 allows control frames after starting the closing handshake.
         if self._state is not OPEN and self._state is not CLOSING:
             raise InvalidState(f"connection is {self.state.name.lower()}")
-        self.send_frame(Frame(OP_PING, data))
+        self.send_frame(Frame(PING, data))
 
     def send_pong(self, data: BytesLike) -> None:
         """
@@ -427,7 +427,7 @@ class Protocol:
         # RFC 6455 allows control frames after starting the closing handshake.
         if self._state is not OPEN and self._state is not CLOSING:
             raise InvalidState(f"connection is {self.state.name.lower()}")
-        self.send_frame(Frame(OP_PONG, data))
+        self.send_frame(Frame(PONG, data))
 
     def fail(self, code: CloseCode | int, reason: str = "") -> None:
         """
@@ -452,7 +452,7 @@ class Protocol:
             if code != CloseCode.ABNORMAL_CLOSURE:
                 close = Close(code, reason)
                 data = close.serialize()
-                self.send_frame(Frame(OP_CLOSE, data))
+                self.send_frame(Frame(CLOSE, data))
                 self.close_sent = close
                 # If recv_messages() raised an exception upon receiving a close
                 # frame but before echoing it, then close_rcvd is not None even
@@ -673,13 +673,13 @@ class Protocol:
         Process an incoming frame.
 
         """
-        if frame.opcode is OP_TEXT or frame.opcode is OP_BINARY:
+        if frame.opcode is TEXT or frame.opcode is BINARY:
             if self.current_size is not None:
                 raise ProtocolError("expected a continuation frame")
             if not frame.fin:
                 self.current_size = len(frame.data)
 
-        elif frame.opcode is OP_CONT:
+        elif frame.opcode is CONT:
             if self.current_size is None:
                 raise ProtocolError("unexpected continuation frame")
             if frame.fin:
@@ -687,18 +687,18 @@ class Protocol:
             else:
                 self.current_size += len(frame.data)
 
-        elif frame.opcode is OP_PING:
+        elif frame.opcode is PING:
             # 5.5.2. Ping: "Upon receipt of a Ping frame, an endpoint MUST
             # send a Pong frame in response"
-            pong_frame = Frame(OP_PONG, frame.data)
+            pong_frame = Frame(PONG, frame.data)
             self.send_frame(pong_frame)
 
-        elif frame.opcode is OP_PONG:
+        elif frame.opcode is PONG:
             # 5.5.3 Pong: "A response to an unsolicited Pong frame is not
             # expected."
             pass
 
-        elif frame.opcode is OP_CLOSE:
+        elif frame.opcode is CLOSE:
             # 7.1.5.  The WebSocket Connection Close Code
             # 7.1.6.  The WebSocket Connection Close Reason
             self.close_rcvd = Close.parse(frame.data)
@@ -720,7 +720,7 @@ class Protocol:
                 # Close.serialize() because that fails when the close frame
                 # is empty and Close.parse() synthesizes a 1005 close code.
                 # The rest is identical to send_close().
-                self.send_frame(Frame(OP_CLOSE, frame.data))
+                self.send_frame(Frame(CLOSE, frame.data))
                 self.close_sent = self.close_rcvd
                 self.close_rcvd_then_sent = True
                 self.state = CLOSING

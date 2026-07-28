@@ -19,7 +19,7 @@ from ..exceptions import (
     ConnectionClosedOK,
     ProtocolError,
 )
-from ..frames import DATA_OPCODES, CloseCode, Frame, Opcode
+from ..frames import DATA_OPCODES, PONG, CloseCode, Frame
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
 from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
@@ -774,7 +774,7 @@ class Connection(trio.abc.AsyncResource):
         if event.opcode in DATA_OPCODES:
             self.recv_messages.put(event)
 
-        if event.opcode is Opcode.PONG:
+        if event.opcode is PONG:
             self.acknowledge_pings(bytes(event.data))
 
     def acknowledge_pings(self, data: bytes) -> None:

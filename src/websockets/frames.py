@@ -21,14 +21,6 @@ except ImportError:
 
 __all__ = [
     "Opcode",
-    "OP_CONT",
-    "OP_TEXT",
-    "OP_BINARY",
-    "OP_CLOSE",
-    "OP_PING",
-    "OP_PONG",
-    "DATA_OPCODES",
-    "CTRL_OPCODES",
     "CloseCode",
     "Frame",
     "Close",
@@ -42,15 +34,15 @@ class Opcode(enum.IntEnum):
     CLOSE, PING, PONG = 0x08, 0x09, 0x0A
 
 
-OP_CONT = Opcode.CONT
-OP_TEXT = Opcode.TEXT
-OP_BINARY = Opcode.BINARY
-OP_CLOSE = Opcode.CLOSE
-OP_PING = Opcode.PING
-OP_PONG = Opcode.PONG
+CONT = Opcode.CONT
+TEXT = Opcode.TEXT
+BINARY = Opcode.BINARY
+CLOSE = Opcode.CLOSE
+PING = Opcode.PING
+PONG = Opcode.PONG
 
-DATA_OPCODES = OP_CONT, OP_TEXT, OP_BINARY
-CTRL_OPCODES = OP_CLOSE, OP_PING, OP_PONG
+DATA_OPCODES = CONT, TEXT, BINARY
+CTRL_OPCODES = CLOSE, PING, PONG
 
 
 class CloseCode(enum.IntEnum):
@@ -147,7 +139,7 @@ class Frame:
     # Configure if you want to see more in logs. Should be a multiple of 3.
     MAX_LOG_SIZE = int(os.environ.get("WEBSOCKETS_MAX_LOG_SIZE", "75"))
 
-    DEFAULT_IS_TEXT = {OP_TEXT: True, OP_BINARY: False, OP_CLOSE: True}
+    DEFAULT_IS_TEXT = {TEXT: True, BINARY: False, CLOSE: True}
 
     def __str__(self) -> str:
         """
@@ -191,7 +183,7 @@ class Frame:
         # Special case for close frames: parse close code and reason.
         # Fall back to the standard case if the payload is malformed.
 
-        if self.opcode is OP_CLOSE:
+        if self.opcode is CLOSE:
             try:
                 return str(Close.parse(self.data)), True
             except (ProtocolError, UnicodeDecodeError):
@@ -208,7 +200,7 @@ class Frame:
             data_end = bytes(self.data[-4 * self.MAX_LOG_SIZE // 3 :])
             is_text = is_utf8_fragment(
                 data_start,
-                must_start_clean=self.opcode != OP_CONT,
+                must_start_clean=self.opcode != CONT,
             ) and is_utf8_fragment(
                 data_end,
                 must_end_clean=self.fin,
@@ -221,7 +213,7 @@ class Frame:
             data = bytes(self.data)
             is_text = is_utf8_fragment(
                 data,
-                must_start_clean=self.opcode != OP_CONT,
+                must_start_clean=self.opcode != CONT,
                 must_end_clean=self.fin,
             )
             if is_text:

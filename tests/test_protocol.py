@@ -10,12 +10,12 @@ from websockets.exceptions import (
     ProtocolError,
 )
 from websockets.frames import (
-    OP_BINARY,
-    OP_CLOSE,
-    OP_CONT,
-    OP_PING,
-    OP_PONG,
-    OP_TEXT,
+    BINARY,
+    CLOSE,
+    CONT,
+    PING,
+    PONG,
+    TEXT,
     Close,
     CloseCode,
     Frame,
@@ -71,7 +71,7 @@ class ProtocolTestCase(FramesTestCase):
 
         """
         close_frame = Frame(
-            OP_CLOSE,
+            CLOSE,
             b"" if code is None else Close(code, reason).serialize(),
         )
         # A close frame was received.
@@ -85,7 +85,7 @@ class ProtocolTestCase(FramesTestCase):
 
         """
         close_frame = Frame(
-            OP_CLOSE,
+            CLOSE,
             b"" if code is None else Close(code, reason).serialize(),
         )
         # No frame was received.
@@ -121,7 +121,7 @@ class MaskingTests(ProtocolTestCase):
         client.receive_data(self.unmasked_text_frame_date)
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, b"Spam"),
+            Frame(TEXT, b"Spam"),
         )
 
     def test_server_receives_masked_frame(self):
@@ -129,7 +129,7 @@ class MaskingTests(ProtocolTestCase):
         server.receive_data(self.masked_text_frame_data)
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, b"Spam"),
+            Frame(TEXT, b"Spam"),
         )
 
     def test_client_receives_masked_frame(self):
@@ -251,7 +251,7 @@ class TextTests(ProtocolTestCase):
         client.receive_data(b"\x81\x04\xf0\x9f\x98\x80")
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, "😀".encode()),
+            Frame(TEXT, "😀".encode()),
         )
 
     def test_server_receives_text(self):
@@ -259,7 +259,7 @@ class TextTests(ProtocolTestCase):
         server.receive_data(b"\x81\x84\x00\x00\x00\x00\xf0\x9f\x98\x80")
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, "😀".encode()),
+            Frame(TEXT, "😀".encode()),
         )
 
     def test_client_receives_text_over_size_limit(self):
@@ -295,7 +295,7 @@ class TextTests(ProtocolTestCase):
         client.receive_data(b"\x81\x04\xf0\x9f\x98\x80")
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, "😀".encode()),
+            Frame(TEXT, "😀".encode()),
         )
 
     def test_server_receives_text_without_size_limit(self):
@@ -303,7 +303,7 @@ class TextTests(ProtocolTestCase):
         server.receive_data(b"\x81\x84\x00\x00\x00\x00\xf0\x9f\x98\x80")
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, "😀".encode()),
+            Frame(TEXT, "😀".encode()),
         )
 
     def test_client_sends_fragmented_text(self):
@@ -334,17 +334,17 @@ class TextTests(ProtocolTestCase):
         client.receive_data(b"\x01\x02\xf0\x9f")
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, "😀".encode()[:2], fin=False),
+            Frame(TEXT, "😀".encode()[:2], fin=False),
         )
         client.receive_data(b"\x00\x04\x98\x80\xf0\x9f")
         self.assertFrameReceived(
             client,
-            Frame(OP_CONT, "😀😀".encode()[2:6], fin=False),
+            Frame(CONT, "😀😀".encode()[2:6], fin=False),
         )
         client.receive_data(b"\x80\x02\x98\x80")
         self.assertFrameReceived(
             client,
-            Frame(OP_CONT, "😀".encode()[2:]),
+            Frame(CONT, "😀".encode()[2:]),
         )
 
     def test_server_receives_fragmented_text(self):
@@ -352,17 +352,17 @@ class TextTests(ProtocolTestCase):
         server.receive_data(b"\x01\x82\x00\x00\x00\x00\xf0\x9f")
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, "😀".encode()[:2], fin=False),
+            Frame(TEXT, "😀".encode()[:2], fin=False),
         )
         server.receive_data(b"\x00\x84\x00\x00\x00\x00\x98\x80\xf0\x9f")
         self.assertFrameReceived(
             server,
-            Frame(OP_CONT, "😀😀".encode()[2:6], fin=False),
+            Frame(CONT, "😀😀".encode()[2:6], fin=False),
         )
         server.receive_data(b"\x80\x82\x00\x00\x00\x00\x98\x80")
         self.assertFrameReceived(
             server,
-            Frame(OP_CONT, "😀".encode()[2:]),
+            Frame(CONT, "😀".encode()[2:]),
         )
 
     def test_client_receives_fragmented_text_over_fragment_size_limit(self):
@@ -388,7 +388,7 @@ class TextTests(ProtocolTestCase):
         client.receive_data(b"\x01\x02\xf0\x9f")
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, "😀".encode()[:2], fin=False),
+            Frame(TEXT, "😀".encode()[:2], fin=False),
         )
         client.receive_data(b"\x80\x02\x98\x80")
         self.assertIsInstance(client.parser_exc, PayloadTooBig)
@@ -407,7 +407,7 @@ class TextTests(ProtocolTestCase):
         server.receive_data(b"\x01\x82\x00\x00\x00\x00\xf0\x9f")
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, "😀".encode()[:2], fin=False),
+            Frame(TEXT, "😀".encode()[:2], fin=False),
         )
         server.receive_data(b"\x80\x82\x00\x00\x00\x00\x98\x80")
         self.assertIsInstance(server.parser_exc, PayloadTooBig)
@@ -426,17 +426,17 @@ class TextTests(ProtocolTestCase):
         client.receive_data(b"\x01\x02\xf0\x9f")
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, "😀".encode()[:2], fin=False),
+            Frame(TEXT, "😀".encode()[:2], fin=False),
         )
         client.receive_data(b"\x00\x04\x98\x80\xf0\x9f")
         self.assertFrameReceived(
             client,
-            Frame(OP_CONT, "😀😀".encode()[2:6], fin=False),
+            Frame(CONT, "😀😀".encode()[2:6], fin=False),
         )
         client.receive_data(b"\x80\x02\x98\x80")
         self.assertFrameReceived(
             client,
-            Frame(OP_CONT, "😀".encode()[2:]),
+            Frame(CONT, "😀".encode()[2:]),
         )
 
     def test_server_receives_fragmented_text_without_size_limit(self):
@@ -444,17 +444,17 @@ class TextTests(ProtocolTestCase):
         server.receive_data(b"\x01\x82\x00\x00\x00\x00\xf0\x9f")
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, "😀".encode()[:2], fin=False),
+            Frame(TEXT, "😀".encode()[:2], fin=False),
         )
         server.receive_data(b"\x00\x84\x00\x00\x00\x00\x98\x80\xf0\x9f")
         self.assertFrameReceived(
             server,
-            Frame(OP_CONT, "😀😀".encode()[2:6], fin=False),
+            Frame(CONT, "😀😀".encode()[2:6], fin=False),
         )
         server.receive_data(b"\x80\x82\x00\x00\x00\x00\x98\x80")
         self.assertFrameReceived(
             server,
-            Frame(OP_CONT, "😀".encode()[2:]),
+            Frame(CONT, "😀".encode()[2:]),
         )
 
     def test_client_sends_unexpected_text(self):
@@ -476,7 +476,7 @@ class TextTests(ProtocolTestCase):
         client.receive_data(b"\x01\x00")
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, b"", fin=False),
+            Frame(TEXT, b"", fin=False),
         )
         client.receive_data(b"\x01\x00")
         self.assertIsInstance(client.parser_exc, ProtocolError)
@@ -490,7 +490,7 @@ class TextTests(ProtocolTestCase):
         server.receive_data(b"\x01\x80\x00\x00\x00\x00")
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, b"", fin=False),
+            Frame(TEXT, b"", fin=False),
         )
         server.receive_data(b"\x01\x80\x00\x00\x00\x00")
         self.assertIsInstance(server.parser_exc, ProtocolError)
@@ -557,7 +557,7 @@ class BinaryTests(ProtocolTestCase):
         client.receive_data(b"\x82\x04\x01\x02\xfe\xff")
         self.assertFrameReceived(
             client,
-            Frame(OP_BINARY, b"\x01\x02\xfe\xff"),
+            Frame(BINARY, b"\x01\x02\xfe\xff"),
         )
 
     def test_server_receives_binary(self):
@@ -565,7 +565,7 @@ class BinaryTests(ProtocolTestCase):
         server.receive_data(b"\x82\x84\x00\x00\x00\x00\x01\x02\xfe\xff")
         self.assertFrameReceived(
             server,
-            Frame(OP_BINARY, b"\x01\x02\xfe\xff"),
+            Frame(BINARY, b"\x01\x02\xfe\xff"),
         )
 
     def test_client_receives_binary_over_size_limit(self):
@@ -624,17 +624,17 @@ class BinaryTests(ProtocolTestCase):
         client.receive_data(b"\x02\x02\x01\x02")
         self.assertFrameReceived(
             client,
-            Frame(OP_BINARY, b"\x01\x02", fin=False),
+            Frame(BINARY, b"\x01\x02", fin=False),
         )
         client.receive_data(b"\x00\x04\xfe\xff\x01\x02")
         self.assertFrameReceived(
             client,
-            Frame(OP_CONT, b"\xfe\xff\x01\x02", fin=False),
+            Frame(CONT, b"\xfe\xff\x01\x02", fin=False),
         )
         client.receive_data(b"\x80\x02\xfe\xff")
         self.assertFrameReceived(
             client,
-            Frame(OP_CONT, b"\xfe\xff"),
+            Frame(CONT, b"\xfe\xff"),
         )
 
     def test_server_receives_fragmented_binary(self):
@@ -642,17 +642,17 @@ class BinaryTests(ProtocolTestCase):
         server.receive_data(b"\x02\x82\x00\x00\x00\x00\x01\x02")
         self.assertFrameReceived(
             server,
-            Frame(OP_BINARY, b"\x01\x02", fin=False),
+            Frame(BINARY, b"\x01\x02", fin=False),
         )
         server.receive_data(b"\x00\x84\x00\x00\x00\x00\xee\xff\x01\x02")
         self.assertFrameReceived(
             server,
-            Frame(OP_CONT, b"\xee\xff\x01\x02", fin=False),
+            Frame(CONT, b"\xee\xff\x01\x02", fin=False),
         )
         server.receive_data(b"\x80\x82\x00\x00\x00\x00\xfe\xff")
         self.assertFrameReceived(
             server,
-            Frame(OP_CONT, b"\xfe\xff"),
+            Frame(CONT, b"\xfe\xff"),
         )
 
     def test_client_receives_fragmented_binary_over_size_limit(self):
@@ -660,7 +660,7 @@ class BinaryTests(ProtocolTestCase):
         client.receive_data(b"\x02\x02\x01\x02")
         self.assertFrameReceived(
             client,
-            Frame(OP_BINARY, b"\x01\x02", fin=False),
+            Frame(BINARY, b"\x01\x02", fin=False),
         )
         client.receive_data(b"\x80\x02\xfe\xff")
         self.assertIsInstance(client.parser_exc, PayloadTooBig)
@@ -679,7 +679,7 @@ class BinaryTests(ProtocolTestCase):
         server.receive_data(b"\x02\x82\x00\x00\x00\x00\x01\x02")
         self.assertFrameReceived(
             server,
-            Frame(OP_BINARY, b"\x01\x02", fin=False),
+            Frame(BINARY, b"\x01\x02", fin=False),
         )
         server.receive_data(b"\x80\x82\x00\x00\x00\x00\xfe\xff")
         self.assertIsInstance(server.parser_exc, PayloadTooBig)
@@ -712,7 +712,7 @@ class BinaryTests(ProtocolTestCase):
         client.receive_data(b"\x02\x00")
         self.assertFrameReceived(
             client,
-            Frame(OP_BINARY, b"", fin=False),
+            Frame(BINARY, b"", fin=False),
         )
         client.receive_data(b"\x02\x00")
         self.assertIsInstance(client.parser_exc, ProtocolError)
@@ -726,7 +726,7 @@ class BinaryTests(ProtocolTestCase):
         server.receive_data(b"\x02\x80\x00\x00\x00\x00")
         self.assertFrameReceived(
             server,
-            Frame(OP_BINARY, b"", fin=False),
+            Frame(BINARY, b"", fin=False),
         )
         server.receive_data(b"\x02\x80\x00\x00\x00\x00")
         self.assertIsInstance(server.parser_exc, ProtocolError)
@@ -840,14 +840,14 @@ class CloseTests(ProtocolTestCase):
         client = Protocol(CLIENT)
         with patch("secrets.token_bytes", return_value=b"\x3c\x3c\x3c\x3c"):
             client.receive_data(b"\x88\x00")
-        self.assertEqual(client.events_received(), [Frame(OP_CLOSE, b"")])
+        self.assertEqual(client.events_received(), [Frame(CLOSE, b"")])
         self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
         self.assertIs(client.state, CLOSING)
 
     def test_server_receives_close(self):
         server = Protocol(SERVER)
         server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
-        self.assertEqual(server.events_received(), [Frame(OP_CLOSE, b"")])
+        self.assertEqual(server.events_received(), [Frame(CLOSE, b"")])
         self.assertEqual(server.data_to_send(), [b"\x88\x00", b""])
         self.assertIs(server.state, CLOSING)
 
@@ -857,10 +857,10 @@ class CloseTests(ProtocolTestCase):
 
         client.send_close()
         self.assertFrameReceived(client, None)
-        self.assertFrameSent(client, Frame(OP_CLOSE, b""))
+        self.assertFrameSent(client, Frame(CLOSE, b""))
 
         client.receive_data(b"\x88\x00")
-        self.assertFrameReceived(client, Frame(OP_CLOSE, b""))
+        self.assertFrameReceived(client, Frame(CLOSE, b""))
         self.assertFrameSent(client, None)
 
         client.receive_eof()
@@ -873,10 +873,10 @@ class CloseTests(ProtocolTestCase):
 
         server.send_close()
         self.assertFrameReceived(server, None)
-        self.assertFrameSent(server, Frame(OP_CLOSE, b""))
+        self.assertFrameSent(server, Frame(CLOSE, b""))
 
         server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
-        self.assertFrameReceived(server, Frame(OP_CLOSE, b""))
+        self.assertFrameReceived(server, Frame(CLOSE, b""))
         self.assertFrameSent(server, None, eof=True)
 
         server.receive_eof()
@@ -888,8 +888,8 @@ class CloseTests(ProtocolTestCase):
         client = Protocol(CLIENT)
 
         client.receive_data(b"\x88\x00")
-        self.assertFrameReceived(client, Frame(OP_CLOSE, b""))
-        self.assertFrameSent(client, Frame(OP_CLOSE, b""))
+        self.assertFrameReceived(client, Frame(CLOSE, b""))
+        self.assertFrameSent(client, Frame(CLOSE, b""))
 
         client.receive_eof()
         self.assertFrameReceived(client, None)
@@ -900,8 +900,8 @@ class CloseTests(ProtocolTestCase):
         server = Protocol(SERVER)
 
         server.receive_data(b"\x88\x80\x3c\x3c\x3c\x3c")
-        self.assertFrameReceived(server, Frame(OP_CLOSE, b""))
-        self.assertFrameSent(server, Frame(OP_CLOSE, b""), eof=True)
+        self.assertFrameReceived(server, Frame(CLOSE, b""))
+        self.assertFrameSent(server, Frame(CLOSE, b""), eof=True)
 
         server.receive_eof()
         self.assertFrameReceived(server, None)
@@ -1073,11 +1073,11 @@ class PingTests(ProtocolTestCase):
         client.receive_data(b"\x89\x00")
         self.assertFrameReceived(
             client,
-            Frame(OP_PING, b""),
+            Frame(PING, b""),
         )
         self.assertFrameSent(
             client,
-            Frame(OP_PONG, b""),
+            Frame(PONG, b""),
         )
 
     def test_server_receives_ping(self):
@@ -1085,11 +1085,11 @@ class PingTests(ProtocolTestCase):
         server.receive_data(b"\x89\x80\x00\x44\x88\xcc")
         self.assertFrameReceived(
             server,
-            Frame(OP_PING, b""),
+            Frame(PING, b""),
         )
         self.assertFrameSent(
             server,
-            Frame(OP_PONG, b""),
+            Frame(PONG, b""),
         )
 
     def test_client_sends_ping_with_data(self):
@@ -1110,11 +1110,11 @@ class PingTests(ProtocolTestCase):
         client.receive_data(b"\x89\x04\x22\x66\xaa\xee")
         self.assertFrameReceived(
             client,
-            Frame(OP_PING, b"\x22\x66\xaa\xee"),
+            Frame(PING, b"\x22\x66\xaa\xee"),
         )
         self.assertFrameSent(
             client,
-            Frame(OP_PONG, b"\x22\x66\xaa\xee"),
+            Frame(PONG, b"\x22\x66\xaa\xee"),
         )
 
     def test_server_receives_ping_with_data(self):
@@ -1122,25 +1122,25 @@ class PingTests(ProtocolTestCase):
         server.receive_data(b"\x89\x84\x00\x44\x88\xcc\x22\x22\x22\x22")
         self.assertFrameReceived(
             server,
-            Frame(OP_PING, b"\x22\x66\xaa\xee"),
+            Frame(PING, b"\x22\x66\xaa\xee"),
         )
         self.assertFrameSent(
             server,
-            Frame(OP_PONG, b"\x22\x66\xaa\xee"),
+            Frame(PONG, b"\x22\x66\xaa\xee"),
         )
 
     def test_client_sends_fragmented_ping_frame(self):
         client = Protocol(CLIENT)
         # This is only possible through a private API.
         with self.assertRaises(ProtocolError) as raised:
-            client.send_frame(Frame(OP_PING, b"", fin=False))
+            client.send_frame(Frame(PING, b"", fin=False))
         self.assertEqual(str(raised.exception), "fragmented control frame")
 
     def test_server_sends_fragmented_ping_frame(self):
         server = Protocol(SERVER)
         # This is only possible through a private API.
         with self.assertRaises(ProtocolError) as raised:
-            server.send_frame(Frame(OP_PING, b"", fin=False))
+            server.send_frame(Frame(PING, b"", fin=False))
         self.assertEqual(str(raised.exception), "fragmented control frame")
 
     def test_client_receives_fragmented_ping_frame(self):
@@ -1232,7 +1232,7 @@ class PongTests(ProtocolTestCase):
         client.receive_data(b"\x8a\x00")
         self.assertFrameReceived(
             client,
-            Frame(OP_PONG, b""),
+            Frame(PONG, b""),
         )
 
     def test_server_receives_pong(self):
@@ -1240,7 +1240,7 @@ class PongTests(ProtocolTestCase):
         server.receive_data(b"\x8a\x80\x00\x44\x88\xcc")
         self.assertFrameReceived(
             server,
-            Frame(OP_PONG, b""),
+            Frame(PONG, b""),
         )
 
     def test_client_sends_pong_with_data(self):
@@ -1261,7 +1261,7 @@ class PongTests(ProtocolTestCase):
         client.receive_data(b"\x8a\x04\x22\x66\xaa\xee")
         self.assertFrameReceived(
             client,
-            Frame(OP_PONG, b"\x22\x66\xaa\xee"),
+            Frame(PONG, b"\x22\x66\xaa\xee"),
         )
 
     def test_server_receives_pong_with_data(self):
@@ -1269,21 +1269,21 @@ class PongTests(ProtocolTestCase):
         server.receive_data(b"\x8a\x84\x00\x44\x88\xcc\x22\x22\x22\x22")
         self.assertFrameReceived(
             server,
-            Frame(OP_PONG, b"\x22\x66\xaa\xee"),
+            Frame(PONG, b"\x22\x66\xaa\xee"),
         )
 
     def test_client_sends_fragmented_pong_frame(self):
         client = Protocol(CLIENT)
         # This is only possible through a private API.
         with self.assertRaises(ProtocolError) as raised:
-            client.send_frame(Frame(OP_PONG, b"", fin=False))
+            client.send_frame(Frame(PONG, b"", fin=False))
         self.assertEqual(str(raised.exception), "fragmented control frame")
 
     def test_server_sends_fragmented_pong_frame(self):
         server = Protocol(SERVER)
         # This is only possible through a private API.
         with self.assertRaises(ProtocolError) as raised:
-            server.send_frame(Frame(OP_PONG, b"", fin=False))
+            server.send_frame(Frame(PONG, b"", fin=False))
         self.assertEqual(str(raised.exception), "fragmented control frame")
 
     def test_client_receives_fragmented_pong_frame(self):
@@ -1387,59 +1387,59 @@ class FragmentationTests(ProtocolTestCase):
     def test_client_send_ping_pong_in_fragmented_message(self):
         client = Protocol(CLIENT)
         client.send_text(b"Spam", fin=False)
-        self.assertFrameSent(client, Frame(OP_TEXT, b"Spam", fin=False))
+        self.assertFrameSent(client, Frame(TEXT, b"Spam", fin=False))
         client.send_ping(b"Ping")
-        self.assertFrameSent(client, Frame(OP_PING, b"Ping"))
+        self.assertFrameSent(client, Frame(PING, b"Ping"))
         client.send_continuation(b"Ham", fin=False)
-        self.assertFrameSent(client, Frame(OP_CONT, b"Ham", fin=False))
+        self.assertFrameSent(client, Frame(CONT, b"Ham", fin=False))
         client.send_pong(b"Pong")
-        self.assertFrameSent(client, Frame(OP_PONG, b"Pong"))
+        self.assertFrameSent(client, Frame(PONG, b"Pong"))
         client.send_continuation(b"Eggs", fin=True)
-        self.assertFrameSent(client, Frame(OP_CONT, b"Eggs"))
+        self.assertFrameSent(client, Frame(CONT, b"Eggs"))
 
     def test_server_send_ping_pong_in_fragmented_message(self):
         server = Protocol(SERVER)
         server.send_text(b"Spam", fin=False)
-        self.assertFrameSent(server, Frame(OP_TEXT, b"Spam", fin=False))
+        self.assertFrameSent(server, Frame(TEXT, b"Spam", fin=False))
         server.send_ping(b"Ping")
-        self.assertFrameSent(server, Frame(OP_PING, b"Ping"))
+        self.assertFrameSent(server, Frame(PING, b"Ping"))
         server.send_continuation(b"Ham", fin=False)
-        self.assertFrameSent(server, Frame(OP_CONT, b"Ham", fin=False))
+        self.assertFrameSent(server, Frame(CONT, b"Ham", fin=False))
         server.send_pong(b"Pong")
-        self.assertFrameSent(server, Frame(OP_PONG, b"Pong"))
+        self.assertFrameSent(server, Frame(PONG, b"Pong"))
         server.send_continuation(b"Eggs", fin=True)
-        self.assertFrameSent(server, Frame(OP_CONT, b"Eggs"))
+        self.assertFrameSent(server, Frame(CONT, b"Eggs"))
 
     def test_client_receive_ping_pong_in_fragmented_message(self):
         client = Protocol(CLIENT)
         client.receive_data(b"\x01\x04Spam")
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, b"Spam", fin=False),
+            Frame(TEXT, b"Spam", fin=False),
         )
         client.receive_data(b"\x89\x04Ping")
         self.assertFrameReceived(
             client,
-            Frame(OP_PING, b"Ping"),
+            Frame(PING, b"Ping"),
         )
         self.assertFrameSent(
             client,
-            Frame(OP_PONG, b"Ping"),
+            Frame(PONG, b"Ping"),
         )
         client.receive_data(b"\x00\x03Ham")
         self.assertFrameReceived(
             client,
-            Frame(OP_CONT, b"Ham", fin=False),
+            Frame(CONT, b"Ham", fin=False),
         )
         client.receive_data(b"\x8a\x04Pong")
         self.assertFrameReceived(
             client,
-            Frame(OP_PONG, b"Pong"),
+            Frame(PONG, b"Pong"),
         )
         client.receive_data(b"\x80\x04Eggs")
         self.assertFrameReceived(
             client,
-            Frame(OP_CONT, b"Eggs"),
+            Frame(CONT, b"Eggs"),
         )
 
     def test_server_receive_ping_pong_in_fragmented_message(self):
@@ -1447,37 +1447,37 @@ class FragmentationTests(ProtocolTestCase):
         server.receive_data(b"\x01\x84\x00\x00\x00\x00Spam")
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, b"Spam", fin=False),
+            Frame(TEXT, b"Spam", fin=False),
         )
         server.receive_data(b"\x89\x84\x00\x00\x00\x00Ping")
         self.assertFrameReceived(
             server,
-            Frame(OP_PING, b"Ping"),
+            Frame(PING, b"Ping"),
         )
         self.assertFrameSent(
             server,
-            Frame(OP_PONG, b"Ping"),
+            Frame(PONG, b"Ping"),
         )
         server.receive_data(b"\x00\x83\x00\x00\x00\x00Ham")
         self.assertFrameReceived(
             server,
-            Frame(OP_CONT, b"Ham", fin=False),
+            Frame(CONT, b"Ham", fin=False),
         )
         server.receive_data(b"\x8a\x84\x00\x00\x00\x00Pong")
         self.assertFrameReceived(
             server,
-            Frame(OP_PONG, b"Pong"),
+            Frame(PONG, b"Pong"),
         )
         server.receive_data(b"\x80\x84\x00\x00\x00\x00Eggs")
         self.assertFrameReceived(
             server,
-            Frame(OP_CONT, b"Eggs"),
+            Frame(CONT, b"Eggs"),
         )
 
     def test_client_send_close_in_fragmented_message(self):
         client = Protocol(CLIENT)
         client.send_text(b"Spam", fin=False)
-        self.assertFrameSent(client, Frame(OP_TEXT, b"Spam", fin=False))
+        self.assertFrameSent(client, Frame(TEXT, b"Spam", fin=False))
         with patch("secrets.token_bytes", return_value=b"\x3c\x3c\x3c\x3c"):
             client.send_close()
         self.assertEqual(client.data_to_send(), [b"\x88\x80\x3c\x3c\x3c\x3c"])
@@ -1489,7 +1489,7 @@ class FragmentationTests(ProtocolTestCase):
     def test_server_send_close_in_fragmented_message(self):
         server = Protocol(SERVER)
         server.send_text(b"Spam", fin=False)
-        self.assertFrameSent(server, Frame(OP_TEXT, b"Spam", fin=False))
+        self.assertFrameSent(server, Frame(TEXT, b"Spam", fin=False))
         server.send_close()
         self.assertEqual(server.data_to_send(), [b"\x88\x00"])
         self.assertIs(server.state, CLOSING)
@@ -1502,7 +1502,7 @@ class FragmentationTests(ProtocolTestCase):
         client.receive_data(b"\x01\x04Spam")
         self.assertFrameReceived(
             client,
-            Frame(OP_TEXT, b"Spam", fin=False),
+            Frame(TEXT, b"Spam", fin=False),
         )
         client.receive_data(b"\x88\x02\x03\xe8")
         self.assertIsInstance(client.parser_exc, ProtocolError)
@@ -1516,7 +1516,7 @@ class FragmentationTests(ProtocolTestCase):
         server.receive_data(b"\x01\x84\x00\x00\x00\x00Spam")
         self.assertFrameReceived(
             server,
-            Frame(OP_TEXT, b"Spam", fin=False),
+            Frame(TEXT, b"Spam", fin=False),
         )
         server.receive_data(b"\x88\x82\x00\x00\x00\x00\x03\xe9")
         self.assertIsInstance(server.parser_exc, ProtocolError)
@@ -1877,13 +1877,13 @@ class ExtensionsTests(ProtocolTestCase):
         client = Protocol(CLIENT)
         client.extensions = [Rsv2Extension()]
         client.receive_data(b"\xaa\x00")
-        self.assertEqual(client.events_received(), [Frame(OP_PONG, b"")])
+        self.assertEqual(client.events_received(), [Frame(PONG, b"")])
 
     def test_server_extension_decodes_frame(self):
         server = Protocol(SERVER)
         server.extensions = [Rsv2Extension()]
         server.receive_data(b"\xaa\x80\x00\x44\x88\xcc")
-        self.assertEqual(server.events_received(), [Frame(OP_PONG, b"")])
+        self.assertEqual(server.events_received(), [Frame(PONG, b"")])
 
 
 class MiscTests(unittest.TestCase):

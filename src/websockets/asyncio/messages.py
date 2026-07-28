@@ -7,7 +7,7 @@ from collections.abc import AsyncIterator, Iterable
 from typing import Any, Callable, Generic, Literal, TypeVar, overload
 
 from ..exceptions import ConcurrencyError
-from ..frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
+from ..frames import BINARY, CONT, TEXT, Frame
 from ..typing import Data
 
 
@@ -157,9 +157,9 @@ class Assembler:
             # Fetch the first frame.
             frame = await self.frames.get(not self.closed)
             self.maybe_resume()
-            assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
+            assert frame.opcode is TEXT or frame.opcode is BINARY
             if decode is None:
-                decode = frame.opcode is OP_TEXT
+                decode = frame.opcode is TEXT
             frames = [frame]
 
             # Fetch subsequent frames for fragmented messages.
@@ -172,7 +172,7 @@ class Assembler:
                     self.frames.reset(frames)
                     raise
                 self.maybe_resume()
-                assert frame.opcode is OP_CONT
+                assert frame.opcode is CONT
                 frames.append(frame)
 
         finally:
@@ -236,9 +236,9 @@ class Assembler:
             self.get_in_progress = False
             raise
         self.maybe_resume()
-        assert frame.opcode is OP_TEXT or frame.opcode is OP_BINARY
+        assert frame.opcode is TEXT or frame.opcode is BINARY
         if decode is None:
-            decode = frame.opcode is OP_TEXT
+            decode = frame.opcode is TEXT
         if decode:
             decoder = UTF8Decoder()
             yield decoder.decode(frame.data, frame.fin)
@@ -254,7 +254,7 @@ class Assembler:
             # get() or get_iter() will raise ConcurrencyError.
             frame = await self.frames.get(not self.closed)
             self.maybe_resume()
-            assert frame.opcode is OP_CONT
+            assert frame.opcode is CONT
             if decode:
                 yield decoder.decode(frame.data, frame.fin)
             else:

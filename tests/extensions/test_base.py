@@ -1,17 +1,17 @@
 import unittest
 
 from websockets.extensions.base import *
-from websockets.frames import Frame, Opcode
+from websockets.frames import TEXT, Frame
 
 
 class ExtensionTests(unittest.TestCase):
     def test_encode(self):
         with self.assertRaises(NotImplementedError):
-            Extension().encode(Frame(Opcode.TEXT, b""))
+            Extension().encode(Frame(TEXT, b""))
 
     def test_decode(self):
         with self.assertRaises(NotImplementedError):
-            Extension().decode(Frame(Opcode.TEXT, b""))
+            Extension().decode(Frame(TEXT, b""))
 
 
 class ClientExtensionFactoryTests(unittest.TestCase):

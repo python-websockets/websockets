@@ -12,7 +12,7 @@ from websockets.exceptions import (
     ConnectionClosedError,
     ConnectionClosedOK,
 )
-from websockets.frames import CloseCode, Frame, Opcode
+from websockets.frames import BINARY, CLOSE, PING, PONG, TEXT, CloseCode, Frame
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 from websockets.sync.connection import *
 from websockets.sync.connection import broadcast
@@ -104,14 +104,14 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         """__exit__ closes the connection with code 1000."""
         with self.connection:
             self.assertNoFrameSent()
-        self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+        self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
     def test_exit_with_exception(self):
         """__exit__ with an exception closes the connection with code 1011."""
         with self.assertRaises(RuntimeError):
             with self.connection:
                 raise RuntimeError
-        self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xf3"))
+        self.assertFrameSent(Frame(CLOSE, b"\x03\xf3"))
 
     # Test __iter__.
 
@@ -473,12 +473,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
     def test_close(self):
         """close sends a close frame."""
         self.connection.close()
-        self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+        self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
     def test_close_explicit_code_reason(self):
         """close sends a close frame with a given code and reason."""
         self.connection.close(CloseCode.GOING_AWAY, "bye!")
-        self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe9bye!"))
+        self.assertFrameSent(Frame(CLOSE, b"\x03\xe9bye!"))
 
     def test_close_waits_for_close_frame(self):
         """close waits for a close frame then EOF before returning."""
@@ -570,7 +570,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
     def test_close_idempotency(self):
         """close does nothing if the connection is already closed."""
         self.connection.close()
-        self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+        self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
         self.connection.close()
         self.assertNoFrameSent()
@@ -585,7 +585,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
         with self.run_in_thread(closer):
             #  run_in_thread() waits for MS, which lets closer() send a close frame.
-            self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+            self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
             # Connection isn't closed yet.
             with self.assertRaises(TimeoutError):
@@ -669,17 +669,17 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         getrandbits.side_effect = itertools.count(1918987876)
         self.connection.ping()
         getrandbits.assert_called_once_with(32)
-        self.assertFrameSent(Frame(Opcode.PING, b"rand"))
+        self.assertFrameSent(Frame(PING, b"rand"))
 
     def test_ping_explicit_text(self):
         """ping sends a ping frame with a payload provided as text."""
         self.connection.ping("ping")
-        self.assertFrameSent(Frame(Opcode.PING, b"ping"))
+        self.assertFrameSent(Frame(PING, b"ping"))
 
     def test_ping_explicit_binary(self):
         """ping sends a ping frame with a payload provided as binary."""
         self.connection.ping(b"ping")
-        self.assertFrameSent(Frame(Opcode.PING, b"ping"))
+        self.assertFrameSent(Frame(PING, b"ping"))
 
     def test_acknowledge_ping(self):
         """ping is acknowledged by a pong with the same payload."""
@@ -739,17 +739,17 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
     def test_pong(self):
         """pong sends a pong frame."""
         self.connection.pong()
-        self.assertFrameSent(Frame(Opcode.PONG, b""))
+        self.assertFrameSent(Frame(PONG, b""))
 
     def test_pong_explicit_text(self):
         """pong sends a pong frame with a payload provided as text."""
         self.connection.pong("pong")
-        self.assertFrameSent(Frame(Opcode.PONG, b"pong"))
+        self.assertFrameSent(Frame(PONG, b"pong"))
 
     def test_pong_explicit_binary(self):
         """pong sends a pong frame with a payload provided as binary."""
         self.connection.pong(b"pong")
-        self.assertFrameSent(Frame(Opcode.PONG, b"pong"))
+        self.assertFrameSent(Frame(PONG, b"pong"))
 
     def test_pong_unsupported_type(self):
         """pong raises TypeError when called with an unsupported type."""
@@ -770,7 +770,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         # 3.x ms: a pong frame is received.
         time.sleep(4 * MS)
         # 4 ms: check that the ping frame was sent.
-        self.assertFrameSent(Frame(Opcode.PING, b"rand"))
+        self.assertFrameSent(Frame(PING, b"rand"))
         self.assertGreater(self.connection.latency, 0)
         self.assertLess(self.connection.latency, MS)
 
@@ -1022,32 +1022,32 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
     def test_broadcast_text(self):
         """broadcast broadcasts a text message."""
         broadcast([self.connection], "😀")
-        self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+        self.assertFrameSent(Frame(TEXT, "😀".encode()))
 
     def test_broadcast_text_reports_no_errors(self):
         """broadcast broadcasts a text message without raising exceptions."""
         broadcast([self.connection], "😀", raise_exceptions=True)
-        self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+        self.assertFrameSent(Frame(TEXT, "😀".encode()))
 
     def test_broadcast_binary(self):
         """broadcast broadcasts a binary message."""
         broadcast([self.connection], b"\x01\x02\xfe\xff")
-        self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+        self.assertFrameSent(Frame(BINARY, b"\x01\x02\xfe\xff"))
 
     def test_broadcast_binary_reports_no_errors(self):
         """broadcast broadcasts a binary message without raising exceptions."""
         broadcast([self.connection], b"\x01\x02\xfe\xff", raise_exceptions=True)
-        self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+        self.assertFrameSent(Frame(BINARY, b"\x01\x02\xfe\xff"))
 
     def test_broadcast_text_from_bytes(self):
         """broadcast broadcasts a text message from bytes."""
         broadcast([self.connection], "😀".encode(), text=True)
-        self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+        self.assertFrameSent(Frame(TEXT, "😀".encode()))
 
     def test_broadcast_binary_from_str(self):
         """broadcast broadcasts a binary message from a str."""
         broadcast([self.connection], "😀", text=False)
-        self.assertFrameSent(Frame(Opcode.BINARY, "😀".encode()))
+        self.assertFrameSent(Frame(BINARY, "😀".encode()))
 
     def test_broadcast_no_clients(self):
         """broadcast does nothing when called with an empty list of clients."""
@@ -1059,15 +1059,15 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         broadcast([self.connection, self.connection], "😀")
         self.assertFramesSent(
             [
-                Frame(Opcode.TEXT, "😀".encode()),
-                Frame(Opcode.TEXT, "😀".encode()),
+                Frame(TEXT, "😀".encode()),
+                Frame(TEXT, "😀".encode()),
             ]
         )
 
     def test_broadcast_skips_closed_connection(self):
         """broadcast ignores closed connections."""
         self.connection.close()
-        self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+        self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
         with self.assertNoLogs("websockets", logging.WARNING):
             broadcast([self.connection], "😀")
@@ -1081,7 +1081,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
                 self.connection.close()
 
         with self.run_in_thread(closer):
-            self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+            self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
             with self.assertNoLogs("websockets", logging.WARNING):
                 broadcast([self.connection], "😀")
@@ -1096,7 +1096,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
             gate.wait()
 
         with self.run_in_thread(self.connection.send, args=(fragments(),)):
-            self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+            self.assertFrameSent(Frame(TEXT, "⏳".encode(), fin=False))
 
             with self.assertLogs("websockets", logging.WARNING) as logs:
                 broadcast([self.connection], "😀")
@@ -1117,7 +1117,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
             gate.wait()
 
         with self.run_in_thread(self.connection.send, args=(fragments(),)):
-            self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+            self.assertFrameSent(Frame(TEXT, "⏳".encode(), fin=False))
 
             with self.assertRaises(ExceptionGroup) as raised:
                 broadcast([self.connection], "😀", raise_exceptions=True)

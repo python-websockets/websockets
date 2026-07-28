@@ -14,7 +14,7 @@ from websockets.exceptions import (
     ConnectionClosedError,
     ConnectionClosedOK,
 )
-from websockets.frames import CloseCode, Frame, Opcode
+from websockets.frames import BINARY, CLOSE, CONT, PING, PONG, TEXT, CloseCode, Frame
 from websockets.protocol import CLIENT, SERVER, Protocol, State
 
 from ..protocol import RecordingProtocol
@@ -110,14 +110,14 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         """__aexit__ closes the connection with code 1000."""
         async with self.connection:
             await self.assertNoFrameSent()
-        await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+        await self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
     async def test_aexit_with_exception(self):
         """__aexit__ with an exception closes the connection with code 1011."""
         with self.assertRaises(RuntimeError):
             async with self.connection:
                 raise RuntimeError
-        await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xf3"))
+        await self.assertFrameSent(Frame(CLOSE, b"\x03\xf3"))
 
     # Test __aiter__.
 
@@ -572,7 +572,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         asyncio.create_task(self.connection.send(fragments()))
         await asyncio.sleep(0)  # let the event loop start the task
         await self.assertFrameSent(
-            Frame(Opcode.TEXT, "⏳".encode(), fin=False),
+            Frame(TEXT, "⏳".encode(), fin=False),
         )
 
         asyncio.create_task(self.connection.send("✅"))
@@ -585,9 +585,9 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)  # to send three frames
         await self.assertFramesSent(
             [
-                Frame(Opcode.CONT, "⌛️".encode(), fin=False),
-                Frame(Opcode.CONT, b"", fin=True),
-                Frame(Opcode.TEXT, "✅".encode()),
+                Frame(CONT, "⌛️".encode(), fin=False),
+                Frame(CONT, b"", fin=True),
+                Frame(TEXT, "✅".encode()),
             ]
         )
 
@@ -600,7 +600,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         asyncio.create_task(self.connection.send(["⏳", "⌛️"]))
         await asyncio.sleep(0)  # let the event loop start the task
         await self.assertFrameSent(
-            Frame(Opcode.TEXT, "⏳".encode(), fin=False),
+            Frame(TEXT, "⏳".encode(), fin=False),
         )
 
         asyncio.create_task(self.connection.send("✅"))
@@ -613,9 +613,9 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)  # to send three frames
         await self.assertFramesSent(
             [
-                Frame(Opcode.CONT, "⌛️".encode(), fin=False),
-                Frame(Opcode.CONT, b"", fin=True),
-                Frame(Opcode.TEXT, "✅".encode()),
+                Frame(CONT, "⌛️".encode(), fin=False),
+                Frame(CONT, b"", fin=True),
+                Frame(TEXT, "✅".encode()),
             ]
         )
 
@@ -632,7 +632,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         asyncio.create_task(self.connection.send(fragments()))
         await asyncio.sleep(0)  # let the event loop start the task
         await self.assertFrameSent(
-            Frame(Opcode.TEXT, "⏳".encode(), fin=False),
+            Frame(TEXT, "⏳".encode(), fin=False),
         )
 
         asyncio.create_task(self.connection.send("✅"))
@@ -645,9 +645,9 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         await asyncio.sleep(0)  # to send three frames
         await self.assertFramesSent(
             [
-                Frame(Opcode.CONT, "⌛️".encode(), fin=False),
-                Frame(Opcode.CONT, b"", fin=True),
-                Frame(Opcode.TEXT, "✅".encode()),
+                Frame(CONT, "⌛️".encode(), fin=False),
+                Frame(CONT, b"", fin=True),
+                Frame(TEXT, "✅".encode()),
             ]
         )
 
@@ -716,12 +716,12 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
     async def test_close(self):
         """close sends a close frame."""
         await self.connection.close()
-        await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+        await self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
     async def test_close_explicit_code_reason(self):
         """close sends a close frame with a given code and reason."""
         await self.connection.close(CloseCode.GOING_AWAY, "bye!")
-        await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe9bye!"))
+        await self.assertFrameSent(Frame(CLOSE, b"\x03\xe9bye!"))
 
     async def test_close_waits_for_close_frame(self):
         """close waits for a close frame then EOF before returning."""
@@ -856,7 +856,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
     async def test_close_idempotency(self):
         """close does nothing if the connection is already closed."""
         await self.connection.close()
-        await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+        await self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
         await self.connection.close()
         await self.assertNoFrameSent()
@@ -940,17 +940,17 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         getrandbits.side_effect = itertools.count(1918987876)
         await self.connection.ping()
         getrandbits.assert_called_once_with(32)
-        await self.assertFrameSent(Frame(Opcode.PING, b"rand"))
+        await self.assertFrameSent(Frame(PING, b"rand"))
 
     async def test_ping_explicit_text(self):
         """ping sends a ping frame with a payload provided as text."""
         await self.connection.ping("ping")
-        await self.assertFrameSent(Frame(Opcode.PING, b"ping"))
+        await self.assertFrameSent(Frame(PING, b"ping"))
 
     async def test_ping_explicit_binary(self):
         """ping sends a ping frame with a payload provided as binary."""
         await self.connection.ping(b"ping")
-        await self.assertFrameSent(Frame(Opcode.PING, b"ping"))
+        await self.assertFrameSent(Frame(PING, b"ping"))
 
     async def test_acknowledge_ping(self):
         """ping is acknowledged by a pong with the same payload."""
@@ -1035,17 +1035,17 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
     async def test_pong(self):
         """pong sends a pong frame."""
         await self.connection.pong()
-        await self.assertFrameSent(Frame(Opcode.PONG, b""))
+        await self.assertFrameSent(Frame(PONG, b""))
 
     async def test_pong_explicit_text(self):
         """pong sends a pong frame with a payload provided as text."""
         await self.connection.pong("pong")
-        await self.assertFrameSent(Frame(Opcode.PONG, b"pong"))
+        await self.assertFrameSent(Frame(PONG, b"pong"))
 
     async def test_pong_explicit_binary(self):
         """pong sends a pong frame with a payload provided as binary."""
         await self.connection.pong(b"pong")
-        await self.assertFrameSent(Frame(Opcode.PONG, b"pong"))
+        await self.assertFrameSent(Frame(PONG, b"pong"))
 
     async def test_pong_unsupported_type(self):
         """pong raises TypeError when called with an unsupported type."""
@@ -1066,7 +1066,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         # 3.x ms: a pong frame is received.
         await asyncio.sleep(4 * MS)
         # 4 ms: check that the ping frame was sent.
-        await self.assertFrameSent(Frame(Opcode.PING, b"rand"))
+        await self.assertFrameSent(Frame(PING, b"rand"))
         self.assertGreater(self.connection.latency, 0)
         self.assertLess(self.connection.latency, MS)
 
@@ -1302,32 +1302,32 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
     async def test_broadcast_text(self):
         """broadcast broadcasts a text message."""
         broadcast([self.connection], "😀")
-        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+        await self.assertFrameSent(Frame(TEXT, "😀".encode()))
 
     async def test_broadcast_text_reports_no_errors(self):
         """broadcast broadcasts a text message without raising exceptions."""
         broadcast([self.connection], "😀", raise_exceptions=True)
-        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+        await self.assertFrameSent(Frame(TEXT, "😀".encode()))
 
     async def test_broadcast_binary(self):
         """broadcast broadcasts a binary message."""
         broadcast([self.connection], b"\x01\x02\xfe\xff")
-        await self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+        await self.assertFrameSent(Frame(BINARY, b"\x01\x02\xfe\xff"))
 
     async def test_broadcast_binary_reports_no_errors(self):
         """broadcast broadcasts a binary message without raising exceptions."""
         broadcast([self.connection], b"\x01\x02\xfe\xff", raise_exceptions=True)
-        await self.assertFrameSent(Frame(Opcode.BINARY, b"\x01\x02\xfe\xff"))
+        await self.assertFrameSent(Frame(BINARY, b"\x01\x02\xfe\xff"))
 
     async def test_broadcast_text_from_bytes(self):
         """broadcast broadcasts a text message from bytes."""
         broadcast([self.connection], "😀".encode(), text=True)
-        await self.assertFrameSent(Frame(Opcode.TEXT, "😀".encode()))
+        await self.assertFrameSent(Frame(TEXT, "😀".encode()))
 
     async def test_broadcast_binary_from_str(self):
         """broadcast broadcasts a binary message from a str."""
         broadcast([self.connection], "😀", text=False)
-        await self.assertFrameSent(Frame(Opcode.BINARY, "😀".encode()))
+        await self.assertFrameSent(Frame(BINARY, "😀".encode()))
 
     async def test_broadcast_no_clients(self):
         """broadcast does nothing when called with an empty list of clients."""
@@ -1339,15 +1339,15 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         broadcast([self.connection, self.connection], "😀")
         await self.assertFramesSent(
             [
-                Frame(Opcode.TEXT, "😀".encode()),
-                Frame(Opcode.TEXT, "😀".encode()),
+                Frame(TEXT, "😀".encode()),
+                Frame(TEXT, "😀".encode()),
             ]
         )
 
     async def test_broadcast_skips_closed_connection(self):
         """broadcast ignores closed connections."""
         await self.connection.close()
-        await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+        await self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
         with self.assertNoLogs("websockets", logging.WARNING):
             broadcast([self.connection], "😀")
@@ -1358,7 +1358,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         async with self.delay_frames_rcvd(MS):
             close_task = asyncio.create_task(self.connection.close())
             await asyncio.sleep(0)
-            await self.assertFrameSent(Frame(Opcode.CLOSE, b"\x03\xe8"))
+            await self.assertFrameSent(Frame(CLOSE, b"\x03\xe8"))
 
             with self.assertNoLogs("websockets", logging.WARNING):
                 broadcast([self.connection], "😀")
@@ -1376,7 +1376,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
         send_task = asyncio.create_task(self.connection.send(fragments()))
         await asyncio.sleep(MS)
-        await self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+        await self.assertFrameSent(Frame(TEXT, "⏳".encode(), fin=False))
 
         with self.assertLogs("websockets", logging.WARNING) as logs:
             broadcast([self.connection], "😀")
@@ -1399,7 +1399,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
         send_task = asyncio.create_task(self.connection.send(fragments()))
         await asyncio.sleep(MS)
-        await self.assertFrameSent(Frame(Opcode.TEXT, "⏳".encode(), fin=False))
+        await self.assertFrameSent(Frame(TEXT, "⏳".encode(), fin=False))
 
         with self.assertRaises(ExceptionGroup) as raised:
             broadcast([self.connection], "😀", raise_exceptions=True)

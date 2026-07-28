@@ -152,11 +152,11 @@ def prepare_data(data: DataLike) -> tuple[int, BytesLike]:
 
     This function is designed for data frames.
 
-    If ``data`` is a :class:`str`, return ``OP_TEXT`` and a :class:`bytes`
+    If ``data`` is a :class:`str`, return ``Opcode.TEXT`` and a :class:`bytes`
     object encoding ``data`` in UTF-8.
 
-    If ``data`` is a bytes-like object, return ``OP_BINARY`` and a bytes-like
-    object.
+    If ``data`` is a bytes-like object, return ``Opcode.BINARY`` and a
+    bytes-like object.
 
     Raises:
         TypeError: If ``data`` doesn't have a supported type.

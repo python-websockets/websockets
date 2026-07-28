@@ -18,7 +18,7 @@ import pathlib
 import sys
 
 from websockets.extensions.permessage_deflate import PerMessageDeflate
-from websockets.frames import OP_TEXT, Frame
+from websockets.frames import Frame, TEXT
 
 
 def compress_and_decompress(corpus, max_window_bits, memory_level, level):
@@ -30,7 +30,7 @@ def compress_and_decompress(corpus, max_window_bits, memory_level, level):
         compress_settings={"memLevel": memory_level, "level": level},
     )
     for data in corpus:
-        frame = Frame(OP_TEXT, data)
+        frame = Frame(TEXT, data)
         frame = extension.encode(frame)
         frame = extension.decode(frame)
 

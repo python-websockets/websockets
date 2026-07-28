@@ -15,7 +15,7 @@ from websockets.exceptions import (
     InvalidStatus,
     StatusLineTooLong,
 )
-from websockets.frames import OP_TEXT, Frame
+from websockets.frames import TEXT, Frame
 from websockets.http11 import Request, Response
 from websockets.protocol import CONNECTING, OPEN
 from websockets.uri import parse_uri
@@ -661,7 +661,7 @@ class MiscTests(unittest.TestCase):
         client = ClientProtocol(URI, state=OPEN)
         client.receive_data(b"\x81\x06Hello!")
         [frame] = client.events_received()
-        self.assertEqual(frame, Frame(OP_TEXT, b"Hello!"))
+        self.assertEqual(frame, Frame(TEXT, b"Hello!"))
 
     def test_custom_logger(self):
         """ClientProtocol accepts a logger argument."""

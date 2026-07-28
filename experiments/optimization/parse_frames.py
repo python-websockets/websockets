@@ -5,7 +5,7 @@ import sys
 import timeit
 
 from websockets.extensions.permessage_deflate import PerMessageDeflate
-from websockets.frames import Frame, Opcode
+from websockets.frames import TEXT, Frame
 from websockets.streams import StreamReader
 
 
@@ -16,7 +16,7 @@ text = subprocess.check_output(["git", "log", "8dd8e410"], text=True)
 def get_frame(size):
     repeat, remainder = divmod(size, 256 * 1024)
     payload = repeat * text + text[:remainder]
-    return Frame(Opcode.TEXT, payload.encode(), True)
+    return Frame(TEXT, payload.encode(), True)
 
 
 def parse_frame(data, count, mask, extensions):

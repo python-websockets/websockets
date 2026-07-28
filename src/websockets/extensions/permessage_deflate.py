@@ -4,7 +4,6 @@ import zlib
 from collections.abc import Sequence
 from typing import Any, Literal
 
-from .. import frames
 from ..exceptions import (
     DuplicateParameter,
     InvalidParameterName,
@@ -13,6 +12,7 @@ from ..exceptions import (
     PayloadTooBig,
     ProtocolError,
 )
+from ..frames import CONT, CTRL_OPCODES, Frame
 from ..typing import BytesLike, ExtensionName, ExtensionParameter
 from .base import ClientExtensionFactory, Extension, ServerExtensionFactory
 
@@ -91,22 +91,22 @@ class PerMessageDeflate(Extension):
 
     def decode(
         self,
-        frame: frames.Frame,
+        frame: Frame,
         *,
         max_size: int | None = None,
-    ) -> frames.Frame:
+    ) -> Frame:
         """
         Decode an incoming frame.
 
         """
         # Skip control frames.
-        if frame.opcode in frames.CTRL_OPCODES:
+        if frame.opcode in CTRL_OPCODES:
             return frame
 
         # Handle continuation data frames:
         # - skip if the message isn't encoded
         # - reset "decode continuation data" flag if it's a final frame
-        if frame.opcode is frames.OP_CONT:
+        if frame.opcode is CONT:
             if not self.decode_cont_data:
                 return frame
             if frame.rsv1:
@@ -154,7 +154,7 @@ class PerMessageDeflate(Extension):
         if frame.fin and self.remote_no_context_takeover:
             del self.decoder
 
-        return frames.Frame(
+        return Frame(
             frame.opcode,
             data,
             frame.fin,
@@ -164,19 +164,19 @@ class PerMessageDeflate(Extension):
             frame.rsv3,
         )
 
-    def encode(self, frame: frames.Frame) -> frames.Frame:
+    def encode(self, frame: Frame) -> Frame:
         """
         Encode an outgoing frame.
 
         """
         # Skip control frames.
-        if frame.opcode in frames.CTRL_OPCODES:
+        if frame.opcode in CTRL_OPCODES:
             return frame
 
         # Since we always encode messages, there's no "encode continuation
         # data" flag similar to "decode continuation data" at this time.
 
-        if frame.opcode is not frames.OP_CONT:
+        if frame.opcode is not CONT:
             # Re-initialize per-message decoder.
             if self.local_no_context_takeover:
                 self.encoder = zlib.compressobj(
@@ -201,12 +201,12 @@ class PerMessageDeflate(Extension):
         if frame.fin and self.local_no_context_takeover:
             del self.encoder
 
-        return frames.Frame(
+        return Frame(
             frame.opcode,
             data,
             frame.fin,
             # Set the rsv1 flag on the first frame of a compressed message.
-            frame.opcode is not frames.OP_CONT,
+            frame.opcode is not CONT,
             frame.rsv2,
             frame.rsv3,
         )

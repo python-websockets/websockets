@@ -7,12 +7,12 @@ import warnings
 
 from websockets.exceptions import ConnectionClosed, InvalidState
 from websockets.frames import (
-    OP_BINARY,
-    OP_CLOSE,
-    OP_CONT,
-    OP_PING,
-    OP_PONG,
-    OP_TEXT,
+    BINARY as OP_BINARY,
+    CLOSE as OP_CLOSE,
+    CONT as OP_CONT,
+    PING as OP_PING,
+    PONG as OP_PONG,
+    TEXT as OP_TEXT,
     Close,
     CloseCode,
 )

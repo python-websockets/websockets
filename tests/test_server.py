@@ -18,7 +18,7 @@ from websockets.exceptions import (
     RequestLineTooLong,
     TooManyHeaders,
 )
-from websockets.frames import OP_TEXT, Frame
+from websockets.frames import TEXT, Frame
 from websockets.http11 import Request, Response
 from websockets.protocol import CONNECTING, OPEN
 from websockets.server import *
@@ -1090,7 +1090,7 @@ class MiscTests(unittest.TestCase):
         server = ServerProtocol(state=OPEN)
         server.receive_data(b"\x81\x86\x00\x00\x00\x00Hello!")
         [frame] = server.events_received()
-        self.assertEqual(frame, Frame(OP_TEXT, b"Hello!"))
+        self.assertEqual(frame, Frame(TEXT, b"Hello!"))
 
     def test_custom_logger(self):
         """ServerProtocol accepts a logger argument."""

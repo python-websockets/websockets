@@ -25,13 +25,13 @@ from ..exceptions import (
 )
 from ..extensions import Extension
 from ..frames import (
+    BINARY as OP_BINARY,
+    CLOSE as OP_CLOSE,
+    CONT as OP_CONT,
     OK_CLOSE_CODES,
-    OP_BINARY,
-    OP_CLOSE,
-    OP_CONT,
-    OP_PING,
-    OP_PONG,
-    OP_TEXT,
+    PING as OP_PING,
+    PONG as OP_PONG,
+    TEXT as OP_TEXT,
     Close,
     CloseCode,
     Opcode,

@@ -4,7 +4,7 @@ import unittest
 import unittest.mock
 
 from websockets.exceptions import ConcurrencyError
-from websockets.frames import OP_BINARY, OP_CONT, OP_TEXT, Frame
+from websockets.frames import BINARY, CONT, TEXT, Frame
 from websockets.sync.messages import *
 
 from ..utils import MS
@@ -21,13 +21,13 @@ class AssemblerTests(ThreadTestCase):
 
     def test_get_text_message_already_received(self):
         """get returns a text message that is already received."""
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         message = self.assembler.get()
         self.assertEqual(message, "café")
 
     def test_get_binary_message_already_received(self):
         """get returns a binary message that is already received."""
-        self.assembler.put(Frame(OP_BINARY, b"tea"))
+        self.assembler.put(Frame(BINARY, b"tea"))
         message = self.assembler.get()
         self.assertEqual(message, b"tea")
 
@@ -40,7 +40,7 @@ class AssemblerTests(ThreadTestCase):
             message = self.assembler.get()
 
         with self.run_in_thread(getter):
-            self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+            self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         self.assertEqual(message, "café")
 
     def test_get_binary_message_not_received_yet(self):
@@ -52,22 +52,22 @@ class AssemblerTests(ThreadTestCase):
             message = self.assembler.get()
 
         with self.run_in_thread(getter):
-            self.assembler.put(Frame(OP_BINARY, b"tea"))
+            self.assembler.put(Frame(BINARY, b"tea"))
         self.assertEqual(message, b"tea")
 
     def test_get_fragmented_text_message_already_received(self):
         """get reassembles a fragmented a text message that is already received."""
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"\xa9"))
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+        self.assembler.put(Frame(CONT, b"\xa9"))
         message = self.assembler.get()
         self.assertEqual(message, "café")
 
     def test_get_fragmented_binary_message_already_received(self):
         """get reassembles a fragmented binary message that is already received."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a"))
         message = self.assembler.get()
         self.assertEqual(message, b"tea")
 
@@ -80,9 +80,9 @@ class AssemblerTests(ThreadTestCase):
             message = self.assembler.get()
 
         with self.run_in_thread(getter):
-            self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
-            self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-            self.assembler.put(Frame(OP_CONT, b"\xa9"))
+            self.assembler.put(Frame(TEXT, b"ca", fin=False))
+            self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+            self.assembler.put(Frame(CONT, b"\xa9"))
         self.assertEqual(message, "café")
 
     def test_get_fragmented_binary_message_not_received_yet(self):
@@ -94,9 +94,9 @@ class AssemblerTests(ThreadTestCase):
             message = self.assembler.get()
 
         with self.run_in_thread(getter):
-            self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-            self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-            self.assembler.put(Frame(OP_CONT, b"a"))
+            self.assembler.put(Frame(BINARY, b"t", fin=False))
+            self.assembler.put(Frame(CONT, b"e", fin=False))
+            self.assembler.put(Frame(CONT, b"a"))
         self.assertEqual(message, b"tea")
 
     def test_get_fragmented_text_message_being_received(self):
@@ -107,10 +107,10 @@ class AssemblerTests(ThreadTestCase):
             nonlocal message
             message = self.assembler.get()
 
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
         with self.run_in_thread(getter):
-            self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-            self.assembler.put(Frame(OP_CONT, b"\xa9"))
+            self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+            self.assembler.put(Frame(CONT, b"\xa9"))
         self.assertEqual(message, "café")
 
     def test_get_fragmented_binary_message_being_received(self):
@@ -121,29 +121,29 @@ class AssemblerTests(ThreadTestCase):
             nonlocal message
             message = self.assembler.get()
 
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
         with self.run_in_thread(getter):
-            self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-            self.assembler.put(Frame(OP_CONT, b"a"))
+            self.assembler.put(Frame(CONT, b"e", fin=False))
+            self.assembler.put(Frame(CONT, b"a"))
         self.assertEqual(message, b"tea")
 
     def test_get_encoded_text_message(self):
         """get returns a text message without UTF-8 decoding."""
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         message = self.assembler.get(decode=False)
         self.assertEqual(message, b"caf\xc3\xa9")
 
     def test_get_decoded_binary_message(self):
         """get returns a binary message with UTF-8 decoding."""
-        self.assembler.put(Frame(OP_BINARY, b"tea"))
+        self.assembler.put(Frame(BINARY, b"tea"))
         message = self.assembler.get(decode=True)
         self.assertEqual(message, "tea")
 
     def test_get_resumes_reading(self):
         """get resumes reading when queue goes below the low-water mark."""
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
-        self.assembler.put(Frame(OP_TEXT, b"more caf\xc3\xa9"))
-        self.assembler.put(Frame(OP_TEXT, b"water"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"more caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"water"))
 
         # queue is above the low-water mark
         self.assembler.get()
@@ -159,9 +159,9 @@ class AssemblerTests(ThreadTestCase):
         """get does not resume reading when the low-water mark is unset."""
         self.assembler.low = None
 
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
-        self.assembler.put(Frame(OP_TEXT, b"more caf\xc3\xa9"))
-        self.assembler.put(Frame(OP_TEXT, b"water"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"more caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"water"))
         self.assembler.get()
         self.assembler.get()
         self.assembler.get()
@@ -172,25 +172,25 @@ class AssemblerTests(ThreadTestCase):
         with self.assertRaises(TimeoutError):
             self.assembler.get(timeout=MS)
 
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         message = self.assembler.get()
         self.assertEqual(message, "café")
 
     def test_get_timeout_after_first_frame(self):
         """get times out after reading the first frame."""
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
 
         with self.assertRaises(TimeoutError):
             self.assembler.get(timeout=MS)
 
-        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"\xa9"))
+        self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+        self.assembler.put(Frame(CONT, b"\xa9"))
         message = self.assembler.get()
         self.assertEqual(message, "café")
 
     def test_get_timeout_0_message_already_received(self):
         """get(timeout=0) returns a message that is already received."""
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         message = self.assembler.get(timeout=0)
         self.assertEqual(message, "café")
 
@@ -201,16 +201,16 @@ class AssemblerTests(ThreadTestCase):
 
     def test_get_timeout_0_fragmented_message_already_received(self):
         """get(timeout=0) returns a fragmented message that is already received."""
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"\xa9"))
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+        self.assembler.put(Frame(CONT, b"\xa9"))
         message = self.assembler.get(timeout=0)
         self.assertEqual(message, "café")
 
     def test_get_timeout_0_fragmented_message_partially_received(self):
         """get(timeout=0) times out when a fragmented message is partially received."""
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
         with self.assertRaises(TimeoutError):
             self.assembler.get(timeout=0)
 
@@ -218,13 +218,13 @@ class AssemblerTests(ThreadTestCase):
 
     def test_get_iter_text_message_already_received(self):
         """get_iter yields a text message that is already received."""
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         fragments = list(self.assembler.get_iter())
         self.assertEqual(fragments, ["café"])
 
     def test_get_iter_binary_message_already_received(self):
         """get_iter yields a binary message that is already received."""
-        self.assembler.put(Frame(OP_BINARY, b"tea"))
+        self.assembler.put(Frame(BINARY, b"tea"))
         fragments = list(self.assembler.get_iter())
         self.assertEqual(fragments, [b"tea"])
 
@@ -237,7 +237,7 @@ class AssemblerTests(ThreadTestCase):
             fragments = list(self.assembler.get_iter())
 
         with self.run_in_thread(getter):
-            self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+            self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         self.assertEqual(fragments, ["café"])
 
     def test_get_iter_binary_message_not_received_yet(self):
@@ -249,22 +249,22 @@ class AssemblerTests(ThreadTestCase):
             fragments = list(self.assembler.get_iter())
 
         with self.run_in_thread(getter):
-            self.assembler.put(Frame(OP_BINARY, b"tea"))
+            self.assembler.put(Frame(BINARY, b"tea"))
         self.assertEqual(fragments, [b"tea"])
 
     def test_get_iter_fragmented_text_message_already_received(self):
         """get_iter yields a fragmented text message that is already received."""
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"\xa9"))
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+        self.assembler.put(Frame(CONT, b"\xa9"))
         fragments = list(self.assembler.get_iter())
         self.assertEqual(fragments, ["ca", "f", "é"])
 
     def test_get_iter_fragmented_binary_message_already_received(self):
         """get_iter yields a fragmented binary message that is already received."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a"))
         fragments = list(self.assembler.get_iter())
         self.assertEqual(fragments, [b"t", b"e", b"a"])
 
@@ -272,67 +272,67 @@ class AssemblerTests(ThreadTestCase):
         """get_iter yields a fragmented text message when it is received."""
         iterator = self.assembler.get_iter()
         with contextlib.closing(iterator):
-            self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
+            self.assembler.put(Frame(TEXT, b"ca", fin=False))
             self.assertEqual(next(iterator), "ca")
-            self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
+            self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
             self.assertEqual(next(iterator), "f")
-            self.assembler.put(Frame(OP_CONT, b"\xa9"))
+            self.assembler.put(Frame(CONT, b"\xa9"))
             self.assertEqual(next(iterator), "é")
 
     def test_get_iter_fragmented_binary_message_not_received_yet(self):
         """get_iter yields a fragmented binary message when it is received."""
         iterator = self.assembler.get_iter()
         with contextlib.closing(iterator):
-            self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+            self.assembler.put(Frame(BINARY, b"t", fin=False))
             self.assertEqual(next(iterator), b"t")
-            self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+            self.assembler.put(Frame(CONT, b"e", fin=False))
             self.assertEqual(next(iterator), b"e")
-            self.assembler.put(Frame(OP_CONT, b"a"))
+            self.assembler.put(Frame(CONT, b"a"))
             self.assertEqual(next(iterator), b"a")
 
     def test_get_iter_fragmented_text_message_being_received(self):
         """get_iter yields a fragmented text message that is partially received."""
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
         iterator = self.assembler.get_iter()
         with contextlib.closing(iterator):
             self.assertEqual(next(iterator), "ca")
-            self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
+            self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
             self.assertEqual(next(iterator), "f")
-            self.assembler.put(Frame(OP_CONT, b"\xa9"))
+            self.assembler.put(Frame(CONT, b"\xa9"))
             self.assertEqual(next(iterator), "é")
 
     def test_get_iter_fragmented_binary_message_being_received(self):
         """get_iter yields a fragmented binary message that is partially received."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
         iterator = self.assembler.get_iter()
         with contextlib.closing(iterator):
             self.assertEqual(next(iterator), b"t")
-            self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+            self.assembler.put(Frame(CONT, b"e", fin=False))
             self.assertEqual(next(iterator), b"e")
-            self.assembler.put(Frame(OP_CONT, b"a"))
+            self.assembler.put(Frame(CONT, b"a"))
             self.assertEqual(next(iterator), b"a")
 
     def test_get_iter_encoded_text_message(self):
         """get_iter yields a text message without UTF-8 decoding."""
-        self.assembler.put(Frame(OP_TEXT, b"ca", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"f\xc3", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"\xa9"))
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
+        self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+        self.assembler.put(Frame(CONT, b"\xa9"))
         fragments = list(self.assembler.get_iter(decode=False))
         self.assertEqual(fragments, [b"ca", b"f\xc3", b"\xa9"])
 
     def test_get_iter_decoded_binary_message(self):
         """get_iter yields a binary message with UTF-8 decoding."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a"))
         fragments = list(self.assembler.get_iter(decode=True))
         self.assertEqual(fragments, ["t", "e", "a"])
 
     def test_get_iter_resumes_reading(self):
         """get_iter resumes reading when queue goes below the low-water mark."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a"))
 
         iterator = self.assembler.get_iter()
         with contextlib.closing(iterator):
@@ -350,9 +350,9 @@ class AssemblerTests(ThreadTestCase):
         """get_iter does not resume reading when the low-water mark is unset."""
         self.assembler.low = None
 
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a"))
         iterator = self.assembler.get_iter()
         with contextlib.closing(iterator):
             next(iterator)
@@ -365,24 +365,24 @@ class AssemblerTests(ThreadTestCase):
     def test_put_pauses_reading(self):
         """put pauses reading when queue goes above the high-water mark."""
         # queue is below the high-water mark
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
         self.pause.assert_not_called()
         # queue is at the high-water mark
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
         self.pause.assert_called_once_with()
         # queue is above the high-water mark
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(CONT, b"a"))
         self.pause.assert_called_once_with()
 
     def test_put_does_not_pause_reading(self):
         """put does not pause reading when the high-water mark is unset."""
         self.assembler.high = None
 
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a"))
         self.pause.assert_not_called()
 
     # Test termination.
@@ -425,23 +425,23 @@ class AssemblerTests(ThreadTestCase):
 
     def test_get_queued_message_after_close(self):
         """get returns a message after close is called."""
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         self.assembler.close()
         message = self.assembler.get()
         self.assertEqual(message, "café")
 
     def test_get_iter_queued_message_after_close(self):
         """get_iter yields a message after close is called."""
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
         self.assembler.close()
         fragments = list(self.assembler.get_iter())
         self.assertEqual(fragments, ["café"])
 
     def test_get_queued_fragmented_message_after_close(self):
         """get reassembles a fragmented message after close is called."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a"))
         self.assembler.close()
         self.assembler.close()
         message = self.assembler.get()
@@ -449,25 +449,25 @@ class AssemblerTests(ThreadTestCase):
 
     def test_get_iter_queued_fragmented_message_after_close(self):
         """get_iter yields a fragmented message after close is called."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"a"))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a"))
         self.assembler.close()
         fragments = list(self.assembler.get_iter())
         self.assertEqual(fragments, [b"t", b"e", b"a"])
 
     def test_get_partially_queued_fragmented_message_after_close(self):
         """get raises EOFError on a partial fragmented message after close is called."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
         self.assembler.close()
         with self.assertRaises(EOFError):
             self.assembler.get()
 
     def test_get_iter_partially_queued_fragmented_message_after_close(self):
         """get_iter yields a partial fragmented message after close is called."""
-        self.assembler.put(Frame(OP_BINARY, b"t", fin=False))
-        self.assembler.put(Frame(OP_CONT, b"e", fin=False))
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
         self.assembler.close()
         fragments = []
         with self.assertRaises(EOFError):
@@ -479,13 +479,13 @@ class AssemblerTests(ThreadTestCase):
         """put raises EOFError after close is called."""
         self.assembler.close()
         with self.assertRaises(EOFError):
-            self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
+            self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
 
     def test_close_resumes_reading(self):
         """close unblocks reading when queue is above the high-water mark."""
-        self.assembler.put(Frame(OP_TEXT, b"caf\xc3\xa9"))
-        self.assembler.put(Frame(OP_TEXT, b"more caf\xc3\xa9"))
-        self.assembler.put(Frame(OP_TEXT, b"water"))
+        self.assembler.put(Frame(TEXT, b"caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"more caf\xc3\xa9"))
+        self.assembler.put(Frame(TEXT, b"water"))
         # queue is at the high-water mark
         assert self.assembler.paused
 
@@ -504,28 +504,28 @@ class AssemblerTests(ThreadTestCase):
         with self.run_in_thread(self.assembler.get):
             with self.assertRaises(ConcurrencyError):
                 self.assembler.get()
-            self.assembler.put(Frame(OP_TEXT, b""))  # unlock other thread
+            self.assembler.put(Frame(TEXT, b""))  # unlock other thread
 
     def test_get_fails_when_get_iter_is_running(self):
         """get cannot be called concurrently with get_iter."""
         with self.run_in_thread(lambda: list(self.assembler.get_iter())):
             with self.assertRaises(ConcurrencyError):
                 self.assembler.get()
-            self.assembler.put(Frame(OP_TEXT, b""))  # unlock other thread
+            self.assembler.put(Frame(TEXT, b""))  # unlock other thread
 
     def test_get_iter_fails_when_get_is_running(self):
         """get_iter cannot be called concurrently with get."""
         with self.run_in_thread(self.assembler.get):
             with self.assertRaises(ConcurrencyError):
                 list(self.assembler.get_iter())
-            self.assembler.put(Frame(OP_TEXT, b""))  # unlock other thread
+            self.assembler.put(Frame(TEXT, b""))  # unlock other thread
 
     def test_get_iter_fails_when_get_iter_is_running(self):
         """get_iter cannot be called concurrently."""
         with self.run_in_thread(lambda: list(self.assembler.get_iter())):
             with self.assertRaises(ConcurrencyError):
                 list(self.assembler.get_iter())
-            self.assembler.put(Frame(OP_TEXT, b""))  # unlock other thread
+            self.assembler.put(Frame(TEXT, b""))  # unlock other thread
 
     # Test setting limits.
 

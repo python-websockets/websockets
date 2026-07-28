@@ -12,12 +12,12 @@ from websockets.exceptions import (
 )
 from websockets.extensions.permessage_deflate import *
 from websockets.frames import (
-    OP_BINARY,
-    OP_CLOSE,
-    OP_CONT,
-    OP_PING,
-    OP_PONG,
-    OP_TEXT,
+    BINARY,
+    CLOSE,
+    CONT,
+    PING,
+    PONG,
+    TEXT,
     Close,
     CloseCode,
     Frame,
@@ -62,21 +62,21 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     # Control frames aren't encoded or decoded.
 
     def test_no_encode_decode_ping_frame(self):
-        frame = Frame(OP_PING, b"")
+        frame = Frame(PING, b"")
 
         self.assertEqual(self.extension.encode(frame), frame)
 
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_encode_decode_pong_frame(self):
-        frame = Frame(OP_PONG, b"")
+        frame = Frame(PONG, b"")
 
         self.assertEqual(self.extension.encode(frame), frame)
 
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_encode_decode_close_frame(self):
-        frame = Frame(OP_CLOSE, Close(CloseCode.NORMAL_CLOSURE, "").serialize())
+        frame = Frame(CLOSE, Close(CloseCode.NORMAL_CLOSURE, "").serialize())
 
         self.assertEqual(self.extension.encode(frame), frame)
 
@@ -85,7 +85,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     # Data frames are encoded and decoded.
 
     def test_encode_decode_text_frame(self):
-        frame = Frame(OP_TEXT, "café".encode())
+        frame = Frame(TEXT, "café".encode())
 
         enc_frame = self.extension.encode(frame)
 
@@ -99,7 +99,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame, frame)
 
     def test_encode_decode_binary_frame(self):
-        frame = Frame(OP_BINARY, b"tea")
+        frame = Frame(BINARY, b"tea")
 
         enc_frame = self.extension.encode(frame)
 
@@ -113,9 +113,9 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame, frame)
 
     def test_encode_decode_fragmented_text_frame(self):
-        frame1 = Frame(OP_TEXT, "café".encode(), fin=False)
-        frame2 = Frame(OP_CONT, " & ".encode(), fin=False)
-        frame3 = Frame(OP_CONT, "croissants".encode())
+        frame1 = Frame(TEXT, "café".encode(), fin=False)
+        frame2 = Frame(CONT, " & ".encode(), fin=False)
+        frame3 = Frame(CONT, "croissants".encode())
 
         enc_frame1 = self.extension.encode(frame1)
         enc_frame2 = self.extension.encode(frame2)
@@ -145,8 +145,8 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame3, frame3)
 
     def test_encode_decode_fragmented_binary_frame(self):
-        frame1 = Frame(OP_TEXT, b"tea ", fin=False)
-        frame2 = Frame(OP_CONT, b"time")
+        frame1 = Frame(TEXT, b"tea ", fin=False)
+        frame2 = Frame(CONT, b"time")
 
         enc_frame1 = self.extension.encode(frame1)
         enc_frame2 = self.extension.encode(frame2)
@@ -171,7 +171,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     def test_encode_decode_large_frame(self):
         # There is a separate code path that avoids copying data
         # when frames are larger than 2kB. Test it for coverage.
-        frame = Frame(OP_BINARY, os.urandom(4096))
+        frame = Frame(BINARY, os.urandom(4096))
 
         enc_frame = self.extension.encode(frame)
         dec_frame = self.extension.decode(enc_frame)
@@ -179,21 +179,21 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame, frame)
 
     def test_no_decode_text_frame(self):
-        frame = Frame(OP_TEXT, "café".encode())
+        frame = Frame(TEXT, "café".encode())
 
         # Try decoding a frame that wasn't encoded.
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_decode_binary_frame(self):
-        frame = Frame(OP_TEXT, b"tea")
+        frame = Frame(TEXT, b"tea")
 
         # Try decoding a frame that wasn't encoded.
         self.assertEqual(self.extension.decode(frame), frame)
 
     def test_no_decode_fragmented_text_frame(self):
-        frame1 = Frame(OP_TEXT, "café".encode(), fin=False)
-        frame2 = Frame(OP_CONT, " & ".encode(), fin=False)
-        frame3 = Frame(OP_CONT, "croissants".encode())
+        frame1 = Frame(TEXT, "café".encode(), fin=False)
+        frame2 = Frame(CONT, " & ".encode(), fin=False)
+        frame3 = Frame(CONT, "croissants".encode())
 
         dec_frame1 = self.extension.decode(frame1)
         dec_frame2 = self.extension.decode(frame2)
@@ -204,8 +204,8 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame3, frame3)
 
     def test_no_decode_fragmented_binary_frame(self):
-        frame1 = Frame(OP_TEXT, b"tea ", fin=False)
-        frame2 = Frame(OP_CONT, b"time")
+        frame1 = Frame(TEXT, b"tea ", fin=False)
+        frame2 = Frame(CONT, b"time")
 
         dec_frame1 = self.extension.decode(frame1)
         dec_frame2 = self.extension.decode(frame2)
@@ -214,7 +214,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         self.assertEqual(dec_frame2, frame2)
 
     def test_context_takeover(self):
-        frame = Frame(OP_TEXT, "café".encode())
+        frame = Frame(TEXT, "café".encode())
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -226,7 +226,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         # No context takeover when decoding messages.
         self.extension = PerMessageDeflate(True, False, 15, 15)
 
-        frame = Frame(OP_TEXT, "café".encode())
+        frame = Frame(TEXT, "café".encode())
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -244,7 +244,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         # No context takeover when encoding and decoding messages.
         self.extension = PerMessageDeflate(True, True, 15, 15)
 
-        frame = Frame(OP_TEXT, "café".encode())
+        frame = Frame(TEXT, "café".encode())
 
         enc_frame1 = self.extension.encode(frame)
         enc_frame2 = self.extension.encode(frame)
@@ -264,7 +264,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
         # Configure an extension so that no compression actually occurs.
         extension = PerMessageDeflate(False, False, 15, 15, {"level": 0})
 
-        frame = Frame(OP_TEXT, "café".encode())
+        frame = Frame(TEXT, "café".encode())
 
         enc_frame = extension.encode(frame)
 
@@ -280,7 +280,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     # Frames aren't decoded beyond max_size.
 
     def test_decompress_max_size(self):
-        frame = Frame(OP_TEXT, ("a" * 20).encode())
+        frame = Frame(TEXT, ("a" * 20).encode())
 
         enc_frame = self.extension.encode(frame)
 
@@ -292,7 +292,7 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     def test_decompress_max_size_off_by_one(self):
         # A message exceeding max_size by a few bytes was silently truncated.
         # See https://github.com/python-websockets/websockets/issues/1715.
-        frame = Frame(OP_BINARY, b"a" * 2**21)
+        frame = Frame(BINARY, b"a" * 2**21)
         enc_frame = self.extension.encode(frame)
         with self.assertRaises(PayloadTooBig):
             self.extension.decode(enc_frame, max_size=2**21 - 1)
@@ -300,8 +300,8 @@ class PerMessageDeflateTests(unittest.TestCase, PerMessageDeflateTestsMixin):
     # Invalid frames are rejected.
 
     def test_rsv1_on_continuation_frame(self):
-        frame1 = Frame(OP_TEXT, b"tea ", fin=False)
-        frame2 = Frame(OP_CONT, b"time")
+        frame1 = Frame(TEXT, b"tea ", fin=False)
+        frame2 = Frame(CONT, b"time")
 
         enc_frame1 = self.extension.encode(frame1)
         enc_frame2 = self.extension.encode(frame2)

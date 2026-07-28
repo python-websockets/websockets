@@ -620,19 +620,19 @@ class WebSocketCommonProtocol(asyncio.Protocol):
         while self._fragmented_message_waiter is not None:
             await asyncio.shield(self._fragmented_message_waiter)
 
-        # Unfragmented message -- this case must be handled first because
+        # Unfragmented message — this case must be handled first because
         # strings and bytes-like objects are iterable.
 
         if isinstance(message, (str, bytes, bytearray, memoryview)):
             opcode, data = prepare_data(message)
             await self.write_frame(True, opcode, data)
 
-        # Catch a common mistake -- passing a dict to send().
+        # Catch a common mistake — passing a dict to send().
 
         elif isinstance(message, Mapping):
             raise TypeError("data is a dict-like object")
 
-        # Fragmented message -- regular iterator.
+        # Fragmented message — regular iterator.
 
         elif isinstance(message, Iterable):
             iter_message = iter(message)
@@ -667,7 +667,7 @@ class WebSocketCommonProtocol(asyncio.Protocol):
                 self._fragmented_message_waiter.set_result(None)
                 self._fragmented_message_waiter = None
 
-        # Fragmented message -- asynchronous iterator
+        # Fragmented message — asynchronous iterator
 
         elif isinstance(message, AsyncIterable):
             # Implement aiter_message = aiter(message) without aiter

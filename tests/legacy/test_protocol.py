@@ -321,7 +321,7 @@ class CommonTests:
         # No close frame was received.
         self.assertEqual(self.protocol.close_code, CloseCode.ABNORMAL_CLOSURE)
         self.assertEqual(self.protocol.close_reason, "")
-        # A close frame was sent -- unless the connection was already lost.
+        # A close frame was sent — unless the connection was already lost.
         if code == CloseCode.ABNORMAL_CLOSURE:
             self.assertNoFrameSent()
         else:

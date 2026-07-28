@@ -575,7 +575,7 @@ class connect:
         # We need a nursery to start the recv_events and keepalive coroutines.
         # They aren't expected to raise exceptions; instead they catch and log
         # all unexpected errors. To keep the nursery an implementation detail,
-        # unwrap exceptions raised by user code -- per the second option here:
+        # unwrap exceptions raised by user code — per the second option here:
         # https://trio.readthedocs.io/en/stable/reference-core.html#designing-for-multiple-errors
         try:
             await self.nursery_manager.__aexit__(exc_type, exc_value, traceback)

@@ -324,7 +324,7 @@ class Server(trio.abc.AsyncResource):
         # Stop accepting new connections.
         self.serve_nursery.cancel_scope.cancel()
 
-        # Reject OPENING connections with HTTP 503 -- see handshake().
+        # Reject OPENING connections with HTTP 503 — see handshake().
         self.closing = True
 
         # Close OPEN connections.

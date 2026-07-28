@@ -441,7 +441,7 @@ class Server:
         self.logger.info("server closing")
 
         # Stop accepting new connections.
-        # Also reject OPENING connections with HTTP 503 -- see handshake().
+        # Also reject OPENING connections with HTTP 503 — see handshake().
         self.server.close()
 
         # Close OPEN connections.

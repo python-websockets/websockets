@@ -385,7 +385,7 @@ class Server:
         # Wait until serve_forever() no longer accepts new connections nor
         # starts threads to handle them, meaning that self.handler_threads
         # won't get new entries.
-        # Also reject OPENING connections with HTTP 503 -- see handshake().
+        # Also reject OPENING connections with HTTP 503 — see handshake().
         self.socket_closed.wait()
 
         # Close OPEN connections.

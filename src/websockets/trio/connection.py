@@ -481,7 +481,7 @@ class Connection(trio.abc.AsyncResource):
         while self.send_in_progress is not None:
             await self.send_in_progress.wait()
 
-        # Unfragmented message -- this case must be handled first because
+        # Unfragmented message — this case must be handled first because
         # strings and bytes-like objects are iterable.
 
         if isinstance(message, str):
@@ -498,12 +498,12 @@ class Connection(trio.abc.AsyncResource):
                 else:
                     self.protocol.send_binary(message)
 
-        # Catch a common mistake -- passing a dict to send().
+        # Catch a common mistake — passing a dict to send().
 
         elif isinstance(message, Mapping):
             raise TypeError("data is a dict-like object")
 
-        # Fragmented message -- regular iterator.
+        # Fragmented message — regular iterator.
 
         elif isinstance(message, Iterable):
             chunks = iter(message)
@@ -562,7 +562,7 @@ class Connection(trio.abc.AsyncResource):
                 self.send_in_progress.set()
                 self.send_in_progress = None
 
-        # Fragmented message -- async iterator.
+        # Fragmented message — async iterator.
 
         elif isinstance(message, AsyncIterable):
             achunks = aiter(message)

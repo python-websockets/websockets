@@ -38,7 +38,7 @@ class Assembler:
         pause: Callable[[], Any] = lambda: None,
         resume: Callable[[], Any] = lambda: None,
     ) -> None:
-        # Serialize reads and writes -- except for reads via synchronization
+        # Serialize reads and writes — except for reads via synchronization
         # primitives provided by the threading and queue modules.
         self.mutex = threading.Lock()
 

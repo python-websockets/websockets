@@ -466,7 +466,7 @@ class Connection:
             TypeError: If ``message`` doesn't have a supported type.
 
         """
-        # Unfragmented message -- this case must be handled first because
+        # Unfragmented message — this case must be handled first because
         # strings and bytes-like objects are iterable.
 
         if isinstance(message, str):
@@ -491,12 +491,12 @@ class Connection:
                 else:
                     self.protocol.send_binary(message)
 
-        # Catch a common mistake -- passing a dict to send().
+        # Catch a common mistake — passing a dict to send().
 
         elif isinstance(message, Mapping):
             raise TypeError("data is a dict-like object")
 
-        # Fragmented message -- regular iterator.
+        # Fragmented message — regular iterator.
 
         elif isinstance(message, Iterable):
             chunks = iter(message)

@@ -29,6 +29,7 @@ from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
+from ..utils import get_socket_name
 from .connection import Connection, broadcast
 from .utils import Deadline
 
@@ -320,6 +321,8 @@ class Server:
                 #   (only observed on free-threaded Python)
                 # * ValueError: Invalid file descriptor: -1
                 return
+
+            self.logger.info("server listening on %s", get_socket_name(self.socket))
 
             while True:
                 poller.select()

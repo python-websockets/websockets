@@ -1,9 +1,17 @@
 import base64
 import itertools
 import platform
+import socket
 import unittest
 
-from websockets.utils import accept_key, apply_mask as py_apply_mask, generate_key
+from websockets.utils import (
+    accept_key,
+    apply_mask as py_apply_mask,
+    generate_key,
+    get_socket_name,
+)
+
+from .utils import temp_unix_socket_path
 
 
 # Test vector from RFC 6455
@@ -101,3 +109,28 @@ else:
                     raise unittest.SkipTest(str(exc))
                 else:
                     raise
+
+
+class GetSocketNameAsStrTests(unittest.TestCase):
+    def test_af_inet(self):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+            sock.bind(("127.0.0.1", 0))
+            port = sock.getsockname()[1]
+            self.assertEqual(get_socket_name(sock), f"127.0.0.1:{port}")
+
+    @unittest.skipUnless(socket.has_ipv6, "this test requires IPv6")
+    def test_af_inet6(self):
+        with socket.socket(socket.AF_INET6, socket.SOCK_STREAM) as sock:
+            try:
+                sock.bind(("::1", 0))
+            except OSError:
+                self.skipTest("IPv6 loopback isn't available")
+            port = sock.getsockname()[1]
+            self.assertEqual(get_socket_name(sock), f"[::1]:{port}")
+
+    @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
+    def test_af_unix(self):
+        with temp_unix_socket_path() as path:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as sock:
+                sock.bind(path)
+                self.assertEqual(get_socket_name(sock), path)

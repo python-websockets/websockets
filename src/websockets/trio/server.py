@@ -21,6 +21,7 @@ from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
+from ..utils import get_socket_name
 from .connection import Connection, broadcast
 from .utils import race_events
 
@@ -286,6 +287,13 @@ class Server(trio.abc.AsyncResource):
                         handler_nursery=self.handler_nursery,
                     )
                 )
+                for listener in self.listeners:
+                    self.logger.info(
+                        "server listening on %s",
+                        # listener.socket is a Trio socket, not a socket.socket,
+                        # but it offers the same APIs used by get_socket_name().
+                        get_socket_name(listener.socket),  # type: ignore
+                    )
                 task_status.started(self)
         # When the nursery for handlers has exited, all handlers have returned.
         self.handlers_waiter.set()

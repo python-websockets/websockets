@@ -23,6 +23,7 @@ from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
 from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
+from ..utils import get_socket_name
 from .connection import Connection, broadcast
 
 
@@ -327,17 +328,7 @@ class Server:
         """
         self.server = server
         for sock in server.sockets:
-            if sock.family == socket.AF_INET:
-                name = "%s:%d" % sock.getsockname()
-            elif sock.family == socket.AF_INET6:
-                name = "[%s]:%d" % sock.getsockname()[:2]
-            elif sock.family == socket.AF_UNIX:
-                name = sock.getsockname()
-            # In the unlikely event that someone runs websockets over a
-            # protocol other than IP or Unix sockets, avoid crashing.
-            else:  # pragma: no cover
-                name = str(sock.getsockname())
-            self.logger.info("server listening on %s", name)
+            self.logger.info("server listening on %s", get_socket_name(sock))
 
     async def conn_handler(self, connection: ServerConnection) -> None:
         """

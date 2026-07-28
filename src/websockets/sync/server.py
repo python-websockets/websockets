@@ -14,7 +14,7 @@ import time
 import warnings
 from collections.abc import Iterable, Sequence
 from types import TracebackType
-from typing import Any, Callable, Mapping, cast
+from typing import Any, Callable, Mapping, Self, cast
 
 from ..exceptions import InvalidHeader
 from ..extensions.base import ServerExtensionFactory
@@ -437,7 +437,7 @@ class Server:
         """
         return self.socket.fileno()
 
-    def __enter__(self) -> Server:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

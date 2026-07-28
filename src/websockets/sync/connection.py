@@ -12,7 +12,7 @@ import traceback
 import uuid
 from collections.abc import Iterable, Iterator, Mapping
 from types import TracebackType
-from typing import Any, Literal, overload
+from typing import Any, Literal, Self, overload
 
 from ..exceptions import (
     ConcurrencyError,
@@ -216,7 +216,7 @@ class Connection:
 
     # Public methods
 
-    def __enter__(self) -> Connection:
+    def __enter__(self) -> Self:
         return self
 
     def __exit__(

@@ -10,7 +10,7 @@ import traceback
 import uuid
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Iterable, Mapping
 from types import TracebackType
-from typing import Any, Literal, cast, overload
+from typing import Any, Literal, Self, cast, overload
 
 from ..exceptions import (
     ConcurrencyError,
@@ -205,7 +205,7 @@ class Connection(asyncio.Protocol):
 
     # Public methods
 
-    async def __aenter__(self) -> Connection:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(

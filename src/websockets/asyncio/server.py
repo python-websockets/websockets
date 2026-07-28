@@ -8,7 +8,7 @@ import re
 import socket
 from collections.abc import Awaitable, Generator, Iterable, Sequence
 from types import TracebackType
-from typing import Any, Callable, Mapping, cast
+from typing import Any, Callable, Mapping, Self, cast
 
 from ..exceptions import InvalidHeader
 from ..extensions.base import ServerExtensionFactory
@@ -541,7 +541,7 @@ class Server:
         """
         return self.server.sockets
 
-    async def __aenter__(self) -> Server:  # pragma: no cover
+    async def __aenter__(self) -> Self:  # pragma: no cover
         return self
 
     async def __aexit__(

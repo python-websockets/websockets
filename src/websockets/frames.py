@@ -7,7 +7,7 @@ import os
 import secrets
 import struct
 from collections.abc import Generator, Sequence
-from typing import Callable
+from typing import Callable, Self
 
 from .exceptions import PayloadTooBig, ProtocolError
 from .typing import BytesLike
@@ -431,7 +431,7 @@ class Close:
         return result
 
     @classmethod
-    def parse(cls, data: BytesLike) -> Close:
+    def parse(cls, data: BytesLike) -> Self:
         """
         Parse the payload of a close frame.
 

@@ -8,7 +8,7 @@ import traceback
 import uuid
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Mapping
 from types import TracebackType
-from typing import Any, Literal, overload
+from typing import Any, Literal, Self, overload
 
 import trio
 import trio.abc
@@ -221,7 +221,7 @@ class Connection(trio.abc.AsyncResource):
 
     # Public methods
 
-    async def __aenter__(self) -> Connection:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(

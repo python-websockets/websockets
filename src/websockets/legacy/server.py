@@ -10,7 +10,7 @@ import socket
 import warnings
 from collections.abc import Awaitable, Generator, Iterable, Sequence
 from types import TracebackType
-from typing import Any, Callable, cast
+from typing import Any, Callable, Self, cast
 
 from ..datastructures import Headers, HeadersLike, MultipleValuesError
 from ..exceptions import (
@@ -861,7 +861,7 @@ class WebSocketServer:
         """
         return self.server.sockets
 
-    async def __aenter__(self) -> WebSocketServer:  # pragma: no cover
+    async def __aenter__(self) -> Self:  # pragma: no cover
         return self
 
     async def __aexit__(

@@ -7,7 +7,7 @@ import re
 import ssl as ssl_module
 from collections.abc import Awaitable, Mapping, Sequence
 from types import TracebackType
-from typing import Any, Callable
+from typing import Any, Callable, Self
 
 import trio
 import trio.abc
@@ -336,7 +336,7 @@ class Server(trio.abc.AsyncResource):
 
         self.logger.info("server closed")
 
-    async def __aenter__(self) -> Server:
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(

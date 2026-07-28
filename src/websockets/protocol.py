@@ -662,6 +662,8 @@ class Protocol:
         if self.side is CLIENT and self.state is not CONNECTING:
             self.send_eof()
         self.state = CLOSED
+        if self.side is SERVER:
+            self.logger.info("connection closed")
         # If discard() completes normally, execution ends here.
         yield
         # Once the reader reaches EOF, its feed_data/eof() methods raise an

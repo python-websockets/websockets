@@ -8,6 +8,7 @@ import trio
 from websockets.exceptions import (
     ConnectionClosedError,
     ConnectionClosedOK,
+    InvalidHandshake,
     InvalidStatus,
     NegotiationError,
 )
@@ -411,7 +412,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
                 "server rejected WebSocket connection: HTTP 400",
             )
 
-    async def test_timeout_during_handshake(self):
+    async def test_timeout_before_handshake_request(self):
         """Server times out before receiving handshake request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             async with run_server(open_timeout=MS) as server:
@@ -428,7 +429,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
             "connection closed while reading HTTP request line",
         )
 
-    async def test_connection_closed_during_handshake(self):
+    async def test_connection_closed_before_handshake_request(self):
         """Server reads EOF before receiving handshake request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             async with run_server() as server:
@@ -440,6 +441,19 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
             "! no valid HTTP request",
             "connection closed while reading HTTP request line",
         )
+
+    async def test_connection_closed_before_handshake_response(self):
+        """Server reads EOF before sending handshake response to client."""
+
+        async def process_request(ws, _request):
+            await ws.stream.aclose()
+            await trio.testing.wait_all_tasks_blocked()
+
+        with self.assertNoLogs("websockets", logging.ERROR):
+            async with run_server(process_request=process_request) as server:
+                with self.assertRaises(InvalidHandshake):
+                    async with connect(get_uri(server)):
+                        self.fail("did not raise")
 
     async def test_junk_handshake_request(self):
         """Server closes the connection when receiving non-HTTP request from client."""

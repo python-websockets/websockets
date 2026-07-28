@@ -11,6 +11,7 @@ from unittest.mock import patch
 from websockets.exceptions import (
     ConnectionClosedError,
     ConnectionClosedOK,
+    InvalidHandshake,
     InvalidStatus,
     NegotiationError,
 )
@@ -315,7 +316,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
                 "server rejected WebSocket connection: HTTP 400",
             )
 
-    def test_timeout_during_handshake(self):
+    def test_timeout_before_handshake_request(self):
         """Server times out before receiving handshake request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             with run_server(open_timeout=MS) as server:
@@ -329,7 +330,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
             "connection closed while reading HTTP request line",
         )
 
-    def test_connection_closed_during_handshake(self):
+    def test_connection_closed_before_handshake_request(self):
         """Server reads EOF before receiving handshake request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             with run_server() as server:
@@ -342,6 +343,19 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
             "! no valid HTTP request",
             "connection closed while reading HTTP request line",
         )
+
+    def test_connection_closed_before_handshake_response_sync(self):
+        """Server reads EOF before sending handshake response to client."""
+
+        def process_request(ws, _request):
+            ws.socket.shutdown(socket.SHUT_RDWR)
+            ws.socket.close()
+
+        with self.assertNoLogs("websockets", logging.ERROR):
+            with run_server(process_request=process_request) as server:
+                with self.assertRaises(InvalidHandshake):
+                    with connect(get_uri(server)):
+                        self.fail("did not raise")
 
     def test_junk_handshake_request(self):
         """Server closes the connection when receiving non-HTTP request from client."""

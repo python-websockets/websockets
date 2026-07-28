@@ -408,7 +408,7 @@ class ClientTests(IsolatedTrioTestCase):
     async def test_tcp_connection_fails(self):
         """Client fails to connect to server."""
         with self.assertRaises(OSError):
-            async with connect("ws://localhost:54321"):  # invalid port
+            async with connect("ws://localhost:12345"):  # invalid port
                 self.fail("did not raise")
 
     async def test_handshake_fails(self):
@@ -679,7 +679,7 @@ class SocksProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
         self.assertIsInstance(raised.exception.__cause__, SocksProxyError)
         self.assertNumFlows(0)
 
-    @patch.dict(os.environ, {"socks_proxy": "http://localhost:61080"})  # bad port
+    @patch.dict(os.environ, {"socks_proxy": "http://localhost:11080"})  # bad port
     async def test_socks_proxy_connection_failure(self):
         """Client fails to connect to the SOCKS5 proxy."""
         from python_socks import ProxyConnectionError as SocksProxyConnectionError
@@ -812,7 +812,7 @@ class HTTPProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
         )
         self.assertNumFlows(0)
 
-    @patch.dict(os.environ, {"https_proxy": "http://localhost:48080"})  # bad port
+    @patch.dict(os.environ, {"https_proxy": "http://localhost:28080"})  # bad port
     async def test_http_proxy_connection_failure(self):
         """Client fails to connect to the HTTP proxy."""
         with self.assertRaises(OSError):

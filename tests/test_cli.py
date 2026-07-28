@@ -136,9 +136,9 @@ class CLITests(unittest.TestCase):
         )
 
     def test_connection_failure(self):
-        output = self.run_main(["ws://localhost:54321"], expected_exit_code=1)
+        output = self.run_main(["ws://localhost:12345"], expected_exit_code=1)
         self.assertTrue(
-            output.startswith("Failed to connect to ws://localhost:54321: ")
+            output.startswith("Failed to connect to ws://localhost:12345: ")
         )
 
     def test_no_args(self):

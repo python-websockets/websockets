@@ -348,8 +348,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
         """Server reads EOF before sending handshake response to client."""
 
         def process_request(ws, _request):
-            ws.socket.shutdown(socket.SHUT_RDWR)
-            ws.socket.close()
+            ws.close_socket()
 
         with self.assertNoLogs("websockets", logging.ERROR):
             with run_server(process_request=process_request) as server:

@@ -655,8 +655,6 @@ class Protocol:
         assert (self.side is SERVER or self.state is CONNECTING) == (self.eof_sent)
         while not (yield from self.reader.at_eof()):
             self.reader.discard()
-        if self.debug:
-            self.logger.debug("< EOF")
         # A server closes the TCP connection immediately, while a client
         # waits for the server to close the TCP connection.
         if self.side is CLIENT and self.state is not CONNECTING:

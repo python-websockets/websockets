@@ -25,11 +25,17 @@ It supports several network I/O and control flow paradigms.
 
 2. The :mod:`threading` implementation is a good alternative for clients,
    especially if you aren't familiar with :mod:`asyncio`. It may also be used
-   for servers that handle few client connections.
+   for servers that don't handle too many client connections.
 
-3. The `Sans-I/O`_ implementation is designed for integrating in third-party
+3. The :mod:`trio` implementation is functionally equivalent to the
+   :mod:`asyncio` implementation and a great choice if you appreciate the
+   simpler design or stronger correctness guarantees of Trio_.
+
+4. The `Sans-I/O`_ implementation is designed for integrating in third-party
    libraries, typically application servers, in addition being used internally
    by websockets.
+
+.. _Trio: https://trio.readthedocs.io/
 
 .. _Sans-I/O: https://sans-io.readthedocs.io/
 

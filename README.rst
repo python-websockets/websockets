@@ -24,8 +24,8 @@ with a focus on correctness, simplicity, robustness, and performance.
 Built on top of ``asyncio``, Python's standard asynchronous I/O framework, the
 default implementation provides an elegant coroutine-based API.
 
-An implementation on top of ``threading`` and a Sans-I/O implementation are also
-available.
+Implementations on top of ``threading`` and ``trio`` are also provided, as well
+as a Sans-I/O layer for integration in third-party projects.
 
 `Documentation is available on Read the Docs. <https://websockets.readthedocs.io/>`_
 

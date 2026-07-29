@@ -25,6 +25,13 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
+.. _17.1:
+
+17.1
+----
+
+*In development*
+
 .. _17.0:
 
 17.0

@@ -513,8 +513,8 @@ async def serve(
             and low-water marks. If you want to disable flow control entirely,
             you may set it to ``None``, although that's a bad idea.
         logger: Logger for this server.
-            It defaults to ``logging.getLogger("websockets.server")``. See the
-            :doc:`logging guide <../../topics/logging>` for details.
+            It defaults to ``logging.getLogger("websockets.server")``.
+            See the :doc:`logging guide <../../topics/logging>` for details.
         create_connection: Factory for the :class:`ServerConnection` managing
             the connection. Set it to a wrapper or a subclass to customize
             connection handling.

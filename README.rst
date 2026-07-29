@@ -45,8 +45,8 @@ Here's an echo server with the ``asyncio`` API:
             await websocket.send(message)
 
     async def main():
-        async with serve(echo, "localhost", 8765) as server:
-            await server.serve_forever()
+        server = await serve(echo, "localhost", 8765)
+        await server.serve_forever()
 
     asyncio.run(main())
 

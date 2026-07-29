@@ -22,7 +22,7 @@ def main():
         echo,
         HOST,
         PORT,
-        server_header="websockets.asyncio",
+        server_header="websockets.sync",
         max_size=2**25,
     ) as server:
         try:

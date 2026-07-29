@@ -76,12 +76,11 @@ else:
                 ...
             ])
 
-            # set this future to exit the server
-            stop = asyncio.get_running_loop().create_future()
+            # set this event to exit the server
+            stop = asyncio.Event()
 
             async with route(url_map, ...) as server:
-                await stop
-
+                await stop.wait()
 
         Refer to the documentation of :mod:`werkzeug.routing` for details.
 
@@ -98,6 +97,10 @@ else:
 
         There is no need to specify ``websocket=True`` in each rule. It is added
         automatically.
+
+        Like :func:`~websockets.sync.server.serve`, :func:`route` returns a
+        :class:`~websockets.sync.server.Server` that you can also run with
+        :meth:`~websockets.sync.server.Server.serve_forever`.
 
         Args:
             url_map: Mapping of URL patterns to connection handlers.

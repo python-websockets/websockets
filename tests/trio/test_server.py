@@ -585,13 +585,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
 
     async def test_context_manager_closes_server(self):
         """Server closes when exiting context manager."""
-        with self.assertLogs("websockets", logging.INFO) as logs:
-            server = await self.nursery.start(serve, handler, 0)
-            async with server:
-                async with connect(get_uri(server)) as client:
-                    await self.assertEval(client, "ws.protocol.state.name", "OPEN")
+        server = await self.nursery.start(serve, handler, 0)
+        async with server:
+            self.assertFalse(server.handlers_waiter.is_set())
 
-        self.assertEqual(logs.records[-1].getMessage(), "server closed")
+        self.assertTrue(server.handlers_waiter.is_set())
 
     async def test_listeners(self):
         """Server provides a listeners attribute."""

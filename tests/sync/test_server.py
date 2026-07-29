@@ -477,15 +477,13 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
 
     def test_context_manager_closes_server(self):
         """Server closes when exiting context manager."""
-        with self.assertLogs("websockets", logging.INFO) as logs:
-            with serve(handler, "localhost", 0) as server:
-                thread = threading.Thread(target=server.serve_forever)
-                thread.start()
-                self.addCleanup(thread.join)
-                with connect(get_uri(server)) as client:
-                    self.assertEval(client, "ws.protocol.state.name", "OPEN")
+        with serve(handler, "localhost", 0) as server:
+            thread = threading.Thread(target=server.serve_forever)
+            thread.start()
+            self.addCleanup(thread.join)
+            self.assertFalse(server.socket_closed.is_set())
 
-        self.assertEqual(logs.records[-1].getMessage(), "server closed")
+        self.assertTrue(server.socket_closed.is_set())
 
     def test_fileno(self):
         """Server provides a fileno method."""

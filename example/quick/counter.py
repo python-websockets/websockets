@@ -43,8 +43,8 @@ async def counter(websocket):
         broadcast(USERS, users_event())
 
 async def main():
-    async with serve(counter, "localhost", 6789) as server:
-        await server.serve_forever()
+    server = await serve(counter, "localhost", 6789)
+    await server.serve_forever()
 
 if __name__ == "__main__":
     asyncio.run(main())

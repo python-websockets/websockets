@@ -171,9 +171,9 @@ async def main():
     """Start one HTTP server and four WebSocket servers."""
     # Set the stop condition when receiving SIGINT or SIGTERM.
     loop = asyncio.get_running_loop()
-    stop = loop.create_future()
-    loop.add_signal_handler(signal.SIGINT, stop.set_result, None)
-    loop.add_signal_handler(signal.SIGTERM, stop.set_result, None)
+    stop = asyncio.Event()
+    loop.add_signal_handler(signal.SIGINT, stop.set)
+    loop.add_signal_handler(signal.SIGTERM, stop.set)
 
     async with (
         serve(handler, host="", port=8000, process_request=serve_html),
@@ -183,7 +183,7 @@ async def main():
         serve(handler, host="", port=8004, process_request=basic_auth),
     ):
         print("Running on http://localhost:8000/")
-        await stop
+        await stop.wait()
         print("\rExiting")
 
 

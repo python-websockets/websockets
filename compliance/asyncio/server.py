@@ -23,12 +23,12 @@ async def main():
         echo,
         HOST,
         PORT,
-        server_header="websockets.sync",
+        server_header="websockets.asyncio",
         max_size=2**25,
     ) as server:
         try:
             await server.serve_forever()
-        except KeyboardInterrupt:
+        except asyncio.CancelledError:
             pass
 
 

@@ -136,6 +136,9 @@ Bug fixes
 
 * Restored compatibility of the ``websockets`` CLI with Windows.
 
+* Fixed :meth:`~asyncio.server.Server.serve_forever` in the :mod:`asyncio`
+  implementation so that canceling it always closes connections gracefully.
+
 * Fixed a bug that could delay or block the client in the :mod:`threading`
   implementation on macOS when the opening handshake fails.
 

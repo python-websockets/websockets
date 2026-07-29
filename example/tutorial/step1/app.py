@@ -57,8 +57,8 @@ async def handler(websocket):
 
 
 async def main():
-    async with serve(handler, "", 8001) as server:
-        await server.serve_forever()
+    server = await serve(handler, "", 8001)
+    await server.serve_forever()
 
 
 if __name__ == "__main__":

@@ -17,8 +17,8 @@ async def hello(websocket):
 
 
 async def main():
-    async with serve(hello, "localhost", 8765) as server:
-        await server.serve_forever()
+    server = await serve(hello, "localhost", 8765)
+    await server.serve_forever()
 
 
 if __name__ == "__main__":

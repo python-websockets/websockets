@@ -196,8 +196,8 @@ Create an ``app.py`` file next to ``connect4.py`` with this content:
 
 
     async def main():
-        async with serve(handler, "", 8001) as server:
-            await server.serve_forever()
+        server = await serve(handler, "", 8001)
+        await server.serve_forever()
 
 
     if __name__ == "__main__":
@@ -218,9 +218,8 @@ arguments:
   on the same local network can connect.
 * The third argument is the port on which the server listens.
 
-Invoking :func:`~asyncio.server.serve` as an asynchronous context manager, in an
-``async with`` block, ensures that the server shuts down properly when
-terminating the program.
+:meth:`~asyncio.server.Server.serve_forever` doesn't return. When stopping the
+program with Ctrl-C, it gets cancelled and it shuts down the server properly.
 
 For each connection, the ``handler()`` coroutine runs an infinite loop that
 receives messages from the browser and prints them.

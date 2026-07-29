@@ -227,7 +227,10 @@ class Server:
     """
     WebSocket server returned by :func:`serve`.
 
-    This class mirrors the API of :class:`asyncio.Server`.
+    This class mirrors most of the API of :class:`asyncio.Server`.
+
+    It doesn't provide ``close_clients`` or ``abort_clients``; by default,
+    :meth:`close` closes existing connections with code 1001 (going away).
 
     Args:
         handler: Connection handler. It receives the WebSocket connection,
@@ -509,7 +512,7 @@ class Server:
         """
         await self.server.start_serving()
 
-    async def serve_forever(self) -> None:  # pragma: no cover
+    async def serve_forever(self) -> None:
         """
         See :meth:`asyncio.Server.serve_forever`.
 
@@ -525,7 +528,29 @@ class Server:
         instead of exiting a :func:`serve` context.
 
         """
-        await self.server.serve_forever()
+        # This is a copy-paste of asyncio.Server.serve_forever(), with
+        # self.server instead of self, except it calls our close() and
+        # wait_closed() when cancelled to ensure a graceful shutdown.
+        if self.server._serving_forever_fut is not None:  # type: ignore[attr-defined]
+            raise RuntimeError(
+                f"server {self.server!r} is already being awaited on serve_forever()"
+            )
+        if self.server._sockets is None:  # type: ignore[attr-defined]
+            raise RuntimeError(f"server {self.server!r} is closed")
+
+        self.server._start_serving()  # type: ignore[attr-defined]
+        self.server._serving_forever_fut = self.server._loop.create_future()  # type: ignore[attr-defined]
+
+        try:
+            await self.server._serving_forever_fut  # type: ignore[attr-defined]
+        except asyncio.CancelledError:
+            try:
+                self.close()
+                await self.wait_closed()
+            finally:
+                raise
+        finally:
+            self.server._serving_forever_fut = None  # type: ignore[attr-defined]
 
     @property
     def sockets(self) -> tuple[socket.socket, ...]:
@@ -535,7 +560,7 @@ class Server:
         """
         return self.server.sockets
 
-    async def __aenter__(self) -> Self:  # pragma: no cover
+    async def __aenter__(self) -> Self:
         return self
 
     async def __aexit__(
@@ -543,7 +568,7 @@ class Server:
         exc_type: type[BaseException] | None,
         exc_value: BaseException | None,
         traceback: TracebackType | None,
-    ) -> None:  # pragma: no cover
+    ) -> None:
         self.close()
         await self.wait_closed()
 
@@ -577,11 +602,17 @@ class serve:
         async with serve(handler, host, port):
             await stop.wait()
 
-    Alternatively, call :meth:`~Server.serve_forever` to serve requests and
-    cancel it to stop the server::
+    Alternatively, call :meth:`~Server.serve_forever` to serve requests, then
+    cancel it or call :meth:`~Server.close` to stop the server::
 
         server = await serve(handler, host, port)
         await server.serve_forever()
+
+    The following pattern is functional but redundant: by the time the context
+    manager exits, :meth:`~Server.serve_forever` has already closed the server::
+
+        async with serve(handler, host, port) as server:
+            await server.serve_forever()
 
     Args:
         handler: Connection handler. It receives the WebSocket connection,
@@ -645,8 +676,8 @@ class serve:
             to 32 KiB. You may pass a ``(high, low)`` tuple to set the
             high-water and low-water marks.
         logger: Logger for this server.
-            It defaults to ``logging.getLogger("websockets.server")``. See the
-            :doc:`logging guide <../../topics/logging>` for details.
+            It defaults to ``logging.getLogger("websockets.server")``.
+            See the :doc:`logging guide <../../topics/logging>` for details.
         create_connection: Factory for the :class:`ServerConnection` managing
             the connection. Set it to a wrapper or a subclass to customize
             connection handling.

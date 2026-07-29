@@ -83,7 +83,7 @@ class ProxyMixin:
     @classmethod
     async def run_proxy(cls):
         cls.proxy_loop = loop = asyncio.get_event_loop()
-        cls.proxy_stop = stop = loop.create_future()
+        cls.proxy_stop = stop = asyncio.Event()
 
         cls.proxy_options = options = Options(
             mode=[cls.proxy_mode],
@@ -103,7 +103,7 @@ class ProxyMixin:
         )
 
         task = loop.create_task(cls.proxy_master.run())
-        await stop
+        await stop.wait()
 
         for server in master.addons.get("proxyserver").servers:
             await server.stop()
@@ -145,6 +145,6 @@ class ProxyMixin:
 
     @classmethod
     def tearDownClass(cls):
-        cls.proxy_loop.call_soon_threadsafe(cls.proxy_stop.set_result, None)
+        cls.proxy_loop.call_soon_threadsafe(cls.proxy_stop.set)
         cls.proxy_thread.join()
         super().tearDownClass()

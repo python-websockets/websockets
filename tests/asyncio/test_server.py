@@ -567,14 +567,91 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 async with asyncio.timeout(5 * MS):
                     await server.wait_closed()
 
+    async def test_serve_context_manager_closes_server(self):
+        """Server closes when exiting serve() used as a context manager."""
+        async with serve(handler, "localhost", 0) as server:
+            self.assertTrue(server.is_serving())
+
+        self.assertFalse(server.is_serving())
+
     async def test_context_manager_closes_server(self):
         """Server closes when exiting context manager."""
-        with self.assertLogs("websockets", logging.INFO) as logs:
-            async with serve(handler, "localhost", 0) as server:
-                async with connect(get_uri(server)) as client:
-                    await self.assertEval(client, "ws.protocol.state.name", "OPEN")
+        server = await serve(handler, "localhost", 0)
+        async with server:
+            self.assertTrue(server.is_serving())
 
-        self.assertEqual(logs.records[-1].getMessage(), "server closed")
+        self.assertFalse(server.is_serving())
+
+    async def test_serve_forever(self):
+        """Server runs until serve_forever() is canceled."""
+        server = await serve(*args)
+        serve_forever_task = asyncio.get_running_loop().create_task(
+            server.serve_forever()
+        )
+        await asyncio.sleep(0)
+
+        self.assertTrue(server.is_serving())
+
+        serve_forever_task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await serve_forever_task
+
+        self.assertFalse(server.is_serving())
+
+    async def test_close_cancels_serve_forever(self):
+        """Closing the server cancels serve_forever()."""
+        server = await serve(*args)
+        serve_forever_task = asyncio.get_running_loop().create_task(
+            server.serve_forever()
+        )
+        await asyncio.sleep(0)
+
+        server.close()
+        with self.assertRaises(asyncio.CancelledError):
+            await serve_forever_task
+
+    async def test_serve_forever_closes_open_connections(self):
+        """Canceling serve_forever() closes open connections with code 1001."""
+        server = await serve(*args)
+        serve_forever_task = asyncio.get_running_loop().create_task(
+            server.serve_forever()
+        )
+        await asyncio.sleep(0)
+
+        async with connect(get_uri(server)) as client:
+            serve_forever_task.cancel()
+            with self.assertRaises(ConnectionClosedOK) as raised:
+                await client.recv()
+            self.assertEqual(
+                str(raised.exception),
+                "received 1001 (going away); then sent 1001 (going away)",
+            )
+
+        with self.assertRaises(asyncio.CancelledError):
+            await serve_forever_task
+
+    async def test_serve_forever_twice(self):
+        """Server rejects awaiting serve_forever() concurrently."""
+        server = await serve(*args)
+        serve_forever_task = asyncio.get_running_loop().create_task(
+            server.serve_forever()
+        )
+        await asyncio.sleep(0)
+
+        with self.assertRaises(RuntimeError):
+            await server.serve_forever()
+
+        serve_forever_task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await serve_forever_task
+
+    async def test_serve_forever_after_close(self):
+        """Server rejects serve_forever() after close()."""
+        async with serve(*args) as server:
+            pass
+
+        with self.assertRaises(RuntimeError):
+            await server.serve_forever()
 
     async def test_sockets(self):
         """Server provides a sockets property."""

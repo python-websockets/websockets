@@ -327,8 +327,9 @@ class Server:
 
         """
         self.server = server
-        for sock in server.sockets:
-            self.logger.info("server listening on %s", get_socket_name(sock))
+        if server.is_serving():  # pragma: no branch
+            for sock in server.sockets:
+                self.logger.info("server listening on %s", get_socket_name(sock))
 
     async def conn_handler(self, connection: ServerConnection) -> None:
         """
@@ -487,7 +488,7 @@ class Server:
         """
         return self.server.get_loop()
 
-    def is_serving(self) -> bool:  # pragma: no cover
+    def is_serving(self) -> bool:
         """
         See :meth:`asyncio.Server.is_serving`.
 

@@ -30,7 +30,7 @@ notice.
 17.0
 ----
 
-*In development*
+*July 29, 2026*
 
 Backwards-incompatible changes
 ..............................

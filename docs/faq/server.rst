@@ -105,26 +105,14 @@ See also Python's documentation about `running blocking code`_.
 How do I send a message to all users?
 -------------------------------------
 
-Record all connections in a global variable::
-
-    CONNECTIONS = set()
-
-    async def handler(websocket):
-        CONNECTIONS.add(websocket)
-        try:
-            await websocket.wait_closed()
-        finally:
-            CONNECTIONS.remove(websocket)
-
-Then, call :func:`broadcast`::
+Call :func:`broadcast`::
 
     from websockets.asyncio.server import broadcast
 
-    def message_all(message):
-        broadcast(CONNECTIONS, message)
+    broadcast(server.connections, message)
 
-If you're running multiple server processes, make sure you call ``message_all``
-in each process.
+If you're running multiple server processes, execute :func:`broadcast` in each
+process.
 
 .. _send-message-to-single-user:
 
@@ -133,32 +121,36 @@ How do I send a message to a single user?
 
 Record connections in a global variable, keyed by user identifier::
 
-    CONNECTIONS = {}
+    import collections
+
+    CONNECTIONS = collections.defaultdict(set)
 
     async def handler(websocket):
         user_id = ...  # identify user in your app's context
-        CONNECTIONS[user_id] = websocket
+        CONNECTIONS[user_id].add(websocket)
         try:
             await websocket.wait_closed()
         finally:
-            del CONNECTIONS[user_id]
+            CONNECTIONS[user_id].remove(websocket)
 
 Then, call :meth:`~ServerConnection.send`::
 
     async def message_user(user_id, message):
-        websocket = CONNECTIONS[user_id]  # raises KeyError if user disconnected
-        await websocket.send(message)  # may raise websockets.exceptions.ConnectionClosed
+        for websocket in CONNECTIONS[user_id]:
+            try:
+                await websocket.send(message)
+            except websockets.exceptions.ConnectionClosed
+                pass
 
-Add error handling according to the behavior you want if the user disconnected
-before the message could be sent.
+or just :func:`broadcast`::
 
-This example supports only one connection per user. To support concurrent
-connections by the same user, you can change ``CONNECTIONS`` to store a set of
-connections for each user.
+    from websockets.asyncio.server import broadcast
 
-If you're running multiple server processes, call ``message_user`` in each
-process. The process managing the user's connection sends the message; other
-processes do nothing.
+    def message_user(user_id, message):
+        broadcast(CONNECTIONS[user_id], message)
+
+If you're running multiple server processes, execute ``message_user`` in each
+process.
 
 When you reach a scale where server processes cannot keep up with the stream of
 all messages, you need a better architecture. For example, you could deploy an
@@ -221,8 +213,7 @@ You can access HTTP headers during the WebSocket handshake by providing a
         authorization = request.headers["Authorization"]
         ...
 
-    async with serve(handler, process_request=process_request):
-        ...
+    server = await serve(handler, process_request=process_request)
 
 Once the connection is established, HTTP headers are available in the
 :attr:`~ServerConnection.request` and :attr:`~ServerConnection.response`
@@ -247,8 +238,7 @@ coroutine::
     def process_response(connection, request, response):
         response.headers["X-Blessing"] = "May the network be with you"
 
-    async with serve(handler, process_response=process_response):
-        ...
+    server = await serve(handler, process_response=process_response)
 
 How do I get the IP address of the client?
 ------------------------------------------
@@ -263,8 +253,7 @@ How do I set the IP addresses that my server listens on?
 
 Use the ``host`` argument of :meth:`~serve`::
 
-    async with serve(handler, host="192.168.0.1", port=8080):
-        ...
+    server = await serve(handler, host="192.168.0.1", port=8080)
 
 :func:`~serve` accepts the same arguments as
 :meth:`~asyncio.loop.create_server` and passes them through.
@@ -287,7 +276,13 @@ websockets takes care of closing the connection when the handler exits.
 How do I stop a server?
 -----------------------
 
-Exit the :func:`~serve` context manager.
+Depending on how you started it, you can:
+
+* Exit the :func:`~serve` context manager.
+* Call the :meth:`~Server.close` method.
+* Cancel the :meth:`~Server.serve_forever` coroutine.
+
+Await :meth:`~Server.wait_closed` to wait for the server to be fully closed.
 
 Here's an example that terminates cleanly when it receives SIGTERM on Unix:
 
@@ -299,15 +294,22 @@ How do I stop a server while keeping existing connections open?
 
 Call the server's :meth:`~Server.close` method with ``close_connections=False``.
 
-Here's how to adapt the example just above::
+Here's how to adapt the example just above:
 
-    async def server():
-        ...
+.. code-block:: python
+    :emphasize-lines: 5-8
 
-        server = await serve(echo, "localhost", 8765)
-        await stop
-        server.close(close_connections=False)
+    async def main():
+        server = await serve(handler, "localhost", 8765)
+        # Close the server when receiving SIGTERM.
+        loop = asyncio.get_running_loop()
+        loop.add_signal_handler(
+            signal.SIGTERM,
+            functools.partial(server.close, close_connections=False),
+        )
         await server.wait_closed()
+
+The server will exit after all clients disconnect.
 
 How do I implement a health check?
 ----------------------------------

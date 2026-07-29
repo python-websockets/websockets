@@ -60,7 +60,7 @@ In the legacy :mod:`asyncio` API, this argument is named ``extra_headers``.
 How do I force the IP address that the client connects to?
 ----------------------------------------------------------
 
-Use the ``host`` argument :func:`~connect`::
+Use the ``host`` argument of :func:`~connect`::
 
     async with connect(..., host="192.168.0.1") as websocket:
         ...

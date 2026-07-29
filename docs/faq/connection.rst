@@ -89,27 +89,6 @@ Use :func:`asyncio.timeout`::
 This technique works for most APIs. When it doesn't, for example with
 asynchronous context managers, websockets provides an ``open_timeout`` argument.
 
-How can I pass arguments to a custom connection subclass?
----------------------------------------------------------
-
-You can bind additional arguments to the connection factory with
-:func:`functools.partial`::
-
-    import asyncio
-    import functools
-    from websockets.asyncio.server import ServerConnection, serve
-
-    class MyServerConnection(ServerConnection):
-        def __init__(self, *args, extra_argument=None, **kwargs):
-            super().__init__(*args, **kwargs)
-            # do something with extra_argument
-
-    create_connection = functools.partial(ServerConnection, extra_argument=42)
-    async with serve(..., create_connection=create_connection):
-        ...
-
-This example was for a server. The same pattern applies on a client.
-
 How do I keep idle connections open?
 ------------------------------------
 
@@ -132,3 +111,24 @@ protocol, don't bother, because websockets handles them for you.
 
 If you are connecting to a server that defines its own heartbeat at the
 application level, then you need to build that logic into your application.
+
+How can I pass arguments to a custom connection subclass?
+---------------------------------------------------------
+
+You can bind additional arguments to the connection factory with
+:func:`functools.partial`::
+
+    import asyncio
+    import functools
+    from websockets.asyncio.server import ServerConnection, serve
+
+    class MyServerConnection(ServerConnection):
+        def __init__(self, *args, extra_argument=None, **kwargs):
+            super().__init__(*args, **kwargs)
+            # do something with extra_argument
+
+    create_connection = functools.partial(ServerConnection, extra_argument=42)
+    async with serve(..., create_connection=create_connection):
+        ...
+
+This example was for a server. The same pattern applies on a client.

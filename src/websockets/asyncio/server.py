@@ -530,7 +530,7 @@ class Server:
         """
         # This is a copy-paste of asyncio.Server.serve_forever(), with
         # self.server instead of self, except it calls our close() and
-        # wait_closed() when cancelled to ensure a graceful shutdown.
+        # wait_closed() when canceled to ensure a graceful shutdown.
         if self.server._serving_forever_fut is not None:  # type: ignore[attr-defined]
             raise RuntimeError(
                 f"server {self.server!r} is already being awaited on serve_forever()"

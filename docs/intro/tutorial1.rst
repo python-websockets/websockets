@@ -219,7 +219,7 @@ arguments:
 * The third argument is the port on which the server listens.
 
 :meth:`~asyncio.server.Server.serve_forever` doesn't return. When stopping the
-program with Ctrl-C, it gets cancelled and it shuts down the server properly.
+program with Ctrl-C, it gets canceled and it shuts down the server properly.
 
 For each connection, the ``handler()`` coroutine runs an infinite loop that
 receives messages from the browser and prints them.

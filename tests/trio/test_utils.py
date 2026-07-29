@@ -24,7 +24,7 @@ class UtilsTests(IsolatedTrioTestCase):
             await trio.testing.wait_all_tasks_blocked()
             self.assertTrue(done.is_set())
 
-    async def test_race_events_cancelled(self):
+    async def test_race_events_canceled(self):
         event1 = trio.Event()
         event2 = trio.Event()
 

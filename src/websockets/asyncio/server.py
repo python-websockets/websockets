@@ -422,33 +422,21 @@ class Server:
             await server.serve_forever()
 
         This is an alternative to using :func:`serve` as an asynchronous context
-        manager. Shutdown is triggered by canceling :meth:`serve_forever`
-        instead of exiting a :func:`serve` context.
+        manager. Shutdown is triggered by canceling :meth:`serve_forever` or by
+        calling :meth:`~Server.close` from another task.
 
         """
-        # This is a copy-paste of asyncio.Server.serve_forever(), with
-        # self.server instead of self, except it calls our close() and
-        # wait_closed() when canceled to ensure a graceful shutdown.
-        if self.server._serving_forever_fut is not None:  # type: ignore[attr-defined]
-            raise RuntimeError(
-                f"server {self.server!r} is already being awaited on serve_forever()"
-            )
-        if self.server._sockets is None:  # type: ignore[attr-defined]
-            raise RuntimeError(f"server {self.server!r} is closed")
-
-        self.server._start_serving()  # type: ignore[attr-defined]
-        self.server._serving_forever_fut = self.server._loop.create_future()  # type: ignore[attr-defined]
-
         try:
-            await self.server._serving_forever_fut  # type: ignore[attr-defined]
+            if not self.is_serving():
+                await self.start_serving()
+            # If close() is called, wait_closed() will return, and we'll exit.
+            await self.wait_closed()
         except asyncio.CancelledError:
             try:
                 self.close()
                 await self.wait_closed()
             finally:
                 raise
-        finally:
-            self.server._serving_forever_fut = None  # type: ignore[attr-defined]
 
     @property
     def sockets(self) -> tuple[socket.socket, ...]:

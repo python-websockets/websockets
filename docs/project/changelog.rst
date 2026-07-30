@@ -25,12 +25,20 @@ fixing regressions shortly after a release.
 Only documented APIs are public. Undocumented, private APIs may change without
 notice.
 
-.. _17.1:
+.. _17.0.1:
 
-17.1
-----
+17.0.1
+------
 
 *In development*
+
+Bug fixes
+.........
+
+* Restored compatibility of :meth:`~asyncio.server.Server.serve_forever` in the
+  :mod:`asyncio` implementation with third-party event loops such as uvloop_.
+
+.. _uvloop: https://uvloop.readthedocs.io/
 
 .. _17.0:
 

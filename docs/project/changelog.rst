@@ -30,7 +30,7 @@ notice.
 17.0.1
 ------
 
-*In development*
+*July 31, 2026*
 
 Bug fixes
 .........

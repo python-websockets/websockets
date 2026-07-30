@@ -1255,6 +1255,38 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         """Connection has a close_reason attribute."""
         self.assertIsNone(self.connection.close_reason)
 
+    # Test backpressure.
+
+    async def test_backpressure(self):
+        """Connection stops reading from the network when the buffer fills up."""
+        self.connection.recv_messages.high = 1
+        self.connection.recv_messages.low = 0
+        frames_buffer = self.connection.recv_messages.frames
+
+        await self.remote_connection.send("A")
+        await self.remote_connection.send("B")
+
+        # Assembler buffer is above the high water mark. Backpressure kicks in.
+        await self.wait_for_remote_side()
+        self.assertFalse(self.transport.is_reading())
+        self.assertEqual(len(frames_buffer), 2)
+
+        await self.remote_connection.send("C")
+
+        # A third frame is sent by the peer but the connection doesn't read it.
+        await self.wait_for_remote_side()
+        self.assertEqual(len(frames_buffer), 2)
+
+        self.assertEqual(await self.connection.recv(), "A")
+        self.assertEqual(await self.connection.recv(), "B")
+
+        # Draining the assembler buffer below the low water mark resumes reading.
+        await self.wait_for_remote_side()
+        self.assertTrue(self.transport.is_reading())
+        self.assertEqual(len(frames_buffer), 1)
+
+        self.assertEqual(await self.connection.recv(), "C")
+
     # Test reporting of network errors.
 
     async def test_writing_in_data_received_fails(self):

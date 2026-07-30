@@ -38,6 +38,9 @@ Bug fixes
 * Restored compatibility of :meth:`~asyncio.server.Server.serve_forever` in the
   :mod:`asyncio` implementation with third-party event loops such as uvloop_.
 
+* Prevented the Trio implementation from crashing when backpressure kicks in,
+  i.e. when receiving data faster than the application can process it.
+
 .. _uvloop: https://uvloop.readthedocs.io/
 
 .. _17.0:

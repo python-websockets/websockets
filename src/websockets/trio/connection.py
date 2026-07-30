@@ -84,14 +84,14 @@ class Connection(trio.abc.AsyncResource):
         """Opening handshake response."""
 
         # Lock stopping reads when the assembler buffer is full.
-        self.recv_flow_control = trio.Lock()
+        self.recv_flow_control: trio.Event | None = None
 
         # Assembler turning frames into messages and serializing reads.
         self.recv_messages = Assembler(
             max_queue_high,
             max_queue_low,
-            pause=self.recv_flow_control.acquire_nowait,
-            resume=self.recv_flow_control.release,
+            pause=self.pause_reading,
+            resume=self.resume_reading,
         )
 
         # Deadline for the closing handshake.
@@ -882,8 +882,8 @@ class Connection(trio.abc.AsyncResource):
             while True:
                 try:
                     # If the assembler buffer is full, block until it drains.
-                    async with self.recv_flow_control:
-                        pass
+                    if self.recv_flow_control is not None:
+                        await self.recv_flow_control.wait()
                     data = await self.stream.receive_some()
                 except Exception as exc:
                     if self.debug:
@@ -965,6 +965,16 @@ class Connection(trio.abc.AsyncResource):
         finally:
             # This isn't expected to raise an exception.
             await self.close_stream()
+
+    def pause_reading(self) -> None:
+        """Pause recv_events() until resume_reading() is called."""
+        self.recv_flow_control = trio.Event()
+
+    def resume_reading(self) -> None:
+        """Resume recv_events() after pause_reading() was called."""
+        assert self.recv_flow_control is not None
+        self.recv_flow_control.set()
+        self.recv_flow_control = None
 
     @contextlib.asynccontextmanager
     async def send_context(

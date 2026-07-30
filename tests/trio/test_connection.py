@@ -1210,6 +1210,39 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         """Connection has a close_reason attribute."""
         self.assertIsNone(self.connection.close_reason)
 
+    # Test backpressure.
+
+    async def test_backpressure(self):
+        """Connection stops reading from the network when the buffer fills up."""
+        self.connection.recv_messages.high = 1
+        self.connection.recv_messages.low = 0
+        frames_buffer = self.connection.recv_messages.recv_frames
+
+        await self.remote_connection.send("A")
+        await self.remote_connection.send("B")
+
+        # Assembler buffer is above the high water mark. Backpressure kicks in.
+        await trio.testing.wait_all_tasks_blocked()
+        self.assertIsNotNone(self.connection.recv_flow_control)
+        self.assertFalse(self.connection.recv_flow_control.is_set())
+        self.assertEqual(frames_buffer.statistics().current_buffer_used, 2)
+
+        await self.remote_connection.send("C")
+
+        # A third frame is sent by the peer but the connection doesn't read it.
+        await trio.testing.wait_all_tasks_blocked()
+        self.assertEqual(frames_buffer.statistics().current_buffer_used, 2)
+
+        self.assertEqual(await self.connection.recv(), "A")
+        self.assertEqual(await self.connection.recv(), "B")
+
+        # Draining the assembler buffer below the low water mark resumes reading.
+        await trio.testing.wait_all_tasks_blocked()
+        self.assertIsNone(self.connection.recv_flow_control)
+        self.assertEqual(frames_buffer.statistics().current_buffer_used, 1)
+
+        self.assertEqual(await self.connection.recv(), "C")
+
     # Test reporting of network errors.
 
     async def test_writing_in_recv_events_fails(self):

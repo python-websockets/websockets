@@ -949,6 +949,38 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         """Connection has a close_reason attribute."""
         self.assertIsNone(self.connection.close_reason)
 
+    # Test backpressure.
+
+    def test_backpressure(self):
+        """Connection stops reading from the network when the buffer fills up."""
+        self.connection.recv_messages.high = 1
+        self.connection.recv_messages.low = 0
+        frames_buffer = self.connection.recv_messages.frames
+
+        self.remote_connection.send("A")
+        self.remote_connection.send("B")
+
+        # Assembler buffer is above the high water mark. Backpressure kicks in.
+        self.wait_for_remote_side()
+        self.assertTrue(self.connection.recv_flow_control.locked())
+        self.assertEqual(frames_buffer.qsize(), 2)
+
+        self.remote_connection.send("C")
+
+        # A third frame is sent by the peer but the connection doesn't read it.
+        self.wait_for_remote_side()
+        self.assertEqual(frames_buffer.qsize(), 2)
+
+        self.assertEqual(self.connection.recv(), "A")
+        self.assertEqual(self.connection.recv(), "B")
+
+        # Draining the assembler buffer below the low water mark resumes reading.
+        self.wait_for_remote_side()
+        self.assertFalse(self.connection.recv_flow_control.locked())
+        self.assertEqual(frames_buffer.qsize(), 1)
+
+        self.assertEqual(self.connection.recv(), "C")
+
     # Test reporting of network errors.
 
     def test_writing_in_recv_events_fails(self):

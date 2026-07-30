@@ -786,7 +786,7 @@ def serve(
 
     # Initialize server
 
-    # The `server` variable is captured by the closure of conn_handler().
+    # The server variable is captured by the closure of sock_handler().
     server = Server(sock, sock_handler, logger)
     return server
 

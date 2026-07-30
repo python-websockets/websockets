@@ -20,7 +20,7 @@ try:
 
 except ImportError:
 
-    def route(
+    async def route(
         url_map: Map,
         *args: Any,
         server_name: str | None = None,
@@ -28,12 +28,12 @@ except ImportError:
         create_router: type[Router] | None = None,
         task_status: trio.TaskStatus[Server] = trio.TASK_STATUS_IGNORED,
         **kwargs: Any,
-    ) -> Awaitable[None]:
+    ) -> None:
         raise ImportError("route() requires werkzeug")
 
 else:
 
-    def route(
+    async def route(
         url_map: Map,
         *args: Any,
         server_name: str | None = None,
@@ -41,7 +41,7 @@ else:
         create_router: type[Router] | None = None,
         task_status: trio.TaskStatus[Server] = trio.TASK_STATUS_IGNORED,
         **kwargs: Any,
-    ) -> Awaitable[None]:
+    ) -> None:
         """
         Create a WebSocket server dispatching connections to different handlers.
 
@@ -143,7 +143,7 @@ else:
                     return response
                 return router.route_request(connection, request)
 
-        return serve(
+        return await serve(
             router.handler,
             *args,
             process_request=process_request,

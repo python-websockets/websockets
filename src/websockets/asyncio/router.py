@@ -25,14 +25,14 @@ except ImportError:
         ssl: ssl_module.SSLContext | Literal[True] | None = None,
         create_router: type[Router] | None = None,
         **kwargs: Any,
-    ) -> Awaitable[Server]:
+    ) -> Server:
         raise ImportError("route() requires werkzeug")
 
     def unix_route(
         url_map: Map,
         path: str | None = None,
         **kwargs: Any,
-    ) -> Awaitable[Server]:
+    ) -> Server:
         raise ImportError("unix_route() requires werkzeug")
 
 else:
@@ -44,7 +44,7 @@ else:
         ssl: ssl_module.SSLContext | Literal[True] | None = None,
         create_router: type[Router] | None = None,
         **kwargs: Any,
-    ) -> Awaitable[Server]:
+    ) -> Server:
         """
         Create a WebSocket server dispatching connections to different handlers.
 
@@ -157,7 +157,7 @@ else:
         url_map: Map,
         path: str | None = None,
         **kwargs: Any,
-    ) -> Awaitable[Server]:
+    ) -> Server:
         """
         Create a WebSocket Unix server dispatching connections to different handlers.
 

@@ -231,10 +231,14 @@ class Server:
     """
     WebSocket server returned by :func:`serve`.
 
-    This class mirrors most of the API of :class:`asyncio.Server`.
+    This class mirrors most of the API of :class:`asyncio.Server`, with the
+    following differences:
 
-    It doesn't provide ``close_clients`` or ``abort_clients``; by default,
-    :meth:`close` closes existing connections with code 1001 (going away).
+    * You can invoke :func:`serve` as ``async with serve(...) as server: ...``
+      in addition to ``server = await serve(...)`` to start the server.
+
+    * It doesn't provide ``close_clients`` or ``abort_clients``; by default,
+      :meth:`close` closes existing connections with code 1001 (going away).
 
     Args:
         handler: Handler for one connection. It receives an asyncio protocol.
@@ -246,11 +250,11 @@ class Server:
 
     def __init__(
         self,
+        create_server: Callable[[], Coroutine[Any, Any, asyncio.Server]],
         handler: Callable[[ServerConnection], Coroutine[Any, Any, None]],
-        *,
         logger: LoggerLike | None = None,
     ) -> None:
-        self.loop = asyncio.get_running_loop()
+        self.create_server = create_server
         self.handler = handler
         if logger is None:
             logger = logging.getLogger("websockets.server")
@@ -264,7 +268,8 @@ class Server:
         self.close_task: asyncio.Task[None] | None = None
 
         # Completed when the server is closed and connections are terminated.
-        self.closed_waiter: asyncio.Future[None] = self.loop.create_future()
+        loop = asyncio.get_running_loop()
+        self.handlers_waiter: asyncio.Future[None] = loop.create_future()
 
     @property
     def connections(self) -> set[ServerConnection]:
@@ -281,25 +286,6 @@ class Server:
             for connection in self.all_connections
             if connection.protocol.state is OPEN
         }
-
-    def wrap(self, server: asyncio.Server) -> None:
-        """
-        Attach to a given :class:`asyncio.Server`.
-
-        Since :meth:`~asyncio.loop.create_server` doesn't support injecting a
-        custom ``Server`` class, the easiest solution that doesn't rely on
-        private :mod:`asyncio` APIs is to:
-
-        - instantiate a :class:`Server`
-        - give the protocol factory a reference to that instance
-        - call :meth:`~asyncio.loop.create_server` with the factory
-        - attach the resulting :class:`asyncio.Server` with this method
-
-        """
-        self.server = server
-        if server.is_serving():  # pragma: no branch
-            for sock in server.sockets:
-                self.logger.info("server listening on %s", get_socket_name(sock))
 
     def close(
         self,
@@ -371,7 +357,7 @@ class Server:
             await asyncio.wait(self.handler_tasks)
 
         # Tell wait_closed() to return.
-        self.closed_waiter.set_result(None)
+        self.handlers_waiter.set_result(None)
 
         self.logger.info("server closed")
 
@@ -394,7 +380,7 @@ class Server:
         it can clean up and exit.
 
         """
-        await asyncio.shield(self.closed_waiter)
+        await asyncio.shield(self.handlers_waiter)
 
     def get_loop(self) -> asyncio.AbstractEventLoop:
         """
@@ -472,8 +458,20 @@ class Server:
         """
         return self.server.sockets
 
-    async def __aenter__(self) -> Self:
+    async def _await(self) -> Self:
+        if not hasattr(self, "server"):
+            self.server = await self.create_server()
+            if self.server.is_serving():  # pragma: no branch
+                for sock in self.server.sockets:
+                    self.logger.info("server listening on %s", get_socket_name(sock))
         return self
+
+    def __await__(self) -> Generator[Any, None, Self]:
+        # Create a suitable iterator by calling __await__ on a coroutine.
+        return self._await().__await__()
+
+    async def __aenter__(self) -> Self:
+        return await self
 
     async def __aexit__(
         self,
@@ -485,8 +483,59 @@ class Server:
         await self.wait_closed()
 
 
-# This is spelled in lower case because it's exposed as a callable in the API.
-class serve:
+# serve() is declared as a function rather than a coroutine in order to support
+# async with serve(...) as server: ... in addition to server = await serve(...).
+
+
+def serve(
+    handler: Callable[[ServerConnection], Awaitable[None]],
+    host: str | None = None,
+    port: int | None = None,
+    *,
+    # WebSocket
+    origins: Sequence[Origin | re.Pattern[str] | None] | None = None,
+    extensions: Sequence[ServerExtensionFactory] | None = None,
+    subprotocols: Sequence[Subprotocol] | None = None,
+    select_subprotocol: (
+        Callable[
+            [ServerConnection, Sequence[Subprotocol]],
+            Subprotocol | None,
+        ]
+        | None
+    ) = None,
+    compression: str | None = "deflate",
+    # HTTP
+    process_request: (
+        Callable[
+            [ServerConnection, Request],
+            Awaitable[Response | None] | Response | None,
+        ]
+        | None
+    ) = None,
+    process_response: (
+        Callable[
+            [ServerConnection, Request, Response],
+            Awaitable[Response | None] | Response | None,
+        ]
+        | None
+    ) = None,
+    server_header: str | None = SERVER,
+    # Timeouts
+    open_timeout: float | None = 10,
+    ping_interval: float | None = 20,
+    ping_timeout: float | None = 20,
+    close_timeout: float | None = 10,
+    # Limits
+    max_size: int | None | tuple[int | None, int | None] = 2**20,
+    max_queue: int | None | tuple[int | None, int | None] = 16,
+    write_limit: int | tuple[int, int | None] = 2**15,
+    # Logging
+    logger: LoggerLike | None = None,
+    # Escape hatch for advanced customization
+    create_connection: type[ServerConnection] | None = None,
+    # Other keyword arguments are passed to loop.create_server
+    **kwargs: Any,
+) -> Server:
     """
     Create a WebSocket server listening on ``host`` and ``port``.
 
@@ -499,9 +548,9 @@ class serve:
     Once the handler completes, either normally or with an exception, the server
     performs the closing handshake and closes the connection.
 
-    This coroutine returns a :class:`Server` object whose API mirrors
+    This function returns a :class:`Server` object whose API mirrors
     :class:`asyncio.Server`. Treat it as an asynchronous context manager to
-    ensure that the server will be closed gracefully::
+    serve requests and ensure that the server will be closed gracefully::
 
         from websockets.asyncio.server import serve
 
@@ -514,8 +563,8 @@ class serve:
         async with serve(handler, host, port):
             await stop.wait()
 
-    Alternatively, call :meth:`~Server.serve_forever` to serve requests, then
-    cancel it or call :meth:`~Server.close` to stop the server::
+    Alternatively, await it and call :meth:`~Server.serve_forever` to serve
+    requests, then cancel it or call :meth:`~Server.close` to stop the server::
 
         server = await serve(handler, host, port)
         await server.serve_forever()
@@ -611,202 +660,130 @@ class serve:
       :meth:`~Server.serve_forever()`.
 
     """
+    if subprotocols is not None:
+        validate_subprotocols(subprotocols)
 
-    def __init__(
-        self,
-        handler: Callable[[ServerConnection], Awaitable[None]],
-        host: str | None = None,
-        port: int | None = None,
-        *,
-        # WebSocket
-        origins: Sequence[Origin | re.Pattern[str] | None] | None = None,
-        extensions: Sequence[ServerExtensionFactory] | None = None,
-        subprotocols: Sequence[Subprotocol] | None = None,
-        select_subprotocol: (
+    if compression == "deflate":
+        extensions = enable_server_permessage_deflate(extensions)
+    elif compression is not None:
+        raise ValueError(f"unsupported compression: {compression}")
+
+    if create_connection is None:
+        create_connection = ServerConnection
+
+    if kwargs.get("ssl") is not None:
+        kwargs.setdefault("ssl_handshake_timeout", open_timeout)
+        kwargs.setdefault("ssl_shutdown_timeout", close_timeout)
+
+    async def create_server() -> asyncio.Server:
+        loop = asyncio.get_running_loop()
+        if kwargs.pop("unix", False):
+            return await loop.create_unix_server(protocol_factory, **kwargs)
+        else:
+            # mypy cannot tell that kwargs must provide sock when port is None.
+            return await loop.create_server(protocol_factory, host, port, **kwargs)  # type: ignore[arg-type]
+
+    def protocol_factory() -> ServerConnection:
+        """
+        Create an asyncio protocol for managing a WebSocket connection.
+
+        """
+        # Create a closure to give select_subprotocol access to connection.
+        protocol_select_subprotocol: (
             Callable[
-                [ServerConnection, Sequence[Subprotocol]],
+                [ServerProtocol, Sequence[Subprotocol]],
                 Subprotocol | None,
             ]
             | None
-        ) = None,
-        compression: str | None = "deflate",
-        # HTTP
-        process_request: (
-            Callable[
-                [ServerConnection, Request],
-                Awaitable[Response | None] | Response | None,
-            ]
-            | None
-        ) = None,
-        process_response: (
-            Callable[
-                [ServerConnection, Request, Response],
-                Awaitable[Response | None] | Response | None,
-            ]
-            | None
-        ) = None,
-        server_header: str | None = SERVER,
-        # Timeouts
-        open_timeout: float | None = 10,
-        ping_interval: float | None = 20,
-        ping_timeout: float | None = 20,
-        close_timeout: float | None = 10,
-        # Limits
-        max_size: int | None | tuple[int | None, int | None] = 2**20,
-        max_queue: int | None | tuple[int | None, int | None] = 16,
-        write_limit: int | tuple[int, int | None] = 2**15,
-        # Logging
-        logger: LoggerLike | None = None,
-        # Escape hatch for advanced customization
-        create_connection: type[ServerConnection] | None = None,
-        # Other keyword arguments are passed to loop.create_server
-        **kwargs: Any,
-    ) -> None:
-        if subprotocols is not None:
-            validate_subprotocols(subprotocols)
+        ) = None
+        if select_subprotocol is not None:
 
-        if compression == "deflate":
-            extensions = enable_server_permessage_deflate(extensions)
-        elif compression is not None:
-            raise ValueError(f"unsupported compression: {compression}")
+            def protocol_select_subprotocol(
+                protocol: ServerProtocol,
+                subprotocols: Sequence[Subprotocol],
+            ) -> Subprotocol | None:
+                # mypy doesn't know that select_subprotocol is immutable.
+                assert select_subprotocol is not None
+                # Ensure this function is only used in the intended context.
+                assert protocol is connection.protocol
+                return select_subprotocol(connection, subprotocols)
 
-        if create_connection is None:
-            create_connection = ServerConnection
+        # This is a protocol in the Sans-I/O implementation of websockets.
+        protocol = ServerProtocol(
+            origins=origins,
+            extensions=extensions,
+            subprotocols=subprotocols,
+            select_subprotocol=protocol_select_subprotocol,
+            max_size=max_size,
+            logger=logger,
+        )
+        # This is a connection in websockets and a protocol in asyncio.
+        connection = create_connection(
+            protocol,
+            server,
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
+            close_timeout=close_timeout,
+            max_queue=max_queue,
+            write_limit=write_limit,
+        )
+        return connection
 
-        if kwargs.get("ssl") is not None:
-            kwargs.setdefault("ssl_handshake_timeout", open_timeout)
-            kwargs.setdefault("ssl_shutdown_timeout", close_timeout)
+    async def protocol_handler(connection: ServerConnection) -> None:
+        """
+        Handle the lifecycle of a WebSocket connection.
 
-        async def protocol_handler(connection: ServerConnection) -> None:
-            """
-            Handle the lifecycle of a WebSocket connection.
+        Since this coroutine doesn't have a caller that can handle
+        exceptions, it attempts to log relevant ones.
 
-            Since this coroutine doesn't have a caller that can handle
-            exceptions, it attempts to log relevant ones.
+        It guarantees that the TCP connection is closed before exiting.
 
-            It guarantees that the TCP connection is closed before exiting.
+        """
+        try:
+            # Apply open_timeout to the WebSocket handshake.
+            # Use ssl_handshake_timeout for the TLS handshake.
+            async with asyncio.timeout(open_timeout):
+                await connection.handshake(
+                    process_request,
+                    process_response,
+                    server_header,
+                )
 
-            """
-            try:
-                # Apply open_timeout to the WebSocket handshake.
-                # Use ssl_handshake_timeout for the TLS handshake.
-                async with asyncio.timeout(open_timeout):
-                    await connection.handshake(
-                        process_request,
-                        process_response,
-                        server_header,
-                    )
-
-                if connection.protocol.state is not OPEN:
-                    connection.transport.abort()
-                    return
-
-                server.all_connections.add(connection)
-                connection.start_keepalive()
-                try:
-                    await handler(connection)
-                except Exception:
-                    connection.logger.error("connection handler failed", exc_info=True)
-                    await connection.close(CloseCode.INTERNAL_ERROR)
-                else:
-                    await connection.close()
-                finally:
-                    server.all_connections.discard(connection)
-
-            except Exception:
-                # Don't leak connections when the opening handshake times out or
-                # an unexpected error occurs.
+            if connection.protocol.state is not OPEN:
                 connection.transport.abort()
+                return
 
+            server.all_connections.add(connection)
+            connection.start_keepalive()
+            try:
+                await handler(connection)
+            except Exception:
+                connection.logger.error("connection handler failed", exc_info=True)
+                await connection.close(CloseCode.INTERNAL_ERROR)
+            else:
+                await connection.close()
             finally:
-                server.handler_tasks.discard(asyncio.current_task())
+                server.all_connections.discard(connection)
 
-        self.server = server = Server(protocol_handler, logger=logger)
+        except Exception:
+            # Don't leak connections when the opening handshake times out or
+            # an unexpected error occurs.
+            connection.transport.abort()
 
-        def factory() -> ServerConnection:
-            """
-            Create an asyncio protocol for managing a WebSocket connection.
+        finally:
+            server.handler_tasks.discard(asyncio.current_task())
 
-            """
-            # Create a closure to give select_subprotocol access to connection.
-            protocol_select_subprotocol: (
-                Callable[
-                    [ServerProtocol, Sequence[Subprotocol]],
-                    Subprotocol | None,
-                ]
-                | None
-            ) = None
-            if select_subprotocol is not None:
-
-                def protocol_select_subprotocol(
-                    protocol: ServerProtocol,
-                    subprotocols: Sequence[Subprotocol],
-                ) -> Subprotocol | None:
-                    # mypy doesn't know that select_subprotocol is immutable.
-                    assert select_subprotocol is not None
-                    # Ensure this function is only used in the intended context.
-                    assert protocol is connection.protocol
-                    return select_subprotocol(connection, subprotocols)
-
-            # This is a protocol in the Sans-I/O implementation of websockets.
-            protocol = ServerProtocol(
-                origins=origins,
-                extensions=extensions,
-                subprotocols=subprotocols,
-                select_subprotocol=protocol_select_subprotocol,
-                max_size=max_size,
-                logger=logger,
-            )
-            # This is a connection in websockets and a protocol in asyncio.
-            connection = create_connection(
-                protocol,
-                self.server,
-                ping_interval=ping_interval,
-                ping_timeout=ping_timeout,
-                close_timeout=close_timeout,
-                max_queue=max_queue,
-                write_limit=write_limit,
-            )
-            return connection
-
-        loop = asyncio.get_running_loop()
-        if kwargs.pop("unix", False):
-            self.create_server = loop.create_unix_server(factory, **kwargs)
-        else:
-            # mypy cannot tell that kwargs must provide sock when port is None.
-            self.create_server = loop.create_server(factory, host, port, **kwargs)  # type: ignore[arg-type]
-
-    # async with serve(...) as ...: ...
-
-    async def __aenter__(self) -> Server:
-        return await self
-
-    async def __aexit__(
-        self,
-        exc_type: type[BaseException] | None,
-        exc_value: BaseException | None,
-        traceback: TracebackType | None,
-    ) -> None:
-        self.server.close()
-        await self.server.wait_closed()
-
-    # ... = await serve(...)
-
-    def __await__(self) -> Generator[Any, None, Server]:
-        # Create a suitable iterator by calling __await__ on a coroutine.
-        return self.__await_impl__().__await__()
-
-    async def __await_impl__(self) -> Server:
-        server = await self.create_server
-        self.server.wrap(server)
-        return self.server
+    # The server variable is captured by the closure of conn_handler() and
+    # protocol_factory().
+    server = Server(create_server, protocol_handler, logger)
+    return server
 
 
 def unix_serve(
     handler: Callable[[ServerConnection], Awaitable[None]],
     path: str | None = None,
     **kwargs: Any,
-) -> Awaitable[Server]:
+) -> Server:
     """
     Create a WebSocket server listening on a Unix socket.
 

@@ -653,6 +653,6 @@ async def serve(
                 # an unexpected error occurs.
                 await trio.aclose_forcefully(stream)
 
-    # The `server` variable is captured by the closure of conn_handler().
+    # The server variable is captured by the closure of conn_handler().
     server = Server(listeners, stream_handler, logger)
     await server.serve_forever(task_status=task_status)

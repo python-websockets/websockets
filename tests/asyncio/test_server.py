@@ -567,15 +567,16 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 async with asyncio.timeout(5 * MS):
                     await server.wait_closed()
 
-    async def test_serve_context_manager_closes_server(self):
-        """Server closes when exiting serve() used as a context manager."""
+    async def test_context_manager_closes_server(self):
+        """Server closes when exiting asynchronous context manager."""
         async with serve(handler, "localhost", 0) as server:
             self.assertTrue(server.is_serving())
 
         self.assertFalse(server.is_serving())
 
-    async def test_context_manager_closes_server(self):
-        """Server closes when exiting context manager."""
+    async def test_context_manager_after_await(self):
+        """Server can be used as an asynchronous context manager after await."""
+        # This is redundant, but has been historically supported.
         server = await serve(handler, "localhost", 0)
         async with server:
             self.assertTrue(server.is_serving())

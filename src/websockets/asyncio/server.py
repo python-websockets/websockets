@@ -6,7 +6,7 @@ import http
 import logging
 import re
 import socket
-from collections.abc import Awaitable, Generator, Iterable, Sequence
+from collections.abc import Awaitable, Coroutine, Generator, Iterable, Sequence
 from types import TracebackType
 from typing import Any, Callable, Mapping, Self, cast
 
@@ -220,7 +220,11 @@ class ServerConnection(Connection):
 
     def connection_made(self, transport: asyncio.BaseTransport) -> None:
         super().connection_made(transport)
-        self.server.start_connection_handler(self)
+        # The handler task must be registered in self.handler_tasks now. If it
+        # was registered inside the task, a race condition could happen when
+        # closing the server after scheduling the task but before it executes.
+        handler_task = self.loop.create_task(self.server.handler(self))
+        self.server.handler_tasks.add(handler_task)
 
 
 class Server:
@@ -233,24 +237,7 @@ class Server:
     :meth:`close` closes existing connections with code 1001 (going away).
 
     Args:
-        handler: Connection handler. It receives the WebSocket connection,
-            which is a :class:`ServerConnection`.
-        process_request: Intercept the request during the opening handshake.
-            Return an HTTP response to force the response. Return :obj:`None` to
-            continue normally. When you force an HTTP 101 Continue response, the
-            handshake is successful. Else, the connection is aborted.
-            ``process_request`` may be a function or a coroutine.
-        process_response: Intercept the response during the opening handshake.
-            Modify the response or return a new HTTP response to force the
-            response. Return :obj:`None` to continue normally. When you force an
-            HTTP 101 Continue response, the handshake is successful. Else, the
-            connection is aborted. ``process_response`` may be a function or a
-            coroutine.
-        server_header: Value of  the ``Server`` response header.
-            It defaults to ``"Python/x.y.z websockets/X.Y"``. Setting it to
-            :obj:`None` removes the header.
-        open_timeout: Timeout for opening connections in seconds.
-            :obj:`None` disables the timeout.
+        handler: Handler for one connection. It receives an asyncio protocol.
         logger: Logger for this server.
             It defaults to ``logging.getLogger("websockets.server")``.
             See the :doc:`logging guide <../../topics/logging>` for details.
@@ -259,32 +246,12 @@ class Server:
 
     def __init__(
         self,
-        handler: Callable[[ServerConnection], Awaitable[None]],
+        handler: Callable[[ServerConnection], Coroutine[Any, Any, None]],
         *,
-        process_request: (
-            Callable[
-                [ServerConnection, Request],
-                Awaitable[Response | None] | Response | None,
-            ]
-            | None
-        ) = None,
-        process_response: (
-            Callable[
-                [ServerConnection, Request, Response],
-                Awaitable[Response | None] | Response | None,
-            ]
-            | None
-        ) = None,
-        server_header: str | None = SERVER,
-        open_timeout: float | None = 10,
         logger: LoggerLike | None = None,
     ) -> None:
         self.loop = asyncio.get_running_loop()
         self.handler = handler
-        self.process_request = process_request
-        self.process_response = process_response
-        self.server_header = server_header
-        self.open_timeout = open_timeout
         if logger is None:
             logger = logging.getLogger("websockets.server")
         self.logger = logger
@@ -333,61 +300,6 @@ class Server:
         if server.is_serving():  # pragma: no branch
             for sock in server.sockets:
                 self.logger.info("server listening on %s", get_socket_name(sock))
-
-    async def conn_handler(self, connection: ServerConnection) -> None:
-        """
-        Handle the lifecycle of a WebSocket connection.
-
-        Since this method doesn't have a caller that can handle exceptions,
-        it attempts to log relevant ones.
-
-        It guarantees that the TCP connection is closed before exiting.
-
-        """
-        try:
-            # Apply open_timeout to the WebSocket handshake.
-            # Use ssl_handshake_timeout for the TLS handshake.
-            async with asyncio.timeout(self.open_timeout):
-                await connection.handshake(
-                    self.process_request,
-                    self.process_response,
-                    self.server_header,
-                )
-
-            if connection.protocol.state is not OPEN:
-                connection.transport.abort()
-                return
-
-            self.all_connections.add(connection)
-            connection.start_keepalive()
-            try:
-                await self.handler(connection)
-            except Exception:
-                connection.logger.error("connection handler failed", exc_info=True)
-                await connection.close(CloseCode.INTERNAL_ERROR)
-            else:
-                await connection.close()
-            finally:
-                self.all_connections.discard(connection)
-
-        except Exception:
-            # Don't leak connections when the opening handshake times out or an
-            # unexpected error occurs.
-            connection.transport.abort()
-
-        finally:
-            self.handler_tasks.discard(asyncio.current_task())
-
-    def start_connection_handler(self, connection: ServerConnection) -> None:
-        """
-        Register a connection with this server.
-
-        """
-        # The handler task must be registered in self.handler_tasks now. If it
-        # was registered in conn_handler(), a race condition could happen when
-        # closing the server after scheduling the task but before it executes.
-        handler_task = self.loop.create_task(self.conn_handler(connection))
-        self.handler_tasks.add(handler_task)
 
     def close(
         self,
@@ -761,18 +673,55 @@ class serve:
         if create_connection is None:
             create_connection = ServerConnection
 
-        self.server = Server(
-            handler,
-            process_request=process_request,
-            process_response=process_response,
-            server_header=server_header,
-            open_timeout=open_timeout,
-            logger=logger,
-        )
-
         if kwargs.get("ssl") is not None:
             kwargs.setdefault("ssl_handshake_timeout", open_timeout)
             kwargs.setdefault("ssl_shutdown_timeout", close_timeout)
+
+        async def protocol_handler(connection: ServerConnection) -> None:
+            """
+            Handle the lifecycle of a WebSocket connection.
+
+            Since this coroutine doesn't have a caller that can handle
+            exceptions, it attempts to log relevant ones.
+
+            It guarantees that the TCP connection is closed before exiting.
+
+            """
+            try:
+                # Apply open_timeout to the WebSocket handshake.
+                # Use ssl_handshake_timeout for the TLS handshake.
+                async with asyncio.timeout(open_timeout):
+                    await connection.handshake(
+                        process_request,
+                        process_response,
+                        server_header,
+                    )
+
+                if connection.protocol.state is not OPEN:
+                    connection.transport.abort()
+                    return
+
+                server.all_connections.add(connection)
+                connection.start_keepalive()
+                try:
+                    await handler(connection)
+                except Exception:
+                    connection.logger.error("connection handler failed", exc_info=True)
+                    await connection.close(CloseCode.INTERNAL_ERROR)
+                else:
+                    await connection.close()
+                finally:
+                    server.all_connections.discard(connection)
+
+            except Exception:
+                # Don't leak connections when the opening handshake times out or
+                # an unexpected error occurs.
+                connection.transport.abort()
+
+            finally:
+                server.handler_tasks.discard(asyncio.current_task())
+
+        self.server = server = Server(protocol_handler, logger=logger)
 
         def factory() -> ServerConnection:
             """

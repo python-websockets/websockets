@@ -7,7 +7,7 @@ import re
 import ssl as ssl_module
 from collections.abc import Awaitable, Mapping, Sequence
 from types import TracebackType
-from typing import Any, Callable, Self
+from typing import Any, Callable, Coroutine, Self
 
 import trio
 import trio.abc
@@ -234,7 +234,7 @@ class Server(trio.abc.AsyncResource):
     def __init__(
         self,
         listeners: list[trio.SocketListener],
-        handler: Callable[[trio.abc.Stream], Awaitable[None]],
+        handler: Callable[[trio.abc.Stream], Coroutine[Any, Any, None]],
         logger: LoggerLike | None = None,
     ) -> None:
         self.listeners = listeners
@@ -551,6 +551,15 @@ async def serve(
             raise ValueError("backlog is incompatible with listeners")
 
     async def stream_handler(stream: trio.abc.Stream) -> None:
+        """
+        Handle the lifecycle of a WebSocket connection.
+
+        Since this coroutine doesn't have a caller that can handle
+        exceptions, it attempts to log relevant ones.
+
+        It guarantees that the TCP connection is closed before exiting.
+
+        """
         async with trio.open_nursery() as nursery:
             try:
                 # Apply open_timeout to the TLS and WebSocket handshake.

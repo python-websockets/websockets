@@ -882,9 +882,7 @@ class Connection:
                     if self.protocol.close_expected():
                         if self.close_deadline is None:
                             self.close_deadline = Deadline(self.close_timeout)
-                        # Ignore coverage because the opening handshake is
-                        # tested in test_client.py, not test_connection.py.
-                        if self.protocol.state is CONNECTING:  # pragma: no cover
+                        if self.protocol.state is CONNECTING:
                             close_expected_while_connecting = True
 
                 # Unlock conn_mutex before processing events. Else, the

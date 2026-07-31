@@ -198,15 +198,15 @@ class Headers(MutableMapping[str, str]):
 
 
 # copy of _typeshed.SupportsKeysAndGetItem.
-class SupportsKeysAndGetItem(Protocol):  # pragma: no cover
+class SupportsKeysAndGetItem(Protocol):
     """
     Dict-like types with ``keys() -> str`` and ``__getitem__(key: str) -> str`` methods.
 
     """
 
-    def keys(self) -> Iterable[str]: ...
+    def keys(self) -> Iterable[str]: ...  # pragma: no branch
 
-    def __getitem__(self, key: str) -> str: ...
+    def __getitem__(self, key: str) -> str: ...  # pragma: no branch
 
 
 HeadersLike = (

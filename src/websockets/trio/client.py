@@ -583,7 +583,7 @@ class connect:
             assert isinstance(exc, BaseExceptionGroup)
             try:
                 trio._util.raise_single_exception_from_group(exc)
-            except trio._util.MultipleExceptionError:  # pragma: no cover
+            except trio._util.MultipleExceptionError:
                 raise AssertionError(
                     "unexpected multiple exceptions; please file a bug report"
                 ) from exc

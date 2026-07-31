@@ -30,7 +30,7 @@ async def race_events(*events: trio.Event) -> None:
     except BaseExceptionGroup as exc:
         try:
             trio._util.raise_single_exception_from_group(exc)
-        except trio._util.MultipleExceptionError:  # pragma: no cover
+        except trio._util.MultipleExceptionError:
             raise AssertionError(
                 "race_events should be canceled; please file a bug report"
             ) from exc

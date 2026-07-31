@@ -1043,26 +1043,26 @@ class Connection(asyncio.Protocol):
 
     # Flow control callbacks
 
-    def pause_writing(self) -> None:  # pragma: no cover
+    def pause_writing(self) -> None:
         # Adapted from asyncio.streams.FlowControlMixin
         assert not self.paused
         self.paused = True
 
-    def resume_writing(self) -> None:  # pragma: no cover
+    def resume_writing(self) -> None:
         # Adapted from asyncio.streams.FlowControlMixin
         assert self.paused
         self.paused = False
         for waiter in self.drain_waiters:
-            if not waiter.done():
+            if not waiter.done():  # pragma: no branch
                 waiter.set_result(None)
 
-    async def drain(self) -> None:  # pragma: no cover
+    async def drain(self) -> None:
         # We don't check if the connection is closed because we call drain()
         # immediately after write() and write() would fail in that case.
 
         # Adapted from asyncio.streams.StreamWriter
         # Yield to the event loop so that connection_lost() may be called.
-        if self.transport.is_closing():
+        if self.transport.is_closing():  # pragma: no cover
             await asyncio.sleep(0)
 
         # Adapted from asyncio.streams.FlowControlMixin

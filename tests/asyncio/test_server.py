@@ -567,24 +567,20 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 async with asyncio.timeout(5 * MS):
                     await server.wait_closed()
 
-    async def test_context_manager_closes_server(self):
-        """Server closes when exiting asynchronous context manager."""
-        async with serve(handler, "localhost", 0) as server:
-            self.assertTrue(server.is_serving())
+    async def test_get_loop(self):
+        """Server provides a get_loop() method."""
+        async with serve(*args) as server:
+            self.assertIs(server.get_loop(), asyncio.get_running_loop())
 
+    async def test_start_serving(self):
+        """Server starts serving when start_serving() is called."""
+        server = await serve(*args, start_serving=False)
         self.assertFalse(server.is_serving())
-
-    async def test_context_manager_after_await(self):
-        """Server can be used as an asynchronous context manager after await."""
-        # This is redundant, but has been historically supported.
-        server = await serve(handler, "localhost", 0)
-        async with server:
-            self.assertTrue(server.is_serving())
-
-        self.assertFalse(server.is_serving())
+        await server.start_serving()
+        self.assertTrue(server.is_serving())
 
     async def test_serve_forever(self):
-        """Server runs until serve_forever() is canceled."""
+        """Server runs until canceled when serve_forever() is called."""
         server = await serve(*args)
         serve_forever_task = asyncio.get_running_loop().create_task(
             server.serve_forever()
@@ -600,7 +596,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
         self.assertFalse(server.is_serving())
 
     async def test_serve_forever_starts_serving(self):
-        """serve_forever() starts serving when start_serving is False."""
+        """Server starts serving when serve_forever() is called."""
         server = await serve(*args, start_serving=False)
         self.assertFalse(server.is_serving())
 
@@ -647,11 +643,42 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
         async with asyncio.timeout(MS):
             await serve_forever_task
 
+    async def test_is_serving(self):
+        """Server provides an is_serving() method."""
+        async with serve(*args) as server:
+            self.assertTrue(server.is_serving())
+        self.assertFalse(server.is_serving())
+
+    async def test_wait_closed(self):
+        """Server provides a wait_closed() method."""
+        async with serve(*args) as server:
+            wait_closed = asyncio.create_task(server.wait_closed())
+            await asyncio.sleep(0)
+            self.assertFalse(wait_closed.done())
+        self.assertTrue(wait_closed.done())
+
     async def test_sockets(self):
         """Server provides a sockets property."""
         async with serve(*args) as server:
             sock = server.sockets[0]
             self.assertIsInstance(sock.fileno(), int)
+        self.assertEqual(server.sockets, ())
+
+    async def test_context_manager_closes_server(self):
+        """Server closes when exiting the asynchronous context manager."""
+        async with serve(handler, "localhost", 0) as server:
+            self.assertTrue(server.is_serving())
+
+        self.assertFalse(server.is_serving())
+
+    async def test_context_manager_with_await_closes_server(self):
+        """Server closes when exiting the asynchronous context manager after await."""
+        # This is redundant, but has been historically supported.
+        server = await serve(handler, "localhost", 0)
+        async with server:
+            self.assertTrue(server.is_serving())
+
+        self.assertFalse(server.is_serving())
 
 
 SSL_OBJECT = "ws.transport.get_extra_info('ssl_object')"

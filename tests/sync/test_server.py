@@ -475,6 +475,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
                 shutdown_thread.join(5 * MS)
                 self.assertFalse(shutdown_thread.is_alive())
 
+    def test_fileno(self):
+        """Server provides a fileno method."""
+        with run_server() as server:
+            self.assertIsInstance(server.fileno(), int)
+
     def test_context_manager_closes_server(self):
         """Server closes when exiting context manager."""
         with serve(handler, "localhost", 0) as server:
@@ -484,11 +489,6 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
             self.assertFalse(server.socket_closed.is_set())
 
         self.assertTrue(server.socket_closed.is_set())
-
-    def test_fileno(self):
-        """Server provides a fileno method."""
-        with run_server() as server:
-            self.assertIsInstance(server.fileno(), int)
 
 
 class SecureServerTests(EvalShellMixin, unittest.TestCase):

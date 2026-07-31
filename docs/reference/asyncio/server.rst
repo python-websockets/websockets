@@ -36,15 +36,15 @@ Running a server
 
     .. automethod:: close
 
-    .. automethod:: wait_closed
-
     .. automethod:: get_loop
-
-    .. automethod:: is_serving
 
     .. automethod:: start_serving
 
     .. automethod:: serve_forever
+
+    .. automethod:: is_serving
+
+    .. automethod:: wait_closed
 
     .. autoattribute:: sockets
 

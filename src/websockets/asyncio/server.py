@@ -361,27 +361,6 @@ class Server:
 
         self.logger.info("server closed")
 
-    async def wait_closed(self) -> None:
-        """
-        Wait until the server is closed.
-
-        When :meth:`wait_closed` returns, all TCP connections are closed and
-        all connection handlers have returned.
-
-        To ensure a fast shutdown, a connection handler should always be
-        awaiting at least one of:
-
-        * :meth:`~ServerConnection.recv`: when the connection is closed,
-          it raises :exc:`~websockets.exceptions.ConnectionClosedOK`;
-        * :meth:`~ServerConnection.wait_closed`: when the connection is
-          closed, it returns.
-
-        Then the connection handler is immediately notified of the shutdown;
-        it can clean up and exit.
-
-        """
-        await asyncio.shield(self.handlers_waiter)
-
     def get_loop(self) -> asyncio.AbstractEventLoop:
         """
         See :meth:`asyncio.Server.get_loop`.
@@ -389,14 +368,7 @@ class Server:
         """
         return self.server.get_loop()
 
-    def is_serving(self) -> bool:
-        """
-        See :meth:`asyncio.Server.is_serving`.
-
-        """
-        return self.server.is_serving()
-
-    async def start_serving(self) -> None:  # pragma: no cover
+    async def start_serving(self) -> None:
         """
         See :meth:`asyncio.Server.start_serving`.
 
@@ -438,6 +410,34 @@ class Server:
             finally:
                 raise
 
+    def is_serving(self) -> bool:
+        """
+        See :meth:`asyncio.Server.is_serving`.
+
+        """
+        return self.server.is_serving()
+
+    async def wait_closed(self) -> None:
+        """
+        Wait until the server is closed.
+
+        When :meth:`wait_closed` returns, all TCP connections are closed and
+        all connection handlers have returned.
+
+        To ensure a fast shutdown, a connection handler should always be
+        awaiting at least one of:
+
+        * :meth:`~ServerConnection.recv`: when the connection is closed,
+          it raises :exc:`~websockets.exceptions.ConnectionClosedOK`;
+        * :meth:`~ServerConnection.wait_closed`: when the connection is
+          closed, it returns.
+
+        Then the connection handler is immediately notified of the shutdown;
+        it can clean up and exit.
+
+        """
+        await asyncio.shield(self.handlers_waiter)
+
     @property
     def sockets(self) -> tuple[socket.socket, ...]:
         """
@@ -449,7 +449,7 @@ class Server:
     async def _await(self) -> Self:
         if not hasattr(self, "server"):
             self.server = await self.create_server()
-            if self.server.is_serving():  # pragma: no branch
+            if self.server.is_serving():
                 for sock in self.server.sockets:
                     self.logger.info("server listening on %s", get_socket_name(sock))
         return self

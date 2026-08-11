@@ -63,14 +63,14 @@ class ClientTests(IsolatedTrioTestCase):
     async def test_explicit_host_port(self):
         """Client connects using an explicit host / port."""
         async with run_server() as server:
-            host, port = get_host_port(server.listeners)
+            host, port = get_host_port(server)
             async with connect("ws://overridden/", host=host, port=port) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
 
     async def test_existing_stream(self):
         """Client connects using a pre-existing stream."""
         async with run_server() as server:
-            stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+            stream = await trio.open_tcp_stream(*get_host_port(server))
             # Use a non-existing domain to ensure we connect via stream.
             async with connect("ws://invalid/", stream=stream) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
@@ -306,7 +306,7 @@ class ClientTests(IsolatedTrioTestCase):
                 return response
 
         async with run_server(process_request=redirect) as server:
-            host, port = get_host_port(server.listeners)
+            host, port = get_host_port(server)
             async with connect(
                 "ws://overridden/redirect", host=host, port=port
             ) as client:
@@ -321,7 +321,7 @@ class ClientTests(IsolatedTrioTestCase):
             return response
 
         async with run_server(process_request=redirect) as server:
-            host, port = get_host_port(server.listeners)
+            host, port = get_host_port(server)
             with self.assertRaises(ValueError) as raised:
                 async with connect("ws://overridden/", host=host, port=port):
                     self.fail("did not raise")
@@ -341,9 +341,9 @@ class ClientTests(IsolatedTrioTestCase):
             return response
 
         async with run_server(process_request=redirect) as server:
-            stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+            stream = await trio.open_tcp_stream(*get_host_port(server))
             with self.assertRaises(ValueError) as raised:
-                # Use a non-existing domain to ensure we connect via sock.
+                # Use a non-existing domain to ensure we connect via stream.
                 async with connect("ws://invalid/redirect", stream=stream):
                     self.fail("did not raise")
 
@@ -505,7 +505,11 @@ class ClientTests(IsolatedTrioTestCase):
         async with trio.open_nursery() as nursery:
             try:
                 listeners = await nursery.start(trio.serve_tcp, junk, 0)
-                host, port = get_host_port(listeners)
+                host, port = next(
+                    listener
+                    for listener in listeners
+                    if listener.socket.family == socket.AF_INET
+                ).socket.getsockname()
                 with self.assertRaises(InvalidMessage) as raised:
                     async with connect(f"ws://{host}:{port}"):
                         self.fail("did not raise")
@@ -537,7 +541,7 @@ class SecureClientTests(IsolatedTrioTestCase):
     async def test_set_server_hostname_implicitly(self):
         """Client sets server_hostname to the host in the WebSocket URI."""
         async with run_server(ssl=SERVER_CONTEXT) as server:
-            host, port = get_host_port(server.listeners)
+            host, port = get_host_port(server)
             async with connect(
                 "wss://overridden/", host=host, port=port, ssl=CLIENT_CONTEXT
             ) as client:
@@ -721,7 +725,7 @@ class SocksProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
     async def test_ignore_proxy_with_existing_stream(self):
         """Cli ent connects using a pre-existing stream."""
         async with run_server() as server:
-            stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+            stream = await trio.open_tcp_stream(*get_host_port(server))
             # Use a non-existing domain to ensure we connect via stream.
             async with connect("ws://invalid/", stream=stream) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")

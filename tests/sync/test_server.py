@@ -29,6 +29,7 @@ from ..utils import (
 )
 from .server import (
     EvalShellMixin,
+    get_host_port,
     get_uri,
     handler,
     run_server,
@@ -320,7 +321,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
         """Server times out before receiving handshake request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             with run_server(open_timeout=MS) as server:
-                with socket.create_connection(server.socket.getsockname()) as sock:
+                with socket.create_connection(get_host_port(server)) as sock:
                     # Wait for the server to close the connection.
                     self.assertEqual(sock.recv(4096), b"")
 
@@ -334,7 +335,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
         """Server reads EOF before receiving handshake request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             with run_server() as server:
-                with socket.create_connection(server.socket.getsockname()):
+                with socket.create_connection(get_host_port(server)):
                     # Wait for the server to receive the connection, then close it.
                     time.sleep(MS)
 
@@ -360,7 +361,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
         """Server closes the connection when receiving non-HTTP request from client."""
         with self.assertLogs("websockets.server", logging.DEBUG) as logs:
             with run_server() as server:
-                with socket.create_connection(server.socket.getsockname()) as sock:
+                with socket.create_connection(get_host_port(server)) as sock:
                     sock.send(b"HELO relay.invalid\r\n")
                     # Wait for the server to close the connection.
                     self.assertEqual(sock.recv(4096), b"")
@@ -502,14 +503,14 @@ class SecureServerTests(EvalShellMixin, unittest.TestCase):
     def test_timeout_during_tls_handshake(self):
         """Server times out before receiving TLS handshake request from client."""
         with run_server(ssl=SERVER_CONTEXT, open_timeout=MS) as server:
-            with socket.create_connection(server.socket.getsockname()) as sock:
+            with socket.create_connection(get_host_port(server)) as sock:
                 # Wait for the server to close the connection.
                 self.assertEqual(sock.recv(4096), b"")
 
     def test_connection_closed_during_tls_handshake(self):
         """Server reads EOF before receiving TLS handshake request from client."""
         with run_server(ssl=SERVER_CONTEXT) as server:
-            with socket.create_connection(server.socket.getsockname()):
+            with socket.create_connection(get_host_port(server)):
                 # Wait for the server to receive the connection, then close it.
                 time.sleep(MS)
 

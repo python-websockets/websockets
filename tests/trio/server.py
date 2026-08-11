@@ -10,8 +10,8 @@ from websockets.trio.router import route
 from websockets.trio.server import serve
 
 
-def get_host_port(listeners):
-    for listener in listeners:
+def get_host_port(server):
+    for listener in server.listeners:
         if listener.socket.family == socket.AF_INET:  # pragma: no branch
             return listener.socket.getsockname()
     raise AssertionError("expected at least one IPv4 socket")
@@ -24,7 +24,7 @@ def get_uri(server, secure=None):
             for cell in server.handler.__closure__
         )  # l33t hack
     protocol = "wss" if secure else "ws"
-    host, port = get_host_port(server.listeners)
+    host, port = get_host_port(server)
     return f"{protocol}://{host}:{port}"
 
 
@@ -53,19 +53,23 @@ class EvalShellMixin:
         self.assertEqual(await client.recv(), value)
 
 
-kwargs = {"port": 0, "host": "localhost"}
-
-
 @contextlib.asynccontextmanager
 async def run_server_or_route(
     serve_or_route,
     handler_or_url_map,
-    **overrides,
+    port=0,
+    host="localhost",
+    **kwargs,
 ):
-    merged_kwargs = {**kwargs, **overrides}
     async with trio.open_nursery() as nursery:
         server = await nursery.start(
-            functools.partial(serve_or_route, handler_or_url_map, **merged_kwargs)
+            functools.partial(
+                serve_or_route,
+                handler_or_url_map,
+                port,
+                host=host,
+                **kwargs,
+            )
         )
         try:
             yield server
@@ -76,9 +80,9 @@ async def run_server_or_route(
             nursery.cancel_scope.cancel()
 
 
-def run_server(handler=handler, **overrides):
-    return run_server_or_route(serve, handler, **overrides)
+def run_server(handler=handler, **kwargs):
+    return run_server_or_route(serve, handler, **kwargs)
 
 
-def run_router(url_map, **overrides):
-    return run_server_or_route(route, url_map, **overrides)
+def run_router(url_map, **kwargs):
+    return run_server_or_route(route, url_map, **kwargs)

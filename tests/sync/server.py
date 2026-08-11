@@ -8,11 +8,15 @@ from websockets.sync.router import route, unix_route
 from websockets.sync.server import serve, unix_serve
 
 
+def get_host_port(server):
+    return server.socket.getsockname()
+
+
 def get_uri(server, secure=None):
     if secure is None:
         secure = isinstance(server.socket, ssl.SSLSocket)  # hack
     protocol = "wss" if secure else "ws"
-    host, port = server.socket.getsockname()
+    host, port = get_host_port(server)
     return f"{protocol}://{host}:{port}"
 
 
@@ -69,9 +73,9 @@ def run_router(url_map, **kwargs):
 
 @contextlib.contextmanager
 def run_unix_server_or_router(
-    path,
     unix_serve_or_route,
     handler_or_url_map,
+    path,
     **kwargs,
 ):
     with unix_serve_or_route(handler_or_url_map, path, **kwargs) as server:
@@ -85,8 +89,8 @@ def run_unix_server_or_router(
 
 
 def run_unix_server(path, handler=handler, **kwargs):
-    return run_unix_server_or_router(path, unix_serve, handler, **kwargs)
+    return run_unix_server_or_router(unix_serve, handler, path, **kwargs)
 
 
 def run_unix_router(path, url_map, **kwargs):
-    return run_unix_server_or_router(path, unix_route, url_map, **kwargs)
+    return run_unix_server_or_router(unix_route, url_map, path, **kwargs)

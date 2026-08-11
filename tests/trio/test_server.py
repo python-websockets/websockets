@@ -2,6 +2,7 @@ import dataclasses
 import hmac
 import http
 import logging
+import socket
 
 import trio
 
@@ -64,7 +65,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
     async def test_existing_listeners(self):
         """Server receives connection using pre-existing listeners."""
         listeners = await trio.open_tcp_listeners(0, host="localhost")
-        host, port = get_host_port(listeners)
+        host, port = next(
+            listener
+            for listener in listeners
+            if listener.socket.family == socket.AF_INET
+        ).socket.getsockname()
         # Unset the default values of port and host set by run_server.
         async with run_server(port=None, host=None, listeners=listeners):
             async with connect(f"ws://{host}:{port}/") as client:  # type: ignore
@@ -416,7 +421,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
         """Server times out before receiving handshake request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             async with run_server(open_timeout=MS) as server:
-                stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+                stream = await trio.open_tcp_stream(*get_host_port(server))
                 try:
                     # Wait for the server to close the connection.
                     self.assertEqual(await stream.receive_some(4096), b"")
@@ -433,7 +438,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
         """Server reads EOF before receiving handshake request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             async with run_server() as server:
-                stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+                stream = await trio.open_tcp_stream(*get_host_port(server))
                 await stream.aclose()
 
         self.assertExceptionLogged(
@@ -459,7 +464,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
         """Server closes the connection when receiving non-HTTP request from client."""
         with self.assertLogs("websockets", logging.DEBUG) as logs:
             async with run_server() as server:
-                stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+                stream = await trio.open_tcp_stream(*get_host_port(server))
                 await stream.send_all(b"HELO relay.invalid\r\n")
                 try:
                     # Wait for the server to close the connection.
@@ -612,7 +617,7 @@ class SecureServerTests(EvalShellMixin, IsolatedTrioTestCase):
     async def test_timeout_during_tls_handshake(self):
         """Server times out before receiving TLS handshake request from client."""
         async with run_server(ssl=SERVER_CONTEXT, open_timeout=MS) as server:
-            stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+            stream = await trio.open_tcp_stream(*get_host_port(server))
             try:
                 # Wait for the server to close the connection.
                 self.assertEqual(await stream.receive_some(4096), b"")
@@ -622,7 +627,7 @@ class SecureServerTests(EvalShellMixin, IsolatedTrioTestCase):
     async def test_connection_closed_during_tls_handshake(self):
         """Server reads EOF before receiving TLS handshake request from client."""
         async with run_server(ssl=SERVER_CONTEXT) as server:
-            stream = await trio.open_tcp_stream(*get_host_port(server.listeners))
+            stream = await trio.open_tcp_stream(*get_host_port(server))
             await stream.aclose()
 
 

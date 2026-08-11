@@ -30,7 +30,7 @@ from ..utils import (
     DeprecationTestCase,
     temp_unix_socket_path,
 )
-from .server import get_uri, run_server, run_unix_server
+from .server import get_host_port, get_uri, run_server, run_unix_server
 
 
 class ClientTests(unittest.TestCase):
@@ -43,7 +43,7 @@ class ClientTests(unittest.TestCase):
     def test_existing_socket(self):
         """Client connects using a pre-existing socket."""
         with run_server() as server:
-            with socket.create_connection(server.socket.getsockname()) as sock:
+            with socket.create_connection(get_host_port(server)) as sock:
                 # Use a non-existing domain to ensure we connect via sock.
                 with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
@@ -440,7 +440,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.TestCase):
     def test_ignore_proxy_with_existing_socket(self):
         """Client connects using a pre-existing socket."""
         with run_server() as server:
-            with socket.create_connection(server.socket.getsockname()) as sock:
+            with socket.create_connection(get_host_port(server)) as sock:
                 # Use a non-existing domain to ensure we connect via sock.
                 with connect("ws://invalid/", sock=sock) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")

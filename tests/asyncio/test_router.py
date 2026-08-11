@@ -16,6 +16,13 @@ try:
     from werkzeug.routing import Map, Rule
 except ImportError:
     pass
+else:
+    url_map = Map(
+        [
+            Rule("/", endpoint=handler),
+            Rule("/r", redirect_to="/"),
+        ]
+    )
 
 
 async def echo(websocket, count):
@@ -48,37 +55,28 @@ class RouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 messages = await alist(client)
             self.assertEqual(messages, ["hello", "hello", "hello"])
 
-    @property  # avoids an import-time dependency on werkzeug
-    def url_map(self):
-        return Map(
-            [
-                Rule("/", endpoint=handler),
-                Rule("/r", redirect_to="/"),
-            ]
-        )
-
     async def test_route_with_query_string(self):
         """Router ignores query strings when matching paths."""
-        async with route(self.url_map, "localhost", 0) as server:
+        async with route(url_map, "localhost", 0) as server:
             async with connect(get_uri(server) + "/?a=b") as client:
                 await self.assertEval(client, "ws.request.path", "/?a=b")
 
     async def test_redirect(self):
         """Router redirects connections according to redirect_to."""
-        async with route(self.url_map, "localhost", 0) as server:
+        async with route(url_map, "localhost", 0) as server:
             async with connect(get_uri(server) + "/r") as client:
                 await self.assertEval(client, "ws.request.path", "/")
 
     async def test_secure_redirect(self):
         """Router redirects connections according to redirect_to when TLS is enabled."""
-        async with route(self.url_map, "localhost", 0, ssl=SERVER_CONTEXT) as server:
+        async with route(url_map, "localhost", 0, ssl=SERVER_CONTEXT) as server:
             async with connect(get_uri(server) + "/r", ssl=CLIENT_CONTEXT) as client:
                 await self.assertEval(client, "ws.request.path", "/")
 
     @patch("websockets.asyncio.client.connect.process_redirect", lambda _, exc: exc)
     async def test_force_secure_redirect(self):
         """Router redirects ws:// connections to a wss:// URI when ssl=True."""
-        async with route(self.url_map, "localhost", 0, ssl=True) as server:
+        async with route(url_map, "localhost", 0, ssl=True) as server:
             redirect_uri = get_uri(server, secure=True)
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server) + "/r"):
@@ -91,7 +89,7 @@ class RouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     @patch("websockets.asyncio.client.connect.process_redirect", lambda _, exc: exc)
     async def test_force_redirect_server_name(self):
         """Router redirects connections to the host declared in server_name."""
-        async with route(self.url_map, "localhost", 0, server_name="other") as server:
+        async with route(url_map, "localhost", 0, server_name="other") as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server) + "/r"):
                     self.fail("did not raise")
@@ -102,7 +100,7 @@ class RouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
 
     async def test_not_found(self):
         """Router rejects requests to unknown paths with an HTTP 404 error."""
-        async with route(self.url_map, "localhost", 0) as server:
+        async with route(url_map, "localhost", 0) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server) + "/n"):
                     self.fail("did not raise")
@@ -118,7 +116,7 @@ class RouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             ws.process_request_ran = True
 
         async with route(
-            self.url_map, "localhost", 0, process_request=process_request
+            url_map, "localhost", 0, process_request=process_request
         ) as server:
             async with connect(get_uri(server) + "/") as client:
                 await self.assertEval(client, "ws.process_request_ran", "True")
@@ -130,7 +128,7 @@ class RouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             ws.process_request_ran = True
 
         async with route(
-            self.url_map, "localhost", 0, process_request=process_request
+            url_map, "localhost", 0, process_request=process_request
         ) as server:
             async with connect(get_uri(server) + "/") as client:
                 await self.assertEval(client, "ws.process_request_ran", "True")
@@ -142,7 +140,7 @@ class RouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
         async with route(
-            self.url_map, "localhost", 0, process_request=process_request
+            url_map, "localhost", 0, process_request=process_request
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server) + "/"):
@@ -159,7 +157,7 @@ class RouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
         async with route(
-            self.url_map, "localhost", 0, process_request=process_request
+            url_map, "localhost", 0, process_request=process_request
         ) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server) + "/"):
@@ -177,9 +175,7 @@ class RouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 connection.my_router_ran = True
                 return await super().handler(connection)
 
-        async with route(
-            self.url_map, "localhost", 0, create_router=MyRouter
-        ) as server:
+        async with route(url_map, "localhost", 0, create_router=MyRouter) as server:
             async with connect(get_uri(server)) as client:
                 await self.assertEval(client, "ws.my_router_ran", "True")
 

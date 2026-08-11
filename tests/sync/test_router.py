@@ -16,6 +16,13 @@ try:
     from werkzeug.routing import Map, Rule
 except ImportError:
     pass
+else:
+    url_map = Map(
+        [
+            Rule("/", endpoint=handler),
+            Rule("/r", redirect_to="/"),
+        ]
+    )
 
 
 def echo(websocket, count):
@@ -48,24 +55,15 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
                 messages = list(client)
             self.assertEqual(messages, ["hello", "hello", "hello"])
 
-    @property  # avoids an import-time dependency on werkzeug
-    def url_map(self):
-        return Map(
-            [
-                Rule("/", endpoint=handler),
-                Rule("/r", redirect_to="/"),
-            ]
-        )
-
     def test_route_with_query_string(self):
         """Router ignores query strings when matching paths."""
-        with run_router(self.url_map) as server:
+        with run_router(url_map) as server:
             with connect(get_uri(server) + "/?a=b") as client:
                 self.assertEval(client, "ws.request.path", "/?a=b")
 
     def test_redirect(self):
         """Router redirects connections according to redirect_to."""
-        with run_router(self.url_map, server_name="localhost") as server:
+        with run_router(url_map, server_name="localhost") as server:
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server) + "/r"):
                     self.fail("did not raise")
@@ -76,9 +74,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
 
     def test_secure_redirect(self):
         """Router redirects connections to a wss:// URI when TLS is enabled."""
-        with run_router(
-            self.url_map, server_name="localhost", ssl=SERVER_CONTEXT
-        ) as server:
+        with run_router(url_map, server_name="localhost", ssl=SERVER_CONTEXT) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server) + "/r", ssl=CLIENT_CONTEXT):
                     self.fail("did not raise")
@@ -90,7 +86,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
     @patch("websockets.asyncio.client.connect.process_redirect", lambda _, exc: exc)
     def test_force_secure_redirect(self):
         """Router redirects ws:// connections to a wss:// URI when ssl=True."""
-        with run_router(self.url_map, ssl=True) as server:
+        with run_router(url_map, ssl=True) as server:
             redirect_uri = get_uri(server, secure=True)
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server) + "/r"):
@@ -103,7 +99,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
     @patch("websockets.asyncio.client.connect.process_redirect", lambda _, exc: exc)
     def test_force_redirect_server_name(self):
         """Router redirects connections to the host declared in server_name."""
-        with run_router(self.url_map, server_name="other") as server:
+        with run_router(url_map, server_name="other") as server:
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server) + "/r"):
                     self.fail("did not raise")
@@ -114,7 +110,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
 
     def test_not_found(self):
         """Router rejects requests to unknown paths with an HTTP 404 error."""
-        with run_router(self.url_map) as server:
+        with run_router(url_map) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server) + "/n"):
                     self.fail("did not raise")
@@ -129,7 +125,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
         def process_request(ws, request):
             ws.process_request_ran = True
 
-        with run_router(self.url_map, process_request=process_request) as server:
+        with run_router(url_map, process_request=process_request) as server:
             with connect(get_uri(server) + "/") as client:
                 self.assertEval(client, "ws.process_request_ran", "True")
 
@@ -139,7 +135,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
         def process_request(ws, request):
             return ws.respond(http.HTTPStatus.FORBIDDEN, "Forbidden")
 
-        with run_router(self.url_map, process_request=process_request) as server:
+        with run_router(url_map, process_request=process_request) as server:
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server) + "/"):
                     self.fail("did not raise")
@@ -156,7 +152,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
                 connection.my_router_ran = True
                 return super().handler(connection)
 
-        with run_router(self.url_map, create_router=MyRouter) as server:
+        with run_router(url_map, create_router=MyRouter) as server:
             with connect(get_uri(server)) as client:
                 self.assertEval(client, "ws.my_router_ran", "True")
 

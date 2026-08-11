@@ -73,7 +73,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
             with connect(get_uri(server) + "/r", ssl=CLIENT_CONTEXT) as client:
                 self.assertEval(client, "ws.request.path", "/")
 
-    @patch("websockets.sync.client._connect.process_redirect", lambda _, exc: exc)
+    @patch("websockets.sync.client.reconnect.process_redirect", lambda _, exc: exc)
     def test_force_secure_redirect(self):
         """Router redirects ws:// connections to a wss:// URI when ssl=True."""
         with run_router(url_map, ssl=True) as server:
@@ -86,7 +86,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
             redirect_uri + "/",
         )
 
-    @patch("websockets.sync.client._connect.process_redirect", lambda _, exc: exc)
+    @patch("websockets.sync.client.reconnect.process_redirect", lambda _, exc: exc)
     def test_force_redirect_server_name(self):
         """Router redirects connections to the host declared in server_name."""
         with run_router(url_map, server_name="other") as server:

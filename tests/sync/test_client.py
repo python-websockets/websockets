@@ -11,6 +11,7 @@ import time
 import unittest
 from unittest.mock import patch
 
+from websockets.client import backoff
 from websockets.exceptions import (
     InvalidHandshake,
     InvalidMessage,
@@ -33,6 +34,16 @@ from ..utils import (
     temp_unix_socket_path,
 )
 from .server import get_host_port, get_uri, run_server, run_unix_server
+
+
+def short_backoff():
+    defaults = backoff.__defaults__
+    yield from backoff(
+        defaults[0] * MS,
+        defaults[1] * MS,
+        defaults[2] * MS,
+        defaults[3],
+    )
 
 
 @contextlib.contextmanager
@@ -155,6 +166,101 @@ class ClientTests(unittest.TestCase):
                 get_uri(server), create_connection=create_connection
             ) as client:
                 self.assertTrue(client.create_connection_ran)
+
+    def test_reconnect(self):
+        """Client reconnects to server."""
+        iterations = 0
+        successful = 0
+
+        def process_request(connection, request):
+            nonlocal iterations
+            iterations += 1
+            # Retriable errors
+            if iterations == 1:
+                time.sleep(3 * MS)
+            elif iterations == 2:
+                connection.socket.close()
+            elif iterations == 3:
+                return connection.respond(http.HTTPStatus.SERVICE_UNAVAILABLE, "🚒")
+            # Fatal error
+            elif iterations == 6:
+                return connection.respond(http.HTTPStatus.PAYMENT_REQUIRED, "💸")
+
+        with run_server(process_request=process_request) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                for client in reconnect(
+                    get_uri(server),
+                    open_timeout=3 * MS,
+                    reconnect_delays=short_backoff,
+                ):
+                    self.assertEqual(client.protocol.state.name, "OPEN")
+                    successful += 1
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 402",
+        )
+        self.assertEqual(iterations, 6)
+        self.assertEqual(successful, 2)
+
+    def test_reconnect_with_custom_process_exception(self):
+        """Client runs process_exception to tell if errors are retryable or fatal."""
+        iteration = 0
+
+        def process_request(connection, request):
+            nonlocal iteration
+            iteration += 1
+            if iteration == 1:
+                return connection.respond(http.HTTPStatus.SERVICE_UNAVAILABLE, "🚒")
+            return connection.respond(http.HTTPStatus.IM_A_TEAPOT, "🫖")
+
+        def process_exception(exc):
+            if isinstance(exc, InvalidStatus):
+                if 500 <= exc.response.status_code < 600:
+                    return None
+                if exc.response.status_code == 418:
+                    return Exception("🫖 💔 ☕️")
+            self.fail("unexpected exception")
+
+        with run_server(process_request=process_request) as server:
+            with self.assertRaises(Exception) as raised:
+                for _ in reconnect(
+                    get_uri(server),
+                    process_exception=process_exception,
+                    reconnect_delays=short_backoff,
+                ):
+                    self.fail("did not raise")
+
+        self.assertEqual(iteration, 2)
+        self.assertEqual(
+            str(raised.exception),
+            "🫖 💔 ☕️",
+        )
+
+    def test_reconnect_with_custom_process_exception_raising_exception(self):
+        """Client supports raising an exception in process_exception."""
+
+        def process_request(connection, request):
+            return connection.respond(http.HTTPStatus.IM_A_TEAPOT, "🫖")
+
+        def process_exception(exc):
+            if isinstance(exc, InvalidStatus) and exc.response.status_code == 418:
+                raise Exception("🫖 💔 ☕️")
+            self.fail("unexpected exception")
+
+        with run_server(process_request=process_request) as server:
+            with self.assertRaises(Exception) as raised:
+                for _ in reconnect(
+                    get_uri(server),
+                    process_exception=process_exception,
+                    reconnect_delays=short_backoff,
+                ):
+                    self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            "🫖 💔 ☕️",
+        )
 
     def test_redirect(self):
         """Client follows redirect."""
@@ -948,11 +1054,12 @@ class ClientUsageErrorsTests(unittest.TestCase):
     def test_proxy_ssl_without_https_proxy(self):
         """Client rejects proxy_ssl when proxy isn't HTTPS."""
         with self.assertRaises(ValueError) as raised:
-            connect(
+            with connect(
                 "ws://localhost/",
                 proxy="http://localhost:8080",
                 proxy_ssl=CLIENT_CONTEXT,
-            )
+            ):
+                self.fail("did not raise")
         self.assertEqual(
             str(raised.exception),
             "proxy_ssl argument is incompatible with an http:// proxy",
@@ -1009,7 +1116,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
     def test_reentrancy(self):
         """Client isn't reentrant."""
         with run_server() as server:
-            connecter = connect(get_uri(server), legacy=False)
+            connecter = reconnect(get_uri(server))
             with connecter:
                 with self.assertRaises(RuntimeError) as raised:
                     with connecter:
@@ -1027,6 +1134,34 @@ class BackwardsCompatibilityTests(DeprecationTestCase):
             with self.assertDeprecationWarning("ssl_context was renamed to ssl"):
                 with connect(get_uri(server), ssl_context=CLIENT_CONTEXT):
                     pass
+
+    def test_set_legacy_flag_explicitly(self):
+        """Client connects to server with legacy=True."""
+        with run_server() as server:
+            client = connect(get_uri(server), legacy=True)
+            self.addCleanup(client.close)
+            self.assertIsInstance(client, ClientConnection)
+
+    def test_unset_legacy_flag_explicitly(self):
+        """Client connects to server with legacy=False."""
+        with run_server() as server:
+            client = connect(get_uri(server), legacy=False)
+            self.assertIsInstance(client, reconnect)
+
+    def test_unix_set_legacy_flag_explicitly(self):
+        """Client connects to server with legacy=True."""
+        with temp_unix_socket_path() as path:
+            with run_unix_server(path):
+                client = unix_connect(path, legacy=True)
+                self.addCleanup(client.close)
+                self.assertIsInstance(client, ClientConnection)
+
+    def test_unix_unset_legacy_flag_explicitly(self):
+        """Client connects to server with legacy=False."""
+        with temp_unix_socket_path() as path:
+            with run_unix_server(path):
+                client = unix_connect(path, legacy=False)
+                self.assertIsInstance(client, reconnect)
 
     def test_direct_connection_without_legacy_flag(self):
         """Client connects to server directly without legacy=True."""

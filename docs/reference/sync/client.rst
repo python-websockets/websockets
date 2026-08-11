@@ -8,7 +8,13 @@ Opening a connection
 
 .. autofunction:: connect
 
+.. autofunction:: reconnect
+
 .. autofunction:: unix_connect
+
+.. autofunction:: unix_reconnect
+
+.. autofunction:: process_exception
 
 Using a connection
 ------------------

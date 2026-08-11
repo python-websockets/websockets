@@ -35,6 +35,10 @@ notice.
 New features
 ............
 
+* Added support for reconnecting automatically by using
+  :func:`~sync.client.reconnect` as an iterator to the :mod:`threading`
+  implementation.
+
 * :func:`~sync.client.connect` now follows redirects in the :mod:`threading`
   implementation.
 

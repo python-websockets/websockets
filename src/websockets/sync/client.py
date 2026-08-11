@@ -5,14 +5,16 @@ import os
 import socket
 import ssl as ssl_module
 import threading
+import time
+import traceback
 import urllib.parse
 import warnings
-from collections.abc import Sequence
+from collections.abc import Generator, Iterator, Sequence
 from types import TracebackType
-from typing import Any, Callable, Literal, TypeVar, cast
+from typing import Any, Callable, Literal, TypeVar, cast, overload
 
 from ..asyncio.client import process_exception
-from ..client import ClientProtocol
+from ..client import ClientProtocol, backoff
 from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
     InvalidProxyMessage,
@@ -34,7 +36,7 @@ from .connection import Connection
 from .utils import Deadline
 
 
-__all__ = ["connect", "unix_connect", "ClientConnection"]
+__all__ = ["connect", "unix_connect", "reconnect", "unix_reconnect", "ClientConnection"]
 
 MAX_REDIRECTS = int(os.environ.get("WEBSOCKETS_MAX_REDIRECTS", "10"))
 
@@ -156,7 +158,51 @@ class ClientConnection(Connection):
             self.response_rcvd.set()
 
 
-class _connect:
+class reconnect:
+    """
+    Similar to :func:`connect`, with support for automatic reconnection.
+
+    :func:`reconnect` can also be treated as an infinite iterator to reconnect
+    automatically on errors::
+
+        for websocket in reconnect(...):
+            try:
+                ...
+            except websockets.exceptions.ConnectionClosed:
+                continue
+
+    If the connection fails with a transient error, it is retried with
+    exponential backoff. If it fails with a fatal error, the exception is
+    raised, breaking out of the loop.
+
+    The connection is closed automatically after each iteration of the loop.
+
+    :func:`reconnect` accepts the same arguments as :func:`connect`, minus the
+    ``legacy`` flag, plus those listed below. It raises the same exceptions.
+
+    Args:
+        process_exception: When reconnecting automatically, tell whether an
+            error is transient or fatal. The default behavior is defined by
+            :func:`~websockets.client.process_exception`. Refer to its
+            documentation for details.
+        reconnect_delays: Delays in seconds between reconnection attempts.
+            Default is exponential backoff with 5s jitter, capped at 60s.
+
+    .. admonition:: Why is :func:`reconnect` a separate API from :func:`connect`?
+        :class: tip
+
+        A new API was necessary to maintain backwards compatibility with this
+        historical behavior of :func:`connect`::
+
+            websocket = connect(...)
+            for message in websocket:
+                ...
+
+        Once the deprecation period elapses, :func:`connect` will be changed to
+        behave like :func:`reconnect` by default.
+
+    """
+
     def __init__(
         self,
         uri: str,
@@ -176,11 +222,13 @@ class _connect:
         proxy: str | Literal[True] | None = True,
         proxy_ssl: ssl_module.SSLContext | None = None,
         proxy_server_hostname: str | None = None,
+        process_exception: Callable[[Exception], Exception | None] = process_exception,
         # Timeouts
         open_timeout: float | None = 10,
         ping_interval: float | None = 20,
         ping_timeout: float | None = 20,
         close_timeout: float | None = 10,
+        reconnect_delays: Callable[[], Generator[float]] = backoff,
         # Limits
         max_size: int | None | tuple[int | None, int | None] = 2**20,
         max_queue: int | None | tuple[int | None, int | None] = 16,
@@ -228,6 +276,7 @@ class _connect:
         self.proxy_server_hostname = proxy_server_hostname
         self.process_exception = process_exception
         self.open_timeout = open_timeout
+        self.reconnect_delays = reconnect_delays
         self.logger = logger
         self.create_connection = create_connection
         self.open_socket_kwargs = kwargs
@@ -471,6 +520,7 @@ class _connect:
         if hasattr(self, "connection"):
             raise RuntimeError("connect() isn't reentrant")
         self.connection = self.connect()
+        self.connection.pending_legacy_warning = False
         return self.connection
 
     def __exit__(
@@ -483,6 +533,123 @@ class _connect:
             self.connection.close()
         finally:
             del self.connection
+
+    # for ... in reconnect(...): ...
+
+    def __iter__(self) -> Iterator[ClientConnection]:
+        delays: Generator[float] | None = None
+        while True:
+            try:
+                with self as connection:
+                    yield connection
+            except Exception as exc:
+                # Determine whether the exception is retryable or fatal.
+                # The API of process_exception is "return an exception or None";
+                # "raise an exception" is also supported because it's a frequent
+                # mistake. It isn't documented in order to keep the API simple.
+                try:
+                    new_exc = self.process_exception(exc)
+                except Exception as raised_exc:
+                    new_exc = raised_exc
+
+                # The connection failed with a fatal error.
+                # Raise the exception and exit the loop.
+                if new_exc is exc:
+                    raise
+                if new_exc is not None:
+                    raise new_exc from exc
+
+                # The connection failed with a retryable error.
+                # Start or continue backoff and reconnect.
+                if delays is None:
+                    delays = self.reconnect_delays()
+                delay = next(delays)
+                self.logger.info(
+                    "connect failed; reconnecting in %.1f seconds: %s",
+                    delay,
+                    traceback.format_exception_only(exc)[0].strip(),
+                )
+                time.sleep(delay)
+
+            else:
+                # The connection succeeded. Reset backoff.
+                delays = None
+
+
+@overload
+def connect(
+    uri: str,
+    *,
+    # TCP/TLS
+    sock: socket.socket | None = ...,
+    ssl: ssl_module.SSLContext | None = ...,
+    server_hostname: str | None = ...,
+    # WebSocket
+    origin: Origin | None = ...,
+    extensions: Sequence[ClientExtensionFactory] | None = ...,
+    subprotocols: Sequence[Subprotocol] | None = ...,
+    compression: str | None = ...,
+    # HTTP
+    additional_headers: HeadersLike | None = ...,
+    user_agent_header: str | None = ...,
+    proxy: str | Literal[True] | None = ...,
+    proxy_ssl: ssl_module.SSLContext | None = ...,
+    proxy_server_hostname: str | None = ...,
+    # Timeouts
+    open_timeout: float | None = ...,
+    ping_interval: float | None = ...,
+    ping_timeout: float | None = ...,
+    close_timeout: float | None = ...,
+    # Limits
+    max_size: int | None | tuple[int | None, int | None] = ...,
+    max_queue: int | None | tuple[int | None, int | None] = ...,
+    # Logging
+    logger: LoggerLike | None = ...,
+    # Escape hatch for advanced customization
+    create_connection: type[ClientConnection] | None = ...,
+    # Backwards and forwards compatibility
+    legacy: Literal[True] | None = ...,
+    # Other keyword arguments are passed to socket.create_connection
+    **kwargs: Any,
+) -> ClientConnection: ...
+
+
+@overload
+def connect(
+    uri: str,
+    *,
+    # TCP/TLS
+    sock: socket.socket | None = ...,
+    ssl: ssl_module.SSLContext | None = ...,
+    server_hostname: str | None = ...,
+    # WebSocket
+    origin: Origin | None = ...,
+    extensions: Sequence[ClientExtensionFactory] | None = ...,
+    subprotocols: Sequence[Subprotocol] | None = ...,
+    compression: str | None = ...,
+    # HTTP
+    additional_headers: HeadersLike | None = ...,
+    user_agent_header: str | None = ...,
+    proxy: str | Literal[True] | None = ...,
+    proxy_ssl: ssl_module.SSLContext | None = ...,
+    proxy_server_hostname: str | None = ...,
+    # Timeouts
+    open_timeout: float | None = ...,
+    ping_interval: float | None = ...,
+    ping_timeout: float | None = ...,
+    close_timeout: float | None = ...,
+    # Limits
+    max_size: int | None | tuple[int | None, int | None] = ...,
+    max_queue: int | None | tuple[int | None, int | None] = ...,
+    # Logging
+    logger: LoggerLike | None = ...,
+    # Escape hatch for advanced customization
+    create_connection: type[ClientConnection] | None = ...,
+    # Backwards and forwards compatibility
+    legacy: Literal[False],
+    # Other keyword arguments are passed to socket.create_connection
+    **kwargs: Any,
+) -> reconnect: ...
 
 
 def connect(
@@ -515,9 +682,11 @@ def connect(
     logger: LoggerLike | None = None,
     # Escape hatch for advanced customization
     create_connection: type[ClientConnection] | None = None,
+    # Backwards and forwards compatibility
+    legacy: bool | None = None,
     # Other keyword arguments are passed to socket.create_connection
     **kwargs: Any,
-) -> ClientConnection:
+) -> ClientConnection | reconnect:
     """
     Connect to the WebSocket server at ``uri``.
 
@@ -531,12 +700,22 @@ def connect(
 
     The connection is closed automatically when exiting the context.
 
+    Use :func:`reconnect` to reconnect automatically on errors.
+
     For backwards compatibility, :func:`connect` can be called directly::
 
         websocket = connect(..., legacy=True)
 
     In that case, you're responsible for closing the connection with
     :meth:`ClientConnection.close` when no longer needed.
+
+    When the ``legacy`` flag is enabled, :func:`connect` returns directly a
+    :class:`ClientConnection` and iterating that connection yields messages.
+    Currently, this is the default behavior when ``legacy`` isn't specified.
+
+    When the ``legacy`` flag is explicitly disabled, :func:`connect` behaves
+    like :func:`reconnect`: using it as an iterator returns a new connection
+    at each iteration, making it easy to reconnect automatically on errors.
 
     Args:
         uri: URI of the WebSocket server.
@@ -586,6 +765,8 @@ def connect(
         logger: Logger for this client.
             It defaults to ``logging.getLogger("websockets.client")``.
             See the :doc:`logging guide <../../topics/logging>` for details.
+        legacy: Set to :obj:`True` to opt into the historical behavior of
+            returning a :class:`ClientConnection`, without deprecation warning.
         create_connection: Factory for the :class:`ClientConnection` managing
             the connection. Set it to a wrapper or a subclass to customize
             connection handling.
@@ -604,10 +785,7 @@ def connect(
         TimeoutError: If the opening handshake times out.
 
     """
-    # Backwards compatibility: connect() can return a ClientConnection.
-    legacy: bool | None = kwargs.pop("legacy", None)
-
-    connecter = _connect(
+    connecter = reconnect(
         uri,
         sock=sock,
         ssl=ssl,
@@ -631,22 +809,72 @@ def connect(
         create_connection=create_connection,
         **kwargs,
     )
-
-    # Forwards compatibility: this will be the default behavior in the future.
+    # For backwards compatibility, connect defaults to the historical behavior.
+    # For forwards compatibility, the future behavior can be chosen explicitly.
     if legacy is False:
-        return connecter  # type: ignore
-
+        return connecter
     connection = connecter.connect()
+    # Users can opt in to the historical behavior to remain unaffected when the
+    # future behavior becomes the default.
     if legacy:
         connection.pending_legacy_warning = False
     return connection
 
 
-def unix_connect(
+def unix_reconnect(
     path: str | None = None,
     uri: str | None = None,
     **kwargs: Any,
-) -> ClientConnection:
+) -> reconnect:
+    """
+    Similar to :func:`unix_connect`, with support for automatic reconnection.
+
+    Refer to the documentation of :func:`reconnect` for details on its behavior.
+
+    """
+    sock = kwargs.get("sock")
+    if path is None and sock is None:
+        raise ValueError("missing path argument")
+    elif path is not None and sock is not None:
+        raise ValueError("path is incompatible with sock")
+
+    if uri is None:
+        # Backwards compatibility: ssl used to be called ssl_context.
+        if kwargs.get("ssl") is None and kwargs.get("ssl_context") is None:
+            uri = "ws://localhost/"
+        else:
+            uri = "wss://localhost/"
+
+    return reconnect(uri=uri, unix=True, path=path, **kwargs)
+
+
+@overload
+def unix_connect(
+    path: str | None = ...,
+    uri: str | None = ...,
+    *,
+    legacy: Literal[True] | None = ...,
+    **kwargs: Any,
+) -> ClientConnection: ...
+
+
+@overload
+def unix_connect(
+    path: str | None = ...,
+    uri: str | None = ...,
+    *,
+    legacy: Literal[False],
+    **kwargs: Any,
+) -> reconnect: ...
+
+
+def unix_connect(
+    path: str | None = None,
+    uri: str | None = None,
+    *,
+    legacy: bool | None = None,
+    **kwargs: Any,
+) -> ClientConnection | reconnect:
     """
     Connect to a WebSocket server listening on a Unix socket.
 
@@ -663,20 +891,17 @@ def unix_connect(
             ``wss://localhost/``.
 
     """
-    sock = kwargs.get("sock")
-    if path is None and sock is None:
-        raise ValueError("missing path argument")
-    elif path is not None and sock is not None:
-        raise ValueError("path is incompatible with sock")
-
-    if uri is None:
-        # Backwards compatibility: ssl used to be called ssl_context.
-        if kwargs.get("ssl") is None and kwargs.get("ssl_context") is None:
-            uri = "ws://localhost/"
-        else:
-            uri = "wss://localhost/"
-
-    return connect(uri=uri, unix=True, path=path, **kwargs)
+    connecter = unix_reconnect(path, uri, **kwargs)
+    # For backwards compatibility, connect defaults to the historical behavior.
+    # For forwards compatibility, the future behavior can be chosen explicitly.
+    if legacy is False:
+        return connecter
+    connection = connecter.connect()
+    # Users can opt in to the historical behavior to remain unaffected when the
+    # future behavior becomes the default.
+    if legacy:
+        connection.pending_legacy_warning = False
+    return connection
 
 
 try:

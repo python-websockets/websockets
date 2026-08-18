@@ -575,73 +575,97 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
     async def test_start_serving(self):
         """Server starts serving when start_serving() is called."""
         server = await serve(*args, start_serving=False)
-        self.assertFalse(server.is_serving())
-        await server.start_serving()
-        self.assertTrue(server.is_serving())
+        try:
+            self.assertFalse(server.is_serving())
+            await server.start_serving()
+            self.assertTrue(server.is_serving())
+        finally:
+            server.close()
+            await server.wait_closed()
 
     async def test_serve_forever(self):
         """Server runs until canceled when serve_forever() is called."""
         server = await serve(*args)
-        serve_forever_task = asyncio.get_running_loop().create_task(
-            server.serve_forever()
-        )
-        await asyncio.sleep(0)
+        try:
+            serve_forever_task = asyncio.get_running_loop().create_task(
+                server.serve_forever()
+            )
+            await asyncio.sleep(0)
 
-        self.assertTrue(server.is_serving())
+            self.assertTrue(server.is_serving())
 
-        serve_forever_task.cancel()
-        with self.assertRaises(asyncio.CancelledError):
-            await serve_forever_task
+            serve_forever_task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await serve_forever_task
 
-        self.assertFalse(server.is_serving())
+            self.assertFalse(server.is_serving())
+
+        finally:
+            server.close()
+            await server.wait_closed()
 
     async def test_serve_forever_starts_serving(self):
         """Server starts serving when serve_forever() is called."""
         server = await serve(*args, start_serving=False)
-        self.assertFalse(server.is_serving())
+        try:
+            self.assertFalse(server.is_serving())
 
-        serve_forever_task = asyncio.get_running_loop().create_task(
-            server.serve_forever()
-        )
-        await asyncio.sleep(0)
+            serve_forever_task = asyncio.get_running_loop().create_task(
+                server.serve_forever()
+            )
+            await asyncio.sleep(0)
 
-        self.assertTrue(server.is_serving())
+            self.assertTrue(server.is_serving())
 
-        serve_forever_task.cancel()
-        with self.assertRaises(asyncio.CancelledError):
-            await serve_forever_task
+            serve_forever_task.cancel()
+            with self.assertRaises(asyncio.CancelledError):
+                await serve_forever_task
+
+        finally:
+            server.close()
+            await server.wait_closed()
 
     async def test_canceling_serve_forever_closes_open_connections(self):
         """Canceling serve_forever() closes open connections with code 1001."""
         server = await serve(*args)
-        serve_forever_task = asyncio.get_running_loop().create_task(
-            server.serve_forever()
-        )
-        await asyncio.sleep(0)
-
-        async with connect(get_uri(server)) as client:
-            serve_forever_task.cancel()
-            with self.assertRaises(ConnectionClosedOK) as raised:
-                await client.recv()
-            self.assertEqual(
-                str(raised.exception),
-                "received 1001 (going away); then sent 1001 (going away)",
+        try:
+            serve_forever_task = asyncio.get_running_loop().create_task(
+                server.serve_forever()
             )
+            await asyncio.sleep(0)
 
-        with self.assertRaises(asyncio.CancelledError):
-            await serve_forever_task
+            async with connect(get_uri(server)) as client:
+                serve_forever_task.cancel()
+                with self.assertRaises(ConnectionClosedOK) as raised:
+                    await client.recv()
+                self.assertEqual(
+                    str(raised.exception),
+                    "received 1001 (going away); then sent 1001 (going away)",
+                )
+
+            with self.assertRaises(asyncio.CancelledError):
+                await serve_forever_task
+
+        finally:
+            server.close()
+            await server.wait_closed()
 
     async def test_close_exits_serve_forever(self):
         """Closing the server exits serve_forever()."""
         server = await serve(*args)
-        serve_forever_task = asyncio.get_running_loop().create_task(
-            server.serve_forever()
-        )
-        await asyncio.sleep(0)
-        server.close()
+        try:
+            serve_forever_task = asyncio.get_running_loop().create_task(
+                server.serve_forever()
+            )
+            await asyncio.sleep(0)
+            server.close()
 
-        async with asyncio.timeout(MS):
-            await serve_forever_task
+            async with asyncio.timeout(MS):
+                await serve_forever_task
+
+        finally:
+            server.close()
+            await server.wait_closed()
 
     async def test_is_serving(self):
         """Server provides an is_serving() method."""

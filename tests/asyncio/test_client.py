@@ -52,11 +52,19 @@ async def few_redirects():
 
 
 class ClientTests(unittest.IsolatedAsyncioTestCase):
-    async def test_connection(self):
-        """Client connects to server."""
+    async def test_context_manager(self):
+        """Client connects to server and disconnects automatically."""
         async with serve(*args) as server:
             async with connect(get_uri(server)) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
+            self.assertEqual(client.protocol.state.name, "CLOSED")
+
+    async def test_direct_connection(self):
+        """Client connects to server directly."""
+        async with serve(*args) as server:
+            client = await connect(get_uri(server))
+            self.addAsyncCleanup(client.close)
+            self.assertEqual(client.protocol.state.name, "OPEN")
 
     async def test_explicit_host_port(self):
         """Client connects using an explicit host / port."""
@@ -519,13 +527,23 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
 
 
 class SecureClientTests(unittest.IsolatedAsyncioTestCase):
-    async def test_connection(self):
-        """Client connects to server securely."""
+    async def test_context_manager(self):
+        """Client connects to server securely and disconnects automatically."""
         async with serve(*args, ssl=SERVER_CONTEXT) as server:
             async with connect(get_uri(server), ssl=CLIENT_CONTEXT) as client:
                 self.assertEqual(client.protocol.state.name, "OPEN")
                 ssl_object = client.transport.get_extra_info("ssl_object")
                 self.assertEqual(ssl_object.version()[:3], "TLS")
+            self.assertEqual(client.protocol.state.name, "CLOSED")
+
+    async def test_direct_connection(self):
+        """Client connects to server securely and directly."""
+        async with serve(*args, ssl=SERVER_CONTEXT) as server:
+            client = await connect(get_uri(server), ssl=CLIENT_CONTEXT)
+            self.addAsyncCleanup(client.close)
+            self.assertEqual(client.protocol.state.name, "OPEN")
+            ssl_object = client.transport.get_extra_info("ssl_object")
+            self.assertEqual(ssl_object.version()[:3], "TLS")
 
     async def test_set_server_hostname_implicitly(self):
         """Client sets server_hostname to the host in the WebSocket URI."""
@@ -899,12 +917,21 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
 
 @unittest.skipUnless(hasattr(socket, "AF_UNIX"), "this test requires Unix sockets")
 class UnixClientTests(unittest.IsolatedAsyncioTestCase):
-    async def test_connection(self):
-        """Client connects to server over a Unix socket."""
+    async def test_context_manager(self):
+        """Client connects to Unix server and disconnects automatically."""
         with temp_unix_socket_path() as path:
             async with unix_serve(handler, path):
                 async with unix_connect(path) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
+                self.assertEqual(client.protocol.state.name, "CLOSED")
+
+    async def test_direct_connection(self):
+        """Client connects to Unix server directly."""
+        with temp_unix_socket_path() as path:
+            async with unix_serve(handler, path):
+                client = await unix_connect(path)
+                self.addAsyncCleanup(client.close)
+                self.assertEqual(client.protocol.state.name, "OPEN")
 
     async def test_set_host_header(self):
         """Client sets the Host header to the host in the WebSocket URI."""
@@ -933,14 +960,25 @@ class UnixClientTests(unittest.IsolatedAsyncioTestCase):
             "cannot follow cross-origin redirect to ws://other/ with a Unix socket",
         )
 
-    async def test_secure_connection(self):
-        """Client connects to server securely over a Unix socket."""
+    async def test_secure_context_manager(self):
+        """Client connects to Unix server securely and disconnects automatically."""
         with temp_unix_socket_path() as path:
             async with unix_serve(handler, path, ssl=SERVER_CONTEXT):
                 async with unix_connect(path, ssl=CLIENT_CONTEXT) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
                     ssl_object = client.transport.get_extra_info("ssl_object")
                     self.assertEqual(ssl_object.version()[:3], "TLS")
+                self.assertEqual(client.protocol.state.name, "CLOSED")
+
+    async def test_secure_direct_connection(self):
+        """Client connects to Unix server securely and directly."""
+        with temp_unix_socket_path() as path:
+            async with unix_serve(handler, path, ssl=SERVER_CONTEXT):
+                client = await unix_connect(path, ssl=CLIENT_CONTEXT)
+                self.addAsyncCleanup(client.close)
+                self.assertEqual(client.protocol.state.name, "OPEN")
+                ssl_object = client.transport.get_extra_info("ssl_object")
+                self.assertEqual(ssl_object.version()[:3], "TLS")
 
     async def test_set_server_hostname(self):
         """Client sets server_hostname to the host in the WebSocket URI."""

@@ -229,6 +229,10 @@ def connect(
             connection handling.
 
     Any other keyword arguments are passed to :func:`~socket.create_connection`.
+    For example, you can set ``address`` to a ``(host, port)`` tuple to connect
+    to a different host and port from those found in ``uri``. This only changes
+    the destination of the TCP connection. The host name from ``uri`` is still
+    used in the TLS handshake for secure connections and in the ``Host`` header.
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.
@@ -331,11 +335,9 @@ def connect(
                     raise AssertionError("parse_proxy returned unsupported proxy")
 
             else:  # proxy is None
+                kwargs.setdefault("address", (ws_uri.host, ws_uri.port))
                 kwargs.setdefault("timeout", deadline.timeout())
-                sock = socket.create_connection(
-                    (ws_uri.host, ws_uri.port),
-                    **kwargs,
-                )
+                sock = socket.create_connection(**kwargs)
 
             sock.settimeout(None)
 

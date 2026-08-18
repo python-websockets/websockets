@@ -48,6 +48,13 @@ class ClientTests(unittest.TestCase):
             self.addCleanup(client.close)
             self.assertEqual(client.protocol.state.name, "OPEN")
 
+    def test_explicit_host_port(self):
+        """Client connects using an explicit host / port."""
+        with run_server() as server:
+            address = get_host_port(server)
+            with connect("ws://overridden/", address=address) as client:
+                self.assertEqual(client.protocol.state.name, "OPEN")
+
     def test_existing_socket(self):
         """Client connects using a pre-existing socket."""
         with run_server() as server:

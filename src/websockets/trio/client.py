@@ -220,6 +220,10 @@ class connect:
             connection handling.
 
     Any other keyword arguments are passed to :func:`~trio.open_tcp_stream`.
+    For example, you can set ``host`` and ``port`` to connect to a different
+    host and port from those found in ``uri``. This only changes the destination
+    of the TCP connection. The host name from ``uri`` is still used in the TLS
+    handshake for secure connections and in the ``Host`` header.
 
     Raises:
         InvalidURI: If ``uri`` isn't a valid WebSocket URI.

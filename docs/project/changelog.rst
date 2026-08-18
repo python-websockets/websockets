@@ -32,6 +32,12 @@ notice.
 
 *In development*
 
+New features
+............
+
+* :func:`~sync.client.connect` can connect to another host and port than those
+  specified in the URI in the :mod:`threading` implementation.
+
 Improvements
 ............
 

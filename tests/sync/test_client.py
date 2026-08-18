@@ -44,7 +44,7 @@ class ClientTests(unittest.TestCase):
     def test_direct_connection(self):
         """Client connects to server directly."""
         with run_server() as server:
-            client = connect(get_uri(server))
+            client = connect(get_uri(server), legacy=True)
             self.addCleanup(client.close)
             self.assertEqual(client.protocol.state.name, "OPEN")
 
@@ -321,7 +321,7 @@ class SecureClientTests(unittest.TestCase):
     def test_direct_connection(self):
         """Client connects to server securely and directly."""
         with run_server(ssl=SERVER_CONTEXT) as server:
-            client = connect(get_uri(server), ssl=CLIENT_CONTEXT)
+            client = connect(get_uri(server), ssl=CLIENT_CONTEXT, legacy=True)
             self.addCleanup(client.close)
             self.assertEqual(client.protocol.state.name, "OPEN")
             self.assertEqual(client.socket.version()[:3], "TLS")
@@ -673,7 +673,7 @@ class UnixClientTests(unittest.TestCase):
         """Client connects to Unix server directly."""
         with temp_unix_socket_path() as path:
             with run_unix_server(path):
-                client = unix_connect(path)
+                client = unix_connect(path, legacy=True)
                 self.addCleanup(client.close)
                 self.assertEqual(client.protocol.state.name, "OPEN")
 
@@ -698,7 +698,7 @@ class UnixClientTests(unittest.TestCase):
         """Client connects to Unix server securely and directly."""
         with temp_unix_socket_path() as path:
             with run_unix_server(path, ssl=SERVER_CONTEXT):
-                client = unix_connect(path, ssl=CLIENT_CONTEXT)
+                client = unix_connect(path, ssl=CLIENT_CONTEXT, legacy=True)
                 self.addCleanup(client.close)
                 self.assertEqual(client.protocol.state.name, "OPEN")
                 self.assertEqual(client.socket.version()[:3], "TLS")
@@ -793,3 +793,36 @@ class BackwardsCompatibilityTests(DeprecationTestCase):
             with self.assertDeprecationWarning("ssl_context was renamed to ssl"):
                 with connect(get_uri(server), ssl_context=CLIENT_CONTEXT):
                     pass
+
+    def test_direct_connection_without_legacy_flag(self):
+        """Client connects to server directly without legacy=True."""
+        with run_server() as server:
+            client = connect(get_uri(server))
+            self.addCleanup(client.close)
+            self.assertEqual(client.protocol.state.name, "OPEN")
+            # First call of a public API triggers a warning
+            with self.assertDeprecationWarning(
+                "connect() must be used as a context manager: "
+                "with connect(...) as websocket: ...; alternatively, use "
+                "websocket = connect(..., legacy=True) to connect directly"
+            ):
+                client.send("2 + 2")
+            # Later calls don't trigger a warning
+            self.assertEqual(client.recv(), "4")
+
+    def test_direct_unix_connection_without_legacy_flag(self):
+        """Client connects to Unix server directly without legacy=True."""
+        with temp_unix_socket_path() as path:
+            with run_unix_server(path):
+                client = unix_connect(path)
+                self.addCleanup(client.close)
+                self.assertEqual(client.protocol.state.name, "OPEN")
+                # First call of a public API triggers a warning
+                with self.assertDeprecationWarning(
+                    "connect() must be used as a context manager: "
+                    "with connect(...) as websocket: ...; alternatively, use "
+                    "websocket = connect(..., legacy=True) to connect directly"
+                ):
+                    client.send("2 + 2")
+                # Later calls don't trigger a warning
+                self.assertEqual(client.recv(), "4")

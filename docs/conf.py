@@ -90,6 +90,21 @@ from sphinx.domains.python import PythonDomain  # noqa: E402
 assert PythonDomain.object_types["data"].roles == ("data", "obj")
 PythonDomain.object_types["data"].roles = ("data", "class", "obj")
 
+# Workaround for https://github.com/sphinx-doc/sphinx/issues/10359
+from sphinx.pycode import ModuleAnalyzer  # noqa: E402
+
+
+analyze_fn = ModuleAnalyzer.analyze
+
+
+def analyze_but_skip_overloads(self):
+    result = analyze_fn(self)
+    self.overloads = {}
+    return result
+
+
+ModuleAnalyzer.analyze = analyze_but_skip_overloads
+
 intersphinx_mapping = {
     "python": ("https://docs.python.org/3", None),
     "sesame": ("https://django-sesame.readthedocs.io/en/stable/", None),

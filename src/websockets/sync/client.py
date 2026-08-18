@@ -65,6 +65,7 @@ class ClientConnection(Connection):
     ) -> None:
         self.protocol: ClientProtocol
         self.response_rcvd = threading.Event()
+        self.pending_legacy_warning = True
         super().__init__(
             sock,
             protocol,
@@ -73,6 +74,21 @@ class ClientConnection(Connection):
             close_timeout=close_timeout,
             max_queue=max_queue,
         )
+
+    def __enter__(self) -> ClientConnection:
+        self.pending_legacy_warning = False
+        return super().__enter__()
+
+    def maybe_raise_legacy_warning(self) -> None:
+        if self.pending_legacy_warning:
+            self.pending_legacy_warning = False
+            warnings.warn(  # deprecated in 17.1
+                "connect() must be used as a context manager: "
+                "with connect(...) as websocket: ...; alternatively, use "
+                "websocket = connect(..., legacy=True) to connect directly",
+                DeprecationWarning,
+                stacklevel=3,
+            )
 
     def handshake(
         self,
@@ -164,10 +180,8 @@ def connect(
     """
     Connect to the WebSocket server at ``uri``.
 
-    This function returns a :class:`ClientConnection` instance, which you can
-    use to send and receive messages.
-
-    :func:`connect` may be used as a context manager::
+    :func:`connect` should be treated as a context manager yielding a
+    :class:`ClientConnection`, which can then receive and send messages::
 
         from websockets.sync.client import connect
 
@@ -175,6 +189,13 @@ def connect(
             ...
 
     The connection is closed automatically when exiting the context.
+
+    For backwards compatibility, :func:`connect` can be called directly::
+
+        websocket = connect(..., legacy=True)
+
+    In that case, you're responsible for closing the connection with
+    :meth:`ClientConnection.close` when no longer needed.
 
     Args:
         uri: URI of the WebSocket server.
@@ -252,6 +273,9 @@ def connect(
             "ssl_context was renamed to ssl",
             DeprecationWarning,
         )
+
+    # Backwards compatibility: connect can return a ClientConnection.
+    legacy = kwargs.pop("legacy", False)
 
     ws_uri = parse_uri(uri)
     if not ws_uri.secure and ssl is not None:
@@ -401,6 +425,9 @@ def connect(
         raise
 
     connection.start_keepalive()
+
+    if legacy:
+        connection.pending_legacy_warning = False
     return connection
 
 

@@ -135,10 +135,9 @@ class connect:
     """
     Connect to the WebSocket server at ``uri``.
 
-    This coroutine returns a :class:`ClientConnection` instance, which you can
-    use to send and receive messages.
-
-    :func:`connect` may be used as an asynchronous context manager::
+    :func:`connect` should be treated as an asynchronous context manager
+    yielding a :class:`ClientConnection`, which can then receive and send
+    messages::
 
         from websockets.trio.client import connect
 
@@ -147,8 +146,8 @@ class connect:
 
     The connection is closed automatically when exiting the context.
 
-    :func:`connect` can be used as an infinite asynchronous iterator to
-    reconnect automatically on errors::
+    :func:`connect` can also be treated as an infinite asynchronous iterator
+    to reconnect automatically on errors::
 
         async for websocket in connect(...):
             try:
@@ -161,6 +160,10 @@ class connect:
     raised, breaking out of the loop.
 
     The connection is closed automatically after each iteration of the loop.
+
+    :func:`connect` cannot be awaited directly. This is because it runs a task
+    to manage the connection and Trio doesn't support spawning tasks without a
+    context that ensures completion.
 
     Args:
         uri: URI of the WebSocket server.
@@ -536,7 +539,7 @@ class connect:
             # Re-raise exception with an informative error message.
             raise TimeoutError("timed out during opening handshake") from exc
 
-    # Do not define __await__ for... = await nursery.start(connect, ...)
+    # Do not define __await__ for ... = await nursery.start(connect, ...)
     # because it doesn't look idiomatic in Trio.
 
     # async with connect(...) as ...: ...

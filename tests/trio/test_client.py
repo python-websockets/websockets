@@ -978,6 +978,13 @@ class UnixClientTests(IsolatedTrioTestCase):
                     ssl_object = client.stream._ssl_object
                     self.assertEqual(ssl_object.server_hostname, "overridden")
 
+    async def test_non_existing_path(self):
+        """Client attempts to connect to a non-existing Unix socket path."""
+        with temp_unix_socket_path() as path:
+            with self.assertRaises(FileNotFoundError):
+                async with unix_connect(path + ".doesnotexist"):
+                    self.fail("did not raise")
+
 
 class ClientUsageErrorsTests(IsolatedTrioTestCase):
     async def test_ssl_without_secure_uri(self):
@@ -1012,6 +1019,27 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
         self.assertEqual(
             str(raised.exception),
             "other://localhost:51080 isn't a valid proxy: scheme other isn't supported",
+        )
+
+    async def test_unix_without_path_or_stream(self):
+        """Unix client requires path when stream isn't provided."""
+        with self.assertRaises(ValueError) as raised:
+            async with unix_connect():
+                self.fail("did not raise")
+        self.assertEqual(
+            str(raised.exception),
+            "missing path argument",
+        )
+
+    async def test_unix_with_path_and_stream(self):
+        """Unix client rejects path when stream is provided."""
+        stream, _ = trio.testing.memory_stream_pair()
+        with self.assertRaises(ValueError) as raised:
+            async with unix_connect(path="/", stream=stream):
+                self.fail("did not raise")
+        self.assertEqual(
+            str(raised.exception),
+            "path is incompatible with stream",
         )
 
     async def test_invalid_subprotocol(self):

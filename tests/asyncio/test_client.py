@@ -993,6 +993,13 @@ class UnixClientTests(unittest.IsolatedAsyncioTestCase):
                     ssl_object = client.transport.get_extra_info("ssl_object")
                     self.assertEqual(ssl_object.server_hostname, "overridden")
 
+    async def test_non_existing_path(self):
+        """Client attempts to connect to a non-existing Unix socket path."""
+        with temp_unix_socket_path() as path:
+            with self.assertRaises(FileNotFoundError):
+                async with unix_connect(path + ".doesnotexist"):
+                    self.fail("did not raise")
+
 
 class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
     async def test_ssl_without_secure_uri(self):
@@ -1026,7 +1033,7 @@ class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
             "proxy_ssl argument is incompatible with an http:// proxy",
         )
 
-    async def test_https_proxy_without_ssl(self):
+    async def test_https_proxy_without_proxy_ssl(self):
         """Client rejects proxy_ssl=None when proxy is HTTPS."""
         with self.assertRaises(ValueError) as raised:
             await connect(

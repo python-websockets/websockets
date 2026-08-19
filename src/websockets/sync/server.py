@@ -686,7 +686,7 @@ def serve(
         try:
             # Disable Nagle algorithm
 
-            if not unix:
+            if sock.family in {socket.AF_INET, socket.AF_INET6}:
                 sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
 
             # Perform TLS handshake

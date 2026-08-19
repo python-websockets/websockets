@@ -561,13 +561,7 @@ class connect:
 
         return new_uri
 
-    # ... = await connect(...)
-
-    def __await__(self) -> Generator[Any, None, ClientConnection]:
-        # Create a suitable iterator by calling __await__ on a coroutine.
-        return self.__await_impl__().__await__()
-
-    async def __await_impl__(self) -> ClientConnection:
+    async def connect(self) -> ClientConnection:
         try:
             async with asyncio.timeout(self.open_timeout):
                 for _ in range(MAX_REDIRECTS):
@@ -611,6 +605,12 @@ class connect:
         except TimeoutError as exc:
             # Re-raise exception with an informative error message.
             raise TimeoutError("timed out during opening handshake") from exc
+
+    # ... = await connect(...)
+
+    def __await__(self) -> Generator[Any, None, ClientConnection]:
+        # Create a suitable iterator by calling __await__ on a coroutine.
+        return self.connect().__await__()
 
     # async with connect(...) as ...: ...
 

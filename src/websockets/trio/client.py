@@ -326,15 +326,16 @@ class connect:
     async def open_tcp_stream(self) -> trio.abc.Stream:
         """Open a TCP or Unix connection to the server, possibly through a proxy."""
         kwargs = self.open_tcp_stream_kwargs.copy()
+        unix = kwargs.pop("unix", False)
 
         proxy = self.proxy
-        if kwargs.get("unix", False):
+        if unix:
             proxy = None
         if proxy is True:
             proxy = get_proxy(self.ws_uri)
 
-        if kwargs.pop("unix", False):
-            return await trio.open_unix_socket(kwargs["path"])
+        if unix:
+            return await trio.open_unix_socket(kwargs.pop("path"))
 
         elif proxy is not None:
             proxy_parsed = parse_proxy(proxy)
@@ -391,7 +392,6 @@ class connect:
 
     async def open_connection(self, nursery: trio.Nursery) -> ClientConnection:
         """Create a WebSocket connection."""
-        # TCP connection is already established.
         if self.stream is None:
             stream = await self.open_tcp_stream()
         else:
@@ -419,8 +419,6 @@ class connect:
                 self.user_agent_header,
             )
 
-            return connection
-
         except trio.Cancelled:
             await trio.aclose_forcefully(stream)
             # The nursery running this coroutine was canceled.
@@ -433,6 +431,8 @@ class connect:
             # TCP/TLS connection with initializing the WebSocket protocol.
             await trio.aclose_forcefully(stream)
             raise
+
+        return connection
 
     def process_redirect(self, exc: Exception) -> Exception | str:
         """
@@ -660,11 +660,18 @@ def unix_connect(
             ``wss://localhost/``.
 
     """
+    stream = kwargs.get("stream")
+    if path is None and stream is None:
+        raise ValueError("missing path argument")
+    elif path is not None and stream is not None:
+        raise ValueError("path is incompatible with stream")
+
     if uri is None:
         if kwargs.get("ssl") is None:
             uri = "ws://localhost/"
         else:
             uri = "wss://localhost/"
+
     return connect(uri=uri, unix=True, path=path, **kwargs)
 
 

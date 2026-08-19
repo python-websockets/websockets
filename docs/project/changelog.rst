@@ -35,6 +35,9 @@ notice.
 New features
 ............
 
+* :func:`~sync.client.connect` now follows redirects in the :mod:`threading`
+  implementation.
+
 * :func:`~sync.client.connect` can connect to another host and port than those
   specified in the URI in the :mod:`threading` implementation.
 

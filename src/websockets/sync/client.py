@@ -1,16 +1,26 @@
 from __future__ import annotations
 
 import logging
+import os
 import socket
 import ssl as ssl_module
 import threading
+import urllib.parse
 import warnings
 from collections.abc import Sequence
+from types import TracebackType
 from typing import Any, Callable, Literal, TypeVar, cast
 
+from ..asyncio.client import process_exception
 from ..client import ClientProtocol
-from ..datastructures import HeadersLike
-from ..exceptions import InvalidProxyMessage, InvalidProxyStatus, ProxyError
+from ..datastructures import Headers, HeadersLike
+from ..exceptions import (
+    InvalidProxyMessage,
+    InvalidProxyStatus,
+    InvalidStatus,
+    ProxyError,
+    SecurityError,
+)
 from ..extensions.base import ClientExtensionFactory
 from ..extensions.permessage_deflate import enable_client_permessage_deflate
 from ..headers import validate_subprotocols
@@ -25,6 +35,8 @@ from .utils import Deadline
 
 
 __all__ = ["connect", "unix_connect", "ClientConnection"]
+
+MAX_REDIRECTS = int(os.environ.get("WEBSOCKETS_MAX_REDIRECTS", "10"))
 
 
 class ClientConnection(Connection):
@@ -142,6 +154,335 @@ class ClientConnection(Connection):
         finally:
             # If the connection is closed during the handshake, unblock it.
             self.response_rcvd.set()
+
+
+class _connect:
+    def __init__(
+        self,
+        uri: str,
+        *,
+        # TCP/TLS
+        sock: socket.socket | None = None,
+        ssl: ssl_module.SSLContext | None = None,
+        server_hostname: str | None = None,
+        # WebSocket
+        origin: Origin | None = None,
+        extensions: Sequence[ClientExtensionFactory] | None = None,
+        subprotocols: Sequence[Subprotocol] | None = None,
+        compression: str | None = "deflate",
+        # HTTP
+        additional_headers: HeadersLike | None = None,
+        user_agent_header: str | None = USER_AGENT,
+        proxy: str | Literal[True] | None = True,
+        proxy_ssl: ssl_module.SSLContext | None = None,
+        proxy_server_hostname: str | None = None,
+        # Timeouts
+        open_timeout: float | None = 10,
+        ping_interval: float | None = 20,
+        ping_timeout: float | None = 20,
+        close_timeout: float | None = 10,
+        # Limits
+        max_size: int | None | tuple[int | None, int | None] = 2**20,
+        max_queue: int | None | tuple[int | None, int | None] = 16,
+        # Logging
+        logger: LoggerLike | None = None,
+        # Escape hatch for advanced customization
+        create_connection: type[ClientConnection] | None = None,
+        # Other keyword arguments are passed to socket.create_connection
+        **kwargs: Any,
+    ) -> None:
+        # Backwards compatibility: ssl used to be called ssl_context.
+        if ssl is None and "ssl_context" in kwargs:
+            ssl = kwargs.pop("ssl_context")
+            warnings.warn(  # deprecated in 13.0 - 2024-08-20
+                "ssl_context was renamed to ssl",
+                DeprecationWarning,
+            )
+
+        self.uri = uri
+        self.ws_uri = parse_uri(uri)
+        if not self.ws_uri.secure and ssl is not None:
+            raise ValueError("ssl argument is incompatible with a ws:// URI")
+
+        if subprotocols is not None:
+            validate_subprotocols(subprotocols)
+
+        if compression == "deflate":
+            extensions = enable_client_permessage_deflate(extensions)
+        elif compression is not None:
+            raise ValueError(f"unsupported compression: {compression}")
+
+        if logger is None:
+            logger = logging.getLogger("websockets.client")
+
+        if create_connection is None:
+            create_connection = ClientConnection
+
+        self.sock = sock
+        self.ssl = ssl
+        self.server_hostname = server_hostname
+        self.additional_headers = additional_headers
+        self.user_agent_header = user_agent_header
+        self.proxy = proxy
+        self.proxy_ssl = proxy_ssl
+        self.proxy_server_hostname = proxy_server_hostname
+        self.process_exception = process_exception
+        self.open_timeout = open_timeout
+        self.logger = logger
+        self.create_connection = create_connection
+        self.open_socket_kwargs = kwargs
+        self.protocol_kwargs = dict(
+            origin=origin,
+            extensions=extensions,
+            subprotocols=subprotocols,
+            max_size=max_size,
+            logger=logger,
+        )
+        self.connection_kwargs = dict(
+            ping_interval=ping_interval,
+            ping_timeout=ping_timeout,
+            close_timeout=close_timeout,
+            max_queue=max_queue,
+        )
+
+    def open_socket(self, deadline: Deadline) -> socket.socket:
+        """Open a TCP or Unix connection to the server, possibly through a proxy."""
+        kwargs = self.open_socket_kwargs.copy()
+        unix = kwargs.pop("unix", False)
+
+        proxy = self.proxy
+        if unix:
+            proxy = None
+        if proxy is True:
+            proxy = get_proxy(self.ws_uri)
+
+        if unix:
+            sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            try:
+                sock.settimeout(deadline.timeout())
+                sock.connect(kwargs.pop("path"))
+            except Exception:
+                sock.close()
+                raise
+
+        elif proxy is not None:
+            proxy_parsed = parse_proxy(proxy)
+
+            if proxy_parsed.scheme[:5] == "socks":
+                sock = connect_socks_proxy(
+                    proxy_parsed,
+                    self.ws_uri,
+                    deadline,
+                    # websockets is consistent with the socket module while
+                    # python_socks is consistent across implementations.
+                    local_addr=kwargs.pop("source_address", None),
+                )
+
+            elif proxy_parsed.scheme[:4] == "http":
+                if proxy_parsed.scheme != "https" and self.proxy_ssl is not None:
+                    raise ValueError(
+                        "proxy_ssl argument is incompatible with an http:// proxy"
+                    )
+                sock = connect_http_proxy(
+                    proxy_parsed,
+                    self.ws_uri,
+                    deadline,
+                    user_agent_header=self.user_agent_header,
+                    ssl=self.proxy_ssl,
+                    server_hostname=self.proxy_server_hostname,
+                    **kwargs,
+                )
+
+            else:
+                raise AssertionError("parse_proxy returned unsupported proxy")
+
+        else:  # proxy is None
+            kwargs.setdefault("address", (self.ws_uri.host, self.ws_uri.port))
+            kwargs.setdefault("timeout", deadline.timeout())
+            sock = socket.create_connection(**kwargs)
+
+        sock.settimeout(None)
+        return sock
+
+    def enable_tls(self, sock: socket.socket, deadline: Deadline) -> socket.socket:
+        """Enable TLS on the connection."""
+        if self.ssl is None:
+            ssl = ssl_module.create_default_context()
+        else:
+            ssl = self.ssl
+        if self.server_hostname is None:
+            server_hostname = self.ws_uri.host
+        else:
+            server_hostname = self.server_hostname
+        sock.settimeout(deadline.timeout())
+        if self.proxy_ssl is None:
+            sock = ssl.wrap_socket(sock, server_hostname=server_hostname)
+        else:
+            sock_2 = SSLSSLSocket(sock, ssl, server_hostname=server_hostname)
+            # Let's pretend that sock is a socket, even though it isn't.
+            sock = cast(socket.socket, sock_2)
+        sock.settimeout(None)
+        return sock
+
+    def open_connection(self, deadline: Deadline) -> ClientConnection:
+        """Create a WebSocket connection."""
+        if self.sock is None:
+            sock = self.open_socket(deadline)
+        else:
+            sock = self.sock
+
+        try:
+            if sock.family in {socket.AF_INET, socket.AF_INET6}:
+                sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
+
+            if self.ws_uri.secure:
+                sock = self.enable_tls(sock, deadline)
+
+            protocol = ClientProtocol(
+                self.ws_uri,
+                **self.protocol_kwargs,  # type: ignore
+            )
+
+            # self.create_connection defaults to ClientConnection.
+            connection = self.create_connection(
+                sock,
+                protocol,
+                **self.connection_kwargs,  # type: ignore
+            )
+
+        except Exception:
+            sock.close()
+            raise
+
+        try:
+            connection.handshake(
+                self.additional_headers,
+                self.user_agent_header,
+                deadline.timeout(),
+            )
+        except Exception:
+            connection.close_socket()
+            connection.recv_events_thread.join()
+            raise
+
+        return connection
+
+    def process_redirect(self, exc: Exception) -> Exception | str:
+        """
+        Determine whether a connection error is a redirect that can be followed.
+
+        Return the new URI if it's a valid redirect. Else, return an exception.
+
+        """
+        if not (
+            isinstance(exc, InvalidStatus)
+            and exc.response.status_code
+            in [
+                300,  # Multiple Choices
+                301,  # Moved Permanently
+                302,  # Found
+                303,  # See Other
+                307,  # Temporary Redirect
+                308,  # Permanent Redirect
+            ]
+            and "Location" in exc.response.headers
+        ):
+            return exc
+
+        old_ws_uri = self.ws_uri
+        new_uri = urllib.parse.urljoin(self.uri, exc.response.headers["Location"])
+        new_ws_uri = parse_uri(new_uri)
+
+        # If connect() received a socket, it is closed and cannot be reused.
+        if self.sock is not None:
+            return ValueError(
+                f"cannot follow redirect to {new_uri} with a preexisting socket"
+            )
+
+        # TLS downgrade is forbidden.
+        if old_ws_uri.secure and not new_ws_uri.secure:
+            return SecurityError(f"cannot follow redirect to non-secure URI {new_uri}")
+
+        # Apply restrictions to cross-origin redirects.
+        if (
+            old_ws_uri.secure != new_ws_uri.secure
+            or old_ws_uri.host != new_ws_uri.host
+            or old_ws_uri.port != new_ws_uri.port
+        ):
+            # Cross-origin redirects on Unix sockets don't quite make sense.
+            if self.open_socket_kwargs.get("unix", False):
+                return ValueError(
+                    f"cannot follow cross-origin redirect to {new_uri} "
+                    f"with a Unix socket"
+                )
+            # Cross-origin redirects when host and port are overridden are ill-defined.
+            if self.open_socket_kwargs.get("address") is not None:
+                return ValueError(
+                    f"cannot follow cross-origin redirect to {new_uri} "
+                    f"with an explicit host and port"
+                )
+
+            # Strip credentials to avoid leaking them to a different origin.
+            if self.additional_headers is not None:
+                self.additional_headers = Headers(
+                    (
+                        (key, value)
+                        for key, value in Headers(self.additional_headers).raw_items()
+                        if key.lower()
+                        not in ["authorization", "cookie", "proxy-authorization"]
+                    )
+                )
+
+        return new_uri
+
+    def connect(self) -> ClientConnection:
+        """Connect to a WebSocket server, following redirects."""
+        # Calculate timeouts on the TCP, TLS, and WebSocket handshakes.
+        # The TCP and TLS timeouts must be set on the socket, then removed
+        # to avoid conflicting with the WebSocket timeout in handshake().
+        deadline = Deadline(self.open_timeout)
+
+        for _ in range(MAX_REDIRECTS):
+            try:
+                connection = self.open_connection(deadline)
+            except Exception as exc:
+                exc_or_uri = self.process_redirect(exc)
+                if isinstance(exc_or_uri, Exception):
+                    # Response isn't a valid redirect; raise the exception.
+                    if exc_or_uri is exc:
+                        raise
+                    else:
+                        raise exc_or_uri from exc
+                else:
+                    # Response is a valid redirect; follow it.
+                    self.uri = exc_or_uri
+                    self.ws_uri = parse_uri(exc_or_uri)
+                    continue
+
+            else:
+                connection.start_keepalive()
+                return connection
+        else:
+            raise SecurityError(f"more than {MAX_REDIRECTS} redirects")
+
+    # with connect(...) as ...: ...
+
+    def __enter__(self) -> ClientConnection:
+        if hasattr(self, "connection"):
+            raise RuntimeError("connect() isn't reentrant")
+        self.connection = self.connect()
+        return self.connection
+
+    def __exit__(
+        self,
+        exc_type: type[BaseException] | None,
+        exc_value: BaseException | None,
+        exc_traceback: TracebackType | None,
+    ) -> None:
+        try:
+            self.connection.close()
+        finally:
+            del self.connection
 
 
 def connect(
@@ -263,169 +604,39 @@ def connect(
         TimeoutError: If the opening handshake times out.
 
     """
+    # Backwards compatibility: connect() can return a ClientConnection.
+    legacy: bool | None = kwargs.pop("legacy", None)
 
-    # Process parameters
+    connecter = _connect(
+        uri,
+        sock=sock,
+        ssl=ssl,
+        server_hostname=server_hostname,
+        origin=origin,
+        extensions=extensions,
+        subprotocols=subprotocols,
+        compression=compression,
+        additional_headers=additional_headers,
+        user_agent_header=user_agent_header,
+        proxy=proxy,
+        proxy_ssl=proxy_ssl,
+        proxy_server_hostname=proxy_server_hostname,
+        open_timeout=open_timeout,
+        ping_interval=ping_interval,
+        ping_timeout=ping_timeout,
+        close_timeout=close_timeout,
+        max_size=max_size,
+        max_queue=max_queue,
+        logger=logger,
+        create_connection=create_connection,
+        **kwargs,
+    )
 
-    # Backwards compatibility: ssl used to be called ssl_context.
-    if ssl is None and "ssl_context" in kwargs:
-        ssl = kwargs.pop("ssl_context")
-        warnings.warn(  # deprecated in 13.0 - 2024-08-20
-            "ssl_context was renamed to ssl",
-            DeprecationWarning,
-        )
+    # Forwards compatibility: this will be the default behavior in the future.
+    if legacy is False:
+        return connecter  # type: ignore
 
-    # Backwards compatibility: connect can return a ClientConnection.
-    legacy = kwargs.pop("legacy", False)
-
-    ws_uri = parse_uri(uri)
-    if not ws_uri.secure and ssl is not None:
-        raise ValueError("ssl argument is incompatible with a ws:// URI")
-
-    if subprotocols is not None:
-        validate_subprotocols(subprotocols)
-
-    if compression == "deflate":
-        extensions = enable_client_permessage_deflate(extensions)
-    elif compression is not None:
-        raise ValueError(f"unsupported compression: {compression}")
-
-    if logger is None:
-        logger = logging.getLogger("websockets.client")
-
-    if create_connection is None:
-        create_connection = ClientConnection
-
-    # Private APIs for unix_connect()
-    unix: bool = kwargs.pop("unix", False)
-    path: str | None = kwargs.pop("path", None)
-
-    if unix:
-        if path is None and sock is None:
-            raise ValueError("missing path argument")
-        elif path is not None and sock is not None:
-            raise ValueError("path is incompatible with sock")
-
-    if unix:
-        proxy = None
-    if sock is not None:
-        proxy = None
-    if proxy is True:
-        proxy = get_proxy(ws_uri)
-
-    # Calculate timeouts on the TCP, TLS, and WebSocket handshakes.
-    # The TCP and TLS timeouts must be set on the socket, then removed
-    # to avoid conflicting with the WebSocket timeout in handshake().
-    deadline = Deadline(open_timeout)
-
-    try:
-        # Connect socket
-
-        if sock is None:
-            if unix:
-                sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                sock.settimeout(deadline.timeout())
-                assert path is not None  # mypy cannot figure this out
-                sock.connect(path)
-
-            elif proxy is not None:
-                proxy_parsed = parse_proxy(proxy)
-
-                if proxy_parsed.scheme[:5] == "socks":
-                    sock = connect_socks_proxy(
-                        proxy_parsed,
-                        ws_uri,
-                        deadline,
-                        # websockets is consistent with the socket module while
-                        # python_socks is consistent across implementations.
-                        local_addr=kwargs.pop("source_address", None),
-                    )
-
-                elif proxy_parsed.scheme[:4] == "http":
-                    if proxy_parsed.scheme != "https" and proxy_ssl is not None:
-                        raise ValueError(
-                            "proxy_ssl argument is incompatible with an http:// proxy"
-                        )
-                    sock = connect_http_proxy(
-                        proxy_parsed,
-                        ws_uri,
-                        deadline,
-                        user_agent_header=user_agent_header,
-                        ssl=proxy_ssl,
-                        server_hostname=proxy_server_hostname,
-                        **kwargs,
-                    )
-
-                else:
-                    raise AssertionError("parse_proxy returned unsupported proxy")
-
-            else:  # proxy is None
-                kwargs.setdefault("address", (ws_uri.host, ws_uri.port))
-                kwargs.setdefault("timeout", deadline.timeout())
-                sock = socket.create_connection(**kwargs)
-
-            sock.settimeout(None)
-
-        # Disable Nagle algorithm
-
-        if not unix:
-            sock.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, True)
-
-        # Initialize TLS wrapper and perform TLS handshake
-
-        if ws_uri.secure:
-            if ssl is None:
-                ssl = ssl_module.create_default_context()
-            if server_hostname is None:
-                server_hostname = ws_uri.host
-            sock.settimeout(deadline.timeout())
-            if proxy_ssl is None:
-                sock = ssl.wrap_socket(sock, server_hostname=server_hostname)
-            else:
-                sock_2 = SSLSSLSocket(sock, ssl, server_hostname=server_hostname)
-                # Let's pretend that sock is a socket, even though it isn't.
-                sock = cast(socket.socket, sock_2)
-            sock.settimeout(None)
-
-        # Initialize WebSocket protocol
-
-        protocol = ClientProtocol(
-            ws_uri,
-            origin=origin,
-            extensions=extensions,
-            subprotocols=subprotocols,
-            max_size=max_size,
-            logger=logger,
-        )
-
-        # Initialize WebSocket connection
-
-        # create_connection defaults to ClientConnection.
-        connection = create_connection(
-            sock,
-            protocol,
-            ping_interval=ping_interval,
-            ping_timeout=ping_timeout,
-            close_timeout=close_timeout,
-            max_queue=max_queue,
-        )
-    except Exception:
-        if sock is not None:
-            sock.close()
-        raise
-
-    try:
-        connection.handshake(
-            additional_headers,
-            user_agent_header,
-            deadline.timeout(),
-        )
-    except Exception:
-        connection.close_socket()
-        connection.recv_events_thread.join()
-        raise
-
-    connection.start_keepalive()
-
+    connection = connecter.connect()
     if legacy:
         connection.pending_legacy_warning = False
     return connection
@@ -452,12 +663,19 @@ def unix_connect(
             ``wss://localhost/``.
 
     """
+    sock = kwargs.get("sock")
+    if path is None and sock is None:
+        raise ValueError("missing path argument")
+    elif path is not None and sock is not None:
+        raise ValueError("path is incompatible with sock")
+
     if uri is None:
         # Backwards compatibility: ssl used to be called ssl_context.
         if kwargs.get("ssl") is None and kwargs.get("ssl_context") is None:
             uri = "ws://localhost/"
         else:
             uri = "wss://localhost/"
+
     return connect(uri=uri, unix=True, path=path, **kwargs)
 
 

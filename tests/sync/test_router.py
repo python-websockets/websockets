@@ -63,27 +63,17 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
 
     def test_redirect(self):
         """Router redirects connections according to redirect_to."""
-        with run_router(url_map, server_name="localhost") as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                with connect(get_uri(server) + "/r"):
-                    self.fail("did not raise")
-            self.assertEqual(
-                raised.exception.response.headers["Location"],
-                "ws://localhost/",
-            )
+        with run_router(url_map) as server:
+            with connect(get_uri(server) + "/r") as client:
+                self.assertEval(client, "ws.request.path", "/")
 
     def test_secure_redirect(self):
-        """Router redirects connections to a wss:// URI when TLS is enabled."""
-        with run_router(url_map, server_name="localhost", ssl=SERVER_CONTEXT) as server:
-            with self.assertRaises(InvalidStatus) as raised:
-                with connect(get_uri(server) + "/r", ssl=CLIENT_CONTEXT):
-                    self.fail("did not raise")
-            self.assertEqual(
-                raised.exception.response.headers["Location"],
-                "wss://localhost/",
-            )
+        """Router redirects connections according to redirect_to when TLS is enabled."""
+        with run_router(url_map, ssl=SERVER_CONTEXT) as server:
+            with connect(get_uri(server) + "/r", ssl=CLIENT_CONTEXT) as client:
+                self.assertEval(client, "ws.request.path", "/")
 
-    @patch("websockets.asyncio.client.connect.process_redirect", lambda _, exc: exc)
+    @patch("websockets.sync.client._connect.process_redirect", lambda _, exc: exc)
     def test_force_secure_redirect(self):
         """Router redirects ws:// connections to a wss:// URI when ssl=True."""
         with run_router(url_map, ssl=True) as server:
@@ -96,7 +86,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
             redirect_uri + "/",
         )
 
-    @patch("websockets.asyncio.client.connect.process_redirect", lambda _, exc: exc)
+    @patch("websockets.sync.client._connect.process_redirect", lambda _, exc: exc)
     def test_force_redirect_server_name(self):
         """Router redirects connections to the host declared in server_name."""
         with run_router(url_map, server_name="other") as server:

@@ -1,3 +1,4 @@
+import contextlib
 import http
 import logging
 import os
@@ -18,6 +19,7 @@ from websockets.exceptions import (
     InvalidStatus,
     InvalidURI,
     ProxyError,
+    SecurityError,
 )
 from websockets.extensions.permessage_deflate import PerMessageDeflate
 from websockets.sync.client import *
@@ -31,6 +33,18 @@ from ..utils import (
     temp_unix_socket_path,
 )
 from .server import get_host_port, get_uri, run_server, run_unix_server
+
+
+@contextlib.contextmanager
+def few_redirects():
+    from websockets.sync import client
+
+    max_redirects = client.MAX_REDIRECTS
+    client.MAX_REDIRECTS = 2
+    try:
+        yield
+    finally:
+        client.MAX_REDIRECTS = max_redirects
 
 
 class ClientTests(unittest.TestCase):
@@ -141,6 +155,153 @@ class ClientTests(unittest.TestCase):
                 get_uri(server), create_connection=create_connection
             ) as client:
                 self.assertTrue(client.create_connection_ran)
+
+    def test_redirect(self):
+        """Client follows redirect."""
+
+        def redirect(connection, request):
+            if request.path == "/redirect":
+                response = connection.respond(http.HTTPStatus.FOUND, "")
+                response.headers["Location"] = "/"
+                return response
+
+        with run_server(process_request=redirect) as server:
+            with connect(get_uri(server) + "/redirect") as client:
+                self.assertEqual(client.protocol.uri.path, "/")
+
+    def test_cross_origin_redirect(self):
+        """Client follows redirect to a secure URI on a different origin."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = get_uri(other_server)
+            return response
+
+        with run_server(process_request=redirect) as server:
+            with run_server() as other_server:
+                with connect(get_uri(server)):
+                    self.assertFalse(server.connections)
+                    self.assertTrue(other_server.connections)
+
+    @few_redirects()
+    def test_redirect_limit(self):
+        """Client stops following redirects after limit is reached."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = request.path
+            return response
+
+        with run_server(process_request=redirect) as server:
+            with self.assertRaises(SecurityError) as raised:
+                with connect(get_uri(server)):
+                    self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            "more than 2 redirects",
+        )
+
+    def test_redirect_with_explicit_host_port(self):
+        """Client follows redirect with an explicit host / port."""
+
+        def redirect(connection, request):
+            if request.path == "/redirect":
+                response = connection.respond(http.HTTPStatus.FOUND, "")
+                response.headers["Location"] = "/"
+                return response
+
+        with run_server(process_request=redirect) as server:
+            address = get_host_port(server)
+            with connect("ws://overridden/redirect", address=address) as client:
+                self.assertEqual(client.protocol.uri.path, "/")
+
+    def test_cross_origin_redirect_with_explicit_host_port(self):
+        """Client doesn't follow cross-origin redirect with an explicit host / port."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = "ws://other/"
+            return response
+
+        with run_server(process_request=redirect) as server:
+            address = get_host_port(server)
+            with self.assertRaises(ValueError) as raised:
+                with connect("ws://overridden/", address=address):
+                    self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            "cannot follow cross-origin redirect to ws://other/ "
+            "with an explicit host and port",
+        )
+
+    def test_redirect_with_existing_socket(self):
+        """Client doesn't follow redirect when using a pre-existing socket."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = "/"
+            return response
+
+        with run_server(process_request=redirect) as server:
+            with socket.create_connection(get_host_port(server)) as sock:
+                with self.assertRaises(ValueError) as raised:
+                    # Use a non-existing domain to ensure we connect via sock.
+                    with connect("ws://invalid/redirect", sock=sock):
+                        self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            "cannot follow redirect to ws://invalid/ with a preexisting socket",
+        )
+
+    def test_cross_origin_redirect_strips_credentials(self):
+        """Client strips credentials when following a cross-origin redirect."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = get_uri(other_server)
+            return response
+
+        with run_server(process_request=redirect) as server:
+            with run_server() as other_server:
+                with connect(
+                    get_uri(server),
+                    additional_headers={
+                        "Authorization": "Bearer secret",
+                        "Cookie": "session=secret",
+                        "Proxy-Authorization": "Basic secret",
+                        "X-Custom": "keep",
+                    },
+                ) as client:
+                    self.assertNotIn("Authorization", client.request.headers)
+                    self.assertNotIn("Cookie", client.request.headers)
+                    self.assertNotIn("Proxy-Authorization", client.request.headers)
+                    self.assertIn("X-Custom", client.request.headers)
+
+    def test_same_origin_redirect_preserves_credentials(self):
+        """Client preserves credentials when following a same-origin redirect."""
+
+        def redirect(connection, request):
+            if request.path == "/redirect":
+                response = connection.respond(http.HTTPStatus.FOUND, "")
+                response.headers["Location"] = "/"
+                return response
+
+        with run_server(process_request=redirect) as server:
+            with connect(
+                get_uri(server) + "/redirect",
+                additional_headers={
+                    "Authorization": "Bearer secret",
+                    "Cookie": "session=secret",
+                    "Proxy-Authorization": "Basic secret",
+                    "X-Custom": "keep",
+                },
+            ) as client:
+                self.assertIn("Authorization", client.request.headers)
+                self.assertIn("Cookie", client.request.headers)
+                self.assertIn("Proxy-Authorization", client.request.headers)
 
     def test_invalid_uri(self):
         """Client receives an invalid URI."""
@@ -369,6 +530,40 @@ class SecureClientTests(unittest.TestCase):
                 "Hostname mismatch",
                 str(raised.exception),
             )
+
+    def test_cross_origin_redirect(self):
+        """Client follows redirect to a secure URI on a different origin."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = get_uri(other_server)
+            return response
+
+        with run_server(ssl=SERVER_CONTEXT, process_request=redirect) as server:
+            with run_server(ssl=SERVER_CONTEXT) as other_server:
+                with connect(get_uri(server), ssl=CLIENT_CONTEXT):
+                    self.assertFalse(server.connections)
+                    self.assertTrue(other_server.connections)
+
+    def test_redirect_to_insecure_uri(self):
+        """Client doesn't follow redirect from secure URI to non-secure URI."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = insecure_uri
+            return response
+
+        with run_server(ssl=SERVER_CONTEXT, process_request=redirect) as server:
+            with self.assertRaises(SecurityError) as raised:
+                secure_uri = get_uri(server)
+                insecure_uri = secure_uri.replace("wss://", "ws://")
+                with connect(secure_uri, ssl=CLIENT_CONTEXT):
+                    self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            f"cannot follow redirect to non-secure URI {insecure_uri}",
+        )
 
 
 @unittest.skipUnless("mitmproxy" in sys.modules, "mitmproxy not installed")
@@ -685,6 +880,25 @@ class UnixClientTests(unittest.TestCase):
                 with unix_connect(path, uri="ws://overridden/") as client:
                     self.assertEqual(client.request.headers["Host"], "overridden")
 
+    def test_cross_origin_redirect(self):
+        """Client doesn't follows redirect to a URI on a different origin."""
+
+        def redirect(connection, request):
+            response = connection.respond(http.HTTPStatus.FOUND, "")
+            response.headers["Location"] = "ws://other/"
+            return response
+
+        with temp_unix_socket_path() as path:
+            with run_unix_server(path, process_request=redirect):
+                with self.assertRaises(ValueError) as raised:
+                    with unix_connect(path):
+                        self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            "cannot follow cross-origin redirect to ws://other/ with a Unix socket",
+        )
+
     def test_secure_context_manager(self):
         """Client connects to Unix server securely and disconnects automatically."""
         with temp_unix_socket_path() as path:
@@ -713,6 +927,13 @@ class UnixClientTests(unittest.TestCase):
                 ) as client:
                     self.assertEqual(client.socket.server_hostname, "overridden")
 
+    def test_non_existing_path(self):
+        """Client attempts to connect to a non-existing Unix socket path."""
+        with temp_unix_socket_path() as path:
+            with self.assertRaises(FileNotFoundError):
+                with unix_connect(path + ".doesnotexist"):
+                    self.fail("did not raise")
+
 
 class ClientUsageErrorsTests(unittest.TestCase):
     def test_ssl_without_secure_uri(self):
@@ -737,15 +958,6 @@ class ClientUsageErrorsTests(unittest.TestCase):
             "proxy_ssl argument is incompatible with an http:// proxy",
         )
 
-    def test_unix_without_path_or_sock(self):
-        """Unix client requires path when sock isn't provided."""
-        with self.assertRaises(ValueError) as raised:
-            unix_connect()
-        self.assertEqual(
-            str(raised.exception),
-            "missing path argument",
-        )
-
     def test_unsupported_proxy(self):
         """Client rejects unsupported proxy."""
         with self.assertRaises(InvalidProxy) as raised:
@@ -754,6 +966,15 @@ class ClientUsageErrorsTests(unittest.TestCase):
         self.assertEqual(
             str(raised.exception),
             "other://localhost:58080 isn't a valid proxy: scheme other isn't supported",
+        )
+
+    def test_unix_without_path_or_sock(self):
+        """Unix client requires path when sock isn't provided."""
+        with self.assertRaises(ValueError) as raised:
+            unix_connect()
+        self.assertEqual(
+            str(raised.exception),
+            "missing path argument",
         )
 
     def test_unix_with_path_and_sock(self):
@@ -783,6 +1004,19 @@ class ClientUsageErrorsTests(unittest.TestCase):
         self.assertEqual(
             str(raised.exception),
             "unsupported compression: False",
+        )
+
+    def test_reentrancy(self):
+        """Client isn't reentrant."""
+        with run_server() as server:
+            connecter = connect(get_uri(server), legacy=False)
+            with connecter:
+                with self.assertRaises(RuntimeError) as raised:
+                    with connecter:
+                        self.fail("did not raise")
+        self.assertEqual(
+            str(raised.exception),
+            "connect() isn't reentrant",
         )
 
 

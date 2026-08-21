@@ -127,7 +127,7 @@ class Connection(trio.abc.AsyncResource):
         self.stream_closed: trio.Event = trio.Event()
 
         # Start recv_events only after all attributes are initialized.
-        self.nursery.start_soon(self.recv_events)
+        self.nursery.start_soon(self.run_recv_events)
 
     # Public attributes
 
@@ -867,6 +867,20 @@ class Connection(trio.abc.AsyncResource):
         """
         if self.ping_interval is not None:
             self.nursery.start_soon(self.keepalive)
+
+    async def run_recv_events(self) -> None:
+        """
+        Run :meth:`recv_events` then clear the frames of ``recv_exc``'s traceback.
+
+        Else, the traceback would keep the connection in a reference cycle.
+        Frames may be cleared only after :meth:`recv_events` terminates.
+
+        """
+        try:
+            await self.recv_events()
+        finally:
+            if self.recv_exc is not None:
+                traceback.clear_frames(self.recv_exc.__traceback__)
 
     async def recv_events(self) -> None:
         """

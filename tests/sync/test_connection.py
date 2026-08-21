@@ -1230,6 +1230,25 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
         self.assertIsNone(connection_ref())
 
+    @skip_unless_reference_counting_collects
+    def test_garbage_collection_after_network_error(self):
+        """Connection is freed by reference counting after a network error."""
+        # Inject a fault by making sendall() fail. Responding to the
+        # incoming ping will fail and set recv_exc.
+        self.connection.socket = Mock(wraps=self.connection.socket)
+        self.connection.socket.sendall.side_effect = BrokenPipeError
+        self.remote_connection.ping()
+        with self.assertRaises(ConnectionClosedError):
+            self.connection.recv()
+
+        connection_ref = weakref.ref(self.connection)
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        del self.connection
+
+        self.assertIsNone(connection_ref())
+
 
 class ServerConnectionTests(ClientConnectionTests):
     LOCAL = SERVER

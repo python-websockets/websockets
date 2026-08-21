@@ -1531,6 +1531,24 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
         self.assertIsNone(connection_ref())
 
+    @skip_unless_reference_counting_collects
+    async def test_garbage_collection_after_network_error(self):
+        """Connection is freed by reference counting after a network error."""
+        # Inject a fault by shutting down the transport for writing.
+        # Responding to the incoming ping will fail and set recv_exc.
+        self.transport.write_eof()
+        await self.remote_connection.ping()
+        with self.assertRaises(ConnectionClosedError):
+            await self.connection.recv()
+
+        connection_ref = weakref.ref(self.connection)
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        del self.connection, self.transport
+
+        self.assertIsNone(connection_ref())
+
 
 class ServerConnectionTests(ClientConnectionTests):
     LOCAL = SERVER

@@ -1458,6 +1458,27 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
         self.assertIsNone(connection_ref())
 
+    @skip_unless_reference_counting_collects
+    async def test_garbage_collection_after_network_error(self):
+        """Connection is freed by reference counting after a network error."""
+        # Inject a fault by closing the stream for writing. Responding to
+        # the incoming ping will fail and set recv_exc.
+        self.connection.stream.send_stream.close()
+        await self.remote_connection.ping()
+        with self.assertRaises(ConnectionClosedError):
+            await self.connection.recv()
+
+        connection_ref = weakref.ref(self.connection)
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        del self.connection
+
+        # Let the task running recv_events() terminate.
+        await trio.testing.wait_all_tasks_blocked()
+
+        self.assertIsNone(connection_ref())
+
 
 class ServerConnectionTests(ClientConnectionTests):
     LOCAL = SERVER

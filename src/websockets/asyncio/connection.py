@@ -1019,6 +1019,13 @@ class Connection(asyncio.Protocol):
 
         self.set_recv_exc(exc)
 
+        # Clear the frames of recv_exc's traceback. Else, when recv_exc was
+        # raised in a method of this class e.g. data_received(), its traceback
+        # would keep the connection in a reference cycle. Frames finished
+        # running, so they may be cleared; formatting isn't affected.
+        if self.recv_exc is not None:
+            traceback.clear_frames(self.recv_exc.__traceback__)
+
         # Abort recv() and pending pings with a ConnectionClosed exception.
         self.recv_messages.close()
         self.terminate_pending_pings()

@@ -31,6 +31,35 @@ from .utils import Deadline
 __all__ = ["Connection"]
 
 
+class RecvEventsThread(threading.Thread):
+    """
+    Thread running :meth:`Connection.recv_events`.
+
+    This thread is marked as daemon to allow creating a connection in a
+    non-daemon thread and using it in a daemon thread. This mustn't prevent
+    the interpreter from exiting.
+
+    """
+
+    def __init__(self, connection: Connection) -> None:
+        super().__init__(daemon=True)
+        self.connection = connection
+
+    def run(self) -> None:
+        try:
+            self.connection.recv_events()
+        finally:
+            recv_exc = self.connection.recv_exc
+            # Dereference the connection, like Thread.run() dereferences
+            # self._target, so that this thread doesn't keep it alive.
+            del self.connection
+            # Clear the frames of recv_exc's traceback. Else, it would keep
+            # the connection in a reference cycle. Frames may be cleared only
+            # after recv_events() terminates.
+            if recv_exc is not None:
+                traceback.clear_frames(recv_exc.__traceback__)
+
+
 class Connection:
     """
     :mod:`threading` implementation of a WebSocket connection.
@@ -127,13 +156,8 @@ class Connection:
         # ConnectionClosed in order to show why the TCP connection dropped.
         self.recv_exc: BaseException | None = None
 
-        # Receiving events from the socket. This thread is marked as daemon to
-        # allow creating a connection in a non-daemon thread and using it in a
-        # daemon thread. This mustn't prevent the interpreter from exiting.
-        self.recv_events_thread = threading.Thread(
-            target=self.recv_events,
-            daemon=True,
-        )
+        # Receiving events from the socket.
+        self.recv_events_thread = RecvEventsThread(self)
 
         # Start recv_events only after all attributes are initialized.
         self.recv_events_thread.start()

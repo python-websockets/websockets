@@ -14,8 +14,6 @@ Opening a connection
 
 .. autofunction:: unix_reconnect
 
-.. autofunction:: process_exception
-
 Using a connection
 ------------------
 

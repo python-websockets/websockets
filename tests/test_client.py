@@ -6,7 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from websockets.client import *
-from websockets.client import backoff
+from websockets.client import backoff, process_exception
 from websockets.datastructures import Headers
 from websockets.exceptions import (
     InvalidHandshake,
@@ -682,6 +682,32 @@ class BackwardsCompatibilityTests(DeprecationTestCase):
             client = ClientConnection("ws://localhost/")
 
         self.assertIsInstance(client, ClientProtocol)
+
+
+class ProcessExceptionTests(unittest.TestCase):
+    def test_process_exception_retryable(self):
+        """process_exception(exc) returns None on retriable errors."""
+        connection_closed_exc = InvalidMessage("did not receive a valid HTTP response")
+        connection_closed_exc.__cause__ = EOFError(
+            "connection closed while reading HTTP status line"
+        )
+        for exc in [
+            ConnectionRefusedError(61, "Connection refused"),
+            TimeoutError("timed out while waiting for handshake response"),
+            connection_closed_exc,
+            InvalidStatus(Response(503, "Service Unavailable", Headers(), b"")),
+        ]:
+            with self.subTest(exc=exc):
+                self.assertIsNone(process_exception(exc))
+
+    def test_process_exception_fatal(self):
+        """process_exception(exc) returns exc on fatal errors."""
+        for exc in [
+            InvalidStatus(Response(410, "Gone", Headers(), b"")),
+            AssertionError("unexpected error"),
+        ]:
+            with self.subTest(exc=exc):
+                self.assertIs(process_exception(exc), exc)
 
 
 class BackoffTests(unittest.TestCase):

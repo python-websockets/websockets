@@ -11,8 +11,7 @@ from typing import Any, Callable, Literal
 
 import trio
 
-from ..asyncio.client import process_exception
-from ..client import ClientProtocol, backoff
+from ..client import ClientProtocol, backoff, process_exception
 from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
     InvalidProxyMessage,
@@ -195,7 +194,8 @@ class connect:
             ``proxy_server_hostname`` overrides the host name from ``proxy``.
         process_exception: When reconnecting automatically, tell whether an
             error is transient or fatal. The default behavior is defined by
-            :func:`process_exception`. Refer to its documentation for details.
+            :func:`~websockets.client.process_exception`. Refer to its
+            documentation for details.
         open_timeout: Timeout for opening the connection in seconds.
             :obj:`None` disables the timeout.
         ping_interval: Interval between keepalive pings in seconds.

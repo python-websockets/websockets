@@ -56,3 +56,5 @@ Client (`Sans-I/O`_)
     .. autoproperty:: close_reason
 
     .. autoproperty:: close_exc
+
+.. autofunction:: process_exception

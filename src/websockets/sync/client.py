@@ -13,8 +13,7 @@ from collections.abc import Generator, Iterator, Sequence
 from types import TracebackType
 from typing import Any, Callable, Literal, TypeVar, cast, overload
 
-from ..asyncio.client import process_exception
-from ..client import ClientProtocol, backoff
+from ..client import ClientProtocol, backoff, process_exception
 from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
     InvalidProxyMessage,

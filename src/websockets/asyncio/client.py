@@ -11,10 +11,9 @@ from collections.abc import AsyncIterator, Generator, Sequence
 from types import TracebackType
 from typing import Any, Callable, Literal, cast
 
-from ..client import ClientProtocol, backoff
+from ..client import ClientProtocol, backoff, process_exception
 from ..datastructures import Headers, HeadersLike
 from ..exceptions import (
-    InvalidMessage,
     InvalidProxyMessage,
     InvalidProxyStatus,
     InvalidStatus,
@@ -128,50 +127,6 @@ class ClientConnection(Connection):
             super().process_event(event)
 
 
-def process_exception(exc: Exception) -> Exception | None:
-    """
-    Determine whether a connection error is retryable or fatal.
-
-    When reconnecting automatically with ``async for ... in connect(...)``, if a
-    connection attempt fails, :func:`process_exception` is called to determine
-    whether to retry connecting or to raise the exception.
-
-    This function defines the default behavior, which is to retry on:
-
-    * :exc:`EOFError`, :exc:`OSError`, :exc:`asyncio.TimeoutError`: network
-      errors;
-    * :exc:`~websockets.exceptions.InvalidStatus` when the status code is 500,
-      502, 503, or 504: server or proxy errors.
-
-    All other exceptions are considered fatal.
-
-    You can change this behavior with the ``process_exception`` argument of
-    :func:`connect`.
-
-    Return :obj:`None` if the exception is retryable i.e. when the error could
-    be transient and trying to reconnect with the same parameters could succeed.
-    The exception will be logged at the ``INFO`` level.
-
-    Return an exception, either ``exc`` or a new exception, if the exception is
-    fatal i.e. when trying to reconnect will most likely produce the same error.
-    That exception will be raised, breaking out of the retry loop.
-
-    """
-    # This catches python-socks' ProxyConnectionError and ProxyTimeoutError.
-    if isinstance(exc, (OSError, TimeoutError)):
-        return None
-    if isinstance(exc, InvalidMessage) and isinstance(exc.__cause__, EOFError):
-        return None
-    if isinstance(exc, InvalidStatus) and exc.response.status_code in [
-        500,  # Internal Server Error
-        502,  # Bad Gateway
-        503,  # Service Unavailable
-        504,  # Gateway Timeout
-    ]:
-        return None
-    return exc
-
-
 # This is spelled in lower case because it's exposed as a callable in the API.
 class connect:
     """
@@ -231,7 +186,8 @@ class connect:
             <../../topics/proxies>` for details.
         process_exception: When reconnecting automatically, tell whether an
             error is transient or fatal. The default behavior is defined by
-            :func:`process_exception`. Refer to its documentation for details.
+            :func:`~websockets.client.process_exception`. Refer to its
+            documentation for details.
         open_timeout: Timeout for opening the connection in seconds.
             :obj:`None` disables the timeout.
         ping_interval: Interval between keepalive pings in seconds.

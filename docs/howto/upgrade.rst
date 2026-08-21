@@ -161,7 +161,7 @@ network errors and server errors (HTTP 500, 502, 503, or 504) are considered
 retryable. You can customize this behavior with the ``process_exception``
 argument of :func:`~asyncio.client.connect`.
 
-See :func:`~asyncio.client.process_exception` for more information.
+See :func:`~client.process_exception` for more information.
 
 Here's how to revert to the behavior of the original implementation::
 

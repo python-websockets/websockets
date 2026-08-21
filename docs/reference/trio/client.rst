@@ -16,8 +16,6 @@ Opening a connection
 
 .. autofunction:: unix_connect
 
-.. autofunction:: process_exception
-
 Using a connection
 ------------------
 

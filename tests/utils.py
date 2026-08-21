@@ -4,6 +4,7 @@ import os
 import pathlib
 import platform
 import ssl
+import sys
 import tempfile
 import time
 import unittest
@@ -65,6 +66,17 @@ if os.environ.get("COVERAGE_RUN"):  # pragma: no branch
 
 # Ensure that timeouts are larger than the clock's resolution (for Windows).
 MS = max(MS, 2.5 * time.get_clock_info("monotonic").resolution)
+
+
+# Garbage collection tests check that closed connections are freed by reference
+# counting alone. Skip them on PyPy, which doesn't implement reference counting,
+# and on Python 3.12, where the traceback of an exception raised while closing
+# a connection keeps frames of connection methods alive via their f_back
+# attribute. Python 3.13 fixed that behavior.
+skip_unless_reference_counting_collects = unittest.skipIf(
+    platform.python_implementation() != "CPython" or sys.version_info[:2] == (3, 12),
+    "test requires that reference counting frees closed connections",
+)
 
 
 class GeneratorTestCase(unittest.TestCase):

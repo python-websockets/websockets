@@ -1,10 +1,13 @@
 import base64
+import gc
 import itertools
+import logging
 import platform
 import socket
 import unittest
 
 from websockets.utils import (
+    ConnectionLoggerAdapter,
     accept_key,
     apply_mask as py_apply_mask,
     generate_key,
@@ -109,6 +112,37 @@ else:
                     raise unittest.SkipTest(str(exc))
                 else:
                     raise
+
+
+class FakeConnection:
+    """Object standing in for a connection; plain objects aren't weakrefable."""
+
+
+class ConnectionLoggerAdapterTests(unittest.TestCase):
+    def setUp(self):
+        self.websocket = FakeConnection()
+        self.adapter = ConnectionLoggerAdapter(
+            logging.getLogger("websockets.test"),
+            self.websocket,
+        )
+
+    def test_process_adds_websocket_to_extra(self):
+        """process makes the connection available in the extra dict."""
+        msg, kwargs = self.adapter.process("message", {})
+        self.assertIs(kwargs["extra"]["websocket"], self.websocket)
+
+    def test_log_records_have_websocket_attribute(self):
+        """Log records have a websocket attribute referencing the connection."""
+        with self.assertLogs("websockets.test", logging.INFO) as logs:
+            self.adapter.info("message")
+        self.assertIs(logs.records[0].websocket, self.websocket)
+
+    def test_adapter_does_not_keep_websocket_alive(self):
+        """Adapter doesn't prevent garbage collection of the connection."""
+        del self.websocket
+        gc.collect()
+        msg, kwargs = self.adapter.process("message", {})
+        self.assertNotIn("extra", kwargs)
 
 
 class GetSocketNameAsStrTests(unittest.TestCase):

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import concurrent.futures
 import contextlib
-import logging
 import random
 import socket
 import struct
@@ -24,6 +23,7 @@ from ..frames import DATA_OPCODES, PONG, CloseCode, Frame
 from ..http11 import Request, Response
 from ..protocol import CLOSED, CONNECTING, OPEN, Event, Protocol, State
 from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
+from ..utils import ConnectionLoggerAdapter
 from .messages import Assembler
 from .utils import Deadline
 
@@ -67,10 +67,9 @@ class Connection:
             max_queue_high, max_queue_low = max_queue
 
         # Inject reference to this instance in the protocol's logger.
-        self.protocol.logger = logging.LoggerAdapter(
-            self.protocol.logger,
-            {"websocket": self},
-        )
+        # ConnectionLoggerAdapter holds a weak reference in order to
+        # keep the connection garbage-collectable by reference counting.
+        self.protocol.logger = ConnectionLoggerAdapter(self.protocol.logger, self)
 
         # Copy attributes from the protocol for convenience.
         self.id: uuid.UUID = self.protocol.id

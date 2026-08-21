@@ -2,11 +2,15 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import logging
 import secrets
 import socket
 import sys
+import weakref
+from collections.abc import MutableMapping
+from typing import Any
 
-from .typing import BytesLike
+from .typing import BytesLike, LoggerLike
 
 
 __all__ = ["accept_key", "apply_mask", "get_socket_name"]
@@ -56,6 +60,30 @@ def apply_mask(data: BytesLike, mask: bytes | bytearray) -> bytes:
     mask_repeated = mask * (len(data) // 4) + mask[: len(data) % 4]
     mask_int = int.from_bytes(mask_repeated, sys.byteorder)
     return (data_int ^ mask_int).to_bytes(len(data), sys.byteorder)
+
+
+class ConnectionLoggerAdapter(logging.LoggerAdapter[LoggerLike]):
+    """
+    Logger adapter that adds a ``websocket`` attribute to log records.
+
+    It holds only a weak reference to the connection. A strong reference
+    would create a reference cycle between the connection and its logger,
+    delaying garbage collection of closed connections until a full garbage
+    collection pass, as reference counting cannot free reference cycles.
+
+    """
+
+    def __init__(self, logger: LoggerLike, websocket: object) -> None:
+        super().__init__(logger)
+        self.websocket_ref = weakref.ref(websocket)
+
+    def process(
+        self, msg: Any, kwargs: MutableMapping[str, Any]
+    ) -> tuple[Any, MutableMapping[str, Any]]:
+        websocket = self.websocket_ref()
+        if websocket is not None:
+            kwargs["extra"] = {"websocket": websocket}
+        return msg, kwargs
 
 
 def get_socket_name(sock: socket.socket) -> str:

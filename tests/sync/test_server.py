@@ -1,4 +1,5 @@
 import dataclasses
+import gc
 import hmac
 import http
 import logging
@@ -6,6 +7,7 @@ import socket
 import threading
 import time
 import unittest
+import weakref
 from unittest.mock import patch
 
 from websockets.exceptions import (
@@ -25,6 +27,7 @@ from ..utils import (
     SERVER_CONTEXT,
     DeprecationTestCase,
     LoggingTestCase,
+    skip_unless_reference_counting_collects,
     temp_unix_socket_path,
 )
 from .server import (
@@ -64,6 +67,32 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
                     str(raised.exception),
                     "received 1011 (internal error); then sent 1011 (internal error)",
                 )
+
+    @skip_unless_reference_counting_collects
+    def test_garbage_collection_after_close(self):
+        """Closed connection is freed by reference counting in a server context."""
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                self.assertEval(client, "ws.protocol.state.name", "OPEN")
+
+                [handler_thread] = server.handler_threads
+                [connection] = server.all_connections
+                recv_events_thread = connection.recv_events_thread
+                keepalive_thread = connection.keepalive_thread
+                connection_ref = weakref.ref(connection)
+                gc.disable()
+                self.addCleanup(gc.enable)
+                del connection
+
+            # Closing the client causes the connection handler to return,
+            # which closes the connection on the server side.
+            handler_thread.join()
+            # Wait until the threads that keep a reference to the connection
+            # in their stack frames terminate.
+            recv_events_thread.join()
+            keepalive_thread.join()
+
+            self.assertIsNone(connection_ref())
 
     def test_existing_socket(self):
         """Server receives connection using a pre-existing socket."""

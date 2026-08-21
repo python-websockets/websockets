@@ -32,6 +32,13 @@ notice.
 
 *In development*
 
+Bug fixes
+.........
+
+* Fixed reference cycles that delayed garbage collection of closed connections
+  until a pass of the cyclic garbage collector. Closed connections are now
+  freed immediately by reference counting.
+
 .. _17.0.1:
 
 17.0.1

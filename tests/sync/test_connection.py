@@ -1,10 +1,12 @@
 import contextlib
+import gc
 import itertools
 import logging
 import socket
 import threading
 import time
 import uuid
+import weakref
 from unittest.mock import Mock, patch
 
 from websockets.exceptions import (
@@ -18,7 +20,7 @@ from websockets.sync.connection import *
 from websockets.sync.connection import broadcast
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, LoggingTestCase
+from ..utils import MS, LoggingTestCase, skip_unless_reference_counting_collects
 from .connection import InterceptingConnection
 from .utils import ThreadTestCase
 
@@ -40,7 +42,8 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
     def tearDown(self):
         self.remote_connection.close()
-        self.connection.close()
+        if hasattr(self, "connection"):  # garbage collection tests delete it
+            self.connection.close()
 
     # Test helpers built upon RecordingProtocol and InterceptingConnection.
 
@@ -1203,6 +1206,29 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         """broadcast raises TypeError when called with an unsupported type."""
         with self.assertRaises(TypeError):
             broadcast([self.connection], ["⏳", "⌛️"])
+
+    # Test garbage collection of closed connections.
+
+    @skip_unless_reference_counting_collects
+    def test_garbage_collection_after_close(self):
+        """Connection is freed by reference counting after a closing handshake."""
+        self.connection.start_keepalive()
+
+        connection_ref = weakref.ref(self.connection)
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        self.connection.close()
+        recv_events_thread = self.connection.recv_events_thread
+        keepalive_thread = self.connection.keepalive_thread
+        del self.connection
+
+        # Wait until the threads that keep a reference to the connection in
+        # their stack frames terminate.
+        recv_events_thread.join()
+        keepalive_thread.join()
+
+        self.assertIsNone(connection_ref())
 
 
 class ServerConnectionTests(ClientConnectionTests):

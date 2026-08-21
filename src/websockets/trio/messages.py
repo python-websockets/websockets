@@ -282,5 +282,10 @@ class Assembler:
 
         self.closed = True
 
+        # Drop the pause() and resume() callbacks. As bound methods of the
+        # connection, they would keep it in a reference cycle. Flow control
+        # isn't needed anymore.
+        self.pause = self.resume = lambda: None
+
         # Unblock get() or get_iter().
         self.send_frames.close()

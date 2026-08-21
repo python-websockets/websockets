@@ -1,9 +1,12 @@
 import dataclasses
+import gc
 import hmac
 import http
 import logging
+import weakref
 
 import trio
+import trio.testing
 
 from websockets.exceptions import (
     ConnectionClosedError,
@@ -21,6 +24,7 @@ from ..utils import (
     MS,
     SERVER_CONTEXT,
     LoggingTestCase,
+    skip_unless_reference_counting_collects,
 )
 from .server import (
     EvalShellMixin,
@@ -60,6 +64,29 @@ class ServerTests(EvalShellMixin, LoggingTestCase, IsolatedTrioTestCase):
                     str(raised.exception),
                     "received 1011 (internal error); then sent 1011 (internal error)",
                 )
+
+    @skip_unless_reference_counting_collects
+    async def test_garbage_collection_after_close(self):
+        """Closed connection is freed by reference counting in a server context."""
+        async with run_server() as server:
+            async with connect(get_uri(server)) as client:
+                await self.assertEval(client, "ws.protocol.state.name", "OPEN")
+
+                [connection] = server.all_connections
+                connection_ref = weakref.ref(connection)
+                gc.disable()
+                self.addCleanup(gc.enable)
+                del connection
+
+            # Closing the client causes the connection handler to return,
+            # which closes the connection on the server side.
+            while server.all_connections:
+                await trio.sleep(MS)
+            # Let the tasks running the connection handler, recv_events(),
+            # and keepalive() terminate.
+            await trio.testing.wait_all_tasks_blocked()
+
+            self.assertIsNone(connection_ref())
 
     async def test_existing_listeners(self):
         """Server receives connection using pre-existing listeners."""

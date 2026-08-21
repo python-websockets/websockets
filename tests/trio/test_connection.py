@@ -1,7 +1,9 @@
 import contextlib
+import gc
 import itertools
 import logging
 import uuid
+import weakref
 from unittest.mock import patch
 
 import trio.testing
@@ -17,7 +19,7 @@ from websockets.trio.connection import *
 from websockets.trio.connection import broadcast
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, LoggingTestCase, alist
+from ..utils import MS, LoggingTestCase, alist, skip_unless_reference_counting_collects
 from .connection import InterceptingConnection
 from .utils import IsolatedTrioTestCase
 
@@ -48,7 +50,8 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
     async def asyncTearDown(self):
         await self.remote_connection.aclose()
-        await self.connection.aclose()
+        if hasattr(self, "connection"):  # garbage collection tests delete it
+            await self.connection.aclose()
 
     # Test helpers built upon RecordingProtocol and InterceptingConnection.
 
@@ -1434,6 +1437,26 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         """broadcast raises TypeError when called with an unsupported type."""
         with self.assertRaises(TypeError):
             await broadcast([self.connection], ["⏳", "⌛️"])
+
+    # Test garbage collection of closed connections.
+
+    @skip_unless_reference_counting_collects
+    async def test_garbage_collection_after_close(self):
+        """Connection is freed by reference counting after a closing handshake."""
+        self.connection.start_keepalive()
+        await trio.testing.wait_all_tasks_blocked()
+
+        connection_ref = weakref.ref(self.connection)
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        await self.connection.aclose()
+        del self.connection
+
+        # Let the tasks running recv_events() and keepalive() terminate.
+        await trio.testing.wait_all_tasks_blocked()
+
+        self.assertIsNone(connection_ref())
 
 
 class ServerConnectionTests(ClientConnectionTests):

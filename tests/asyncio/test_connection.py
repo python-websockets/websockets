@@ -1,10 +1,12 @@
 import asyncio
 import contextlib
+import gc
 import itertools
 import logging
 import socket
 import unittest
 import uuid
+import weakref
 from unittest.mock import Mock, patch
 
 from websockets.asyncio.connection import *
@@ -18,7 +20,7 @@ from websockets.frames import BINARY, CLOSE, CONT, PING, PONG, TEXT, CloseCode, 
 from websockets.protocol import CLIENT, CLOSED, OPEN, SERVER, Protocol
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, LoggingTestCase, alist
+from ..utils import MS, LoggingTestCase, alist, skip_unless_reference_counting_collects
 from .connection import InterceptingConnection
 
 
@@ -46,7 +48,8 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         await self.remote_connection.close()
-        await self.connection.close()
+        if hasattr(self, "connection"):  # garbage collection tests delete it
+            await self.connection.close()
 
     # Test helpers built upon RecordingProtocol and InterceptingConnection.
 
@@ -1113,9 +1116,10 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         self.connection.ping_interval = 3 * MS
         self.connection.start_keepalive()
         await asyncio.sleep(MS)
-        self.assertFalse(self.connection.keepalive_task.done())
+        keepalive_task = self.connection.keepalive_task
+        self.assertFalse(keepalive_task.done())
         await self.connection.close()
-        self.assertTrue(self.connection.keepalive_task.done())
+        self.assertTrue(keepalive_task.done())
 
     # test_keepalive_terminates_when_sending_ping_fails is not implemented
     # because sending a ping cannot fail in the asyncio implementation.
@@ -1129,9 +1133,10 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             # 1 ms: keepalive() sends a ping frame.
             # 1.x ms: a pong frame is dropped.
             await asyncio.sleep(2 * MS)
+        keepalive_task = self.connection.keepalive_task
         # 2 ms: close the connection before ping_timeout elapses.
         await self.connection.close()
-        self.assertTrue(self.connection.keepalive_task.done())
+        self.assertTrue(keepalive_task.done())
 
     async def test_keepalive_reports_errors(self):
         """keepalive reports unexpected errors in logs."""
@@ -1482,6 +1487,49 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         """broadcast raises TypeError when called with an unsupported type."""
         with self.assertRaises(TypeError):
             broadcast([self.connection], ["⏳", "⌛️"])
+
+    # Test garbage collection of closed connections.
+
+    @skip_unless_reference_counting_collects
+    async def test_garbage_collection_after_close(self):
+        """Connection is freed by reference counting after a closing handshake."""
+        self.connection.start_keepalive()
+        # Let the keepalive task start before closing the connection.
+        await asyncio.sleep(0)
+
+        connection_ref = weakref.ref(self.connection)
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        await self.connection.close()
+        del self.connection, self.transport
+
+        # Let the event loop cancel the keepalive task.
+        for _ in range(3):
+            await asyncio.sleep(0)
+
+        self.assertIsNone(connection_ref())
+
+    @skip_unless_reference_counting_collects
+    async def test_garbage_collection_after_abort(self):
+        """Connection is freed by reference counting after aborting the connection."""
+        self.connection.start_keepalive()
+        # Let the keepalive task start before closing the connection.
+        await asyncio.sleep(0)
+
+        connection_ref = weakref.ref(self.connection)
+        gc.disable()
+        self.addCleanup(gc.enable)
+
+        self.connection.transport.abort()
+        await asyncio.shield(self.connection.connection_lost_waiter)
+        del self.connection, self.transport
+
+        # Let the event loop cancel the keepalive task.
+        for _ in range(3):
+            await asyncio.sleep(0)
+
+        self.assertIsNone(connection_ref())
 
 
 class ServerConnectionTests(ClientConnectionTests):

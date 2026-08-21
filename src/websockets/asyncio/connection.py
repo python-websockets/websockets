@@ -3,7 +3,6 @@ from __future__ import annotations
 import asyncio
 import collections
 import contextlib
-import logging
 import random
 import struct
 import traceback
@@ -22,6 +21,7 @@ from ..frames import DATA_OPCODES, PONG, CloseCode, Frame
 from ..http11 import Request, Response
 from ..protocol import CLOSED, OPEN, Event, Protocol, State
 from ..typing import BytesLike, Data, DataLike, LoggerLike, Subprotocol
+from ..utils import ConnectionLoggerAdapter
 from .messages import Assembler
 
 
@@ -65,10 +65,9 @@ class Connection(asyncio.Protocol):
             self.write_limit_high, self.write_limit_low = write_limit
 
         # Inject reference to this instance in the protocol's logger.
-        self.protocol.logger = logging.LoggerAdapter(
-            self.protocol.logger,
-            {"websocket": self},
-        )
+        # ConnectionLoggerAdapter holds a weak reference in order to
+        # keep the connection garbage-collectable by reference counting.
+        self.protocol.logger = ConnectionLoggerAdapter(self.protocol.logger, self)
 
         # Copy attributes from the protocol for convenience.
         self.id: uuid.UUID = self.protocol.id
@@ -111,7 +110,8 @@ class Connection(asyncio.Protocol):
         send Ping frames and measure latency with :meth:`ping`.
         """
 
-        # Task that sends keepalive pings. None when ping_interval is None.
+        # Task that sends keepalive pings. None when ping_interval is None
+        # and after the connection is lost.
         self.keepalive_task: asyncio.Task[None] | None = None
 
         # Exception raised while reading from the connection, to be chained to
@@ -1025,6 +1025,11 @@ class Connection(asyncio.Protocol):
 
         if self.keepalive_task is not None:
             self.keepalive_task.cancel()
+            # Dereference the task. Else, the traceback of CancelledError
+            # would keep the connection in a reference cycle. This doesn't
+            # prevent the cancellation: the event loop keeps a strong
+            # reference to the task until it delivers CancelledError.
+            self.keepalive_task = None
 
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;

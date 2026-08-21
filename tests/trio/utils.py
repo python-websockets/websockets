@@ -22,6 +22,8 @@ class IsolatedTrioTestCase(unittest.TestCase):
             test = getattr(cls, name)
             if getattr(test, "converted_to_trio", False):  # pragma: no cover
                 return
+            if getattr(test, "__unittest_skip__", False):
+                continue
             assert inspect.iscoroutinefunction(test)
             setattr(cls, name, cls.convert_to_trio(test))
 

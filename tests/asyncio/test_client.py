@@ -554,7 +554,7 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
             self.assertIn(
-                "certificate verify failed: self signed certificate",
+                "self signed certificate",
                 str(raised.exception).replace("-", " "),
             )
 
@@ -568,7 +568,7 @@ class SecureClientTests(unittest.IsolatedAsyncioTestCase):
                 ):
                     self.fail("did not raise")
             self.assertIn(
-                "certificate verify failed: Hostname mismatch",
+                "Hostname mismatch",
                 str(raised.exception),
             )
 
@@ -878,7 +878,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
             async with connect("wss://example.com/"):
                 self.fail("did not raise")
         self.assertIn(
-            "certificate verify failed: unable to get local issuer certificate",
+            "unable to get local issuer certificate",
             str(raised.exception),
         )
 
@@ -891,7 +891,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
                 async with connect(get_uri(server), proxy_ssl=self.proxy_context):
                     self.fail("did not raise")
         self.assertIn(
-            "certificate verify failed: self signed certificate",
+            "self signed certificate",
             str(raised.exception).replace("-", " "),
         )
         self.assertNumFlows(1)

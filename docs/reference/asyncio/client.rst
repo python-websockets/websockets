@@ -7,10 +7,8 @@ Opening a connection
 --------------------
 
 .. autofunction:: connect
-    :async:
 
 .. autofunction:: unix_connect
-    :async:
 
 .. autofunction:: process_exception
 

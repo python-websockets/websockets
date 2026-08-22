@@ -13,7 +13,6 @@ Creating a server
 -----------------
 
 .. autofunction:: serve
-    :async:
 
 .. admonition:: ``unix_serve`` is not available in the Trio implementation.
     :class: note
@@ -30,7 +29,6 @@ Routing connections
 .. automodule:: websockets.trio.router
 
 .. autofunction:: route
-    :async:
 
 .. admonition:: ``unix_route`` is not available in the Trio implementation.
     :class: note

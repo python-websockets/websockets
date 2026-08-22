@@ -35,6 +35,10 @@ from websockets.version import tag as version, version as release  # noqa: E402,
 nitpicky = True
 
 nitpick_ignore = [
+    # Workaround for https://github.com/sphinx-doc/sphinx/issues/13838
+    # This prevents a warning from being displayed when building docs,
+    # but doesn't result in creating a correct link to ssl.SSLContext.
+    ("py:class", "ssl_module.SSLContext"),
     # topics/design.rst discusses undocumented APIs
     ("py:meth", "client.WebSocketClientProtocol.handshake"),
     ("py:meth", "server.WebSocketServerProtocol.handshake"),
@@ -65,7 +69,6 @@ extensions = [
     "sphinx_copybutton",
     "sphinx_inline_tabs",
     "sphinxcontrib.spelling",
-    "sphinxcontrib_trio",
     "sphinxext.opengraph",
 ]
 # It is currently inconvenient to install PyEnchant on Apple Silicon.

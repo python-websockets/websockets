@@ -7,10 +7,8 @@ Creating a server
 -----------------
 
 .. autofunction:: serve
-    :async:
 
 .. autofunction:: unix_serve
-    :async:
 
 Routing connections
 -------------------
@@ -18,10 +16,8 @@ Routing connections
 .. automodule:: websockets.asyncio.router
 
 .. autofunction:: route
-    :async:
 
 .. autofunction:: unix_route
-    :async:
 
 .. autoclass:: Router
 

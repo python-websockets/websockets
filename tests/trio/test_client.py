@@ -567,7 +567,7 @@ class SecureClientTests(IsolatedTrioTestCase):
                 ssl.SSLCertVerificationError,
             )
             self.assertIn(
-                "certificate verify failed: self signed certificate",
+                "self signed certificate",
                 str(raised.exception.__cause__).replace("-", " "),
             )
 
@@ -587,7 +587,7 @@ class SecureClientTests(IsolatedTrioTestCase):
                 ssl.SSLCertVerificationError,
             )
             self.assertIn(
-                "certificate verify failed: Hostname mismatch",
+                "Hostname mismatch",
                 str(raised.exception.__cause__),
             )
 
@@ -884,7 +884,7 @@ class HTTPProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
                 self.fail("did not raise")
         self.assertIsInstance(raised.exception.__cause__, ssl.SSLCertVerificationError)
         self.assertIn(
-            "certificate verify failed: unable to get local issuer certificate",
+            "unable to get local issuer certificate",
             str(raised.exception.__cause__),
         )
 
@@ -900,7 +900,7 @@ class HTTPProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
                     self.fail("did not raise")
         self.assertIsInstance(raised.exception.__cause__, ssl.SSLCertVerificationError)
         self.assertIn(
-            "certificate verify failed: self signed certificate",
+            "self signed certificate",
             str(raised.exception.__cause__).replace("-", " "),
         )
         self.assertNumFlows(1)

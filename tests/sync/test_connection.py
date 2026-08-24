@@ -5,6 +5,7 @@ import socket
 import threading
 import time
 import uuid
+import weakref
 from unittest.mock import Mock, patch
 
 from websockets.exceptions import (
@@ -40,7 +41,8 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
     def tearDown(self):
         self.remote_connection.close()
-        self.connection.close()
+        if hasattr(self, "connection"):
+            self.connection.close()
 
     # Test helpers built upon RecordingProtocol and InterceptingConnection.
 
@@ -1048,6 +1050,19 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
             remote_socket.close()
             connection.close_socket()
             connection.recv_events_thread.join()
+
+    # Test garbage collection.
+
+    def test_no_reference_cycle(self):
+        """Connection is garbage collected immediately after deletion."""
+        self.connection.start_keepalive()
+        time.sleep(0)  # let the keepalive thread start
+        self.connection.close()
+        time.sleep(MS)  # let the recv_events thread terminate
+
+        connection_ref = weakref.ref(self.connection)
+        del self.connection
+        self.assertIsNone(connection_ref(), "still alive after deletion")
 
     # Test broadcast.
 

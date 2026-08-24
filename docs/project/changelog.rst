@@ -32,6 +32,11 @@ notice.
 
 *In development*
 
+Improvements
+............
+
+* Connections are now garbage collected immediately once closed.
+
 .. _17.0.1:
 
 17.0.1

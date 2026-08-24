@@ -10,6 +10,7 @@ import threading
 import time
 import traceback
 import uuid
+import weakref
 from collections.abc import Iterable, Iterator, Mapping
 from types import TracebackType
 from typing import Any, Literal, Self, overload
@@ -69,7 +70,7 @@ class Connection:
         # Inject reference to this instance in the protocol's logger.
         self.protocol.logger = logging.LoggerAdapter(
             self.protocol.logger,
-            {"websocket": self},
+            {"websocket": weakref.proxy(self)},
         )
 
         # Copy attributes from the protocol for convenience.

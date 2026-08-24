@@ -5,6 +5,7 @@ import logging
 import socket
 import unittest
 import uuid
+import weakref
 from unittest.mock import Mock, patch
 
 from websockets.asyncio.connection import *
@@ -46,7 +47,8 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
     async def asyncTearDown(self):
         await self.remote_connection.close()
-        await self.connection.close()
+        if hasattr(self, "connection"):
+            await self.connection.close()
 
     # Test helpers built upon RecordingProtocol and InterceptingConnection.
 
@@ -1112,10 +1114,13 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         """keepalive task terminates while waiting to send a ping."""
         self.connection.ping_interval = 3 * MS
         self.connection.start_keepalive()
+        # Keep a reference to self.connection.keepalive_task
+        # because it's set to None once cancelled.
+        keepalive_task = self.connection.keepalive_task
         await asyncio.sleep(MS)
-        self.assertFalse(self.connection.keepalive_task.done())
+        self.assertFalse(keepalive_task.done())
         await self.connection.close()
-        self.assertTrue(self.connection.keepalive_task.done())
+        self.assertTrue(keepalive_task.done())
 
     # test_keepalive_terminates_when_sending_ping_fails is not implemented
     # because sending a ping cannot fail in the asyncio implementation.
@@ -1126,12 +1131,15 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         self.connection.ping_timeout = 4 * MS
         async with self.drop_frames_rcvd():
             self.connection.start_keepalive()
+            # Keep a reference to self.connection.keepalive_task
+            # because it's set to None once cancelled.
+            keepalive_task = self.connection.keepalive_task
             # 1 ms: keepalive() sends a ping frame.
             # 1.x ms: a pong frame is dropped.
             await asyncio.sleep(2 * MS)
         # 2 ms: close the connection before ping_timeout elapses.
         await self.connection.close()
-        self.assertTrue(self.connection.keepalive_task.done())
+        self.assertTrue(keepalive_task.done())
 
     async def test_keepalive_reports_errors(self):
         """keepalive reports unexpected errors in logs."""
@@ -1328,6 +1336,18 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.send("😀")
         self.assertIsInstance(raised.exception.__cause__, AssertionError)
+
+    # Test garbage collection.
+
+    async def test_no_reference_cycle(self):
+        """Connection is garbage collected immediately after deletion."""
+        self.connection.start_keepalive()
+        await asyncio.sleep(0)  # let the event loop start the keepalive task
+        await self.connection.close()
+
+        connection_ref = weakref.ref(self.connection)
+        del self.connection
+        self.assertIsNone(connection_ref(), "still alive after deletion")
 
     # Test broadcast.
 

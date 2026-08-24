@@ -2,6 +2,7 @@ import contextlib
 import itertools
 import logging
 import uuid
+import weakref
 from unittest.mock import patch
 
 import trio.testing
@@ -48,7 +49,8 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
     async def asyncTearDown(self):
         await self.remote_connection.aclose()
-        await self.connection.aclose()
+        if hasattr(self, "connection"):
+            await self.connection.aclose()
 
     # Test helpers built upon RecordingProtocol and InterceptingConnection.
 
@@ -1284,6 +1286,20 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.send("😀")
         self.assertIsInstance(raised.exception.__cause__, AssertionError)
+
+    # Test garbage collection.
+
+    async def test_no_reference_cycle(self):
+        """Connection is garbage collected immediately after deletion."""
+        self.connection.start_keepalive()
+        await trio.testing.wait_all_tasks_blocked()
+        await self.connection.aclose()
+        # Wait for recv_events(), which runs in self.nursery, to terminate.
+        await trio.testing.wait_all_tasks_blocked()
+
+        connection_ref = weakref.ref(self.connection)
+        del self.connection
+        self.assertIsNone(connection_ref(), "still alive after deletion")
 
     # Test broadcast.
 

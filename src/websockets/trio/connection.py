@@ -6,6 +6,7 @@ import random
 import struct
 import traceback
 import uuid
+import weakref
 from collections.abc import AsyncIterable, AsyncIterator, Iterable, Mapping
 from types import TracebackType
 from typing import Any, Literal, Self, overload
@@ -67,7 +68,7 @@ class Connection(trio.abc.AsyncResource):
         # Inject reference to this instance in the protocol's logger.
         self.protocol.logger = logging.LoggerAdapter(
             self.protocol.logger,
-            {"websocket": self},
+            {"websocket": weakref.proxy(self)},
         )
 
         # Copy attributes from the protocol for convenience.

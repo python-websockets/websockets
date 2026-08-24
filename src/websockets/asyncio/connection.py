@@ -8,6 +8,7 @@ import random
 import struct
 import traceback
 import uuid
+import weakref
 from collections.abc import AsyncIterable, AsyncIterator, Awaitable, Iterable, Mapping
 from types import TracebackType
 from typing import Any, Literal, Self, cast, overload
@@ -67,7 +68,7 @@ class Connection(asyncio.Protocol):
         # Inject reference to this instance in the protocol's logger.
         self.protocol.logger = logging.LoggerAdapter(
             self.protocol.logger,
-            {"websocket": self},
+            {"websocket": weakref.proxy(self)},
         )
 
         # Copy attributes from the protocol for convenience.
@@ -1025,6 +1026,8 @@ class Connection(asyncio.Protocol):
 
         if self.keepalive_task is not None:
             self.keepalive_task.cancel()
+            # Break reference cycle to allow immediate garbage collection.
+            self.keepalive_task = None
 
         # If self.connection_lost_waiter isn't pending, that's a bug, because:
         # - it's set only here in connection_lost() which is called only once;

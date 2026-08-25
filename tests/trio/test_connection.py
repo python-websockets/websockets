@@ -1,6 +1,8 @@
 import contextlib
 import itertools
 import logging
+import sys
+import unittest
 import uuid
 import weakref
 from unittest.mock import patch
@@ -1289,6 +1291,10 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
     # Test garbage collection.
 
+    @unittest.skipUnless(
+        sys.implementation.name == "cpython",
+        "this test checks the behavior of CPython's garbage collector",
+    )
     async def test_no_reference_cycle(self):
         """Connection is garbage collected immediately after deletion."""
         self.connection.start_keepalive()

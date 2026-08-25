@@ -21,7 +21,9 @@ class IsolatedTrioTestCase(unittest.TestCase):
         for name in unittest.defaultTestLoader.getTestCaseNames(cls):
             test = getattr(cls, name)
             if getattr(test, "converted_to_trio", False):  # pragma: no cover
-                return
+                continue
+            if getattr(test, "__unittest_skip__", False):  # pragma: no cover
+                continue
             assert inspect.iscoroutinefunction(test)
             setattr(cls, name, cls.convert_to_trio(test))
 

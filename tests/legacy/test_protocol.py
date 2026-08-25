@@ -1208,6 +1208,8 @@ class CommonTests:
         self.protocol.is_client = initial_protocol.is_client
         self.protocol.side = initial_protocol.side
 
+        self.keepalive_ping_task = self.protocol.keepalive_ping_task
+
     def test_keepalive_ping(self):
         self.restart_protocol_with_keepalive_ping()
 
@@ -1223,7 +1225,7 @@ class CommonTests:
         self.assertOneFrameSent(True, OP_PING, ping_2)
 
         # The keepalive ping task goes on.
-        self.assertFalse(self.protocol.keepalive_ping_task.done())
+        self.assertFalse(self.keepalive_ping_task.done())
 
     def test_keepalive_ping_not_acknowledged_closes_connection(self):
         self.restart_protocol_with_keepalive_ping()
@@ -1242,7 +1244,7 @@ class CommonTests:
         )
 
         # The keepalive ping task is complete.
-        self.assertEqual(self.protocol.keepalive_ping_task.result(), None)
+        self.assertEqual(self.keepalive_ping_task.result(), None)
 
     def test_keepalive_ping_stops_when_connection_closing(self):
         self.restart_protocol_with_keepalive_ping()
@@ -1253,7 +1255,7 @@ class CommonTests:
         self.assertNoFrameSent()
 
         # The keepalive ping task terminated.
-        self.assertTrue(self.protocol.keepalive_ping_task.cancelled())
+        self.assertTrue(self.keepalive_ping_task.cancelled())
 
         self.loop.run_until_complete(close_task)  # cleanup
 
@@ -1262,7 +1264,7 @@ class CommonTests:
         self.close_connection()
 
         # The keepalive ping task terminated.
-        self.assertTrue(self.protocol.keepalive_ping_task.cancelled())
+        self.assertTrue(self.keepalive_ping_task.cancelled())
 
     def test_keepalive_ping_does_not_crash_when_connection_lost(self):
         self.restart_protocol_with_keepalive_ping()
@@ -1283,7 +1285,7 @@ class CommonTests:
         with self.assertRaises(ConnectionClosed):
             pong_waiter.result()
         # The keepalive ping task terminated properly.
-        self.assertIsNone(self.protocol.keepalive_ping_task.result())
+        self.assertIsNone(self.keepalive_ping_task.result())
 
         # Unclog incoming queue to terminate the test quickly.
         self.loop.run_until_complete(self.protocol.recv())
@@ -1311,7 +1313,7 @@ class CommonTests:
         self.assertOneFrameSent(True, OP_PING, ping_2)
 
         # The keepalive ping task goes on.
-        self.assertFalse(self.protocol.keepalive_ping_task.done())
+        self.assertFalse(self.keepalive_ping_task.done())
 
     def test_keepalive_ping_unexpected_error(self):
         self.restart_protocol_with_keepalive_ping()
@@ -1326,7 +1328,7 @@ class CommonTests:
 
         # The keepalive ping task is complete.
         # It logs and swallows the exception.
-        self.assertEqual(self.protocol.keepalive_ping_task.result(), None)
+        self.assertEqual(self.keepalive_ping_task.result(), None)
 
     # Test the protocol logic for closing the connection.
 

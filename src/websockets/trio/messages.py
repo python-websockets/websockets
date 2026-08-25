@@ -284,3 +284,8 @@ class Assembler:
 
         # Unblock get() or get_iter().
         self.send_frames.close()
+
+        # Break reference cycle to allow immediate garbage collection:
+        # Connection -> Assembler -> bound methods -> Connection.
+        self.pause = lambda: None
+        self.resume = lambda: None

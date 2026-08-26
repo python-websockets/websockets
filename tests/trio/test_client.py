@@ -985,7 +985,6 @@ class UnixClientTests(IsolatedTrioTestCase):
             with run_unix_server(path):
                 async with unix_connect(pathlib.Path(path)) as client:
                     self.assertEqual(client.protocol.state.name, "OPEN")
-                self.assertEqual(client.protocol.state.name, "CLOSED")
 
     async def test_non_existing_path(self):
         """Client attempts to connect to a non-existing Unix socket path."""

@@ -463,6 +463,7 @@ class reconnect:
                     f"cannot follow cross-origin redirect to {new_uri} "
                     f"with a Unix socket"
                 )
+
             # Cross-origin redirects when host and port are overridden are ill-defined.
             if self.open_socket_kwargs.get("address") is not None:
                 return ValueError(

@@ -482,6 +482,7 @@ class connect:
                     f"cannot follow cross-origin redirect to {new_uri} "
                     f"with a Unix socket"
                 )
+
             # Cross-origin redirects when host and port are overridden are ill-defined.
             if (
                 self.open_tcp_stream_kwargs.get("host") is not None

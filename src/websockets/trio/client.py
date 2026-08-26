@@ -27,7 +27,7 @@ from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
 from ..proxy import Proxy, get_proxy, parse_proxy, prepare_connect_request
 from ..streams import StreamReader
-from ..typing import LoggerLike, Origin, Subprotocol
+from ..typing import LoggerLike, Origin, PathLike, Subprotocol
 from ..uri import WebSocketURI, parse_uri
 from .connection import Connection
 from .utils import race_events
@@ -640,7 +640,7 @@ class connect:
 
 
 def unix_connect(
-    path: str | None = None,
+    path: PathLike | None = None,
     uri: str | None = None,
     **kwargs: Any,
 ) -> connect:

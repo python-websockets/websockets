@@ -2,6 +2,7 @@ import contextlib
 import http
 import logging
 import os
+import pathlib
 import socket
 import socketserver
 import ssl
@@ -1032,6 +1033,13 @@ class UnixClientTests(unittest.TestCase):
                     path, ssl=CLIENT_CONTEXT, uri="wss://overridden/"
                 ) as client:
                     self.assertEqual(client.socket.server_hostname, "overridden")
+
+    def test_pathlib_path(self):
+        """Client accepts a pathlib.Path object as the path argument."""
+        with temp_unix_socket_path() as path:
+            with run_unix_server(path):
+                with unix_connect(pathlib.Path(path)) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
 
     def test_non_existing_path(self):
         """Client attempts to connect to a non-existing Unix socket path."""

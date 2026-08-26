@@ -29,7 +29,7 @@ from ..http11 import USER_AGENT, Response
 from ..protocol import CONNECTING, Event
 from ..proxy import Proxy, get_proxy, parse_proxy, prepare_connect_request
 from ..streams import StreamReader
-from ..typing import BytesLike, LoggerLike, Origin, Subprotocol
+from ..typing import BytesLike, LoggerLike, Origin, PathLike, Subprotocol
 from ..uri import WebSocketURI, parse_uri
 from .connection import Connection
 from .utils import Deadline
@@ -308,7 +308,7 @@ class reconnect:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             try:
                 sock.settimeout(deadline.timeout())
-                sock.connect(kwargs.pop("path"))
+                sock.connect(os.fspath(kwargs.pop("path")))
             except Exception:
                 sock.close()
                 raise
@@ -821,7 +821,7 @@ def connect(
 
 
 def unix_reconnect(
-    path: str | None = None,
+    path: PathLike | None = None,
     uri: str | None = None,
     **kwargs: Any,
 ) -> reconnect:
@@ -849,7 +849,7 @@ def unix_reconnect(
 
 @overload
 def unix_connect(
-    path: str | None = ...,
+    path: PathLike | None = ...,
     uri: str | None = ...,
     *,
     legacy: Literal[True] | None = ...,
@@ -859,7 +859,7 @@ def unix_connect(
 
 @overload
 def unix_connect(
-    path: str | None = ...,
+    path: PathLike | None = ...,
     uri: str | None = ...,
     *,
     legacy: Literal[False],
@@ -868,7 +868,7 @@ def unix_connect(
 
 
 def unix_connect(
-    path: str | None = None,
+    path: PathLike | None = None,
     uri: str | None = None,
     *,
     legacy: bool | None = None,

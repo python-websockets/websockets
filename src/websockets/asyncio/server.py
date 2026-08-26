@@ -22,7 +22,7 @@ from ..headers import (
 from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
-from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
+from ..typing import LoggerLike, Origin, PathLike, StatusLike, Subprotocol
 from ..utils import get_socket_name
 from .connection import Connection, broadcast
 
@@ -769,7 +769,7 @@ def serve(
 
 def unix_serve(
     handler: Callable[[ServerConnection], Awaitable[None]],
-    path: str | None = None,
+    path: PathLike | None = None,
     **kwargs: Any,
 ) -> Server:
     """

@@ -50,6 +50,9 @@ Improvements
 
 * Connections are now garbage collected immediately once closed.
 
+* :func:`~sync.client.unix_connect` and :func:`~sync.server.unix_serve` now accept
+  path-like objects, such as :class:`pathlib.Path`, in the ``path`` argument.
+
 .. _17.0.1:
 
 17.0.1

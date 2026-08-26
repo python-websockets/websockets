@@ -2,6 +2,7 @@ import contextlib
 import http
 import logging
 import os
+import pathlib
 import socket
 import ssl
 import sys
@@ -977,6 +978,14 @@ class UnixClientTests(IsolatedTrioTestCase):
                 ) as client:
                     ssl_object = client.stream._ssl_object
                     self.assertEqual(ssl_object.server_hostname, "overridden")
+
+    async def test_pathlib_path(self):
+        """Client accepts a pathlib.Path object as the path argument."""
+        with temp_unix_socket_path() as path:
+            with run_unix_server(path):
+                async with unix_connect(pathlib.Path(path)) as client:
+                    self.assertEqual(client.protocol.state.name, "OPEN")
+                self.assertEqual(client.protocol.state.name, "CLOSED")
 
     async def test_non_existing_path(self):
         """Client attempts to connect to a non-existing Unix socket path."""

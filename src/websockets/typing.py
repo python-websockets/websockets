@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import http
 import logging
+import os
 from typing import Any, NewType, Sequence
 
 
@@ -36,10 +37,11 @@ DataLike = str | bytes | bytearray | memoryview
 LoggerLike = logging.Logger | logging.LoggerAdapter[Any]
 """Types accepted where a :class:`~logging.Logger` is expected."""
 
+PathLike = str | bytes | os.PathLike[str] | os.PathLike[bytes]
+"""Types accepted where a filesystem path is expected."""
 
 StatusLike = http.HTTPStatus | int
-"""
-Types accepted where an :class:`~http.HTTPStatus` is expected."""
+"""Types accepted where an :class:`~http.HTTPStatus` is expected."""
 
 
 Origin = NewType("Origin", str)

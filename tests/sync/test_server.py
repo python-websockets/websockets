@@ -2,6 +2,7 @@ import dataclasses
 import hmac
 import http
 import logging
+import pathlib
 import socket
 import threading
 import time
@@ -521,6 +522,13 @@ class UnixServerTests(EvalShellMixin, unittest.TestCase):
         """Server receives connection from client over a Unix socket."""
         with temp_unix_socket_path() as path:
             with run_unix_server(path):
+                with unix_connect(path) as client:
+                    self.assertEval(client, "ws.protocol.state.name", "OPEN")
+
+    def test_pathlib_path(self):
+        """Server accepts a pathlib.Path object as the path argument."""
+        with temp_unix_socket_path() as path:
+            with run_unix_server(pathlib.Path(path)):
                 with unix_connect(path) as client:
                     self.assertEval(client, "ws.protocol.state.name", "OPEN")
 

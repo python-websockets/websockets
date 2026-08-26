@@ -4,6 +4,7 @@ import concurrent.futures
 import hmac
 import http
 import logging
+import os
 import re
 import selectors
 import socket
@@ -28,7 +29,7 @@ from ..headers import (
 from ..http11 import SERVER, Request, Response
 from ..protocol import CONNECTING, OPEN, Event
 from ..server import ServerProtocol
-from ..typing import LoggerLike, Origin, StatusLike, Subprotocol
+from ..typing import LoggerLike, Origin, PathLike, StatusLike, Subprotocol
 from ..utils import get_socket_name
 from .connection import Connection, broadcast
 from .utils import Deadline
@@ -645,7 +646,7 @@ def serve(
             if path is None:
                 raise ValueError("missing path argument")
             kwargs.setdefault("family", socket.AF_UNIX)
-            sock = socket.create_server(path, **kwargs)
+            sock = socket.create_server(os.fspath(path), **kwargs)
         else:
             sock = socket.create_server((host, port), **kwargs)
     else:
@@ -793,7 +794,7 @@ def serve(
 
 def unix_serve(
     handler: Callable[[ServerConnection], None],
-    path: str | None = None,
+    path: PathLike | None = None,
     **kwargs: Any,
 ) -> Server:
     """

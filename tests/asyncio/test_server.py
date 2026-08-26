@@ -3,6 +3,7 @@ import dataclasses
 import hmac
 import http
 import logging
+import pathlib
 import socket
 import unittest
 
@@ -739,6 +740,13 @@ class UnixServerTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """Server receives connection from client over a Unix socket."""
         with temp_unix_socket_path() as path:
             async with unix_serve(handler, path):
+                async with unix_connect(path) as client:
+                    await self.assertEval(client, "ws.protocol.state.name", "OPEN")
+
+    async def test_pathlib_path(self):
+        """Server accepts a pathlib.Path object as the path argument."""
+        with temp_unix_socket_path() as path:
+            async with unix_serve(handler, pathlib.Path(path)):
                 async with unix_connect(path) as client:
                     await self.assertEval(client, "ws.protocol.state.name", "OPEN")
 

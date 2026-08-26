@@ -15,6 +15,8 @@ Types
 
 .. autodata:: LoggerLike
 
+.. autodata:: PathLike
+
 .. autodata:: StatusLike
 
 .. autodata:: Origin

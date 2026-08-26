@@ -6,6 +6,7 @@ import urllib.parse
 from typing import Any, Awaitable, Callable, Literal
 
 from ..http11 import Request, Response
+from ..typing import PathLike
 from .server import Server, ServerConnection, serve
 
 
@@ -30,7 +31,7 @@ except ImportError:
 
     def unix_route(
         url_map: Map,
-        path: str | None = None,
+        path: PathLike | None = None,
         **kwargs: Any,
     ) -> Server:
         raise ImportError("unix_route() requires werkzeug")
@@ -155,7 +156,7 @@ else:
 
     def unix_route(
         url_map: Map,
-        path: str | None = None,
+        path: PathLike | None = None,
         **kwargs: Any,
     ) -> Server:
         """

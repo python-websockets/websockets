@@ -3,8 +3,8 @@ Upgrade to the new :mod:`asyncio` implementation
 
 .. currentmodule:: websockets
 
-The new :mod:`asyncio` implementation, which is now the default, is a rewrite of
-the original implementation of websockets.
+The new :mod:`asyncio` implementation is the default since version 14.0. It is a
+full rewrite of the original implementation of websockets.
 
 It provides a very similar API. However, there are a few differences.
 
@@ -28,8 +28,9 @@ respectively.
     :class: hint
 
     The original implementation is deprecated. It will be maintained for five
-    years after deprecation according to the :ref:`backwards-compatibility
-    policy <backwards-compatibility policy>`. Then, by 2030, it will be removed.
+    years after deprecation, meaning until November 2029, according to the
+    :ref:`backwards-compatibility policy <backwards-compatibility policy>`.
+    Then, it will be removed.
 
 .. _deprecated APIs:
 

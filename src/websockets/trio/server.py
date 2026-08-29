@@ -639,12 +639,10 @@ async def serve(
                 server.all_connections.add(connection)
                 connection.start_keepalive()
                 try:
-                    await handler(connection)
+                    async with connection:
+                        await handler(connection)
                 except Exception:
                     connection.logger.error("connection handler failed", exc_info=True)
-                    await connection.aclose(CloseCode.INTERNAL_ERROR)
-                else:
-                    await connection.aclose()
                 finally:
                     server.all_connections.discard(connection)
 

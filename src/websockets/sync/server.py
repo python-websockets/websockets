@@ -770,12 +770,10 @@ def serve(
                 server.all_connections.add(connection)
             connection.start_keepalive()
             try:
-                handler(connection)
+                with connection:
+                    handler(connection)
             except Exception:
                 connection.logger.error("connection handler failed", exc_info=True)
-                connection.close(CloseCode.INTERNAL_ERROR)
-            else:
-                connection.close()
             finally:
                 with server.lock:
                     server.all_connections.discard(connection)

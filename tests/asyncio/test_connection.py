@@ -929,11 +929,11 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
     async def test_wait_closed(self):
         """wait_closed waits for the connection to close."""
-        wait_closed_task = asyncio.create_task(self.connection.wait_closed())
-        await asyncio.sleep(0)  # let the event loop start wait_closed_task
-        self.assertFalse(wait_closed_task.done())
+        waiter_task = asyncio.create_task(self.connection.wait_closed())
+        await asyncio.sleep(0)  # let the event loop start waiter_task
+        self.assertFalse(waiter_task.done())
         await self.connection.close()
-        self.assertTrue(wait_closed_task.done())
+        self.assertTrue(waiter_task.done())
 
     # Test ping.
 

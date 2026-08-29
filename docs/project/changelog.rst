@@ -32,6 +32,12 @@ notice.
 
 *In development*
 
+New features
+............
+
+* Added :meth:`~sync.connection.Connection.wait_closed` to the :mod:`threading`
+  implementation.
+
 .. _17.1:
 
 17.1

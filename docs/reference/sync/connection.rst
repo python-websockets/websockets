@@ -17,6 +17,8 @@ Both sides (:mod:`threading`)
 
     .. automethod:: close
 
+    .. automethod:: wait_closed
+
     .. automethod:: ping
 
     .. automethod:: pong

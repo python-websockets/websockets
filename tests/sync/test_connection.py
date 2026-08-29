@@ -665,6 +665,35 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         )
         self.assertIsNone(exc.__cause__)
 
+    # Test wait_closed.
+
+    def test_wait_closed(self):
+        """wait_closed waits for the connection to close."""
+        closed = threading.Event()
+
+        def waiter():
+            self.connection.wait_closed()
+            closed.set()
+
+        with self.run_in_thread(waiter):
+            self.assertFalse(closed.wait(MS))
+            self.connection.close()
+            self.assertTrue(closed.wait(MS))
+
+    def test_wait_closed_no_timeout(self):
+        """wait_closed without a timeout returns True."""
+        self.connection.close()
+        self.assertTrue(self.connection.wait_closed())
+
+    def test_wait_closed_with_timeout(self):
+        """wait_closed returns True when the connection closes."""
+        self.connection.close()
+        self.assertTrue(self.connection.wait_closed(timeout=MS))
+
+    def test_wait_closed_with_timeout_elapsed(self):
+        """wait_closed returns False when the timeout elapses."""
+        self.assertFalse(self.connection.wait_closed(timeout=MS))
+
     # Test ping.
 
     @patch("random.getrandbits")

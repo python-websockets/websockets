@@ -863,11 +863,11 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         """wait_closed waits for the connection to close."""
         closed = trio.Event()
 
-        async def closer():
+        async def waiter():
             await self.connection.wait_closed()
             closed.set()
 
-        self.nursery.start_soon(closer)
+        self.nursery.start_soon(waiter)
         await trio.testing.wait_all_tasks_blocked()
         self.assertFalse(closed.is_set())
 

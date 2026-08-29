@@ -29,6 +29,8 @@ Using a connection
 
     .. automethod:: close
 
+    .. automethod:: wait_closed
+
     .. automethod:: ping
 
     .. automethod:: pong

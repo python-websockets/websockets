@@ -612,6 +612,26 @@ class Connection:
             # They mean that the connection is closed, which was the goal.
             pass
 
+    def wait_closed(self, timeout: float | None = None) -> bool:
+        """
+        Wait until the connection is closed.
+
+        :meth:`wait_closed` waits for the closing handshake to complete and for
+        the TCP connection to terminate.
+
+        If a timeout is provided and elapses before the connection is closed,
+        :meth:`wait_closed` returns :obj:`False`. Else, it returns :obj:`True`.
+
+        Args:
+            timeout: Optional timeout in seconds.
+
+        Returns:
+            Whether the connection is closed.
+
+        """
+        self.recv_events_thread.join(timeout)
+        return not self.recv_events_thread.is_alive()
+
     def ping(
         self,
         data: DataLike | None = None,

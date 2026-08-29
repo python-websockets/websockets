@@ -67,6 +67,21 @@ class ClientTests(unittest.TestCase):
                 self.assertEqual(client.protocol.state.name, "OPEN")
             self.assertEqual(client.protocol.state.name, "CLOSED")
 
+    def test_context_manager_normal_exit(self):
+        """Client closes the connection with code 1000 when exiting normally."""
+        with run_server() as server:
+            with connect(get_uri(server)) as client:
+                pass
+            self.assertEqual(client.close_code, 1000)
+
+    def test_context_manager_exception(self):
+        """Client closes the connection with code 1011 when exiting with an error."""
+        with run_server() as server:
+            with self.assertRaises(RuntimeError):
+                with connect(get_uri(server)) as client:
+                    raise RuntimeError("BOOM")
+            self.assertEqual(client.close_code, 1011)
+
     def test_direct_connection(self):
         """Client connects to server directly."""
         with run_server() as server:

@@ -574,7 +574,7 @@ class connect:
         if hasattr(self, "connection"):
             raise RuntimeError("connect() isn't reentrant")
         self.connection = await self
-        return self.connection
+        return await self.connection.__aenter__()
 
     async def __aexit__(
         self,
@@ -583,7 +583,7 @@ class connect:
         traceback: TracebackType | None,
     ) -> None:
         try:
-            await self.connection.close()
+            return await self.connection.__aexit__(exc_type, exc_value, traceback)
         finally:
             del self.connection
 

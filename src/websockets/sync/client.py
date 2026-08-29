@@ -521,7 +521,7 @@ class reconnect:
             raise RuntimeError("connect() isn't reentrant")
         self.connection = self.connect()
         self.connection.pending_legacy_warning = False
-        return self.connection
+        return self.connection.__enter__()
 
     def __exit__(
         self,
@@ -530,7 +530,7 @@ class reconnect:
         exc_traceback: TracebackType | None,
     ) -> None:
         try:
-            self.connection.close()
+            return self.connection.__exit__(exc_type, exc_value, exc_traceback)
         finally:
             del self.connection
 

@@ -549,7 +549,7 @@ class connect:
         await self.__aenter_nursery__()
         try:
             self.connection = await self.connect(self.nursery)
-            return self.connection
+            return await self.connection.__aenter__()
         except BaseException as exc:
             await self.__aexit_nursery__(type(exc), exc, exc.__traceback__)
             raise AssertionError("expected __aexit_nursery__ to re-raise the exception")
@@ -562,7 +562,7 @@ class connect:
     ) -> None:
         try:
             try:
-                await self.connection.aclose()
+                return await self.connection.__aexit__(exc_type, exc_value, traceback)
             finally:
                 del self.connection
         finally:

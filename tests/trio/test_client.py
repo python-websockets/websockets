@@ -62,6 +62,21 @@ class ClientTests(IsolatedTrioTestCase):
                 self.assertEqual(client.protocol.state.name, "OPEN")
             self.assertEqual(client.protocol.state.name, "CLOSED")
 
+    async def test_context_manager_normal_exit(self):
+        """Client closes the connection with code 1000 when exiting normally."""
+        async with run_server() as server:
+            async with connect(get_uri(server)) as client:
+                pass
+            self.assertEqual(client.close_code, 1000)
+
+    async def test_context_manager_exception(self):
+        """Client closes the connection with code 1011 when exiting with an error."""
+        async with run_server() as server:
+            with self.assertRaises(RuntimeError):
+                async with connect(get_uri(server)) as client:
+                    raise RuntimeError("BOOM")
+            self.assertEqual(client.close_code, 1011)
+
     async def test_explicit_host_port(self):
         """Client connects using an explicit host / port."""
         async with run_server() as server:

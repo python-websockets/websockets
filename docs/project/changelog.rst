@@ -38,6 +38,12 @@ New features
 * Added :meth:`~sync.connection.Connection.wait_closed` to the :mod:`threading`
   implementation.
 
+Improvements
+............
+
+* :func:`~asyncio.client.connect` now closes connections with close code 1011
+  (internal error) when exiting the context manager with an exception.
+
 .. _17.1:
 
 17.1

@@ -44,6 +44,14 @@ Improvements
 * :func:`~asyncio.client.connect` now closes connections with close code 1011
   (internal error) when exiting the context manager with an exception.
 
+Bug fixes
+.........
+
+* Negotiating ``permessage-deflate`` no longer fails with a :exc:`ValueError`
+  when the peer asks for a window of 8 bits on the side that compresses.
+  :mod:`zlib` cannot create a raw deflate compressor with such a window, so
+  the extension is declined instead.
+
 .. _17.1:
 
 17.1

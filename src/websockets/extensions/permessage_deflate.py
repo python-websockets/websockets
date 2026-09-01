@@ -464,6 +464,12 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
             elif client_max_window_bits > self.client_max_window_bits:
                 raise NegotiationError("unsupported client_max_window_bits")
 
+        # zlib cannot build a raw deflate compressor with an 8 bit window, so
+        # 8 is unusable for the window we compress with, even though it is a
+        # legal value on the wire and fine for the window we decompress with.
+        if client_max_window_bits == 8:
+            raise NegotiationError("unsupported client_max_window_bits")
+
         return PerMessageDeflate(
             server_no_context_takeover,  # remote_no_context_takeover
             client_no_context_takeover,  # local_no_context_takeover
@@ -657,6 +663,13 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
                 client_max_window_bits = self.client_max_window_bits
             elif self.client_max_window_bits < client_max_window_bits:
                 client_max_window_bits = self.client_max_window_bits
+
+        # zlib cannot build a raw deflate compressor with an 8 bit window, so
+        # 8 is unusable for the window we compress with, even though it is a
+        # legal value on the wire and fine for the window we decompress with.
+        # RFC 7692 7.1.2.1 lets a server decline an offer it cannot support.
+        if server_max_window_bits == 8:
+            raise NegotiationError("unsupported server_max_window_bits")
 
         return (
             _build_parameters(

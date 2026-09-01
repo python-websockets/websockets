@@ -464,6 +464,12 @@ class ClientPerMessageDeflateFactoryTests(
                 NegotiationError,
             ),
             (
+                # 8 is legal for the window we decompress with.
+                (False, False, None, None),
+                [("server_max_window_bits", "8")],
+                (False, False, 8, 15),
+            ),
+            (
                 (False, False, None, None),
                 [("server_max_window_bits", "10")],
                 (False, False, 10, 15),
@@ -517,6 +523,12 @@ class ClientPerMessageDeflateFactoryTests(
             (
                 (False, False, None, True),
                 [("client_max_window_bits", "7")],
+                NegotiationError,
+            ),
+            (
+                # 8 is unusable for the window we compress with.
+                (False, False, None, True),
+                [("client_max_window_bits", "8")],
                 NegotiationError,
             ),
             (
@@ -775,6 +787,14 @@ class ServerPerMessageDeflateFactoryTests(
                 NegotiationError,
             ),
             (
+                # 8 is unusable for the window we compress with; RFC 7692
+                # 7.1.2.1 lets the server decline the offer.
+                (False, False, None, None),
+                [("server_max_window_bits", "8")],
+                None,
+                NegotiationError,
+            ),
+            (
                 (False, False, None, None),
                 [("server_max_window_bits", "10")],
                 [("server_max_window_bits", "10")],
@@ -834,6 +854,13 @@ class ServerPerMessageDeflateFactoryTests(
                 [("client_max_window_bits", "7")],
                 None,
                 InvalidParameterValue,
+            ),
+            (
+                # 8 is legal for the window we decompress with.
+                (False, False, None, None),
+                [("client_max_window_bits", "8")],
+                [("client_max_window_bits", "8")],  # doesn't matter
+                (False, False, 8, 15),
             ),
             (
                 (False, False, None, None),

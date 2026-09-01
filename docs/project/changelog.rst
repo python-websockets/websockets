@@ -49,6 +49,10 @@ Bug fixes
 
 * Fixed a regression from 16.1 where the legacy implementation rejected
   non-ASCII headers.
+* Negotiating ``permessage-deflate`` no longer fails with a :exc:`ValueError`
+  when the peer asks for a window of 8 bits on the side that compresses.
+  :mod:`zlib` cannot create a raw deflate compressor with such a window, so
+  the extension is declined instead.
 
 .. _17.1:
 

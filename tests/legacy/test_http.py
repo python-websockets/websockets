@@ -162,6 +162,11 @@ class HTTPAsyncTests(AsyncioTestCase):
         with self.assertRaises(ValueError):
             await read_headers(self.stream)
 
+    async def test_header_value_non_ascii(self):
+        self.stream.feed_data(b"foo: \xc3\xa9\r\n\r\n")
+        headers = await read_headers(self.stream)
+        self.assertEqual(headers["foo"], "\udcc3\udca9")
+
     async def test_headers_limit(self):
         self.stream.feed_data(b"foo: bar\r\n" * 129 + b"\r\n")
         with self.assertRaises(SecurityError):

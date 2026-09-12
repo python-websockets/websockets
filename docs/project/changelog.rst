@@ -43,6 +43,9 @@ Improvements
 
 * :func:`~asyncio.client.connect` now closes connections with close code 1011
   (internal error) when exiting the context manager with an exception.
+* The FAQ documents how to stop asyncio and threading servers while keeping
+  existing connections open. See `issue #1756
+  <https://github.com/python-websockets/websockets/issues/1756>`_.
 
 .. _17.1:
 

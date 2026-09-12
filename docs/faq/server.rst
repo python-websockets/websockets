@@ -311,6 +311,25 @@ Here's how to adapt the example just above:
 
 The server will exit after all clients disconnect.
 
+With the :mod:`threading` implementation, call ``Server.shutdown`` with
+``close_connections=False`` instead::
+
+    from websockets.sync.server import serve
+    import threading
+
+    server = serve(handler, "localhost", 8765)
+    server_thread = threading.Thread(target=server.serve_forever)
+    server_thread.start()
+    try:
+        # Run the application until it's time to stop.
+        ...
+    finally:
+        server.shutdown(close_connections=False)
+        server_thread.join()
+
+The server will return from ``Server.shutdown`` after all clients
+disconnect.
+
 How do I implement a health check?
 ----------------------------------
 

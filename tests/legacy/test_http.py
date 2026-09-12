@@ -152,20 +152,21 @@ class HTTPAsyncTests(AsyncioTestCase):
             "invalid HTTP header line: Oops",
         )
 
-    async def test_header_name(self):
+    async def test_iso_8859_1_header_value(self):
+        self.stream.feed_data(b"X-Drink: caf\xe9\r\n\r\n")
+        headers = await read_headers(self.stream)
+        # Non-ASCII characters are represented with surrogate escapes.
+        self.assertEqual(headers["X-Drink"], "caf\udce9")
+
+    async def test_invalid_header_name(self):
         self.stream.feed_data(b"foo bar: baz qux\r\n\r\n")
         with self.assertRaises(ValueError):
             await read_headers(self.stream)
 
-    async def test_header_value(self):
+    async def test_invalid_header_value(self):
         self.stream.feed_data(b"foo: \x00\x00\x0f\r\n\r\n")
         with self.assertRaises(ValueError):
             await read_headers(self.stream)
-
-    async def test_header_value_non_ascii(self):
-        self.stream.feed_data(b"foo: \xc3\xa9\r\n\r\n")
-        headers = await read_headers(self.stream)
-        self.assertEqual(headers["foo"], "\udcc3\udca9")
 
     async def test_headers_limit(self):
         self.stream.feed_data(b"foo: bar\r\n" * 129 + b"\r\n")

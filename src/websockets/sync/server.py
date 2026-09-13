@@ -544,8 +544,8 @@ def serve(
         with serve(handler, ...) as server:
             server.serve_forever()
 
-        To stop the server gracefully, call its :meth:`~Server.shutdown` method
-        from another thread.
+    To stop the server gracefully, call its :meth:`~Server.shutdown` method from
+    another thread.
 
     Args:
         handler: Connection handler. It receives the WebSocket connection,

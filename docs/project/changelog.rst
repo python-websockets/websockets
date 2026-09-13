@@ -44,6 +44,12 @@ Improvements
 * :func:`~asyncio.client.connect` now closes connections with close code 1011
   (internal error) when exiting the context manager with an exception.
 
+Bug fixes
+.........
+
+* Fixed a regression from 16.1 where the legacy implementation rejected
+  non-ASCII headers.
+
 .. _17.1:
 
 17.1

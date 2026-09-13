@@ -175,7 +175,9 @@ async def read_headers(stream: asyncio.StreamReader) -> Headers:
 
         name = raw_name.decode("ascii")  # guaranteed to be ASCII at this point
         value = raw_value.decode("ascii", "surrogateescape")
-        headers[name] = value
+
+        # Since we just validated raw_value, we don't need to revalidate it.
+        headers.set_insecure(name, value)
 
     else:
         raise SecurityError("too many HTTP headers")

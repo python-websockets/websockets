@@ -757,16 +757,19 @@ class HTTPProxyConnection(asyncio.Protocol):
         )
 
     def data_received(self, data: bytes) -> None:
+        if self.response.done():
+            return
         self.reader.feed_data(data)
         self.run_parser()
 
     def eof_received(self) -> None:
+        if self.response.done():
+            return
         self.reader.feed_eof()
         self.run_parser()
 
     def connection_lost(self, exc: Exception | None) -> None:
-        self.reader.feed_eof()
-        self.run_parser()
+        self.eof_received()
 
 
 async def connect_http_proxy(

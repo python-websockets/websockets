@@ -364,6 +364,14 @@ class StrTests(unittest.TestCase):
             "PING 'ping' [text, 4 bytes]",
         )
 
+    def test_ping_pong_text_is_ascii(self):
+        for opcode in (PING, PONG):
+            with self.subTest(opcode=opcode):
+                self.assertEqual(
+                    str(Frame(opcode, b"F\xd6\x8a}")),
+                    f"{opcode.name} " + "'F\\u058a}' [text, 4 bytes]",
+                )
+
     def test_ping_text_with_newline(self):
         self.assertEqual(
             str(Frame(PING, b"ping\n")),

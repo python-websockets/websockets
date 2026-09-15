@@ -50,6 +50,9 @@ Bug fixes
 * Fixed a regression from 16.1 where the legacy implementation rejected
   non-ASCII headers.
 
+* Escaped non-ASCII text in PING and PONG frame log messages to avoid errors
+  with non-UTF-8 log handlers.
+
 .. _17.1:
 
 17.1

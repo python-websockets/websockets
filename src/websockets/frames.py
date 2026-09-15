@@ -193,6 +193,12 @@ class Frame:
         # display UTF-8 text in binary frames nicely and generally to be helpful
         # and robust. Also support frames fragmented within UTF-8 sequences.
 
+        def repr_text(data: bytes) -> str:
+            decoded = data.decode(errors="replace")
+            # Ping and pong payloads may be generated internally. Escape
+            # non-ASCII characters so logging them is safe for any encoding.
+            return ascii(decoded) if self.opcode in (PING, PONG) else repr(decoded)
+
         if len(self.data) > 4 * self.MAX_LOG_SIZE:
             # Process only the start and the end, as the middle will be elided.
             # Cast to bytes because self.data could be a memoryview.
@@ -206,7 +212,7 @@ class Frame:
                 must_end_clean=self.fin,
             )
             if is_text:
-                data_repr = repr((data_start + data_end).decode(errors="replace"))
+                data_repr = repr_text(data_start + data_end)
 
         else:
             # Cast to bytes because self.data could be a memoryview.
@@ -217,7 +223,7 @@ class Frame:
                 must_end_clean=self.fin,
             )
             if is_text:
-                data_repr = repr(data.decode(errors="replace"))
+                data_repr = repr_text(data)
 
         # When the payload is text (except perhaps for boundaries), we decoded
         # enough in ``data_repr``. Now, do the same when the payload is binary.

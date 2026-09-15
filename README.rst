@@ -123,7 +123,7 @@ Why shouldn't I use ``websockets``?
   that build on top of ``websockets`` to support WebSocket connections, like
   uvicorn_ or Sanic_.
 
-.. _uvicorn: https://www.uvicorn.org/
+.. _uvicorn: https://uvicorn.dev/
 .. _Sanic: https://sanic.dev/en/
 
 What else?

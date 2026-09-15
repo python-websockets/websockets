@@ -39,7 +39,7 @@ Security
 
     Maximum number of HTTP headers in the opening handshake.
 
-    The default value is ``128`` bytes.
+    The default value is ``128`` headers.
 
 .. envvar:: WEBSOCKETS_MAX_BODY_SIZE
 

@@ -57,7 +57,13 @@ INVALID_PROXIES = [
 PROXIES_WITH_USER_INFO = [
     ("http://proxy", None),
     ("http://user:pass@proxy", ("user", "pass")),
-    ("http://üser:påss@høst", ("%C3%BCser", "p%C3%A5ss")),
+    # Percent-encoded reserved characters are decoded so the plain credential
+    # is available for HTTP Basic Auth and SOCKS authentication.
+    # See https://github.com/aaugustin/websockets/issues/1761
+    ("socks5://alice:p%40ss@proxy", ("alice", "p@ss")),
+    ("socks5://alice%3Abob:secret%25word@proxy", ("alice:bob", "secret%word")),
+    # Non-ASCII IRIs: credentials contain decoded Unicode characters.
+    ("http://üser:påss@høst", ("üser", "påss")),
 ]
 
 PROXY_ENVS = [

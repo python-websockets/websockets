@@ -74,8 +74,13 @@ def parse_proxy(proxy: str) -> Proxy:
     scheme = parsed.scheme
     host = parsed.hostname
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
-    username = parsed.username
-    password = parsed.password
+    # urllib.parse.urlparse() returns the raw (percent-encoded) userinfo
+    # components.  Decode them so that credentials with reserved characters
+    # such as "@", ":", "/", or "%" can be used.  This matches the behaviour
+    # of python-socks and requests, which both unquote proxy userinfo.
+    # See https://github.com/aaugustin/websockets/issues/1761
+    username = urllib.parse.unquote(parsed.username) if parsed.username is not None else None
+    password = urllib.parse.unquote(parsed.password) if parsed.password is not None else None
     # urllib.parse.urlparse accepts URLs with a username but without a
     # password. This doesn't make sense for HTTP Basic Auth credentials.
     if username is not None and password is None:
@@ -87,10 +92,6 @@ def parse_proxy(proxy: str) -> Proxy:
         # Input contains non-ASCII characters.
         # It must be an IRI. Convert it to a URI.
         host = host.encode("idna").decode()
-        if username is not None:
-            assert password is not None
-            username = urllib.parse.quote(username, safe=DELIMS)
-            password = urllib.parse.quote(password, safe=DELIMS)
 
     return Proxy(scheme, host, port, username, password)
 

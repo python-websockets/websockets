@@ -7,23 +7,18 @@ assignees: ''
 
 ---
 
-<!--
+## Checklist
 
-Thanks for taking the time to report an issue!
+* [ ] I searched the [FAQ](https://websockets.readthedocs.io/en/stable/faq/index.html) and didn't find an answer.
+* [ ] I search [issues](https://github.com/python-websockets/websockets/issues?q=is%3Aissue) and didn't find an earlier report.
+* [ ] I personally encountered this problem. I can explain the symptoms and the consequences without relying on an AI coding agent.
+* [ ] I wrote a short, specific issue description that makes it easy for maintainers to understand the problem and the consequences.
+* [ ] I am aware that maintainers have AI coding agents. Merely throwing an AI at an issue wastes their time. It comes across as a lack of respect.
 
-Did you check the FAQ? Perhaps you'll find the answer you need:
-https://websockets.readthedocs.io/en/stable/faq/index.html
+## Problem
 
-Is your question really about asyncio? Perhaps the dev guide will help:
-https://docs.python.org/3/library/asyncio-dev.html
+Explain which problem you faced in a real-life situation and what consequences it has. Theoretical issues flagged by AI coding agents are of no interest.
 
-Did you look for similar issues? Please keep the discussion in one place :-)
-https://github.com/python-websockets/websockets/issues?q=is%3Aissue
+## Reproduction
 
-Is your issue related to cryptocurrency in any way? Please don't file it.
-https://websockets.readthedocs.io/en/stable/project/support.html#cryptocurrency-users
-
-For bugs, providing a reproduction helps a lot. Take an existing example and tweak it!
-https://github.com/python-websockets/websockets/tree/main/example
-
--->
+If possible, provide a minimal reproduction, ideally based on an [existing example](https://github.com/python-websockets/websockets/tree/main/example).

@@ -289,7 +289,13 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.TestCase):
 
     def test_connections(self):
         """Server provides a connections property."""
-        with run_server() as server:
+        connected = threading.Barrier(2)
+
+        def connection_handler(connection):
+            connected.wait()
+            handler(connection)
+
+        with run_server(connection_handler) as server:
             self.assertEqual(server.connections, set())
             with (
                 connect(get_uri(server)) as client1,

@@ -34,7 +34,7 @@ from ..utils import (
     DeprecationTestCase,
     temp_unix_socket_path,
 )
-from .server import get_host_port, get_uri, run_server, run_unix_server
+from .server import get_host_port, get_uri, handler, run_server, run_unix_server
 
 
 def short_backoff():
@@ -299,9 +299,16 @@ class ClientTests(unittest.TestCase):
             response.headers["Location"] = get_uri(other_server)
             return response
 
+        connected = threading.Event()
+
+        def other_handler(connection):
+            connected.set()
+            handler(connection)
+
         with run_server(process_request=redirect) as server:
-            with run_server() as other_server:
+            with run_server(other_handler) as other_server:
                 with connect(get_uri(server)):
+                    self.assertTrue(connected.wait(5 * MS))
                     self.assertFalse(server.connections)
                     self.assertTrue(other_server.connections)
 
@@ -661,9 +668,16 @@ class SecureClientTests(unittest.TestCase):
             response.headers["Location"] = get_uri(other_server)
             return response
 
+        connected = threading.Event()
+
+        def other_handler(connection):
+            connected.set()
+            handler(connection)
+
         with run_server(ssl=SERVER_CONTEXT, process_request=redirect) as server:
-            with run_server(ssl=SERVER_CONTEXT) as other_server:
+            with run_server(ssl=SERVER_CONTEXT, handler=other_handler) as other_server:
                 with connect(get_uri(server), ssl=CLIENT_CONTEXT):
+                    self.assertTrue(connected.wait(5 * MS))
                     self.assertFalse(server.connections)
                     self.assertTrue(other_server.connections)
 

@@ -56,7 +56,10 @@ class PerMessageDeflate(Extension):
         assert remote_no_context_takeover in [False, True]
         assert local_no_context_takeover in [False, True]
         assert 8 <= remote_max_window_bits <= 15
-        assert 8 <= local_max_window_bits <= 15
+        # Due to https://github.com/madler/zlib/issues/171, zlib.compressobj
+        # rejects wbits=-8 with ValueError: Invalid initialization option.
+        # This makes it impossible to support local_max_window_bits = 8.
+        assert 9 <= local_max_window_bits <= 15
         assert "wbits" not in compress_settings
 
         self.remote_no_context_takeover = remote_no_context_takeover
@@ -314,10 +317,12 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         server_max_window_bits: Maximum size of the server's LZ77 sliding window
             in bits, between 8 and 15.
         client_max_window_bits: Maximum size of the client's LZ77 sliding window
-            in bits, between 8 and 15, or :obj:`True` to indicate support without
-            setting a limit.
+            in bits, between 9 and 15, or :obj:`True` to indicate support without
+            setting a limit. 8 isn't supported due to a `limitation of zlib`_.
         compress_settings: Additional keyword arguments for :func:`zlib.compressobj`,
             excluding ``wbits``.
+
+    .. _limitation of zlib: https://github.com/madler/zlib/issues/171
 
     """
 
@@ -340,9 +345,9 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
         if not (
             client_max_window_bits is None
             or client_max_window_bits is True
-            or 8 <= client_max_window_bits <= 15
+            or 9 <= client_max_window_bits <= 15
         ):
-            raise ValueError("client_max_window_bits must be between 8 and 15")
+            raise ValueError("client_max_window_bits must be between 9 and 15")
         if compress_settings is not None and "wbits" in compress_settings:
             raise ValueError(
                 "compress_settings must not include wbits, "
@@ -464,6 +469,9 @@ class ClientPerMessageDeflateFactory(ClientExtensionFactory):
             elif client_max_window_bits > self.client_max_window_bits:
                 raise NegotiationError("unsupported client_max_window_bits")
 
+        if client_max_window_bits == 8:
+            raise NegotiationError("unsupported client_max_window_bits = 8, use 9")
+
         return PerMessageDeflate(
             server_no_context_takeover,  # remote_no_context_takeover
             client_no_context_takeover,  # local_no_context_takeover
@@ -512,7 +520,8 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         server_no_context_takeover: Prevent server from using context takeover.
         client_no_context_takeover: Prevent client from using context takeover.
         server_max_window_bits: Maximum size of the server's LZ77 sliding window
-            in bits, between 8 and 15.
+            in bits, between 9 and 15. 8 isn't supported due to a `limitation of
+            zlib`_.
         client_max_window_bits: Maximum size of the client's LZ77 sliding window
             in bits, between 8 and 15.
         compress_settings: Additional keyword arguments for :func:`zlib.compressobj`,
@@ -521,6 +530,8 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
             client doesn't advertise support for ``client_max_window_bits``;
             the default behavior is to enable compression without enforcing
             ``client_max_window_bits``.
+
+    .. _limitation of zlib: https://github.com/madler/zlib/issues/171
 
     """
 
@@ -539,8 +550,8 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
         Configure the Per-Message Deflate extension factory.
 
         """
-        if not (server_max_window_bits is None or 8 <= server_max_window_bits <= 15):
-            raise ValueError("server_max_window_bits must be between 8 and 15")
+        if not (server_max_window_bits is None or 9 <= server_max_window_bits <= 15):
+            raise ValueError("server_max_window_bits must be between 9 and 15")
         if not (client_max_window_bits is None or 8 <= client_max_window_bits <= 15):
             raise ValueError("client_max_window_bits must be between 8 and 15")
         if compress_settings is not None and "wbits" in compress_settings:
@@ -632,6 +643,9 @@ class ServerPerMessageDeflateFactory(ServerExtensionFactory):
                 server_max_window_bits = self.server_max_window_bits
             elif server_max_window_bits > self.server_max_window_bits:
                 server_max_window_bits = self.server_max_window_bits
+
+        if server_max_window_bits == 8:
+            raise NegotiationError("unsupported server_max_window_bits = 8, use 9")
 
         # client_max_window_bits
 

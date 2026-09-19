@@ -324,7 +324,7 @@ class ClientPerMessageDeflateFactoryTests(
         for config in [
             (False, False, 8, None),  # server_max_window_bits ≥ 8
             (False, True, 15, None),  # server_max_window_bits ≤ 15
-            (True, False, None, 8),  # client_max_window_bits ≥ 8
+            (True, False, None, 9),  # client_max_window_bits ≥ 9
             (True, True, None, 15),  # client_max_window_bits ≤ 15
             (False, False, None, True),  # client_max_window_bits
             (False, False, None, None, {"memLevel": 4}),
@@ -337,6 +337,7 @@ class ClientPerMessageDeflateFactoryTests(
         for config in [
             (False, False, 7, 8),  # server_max_window_bits < 8
             (False, True, 8, 7),  # client_max_window_bits < 8
+            (False, True, 8, 8),  # client_max_window_bits = 8
             (True, False, 16, 15),  # server_max_window_bits > 15
             (True, True, 15, 16),  # client_max_window_bits > 15
             (False, False, True, None),  # server_max_window_bits
@@ -465,8 +466,18 @@ class ClientPerMessageDeflateFactoryTests(
             ),
             (
                 (False, False, None, None),
+                [("server_max_window_bits", "8")],
+                (False, False, 8, 15),
+            ),
+            (
+                (False, False, None, None),
                 [("server_max_window_bits", "10")],
                 (False, False, 10, 15),
+            ),
+            (
+                (False, False, None, None),
+                [("server_max_window_bits", "15")],
+                (False, False, 15, 15),
             ),
             (
                 (False, False, None, None),
@@ -517,6 +528,11 @@ class ClientPerMessageDeflateFactoryTests(
             (
                 (False, False, None, True),
                 [("client_max_window_bits", "7")],
+                NegotiationError,
+            ),
+            (
+                (False, False, None, True),
+                [("client_max_window_bits", "8")],
                 NegotiationError,
             ),
             (
@@ -662,7 +678,7 @@ class ServerPerMessageDeflateFactoryTests(
 
     def test_init(self):
         for config in [
-            (False, False, 8, None),  # server_max_window_bits ≥ 8
+            (False, False, 9, None),  # server_max_window_bits ≥ 9
             (False, True, 15, None),  # server_max_window_bits ≤ 15
             (True, False, None, 8),  # client_max_window_bits ≥ 8
             (True, True, None, 15),  # client_max_window_bits ≤ 15
@@ -677,6 +693,7 @@ class ServerPerMessageDeflateFactoryTests(
         for config in [
             (False, False, 7, 8),  # server_max_window_bits < 8
             (False, True, 8, 7),  # client_max_window_bits < 8
+            (False, False, 8, 8),  # server_max_window_bits = 8
             (True, False, 16, 15),  # server_max_window_bits > 15
             (True, True, 15, 16),  # client_max_window_bits > 15
             (False, False, None, True),  # client_max_window_bits
@@ -776,6 +793,12 @@ class ServerPerMessageDeflateFactoryTests(
             ),
             (
                 (False, False, None, None),
+                [("server_max_window_bits", "8")],
+                None,
+                NegotiationError,
+            ),
+            (
+                (False, False, None, None),
                 [("server_max_window_bits", "10")],
                 [("server_max_window_bits", "10")],
                 (False, False, 15, 10),
@@ -837,9 +860,21 @@ class ServerPerMessageDeflateFactoryTests(
             ),
             (
                 (False, False, None, None),
+                [("client_max_window_bits", "8")],
+                [("client_max_window_bits", "8")],  # doesn't matter
+                (False, False, 8, 15),
+            ),
+            (
+                (False, False, None, None),
                 [("client_max_window_bits", "10")],
                 [("client_max_window_bits", "10")],  # doesn't matter
                 (False, False, 10, 15),
+            ),
+            (
+                (False, False, None, None),
+                [("client_max_window_bits", "15")],
+                [("client_max_window_bits", "15")],  # doesn't matter
+                (False, False, 15, 15),
             ),
             (
                 (False, False, None, None),

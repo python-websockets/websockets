@@ -44,6 +44,8 @@ Improvements
 * :func:`~asyncio.client.connect` now closes connections with close code 1011
   (internal error) when exiting the context manager with an exception.
 
+* Improved error handling when a compression window of size 8 is requested.
+
 Bug fixes
 .........
 

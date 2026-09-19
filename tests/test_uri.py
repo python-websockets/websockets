@@ -64,6 +64,9 @@ URIS_WITH_RESOURCE_NAMES = [
     ("ws://localhost", "/"),
     ("ws://localhost/path?query", "/path?query"),
     ("ws://høst/πass?qùéry", "/%CF%80ass?q%C3%B9%C3%A9ry"),
+    ("ws://høst/a%20b?x=%26%3D%2B", "/a%20b?x=%26%3D%2B"),
+    ("ws://localhost/café%2Fmenu?x=%25", "/caf%C3%A9%2Fmenu?x=%25"),
+    ("ws://localhost/a%2fb?q=café%26tea", "/a%2fb?q=caf%C3%A9%26tea"),
 ]
 
 URIS_WITH_USER_INFO = [

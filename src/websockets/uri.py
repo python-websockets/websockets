@@ -97,8 +97,8 @@ def parse_uri(uri: str) -> WebSocketURI:
         # Input contains non-ASCII characters.
         # It must be an IRI. Convert it to a URI.
         host = host.encode("idna").decode()
-        path = urllib.parse.quote(path, safe=DELIMS)
-        query = urllib.parse.quote(query, safe=DELIMS)
+        path = urllib.parse.quote(path, safe=DELIMS + "%")
+        query = urllib.parse.quote(query, safe=DELIMS + "%")
         if username is not None:
             assert password is not None
             username = urllib.parse.quote(username, safe=DELIMS)

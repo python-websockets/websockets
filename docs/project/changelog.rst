@@ -47,6 +47,9 @@ Improvements
 Bug fixes
 .........
 
+* Preserved percent-encoded sequences in paths and queries when connecting to
+  internationalized URIs.
+
 * Fixed a regression from 16.1 where the legacy implementation rejected
   non-ASCII headers.
 

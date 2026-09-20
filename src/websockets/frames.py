@@ -4,6 +4,7 @@ import dataclasses
 import enum
 import io
 import os
+import re
 import secrets
 import struct
 from collections.abc import Generator, Sequence
@@ -25,6 +26,8 @@ __all__ = [
     "Frame",
     "Close",
 ]
+
+is_space_or_printable_ascii = re.compile(rb"[\x09-\x0D\x20-\x7E]*").fullmatch
 
 
 class Opcode(enum.IntEnum):
@@ -150,10 +153,8 @@ class Frame:
         conveniently. Instead, it shows the beginning and the end. It's robust
         to incorrect data.
 
-        It attempts to decode UTF-8 payloads whenever possible, even for binary
-        frames and control frames, because those frequently contain UTF-8 data.
-        It applies the same logic to continuation frames, because we don't know
-        if they continue a text frame or a binary frame.
+        It attempts to decode UTF-8 in data frames, even in binary frames,
+        because those frequently contain UTF-8 data.
 
         """
         expect_text = self.DEFAULT_IS_TEXT.get(self.opcode)
@@ -177,58 +178,76 @@ class Frame:
         This is a helper for the __str__ method.
 
         """
+        data_repr: str = ""
+        is_text: bool | None = None
+
         if not self.data:
             return "''", self.DEFAULT_IS_TEXT.get(self.opcode)
 
-        # Special case for close frames: parse close code and reason.
-        # Fall back to the standard case if the payload is malformed.
+        # Close frames: parse close code and reason and display them as text.
+        # Fall back to binary when the payload is malformed.
 
         if self.opcode is CLOSE:
             try:
-                return str(Close.parse(self.data)), True
+                data_repr = str(Close.parse(self.data))
+                is_text = True
             except (ProtocolError, UnicodeDecodeError):
-                pass
+                data_repr = " ".join(f"{byte:02x}" for byte in self.data)
+                is_text = False
 
-        # Guess whether the payload is UTF-8 or binary, regardless of opcode, to
-        # display UTF-8 text in binary frames nicely and generally to be helpful
-        # and robust. Also support frames fragmented within UTF-8 sequences.
+        # Control frames: display printable ASCII payloads as text, else binary.
+        # We could decode UTF-8 payloads, but this causes confusion when random
+        # 4-bytes binary payloads are accidentally valid UTF-8 sequences.
 
-        if len(self.data) > 4 * self.MAX_LOG_SIZE:
-            # Process only the start and the end, as the middle will be elided.
-            # Cast to bytes because self.data could be a memoryview.
-            data_start = bytes(self.data[: 8 * self.MAX_LOG_SIZE // 3])
-            data_end = bytes(self.data[-4 * self.MAX_LOG_SIZE // 3 :])
-            is_text = is_utf8_fragment(
-                data_start,
-                must_start_clean=self.opcode != CONT,
-            ) and is_utf8_fragment(
-                data_end,
-                must_end_clean=self.fin,
-            )
-            if is_text:
-                data_repr = repr((data_start + data_end).decode(errors="replace"))
+        elif self.opcode in CTRL_OPCODES:
+            if is_space_or_printable_ascii(self.data):
+                data_repr = repr(bytes(self.data).decode("ascii"))
+                is_text = True
+            else:
+                data_repr = " ".join(f"{byte:02x}" for byte in self.data)
+                is_text = False
+
+        # Data frames: check whether the payload is UTF-8, regardless of opcode,
+        # in order to display nicely UTF-8 text in binary frames, and be robust.
+        # Also support frames fragmented within UTF-8 sequences.
 
         else:
-            # Cast to bytes because self.data could be a memoryview.
-            data = bytes(self.data)
-            is_text = is_utf8_fragment(
-                data,
-                must_start_clean=self.opcode != CONT,
-                must_end_clean=self.fin,
-            )
-            if is_text:
-                data_repr = repr(data.decode(errors="replace"))
+            if len(self.data) > 4 * self.MAX_LOG_SIZE:
+                # Process only the start and end, as the middle will be elided.
+                # Cast to bytes because self.data could be a memoryview.
+                data_start = bytes(self.data[: 8 * self.MAX_LOG_SIZE // 3])
+                data_end = bytes(self.data[-4 * self.MAX_LOG_SIZE // 3 :])
+                is_text = is_utf8_fragment(
+                    data_start,
+                    must_start_clean=self.opcode != CONT,
+                ) and is_utf8_fragment(
+                    data_end,
+                    must_end_clean=self.fin,
+                )
+                if is_text:
+                    data_repr = repr((data_start + data_end).decode(errors="replace"))
 
-        # When the payload is text (except perhaps for boundaries), we decoded
-        # enough in ``data_repr``. Now, do the same when the payload is binary.
+            else:
+                # Cast to bytes because self.data could be a memoryview.
+                data = bytes(self.data)
+                is_text = is_utf8_fragment(
+                    data,
+                    must_start_clean=self.opcode != CONT,
+                    must_end_clean=self.fin,
+                )
+                if is_text:
+                    data_repr = repr(data.decode(errors="replace"))
 
-        if not is_text:
-            binary = self.data
-            if len(binary) > self.MAX_LOG_SIZE // 3:
-                cut = (self.MAX_LOG_SIZE // 3 - 1) // 3  # by default cut = 8
-                # Encode two dummy bytes to force eliding and adding an ellipsis.
-                binary = b"".join([binary[: 2 * cut], b"\x00\x00", binary[-cut:]])
-            data_repr = " ".join(f"{byte:02x}" for byte in binary)
+            # When the payload is text (except perhaps for boundaries), we have
+            # enough in ``data_repr``. Do the same when the payload is binary.
+
+            if not is_text:
+                binary = self.data
+                if len(binary) > self.MAX_LOG_SIZE // 3:
+                    cut = (self.MAX_LOG_SIZE // 3 - 1) // 3  # by default cut = 8
+                    # Encode two dummy bytes to force eliding and adding an ellipsis.
+                    binary = b"".join([binary[: 2 * cut], b"\x00\x00", binary[-cut:]])
+                data_repr = " ".join(f"{byte:02x}" for byte in binary)
 
         # Elide the middle of the representation to fit the maximum log size.
 

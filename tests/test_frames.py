@@ -358,16 +358,28 @@ class StrTests(unittest.TestCase):
             "PING '' [0 bytes]",
         )
 
-    def test_ping_text(self):
+    def test_ping_ascii_text(self):
         self.assertEqual(
             str(Frame(PING, b"ping")),
             "PING 'ping' [text, 4 bytes]",
         )
 
-    def test_ping_text_with_newline(self):
+    def test_ping_ascii_text_with_newline(self):
         self.assertEqual(
             str(Frame(PING, b"ping\n")),
             "PING 'ping\\n' [text, 5 bytes]",
+        )
+
+    def test_ping_non_printable_ascii_text(self):
+        self.assertEqual(
+            str(Frame(PING, b"dG\x04I")),
+            "PING 64 47 04 49 [binary, 4 bytes]",
+        )
+
+    def test_ping_utf8_text(self):
+        self.assertEqual(
+            str(Frame(PING, b"F\xd6\x8a}")),
+            "PING 46 d6 8a 7d [binary, 4 bytes]",
         )
 
     def test_ping_binary(self):
@@ -382,16 +394,28 @@ class StrTests(unittest.TestCase):
             "PONG '' [0 bytes]",
         )
 
-    def test_pong_text(self):
+    def test_pong_ascii_text(self):
         self.assertEqual(
             str(Frame(PONG, b"pong")),
             "PONG 'pong' [text, 4 bytes]",
         )
 
-    def test_pong_text_with_newline(self):
+    def test_pong_ascii_text_with_newline(self):
         self.assertEqual(
             str(Frame(PONG, b"pong\n")),
             "PONG 'pong\\n' [text, 5 bytes]",
+        )
+
+    def test_pong_non_printable_ascii_text(self):
+        self.assertEqual(
+            str(Frame(PONG, b"dG\x04I")),
+            "PONG 64 47 04 49 [binary, 4 bytes]",
+        )
+
+    def test_pong_utf8_text(self):
+        self.assertEqual(
+            str(Frame(PONG, b"F\xd6\x8a}")),
+            "PONG 46 d6 8a 7d [binary, 4 bytes]",
         )
 
     def test_pong_binary(self):

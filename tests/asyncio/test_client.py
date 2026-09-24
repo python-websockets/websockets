@@ -11,6 +11,7 @@ import unittest
 from unittest.mock import patch
 
 from websockets.asyncio.client import *
+from websockets.asyncio.client import HTTPProxyConnection
 from websockets.asyncio.server import serve, unix_serve
 from websockets.client import backoff
 from websockets.exceptions import (
@@ -18,12 +19,15 @@ from websockets.exceptions import (
     InvalidMessage,
     InvalidProxy,
     InvalidProxyMessage,
+    InvalidProxyStatus,
     InvalidStatus,
     InvalidURI,
     ProxyError,
     SecurityError,
 )
 from websockets.extensions.permessage_deflate import PerMessageDeflate
+from websockets.proxy import parse_proxy
+from websockets.uri import parse_uri
 
 from ..proxy import ProxyMixin
 from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
@@ -50,6 +54,62 @@ async def few_redirects():
         yield
     finally:
         client.MAX_REDIRECTS = max_redirects
+
+
+class HTTPProxyLifecycleTests(unittest.IsolatedAsyncioTestCase):
+    def make_protocol(self):
+        return HTTPProxyConnection(
+            parse_uri("ws://localhost/"), parse_proxy("http://localhost:8080")
+        )
+
+    async def test_success_then_connection_lost(self):
+        protocol = self.make_protocol()
+        protocol.data_received(b"HTTP/1.1 200 OK\r\n\r\n")
+        response = await protocol.response
+        protocol.connection_lost(None)
+        self.assertIs(await protocol.response, response)
+
+    async def test_rejection_then_connection_lost(self):
+        protocol = self.make_protocol()
+        protocol.data_received(b"HTTP/1.1 407 Authentication Required\r\n\r\n")
+        with self.assertRaises(InvalidProxyStatus):
+            await protocol.response
+        protocol.connection_lost(None)
+
+    async def test_invalid_response_then_connection_lost(self):
+        protocol = self.make_protocol()
+        protocol.data_received(b"invalid\r\n\r\n")
+        with self.assertRaises(InvalidProxyMessage):
+            await protocol.response
+        protocol.connection_lost(None)
+
+    async def test_eof_then_connection_lost(self):
+        protocol = self.make_protocol()
+        protocol.eof_received()
+        with self.assertRaises(InvalidProxyMessage):
+            await protocol.response
+        protocol.connection_lost(None)
+
+    async def test_cancelled_response_then_connection_lost(self):
+        protocol = self.make_protocol()
+        protocol.response.cancel()
+        protocol.connection_lost(None)
+        self.assertTrue(protocol.response.cancelled())
+
+    async def test_incomplete_response_then_connection_lost(self):
+        protocol = self.make_protocol()
+        protocol.data_received(b"HTTP/1.1 200")
+        self.assertFalse(protocol.response.done())
+        protocol.connection_lost(None)
+        with self.assertRaises(InvalidProxyMessage):
+            await protocol.response
+
+    async def test_data_after_response(self):
+        protocol = self.make_protocol()
+        protocol.data_received(b"HTTP/1.1 200 OK\r\n\r\n")
+        response = await protocol.response
+        protocol.data_received(b"extra bytes")
+        self.assertIs(await protocol.response, response)
 
 
 class ClientTests(unittest.IsolatedAsyncioTestCase):

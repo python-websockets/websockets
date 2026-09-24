@@ -30,8 +30,8 @@ VALID_URIS = [
         WebSocketURI(False, "localhost", 80, "/PATH", "QUERY", None, None),
     ),
     (
-        "ws://user:pass@localhost/",
-        WebSocketURI(False, "localhost", 80, "/", "", "user", "pass"),
+        "ws://user:p%40ss@localhost/",
+        WebSocketURI(False, "localhost", 80, "/", "", "user", "p@ss"),
     ),
     (
         "ws://høst/",
@@ -45,8 +45,8 @@ VALID_URIS = [
             80,
             "/%CF%80ass",
             "q%C3%B9%C3%A9ry",
-            "%C3%BCser",
-            "p%C3%A5ss",
+            "üser",
+            "påss",
         ),
     ),
 ]
@@ -68,8 +68,8 @@ URIS_WITH_RESOURCE_NAMES = [
 
 URIS_WITH_USER_INFO = [
     ("ws://localhost/", None),
-    ("ws://user:pass@localhost/", ("user", "pass")),
-    ("ws://üser:påss@høst/", ("%C3%BCser", "p%C3%A5ss")),
+    ("ws://user:p%40ss@localhost/", ("user", "p@ss")),
+    ("ws://üser:påss@høst/", ("üser", "påss")),
 ]
 
 

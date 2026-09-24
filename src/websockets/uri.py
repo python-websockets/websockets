@@ -88,8 +88,11 @@ def parse_uri(uri: str) -> WebSocketURI:
     password = parsed.password
     # urllib.parse.urlparse accepts URLs with a username but without a
     # password. This doesn't make sense for HTTP Basic Auth credentials.
-    if username is not None and password is None:
-        raise InvalidURI(uri, "username provided without password")
+    if username is not None:
+        if password is None:
+            raise InvalidURI(uri, "username provided without password")
+        username = urllib.parse.unquote(username, errors="strict")
+        password = urllib.parse.unquote(password, errors="strict")
 
     try:
         uri.encode("ascii")
@@ -99,9 +102,5 @@ def parse_uri(uri: str) -> WebSocketURI:
         host = host.encode("idna").decode()
         path = urllib.parse.quote(path, safe=DELIMS)
         query = urllib.parse.quote(query, safe=DELIMS)
-        if username is not None:
-            assert password is not None
-            username = urllib.parse.quote(username, safe=DELIMS)
-            password = urllib.parse.quote(password, safe=DELIMS)
 
     return WebSocketURI(secure, host, port, path, query, username, password)

@@ -8,7 +8,7 @@ from .datastructures import Headers
 from .exceptions import InvalidProxy
 from .headers import build_authorization_basic, build_host
 from .http11 import USER_AGENT
-from .uri import DELIMS, WebSocketURI
+from .uri import WebSocketURI
 
 
 __all__ = ["get_proxy", "parse_proxy", "Proxy"]
@@ -78,8 +78,11 @@ def parse_proxy(proxy: str) -> Proxy:
     password = parsed.password
     # urllib.parse.urlparse accepts URLs with a username but without a
     # password. This doesn't make sense for HTTP Basic Auth credentials.
-    if username is not None and password is None:
-        raise InvalidProxy(proxy, "username provided without password")
+    if username is not None:
+        if password is None:
+            raise InvalidProxy(proxy, "username provided without password")
+        username = urllib.parse.unquote(username, errors="strict")
+        password = urllib.parse.unquote(password, errors="strict")
 
     try:
         proxy.encode("ascii")
@@ -87,10 +90,6 @@ def parse_proxy(proxy: str) -> Proxy:
         # Input contains non-ASCII characters.
         # It must be an IRI. Convert it to a URI.
         host = host.encode("idna").decode()
-        if username is not None:
-            assert password is not None
-            username = urllib.parse.quote(username, safe=DELIMS)
-            password = urllib.parse.quote(password, safe=DELIMS)
 
     return Proxy(scheme, host, port, username, password)
 

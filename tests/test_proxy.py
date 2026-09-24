@@ -31,8 +31,8 @@ VALID_PROXIES = [
         Proxy("http", "proxy", 8080, None, None),
     ),
     (
-        "http://user:pass@proxy:8080",
-        Proxy("http", "proxy", 8080, "user", "pass"),
+        "http://user:p%40ss@proxy:8080",
+        Proxy("http", "proxy", 8080, "user", "p@ss"),
     ),
     (
         "http://høst:8080/",
@@ -40,7 +40,7 @@ VALID_PROXIES = [
     ),
     (
         "http://üser:påss@høst:8080",
-        Proxy("http", "xn--hst-0na", 8080, "%C3%BCser", "p%C3%A5ss"),
+        Proxy("http", "xn--hst-0na", 8080, "üser", "påss"),
     ),
 ]
 
@@ -56,8 +56,8 @@ INVALID_PROXIES = [
 
 PROXIES_WITH_USER_INFO = [
     ("http://proxy", None),
-    ("http://user:pass@proxy", ("user", "pass")),
-    ("http://üser:påss@høst", ("%C3%BCser", "p%C3%A5ss")),
+    ("http://user:p%40ss@proxy", ("user", "p@ss")),
+    ("http://üser:påss@høst", ("üser", "påss")),
 ]
 
 PROXY_ENVS = [

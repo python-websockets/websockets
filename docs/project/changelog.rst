@@ -49,6 +49,8 @@ Improvements
 Bug fixes
 .........
 
+* Fixed handling of percent-encoded credentials in WebSocket and proxy URIs.
+
 * Fixed a regression from 16.1 where the legacy implementation rejected
   non-ASCII headers.
 

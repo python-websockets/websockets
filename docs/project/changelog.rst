@@ -30,7 +30,7 @@ notice.
 17.2
 ----
 
-*In development*
+*October 3, 2026*
 
 New features
 ............

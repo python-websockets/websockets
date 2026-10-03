@@ -544,8 +544,15 @@ def serve(
         with serve(handler, ...) as server:
             server.serve_forever()
 
-    To stop the server gracefully, call its :meth:`~Server.shutdown` method from
-    another thread.
+    You can stop the server gracefully by calling its :meth:`~Server.shutdown`
+    method from another thread::
+
+        server.shutdown()
+
+    By default, closing the server closes connections with code 1001 (going
+    away). You can keep connections alive and wait for clients to disconnect::
+
+        server.shutdown(close_connections=False)
 
     Args:
         handler: Connection handler. It receives the WebSocket connection,

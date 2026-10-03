@@ -193,7 +193,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             elif iterations == 3:
                 return connection.respond(http.HTTPStatus.SERVICE_UNAVAILABLE, "🚒")
             # Fatal error
-            elif iterations == 6:
+            elif iterations >= 6:
                 return connection.respond(http.HTTPStatus.PAYMENT_REQUIRED, "💸")
 
         async with serve(*args, process_request=process_request) as server:

@@ -32,7 +32,7 @@ from .server import (
     get_uri,
     handler,
 )
-from .utils import UVLoopTestCase
+from .utils import UVLoopTestCase, requires_accurate_clock
 
 
 class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestCase):
@@ -349,6 +349,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                     client, "'Server' in ws.response.headers", "False"
                 )
 
+    @requires_accurate_clock
     async def test_keepalive_is_enabled(self):
         """Server enables keepalive and measures latency."""
         async with serve(*args, ping_interval=MS) as server:
@@ -361,6 +362,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 latency = eval(await client.recv())
                 self.assertGreater(latency, 0)
 
+    @requires_accurate_clock
     async def test_disable_keepalive(self):
         """Server disables keepalive."""
         async with serve(*args, ping_interval=None) as server:

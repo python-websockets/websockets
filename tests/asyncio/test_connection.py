@@ -22,7 +22,7 @@ from websockets.protocol import CLIENT, CLOSED, OPEN, SERVER, Protocol
 from ..protocol import RecordingProtocol
 from ..utils import MS, LoggingTestCase, alist
 from .connection import InterceptingConnection
-from .utils import UVLoopTestCase
+from .utils import UVLoopTestCase, requires_accurate_clock
 
 
 # Connection implements symmetrical behavior between clients and servers.
@@ -1058,6 +1058,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
     # Test keepalive.
 
+    @requires_accurate_clock
     @patch("random.getrandbits")
     async def test_keepalive(self, getrandbits):
         """keepalive sends pings at ping_interval and measures latency."""

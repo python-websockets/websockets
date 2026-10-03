@@ -28,7 +28,7 @@ from websockets.extensions.permessage_deflate import PerMessageDeflate
 from ..proxy import ProxyMixin
 from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
 from .server import args, get_host_port, get_uri, handler
-from .utils import UVLoopTestCase
+from .utils import UVLoopTestCase, requires_accurate_clock
 
 
 def short_backoff():
@@ -141,6 +141,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             ) as client:
                 self.assertEqual(client.request.headers["User-Agent"], "Smith")
 
+    @requires_accurate_clock
     async def test_keepalive_is_enabled(self):
         """Client enables keepalive and measures latency by default."""
         async with serve(*args) as server:
@@ -149,6 +150,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.sleep(2 * MS)
                 self.assertGreater(client.latency, 0)
 
+    @requires_accurate_clock
     async def test_disable_keepalive(self):
         """Client disables keepalive."""
         async with serve(*args) as server:

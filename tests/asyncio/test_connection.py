@@ -22,6 +22,7 @@ from websockets.protocol import CLIENT, CLOSED, OPEN, SERVER, Protocol
 from ..protocol import RecordingProtocol
 from ..utils import MS, LoggingTestCase, alist
 from .connection import InterceptingConnection
+from .utils import UVLoopTestCase
 
 
 # Connection implements symmetrical behavior between clients and servers.
@@ -1512,3 +1513,11 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 class ServerConnectionTests(ClientConnectionTests):
     LOCAL = SERVER
     REMOTE = CLIENT
+
+
+class UVLoopClientConnectionTests(ClientConnectionTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopServerConnectionTests(ServerConnectionTests, UVLoopTestCase):
+    pass

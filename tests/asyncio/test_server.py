@@ -32,6 +32,7 @@ from .server import (
     get_uri,
     handler,
 )
+from .utils import UVLoopTestCase
 
 
 class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestCase):
@@ -991,3 +992,27 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             str(raised.exception),
             "invalid credentials argument: [42]",
         )
+
+
+class UVLoopServerTests(ServerTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopSecureServerTests(SecureServerTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopUnixServerTests(UnixServerTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopSecureUnixServerTests(SecureUnixServerTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopServerUsageErrorsTests(ServerUsageErrorsTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopBasicAuthTests(BasicAuthTests, UVLoopTestCase):
+    pass

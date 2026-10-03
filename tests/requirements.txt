@@ -1,3 +1,4 @@
 mitmproxy
 python-socks[asyncio]
 trio
+uvloop

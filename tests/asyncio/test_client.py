@@ -28,6 +28,7 @@ from websockets.extensions.permessage_deflate import PerMessageDeflate
 from ..proxy import ProxyMixin
 from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
 from .server import args, get_host_port, get_uri, handler
+from .utils import UVLoopTestCase
 
 
 def short_backoff():
@@ -1129,3 +1130,27 @@ class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
             str(raised.exception),
             "connect() isn't reentrant",
         )
+
+
+class UVLoopClientTests(ClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopSecureClientTests(SecureClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopSocksProxyClientTests(SocksProxyClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopHTTPProxyClientTests(HTTPProxyClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopUnixClientTests(UnixClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopClientUsageErrorsTests(ClientUsageErrorsTests, UVLoopTestCase):
+    pass

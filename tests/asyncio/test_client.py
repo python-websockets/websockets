@@ -894,12 +894,17 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
     async def test_https_proxy_server_hostname(self):
         """Client sets server_hostname to the value of proxy_server_hostname."""
         async with serve(*args) as server:
+            # Pass an argument not prefixed with ssl or proxy_ for coverage,
+            # except on uvloop, which doesn't support any such argument.
+            if isinstance(asyncio.get_event_loop(), asyncio.BaseEventLoop):
+                kwargs = {"happy_eyeballs_delay": 0.1}
+            else:  # pragma: no cover
+                kwargs = {}
             async with connect(
                 get_uri(server),
                 proxy_ssl=self.proxy_context,
                 proxy_server_hostname="overridden",
-                # Pass an argument not prefixed with proxy_ for coverage.
-                happy_eyeballs_delay=0.1,
+                **kwargs,
             ) as client:
                 ssl_object = client.transport.get_extra_info("ssl_object")
                 self.assertEqual(ssl_object.server_hostname, "overridden")

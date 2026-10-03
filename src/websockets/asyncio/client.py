@@ -734,6 +734,8 @@ class HTTPProxyConnection(asyncio.Protocol):
         self.response: asyncio.Future[Response] = loop.create_future()
 
     def run_parser(self) -> None:
+        if self.response.done():
+            return
         try:
             next(self.parser)
         except StopIteration as exc:

@@ -690,7 +690,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
         async with serve(*args) as server:
             sock = server.sockets[0]
             self.assertIsInstance(sock.fileno(), int)
-        self.assertEqual(server.sockets, ())
+        self.assertEqual(list(server.sockets), [])
 
     async def test_context_manager_closes_server(self):
         """Server closes when exiting the asynchronous context manager."""

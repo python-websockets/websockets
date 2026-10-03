@@ -668,8 +668,7 @@ def serve(
         if kwargs.pop("unix", False):
             return await loop.create_unix_server(protocol_factory, **kwargs)
         else:
-            # mypy cannot tell that kwargs must provide sock when port is None.
-            return await loop.create_server(protocol_factory, host, port, **kwargs)  # type: ignore[arg-type]
+            return await loop.create_server(protocol_factory, host, port, **kwargs)
 
     def protocol_factory() -> ServerConnection:
         """

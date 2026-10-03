@@ -1228,19 +1228,19 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         """Connection has a logger attribute."""
         self.assertIsInstance(self.connection.logger, logging.LoggerAdapter)
 
-    @patch("asyncio.Transport.get_extra_info")
-    async def test_local_address(self, get_extra_info):
+    async def test_local_address(self):
         """Connection has a local_address attribute."""
-        get_extra_info.return_value = ("sock", 1234)
-        self.assertEqual(self.connection.local_address, ("sock", 1234))
-        get_extra_info.assert_called_with("sockname")
+        with patch.object(self.connection, "transport") as transport:
+            transport.get_extra_info.return_value = ("sock", 1234)
+            self.assertEqual(self.connection.local_address, ("sock", 1234))
+            transport.get_extra_info.assert_called_with("sockname")
 
-    @patch("asyncio.Transport.get_extra_info")
-    async def test_remote_address(self, get_extra_info):
+    async def test_remote_address(self):
         """Connection has a remote_address attribute."""
-        get_extra_info.return_value = ("peer", 1234)
-        self.assertEqual(self.connection.remote_address, ("peer", 1234))
-        get_extra_info.assert_called_with("peername")
+        with patch.object(self.connection, "transport") as transport:
+            transport.get_extra_info.return_value = ("peer", 1234)
+            self.assertEqual(self.connection.remote_address, ("peer", 1234))
+            transport.get_extra_info.assert_called_with("peername")
 
     async def test_state(self):
         """Connection has a state attribute."""

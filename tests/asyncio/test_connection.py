@@ -20,7 +20,7 @@ from websockets.frames import BINARY, CLOSE, CONT, PING, PONG, TEXT, CloseCode, 
 from websockets.protocol import CLIENT, CLOSED, OPEN, SERVER, Protocol
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, LoggingTestCase, alist
+from ..utils import MS, LoggingTestCase, alist, assertDurationAtLeast
 from .connection import InterceptingConnection
 from .utils import UVLoopTestCase, requires_accurate_clock
 
@@ -729,14 +729,12 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
     async def test_close_waits_for_close_frame(self):
         """close waits for a close frame then EOF before returning."""
-        t0 = self.loop.time()
-        async with self.delay_frames_rcvd(MS), self.delay_eof_rcvd(MS):
-            await self.connection.close()
-        t1 = self.loop.time()
+        with assertDurationAtLeast(MS, self.loop.time):
+            async with self.delay_frames_rcvd(MS), self.delay_eof_rcvd(MS):
+                await self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -750,14 +748,12 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
-        t0 = self.loop.time()
-        async with self.delay_eof_rcvd(MS):
-            await self.connection.close()
-        t1 = self.loop.time()
+        with assertDurationAtLeast(MS, self.loop.time):
+            async with self.delay_eof_rcvd(MS):
+                await self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -770,14 +766,12 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         """close without timeout waits for a close frame then EOF before returning."""
         self.connection.close_timeout = None
 
-        t0 = self.loop.time()
-        async with self.delay_frames_rcvd(MS), self.delay_eof_rcvd(MS):
-            await self.connection.close()
-        t1 = self.loop.time()
+        with assertDurationAtLeast(MS, self.loop.time):
+            async with self.delay_frames_rcvd(MS), self.delay_eof_rcvd(MS):
+                await self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -793,14 +787,12 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
         self.connection.close_timeout = None
 
-        t0 = self.loop.time()
-        async with self.delay_eof_rcvd(MS):
-            await self.connection.close()
-        t1 = self.loop.time()
+        with assertDurationAtLeast(MS, self.loop.time):
+            async with self.delay_eof_rcvd(MS):
+                await self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -811,14 +803,12 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
     async def test_close_timeout_waiting_for_close_frame(self):
         """close times out if no close frame is received."""
-        t0 = self.loop.time()
-        async with self.drop_eof_rcvd(), self.drop_frames_rcvd():
-            await self.connection.close()
-        t1 = self.loop.time()
+        with assertDurationAtLeast(2 * MS, self.loop.time):
+            async with self.drop_eof_rcvd(), self.drop_frames_rcvd():
+                await self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.ABNORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.recv()
@@ -832,14 +822,12 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
-        t0 = self.loop.time()
-        async with self.drop_eof_rcvd():
-            await self.connection.close()
-        t1 = self.loop.time()
+        with assertDurationAtLeast(2 * MS, self.loop.time):
+            async with self.drop_eof_rcvd():
+                await self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()

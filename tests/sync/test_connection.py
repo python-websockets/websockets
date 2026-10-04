@@ -21,7 +21,7 @@ from websockets.sync.connection import *
 from websockets.sync.connection import broadcast
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, LoggingTestCase
+from ..utils import MS, LoggingTestCase, assertDurationAtLeast
 from .connection import InterceptingConnection
 from .utils import ThreadTestCase
 
@@ -486,14 +486,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
     def test_close_waits_for_close_frame(self):
         """close waits for a close frame then EOF before returning."""
-        t0 = time.time()
-        with self.delay_frames_rcvd(MS):
-            self.connection.close()
-        t1 = time.time()
+        with assertDurationAtLeast(MS, time.time):
+            with self.delay_frames_rcvd(MS):
+                self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
@@ -507,14 +505,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
-        t0 = time.time()
-        with self.delay_eof_rcvd(MS):
-            self.connection.close()
-        t1 = time.time()
+        with assertDurationAtLeast(MS, time.time):
+            with self.delay_eof_rcvd(MS):
+                self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
@@ -525,14 +521,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
     def test_close_timeout_waiting_for_close_frame(self):
         """close times out if no close frame is received."""
-        t0 = time.time()
-        with self.drop_frames_rcvd(), self.drop_eof_rcvd():
-            self.connection.close()
-        t1 = time.time()
+        with assertDurationAtLeast(2 * MS, time.time):
+            with self.drop_frames_rcvd(), self.drop_eof_rcvd():
+                self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.ABNORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.recv()
@@ -546,14 +540,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
-        t0 = time.time()
-        with self.drop_eof_rcvd():
-            self.connection.close()
-        t1 = time.time()
+        with assertDurationAtLeast(2 * MS, time.time):
+            with self.drop_eof_rcvd():
+                self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()

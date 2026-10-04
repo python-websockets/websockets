@@ -32,6 +32,7 @@ from .server import (
     get_uri,
     handler,
 )
+from .utils import UVLoopTestCase, requires_accurate_clock
 
 
 class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestCase):
@@ -348,6 +349,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                     client, "'Server' in ws.response.headers", "False"
                 )
 
+    @requires_accurate_clock
     async def test_keepalive_is_enabled(self):
         """Server enables keepalive and measures latency."""
         async with serve(*args, ping_interval=MS) as server:
@@ -360,6 +362,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 latency = eval(await client.recv())
                 self.assertGreater(latency, 0)
 
+    @requires_accurate_clock
     async def test_disable_keepalive(self):
         """Server disables keepalive."""
         async with serve(*args, ping_interval=None) as server:
@@ -687,7 +690,7 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
         async with serve(*args) as server:
             sock = server.sockets[0]
             self.assertIsInstance(sock.fileno(), int)
-        self.assertEqual(server.sockets, ())
+        self.assertEqual(list(server.sockets), [])
 
     async def test_context_manager_closes_server(self):
         """Server closes when exiting the asynchronous context manager."""
@@ -991,3 +994,27 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             str(raised.exception),
             "invalid credentials argument: [42]",
         )
+
+
+class UVLoopServerTests(ServerTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopSecureServerTests(SecureServerTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopUnixServerTests(UnixServerTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopSecureUnixServerTests(SecureUnixServerTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopServerUsageErrorsTests(ServerUsageErrorsTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopBasicAuthTests(BasicAuthTests, UVLoopTestCase):
+    pass

@@ -1,4 +1,5 @@
 import asyncio
+import inspect
 import socket
 import urllib.parse
 
@@ -12,7 +13,8 @@ def get_host_port(server):
 
 def get_uri(server, secure=None):
     if secure is None:
-        secure = server.server._ssl_context is not None  # hack
+        closure_vars = inspect.getclosurevars(server.create_server)
+        secure = closure_vars.nonlocals["kwargs"].get("ssl") is not None
     protocol = "wss" if secure else "ws"
     host, port = get_host_port(server)
     return f"{protocol}://{host}:{port}"

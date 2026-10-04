@@ -1,5 +1,5 @@
 import contextlib
-import ssl
+import inspect
 import threading
 import time
 import urllib.parse
@@ -14,7 +14,8 @@ def get_host_port(server):
 
 def get_uri(server, secure=None):
     if secure is None:
-        secure = isinstance(server.socket, ssl.SSLSocket)  # hack
+        closure_vars = inspect.getclosurevars(server.handler)
+        secure = closure_vars.nonlocals["ssl"] is not None
     protocol = "wss" if secure else "ws"
     host, port = get_host_port(server)
     return f"{protocol}://{host}:{port}"

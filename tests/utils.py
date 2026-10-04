@@ -1,5 +1,6 @@
 import contextlib
 import email.utils
+import math
 import os
 import pathlib
 import platform
@@ -65,6 +66,19 @@ if os.environ.get("COVERAGE_RUN"):  # pragma: no branch
 
 # Ensure that timeouts are larger than the clock's resolution (for Windows).
 MS = max(MS, 2.5 * time.get_clock_info("monotonic").resolution)
+
+
+@contextlib.contextmanager
+def assertDurationAtLeast(min_delay, clock):
+    t0 = clock()
+    yield
+    t1 = clock()
+    # uvloop's clock has low resolution, which leads to t1 - t0 being exactly
+    # equal to min_delay. Due to floating-point arithmetic precision, t1 - t0
+    # can be slightly lower than min_delay e.g. 0.01999999999999602 vs. 0.02.
+    # Add tolerance to account for this effect.
+    if t1 - t0 + math.ulp(max(abs(t0), abs(t1))) < min_delay:
+        raise AssertionError(f"took {t1 - t0}s, less than {min_delay}s")
 
 
 class GeneratorTestCase(unittest.TestCase):

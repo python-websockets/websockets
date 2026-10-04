@@ -1,7 +1,7 @@
 import contextlib
 import functools
+import inspect
 import socket
-import ssl
 import urllib.parse
 
 import trio
@@ -19,10 +19,8 @@ def get_host_port(server):
 
 def get_uri(server, secure=None):
     if secure is None:
-        secure = any(
-            isinstance(cell.cell_contents, ssl.SSLContext)
-            for cell in server.handler.__closure__
-        )  # l33t hack
+        closure_vars = inspect.getclosurevars(server.handler)
+        secure = closure_vars.nonlocals["ssl"] is not None
     protocol = "wss" if secure else "ws"
     host, port = get_host_port(server)
     return f"{protocol}://{host}:{port}"

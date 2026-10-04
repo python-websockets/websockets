@@ -9,6 +9,7 @@ from websockets.exceptions import ConcurrencyError
 from websockets.frames import BINARY, CONT, TEXT, Frame
 
 from ..utils import alist
+from .utils import UVLoopTestCase
 
 
 class SimpleQueueTests(unittest.IsolatedAsyncioTestCase):
@@ -561,3 +562,11 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
         """low must be higher than high."""
         with self.assertRaises(ValueError):
             Assembler(low=10, high=5)
+
+
+class UVLoopSimpleQueueTests(SimpleQueueTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopAssemblerTests(AssemblerTests, UVLoopTestCase):
+    pass

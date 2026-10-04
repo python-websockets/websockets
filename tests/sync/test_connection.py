@@ -21,7 +21,7 @@ from websockets.sync.connection import *
 from websockets.sync.connection import broadcast
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, LoggingTestCase
+from ..utils import MS, LoggingTestCase, assertDurationAtLeast
 from .connection import InterceptingConnection
 from .utils import ThreadTestCase
 
@@ -486,14 +486,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
     def test_close_waits_for_close_frame(self):
         """close waits for a close frame then EOF before returning."""
-        t0 = time.time()
-        with self.delay_frames_rcvd(MS):
-            self.connection.close()
-        t1 = time.time()
+        with assertDurationAtLeast(MS, time.time):
+            with self.delay_frames_rcvd(MS):
+                self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
@@ -507,14 +505,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
-        t0 = time.time()
-        with self.delay_eof_rcvd(MS):
-            self.connection.close()
-        t1 = time.time()
+        with assertDurationAtLeast(MS, time.time):
+            with self.delay_eof_rcvd(MS):
+                self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
@@ -525,14 +521,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
     def test_close_timeout_waiting_for_close_frame(self):
         """close times out if no close frame is received."""
-        t0 = time.time()
-        with self.drop_frames_rcvd(), self.drop_eof_rcvd():
-            self.connection.close()
-        t1 = time.time()
+        with assertDurationAtLeast(2 * MS, time.time):
+            with self.drop_frames_rcvd(), self.drop_eof_rcvd():
+                self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.ABNORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.recv()
@@ -546,14 +540,12 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
-        t0 = time.time()
-        with self.drop_eof_rcvd():
-            self.connection.close()
-        t1 = time.time()
+        with assertDurationAtLeast(2 * MS, time.time):
+            with self.drop_eof_rcvd():
+                self.connection.close()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             self.connection.recv()
@@ -801,8 +793,8 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         self.assertEqual(self.connection.latency, 0)
         # 3 ms: keepalive() sends a ping frame.
         # 3.x ms: a pong frame is received.
-        time.sleep(4 * MS)
-        # 4 ms: check that the ping frame was sent.
+        time.sleep(5 * MS)
+        # 5 ms: check that the ping frame was sent.
         self.assertFrameSent(Frame(PING, b"rand"))
         self.assertGreater(self.connection.latency, 0)
         self.assertLess(self.connection.latency, MS)
@@ -823,10 +815,10 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
-            time.sleep(4 * MS)
+            time.sleep(5 * MS)
             # Exiting the context manager sleeps for 1 ms.
         # 6 ms: no pong frame is received; the connection is closed.
-        time.sleep(3 * MS)
+        time.sleep(2 * MS)
         # 8 ms: check that the connection is closed.
         self.assertEqual(self.connection.state, CLOSED)
 
@@ -840,10 +832,10 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
-            time.sleep(4 * MS)
+            time.sleep(5 * MS)
             # Exiting the context manager sleeps for 1 ms.
         # 6 ms: no pong frame is received; the connection remains open.
-        time.sleep(3 * MS)
+        time.sleep(2 * MS)
         # 8 ms: check that the connection is still open.
         self.assertEqual(self.connection.state, OPEN)
 

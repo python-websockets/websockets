@@ -10,6 +10,7 @@ from websockets.exceptions import InvalidStatus
 
 from ..utils import CLIENT_CONTEXT, SERVER_CONTEXT, alist, temp_unix_socket_path
 from .server import EvalShellMixin, get_uri, handler
+from .utils import UVLoopTestCase
 
 
 try:
@@ -192,3 +193,11 @@ class UnixRouterTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                     await client.send("hello")
                     messages = await alist(client)
                 self.assertEqual(messages, ["hello", "hello", "hello"])
+
+
+class UVLoopRouterTests(RouterTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopUnixRouterTests(UnixRouterTests, UVLoopTestCase):
+    pass

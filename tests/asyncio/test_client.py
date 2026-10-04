@@ -28,6 +28,7 @@ from websockets.extensions.permessage_deflate import PerMessageDeflate
 from ..proxy import ProxyMixin
 from ..utils import CLIENT_CONTEXT, MS, SERVER_CONTEXT, temp_unix_socket_path
 from .server import args, get_host_port, get_uri, handler
+from .utils import UVLoopTestCase, requires_accurate_clock
 
 
 def short_backoff():
@@ -140,6 +141,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
             ) as client:
                 self.assertEqual(client.request.headers["User-Agent"], "Smith")
 
+    @requires_accurate_clock
     async def test_keepalive_is_enabled(self):
         """Client enables keepalive and measures latency by default."""
         async with serve(*args) as server:
@@ -148,6 +150,7 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
                 await asyncio.sleep(2 * MS)
                 self.assertGreater(client.latency, 0)
 
+    @requires_accurate_clock
     async def test_disable_keepalive(self):
         """Client disables keepalive."""
         async with serve(*args) as server:
@@ -893,12 +896,17 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
     async def test_https_proxy_server_hostname(self):
         """Client sets server_hostname to the value of proxy_server_hostname."""
         async with serve(*args) as server:
+            # Pass an argument not prefixed with ssl or proxy_ for coverage,
+            # except on uvloop, which doesn't support any such argument.
+            if isinstance(asyncio.get_event_loop(), asyncio.BaseEventLoop):
+                kwargs = {"happy_eyeballs_delay": 0.1}
+            else:  # pragma: no cover
+                kwargs = {}
             async with connect(
                 get_uri(server),
                 proxy_ssl=self.proxy_context,
                 proxy_server_hostname="overridden",
-                # Pass an argument not prefixed with proxy_ for coverage.
-                happy_eyeballs_delay=0.1,
+                **kwargs,
             ) as client:
                 ssl_object = client.transport.get_extra_info("ssl_object")
                 self.assertEqual(ssl_object.server_hostname, "overridden")
@@ -1129,3 +1137,27 @@ class ClientUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
             str(raised.exception),
             "connect() isn't reentrant",
         )
+
+
+class UVLoopClientTests(ClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopSecureClientTests(SecureClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopSocksProxyClientTests(SocksProxyClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopHTTPProxyClientTests(HTTPProxyClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopUnixClientTests(UnixClientTests, UVLoopTestCase):
+    pass
+
+
+class UVLoopClientUsageErrorsTests(ClientUsageErrorsTests, UVLoopTestCase):
+    pass

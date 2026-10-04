@@ -20,7 +20,7 @@ from websockets.trio.connection import *
 from websockets.trio.connection import broadcast
 
 from ..protocol import RecordingProtocol
-from ..utils import MS, LoggingTestCase, alist
+from ..utils import MS, LoggingTestCase, alist, assertDurationAtLeast
 from .connection import InterceptingConnection
 from .utils import IsolatedTrioTestCase
 
@@ -660,14 +660,12 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
     async def test_aclose_waits_for_close_frame(self):
         """aclose waits for a close frame then EOF before returning."""
-        t0 = trio.current_time()
-        async with self.delay_frames_rcvd(MS):
-            await self.connection.aclose()
-        t1 = trio.current_time()
+        with assertDurationAtLeast(MS, trio.current_time):
+            async with self.delay_frames_rcvd(MS):
+                await self.connection.aclose()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -681,14 +679,12 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
-        t0 = trio.current_time()
-        async with self.delay_eof_rcvd(MS):
-            await self.connection.aclose()
-        t1 = trio.current_time()
+        with assertDurationAtLeast(MS, trio.current_time):
+            async with self.delay_eof_rcvd(MS):
+                await self.connection.aclose()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -701,14 +697,12 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         """aclose without timeout waits for a close frame then EOF before returning."""
         self.connection.close_timeout = None
 
-        t0 = trio.current_time()
-        async with self.delay_frames_rcvd(MS):
-            await self.connection.aclose()
-        t1 = trio.current_time()
+        with assertDurationAtLeast(MS, trio.current_time):
+            async with self.delay_frames_rcvd(MS):
+                await self.connection.aclose()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -724,14 +718,12 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
         self.connection.close_timeout = None
 
-        t0 = trio.current_time()
-        async with self.delay_eof_rcvd(MS):
-            await self.connection.aclose()
-        t1 = trio.current_time()
+        with assertDurationAtLeast(MS, trio.current_time):
+            async with self.delay_eof_rcvd(MS):
+                await self.connection.aclose()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -742,14 +734,12 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
     async def test_close_timeout_waiting_for_close_frame(self):
         """aclose times out if no close frame is received."""
-        t0 = trio.current_time()
-        async with self.drop_eof_rcvd(), self.drop_frames_rcvd():
-            await self.connection.aclose()
-        t1 = trio.current_time()
+        with assertDurationAtLeast(2 * MS, trio.current_time):
+            async with self.drop_eof_rcvd(), self.drop_frames_rcvd():
+                await self.connection.aclose()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.ABNORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.recv()
@@ -763,14 +753,12 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         if self.LOCAL is SERVER:
             self.skipTest("only relevant on the client-side")
 
-        t0 = trio.current_time()
-        async with self.drop_eof_rcvd():
-            await self.connection.aclose()
-        t1 = trio.current_time()
+        with assertDurationAtLeast(2 * MS, trio.current_time):
+            async with self.drop_eof_rcvd():
+                await self.connection.aclose()
 
         self.assertEqual(self.connection.state, CLOSED)
         self.assertEqual(self.connection.close_code, CloseCode.NORMAL_CLOSURE)
-        self.assertGreater(t1 - t0, 2 * MS)
 
         with self.assertRaises(ConnectionClosedOK) as raised:
             await self.connection.recv()
@@ -996,8 +984,8 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         self.assertEqual(self.connection.latency, 0)
         # 3 ms: keepalive() sends a ping frame.
         # 3.x ms: a pong frame is received.
-        await trio.sleep(4 * MS)
-        # 4 ms: check that the ping frame was sent.
+        await trio.sleep(5 * MS)
+        # 5 ms: check that the ping frame was sent.
         await self.assertFrameSent(Frame(PING, b"rand"))
         self.assertGreater(self.connection.latency, 0)
         self.assertLess(self.connection.latency, MS)
@@ -1018,9 +1006,9 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
-            await trio.sleep(5 * MS)
+            await trio.sleep(6 * MS)
         # 6 ms: no pong frame is received; the connection is closed.
-        await trio.sleep(3 * MS)
+        await trio.sleep(2 * MS)
         # 8 ms: check that the connection is closed.
         self.assertEqual(self.connection.state, CLOSED)
 
@@ -1034,9 +1022,9 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
-            await trio.sleep(5 * MS)
+            await trio.sleep(6 * MS)
         # 6 ms: no pong frame is received; the connection remains open.
-        await trio.sleep(3 * MS)
+        await trio.sleep(2 * MS)
         # 8 ms: check that the connection is still open.
         self.assertEqual(self.connection.state, OPEN)
 

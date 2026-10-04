@@ -1069,8 +1069,8 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
         self.assertEqual(self.connection.latency, 0)
         # 3 ms: keepalive() sends a ping frame.
         # 3.x ms: a pong frame is received.
-        await asyncio.sleep(4 * MS)
-        # 4 ms: check that the ping frame was sent.
+        await asyncio.sleep(5 * MS)
+        # 5 ms: check that the ping frame was sent.
         await self.assertFrameSent(Frame(PING, b"rand"))
         self.assertGreater(self.connection.latency, 0)
         self.assertLess(self.connection.latency, MS)
@@ -1091,9 +1091,9 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
-            await asyncio.sleep(5 * MS)
+            await asyncio.sleep(6 * MS)
         # 6 ms: no pong frame is received; the connection is closed.
-        await asyncio.sleep(3 * MS)
+        await asyncio.sleep(2 * MS)
         # 8 ms: check that the connection is closed.
         self.assertEqual(self.connection.state, CLOSED)
 
@@ -1107,9 +1107,9 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
-            await asyncio.sleep(5 * MS)
+            await asyncio.sleep(6 * MS)
         # 6 ms: no pong frame is received; the connection remains open.
-        await asyncio.sleep(3 * MS)
+        await asyncio.sleep(2 * MS)
         # 8 ms: check that the connection is still open.
         self.assertEqual(self.connection.state, OPEN)
 

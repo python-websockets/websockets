@@ -801,8 +801,8 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         self.assertEqual(self.connection.latency, 0)
         # 3 ms: keepalive() sends a ping frame.
         # 3.x ms: a pong frame is received.
-        time.sleep(4 * MS)
-        # 4 ms: check that the ping frame was sent.
+        time.sleep(5 * MS)
+        # 5 ms: check that the ping frame was sent.
         self.assertFrameSent(Frame(PING, b"rand"))
         self.assertGreater(self.connection.latency, 0)
         self.assertLess(self.connection.latency, MS)
@@ -823,10 +823,10 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
-            time.sleep(4 * MS)
+            time.sleep(5 * MS)
             # Exiting the context manager sleeps for 1 ms.
         # 6 ms: no pong frame is received; the connection is closed.
-        time.sleep(3 * MS)
+        time.sleep(2 * MS)
         # 8 ms: check that the connection is closed.
         self.assertEqual(self.connection.state, CLOSED)
 
@@ -840,10 +840,10 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
             self.connection.start_keepalive()
             # 4 ms: keepalive() sends a ping frame.
             # 4.x ms: a pong frame is dropped.
-            time.sleep(4 * MS)
+            time.sleep(5 * MS)
             # Exiting the context manager sleeps for 1 ms.
         # 6 ms: no pong frame is received; the connection remains open.
-        time.sleep(3 * MS)
+        time.sleep(2 * MS)
         # 8 ms: check that the connection is still open.
         self.assertEqual(self.connection.state, OPEN)
 

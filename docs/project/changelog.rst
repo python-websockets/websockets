@@ -32,6 +32,13 @@ notice.
 
 *In development*
 
+Improvements
+............
+
+* Tested compatibility with uvloop_ in the :mod:`asyncio` implementation.
+
+.. _uvloop: https://uvloop.readthedocs.io/
+
 .. _17.2:
 
 17.2

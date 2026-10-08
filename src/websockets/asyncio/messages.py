@@ -4,7 +4,7 @@ import asyncio
 import codecs
 import collections
 from collections.abc import AsyncIterator, Iterable
-from typing import Any, Callable, Generic, Literal, TypeVar, overload
+from typing import Any, Callable, Generic, List, Literal, TypeVar, overload
 
 from ..exceptions import ConcurrencyError
 from ..frames import BINARY, CONT, TEXT, Frame
@@ -54,10 +54,11 @@ class SimpleQueue(Generic[T]):
                 self.get_waiter = None
         return self.queue.popleft()
 
-    def reset(self, items: Iterable[T]) -> None:
-        """Put back items into an empty, idle queue."""
+    def reset(self, items: List[T]) -> None:
+        """Put back items into the idle queue."""
         assert self.get_waiter is None, "cannot reset() while get() is running"
-        assert not self.queue, "cannot reset() while queue isn't empty"
+        items.extend(self.queue)
+        self.queue.clear()
         self.queue.extend(items)
 
     def abort(self) -> None:

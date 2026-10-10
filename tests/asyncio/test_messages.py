@@ -38,11 +38,18 @@ class SimpleQueueTests(unittest.IsolatedAsyncioTestCase):
         item = await getter_task
         self.assertEqual(item, 42)
 
-    async def test_reset(self):
-        """reset sets the content of the queue."""
-        self.queue.reset([42])
+    async def test_put_back(self):
+        """put_back sets the content of an empty queue."""
+        self.queue.put_back([42])
         item = await self.queue.get()
         self.assertEqual(item, 42)
+
+    async def test_put_back_non_empty_queue(self):
+        """put_back restores items at the start of a non-empty queue."""
+        self.queue.put(3)
+        self.queue.put_back([1, 2])
+        items = [await self.queue.get() for _ in range(3)]
+        self.assertEqual(items, [1, 2, 3])
 
     async def test_abort(self):
         """abort throws an exception in get."""
@@ -209,6 +216,21 @@ class AssemblerTests(unittest.IsolatedAsyncioTestCase):
 
         self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
         self.assembler.put(Frame(CONT, b"\xa9"))
+        message = await self.assembler.get()
+        self.assertEqual(message, "café")
+
+    async def test_cancel_get_after_first_frame_with_buffered_frames(self):
+        """get can be canceled safely when more frames were put meanwhile."""
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
+
+        getter_task = asyncio.create_task(self.assembler.get())
+        await asyncio.sleep(0)  # let the event loop start getter_task
+        self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+        self.assembler.put(Frame(CONT, b"\xa9"))
+        getter_task.cancel()
+        with self.assertRaises(asyncio.CancelledError):
+            await getter_task
+
         message = await self.assembler.get()
         self.assertEqual(message, "café")
 

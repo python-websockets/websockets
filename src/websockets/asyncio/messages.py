@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import codecs
 import collections
-from collections.abc import AsyncIterator, Iterable
+from collections.abc import AsyncIterator, Sequence
 from typing import Any, Callable, Generic, Literal, TypeVar, overload
 
 from ..exceptions import ConcurrencyError
@@ -54,11 +54,10 @@ class SimpleQueue(Generic[T]):
                 self.get_waiter = None
         return self.queue.popleft()
 
-    def reset(self, items: Iterable[T]) -> None:
-        """Put back items into an empty, idle queue."""
-        assert self.get_waiter is None, "cannot reset() while get() is running"
-        assert not self.queue, "cannot reset() while queue isn't empty"
-        self.queue.extend(items)
+    def put_back(self, items: Sequence[T]) -> None:
+        """Put back items at the front of the queue."""
+        assert self.get_waiter is None, "cannot put_back() while get() is running"
+        self.queue.extendleft(reversed(items))
 
     def abort(self) -> None:
         """Close the queue, raising EOFError in get() if necessary."""
@@ -167,9 +166,11 @@ class Assembler:
                 try:
                     frame = await self.frames.get(not self.closed)
                 except asyncio.CancelledError:
-                    # Put frames already received back into the queue
-                    # so that future calls to get() can return them.
-                    self.frames.reset(frames)
+                    # Put frames already received back into the queue so that
+                    # future calls to get() can return them. The queue may be
+                    # non-empty if put() added frames in the same iteration of
+                    # the event loop where get() was canceled.
+                    self.frames.put_back(frames)
                     raise
                 self.maybe_resume()
                 assert frame.opcode is CONT

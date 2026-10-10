@@ -205,6 +205,20 @@ class AssemblerTests(IsolatedTrioTestCase):
         message = await self.assembler.get()
         self.assertEqual(message, "café")
 
+    async def test_cancel_get_after_first_frame_with_buffered_frames(self):
+        """get can be canceled safely when more frames were put meanwhile."""
+        self.assembler.put(Frame(TEXT, b"ca", fin=False))
+
+        async with trio.open_nursery() as nursery:
+            nursery.start_soon(self.assembler.get)
+            await trio.testing.wait_all_tasks_blocked()
+            self.assembler.put(Frame(CONT, b"f\xc3", fin=False))
+            self.assembler.put(Frame(CONT, b"\xa9"))
+            nursery.cancel_scope.cancel()
+
+        message = await self.assembler.get()
+        self.assertEqual(message, "café")
+
     # Test get_iter.
 
     async def test_get_iter_text_message_already_received(self):

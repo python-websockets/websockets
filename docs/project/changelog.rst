@@ -39,6 +39,12 @@ Improvements
 
 .. _uvloop: https://uvloop.readthedocs.io/
 
+Bug fixes
+.........
+
+* Fixed a race condition between receiving the next frame of a fragmented
+  message and canceling :meth:`~asyncio.connection.Connection.recv`.
+
 .. _17.2:
 
 17.2

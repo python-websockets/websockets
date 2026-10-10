@@ -314,6 +314,15 @@ class ResponseTests(GeneratorTestCase):
             "body too large: 1234567890123456789 bytes",
         )
 
+    def test_parse_body_with_negative_content_length(self):
+        self.reader.feed_data(b"HTTP/1.1 200 OK\r\nContent-Length: -1\r\n\r\n")
+        with self.assertRaises(ValueError) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "invalid content length: -1",
+        )
+
     def test_parse_body_with_chunked_transfer_encoding(self):
         self.reader.feed_data(
             b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"

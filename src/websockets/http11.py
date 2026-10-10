@@ -80,6 +80,12 @@ _token_re = re.compile(rb"[-!#$%&\'*+.^_`|~0-9a-zA-Z]+")
 
 _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
+# Content-Length = 1*DIGIT, applied after decoding the header value.
+
+# See https://datatracker.ietf.org/doc/html/rfc9110#section-8.6
+
+_content_length_re = re.compile(r"[0-9]+")
+
 
 @dataclasses.dataclass
 class Request:
@@ -481,6 +487,8 @@ def read_body(
         return body
 
     elif (raw_content_length := headers.get("Content-Length")) is not None:
+        if not _content_length_re.fullmatch(raw_content_length):
+            raise ValueError(f"invalid content length: {raw_content_length}")
         # Set a lower limit than default_max_str_digits; 1 EiB is plenty.
         if len(raw_content_length) > 18:
             raise SecurityError(f"body too large: {raw_content_length} bytes")

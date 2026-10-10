@@ -183,11 +183,11 @@ class Request:
         if "Transfer-Encoding" in headers:
             raise NotImplementedError("transfer codings aren't supported")
 
-        if "Content-Length" in headers:
-            # Some devices send a Content-Length header with a value of 0.
-            # This raises ValueError if Content-Length isn't an integer too.
-            if int(headers["Content-Length"]) != 0:
-                raise ValueError("unsupported request body")
+        # Some devices send a Content-Length header with a value of 0.
+        # Reject any other value. For technical correctness, accept
+        # multiple Content-Length headers, all with a value of 0.
+        if not set(headers.get_all("Content-Length")) <= {"0"}:
+            raise ValueError("unsupported request body")
 
         return cls(path, headers, method, protocol)
 

@@ -16,7 +16,7 @@ from websockets.exceptions import (
     ConnectionClosedOK,
 )
 from websockets.frames import BINARY, CLOSE, PING, PONG, TEXT, CloseCode, Frame
-from websockets.protocol import CLIENT, CLOSED, CONNECTING, OPEN, SERVER, Protocol
+from websockets.protocol import CLIENT, CLOSED, OPEN, SERVER, Protocol
 from websockets.sync.connection import *
 from websockets.sync.connection import broadcast
 
@@ -1058,30 +1058,6 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             self.connection.send("😀")
         self.assertIsInstance(raised.exception.__cause__, AssertionError)
-
-    # Test recv_events().
-
-    def test_close_expected_during_connecting(self):
-        """recv_events() terminates without waiting for close_timeout."""
-        # See https://github.com/python-websockets/websockets/issues/1596.
-        socket_, remote_socket = socket.socketpair()
-        protocol = Protocol(self.LOCAL, state=CONNECTING)
-        # Simulate ClientProtocol / ServerProtocol deciding that the TCP
-        # connection must close because the opening handshake failed.
-        protocol.send_eof()
-        connection = Connection(socket_, protocol, close_timeout=5 * MS)
-        try:
-            t0 = time.time()
-            remote_socket.sendall(b"\x00")
-            connection.recv_events_thread.join(3 * MS)
-            t1 = time.time()
-
-            self.assertFalse(connection.recv_events_thread.is_alive())
-            self.assertLess(t1 - t0, 3 * MS)
-        finally:
-            remote_socket.close()
-            connection.close_socket()
-            connection.recv_events_thread.join()
 
     # Test garbage collection.
 

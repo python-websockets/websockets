@@ -1051,14 +1051,14 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
     async def test_keepalive(self, getrandbits):
         """keepalive sends pings at ping_interval and measures latency."""
         getrandbits.side_effect = itertools.count(1918987876)
-        self.connection.ping_interval = 3 * MS
+        self.connection.ping_interval = 4 * MS
         self.connection.start_keepalive()
         self.assertIsNotNone(self.connection.keepalive_task)
         self.assertEqual(self.connection.latency, 0)
-        # 3 ms: keepalive() sends a ping frame.
-        # 3.x ms: a pong frame is received.
-        await asyncio.sleep(5 * MS)
-        # 5 ms: check that the ping frame was sent.
+        # 4 ms: keepalive() sends a ping frame.
+        # 4.x ms: a pong frame is received.
+        await asyncio.sleep(6 * MS)
+        # 6 ms: check that the ping frame was sent.
         await self.assertFrameSent(Frame(PING, b"rand"))
         self.assertGreater(self.connection.latency, 0)
         self.assertLess(self.connection.latency, MS)

@@ -1260,6 +1260,15 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
     # Test safety nets — catching all exceptions in case of bugs.
 
+    @patch("trio.testing.MemoryReceiveStream.receive_some", side_effect=AssertionError)
+    async def test_unexpected_failure_in_receive_some(self, receive_some):
+        """Unexpected internal error in receive_some() is correctly reported."""
+        await self.remote_connection.send("😀")
+        # Reading the message will trigger the injected fault.
+        with self.assertRaises(ConnectionClosedError) as raised:
+            await self.connection.recv()
+        self.assertIsInstance(raised.exception.__cause__, AssertionError)
+
     @patch("websockets.protocol.Protocol.events_received", side_effect=AssertionError)
     async def test_unexpected_failure_in_recv_events(self, events_received):
         """Unexpected internal error in recv_events() is correctly reported."""

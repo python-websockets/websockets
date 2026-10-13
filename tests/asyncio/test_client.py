@@ -516,12 +516,41 @@ class ClientTests(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(raised.exception.response.status_code, 200)
         self.assertEqual(raised.exception.response.body.decode(), "👌")
 
+    async def test_http_response_with_keep_alive(self):
+        """Client reads HTTP response and server keeps connection alive."""
+
+        async def keep_alive(reader, writer):
+            # Wait for the client to send the handshake request.
+            await reader.read(4096)
+            writer.write(
+                b"HTTP/1.1 410 Gone\r\n"
+                b"Connection: keep-alive\r\n"  # default in HTTP/1.1
+                b"Content-Length: 0\r\n"  # avoids "read body until EOF"
+                b"\r\n"
+            )
+            # Wait for the client to close the connection.
+            await reader.read(4096)
+            writer.close()
+
+        server = await asyncio.start_server(keep_alive, "localhost", 0)
+        host, port = get_host_port(server)
+        async with server:
+            with self.assertRaises(InvalidStatus) as raised:
+                async with asyncio.timeout(10 * MS):
+                    async with connect(f"ws://{host}:{port}"):
+                        self.fail("did not raise")
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 410",
+        )
+
     async def test_junk_handshake_response(self):
         """Client closes the connection when receiving non-HTTP response from server."""
 
         async def junk(reader, writer):
             # Wait for the client to send the handshake request.
-            await asyncio.sleep(MS)
+            await reader.read(4096)
             writer.write(b"220 smtp.invalid ESMTP Postfix\r\n")
             # Wait for the client to close the connection.
             await reader.read(4096)

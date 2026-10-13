@@ -508,12 +508,48 @@ class ClientTests(IsolatedTrioTestCase):
         self.assertEqual(raised.exception.response.status_code, 200)
         self.assertEqual(raised.exception.response.body.decode(), "👌")
 
+    async def test_http_response_with_keep_alive(self):
+        """Client reads HTTP response and server keeps connection alive."""
+
+        async def keep_alive(stream):
+            # Wait for the client to send the handshake request.
+            await stream.receive_some()
+            await stream.send_all(
+                b"HTTP/1.1 410 Gone\r\n"
+                b"Connection: keep-alive\r\n"  # default in HTTP/1.1
+                b"Content-Length: 0\r\n"  # avoids "read body until EOF"
+                b"\r\n"
+            )
+            # Wait for the client to close the connection.
+            await stream.receive_some()
+            await stream.aclose()
+
+        async with trio.open_nursery() as nursery:
+            listeners = await nursery.start(trio.serve_tcp, keep_alive, 0)
+            host, port = next(
+                listener
+                for listener in listeners
+                if listener.socket.family == socket.AF_INET
+            ).socket.getsockname()
+            try:
+                with self.assertRaises(InvalidStatus) as raised:
+                    with trio.fail_after(10 * MS):
+                        async with connect(f"ws://{host}:{port}"):
+                            self.fail("did not raise")
+            finally:
+                nursery.cancel_scope.cancel()
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 410",
+        )
+
     async def test_junk_handshake_response(self):
         """Client closes the connection when receiving non-HTTP response from server."""
 
         async def junk(stream):
             # Wait for the client to send the handshake request.
-            await trio.testing.wait_all_tasks_blocked()
+            await stream.receive_some()
             await stream.send_all(b"220 smtp.invalid ESMTP Postfix\r\n")
             # Wait for the client to close the connection.
             await stream.receive_some()

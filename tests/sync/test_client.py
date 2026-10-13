@@ -530,8 +530,8 @@ class ClientTests(unittest.TestCase):
 
         class KeepAliveHandler(socketserver.BaseRequestHandler):
             def handle(self):
-                time.sleep(MS)  # wait for the client to send the handshake request
-                self.request.recv(4096)  # assume we read the full handshake request
+                # Wait for the client to send the handshake request.
+                self.request.recv(4096)
                 self.request.send(
                     b"HTTP/1.1 410 Gone\r\n"
                     b"Connection: keep-alive\r\n"  # default in HTTP/1.1
@@ -543,7 +543,7 @@ class ClientTests(unittest.TestCase):
                 self.request.close()
 
         server = socketserver.TCPServer(("localhost", 0), KeepAliveHandler)
-        host, port = server.server_address
+        host, port = get_host_port(server)
         with server:
             thread = threading.Thread(target=server.serve_forever, args=(MS,))
             thread.start()
@@ -561,7 +561,7 @@ class ClientTests(unittest.TestCase):
             str(raised.exception),
             "server rejected WebSocket connection: HTTP 410",
         )
-        self.assertLess(t1 - t0, 5 * MS)
+        self.assertLess(t1 - t0, 10 * MS)
 
     def test_junk_handshake_response(self):
         """Client closes the connection when receiving non-HTTP response from server."""

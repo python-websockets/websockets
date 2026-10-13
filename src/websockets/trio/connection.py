@@ -886,6 +886,8 @@ class Connection(trio.abc.AsyncResource):
                     if self.recv_flow_control is not None:
                         await self.recv_flow_control.wait()
                     data = await self.stream.receive_some()
+                except trio.ClosedResourceError:
+                    break
                 except Exception as exc:
                     if self.debug:
                         self.logger.debug(

@@ -39,6 +39,9 @@ Improvements
 
 .. _uvloop: https://uvloop.readthedocs.io/
 
+* Used non-blocking reads in the :mod:`threading` implementation. Depending on
+  platforms, this can make connection termination more reliable.
+
 Bug fixes
 .........
 

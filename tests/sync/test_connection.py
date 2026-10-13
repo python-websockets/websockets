@@ -1033,6 +1033,15 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
     # Test safety nets — catching all exceptions in case of bugs.
 
+    @patch("socket.socket.recv", side_effect=AssertionError)
+    def test_unexpected_failure_in_recv(self, recv):
+        """Unexpected internal error in recv() is correctly reported."""
+        self.remote_connection.send("😀")
+        # Reading the message will trigger the injected fault.
+        with self.assertRaises(ConnectionClosedError) as raised:
+            self.connection.recv()
+        self.assertIsInstance(raised.exception.__cause__, AssertionError)
+
     @patch("websockets.protocol.Protocol.events_received", side_effect=AssertionError)
     def test_unexpected_failure_in_recv_events(self, events_received):
         """Unexpected internal error in recv_events() is correctly reported."""

@@ -877,7 +877,7 @@ class Connection:
                         # If the socket wasn't ready for reading, then it's
                         # shutdown_watcher that was notified, meaning we're
                         # closing the socket.
-                        data = b""
+                        break
                 except Exception as exc:
                     if self.debug:
                         self.logger.debug(

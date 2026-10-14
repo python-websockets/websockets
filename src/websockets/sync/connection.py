@@ -1121,8 +1121,13 @@ class Connection:
             self.shutdown_notifier.send(b"x")
         except OSError:  # close_socket() was already called
             pass
-        finally:
+
+        try:
             self.shutdown_notifier.close()
+        except OSError:  # socket already closed  # pragma: no cover
+            # OSError: [Errno 9] Bad file descriptor
+            # (only observed on free-threaded Python)
+            pass
 
         try:
             self.socket.close()

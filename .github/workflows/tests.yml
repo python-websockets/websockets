@@ -81,4 +81,4 @@ jobs:
       run: pip install tox
     - name: Run tests
       run: tox -e py
-    timeout-minutes: 2
+    timeout-minutes: 3

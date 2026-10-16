@@ -367,6 +367,37 @@ class ResponseTests(GeneratorTestCase):
             "chunk too large: 0x1234567890ABCDEF bytes",
         )
 
+    def test_parse_body_with_chunked_transfer_encoding_and_chunk_extension(self):
+        self.reader.feed_data(
+            b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+            b"6 ;foo=bar\r\nHello \r\n7\r\nworld!\n\r\n0\r\n\r\n"
+        )
+        response = self.assertGeneratorReturns(self.parse())
+        self.assertEqual(response.body, b"Hello world!\n")
+
+    def test_parse_body_with_chunked_transfer_encoding_and_negative_size(self):
+        self.reader.feed_data(
+            b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n-1\r\n\r\n"
+        )
+        with self.assertRaises(ValueError) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "invalid chunk size: -1",
+        )
+
+    def test_parse_body_with_chunked_transfer_encoding_and_invalid_size(self):
+        self.reader.feed_data(
+            b"HTTP/1.1 200 OK\r\nTransfer-Encoding: chunked\r\n\r\n"
+            b"0x6\r\nHello \r\n0\r\n\r\n"
+        )
+        with self.assertRaises(ValueError) as raised:
+            next(self.parse())
+        self.assertEqual(
+            str(raised.exception),
+            "invalid chunk size: 0x6",
+        )
+
     def test_parse_body_with_unsupported_transfer_encoding(self):
         self.reader.feed_data(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: compress\r\n\r\n")
         with self.assertRaises(NotImplementedError) as raised:

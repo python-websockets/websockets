@@ -86,6 +86,12 @@ _value_re = re.compile(rb"[\x09\x20-\x7e\x80-\xff]*")
 
 _content_length_re = re.compile(r"[0-9]+")
 
+# chunk-size = 1*HEXDIG, optionally followed by BWS before chunk extensions.
+
+# See https://datatracker.ietf.org/doc/html/rfc9112#section-7.1
+
+_chunk_size_re = re.compile(rb"[0-9a-fA-F]+")
+
 
 @dataclasses.dataclass
 class Request:
@@ -467,7 +473,9 @@ def read_body(
         body = b""
         while True:
             chunk_size_line = yield from parse_line(read_line, SecurityError)
-            raw_chunk_size = chunk_size_line.split(b";", 1)[0]
+            raw_chunk_size = chunk_size_line.split(b";", 1)[0].rstrip(b" \t")
+            if not _chunk_size_re.fullmatch(raw_chunk_size):
+                raise ValueError(f"invalid chunk size: {d(raw_chunk_size)}")
             # Set a lower limit than default_max_str_digits; 1 EB is plenty.
             if len(raw_chunk_size) > 15:
                 str_chunk_size = raw_chunk_size.decode(errors="backslashreplace")

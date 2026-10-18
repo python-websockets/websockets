@@ -530,6 +530,8 @@ def parse_authorization_basic(header: str) -> tuple[str, str]:
 
     Return a ``(username, password)`` tuple.
 
+    Non-UTF-8 data is represented with surrogate code points.
+
     Args:
         header: Value of the ``Authorization`` header.
 
@@ -555,12 +557,13 @@ def parse_authorization_basic(header: str) -> tuple[str, str]:
     parse_end(header, pos, "Authorization")
 
     try:
-        user_pass = base64.b64decode(basic_credentials.encode()).decode()
+        user_pass_bytes = base64.b64decode(basic_credentials.encode())
     except binascii.Error:
         raise InvalidHeaderValue(
             "Authorization",
             "expected base64-encoded credentials",
         ) from None
+    user_pass = user_pass_bytes.decode(errors="surrogateescape")
     try:
         username, password = user_pass.split(":", 1)
     except ValueError:
@@ -578,9 +581,12 @@ def build_authorization_basic(username: str, password: str) -> str:
 
     This is the reverse of :func:`parse_authorization_basic`.
 
+    Non-UTF-8 data can be represented with surrogate code points.
+
     """
     # https://datatracker.ietf.org/doc/html/rfc7617#section-2
     assert ":" not in username
     user_pass = f"{username}:{password}"
-    basic_credentials = base64.b64encode(user_pass.encode()).decode()
+    user_pass_bytes = user_pass.encode(errors="surrogateescape")
+    basic_credentials = base64.b64encode(user_pass_bytes).decode()
     return "Basic " + basic_credentials

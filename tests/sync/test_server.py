@@ -635,6 +635,18 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             ) as client:
                 self.assertEval(client, "ws.username", "test")
 
+    def test_valid_authorization_non_utf8_password(self):
+        """basic_auth authenticates client with non-UTF-8 password."""
+        password = b"\xca\xfe".decode(errors="surrogateescape")
+        with run_server(
+            process_request=basic_auth(credentials=("drink", password)),
+        ) as server:
+            with connect(
+                get_uri(server),
+                additional_headers={"Authorization": "Basic ZHJpbms6yv4="},
+            ) as client:
+                self.assertEval(client, "ws.username", "drink")
+
     def test_missing_authorization(self):
         """basic_auth rejects client without credentials."""
         with run_server(

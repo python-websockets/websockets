@@ -223,6 +223,8 @@ class HeadersTests(unittest.TestCase):
             "Digest ...",
             "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ",
             "Basic QWxhZGNlc2FtZQ==",
+            # Credentials aren't valid UTF-8
+            "Basic dGVzdDr/",
         ]:
             with self.subTest(header=header):
                 with self.assertRaises(InvalidHeaderValue):

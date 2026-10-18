@@ -173,7 +173,7 @@ def basic_auth_protocol_factory(
                 expected_password = credentials_dict[username]
             except KeyError:
                 return False
-            return hmac.compare_digest(expected_password, password)
+            return hmac.compare_digest(expected_password.encode(), password.encode())
 
     if create_protocol is None:
         create_protocol = BasicAuthWebSocketServerProtocol

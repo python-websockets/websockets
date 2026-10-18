@@ -893,7 +893,7 @@ def basic_auth(
                 expected_password = credentials_dict[username]
             except KeyError:
                 return False
-            return hmac.compare_digest(expected_password, password)
+            return hmac.compare_digest(expected_password.encode(), password.encode())
 
     assert check_credentials is not None  # help mypy
 

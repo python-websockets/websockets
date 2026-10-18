@@ -685,6 +685,33 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 "server rejected WebSocket connection: HTTP 401",
             )
 
+    def test_authorization_with_non_ascii_password(self):
+        """basic_auth authenticates client with a non-ASCII password."""
+        with run_server(
+            process_request=basic_auth(credentials=("test", "123£")),
+        ) as server:
+            with connect(
+                get_uri(server),
+                additional_headers={"Authorization": "Basic dGVzdDoxMjPCow=="},
+            ) as client:
+                self.assertEval(client, "ws.username", "test")
+
+    def test_authorization_with_incorrect_non_ascii_password(self):
+        """basic_auth rejects client with incorrect non-ASCII password."""
+        with run_server(
+            process_request=basic_auth(credentials=("test", "iloveyou")),
+        ) as server:
+            with self.assertRaises(InvalidStatus) as raised:
+                with connect(
+                    get_uri(server),
+                    additional_headers={"Authorization": "Basic dGVzdDoxMjPCow=="},
+                ):
+                    self.fail("did not raise")
+            self.assertEqual(
+                str(raised.exception),
+                "server rejected WebSocket connection: HTTP 401",
+            )
+
     def test_list_of_credentials(self):
         """basic_auth accepts a list of hard coded credentials."""
         with run_server(

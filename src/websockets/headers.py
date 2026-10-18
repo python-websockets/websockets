@@ -556,7 +556,7 @@ def parse_authorization_basic(header: str) -> tuple[str, str]:
 
     try:
         user_pass = base64.b64decode(basic_credentials.encode()).decode()
-    except binascii.Error:
+    except (binascii.Error, UnicodeDecodeError):
         raise InvalidHeaderValue(
             "Authorization",
             "expected base64-encoded credentials",

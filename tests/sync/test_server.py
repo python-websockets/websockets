@@ -614,7 +614,7 @@ class ServerUsageErrorsTests(unittest.TestCase):
 
 class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
     def test_valid_authorization(self):
-        """basic_auth authenticates client with HTTP Basic Authentication."""
+        """basic_auth authenticates client."""
         with run_server(
             process_request=basic_auth(credentials=("hello", "iloveyou")),
         ) as server:
@@ -623,6 +623,17 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
             ) as client:
                 self.assertEval(client, "ws.username", "hello")
+
+    def test_valid_authorization_non_ascii_password(self):
+        """basic_auth authenticates client with non-ASCII password."""
+        with run_server(
+            process_request=basic_auth(credentials=("test", "123£")),
+        ) as server:
+            with connect(
+                get_uri(server),
+                additional_headers={"Authorization": "Basic dGVzdDoxMjPCow=="},
+            ) as client:
+                self.assertEval(client, "ws.username", "test")
 
     def test_missing_authorization(self):
         """basic_auth rejects client without credentials."""

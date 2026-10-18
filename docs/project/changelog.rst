@@ -45,6 +45,9 @@ Improvements
 Bug fixes
 .........
 
+* Fixed a crash when authenticating client connections with HTTP Basic
+  Authentication using non-ASCII credentials.
+
 * Fixed a race condition between receiving the next frame of a fragmented
   message and canceling :meth:`~asyncio.connection.Connection.recv`.
 

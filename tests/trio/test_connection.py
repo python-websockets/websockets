@@ -225,6 +225,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
                     await self.connection.recv()
             finally:
                 nursery.cancel_scope.cancel()
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another coroutine "
@@ -241,6 +242,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
                     await self.connection.recv()
             finally:
                 nursery.cancel_scope.cancel()
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another coroutine "
@@ -364,6 +366,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
                         self.fail("did not raise")
             finally:
                 nursery.cancel_scope.cancel()
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another coroutine "
@@ -381,6 +384,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
                         self.fail("did not raise")
             finally:
                 nursery.cancel_scope.cancel()
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another coroutine "
@@ -928,6 +932,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
         with self.assertRaises(ConcurrencyError) as raised:
             await self.connection.ping("idem")
+
         self.assertEqual(
             str(raised.exception),
             "already waiting for a pong with the same data",

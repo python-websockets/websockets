@@ -440,10 +440,11 @@ class ClientTests(IsolatedTrioTestCase):
             with self.assertRaises(InvalidHandshake) as raised:
                 async with connect(get_uri(server) + "/no-op", close_timeout=MS):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "missing Sec-WebSocket-Accept header",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "missing Sec-WebSocket-Accept header",
+        )
 
     async def test_timeout_during_handshake(self):
         """Client times out before receiving handshake response from server."""
@@ -453,10 +454,11 @@ class ClientTests(IsolatedTrioTestCase):
             with self.assertRaises(TimeoutError) as raised:
                 async with connect(f"ws://{host}:{port}", open_timeout=2 * MS):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "timed out during opening handshake",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "timed out during opening handshake",
+        )
 
     async def test_connection_closed_during_handshake(self):
         """Client reads EOF before receiving handshake response from server."""
@@ -468,15 +470,16 @@ class ClientTests(IsolatedTrioTestCase):
             with self.assertRaises(InvalidMessage) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "did not receive a valid HTTP response",
-            )
-            self.assertIsInstance(raised.exception.__cause__, EOFError)
-            self.assertEqual(
-                str(raised.exception.__cause__),
-                "connection closed while reading HTTP status line",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "did not receive a valid HTTP response",
+        )
+        self.assertIsInstance(raised.exception.__cause__, EOFError)
+        self.assertEqual(
+            str(raised.exception.__cause__),
+            "connection closed while reading HTTP status line",
+        )
 
     async def test_http_response(self):
         """Client reads HTTP response."""
@@ -566,18 +569,18 @@ class ClientTests(IsolatedTrioTestCase):
                 with self.assertRaises(InvalidMessage) as raised:
                     async with connect(f"ws://{host}:{port}"):
                         self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "did not receive a valid HTTP response",
-                )
-                self.assertIsInstance(raised.exception.__cause__, ValueError)
-                self.assertEqual(
-                    str(raised.exception.__cause__),
-                    "unsupported protocol; expected HTTP/1.1: "
-                    "220 smtp.invalid ESMTP Postfix",
-                )
             finally:
                 nursery.cancel_scope.cancel()
+
+        self.assertEqual(
+            str(raised.exception),
+            "did not receive a valid HTTP response",
+        )
+        self.assertIsInstance(raised.exception.__cause__, ValueError)
+        self.assertEqual(
+            str(raised.exception.__cause__),
+            "unsupported protocol; expected HTTP/1.1: 220 smtp.invalid ESMTP Postfix",
+        )
 
 
 class SecureClientTests(IsolatedTrioTestCase):
@@ -620,14 +623,15 @@ class SecureClientTests(IsolatedTrioTestCase):
                 # The test certificate is self-signed.
                 async with connect(get_uri(server, secure=True)):
                     self.fail("did not raise")
-            self.assertIsInstance(
-                raised.exception.__cause__,
-                ssl.SSLCertVerificationError,
-            )
-            self.assertIn(
-                "self signed certificate",
-                str(raised.exception.__cause__).replace("-", " "),
-            )
+
+        self.assertIsInstance(
+            raised.exception.__cause__,
+            ssl.SSLCertVerificationError,
+        )
+        self.assertIn(
+            "self signed certificate",
+            str(raised.exception.__cause__).replace("-", " "),
+        )
 
     async def test_reject_invalid_server_hostname(self):
         """Client rejects certificate where server hostname doesn't match."""
@@ -640,14 +644,15 @@ class SecureClientTests(IsolatedTrioTestCase):
                     server_hostname="invalid",
                 ):
                     self.fail("did not raise")
-            self.assertIsInstance(
-                raised.exception.__cause__,
-                ssl.SSLCertVerificationError,
-            )
-            self.assertIn(
-                "Hostname mismatch",
-                str(raised.exception.__cause__),
-            )
+
+        self.assertIsInstance(
+            raised.exception.__cause__,
+            ssl.SSLCertVerificationError,
+        )
+        self.assertIn(
+            "Hostname mismatch",
+            str(raised.exception.__cause__),
+        )
 
     async def test_cross_origin_redirect(self):
         """Client follows redirect to a secure URI on a different origin."""
@@ -730,6 +735,7 @@ class SocksProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
                     self.fail("did not raise")
         finally:
             self.proxy_options.update(proxyauth=None)
+
         self.assertEqual(
             str(raised.exception),
             "failed to connect to SOCKS proxy",
@@ -758,6 +764,7 @@ class SocksProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
                 with self.assertRaises(TimeoutError) as raised:
                     async with connect("ws://example.com/", open_timeout=2 * MS):
                         self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "timed out during opening handshake",
@@ -832,6 +839,7 @@ class HTTPProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
                     self.fail("did not raise")
         finally:
             self.proxy_options.update(proxyauth=None)
+
         self.assertEqual(
             str(raised.exception),
             "proxy rejected connection: HTTP 407",
@@ -848,6 +856,7 @@ class HTTPProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
                     self.fail("did not raise")
         finally:
             self.proxy_options.update(break_http_connect=False)
+
         self.assertEqual(
             str(raised.exception),
             "did not receive a valid HTTP response from proxy",
@@ -864,6 +873,7 @@ class HTTPProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
                     self.fail("did not raise")
         finally:
             self.proxy_options.update(close_http_connect=False)
+
         self.assertEqual(
             str(raised.exception),
             "did not receive a valid HTTP response from proxy",
@@ -888,6 +898,7 @@ class HTTPProxyClientTests(ProxyMixin, IsolatedTrioTestCase):
                 with self.assertRaises(TimeoutError) as raised:
                     async with connect("ws://example.com/", open_timeout=2 * MS):
                         self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "timed out during opening handshake",
@@ -1051,6 +1062,7 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
         with self.assertRaises(ValueError) as raised:
             async with connect("ws://localhost/", ssl=CLIENT_CONTEXT):
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "ssl argument is incompatible with a ws:// URI",
@@ -1065,6 +1077,7 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
                 proxy_ssl=True,
             ):
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "proxy_ssl argument is incompatible with an http:// proxy",
@@ -1075,6 +1088,7 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
         with self.assertRaises(InvalidProxy) as raised:
             async with connect("ws://example.com/", proxy="other://localhost:51080"):
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "other://localhost:51080 isn't a valid proxy: scheme other isn't supported",
@@ -1085,6 +1099,7 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
         with self.assertRaises(ValueError) as raised:
             async with unix_connect():
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "missing path argument",
@@ -1096,6 +1111,7 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
         with self.assertRaises(ValueError) as raised:
             async with unix_connect(path="/", stream=stream):
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "path is incompatible with stream",
@@ -1106,6 +1122,7 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
         with self.assertRaises(TypeError) as raised:
             async with connect("ws://localhost/", subprotocols="chat"):
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "subprotocols must be a list, not a str",
@@ -1116,6 +1133,7 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
         with self.assertRaises(ValueError) as raised:
             async with connect("ws://localhost/", compression=False):
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "unsupported compression: False",
@@ -1129,6 +1147,7 @@ class ClientUsageErrorsTests(IsolatedTrioTestCase):
                 with self.assertRaises(RuntimeError) as raised:
                     async with connecter:
                         self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "connect() isn't reentrant",

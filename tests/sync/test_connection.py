@@ -221,6 +221,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
                     self.connection.recv()
             finally:
                 self.remote_connection.send("")
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another thread "
@@ -235,6 +236,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
                     self.connection.recv()
             finally:
                 self.remote_connection.send("")
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another thread "
@@ -323,6 +325,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
                         self.fail("did not raise")
             finally:
                 self.remote_connection.send("")
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another thread "
@@ -338,6 +341,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
                         self.fail("did not raise")
             finally:
                 self.remote_connection.send("")
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another thread "
@@ -438,6 +442,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
                     with self.subTest(message=message):
                         with self.assertRaises(ConcurrencyError) as raised:
                             self.connection.send(message)
+
                         self.assertEqual(
                             str(raised.exception),
                             "cannot call send while another thread "
@@ -744,6 +749,7 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
 
         with self.assertRaises(ConcurrencyError) as raised:
             self.connection.ping("idem")
+
         self.assertEqual(
             str(raised.exception),
             "already waiting for a pong with the same data",

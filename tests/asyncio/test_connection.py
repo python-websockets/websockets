@@ -228,6 +228,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
                 await self.connection.recv()
         finally:
             recv_task.cancel()
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another coroutine "
@@ -245,6 +246,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
                 await self.connection.recv()
         finally:
             recv_streaming_task.cancel()
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv while another coroutine "
@@ -367,6 +369,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
                     self.fail("did not raise")
         finally:
             recv_task.cancel()
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another coroutine "
@@ -385,6 +388,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
                     self.fail("did not raise")
         finally:
             recv_streaming_task.cancel()
+
         self.assertEqual(
             str(raised.exception),
             "cannot call recv_streaming while another coroutine "
@@ -1006,6 +1010,7 @@ class ClientConnectionTests(LoggingTestCase, unittest.IsolatedAsyncioTestCase):
 
         with self.assertRaises(ConcurrencyError) as raised:
             await self.connection.ping("idem")
+
         self.assertEqual(
             str(raised.exception),
             "already waiting for a pong with the same data",

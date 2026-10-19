@@ -40,6 +40,7 @@ class StreamReaderTests(GeneratorTestCase):
         gen = self.reader.read_line(32)
         with self.assertRaises(EOFError) as raised:
             next(gen)
+
         self.assertEqual(
             str(raised.exception),
             "stream ends after 3 bytes, before end of line",
@@ -51,6 +52,7 @@ class StreamReaderTests(GeneratorTestCase):
         gen = self.reader.read_line(2)
         with self.assertRaises(RuntimeError) as raised:
             next(gen)
+
         self.assertEqual(
             str(raised.exception),
             "read 5 bytes, expected no more than 2 bytes",
@@ -62,6 +64,7 @@ class StreamReaderTests(GeneratorTestCase):
         gen = self.reader.read_line(2, too_long_exc_type=ValueError)
         with self.assertRaises(ValueError) as raised:
             next(gen)
+
         self.assertEqual(
             str(raised.exception),
             "read 5 bytes, expected no more than 2 bytes",
@@ -73,6 +76,7 @@ class StreamReaderTests(GeneratorTestCase):
         gen = self.reader.read_line(2)
         with self.assertRaises(RuntimeError) as raised:
             next(gen)
+
         self.assertEqual(
             str(raised.exception),
             "read 3 bytes, expected no more than 2 bytes",
@@ -83,6 +87,7 @@ class StreamReaderTests(GeneratorTestCase):
         gen = self.reader.read_line(2, too_long_exc_type=ValueError)
         with self.assertRaises(ValueError) as raised:
             next(gen)
+
         self.assertEqual(
             str(raised.exception),
             "read 3 bytes, expected no more than 2 bytes",
@@ -121,6 +126,7 @@ class StreamReaderTests(GeneratorTestCase):
         gen = self.reader.read_exact(4)
         with self.assertRaises(EOFError) as raised:
             next(gen)
+
         self.assertEqual(
             str(raised.exception),
             "stream ends after 3 bytes, expected 4 bytes",
@@ -149,6 +155,7 @@ class StreamReaderTests(GeneratorTestCase):
         self.reader.feed_data(b"spam")
         with self.assertRaises(RuntimeError) as raised:
             next(gen)
+
         self.assertEqual(
             str(raised.exception),
             "read 4 bytes, expected no more than 2 bytes",
@@ -160,6 +167,7 @@ class StreamReaderTests(GeneratorTestCase):
         self.reader.feed_data(b"spam")
         with self.assertRaises(ValueError) as raised:
             next(gen)
+
         self.assertEqual(
             str(raised.exception),
             "read 4 bytes, expected no more than 2 bytes",
@@ -204,6 +212,7 @@ class StreamReaderTests(GeneratorTestCase):
         self.reader.feed_eof()
         with self.assertRaises(EOFError) as raised:
             self.reader.feed_data(b"spam")
+
         self.assertEqual(
             str(raised.exception),
             "stream ended",
@@ -213,6 +222,7 @@ class StreamReaderTests(GeneratorTestCase):
         self.reader.feed_eof()
         with self.assertRaises(EOFError) as raised:
             self.reader.feed_eof()
+
         self.assertEqual(
             str(raised.exception),
             "stream ended",

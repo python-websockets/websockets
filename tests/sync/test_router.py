@@ -104,6 +104,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server) + "/n"):
                     self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "server rejected WebSocket connection: HTTP 404",
@@ -129,6 +130,7 @@ class RouterTests(EvalShellMixin, unittest.TestCase):
             with self.assertRaises(InvalidStatus) as raised:
                 with connect(get_uri(server) + "/"):
                     self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "server rejected WebSocket connection: HTTP 403",

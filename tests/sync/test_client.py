@@ -456,10 +456,11 @@ class ClientTests(unittest.TestCase):
             with self.assertRaises(InvalidHandshake) as raised:
                 with connect(get_uri(server) + "/no-op", close_timeout=MS):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "missing Sec-WebSocket-Accept header",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "missing Sec-WebSocket-Accept header",
+        )
 
     def test_timeout_during_handshake(self):
         """Client times out before receiving handshake response from server."""
@@ -469,10 +470,11 @@ class ClientTests(unittest.TestCase):
             with self.assertRaises(TimeoutError) as raised:
                 with connect(f"ws://{host}:{port}", open_timeout=MS):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "timed out while waiting for handshake response",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "timed out while waiting for handshake response",
+        )
 
     def test_connection_closed_during_handshake(self):
         """Client reads EOF before receiving handshake response from server."""
@@ -485,15 +487,16 @@ class ClientTests(unittest.TestCase):
             with self.assertRaises(InvalidMessage) as raised:
                 with connect(get_uri(server)):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "did not receive a valid HTTP response",
-            )
-            self.assertIsInstance(raised.exception.__cause__, EOFError)
-            self.assertEqual(
-                str(raised.exception.__cause__),
-                "connection closed while reading HTTP status line",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "did not receive a valid HTTP response",
+        )
+        self.assertIsInstance(raised.exception.__cause__, EOFError)
+        self.assertEqual(
+            str(raised.exception.__cause__),
+            "connection closed while reading HTTP status line",
+        )
 
     def test_http_response(self):
         """Client reads HTTP response."""
@@ -584,19 +587,19 @@ class ClientTests(unittest.TestCase):
                 with self.assertRaises(InvalidMessage) as raised:
                     with connect(f"ws://{host}:{port}"):
                         self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "did not receive a valid HTTP response",
-                )
-                self.assertIsInstance(raised.exception.__cause__, ValueError)
-                self.assertEqual(
-                    str(raised.exception.__cause__),
-                    "unsupported protocol; expected HTTP/1.1: "
-                    "220 smtp.invalid ESMTP Postfix",
-                )
             finally:
                 server.shutdown()
                 thread.join()
+
+        self.assertEqual(
+            str(raised.exception),
+            "did not receive a valid HTTP response",
+        )
+        self.assertIsInstance(raised.exception.__cause__, ValueError)
+        self.assertEqual(
+            str(raised.exception.__cause__),
+            "unsupported protocol; expected HTTP/1.1: 220 smtp.invalid ESMTP Postfix",
+        )
 
 
 class SecureClientTests(unittest.TestCase):
@@ -641,10 +644,11 @@ class SecureClientTests(unittest.TestCase):
                 # The test certificate is self-signed.
                 with connect(get_uri(server)):
                     self.fail("did not raise")
-            self.assertIn(
-                "self signed certificate",
-                str(raised.exception).replace("-", " "),
-            )
+
+        self.assertIn(
+            "self signed certificate",
+            str(raised.exception).replace("-", " "),
+        )
 
     def test_reject_invalid_server_hostname(self):
         """Client rejects certificate where server hostname doesn't match."""
@@ -655,10 +659,11 @@ class SecureClientTests(unittest.TestCase):
                     get_uri(server), ssl=CLIENT_CONTEXT, server_hostname="invalid"
                 ):
                     self.fail("did not raise")
-            self.assertIn(
-                "Hostname mismatch",
-                str(raised.exception),
-            )
+
+        self.assertIn(
+            "Hostname mismatch",
+            str(raised.exception),
+        )
 
     def test_cross_origin_redirect(self):
         """Client follows redirect to a secure URI on a different origin."""
@@ -746,6 +751,7 @@ class SocksProxyClientTests(ProxyMixin, unittest.TestCase):
                     self.fail("did not raise")
         finally:
             self.proxy_options.update(proxyauth=None)
+
         self.assertEqual(
             str(raised.exception),
             "failed to connect to SOCKS proxy",
@@ -845,6 +851,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
                     self.fail("did not raise")
         finally:
             self.proxy_options.update(proxyauth=None)
+
         self.assertEqual(
             str(raised.exception),
             "proxy rejected connection: HTTP 407",
@@ -879,6 +886,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
                     self.fail("did not raise")
         finally:
             self.proxy_options.update(break_http_connect=False)
+
         self.assertEqual(
             str(raised.exception),
             "did not receive a valid HTTP response from proxy",
@@ -895,6 +903,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
                     self.fail("did not raise")
         finally:
             self.proxy_options.update(close_http_connect=False)
+
         self.assertEqual(
             str(raised.exception),
             "did not receive a valid HTTP response from proxy",
@@ -919,6 +928,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
                 with self.assertRaises(TimeoutError) as raised:
                     with connect("ws://example.com/", open_timeout=MS):
                         self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "timed out while connecting to HTTP proxy",
@@ -969,6 +979,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
             # The proxy certificate isn't trusted.
             with connect("wss://example.com/"):
                 self.fail("did not raise")
+
         self.assertIn(
             "unable to get local issuer certificate",
             str(raised.exception),
@@ -983,6 +994,7 @@ class HTTPProxyClientTests(ProxyMixin, unittest.IsolatedAsyncioTestCase):
                 # The test certificate is self-signed.
                 with connect(get_uri(server), proxy_ssl=self.proxy_context):
                     self.fail("did not raise")
+
         self.assertIn(
             "self signed certificate",
             str(raised.exception).replace("-", " "),
@@ -1083,6 +1095,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
         """Client rejects ssl when URI isn't secure."""
         with self.assertRaises(ValueError) as raised:
             connect("ws://localhost/", ssl=CLIENT_CONTEXT)
+
         self.assertEqual(
             str(raised.exception),
             "ssl argument is incompatible with a ws:// URI",
@@ -1097,6 +1110,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
                 proxy_ssl=CLIENT_CONTEXT,
             ):
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "proxy_ssl argument is incompatible with an http:// proxy",
@@ -1107,6 +1121,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
         with self.assertRaises(InvalidProxy) as raised:
             with connect("ws://example.com/", proxy="other://localhost:58080"):
                 self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "other://localhost:58080 isn't a valid proxy: scheme other isn't supported",
@@ -1116,6 +1131,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
         """Unix client requires path when sock isn't provided."""
         with self.assertRaises(ValueError) as raised:
             unix_connect()
+
         self.assertEqual(
             str(raised.exception),
             "missing path argument",
@@ -1127,6 +1143,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
         self.addCleanup(sock.close)
         with self.assertRaises(ValueError) as raised:
             unix_connect(path="/", sock=sock)
+
         self.assertEqual(
             str(raised.exception),
             "path is incompatible with sock",
@@ -1136,6 +1153,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
         """Client rejects single value of subprotocols."""
         with self.assertRaises(TypeError) as raised:
             connect("ws://localhost/", subprotocols="chat")
+
         self.assertEqual(
             str(raised.exception),
             "subprotocols must be a list, not a str",
@@ -1145,6 +1163,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
         """Client rejects incorrect value of compression."""
         with self.assertRaises(ValueError) as raised:
             connect("ws://localhost/", compression=False)
+
         self.assertEqual(
             str(raised.exception),
             "unsupported compression: False",
@@ -1158,6 +1177,7 @@ class ClientUsageErrorsTests(unittest.TestCase):
                 with self.assertRaises(RuntimeError) as raised:
                     with connecter:
                         self.fail("did not raise")
+
         self.assertEqual(
             str(raised.exception),
             "connect() isn't reentrant",

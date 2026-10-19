@@ -1840,8 +1840,8 @@ class ErrorTests(ProtocolTestCase):
         # This isn't supposed to happen, so we're simulating it.
         with patch("struct.unpack", side_effect=RuntimeError("BOOM")):
             client.receive_data(b"\x81\x00")
-            self.assertIsInstance(client.parser_exc, RuntimeError)
-            self.assertEqual(str(client.parser_exc), "BOOM")
+        self.assertIsInstance(client.parser_exc, RuntimeError)
+        self.assertEqual(str(client.parser_exc), "BOOM")
         self.assertConnectionFailing(client, CloseCode.INTERNAL_ERROR, "")
 
     def test_server_hits_internal_error_reading_frame(self):
@@ -1849,8 +1849,8 @@ class ErrorTests(ProtocolTestCase):
         # This isn't supposed to happen, so we're simulating it.
         with patch("struct.unpack", side_effect=RuntimeError("BOOM")):
             server.receive_data(b"\x81\x80\x00\x00\x00\x00")
-            self.assertIsInstance(server.parser_exc, RuntimeError)
-            self.assertEqual(str(server.parser_exc), "BOOM")
+        self.assertIsInstance(server.parser_exc, RuntimeError)
+        self.assertEqual(str(server.parser_exc), "BOOM")
         self.assertConnectionFailing(server, CloseCode.INTERNAL_ERROR, "")
 
 

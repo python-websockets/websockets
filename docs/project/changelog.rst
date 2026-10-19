@@ -30,7 +30,7 @@ notice.
 17.3
 ----
 
-*In development*
+*October 19, 2026*
 
 Improvements
 ............

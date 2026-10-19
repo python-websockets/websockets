@@ -35,6 +35,7 @@ class RequestTests(GeneratorTestCase):
             b"\r\n"
         )
         request = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(request.method, "GET")
         self.assertEqual(request.path, "/chat")
         self.assertEqual(request.protocol, "HTTP/1.1")
@@ -43,12 +44,14 @@ class RequestTests(GeneratorTestCase):
     def test_parse_non_get_method(self):
         self.reader.feed_data(b"OPTIONS * HTTP/1.1\r\n\r\n")
         request = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(request.method, "OPTIONS")
         self.assertEqual(request.path, "*")
 
     def test_parse_http_1_0(self):
         self.reader.feed_data(b"GET /chat HTTP/1.0\r\n\r\n")
         request = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(request.method, "GET")
         self.assertEqual(request.path, "/chat")
         self.assertEqual(request.protocol, "HTTP/1.0")
@@ -67,6 +70,7 @@ class RequestTests(GeneratorTestCase):
         self.reader.feed_eof()
         with self.assertRaises(EOFError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "connection closed while reading HTTP request line",
@@ -78,6 +82,7 @@ class RequestTests(GeneratorTestCase):
         self.reader.feed_data(b"GET /" + b"a" * 8186 + b" HTTP/1.1\r\n\r\n")
         with self.assertRaises(RequestLineTooLong) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "read 8202 bytes, expected no more than 8192 bytes",
@@ -87,6 +92,7 @@ class RequestTests(GeneratorTestCase):
         self.reader.feed_data(b"GET /\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid HTTP request line: GET /",
@@ -96,6 +102,7 @@ class RequestTests(GeneratorTestCase):
         self.reader.feed_data(b"GET /chat HTTP/2.0\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "unsupported protocol; expected HTTP/1.1 or HTTP/1.0: GET /chat HTTP/2.0",
@@ -105,6 +112,7 @@ class RequestTests(GeneratorTestCase):
         self.reader.feed_data(b"GET /chat HTTP/1.1\r\nOops\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid HTTP header line: Oops",
@@ -114,6 +122,7 @@ class RequestTests(GeneratorTestCase):
         self.reader.feed_data(b"GET / HTTP/1.1\r\nContent-Length: 3\r\n\r\nYo\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "unsupported request body",
@@ -122,12 +131,14 @@ class RequestTests(GeneratorTestCase):
     def test_parse_body_content_length_zero(self):
         self.reader.feed_data(b"GET / HTTP/1.1\r\nContent-Length: 0\r\n\r\n")
         request = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(request.headers["Content-Length"], "0")
 
     def test_parse_body_with_transfer_encoding(self):
         self.reader.feed_data(b"GET / HTTP/1.1\r\nTransfer-Encoding: compress\r\n\r\n")
         with self.assertRaises(NotImplementedError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "transfer codings aren't supported",
@@ -149,6 +160,7 @@ class RequestTests(GeneratorTestCase):
                 ]
             ),
         )
+
         self.assertEqual(
             request.serialize(),
             b"GET /chat HTTP/1.1\r\n"
@@ -187,6 +199,7 @@ class ResponseTests(GeneratorTestCase):
             b"\r\n"
         )
         response = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(response.status_code, 101)
         self.assertEqual(response.reason_phrase, "Switching Protocols")
         self.assertEqual(response.headers["Upgrade"], "websocket")
@@ -196,6 +209,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_eof()
         with self.assertRaises(EOFError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "connection closed while reading HTTP status line",
@@ -207,6 +221,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.1 " + b"a" * 8191 + b"\r\n\r\n")
         with self.assertRaises(StatusLineTooLong) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "read 8202 bytes, expected no more than 8192 bytes",
@@ -216,6 +231,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"Hello!\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid HTTP status line: Hello!",
@@ -225,6 +241,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.0 400 Bad Request\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "unsupported protocol; expected HTTP/1.1: HTTP/1.0 400 Bad Request",
@@ -234,6 +251,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.1 OMG WTF\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid status code; expected integer; got OMG",
@@ -243,19 +261,23 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.1 007 My name is Bond\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
-            str(raised.exception), "invalid status code; expected 100–599; got 007"
+            str(raised.exception),
+            "invalid status code; expected 100–599; got 007",
         )
 
     def test_parse_iso_8859_1_reason(self):
         self.reader.feed_data(b"HTTP/1.1 200 \xd8K\r\nContent-Length: 0\r\n\r\n")
         response = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(response.reason_phrase, "ØK")
 
     def test_parse_invalid_reason(self):
         self.reader.feed_data(b"HTTP/1.1 200 \x7f\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid HTTP reason phrase: \x7f",
@@ -265,6 +287,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.1 500 Internal Server Error\r\nOops\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid HTTP header line: Oops",
@@ -276,12 +299,14 @@ class ResponseTests(GeneratorTestCase):
         self.assertGeneratorRunning(gen)
         self.reader.feed_eof()
         response = self.assertGeneratorReturns(gen)
+
         self.assertEqual(response.body, b"Hello world!\n")
 
     def test_parse_body_too_large(self):
         self.reader.feed_data(b"HTTP/1.1 200 OK\r\n\r\n" + b"a" * 1048577)
         with self.assertRaises(SecurityError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "read 1048577 bytes, expected no more than 1048576 bytes",
@@ -292,12 +317,14 @@ class ResponseTests(GeneratorTestCase):
             b"HTTP/1.1 200 OK\r\nContent-Length: 13\r\n\r\nHello world!\n"
         )
         response = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(response.body, b"Hello world!\n")
 
     def test_parse_body_with_content_length_and_body_too_large(self):
         self.reader.feed_data(b"HTTP/1.1 200 OK\r\nContent-Length: 1048577\r\n\r\n")
         with self.assertRaises(SecurityError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "body too large: 1048577 bytes",
@@ -309,6 +336,7 @@ class ResponseTests(GeneratorTestCase):
         )
         with self.assertRaises(SecurityError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid content length: 1234567890123456789",
@@ -318,6 +346,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.1 200 OK\r\nContent-Length: -1\r\n\r\n")
         with self.assertRaises(SecurityError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid content length: -1",
@@ -329,6 +358,7 @@ class ResponseTests(GeneratorTestCase):
             b"6\r\nHello \r\n7\r\nworld!\n\r\n0\r\n\r\n"
         )
         response = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(response.body, b"Hello world!\n")
 
     def test_parse_body_with_chunked_transfer_encoding_and_chunk_without_crlf(self):
@@ -338,6 +368,7 @@ class ResponseTests(GeneratorTestCase):
         )
         with self.assertRaises(ValueError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "chunk without CRLF",
@@ -350,6 +381,7 @@ class ResponseTests(GeneratorTestCase):
         )
         with self.assertRaises(SecurityError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "chunk too large: 1 bytes after 1048576 bytes",
@@ -362,6 +394,7 @@ class ResponseTests(GeneratorTestCase):
         )
         with self.assertRaises(SecurityError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "invalid chunk size: 1234567890ABCDEF",
@@ -371,6 +404,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.1 200 OK\r\nTransfer-Encoding: compress\r\n\r\n")
         with self.assertRaises(NotImplementedError) as raised:
             next(self.parse())
+
         self.assertEqual(
             str(raised.exception),
             "transfer coding compress isn't supported",
@@ -379,21 +413,25 @@ class ResponseTests(GeneratorTestCase):
     def test_parse_body_no_content(self):
         self.reader.feed_data(b"HTTP/1.1 204 No Content\r\n\r\n")
         response = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(response.body, b"")
 
     def test_parse_body_not_modified(self):
         self.reader.feed_data(b"HTTP/1.1 304 Not Modified\r\n\r\n")
         response = self.assertGeneratorReturns(self.parse())
+
         self.assertEqual(response.body, b"")
 
     def test_parse_proxy_response_does_not_read_body(self):
         self.reader.feed_data(b"HTTP/1.1 200 Connection Established\r\n\r\n")
         response = self.assertGeneratorReturns(self.parse(proxy=True))
+
         self.assertEqual(response.body, b"")
 
     def test_parse_proxy_http10(self):
         self.reader.feed_data(b"HTTP/1.0 200 OK\r\nContent-Length: 0\r\n\r\n")
         response = self.assertGeneratorReturns(self.parse(proxy=True))
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.reason_phrase, "OK")
         self.assertEqual(response.body, b"")
@@ -402,6 +440,7 @@ class ResponseTests(GeneratorTestCase):
         self.reader.feed_data(b"HTTP/1.2 400 Bad Request\r\n\r\n")
         with self.assertRaises(ValueError) as raised:
             next(self.parse(proxy=True))
+
         self.assertEqual(
             str(raised.exception),
             "unsupported protocol; expected HTTP/1.1 or HTTP/1.0: "
@@ -422,6 +461,7 @@ class ResponseTests(GeneratorTestCase):
                 ]
             ),
         )
+
         self.assertEqual(
             response.serialize(),
             b"HTTP/1.1 101 Switching Protocols\r\n"
@@ -439,6 +479,7 @@ class ResponseTests(GeneratorTestCase):
             Headers([("Content-Length", "13"), ("Content-Type", "text/plain")]),
             b"Hello world!\n",
         )
+
         self.assertEqual(
             response.serialize(),
             b"HTTP/1.1 200 OK\r\n"
@@ -450,6 +491,7 @@ class ResponseTests(GeneratorTestCase):
 
     def test_serialize_iso_8859_1_reason(self):
         response = Response(200, "ØK", Headers([("Content-Length", "0")]))
+
         self.assertEqual(
             response.serialize(),
             b"HTTP/1.1 200 \xd8K\r\nContent-Length: 0\r\n\r\n",
@@ -470,6 +512,7 @@ class HeadersTests(GeneratorTestCase):
     def test_parse_iso_8859_1(self):
         self.reader.feed_data(b"X-Drink: caf\xe9\r\n\r\n")
         headers = self.parse_headers()
+
         self.assertEqual(headers["X-Drink"], "café")
 
     def test_parse_invalid_name(self):
@@ -486,7 +529,11 @@ class HeadersTests(GeneratorTestCase):
         self.reader.feed_data(b"foo: bar\r\n" * 129 + b"\r\n")
         with self.assertRaises(TooManyHeaders) as raised:
             self.parse_headers()
-        self.assertEqual(str(raised.exception), "expected no more than 128 headers")
+
+        self.assertEqual(
+            str(raised.exception),
+            "expected no more than 128 headers",
+        )
 
     def test_parse_too_long_line(self):
         # Header line contains 5 + 8195 = 8200 bytes before the line ending,
@@ -494,8 +541,10 @@ class HeadersTests(GeneratorTestCase):
         self.reader.feed_data(b"foo: " + b"a" * 8195 + b"\r\n\r\n")
         with self.assertRaises(HeaderLineTooLong) as raised:
             self.parse_headers()
+
         self.assertEqual(
-            str(raised.exception), "read 8202 bytes, expected no more than 8192 bytes"
+            str(raised.exception),
+            "read 8202 bytes, expected no more than 8192 bytes",
         )
 
     def test_parse_invalid_line_ending(self):

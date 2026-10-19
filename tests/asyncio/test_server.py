@@ -48,10 +48,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
             async with connect(get_uri(server) + "/no-op") as client:
                 with self.assertRaises(ConnectionClosedOK) as raised:
                     await client.recv()
-                self.assertEqual(
-                    str(raised.exception),
-                    "received 1000 (OK); then sent 1000 (OK)",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "received 1000 (OK); then sent 1000 (OK)",
+        )
 
     async def test_connection_handler_raises_exception(self):
         """Connection handler raises an exception."""
@@ -59,10 +60,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
             async with connect(get_uri(server) + "/crash") as client:
                 with self.assertRaises(ConnectionClosedError) as raised:
                     await client.recv()
-                self.assertEqual(
-                    str(raised.exception),
-                    "received 1011 (internal error); then sent 1011 (internal error)",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "received 1011 (internal error); then sent 1011 (internal error)",
+        )
 
     async def test_existing_socket(self):
         """Server receives connection using a pre-existing socket."""
@@ -99,10 +101,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 400",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 400",
+        )
 
     async def test_select_subprotocol_raises_exception(self):
         """Server returns an error if select_subprotocol raises an exception."""
@@ -114,10 +117,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 500",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 500",
+        )
 
     async def test_compression_is_enabled(self):
         """Server enables compression by default."""
@@ -173,10 +177,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 with self.assertRaises(InvalidStatus) as raised:
                     async with connect(get_uri(server)):
                         self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "server rejected WebSocket connection: HTTP 403",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 403",
+        )
 
     async def test_async_process_request_returns_response(self):
         """Server aborts handshake if async process_request returns a response."""
@@ -194,10 +199,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 with self.assertRaises(InvalidStatus) as raised:
                     async with connect(get_uri(server)):
                         self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "server rejected WebSocket connection: HTTP 403",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 403",
+        )
 
     async def test_process_request_raises_exception(self):
         """Server returns an error if process_request raises an exception."""
@@ -210,10 +216,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 with self.assertRaises(InvalidStatus) as raised:
                     async with connect(get_uri(server)):
                         self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "server rejected WebSocket connection: HTTP 500",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 500",
+        )
         self.assertExceptionLogged(logs, "process_request failed", "BOOM")
 
     async def test_async_process_request_raises_exception(self):
@@ -227,10 +234,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 with self.assertRaises(InvalidStatus) as raised:
                     async with connect(get_uri(server)):
                         self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "server rejected WebSocket connection: HTTP 500",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 500",
+        )
         self.assertExceptionLogged(logs, "process_request failed", "BOOM")
 
     async def test_process_response_returns_none(self):
@@ -312,10 +320,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 with self.assertRaises(InvalidStatus) as raised:
                     async with connect(get_uri(server)):
                         self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "server rejected WebSocket connection: HTTP 500",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 500",
+        )
         self.assertExceptionLogged(logs, "process_response failed", "BOOM")
 
     async def test_async_process_response_raises_exception(self):
@@ -329,10 +338,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 with self.assertRaises(InvalidStatus) as raised:
                     async with connect(get_uri(server)):
                         self.fail("did not raise")
-                self.assertEqual(
-                    str(raised.exception),
-                    "server rejected WebSocket connection: HTTP 500",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 500",
+        )
         self.assertExceptionLogged(logs, "process_response failed", "BOOM")
 
     async def test_override_server_header(self):
@@ -416,10 +426,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 400",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 400",
+        )
 
     async def test_timeout_before_handshake_request(self):
         """Server times out before receiving handshake request from client."""
@@ -508,10 +519,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 503",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 503",
+        )
 
     async def test_close_closes_open_connections(self):
         """Server closes open connections with close code 1001."""
@@ -520,10 +532,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 server.close()
                 with self.assertRaises(ConnectionClosedOK) as raised:
                     await client.recv()
-                self.assertEqual(
-                    str(raised.exception),
-                    "received 1001 (going away); then sent 1001 (going away)",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "received 1001 (going away); then sent 1001 (going away)",
+        )
 
     async def test_close_closes_open_connections_with_code_and_reason(self):
         """Server closes open connections with custom code and reason."""
@@ -532,11 +545,12 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 server.close(code=1012, reason="restarting")
                 with self.assertRaises(ConnectionClosedError) as raised:
                     await client.recv()
-                self.assertEqual(
-                    str(raised.exception),
-                    "received 1012 (service restart) restarting; "
-                    "then sent 1012 (service restart) restarting",
-                )
+
+        self.assertEqual(
+            str(raised.exception),
+            "received 1012 (service restart) restarting; "
+            "then sent 1012 (service restart) restarting",
+        )
 
     async def test_close_keeps_connections_open(self):
         """Server waits for the client to close open connections."""
@@ -642,10 +656,6 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
                 serve_forever_task.cancel()
                 with self.assertRaises(ConnectionClosedOK) as raised:
                     await client.recv()
-                self.assertEqual(
-                    str(raised.exception),
-                    "received 1001 (going away); then sent 1001 (going away)",
-                )
 
             with self.assertRaises(asyncio.CancelledError):
                 await serve_forever_task
@@ -653,6 +663,11 @@ class ServerTests(EvalShellMixin, LoggingTestCase, unittest.IsolatedAsyncioTestC
         finally:
             server.close()
             await server.wait_closed()
+
+        self.assertEqual(
+            str(raised.exception),
+            "received 1001 (going away); then sent 1001 (going away)",
+        )
 
     async def test_close_exits_serve_forever(self):
         """Closing the server exits serve_forever()."""
@@ -772,6 +787,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(sock.close)
         with self.assertRaises(ValueError) as raised:
             await serve(handler, host="localhost", sock=sock)
+
         self.assertEqual(
             str(raised.exception),
             "host/port and sock can not be specified at the same time",
@@ -783,6 +799,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(sock.close)
         with self.assertRaises(ValueError) as raised:
             await serve(handler, port=0, sock=sock)
+
         self.assertEqual(
             str(raised.exception),
             "host/port and sock can not be specified at the same time",
@@ -792,6 +809,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
         """Unix server requires path when sock isn't provided."""
         with self.assertRaises(ValueError) as raised:
             await unix_serve(handler)
+
         self.assertEqual(
             str(raised.exception),
             "path was not specified, and no sock specified",
@@ -803,6 +821,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
         self.addCleanup(sock.close)
         with self.assertRaises(ValueError) as raised:
             await unix_serve(handler, path="/", sock=sock)
+
         self.assertEqual(
             str(raised.exception),
             "path and sock can not be specified at the same time",
@@ -812,6 +831,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
         """Server rejects single value of subprotocols."""
         with self.assertRaises(TypeError) as raised:
             await serve(*args, subprotocols="chat")
+
         self.assertEqual(
             str(raised.exception),
             "subprotocols must be a list, not a str",
@@ -821,6 +841,7 @@ class ServerUsageErrorsTests(unittest.IsolatedAsyncioTestCase):
         """Server rejects incorrect value of compression."""
         with self.assertRaises(ValueError) as raised:
             await serve(*args, compression=False)
+
         self.assertEqual(
             str(raised.exception),
             "unsupported compression: False",
@@ -874,10 +895,11 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
             with self.assertRaises(InvalidStatus) as raised:
                 async with connect(get_uri(server)):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 401",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 401",
+        )
 
     async def test_unsupported_authorization(self):
         """basic_auth rejects client with unsupported credentials."""
@@ -891,10 +913,11 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                     additional_headers={"Authorization": "Negotiate ..."},
                 ):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 401",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 401",
+        )
 
     async def test_authorization_with_unknown_username(self):
         """basic_auth rejects client with unknown username."""
@@ -908,10 +931,11 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                     additional_headers={"Authorization": "Basic YnllOnlvdWxvdmVtZQ=="},
                 ):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 401",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 401",
+        )
 
     async def test_authorization_with_incorrect_password(self):
         """basic_auth rejects client with incorrect password."""
@@ -925,10 +949,11 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                     additional_headers={"Authorization": "Basic aGVsbG86aWxvdmV5b3U="},
                 ):
                     self.fail("did not raise")
-            self.assertEqual(
-                str(raised.exception),
-                "server rejected WebSocket connection: HTTP 401",
-            )
+
+        self.assertEqual(
+            str(raised.exception),
+            "server rejected WebSocket connection: HTTP 401",
+        )
 
     async def test_list_of_credentials(self):
         """basic_auth accepts a list of hard coded credentials."""
@@ -985,6 +1010,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """basic_auth requires either credentials or check_credentials."""
         with self.assertRaises(ValueError) as raised:
             basic_auth()
+
         self.assertEqual(
             str(raised.exception),
             "provide either credentials or check_credentials",
@@ -997,6 +1023,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
                 credentials=("hello", "iloveyou"),
                 check_credentials=lambda: False,  # pragma: no cover
             )
+
         self.assertEqual(
             str(raised.exception),
             "provide either credentials or check_credentials",
@@ -1006,6 +1033,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """basic_auth receives an unsupported credentials argument."""
         with self.assertRaises(TypeError) as raised:
             basic_auth(credentials=42)
+
         self.assertEqual(
             str(raised.exception),
             "invalid credentials argument: 42",
@@ -1015,6 +1043,7 @@ class BasicAuthTests(EvalShellMixin, unittest.IsolatedAsyncioTestCase):
         """basic_auth receives an unsupported credentials argument."""
         with self.assertRaises(TypeError) as raised:
             basic_auth(credentials=[42])
+
         self.assertEqual(
             str(raised.exception),
             "invalid credentials argument: [42]",

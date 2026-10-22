@@ -200,6 +200,8 @@ class ClientTests(IsolatedTrioTestCase):
                 ):
                     self.assertEqual(client.protocol.state.name, "OPEN")
                     successful += 1
+                else:
+                    self.fail("did not raise")
 
         self.assertEqual(
             str(raised.exception),

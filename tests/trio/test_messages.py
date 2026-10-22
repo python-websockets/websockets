@@ -504,6 +504,8 @@ class AssemblerTests(IsolatedTrioTestCase):
         with self.assertRaises(EOFError):
             async for fragment in self.assembler.get_iter():
                 fragments.append(fragment)
+            else:
+                self.fail("did not raise")
         self.assertEqual(fragments, [b"t", b"e"])
 
     async def test_put_fails_after_close(self):

@@ -473,6 +473,8 @@ class AssemblerTests(ThreadTestCase):
         with self.assertRaises(EOFError):
             for fragment in self.assembler.get_iter():
                 fragments.append(fragment)
+            else:
+                self.fail("did not raise")
         self.assertEqual(fragments, [b"t", b"e"])
 
     def test_put_fails_after_close(self):

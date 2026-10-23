@@ -23,7 +23,7 @@ def check_environment():
     try:
         import websockets  # noqa: F401
     except ImportError:
-        print("failed to import websockets; is src on PYTHONPATH?")
+        print("failed to import websockets; is it installed?")
         return False
     try:
         import coverage  # noqa: F401

@@ -6,7 +6,7 @@ Profile the permessage-deflate extension.
 Usage::
     $ pip install line_profiler
     $ python experiments/compression/corpus.py experiments/compression/corpus
-    $ PYTHONPATH=src python -m kernprof \
+    $ python -m kernprof \
         --line-by-line \
         --prof-mod src/websockets/extensions/permessage_deflate.py \
         --view \

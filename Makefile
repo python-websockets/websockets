@@ -1,7 +1,6 @@
 .PHONY: default style types tests coverage maxi_cov build clean
 
 export PYTHONASYNCIODEBUG=1
-export PYTHONPATH=src
 export PYTHONWARNINGS=default
 
 # Work around https://github.com/python/cpython/issues/128384. This prevents

@@ -28,8 +28,8 @@ To test the servers:
 
 .. code-block:: console
 
-    $ PYTHONPATH=src python compliance/asyncio/server.py
-    $ PYTHONPATH=src python compliance/sync/server.py
+    $ python compliance/asyncio/server.py
+    $ python compliance/sync/server.py
 
     $ docker run --interactive --tty --rm \
         --volume "${PWD}/compliance/config:/config" \
@@ -51,8 +51,8 @@ To test the clients:
         crossbario/autobahn-testsuite \
         wstest --mode fuzzingserver --spec /config/fuzzingserver.json
 
-    $ PYTHONPATH=src python compliance/asyncio/client.py
-    $ PYTHONPATH=src python compliance/sync/client.py
+    $ python compliance/asyncio/client.py
+    $ python compliance/sync/client.py
 
     $ open compliance/reports/clients/index.html
 

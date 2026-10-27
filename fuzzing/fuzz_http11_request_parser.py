@@ -26,7 +26,9 @@ def test_one_input(data):
     except (
         EOFError,  # connection is closed without a full HTTP request
         SecurityError,  # request exceeds a security limit
+        UnicodeDecodeError,  # request method or path isn't ASCII
         ValueError,  # request isn't well formatted
+        NotImplementedError,  # request contains an unsupported transfer coding
     ):
         return  # input rejected with a documented exception
 

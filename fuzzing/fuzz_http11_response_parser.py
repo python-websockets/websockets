@@ -29,6 +29,7 @@ def test_one_input(data):
         SecurityError,  # response exceeds a security limit
         LookupError,  # response isn't well formatted
         ValueError,  # response isn't well formatted
+        NotImplementedError,  # response contains an unsupported transfer coding
     ):
         return  # input rejected with a documented exception
 

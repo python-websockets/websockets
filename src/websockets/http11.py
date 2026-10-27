@@ -160,6 +160,7 @@ class Request:
             TooManyHeaders: If there are too many headers.
             UnicodeDecodeError: If the request method or path isn't ASCII.
             ValueError: If the request isn't well formatted.
+            NotImplementedError: If the request uses Transfer-Encoding.
 
         """
         # https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.1
@@ -287,6 +288,8 @@ class Response:
             SecurityError: If the response body exceeds a security limit.
             LookupError: If the response isn't well formatted.
             ValueError: If the response isn't well formatted.
+            NotImplementedError: If the response uses Transfer-Encoding, and
+                it isn't "chunked".
 
         """
         # https://datatracker.ietf.org/doc/html/rfc7230#section-3.1.2
@@ -464,7 +467,7 @@ def read_body(
     # MultipleValuesError is sufficiently unlikely that we don't attempt to
     # handle it when accessing headers. Instead we document that its parent
     # class, LookupError, may be raised.
-    # Conversions from str to int are protected by sys.set_int_max_str_digits..
+    # Conversions from str to int are protected by sys.set_int_max_str_digits.
 
     elif (coding := headers.get("Transfer-Encoding")) is not None:
         if coding != "chunked":

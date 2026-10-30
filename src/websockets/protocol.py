@@ -155,6 +155,8 @@ class Protocol:
         self.writes: list[bytes] = []
         self.parser = self.parse()
         next(self.parser)  # start coroutine
+
+        # Exception that caused the parser to stop, chained to ConnectionClosed.
         self.parser_exc: Exception | None = None
 
     @property

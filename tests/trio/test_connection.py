@@ -13,6 +13,8 @@ from websockets.exceptions import (
     ConcurrencyError,
     ConnectionClosedError,
     ConnectionClosedOK,
+    PayloadTooBig,
+    TooManyFragments,
 )
 from websockets.frames import BINARY, CLOSE, CONT, PING, PONG, TEXT, CloseCode, Frame
 from websockets.protocol import CLIENT, CLOSED, OPEN, SERVER, Protocol
@@ -218,6 +220,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.recv()
         self.assertEqual(raised.exception.sent.code, CloseCode.MESSAGE_TOO_BIG)
+        self.assertIsInstance(raised.exception.__cause__, TooManyFragments)
 
     async def test_recv_non_utf8_text(self):
         """recv receives a non-UTF-8 text message."""
@@ -225,6 +228,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.recv()
         self.assertEqual(raised.exception.sent.code, CloseCode.INVALID_DATA)
+        self.assertIsInstance(raised.exception.__cause__, UnicodeDecodeError)
 
     async def test_recv_during_recv(self):
         """recv raises ConcurrencyError when called concurrently."""
@@ -376,6 +380,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             await alist(self.connection.recv_streaming())
         self.assertEqual(raised.exception.sent.code, CloseCode.INVALID_DATA)
+        self.assertIsInstance(raised.exception.__cause__, UnicodeDecodeError)
 
     async def test_recv_streaming_during_recv(self):
         """recv_streaming raises ConcurrencyError when called concurrently with recv."""
@@ -1262,7 +1267,7 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
 
         self.assertEqual(await self.connection.recv(), "C")
 
-    # Test reporting of network errors.
+    # Test reporting of errors.
 
     async def test_writing_in_recv_events_fails(self):
         """Error when responding to incoming frames is correctly reported."""
@@ -1284,6 +1289,22 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         with self.assertRaises(ConnectionClosedError) as raised:
             await self.connection.pong()
         self.assertIsInstance(raised.exception.__cause__, trio.ClosedResourceError)
+
+    async def test_invalid_close_frame(self):
+        """Error parsing a close frame is correctly reported."""
+        async with self.remote_connection.send_context():
+            self.remote_connection.protocol.send_frame(Frame(CLOSE, b"\x03\xe8\xff"))
+        with self.assertRaises(ConnectionClosedError) as raised:
+            await self.connection.recv()
+        self.assertIsInstance(raised.exception.__cause__, UnicodeDecodeError)
+
+    async def test_payload_too_big(self):
+        """PayloadTooBig is correctly reported."""
+        self.connection.protocol.max_message_size = 1
+        await self.remote_connection.send("😀")
+        with self.assertRaises(ConnectionClosedError) as raised:
+            await self.connection.recv()
+        self.assertIsInstance(raised.exception.__cause__, PayloadTooBig)
 
     # Test safety nets — catching all exceptions in case of bugs.
 

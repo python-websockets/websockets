@@ -48,6 +48,12 @@ Security fix
 
     :meth:`~asyncio.connection.Connection.recv_streaming` isn't affected.
 
+Improvements
+............
+
+* Chained consistently to :exc:`~exceptions.ConnectionClosed` exceptions that
+  close the connection.
+
 .. _17.3:
 
 17.3

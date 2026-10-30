@@ -34,6 +34,7 @@
         * :exc:`RedirectHandshake` (legacy)
     * :exc:`ProtocolError` (Sans-I/O)
     * :exc:`PayloadTooBig` (Sans-I/O)
+    * :exc:`TooManyFragments`
     * :exc:`InvalidState` (Sans-I/O)
     * :exc:`ConcurrencyError`
 
@@ -59,6 +60,7 @@ __all__ = [
     "StatusLineTooLong",
     "HeaderLineTooLong",
     "TooManyHeaders",
+    "TooManyFragments",
     "ProxyError",
     "InvalidProxyMessage",
     "InvalidProxyStatus",
@@ -496,6 +498,13 @@ class PayloadTooBig(WebSocketException):
         if current_size is not None:
             self.max_size += current_size
             self.current_size = current_size
+
+
+class TooManyFragments(WebSocketException):
+    """Raised when reassembling message that contains too many frames."""
+
+    def __init__(self, max_fragments: int) -> None:
+        super().__init__(f"fragmented message exceeds limit of {max_fragments} frames")
 
 
 class InvalidState(WebSocketException, AssertionError):

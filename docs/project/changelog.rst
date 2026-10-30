@@ -32,6 +32,22 @@ notice.
 
 *In development*
 
+Security fix
+............
+
+.. admonition:: websockets 17.4 fixes a security issue.
+    :class: danger
+
+    :meth:`~asyncio.connection.Connection.recv` now rejects fragmented messages
+    split into more than 4096 frames. You may adjust the limit with the
+    :envvar:`WEBSOCKETS_MAX_FRAGMENTS` environment variable.
+
+    Earlier versions were vulnerable to denial of service by memory exhaustion
+    because they didn't enforce such a limit (CVE ID pending). All
+    implementations were affected.
+
+    :meth:`~asyncio.connection.Connection.recv_streaming` isn't affected.
+
 .. _17.3:
 
 17.3

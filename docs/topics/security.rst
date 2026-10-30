@@ -29,6 +29,18 @@ With the default settings, opening a connection uses 70 KiB of memory.
 Sending some highly compressed messages could use up to 128 MiB of memory with
 an amplification factor of 1000 between network traffic and memory usage.
 
+:meth:`~asyncio.connection.Connection.recv` buffers fragmented messages and
+reassembles them in memory. There is a limit of 4096 frames per message, which
+translates to 192 KiB of memory usage on top of the message contents.
+
+You may adjust this limit with the :envvar:`WEBSOCKETS_MAX_FRAGMENTS`
+environment variable.
+
+When a message exceeds this limit, websockets closes the connection with code
+1009 (message too big).
+
+:meth:`~asyncio.connection.Connection.recv_streaming` has no such limitation.
+
 Configuring a server to :doc:`optimize memory usage <memory>` will improve
 security in addition to improving performance.
 

@@ -16,12 +16,23 @@ from websockets.frames import (
     Close,
     CloseCode,
 )
+from websockets.legacy import protocol
 from websockets.legacy.framing import Frame
 from websockets.legacy.protocol import WebSocketCommonProtocol, broadcast
 from websockets.protocol import State
 
 from ..utils import MS
 from .utils import AsyncioTestCase
+
+
+@contextlib.contextmanager
+def few_fragments():
+    max_fragments = protocol.MAX_FRAGMENTS
+    protocol.MAX_FRAGMENTS = 2
+    try:
+        yield
+    finally:
+        protocol.MAX_FRAGMENTS = max_fragments
 
 
 async def async_iterable(iterable):
@@ -1094,6 +1105,17 @@ class CommonTests:
         self.receive_frame(Frame(True, OP_CONT, b"tea" * 171))
         self.process_invalid_frames()
         self.assertConnectionFailed(CloseCode.MESSAGE_TOO_BIG, "")
+
+    @few_fragments()
+    def test_fragmented_binary_too_many_frames(self):
+        self.receive_frame(Frame(False, OP_BINARY, b"t"))
+        self.receive_frame(Frame(False, OP_CONT, b"e"))
+        self.receive_frame(Frame(True, OP_CONT, b"a"))
+        self.process_invalid_frames()
+        self.assertConnectionFailed(
+            CloseCode.MESSAGE_TOO_BIG,
+            "too many fragments",
+        )
 
     def test_fragmented_text_no_max_size(self):
         self.protocol.max_size = None  # for test coverage

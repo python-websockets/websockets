@@ -18,6 +18,7 @@ from ..exceptions import (
     ConnectionClosed,
     ConnectionClosedOK,
     ProtocolError,
+    TooManyFragments,
 )
 from ..frames import DATA_OPCODES, PONG, CloseCode, Frame
 from ..http11 import Request, Response
@@ -304,6 +305,9 @@ class Connection(asyncio.Protocol):
                 "cannot call recv while another coroutine "
                 "is already running recv or recv_streaming"
             ) from None
+        except TooManyFragments:
+            async with self.send_context():
+                self.protocol.fail(CloseCode.MESSAGE_TOO_BIG, "too many fragments")
         except UnicodeDecodeError as exc:
             async with self.send_context():
                 self.protocol.fail(

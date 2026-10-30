@@ -78,7 +78,7 @@ Sans-I/O exceptions
 -------------------
 
 These exceptions are only raised by the Sans-I/O implementation. They are
-translated to :exc:`ConnectionClosedError` in the other implementations.
+translated to :exc:`ConnectionClosedError` in I/O implementations.
 
 .. autoexception:: ProtocolError
 
@@ -90,6 +90,11 @@ Miscellaneous exceptions
 ------------------------
 
 .. autoexception:: ConcurrencyError
+
+This exception is also translated to :exc:`ConnectionClosedError` in I/O
+implementations.
+
+.. autoexception:: TooManyFragments
 
 Legacy exceptions
 -----------------

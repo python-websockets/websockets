@@ -21,6 +21,7 @@ from ..exceptions import (
     ConnectionClosed,
     ConnectionClosedOK,
     ProtocolError,
+    TooManyFragments,
 )
 from ..frames import DATA_OPCODES, PONG, CloseCode, Frame
 from ..http11 import Request, Response
@@ -333,6 +334,9 @@ class Connection:
                 "cannot call recv while another thread "
                 "is already running recv or recv_streaming"
             ) from None
+        except TooManyFragments:
+            with self.send_context():
+                self.protocol.fail(CloseCode.MESSAGE_TOO_BIG, "too many fragments")
         except UnicodeDecodeError as exc:
             with self.send_context():
                 self.protocol.fail(

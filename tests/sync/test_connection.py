@@ -15,7 +15,7 @@ from websockets.exceptions import (
     ConnectionClosedError,
     ConnectionClosedOK,
 )
-from websockets.frames import BINARY, CLOSE, PING, PONG, TEXT, CloseCode, Frame
+from websockets.frames import BINARY, CLOSE, CONT, PING, PONG, TEXT, CloseCode, Frame
 from websockets.protocol import CLIENT, CLOSED, OPEN, SERVER, Protocol
 from websockets.sync.connection import *
 from websockets.sync.connection import broadcast
@@ -23,6 +23,7 @@ from websockets.sync.connection import broadcast
 from ..protocol import RecordingProtocol
 from ..utils import MS, LoggingTestCase, assertDurationAtLeast
 from .connection import InterceptingConnection
+from .test_messages import few_fragments
 from .utils import ThreadTestCase
 
 
@@ -206,6 +207,16 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         with self.assertRaises(ConnectionClosedError):
             self.connection.recv()
 
+    @few_fragments()
+    def test_recv_too_many_frames(self):
+        """recv closes the connection when a message has too many frames."""
+        self.connection.recv_messages.put(Frame(BINARY, b"t", fin=False))
+        self.connection.recv_messages.put(Frame(CONT, b"e", fin=False))
+        self.connection.recv_messages.put(Frame(CONT, b"a", fin=True))
+        with self.assertRaises(ConnectionClosedError) as raised:
+            self.connection.recv()
+        self.assertEqual(raised.exception.sent.code, CloseCode.MESSAGE_TOO_BIG)
+
     def test_recv_non_utf8_text(self):
         """recv receives a non-UTF-8 text message."""
         self.remote_connection.send(b"\x01\x02\xfe\xff", text=True)
@@ -308,6 +319,17 @@ class ClientConnectionTests(LoggingTestCase, ThreadTestCase):
         with self.assertRaises(ConnectionClosedError):
             for _ in self.connection.recv_streaming():
                 self.fail("did not raise")
+
+    @few_fragments()
+    def test_recv_streaming_many_frames(self):
+        """recv_streaming accepts messages with more than the frame limit."""
+        self.connection.recv_messages.put(Frame(BINARY, b"t", fin=False))
+        self.connection.recv_messages.put(Frame(CONT, b"e", fin=False))
+        self.connection.recv_messages.put(Frame(CONT, b"a", fin=True))
+        self.assertEqual(
+            list(self.connection.recv_streaming()),
+            [b"t", b"e", b"a"],
+        )
 
     def test_recv_streaming_non_utf8_text(self):
         """recv_streaming receives a non-UTF-8 text message."""

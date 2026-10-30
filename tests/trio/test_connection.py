@@ -22,6 +22,7 @@ from websockets.trio.connection import broadcast
 from ..protocol import RecordingProtocol
 from ..utils import MS, LoggingTestCase, alist, assertDurationAtLeast
 from .connection import InterceptingConnection
+from .test_messages import few_fragments
 from .utils import IsolatedTrioTestCase
 
 
@@ -208,6 +209,16 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         with self.assertRaises(ConnectionClosedError):
             await self.connection.recv()
 
+    @few_fragments()
+    async def test_recv_too_many_frames(self):
+        """recv closes the connection when a message has too many frames."""
+        self.connection.recv_messages.put(Frame(BINARY, b"t", fin=False))
+        self.connection.recv_messages.put(Frame(CONT, b"e", fin=False))
+        self.connection.recv_messages.put(Frame(CONT, b"a", fin=True))
+        with self.assertRaises(ConnectionClosedError) as raised:
+            await self.connection.recv()
+        self.assertEqual(raised.exception.sent.code, CloseCode.MESSAGE_TOO_BIG)
+
     async def test_recv_non_utf8_text(self):
         """recv receives a non-UTF-8 text message."""
         await self.remote_connection.send(b"\x01\x02\xfe\xff", text=True)
@@ -347,6 +358,17 @@ class ClientConnectionTests(LoggingTestCase, IsolatedTrioTestCase):
         with self.assertRaises(ConnectionClosedError):
             async for _ in self.connection.recv_streaming():
                 self.fail("did not raise")
+
+    @few_fragments()
+    async def test_recv_streaming_many_frames(self):
+        """recv_streaming accepts messages with more than the frame limit."""
+        self.connection.recv_messages.put(Frame(BINARY, b"t", fin=False))
+        self.connection.recv_messages.put(Frame(CONT, b"e", fin=False))
+        self.connection.recv_messages.put(Frame(CONT, b"a", fin=True))
+        self.assertEqual(
+            await alist(self.connection.recv_streaming(decode=False)),
+            [b"t", b"e", b"a"],
+        )
 
     async def test_recv_streaming_non_utf8_text(self):
         """recv_streaming receives a non-UTF-8 text message."""

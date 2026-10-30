@@ -4,12 +4,23 @@ import unittest.mock
 
 import trio.testing
 
-from websockets.exceptions import ConcurrencyError
+from websockets.exceptions import ConcurrencyError, TooManyFragments
 from websockets.frames import BINARY, CONT, TEXT, Frame
+from websockets.trio import messages
 from websockets.trio.messages import *
 
 from ..utils import alist
 from .utils import IsolatedTrioTestCase
+
+
+@contextlib.asynccontextmanager
+async def few_fragments():
+    max_fragments = messages.MAX_FRAGMENTS
+    messages.MAX_FRAGMENTS = 2
+    try:
+        yield
+    finally:
+        messages.MAX_FRAGMENTS = max_fragments
 
 
 class AssemblerTests(IsolatedTrioTestCase):
@@ -139,6 +150,15 @@ class AssemblerTests(IsolatedTrioTestCase):
         self.assembler.put(Frame(CONT, b"a"))
         await trio.testing.wait_all_tasks_blocked()
         self.assertEqual(message, b"tea")
+
+    @few_fragments()
+    async def test_get_too_many_fragments(self):
+        """get rejects a fragmented message with too many frames."""
+        self.assembler.put(Frame(BINARY, b"t", fin=False))
+        self.assembler.put(Frame(CONT, b"e", fin=False))
+        self.assembler.put(Frame(CONT, b"a", fin=True))
+        with self.assertRaises(TooManyFragments):
+            await self.assembler.get()
 
     async def test_get_encoded_text_message(self):
         """get returns a text message without UTF-8 decoding."""

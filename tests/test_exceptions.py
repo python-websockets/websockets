@@ -216,6 +216,10 @@ class ExceptionsTests(unittest.TestCase):
                 "frame with 8 bytes after reading 12 bytes exceeds limit of 16 bytes",
             ),
             (
+                TooManyFragments(2),
+                "fragmented message exceeds limit of 2 frames",
+            ),
+            (
                 InvalidState("WebSocket connection isn't established yet"),
                 "WebSocket connection isn't established yet",
             ),

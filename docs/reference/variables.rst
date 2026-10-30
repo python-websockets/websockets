@@ -47,6 +47,13 @@ Security
 
     The default value is ``1_048_576`` bytes (1 MiB).
 
+.. envvar:: WEBSOCKETS_MAX_FRAGMENTS
+
+    Maximum number of frames in a fragmented message that
+    :meth:`~asyncio.connection.Connection.recv` reassembles.
+
+    The default value is ``4096`` frames.
+
 See the :doc:`security guide <../topics/security>` for details.
 
 Reconnection

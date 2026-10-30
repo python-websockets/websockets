@@ -30,7 +30,7 @@ notice.
 17.4
 ----
 
-*In development*
+*October 30, 2026*
 
 Security fix
 ............

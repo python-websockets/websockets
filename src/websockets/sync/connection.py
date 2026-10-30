@@ -1117,7 +1117,8 @@ class Connection:
 
         """
         assert self.protocol_mutex.locked()
-        if self.connection_exc is None:
+        # This branch is covered or not depending on race conditions in tests.
+        if self.connection_exc is None:  # pragma: no cover
             self.connection_exc = exc
 
     def close_socket(self) -> None:

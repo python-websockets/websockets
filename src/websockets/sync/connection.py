@@ -1142,6 +1142,12 @@ class Connection:
             pass
 
         try:
+            # shutdown() is required to interrupt recv() on Linux.
+            self.socket.shutdown(socket.SHUT_RDWR)
+        except OSError:  # socket already closed
+            pass
+
+        try:
             self.socket.close()
         except OSError:  # socket already closed  # pragma: no cover
             # OSError: [Errno 9] Bad file descriptor

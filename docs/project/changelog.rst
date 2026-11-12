@@ -32,6 +32,12 @@ notice.
 
 *In development*
 
+Bug fixes
+.........
+
+* Fixed a regression in 17.3 where :meth:`~sync.connection.Connection.close` in
+  the sync implementation could hang on Linux.
+
 .. _17.4:
 
 17.4

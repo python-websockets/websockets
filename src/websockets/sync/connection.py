@@ -1099,7 +1099,7 @@ class Connection:
             else:
                 try:
                     self.socket.shutdown(socket.SHUT_WR)
-                except OSError:  # socket already closed
+                except OSError:  # socket already closed  # pragma: no cover
                     pass
 
     @property
